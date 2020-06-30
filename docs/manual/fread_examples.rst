@@ -1,14 +1,36 @@
-
+.. py:currentmodule:: datatable
 
 Fread Examples
 =================
 
+This function is capable of reading data from a variety of input formats (text files, plain text, files embedded in archives, excel files, ...), producing a Frame as the result. You can even read in data from the command line.
+
+See :func:`fread()` for all the available parameters.
+
+**Note:** If you wish to read in multiple files, use :func:`iread()`; it returns an iterator of Frames.
+
 Read Data
 ----------
 
-Read text data directly::
+- Read from text file::
+
+
 
     from datatable import dt, fread
+
+    result = fread('iris.csv')
+    result.head(5)
+
+        sepal_length	sepal_width	petal_length	petal_width	species
+    0	5.1	            3.5	            1.4	            0.2	        setosa
+    1	4.9	            3	            1.4	            0.2	        setosa
+    2	4.7	            3.2	            1.3	            0.2	        setosa
+    3	4.6	            3.1	            1.5	            0.2	        setosa
+    4	5	            3.6	            1.4	            0.2	        setosa
+
+
+- Read text data directly::
+
 
     data = ('col1,col2,col3\n'
             'a,b,1\n'
@@ -22,30 +44,21 @@ Read text data directly::
      a     b     2
      a     b     3
 
-Read from text file (any file that has the `.read()` method)::
 
-    result = fread('iris.csv')
-    result.head(5)
-
-        sepal_length	sepal_width	petal_length	petal_width	species
-    0	5.1	            3.5	            1.4	            0.2	        setosa
-    1	4.9	            3	            1.4	            0.2	        setosa
-    2	4.7	            3.2	            1.3	            0.2	        setosa
-    3	4.6	            3.1	            1.5	            0.2	        setosa
-    4	5	            3.6	            1.4	            0.2	        setosa
-
-
-Read from url::
+- Read from a url::
 
     url = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
     fread(url)
 
-Read from an archive. If there are multiple files, only the first will be read; you can specify the path to the specific file you are interested in::
+- Read from an archive:
 
+If there are multiple files, only the first will be read; you can specify the path to the specific file you are interested in::
 
     fread("data.zip/mtcars.csv")
 
-Read from `.xlsx` files - `.xls` files are not supported::
+**Note:** Use :func:`iread()` if you wish to read in multiple files in an archive; an iterator of Frames is returned.
+
+- Read from ``.xls`` or ``.xlsx`` files ::
 
     fread("excel.xlsx")
 
@@ -53,21 +66,24 @@ For excel files, you can specify the sheet to be read::
 
     fread("excel.xlsx/Sheet1")
 
-Note: `xlrd <https://pypi.org/project/xlrd/>`_ must be installed to read in excel files.
+**Note:**
+        - `xlrd <https://pypi.org/project/xlrd/>`_ must be installed to read in excel files.
 
-You can also read in data from the command line. Simply pass the command line statement to the `cmd` parameter::
+        -  Use :func:`iread()` if you wish to read in multiple sheets; an iterator of Frames is returned.
+
+- Read in data from the command line. Simply pass the command line statement to the ``cmd`` parameter::
 
      #https://blog.jpalardy.com/posts/awk-tutorial-part-2/
      #You specify the `cmd` parameter
      #Here we filter data for the year 2015
      fread(cmd = """cat netflix.tsv | awk 'NR==1; /^2015-/'""")
 
-The command line can be very handy with large data; you can do some of the preprocessing before reading in the data to `datatable`.
+The command line can be very handy with large data; you can do some of the preprocessing before reading in the data to ``datatable``.
 
 Dealing with Unicode Data
 -------------------------
 
-`Fread` is pretty powerful and can automatically detect the encoding in a number of cases.::
+You can specify the encoding via the ``encoding`` parameter; ``fread`` will recode into ``UTF-8`` before reading::
 
     data = ("num,name\n"
             "1,alïce\n"
@@ -75,20 +91,19 @@ Dealing with Unicode Data
             "3,cárol\n"
             )
 
-    fread(data)
+    fread(data, encoding = "latin-1")
 
               num       name
         0	1	alïce
         1	2	bøb
         2	3	cárol
 
-You can also specify the encoding; `fread` will recode into `UTF-8` before reading.
 Check `here <https://docs.python.org/3/library/codecs.html#standard-encodings>`_ for Python's list of standard encodings.
 
 Detect Thousand Separator
 -------------------------
 
-Thousand separators are automatically detected::
+``Fread`` handles thousand separator, with the assumption that the separator is a ``,``::
 
     data = """Name|Salary|Position
              James|256,000|evangelist
@@ -105,7 +120,7 @@ Thousand separators are automatically detected::
 Specify the Delimiter
 ---------------------
 
-You can specify the delimiter via the `sep` parameter.
+You can specify the delimiter via the ``sep`` parameter.
 Note that the  separator must be a single character string; non-ASCII characters are not allowed as the separator, as well as any characters in ``["'`0-9a-zA-Z]``::
 
     data = """
@@ -124,7 +139,7 @@ Note that the  separator must be a single character string; non-ASCII characters
 Dealing with Null Values and Blank Rows
 ---------------------------------------
 
-You can pass a list of values to be treated as null, via the `na_strings` parameter::
+You can pass a list of values to be treated as null, via the ``na_strings`` parameter::
 
     data = """
            ID|Charges|Payment_Method
@@ -145,7 +160,7 @@ You can pass a list of values to be treated as null, via the `na_strings` parame
     4	789-KPO	    56.9     Bank Transfer
 
 
-For rows with null values, set `fill=True`::
+For rows with less values than in other rows,  you can set ``fill=True``; ``fread`` will fill with ``NA``::
 
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
@@ -178,7 +193,7 @@ You can skip empty lines::
 Dealing with Column Names
 -------------------------
 
-If the data has no headers, `fread` will assign default column names::
+If the data has no headers, ``fread`` will assign default column names::
 
     data = ('1,2\n'
             '3,4\n')
@@ -189,7 +204,7 @@ If the data has no headers, `fread` will assign default column names::
     0	1	2
     1	3	4
 
-You can pass in column names via the `columns` parameter::
+You can pass in column names via the ``columns`` parameter::
 
     fread(data, columns=['A','B'])
 
@@ -197,7 +212,7 @@ You can pass in column names via the `columns` parameter::
     0	1	2
     1	3	4
 
-You can change column names with the `columns` parameter::
+You can change column names::
 
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
@@ -211,7 +226,7 @@ You can change column names with the `columns` parameter::
     1	5	6	7	8
     2	9	10	11	12
 
-You can change `some` of the column names via a `dictionary`::
+You can change *some* of the column names via a dictionary::
 
     fread(data, columns={"a":"A", "b":"B"})
 
@@ -220,7 +235,7 @@ You can change `some` of the column names via a `dictionary`::
     1	5	6	7	8
     2	9	10	11	12
 
-By deafult, `fread` takes the first line in the data as the header. If, however, you do not want the first line as the header, set the `header` parameter to False::
+``Fread`` uses heuristics to determine whether the first row is data or not; occasionally it may guess incorrectly, in which case, you can set the ``header`` parameter to *False*::
 
     fread(data,  header=False)
 
@@ -244,7 +259,7 @@ You can pass a new list of column names as well::
 Row Selection
 -------------
 
-`Fread` has a `skip_to_line` parameter, where you can specify what line to read data from::
+``Fread`` has a ``skip_to_line`` parameter, where you can specify what line to read the data from::
 
     data = ('skip this line\n'
             'a,b,c,d\n'
@@ -259,7 +274,7 @@ Row Selection
     1	5	6	7	8
     2	9	10	11	12
 
-You can also skip to a line containing a particular string, and start reading data from that line. Note that `skip_to_string` and `skip_to_line` cannot be combined; you can only use one::
+You can also skip to a line containing a particular string with the ``skip_to_string`` parameter, and start reading data from that line. Note that ``skip_to_string`` and ``skip_to_line`` cannot be combined; you can only use one::
 
     data = ('skip this line\n'
             'a,b,c,d\n'
@@ -277,7 +292,7 @@ You can also skip to a line containing a particular string, and start reading da
     2	9	10	11	12
 
 
-You can set the maximum number of rows to read::
+You can set the maximum number of rows to read with the ``max_nrows`` parameter::
 
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
@@ -306,7 +321,7 @@ You can set the maximum number of rows to read::
 Setting Column Type
 --------------------
 
-You can determine the data types via the `columns` parameter::
+You can determine the data types via the ``columns`` parameter::
 
     data = ('a,b,c,d\n'
             '1,2,3,4\n'
@@ -316,35 +331,36 @@ You can determine the data types via the `columns` parameter::
     #this is useful when you are interested in only a subset of the columns
     fread(data, columns={"a":dt.float32, "b":dt.str32})
 
-You can also pass in the data types by position::
+You can also pass in the data types by *position*::
 
     fread(data, columns = (stype.int32, stype.str32, stype.float32))
 
-You can also change `all` the column data types with a single assignment::
+You can also change *all* the column data types with a single assignment::
 
     fread(data, columns = dt.float32)
 
-You can change the data type for a `slice` of the columns::
+You can change the data type for a *slice* of the columns::
 
     #this changes the data type to float for the first three columns
     fread(data, columns={float:slice(3)})
 
-Note that there are a small number of stypes within `datatable` (`int8`, `int16`, `int32`, `int64`, `float32`, `float64`, `str32`, `str64`, `obj64`, `bool8`)
+Note that there are a small number of stypes within ``datatable`` (*int8*, *int16*, *int32*, *int64*, *float32*, *float64*, *str32*, *str64*, *obj64*, *bool8*)
 
 Selecting Columns
 -----------------
 
-There are various ways to select columns in `fread` :
+There are various ways to select columns in ``fread`` :
 
-- Select with a `dictionary`::
+- Select with a *dictionary*::
 
         data = ('a,b,c,d\n'
                 '1,2,3,4\n'
                 '5,6,7,8\n'
                 '9,10,11,12')
 
-        #pass Ellipsis:None to discard any columns that are not needed
-        fread(data, columns={"a":"a", Ellipsis:None})
+        #pass ``Ellipsis : None`` or ``... : None``,
+        #to discard any columns that are not needed
+        fread(data, columns={"a":"a", ... : None})
 
         a
     0	1
@@ -354,7 +370,7 @@ There are various ways to select columns in `fread` :
 Selecting via a dictionary makes more sense when selecting and renaming columns at the same time.
 
 
-- Select columns with a `set`::
+- Select columns with a *set*::
 
     fread(data, columns={"a","b"})
 
@@ -363,8 +379,9 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     1	5	6
     2	9	10
 
-- Select range of columns with `slice`::
+- Select range of columns with *slice*::
 
+    #select the second and third column
     fread(data, columns=slice(1,3))
 
         b	c
@@ -372,6 +389,9 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     1	6	7
     2	10	11
 
+    #select the first column
+    #jump two hoops and
+    #select the third column
     fread(data, columns = slice(None,3,2))
 
         a	c
@@ -380,7 +400,7 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     2	9	11
 
 
-- Select range of columns with `range`::
+- Select range of columns with *range*::
 
     fread(data, columns = range(1,3))
 
@@ -407,7 +427,7 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     1	5	7
     2	9	11
 
-- Exclude columns with `None`::
+- Exclude columns with *None*::
 
     fread(data, columns = ['a',None,None,'d'])
 
@@ -416,7 +436,17 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     1	5	8
     2	9	12
 
-- Drop columns by assigning `None` to the columns via a `dictionary`::
+- Exclude columns with list comprehension::
+
+    fread(data, columns=lambda cols:[col.name not in ("a","c") for col in cols])
+
+
+        b	d
+    0	2	4
+    1	6	8
+    2	10	12
+
+- Drop columns by assigning *None* to the columns via a dictionary::
 
     data = ("A,B,C,D\n"
             "1,3,5,7\n"
@@ -428,15 +458,6 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     0	1	5
     1	2	6
 
-- Exclude columns with list comprehension::
-
-    fread(data, columns=lambda cols:[col.name not in ("a","c") for col in cols])
-
-
-        b	d
-    0	2	4
-    1	6	8
-    2	10	12
 
 - Drop a column and change data type::
 
