@@ -364,9 +364,10 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
       do_ordered(i);
       post_ordered(i);
       sch->work.add_done_amount(1);
-      if (progress::manager->is_interrupt_occurred()) {
-        progress::manager->handle_interrupt();
-      }
+      progress::manager->check_interrupts_main();
+      // if (progress::manager->is_interrupt_occurred()) {
+      //   progress::manager->handle_interrupt();
+      // }
     }
     return;
   }

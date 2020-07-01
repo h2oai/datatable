@@ -75,7 +75,7 @@ void thread_worker::run() noexcept {
         scheduler = controller;
       }
     } catch (...) {
-      enable_monitor(false);
+      // enable_monitor(false);
       controller->catch_exception();
       scheduler->abort_execution();
     }
@@ -98,8 +98,9 @@ void thread_worker::run_master(thread_scheduler* job) noexcept {
       thread_task* task = job->get_next_task(0);
       if (!task) break;
       task->execute(this);
+      progress::manager->check_interrupts_main();
     } catch (...) {
-      enable_monitor(false);
+      // enable_monitor(false);
       controller->catch_exception();
       job->abort_execution();
     }
@@ -174,7 +175,7 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
 
   prev_sleep_task->next_scheduler = job;
   prev_sleep_task->semaphore.signal(nth);
-  enable_monitor(true);
+  // enable_monitor(true);
   master_worker->run_master(job);
 }
 
@@ -188,7 +189,7 @@ void idle_job::join() {
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   prev_sleep_task->next_scheduler = nullptr;
-  enable_monitor(false);
+  // enable_monitor(false);
 
   if (saved_exception) {
     progress::manager->reset_interrupt_status();

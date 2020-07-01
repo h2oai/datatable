@@ -286,7 +286,8 @@ void Logger::end_section() noexcept {
 
 
 void Logger::emit(std::string&& msg, bool warning) {
-  std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  // std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  PythonLock pylock;
   CallLoggerLock loglock;
   // Use user-defined logger object
   if (pylogger_) {

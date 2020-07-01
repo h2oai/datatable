@@ -97,7 +97,7 @@ void monitor_thread::run() noexcept {
 
   _set_thread_num(size_t(-1));
 
-  std::unique_lock<std::mutex> lock(dt::python_mutex());
+  std::unique_lock<std::recursive_mutex> lock(thpool->python_mutex);
   while (running_) {
     // Sleep state
     while (!monitor_thread_active && running_) {
@@ -144,7 +144,8 @@ void monitor_thread::set_active(bool a) noexcept {
 
 
 void monitor_thread::stop_running() {
-  std::lock_guard<std::mutex> lock(dt::python_mutex());
+  // std::lock_guard<std::mutex> lock(dt::python_mutex());
+  PythonLock pylock;
   running_ = false;
   monitor_thread_active = 0;
   sleep_state_cv_.notify_one();

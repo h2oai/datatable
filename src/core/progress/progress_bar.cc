@@ -134,6 +134,7 @@ void progress_bar_enabled::refresh() {
 
   if (force_redraw || now >= time_next_update) {
     time_next_update = now + update_interval;
+    HidePythonError hpe;
     if (pyfn_external)
       _report_to_python();
     else

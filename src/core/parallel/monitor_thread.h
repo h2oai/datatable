@@ -38,7 +38,7 @@ class monitor_thread {
   private:
     std::thread             thread_;
     idle_job*               controller_;
-    std::condition_variable sleep_state_cv_;
+    std::condition_variable_any sleep_state_cv_;
     bool                    running_;
     size_t : 56;
 

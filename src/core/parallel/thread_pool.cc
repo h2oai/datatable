@@ -41,6 +41,15 @@ thread_pool* thpool = new thread_pool;
 
 
 //------------------------------------------------------------------------------
+// PythonLock
+//------------------------------------------------------------------------------
+
+PythonLock::PythonLock()
+  : lock_(thpool->python_mutex) {}
+
+
+
+//------------------------------------------------------------------------------
 // thread_pool
 //------------------------------------------------------------------------------
 
@@ -224,9 +233,10 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
-std::mutex& python_mutex() {
-  return thpool->python_mutex;
-}
+// std::mutex& python_mutex() {
+//   return thpool->python_mutex;
+// }
+
 
 std::mutex& team_mutex() {
   return thpool->global_mutex;
