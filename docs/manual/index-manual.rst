@@ -6,3 +6,4 @@ User Guide
 
 	name_mangling
 	f-expressions
+	fread_examples
