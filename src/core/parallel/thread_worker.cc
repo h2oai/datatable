@@ -162,6 +162,7 @@ thread_task* idle_job::get_next_task(size_t) {
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   xassert(job);
+  xassert(this_thread_index() == 0);
   xassert(n_threads_running == 0);
   xassert(prev_sleep_task->next_scheduler == nullptr);
   xassert(curr_sleep_task->next_scheduler == nullptr);
@@ -180,6 +181,7 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void idle_job::join() {
+  xassert(this_thread_index() == 0);
   // Busy-wait until all threads finish running
   while (n_threads_running.load() != 0);
 

@@ -119,6 +119,21 @@ void progress_manager::set_status_cancelled() noexcept {
 }
 
 
+void progress_manager::check_interrupts_main() {
+  xassert(dt::this_thread_index() == 0);
+  std::lock_guard<std::mutex> lock(dt::python_mutex());
+
+  if (PyErr_CheckSignals()) {
+    if (pbar) pbar->set_status_error(true);
+    interrupt_status = InterruptStatus::ABORT_EXECUTION;
+    throw PyError();
+  }
+  if (pbar) {
+    pbar->refresh();
+  }
+}
+
+
 
 
 }} // namespace dt::progress
