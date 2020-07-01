@@ -130,6 +130,7 @@ void parallel_for_static(size_t n_iterations,
         func(i);
       }
       i0 += chunk_size_;
+      progress::manager->check_interrupts_main();
       if (progress::manager->is_interrupt_occurred()) {
         i0 = n_iterations;
         progress::manager->handle_interrupt();
@@ -141,6 +142,7 @@ void parallel_for_static(size_t n_iterations,
   parallel_region(
     NThreads(num_threads),
     [=] {
+      const bool is_main_thread = (this_thread_index() == 0);
       size_t i0 = chunk_size_ * this_thread_index();
       size_t di = chunk_size_ * num_threads;
       while (i0 < n_iterations) {
@@ -149,7 +151,10 @@ void parallel_for_static(size_t n_iterations,
           func(i);
         }
         i0 += di;
-      if (progress::manager->is_interrupt_occurred()) {
+        if (is_main_thread) {
+          progress::manager->check_interrupts_main();
+        }
+        if (progress::manager->is_interrupt_occurred()) {
           i0 = n_iterations;
         }
       }
