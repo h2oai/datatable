@@ -185,6 +185,7 @@ thread_team* thread_pool::get_team_unchecked() noexcept {
 
 
 void thread_pool::enable_monitor(bool a) noexcept {
+  (void) a;
   // init_monitor_thread();
   // monitor->set_active(a);
 }
