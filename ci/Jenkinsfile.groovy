@@ -545,6 +545,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
                             sh "rm -rf dist"
                             unstash 'x86_64-manylinux-wheels'
+                            unstash 'x86_64-manylinux-debugwheels'
                             unstash 'x86_64-macos-wheels'
                             unstash 'sdist'
                             unstash 'build_info'
@@ -593,6 +594,7 @@ ansiColor('xterm') {
                         dir(stageDir) {
                             checkout scm
                             unstash 'x86_64-manylinux-wheels'
+                            unstash 'x86_64-manylinux-debugwheels'
                             unstash 'x86_64-macos-wheels'
                             unstash 'ppc64le-manylinux-wheels'
                             unstash 'sdist'
