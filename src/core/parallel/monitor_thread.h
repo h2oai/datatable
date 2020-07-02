@@ -22,7 +22,7 @@
 namespace dt {
 
 class idle_job;
-void enable_monitor(bool) noexcept;
+// void enable_monitor(bool) noexcept;
 
 
 /**

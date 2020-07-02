@@ -422,7 +422,7 @@ void parallel_for_ordered(size_t niters, NThreads NThreads_,
   dt::progress::work job(niters);
   size_t nthreads = NThreads_.get();
 
-  thpool->instantiate_threads();  // temp fix
+  // thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;

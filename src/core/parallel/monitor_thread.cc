@@ -158,11 +158,11 @@ void monitor_thread::stop_running() {
 //------------------------------------------------------------------------------
 
 MonitorGuard::MonitorGuard() {
-  thpool->enable_monitor(true);
+  // thpool->enable_monitor(true);
 }
 
 MonitorGuard::~MonitorGuard() {
-  thpool->enable_monitor(false);  // noexcept
+  // thpool->enable_monitor(false);  // noexcept
 }
 
 

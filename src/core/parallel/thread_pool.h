@@ -94,18 +94,17 @@ class ThreadPool
     thread_team* current_team;
 
     // Create the monitor thread, if it was not created yet.
-    void init_monitor_thread() noexcept;
+    // void init_monitor_thread() noexcept;
 
   public:
     ThreadPool();
     ThreadPool(const ThreadPool&) = delete;
-    // Not moveable: workers hold pointers to this->controller.
-    ThreadPool(ThreadPool&&) = delete;
+    ThreadPool(ThreadPool&&) = delete;  // Not moveable: workers hold pointers to this->controller.
+    ~ThreadPool() = delete;             // ThreadPool never gets deleted
 
     static thread_team* get_team_unchecked() noexcept;
 
 
-    void instantiate_threads();
     void execute_job(thread_scheduler*);
 
     size_t size() const noexcept;
@@ -115,9 +114,12 @@ class ThreadPool
     size_t n_threads_in_team() const noexcept;
 
     // Monitor thread control.
-    void enable_monitor(bool) noexcept;
+    // void enable_monitor(bool) noexcept;
 
     static void init_options();
+
+  private:
+    void instantiate_threads();
 };
 
 

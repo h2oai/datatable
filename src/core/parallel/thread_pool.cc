@@ -99,10 +99,7 @@ ThreadPool::ThreadPool()
   #endif
 }
 
-// In the current implementation the ThreadPool instance never gets deleted
-// ThreadPool::~ThreadPool() {
-//   resize(0);
-// }
+
 
 
 size_t ThreadPool::size() const noexcept {
@@ -120,7 +117,7 @@ void ThreadPool::resize(size_t n) {
 
 void ThreadPool::instantiate_threads() {
   size_t n = num_threads_requested;
-  init_monitor_thread();
+  // init_monitor_thread();
   if (workers.size() == n) return;
   if (workers.size() < n) {
     workers.reserve(n);
@@ -151,13 +148,13 @@ void ThreadPool::instantiate_threads() {
 }
 
 
-void ThreadPool::init_monitor_thread() noexcept {
+// void ThreadPool::init_monitor_thread() noexcept {
   // if (!monitor) {
   //   monitor = std::unique_ptr<monitor_thread>(
   //               new monitor_thread(&controller)
   //             );
   // }
-}
+// }
 
 
 void ThreadPool::execute_job(thread_scheduler* job) {
@@ -184,11 +181,11 @@ thread_team* ThreadPool::get_team_unchecked() noexcept {
 }
 
 
-void ThreadPool::enable_monitor(bool a) noexcept {
-  (void) a;
-  // init_monitor_thread();
-  // monitor->set_active(a);
-}
+// void ThreadPool::enable_monitor(bool a) noexcept {
+//   (void) a;
+//   // init_monitor_thread();
+//   // monitor->set_active(a);
+// }
 
 
 
@@ -196,9 +193,9 @@ void ThreadPool::enable_monitor(bool a) noexcept {
 //------------------------------------------------------------------------------
 // Monitor thread control.
 //------------------------------------------------------------------------------
-void enable_monitor(bool a) noexcept {
-  thpool->enable_monitor(a);
-}
+// void enable_monitor(bool a) noexcept {
+//   thpool->enable_monitor(a);
+// }
 
 
 
