@@ -39,20 +39,6 @@ namespace dt {
 // Singleton instance of the ThreadPool
 ThreadPool* thpool = new ThreadPool;
 
-
-//------------------------------------------------------------------------------
-// PythonLock
-//------------------------------------------------------------------------------
-
-PythonLock::PythonLock()
-  : lock_(thpool->python_mutex) {}
-
-
-
-//------------------------------------------------------------------------------
-// ThreadPool
-//------------------------------------------------------------------------------
-
 // no fork on Windows
 #if !DT_OS_WINDOWS
 
@@ -86,6 +72,10 @@ PythonLock::PythonLock()
 
 
 
+//------------------------------------------------------------------------------
+// ThreadPool
+//------------------------------------------------------------------------------
+
 ThreadPool::ThreadPool()
   : num_threads_requested(0),
     current_team(nullptr)
@@ -110,7 +100,7 @@ void ThreadPool::resize(size_t n) {
   num_threads_requested = n;
   // Adjust the actual thread count, but only if the threads were already
   // instantiated.
-  if (!workers.empty()) {
+  if (!workers_.empty()) {
     instantiate_threads();
   }
 }
@@ -118,13 +108,13 @@ void ThreadPool::resize(size_t n) {
 void ThreadPool::instantiate_threads() {
   size_t n = num_threads_requested;
   // init_monitor_thread();
-  if (workers.size() == n) return;
-  if (workers.size() < n) {
-    workers.reserve(n);
-    for (size_t i = workers.size(); i < n; ++i) {
+  if (workers_.size() == n) return;
+  if (workers_.size() < n) {
+    workers_.reserve(n);
+    for (size_t i = workers_.size(); i < n; ++i) {
       try {
         auto worker = new ThreadWorker(i, &controller);
-        workers.push_back(worker);
+        workers_.push_back(worker);
       } catch (...) {
         // If threads cannot be created (for example if user has requested
         // too many threads), then stop creating new workers and use as
@@ -139,12 +129,12 @@ void ThreadPool::instantiate_threads() {
     thread_team tt(n, this);
     thread_shutdown_scheduler tss(n, &controller);
     execute_job(&tss);
-    for (size_t i = n; i < workers.size(); ++i) {
-      delete workers[i];
+    for (size_t i = n; i < workers_.size(); ++i) {
+      delete workers_[i];
     }
-    workers.resize(n);
+    workers_.resize(n);
   }
-  xassert(workers.size() == num_threads_requested);
+  xassert(workers_.size() == num_threads_requested);
 }
 
 
@@ -159,10 +149,10 @@ void ThreadPool::instantiate_threads() {
 
 void ThreadPool::execute_job(thread_scheduler* job) {
   xassert(current_team);
-  if (workers.empty()) instantiate_threads();
-  controller.awaken_and_run(job, workers.size());
+  if (workers_.empty()) instantiate_threads();
+  controller.awaken_and_run(job, workers_.size());
   controller.join();
-  // careful: workers.size() may not be equal to num_threads_requested during
+  // careful: workers_.size() may not be equal to num_threads_requested during
   // shutdown
 }
 

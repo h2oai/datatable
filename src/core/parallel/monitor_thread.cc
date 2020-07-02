@@ -35,11 +35,12 @@
 
 
 // volatile std::sig_atomic_t gSignalStatus;
-using sig_handler_t = void(*)(int);
-static sig_handler_t sigint_handler_prev = nullptr;
+// using sig_handler_t = void(*)(int);
+// static sig_handler_t sigint_handler_prev = nullptr;
 
 static volatile std::sig_atomic_t monitor_thread_active = 0;
 
+/*
 extern "C" {
   static void sigint_handler(int signal) {
     if (monitor_thread_active) {
@@ -50,7 +51,7 @@ extern "C" {
     }
   }
 }
-
+*/
 
 
 namespace dt {
@@ -76,7 +77,7 @@ monitor_thread::~monitor_thread() {
 
 
 void monitor_thread::run() noexcept {
-  constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
+  // constexpr auto SLEEP_TIME = std::chrono::milliseconds(20);
 
   // Reduce this thread's priority to a minimum.
   #if DT_OS_WINDOWS
@@ -97,6 +98,7 @@ void monitor_thread::run() noexcept {
 
   _set_thread_num(size_t(-1));
 
+  /*
   std::unique_lock<std::recursive_mutex> lock(thpool->python_mutex);
   while (running_) {
     // Sleep state
@@ -133,6 +135,7 @@ void monitor_thread::run() noexcept {
       sleep_state_cv_.wait_for(lock, SLEEP_TIME);
     }
   }
+  */
 }
 
 

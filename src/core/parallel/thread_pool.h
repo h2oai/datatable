@@ -68,7 +68,7 @@ class ThreadPool
     // Also, use pointers here instead of `ThreadWorker` objects, so that
     // the pointers to each worker remain constant when the vector resizes
     // (these pointers are stored within each thread).
-    std::vector<ThreadWorker*> workers;
+    std::vector<ThreadWorker*> workers_;
 
     // Number of threads in the pool, as requested by the user. This is
     // usually the same as `workers.size()` except in two cases: (1) when
@@ -88,7 +88,7 @@ class ThreadPool
     std::mutex global_mutex;
 
     // Mutex that guards access to python runtime
-    std::recursive_mutex python_mutex;
+    // std::recursive_mutex python_mutex;
 
     // TODO: merge thread_team functionality into the pool?
     thread_team* current_team;
