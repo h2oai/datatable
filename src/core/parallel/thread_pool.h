@@ -24,6 +24,7 @@
 #include <mutex>               // std::mutex
 #include <thread>              // std::thread::id
 #include <vector>              // std::vector
+#include "parallel/job_idle.h"
 #include "parallel/thread_job.h"
 #include "parallel/thread_worker.h"
 namespace dt {
