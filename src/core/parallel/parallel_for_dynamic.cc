@@ -17,7 +17,7 @@
 #include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/function.h"
@@ -74,7 +74,7 @@ void dynamic_task::execute(ThreadWorker*) {
 // dynamic_scheduler
 //------------------------------------------------------------------------------
 
-class dynamic_scheduler : public thread_scheduler {
+class dynamic_scheduler : public ThreadJob {
   private:
     std::vector<dynamic_task> tasks;
     size_t nthreads;

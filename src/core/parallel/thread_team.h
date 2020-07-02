@@ -23,7 +23,7 @@
 namespace dt {
 
 // Forward-declare
-class thread_scheduler;
+class ThreadJob;
 
 
 
@@ -31,7 +31,7 @@ class thread_team {
   private:
     size_t nthreads;
     ThreadPool* thpool;
-    std::atomic<thread_scheduler*> nested_scheduler;
+    std::atomic<ThreadJob*> nested_scheduler;
 
     std::atomic<size_t> barrier_counter;
 

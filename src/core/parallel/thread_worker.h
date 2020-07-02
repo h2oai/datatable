@@ -23,7 +23,7 @@
 #include <thread>               // std::thread
 #include "parallel/monitor_thread.h"
 #include "parallel/semaphore.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 namespace dt {
 
 // Forward-declare
@@ -48,7 +48,7 @@ class ThreadWorker {
   private:
     const size_t thread_index;
     std::thread  thread;
-    thread_scheduler*  scheduler;
+    ThreadJob*  scheduler;
     idle_job* controller;
 
   public:
@@ -58,7 +58,7 @@ class ThreadWorker {
     ~ThreadWorker();
 
     void run() noexcept;
-    void run_master(thread_scheduler*) noexcept;
+    void run_master(ThreadJob*) noexcept;
     size_t get_index() const noexcept;
 };
 
@@ -109,16 +109,16 @@ class ThreadWorker {
  * threads might still be waking up from the initial sleep.
  *
  * The master thread that called `awaken(job)` will then call `job.join()`,
- * and it is the responsibility of thread_scheduler `job` to wait until all
+ * and it is the responsibility of ThreadJob `job` to wait until all
  * threads have finished execution and were put back to sleep. Thus, the master
  * thread ensures that all threads are sleeping again before the next call to
  * `awaken`.
  */
-class idle_job : public thread_scheduler {
+class idle_job : public ThreadJob {
   private:
     struct sleep_task : public thread_task {
       idle_job* const controller;
-      thread_scheduler* next_scheduler;
+      ThreadJob* next_scheduler;
       LightweightSemaphore semaphore;
 
       sleep_task(idle_job*);
@@ -154,7 +154,7 @@ class idle_job : public thread_scheduler {
     // Called from the master thread, this function will awaken all threads
     // in the thread pool, and give them `job` to execute.
     // Precondition: that all threads in the pool are currently sleeping.
-    void awaken_and_run(thread_scheduler* job, size_t nthreads);
+    void awaken_and_run(ThreadJob* job, size_t nthreads);
 
     // Called from the master thread, this function will block until all the
     // work is finished and all worker threads have been put to sleep. If there
@@ -188,7 +188,7 @@ class idle_job : public thread_scheduler {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-class thread_shutdown_scheduler : public thread_scheduler {
+class thread_shutdown_scheduler : public ThreadJob {
   private:
     struct shutdown_task : public thread_task {
       void execute(ThreadWorker* worker) override;

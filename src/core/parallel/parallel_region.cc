@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/macros.h"          // cache_aligned
@@ -49,7 +49,7 @@ void simple_task::execute(ThreadWorker*) {
 //------------------------------------------------------------------------------
 
 // Implementation class for `dt::parallel_region()` function.
-class once_scheduler : public thread_scheduler {
+class once_scheduler : public ThreadJob {
   private:
     std::vector<cache_aligned<size_t>> done;
     thread_task* task;

@@ -24,7 +24,7 @@
 #include <mutex>               // std::mutex
 #include <thread>              // std::thread::id
 #include <vector>              // std::vector
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_worker.h"
 namespace dt {
 
@@ -105,7 +105,7 @@ class ThreadPool
     static thread_team* get_team_unchecked() noexcept;
 
 
-    void execute_job(thread_scheduler*);
+    void execute_job(ThreadJob*);
 
     size_t size() const noexcept;
     void resize(size_t n);

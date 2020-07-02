@@ -147,7 +147,7 @@ void ThreadPool::instantiate_threads() {
 // }
 
 
-void ThreadPool::execute_job(thread_scheduler* job) {
+void ThreadPool::execute_job(ThreadJob* job) {
   xassert(current_team);
   if (workers_.empty()) instantiate_threads();
   controller.awaken_and_run(job, workers_.size());

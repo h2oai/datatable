@@ -19,49 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
-#include "parallel/thread_pool.h"
-#include "parallel/thread_job.h"
-#include "parallel/thread_team.h"
-#include "utils/exceptions.h"
+#ifndef dt_PARALLEL_THREAD_JOB_h
+#define dt_PARALLEL_THREAD_JOB_h
+#include <cstddef>  // size_t
 namespace dt {
 
-
-thread_team::thread_team(size_t nth, ThreadPool* pool)
-  : nthreads(nth),
-    thpool(pool),
-    nested_scheduler(nullptr),
-    barrier_counter {0}
-{
-  if (thpool->current_team) {
-    throw RuntimeError() << "Unable to create a nested thread team";
-  }
-  thpool->current_team = this;
-}
+// forward-declare
+class ThreadWorker;
 
 
-thread_team::~thread_team() {
-  thpool->current_team = nullptr;
-  auto tmp = nested_scheduler.load();
-  delete tmp;
-}
+class thread_task {
+  public:
+    thread_task() = default;
+    virtual ~thread_task();
+    virtual void execute(ThreadWorker*) = 0;
+};
 
 
-size_t thread_team::size() const noexcept {
-  return nthreads;
-}
+
+class ThreadJob {
+  public:
+    virtual ~ThreadJob();
+
+    // Invoked by a worker (on a worker thread), this method should
+    // return the next task to be executed by thread `thread_index`.
+    // The lifetime of the returned object should be at least until
+    // the next invocation of `get_next_task()` by the thread with
+    // the same index.
+    virtual thread_task* get_next_task(size_t thread_index) = 0;
+
+    // Invoked by `handle_exception()` (and therefore on a worker thread), this
+    // method should cancel all pending tasks, or as many as feasible, since
+    // their results will not be needed. This call is not supposed to be
+    // blocking. The default implementation does nothing (all scheduled tasks
+    // continue being executed), which is allowed but sub-optimal.
+    virtual void abort_execution();
+
+    void execute_in_current_thread();
+};
 
 
-void thread_team::wait_at_barrier() {
-  size_t n = barrier_counter.fetch_add(1);
-  size_t n_target = n - (n % nthreads) + nthreads;
-  while (barrier_counter.load() < n_target);
-}
 
-
-void barrier() {
-  ThreadPool::get_team_unchecked()->wait_at_barrier();
-}
-
-
-} // namespace dt
+}  // namespace dt
+#endif

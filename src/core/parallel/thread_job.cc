@@ -19,49 +19,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
-#include "parallel/thread_pool.h"
-#include "parallel/thread_job.h"
-#include "parallel/thread_team.h"
-#include "utils/exceptions.h"
+#include "parallel/api.h"           // this_thread_index
+#include "parallel/thread_job.h"    // ThreadJob
 namespace dt {
 
 
-thread_team::thread_team(size_t nth, ThreadPool* pool)
-  : nthreads(nth),
-    thpool(pool),
-    nested_scheduler(nullptr),
-    barrier_counter {0}
-{
-  if (thpool->current_team) {
-    throw RuntimeError() << "Unable to create a nested thread team";
+thread_task::~thread_task() {}
+
+
+ThreadJob::~ThreadJob() {}
+
+
+void ThreadJob::abort_execution() {
+  // default implementation does nothing
+}
+
+
+void ThreadJob::execute_in_current_thread() {
+  // If this throws an exception, it will propagate to outer level, where the
+  // exception will get caught in the outer's level task executor.
+  size_t ith = dt::this_thread_index();
+  while (true) {
+    auto task = get_next_task(ith);
+    if (!task) break;
+    task->execute(nullptr);
   }
-  thpool->current_team = this;
 }
 
 
-thread_team::~thread_team() {
-  thpool->current_team = nullptr;
-  auto tmp = nested_scheduler.load();
-  delete tmp;
-}
 
-
-size_t thread_team::size() const noexcept {
-  return nthreads;
-}
-
-
-void thread_team::wait_at_barrier() {
-  size_t n = barrier_counter.fetch_add(1);
-  size_t n_target = n - (n % nthreads) + nthreads;
-  while (barrier_counter.load() < n_target);
-}
-
-
-void barrier() {
-  ThreadPool::get_team_unchecked()->wait_at_barrier();
-}
-
-
-} // namespace dt
+}  // namespace dt

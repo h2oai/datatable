@@ -98,7 +98,7 @@ void ThreadWorker::run() noexcept {
  *   - the `scheduler` is not used (since it is never set by the
  *     controller), instead the `job` is passed explicitly.
  */
-void ThreadWorker::run_master(thread_scheduler* job) noexcept {
+void ThreadWorker::run_master(ThreadJob* job) noexcept {
   if (!job) return;
   while (true) {
     try {
@@ -168,7 +168,7 @@ thread_task* idle_job::get_next_task(size_t) {
  * by the time we run `join()` the number of running threads would be
  * zero, even though no work has been done yet.
  */
-void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
+void idle_job::awaken_and_run(ThreadJob* job, size_t nthreads) {
   xassert(job);
   xassert(this_thread_index() == 0);
   xassert(n_threads_running == 0);
@@ -234,7 +234,7 @@ void idle_job::catch_exception() noexcept {
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }
-    thread_scheduler* current_job = prev_sleep_task->next_scheduler;
+    ThreadJob* current_job = prev_sleep_task->next_scheduler;
     if (current_job) {
       current_job->abort_execution();
     }

@@ -19,7 +19,7 @@
 #include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/spin_mutex.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "progress/work.h"
 #include "utils/assert.h"
@@ -138,7 +138,7 @@ void wait_task::execute(ThreadWorker*) {
 // ordered_scheduler
 //------------------------------------------------------------------------------
 
-class ordered_scheduler : public thread_scheduler {
+class ordered_scheduler : public ThreadJob {
   friend class ordered;
   private:
     size_t n_tasks;
