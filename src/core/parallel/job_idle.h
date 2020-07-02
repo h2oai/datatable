@@ -29,6 +29,7 @@
 #include "parallel/thread_job.h"
 namespace dt {
 
+class SleepTask;
 
 
 /**
@@ -78,22 +79,13 @@ namespace dt {
   */
 class Job_Idle : public ThreadJob {
   private:
-    struct sleep_task : public ThreadTask {
-      Job_Idle* const controller;
-      ThreadJob* next_scheduler;
-      LightweightSemaphore semaphore;
-
-      sleep_task(Job_Idle*);
-      void execute() override;
-    };
-
     // "Current" sleep task, meaning that all sleeping threads are executing
     // `curr_sleep_task->execute()`.
-    sleep_task* curr_sleep_task;
+    SleepTask* curr_sleep_task;
 
     // The "previous" sleep task. The pointers `prev_sleep_task` and
     // `curr_sleep_task` flip-flop.
-    sleep_task* prev_sleep_task;
+    SleepTask* prev_sleep_task;
 
     // Global mutex
     std::mutex mutex;
@@ -141,6 +133,20 @@ class Job_Idle : public ThreadJob {
     // This callback should be called before a thread is removed from the
     // threadpool.
     void on_before_thread_removed();
+};
+
+
+
+class SleepTask : public ThreadTask {
+  friend class Job_Idle;
+  private:
+    Job_Idle* const controller;
+    ThreadJob* next_scheduler;
+    LightweightSemaphore semaphore;
+
+  public:
+    SleepTask(Job_Idle*);
+    void execute() override;
 };
 
 

@@ -33,20 +33,9 @@ namespace dt {
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
 
-Job_Idle::sleep_task::sleep_task(Job_Idle* ij)
-  : controller(ij), next_scheduler{nullptr} {}
-
-void Job_Idle::sleep_task::execute() {
-  controller->n_threads_running--;
-  semaphore.wait();
-  xassert(next_scheduler);
-  thpool->assign_job_to_current_thread(next_scheduler);
-}
-
-
 Job_Idle::Job_Idle() {
-  curr_sleep_task = new sleep_task(this);
-  prev_sleep_task = new sleep_task(this);
+  curr_sleep_task = new SleepTask(this);
+  prev_sleep_task = new SleepTask(this);
   n_threads_running = 0;
 }
 
@@ -152,6 +141,23 @@ void Job_Idle::catch_exception() noexcept {
 
 bool Job_Idle::is_running() const noexcept {
   return (prev_sleep_task->next_scheduler != nullptr);
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// SleepTask
+//------------------------------------------------------------------------------
+
+SleepTask::SleepTask(Job_Idle* ij)
+  : controller(ij), next_scheduler{nullptr} {}
+
+void SleepTask::execute() {
+  controller->on_before_thread_removed();
+  semaphore.wait();
+  xassert(next_scheduler);
+  thpool->assign_job_to_current_thread(next_scheduler);
 }
 
 
