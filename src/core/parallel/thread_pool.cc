@@ -77,7 +77,7 @@ ThreadPool* thpool = new ThreadPool;
 //------------------------------------------------------------------------------
 
 ThreadPool::ThreadPool()
-  : num_threads_requested(0),
+  : num_threads_requested_(0),
     current_team(nullptr)
 {
   #if !DT_OS_WINDOWS
@@ -93,11 +93,11 @@ ThreadPool::ThreadPool()
 
 
 size_t ThreadPool::size() const noexcept {
-  return num_threads_requested;
+  return num_threads_requested_;
 }
 
 void ThreadPool::resize(size_t n) {
-  num_threads_requested = n;
+  num_threads_requested_ = n;
   // Adjust the actual thread count, but only if the threads were already
   // instantiated.
   if (!workers_.empty()) {
@@ -106,7 +106,7 @@ void ThreadPool::resize(size_t n) {
 }
 
 void ThreadPool::instantiate_threads() {
-  size_t n = num_threads_requested;
+  size_t n = num_threads_requested_;
   // init_monitor_thread();
   if (workers_.size() == n) return;
   if (workers_.size() < n) {
@@ -119,7 +119,7 @@ void ThreadPool::instantiate_threads() {
         // If threads cannot be created (for example if user has requested
         // too many threads), then stop creating new workers and use as
         // many as we were able to create thus far.
-        n = num_threads_requested = i;
+        n = num_threads_requested_ = i;
       }
     }
     // Wait until all threads are properly alive & safely asleep
@@ -134,7 +134,7 @@ void ThreadPool::instantiate_threads() {
     }
     workers_.resize(n);
   }
-  xassert(workers_.size() == num_threads_requested);
+  xassert(workers_.size() == num_threads_requested_);
 }
 
 
@@ -152,7 +152,7 @@ void ThreadPool::execute_job(thread_scheduler* job) {
   if (workers_.empty()) instantiate_threads();
   controller.awaken_and_run(job, workers_.size());
   controller.join();
-  // careful: workers_.size() may not be equal to num_threads_requested during
+  // careful: workers_.size() may not be equal to num_threads_requested_ during
   // shutdown
 }
 
@@ -226,9 +226,9 @@ size_t get_hardware_concurrency() noexcept {
 // }
 
 
-std::mutex& team_mutex() {
-  return thpool->global_mutex;
-}
+// std::mutex& team_mutex() {
+//   return thpool->global_mutex_;
+// }
 
 
 void ThreadPool::init_options() {

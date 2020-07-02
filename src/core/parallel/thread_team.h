@@ -45,7 +45,7 @@ class thread_team {
     S* shared_scheduler(Args&&... args) {
       auto tmp = nested_scheduler.load(std::memory_order_acquire);
       if (!tmp) {
-        std::lock_guard<std::mutex> lock(thpool->global_mutex);
+        std::lock_guard<std::mutex> lock(thpool->global_mutex_);
         tmp = nested_scheduler.load(std::memory_order_acquire);
         if (!tmp) {
           tmp = new S(std::forward<Args>(args)...);

@@ -55,9 +55,9 @@ class PythonLock;
 class ThreadPool
 {
   friend class thread_team;
-  friend class monitor_thread;
+  // friend class monitor_thread;
   friend class PythonLock;
-  friend std::mutex& team_mutex();
+  // friend std::mutex& team_mutex();
   // public:
   //   std::unique_ptr<monitor_thread> monitor;
 
@@ -77,7 +77,7 @@ class ThreadPool
     // is empty; (2) while executing shutdown job, this variable reflects
     // the "new" number of threads that should be, whereas `workers` array
     // still holds as many workers as we had originally.
-    size_t num_threads_requested;
+    size_t num_threads_requested_;
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
     // See definition in thread_worker.h
@@ -85,7 +85,7 @@ class ThreadPool
 
     // Mutex which can be used to guard operations that must be protected
     // across all threads.
-    std::mutex global_mutex;
+    std::mutex global_mutex_;
 
     // Mutex that guards access to python runtime
     // std::recursive_mutex python_mutex;
