@@ -21,7 +21,7 @@
 namespace dt {
 
 
-thread_team::thread_team(size_t nth, thread_pool* pool)
+thread_team::thread_team(size_t nth, ThreadPool* pool)
   : nthreads(nth),
     thpool(pool),
     nested_scheduler(nullptr),
@@ -54,7 +54,7 @@ void thread_team::wait_at_barrier() {
 
 
 void barrier() {
-  thread_pool::get_team_unchecked()->wait_at_barrier();
+  ThreadPool::get_team_unchecked()->wait_at_barrier();
 }
 
 

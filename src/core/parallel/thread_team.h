@@ -30,13 +30,13 @@ class thread_scheduler;
 class thread_team {
   private:
     size_t nthreads;
-    thread_pool* thpool;
+    ThreadPool* thpool;
     std::atomic<thread_scheduler*> nested_scheduler;
 
     std::atomic<size_t> barrier_counter;
 
   public:
-    thread_team(size_t nth, thread_pool*);
+    thread_team(size_t nth, ThreadPool*);
     ~thread_team();
 
     size_t size() const noexcept;

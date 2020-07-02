@@ -34,31 +34,32 @@ class PythonLock;
 
 
 /**
- * Pool of threads, capable of executing a given workload in parallel.
- *
- * The pool contains a certain number of `thread_worker`s, each running on its
- * own thread, except for the 0th worker which represents the master thread and
- * should be invoked manually. The number of workers can be adjusted up or down
- * using `set_number_of_threads()`.
- *
- * Normally, the thread pool is in the "sleeping" state. This means all workers
- * are idling, consuming sleep tasks from the `idle_job` (see documentation of
- * this class in "thread_worker.h").
- *
- * However, once a user requests `execute_job()`, the threads are awakened and
- * use the supplied scheduler to perform the job. The method `execute_job()` is
- * blocking, and will return only after the job is completely finished and the
- * thread pool has been put back to sleep.
- *
- */
-class thread_pool {
+  * Pool of threads, capable of executing a given workload in
+  * parallel.
+  *
+  * The pool contains a certain number of `thread_worker`s, each
+  * running on its own thread, except for the 0th worker which
+  * represents the main thread and should be invoked manually. The
+  * number of workers can be adjusted up or down using `resize()`.
+  *
+  * Normally, the thread pool is in the "sleeping" state. This means
+  * all workers are idling, executing sleep tasks from the `idle_job`
+  * (see documentation of this class in "thread_worker.h").
+  *
+  * However, once a user requests `execute_job()`, the threads are
+  * awakened and use the supplied scheduler to perform the job. The
+  * method `execute_job()` is blocking, and will return only after
+  * the job is completely finished and the thread pool has been put
+  * back to sleep.
+  */
+class ThreadPool
+{
   friend class thread_team;
   friend class monitor_thread;
   friend class PythonLock;
-  // friend std::recursive_mutex& python_mutex();
   friend std::mutex& team_mutex();
-  public:
-    std::unique_ptr<monitor_thread> monitor;
+  // public:
+  //   std::unique_ptr<monitor_thread> monitor;
 
   private:
     // Worker instances, each running on its own thread. Each thread has a
@@ -71,7 +72,7 @@ class thread_pool {
 
     // Number of threads in the pool, as requested by the user. This is
     // usually the same as `workers.size()` except in two cases: (1) when
-    // the thread_pool was just created: we don't spawn the workers until
+    // the ThreadPool was just created: we don't spawn the workers until
     // executing the first parallel task, so before then the workers array
     // is empty; (2) while executing shutdown job, this variable reflects
     // the "new" number of threads that should be, whereas `workers` array
@@ -96,10 +97,10 @@ class thread_pool {
     void init_monitor_thread() noexcept;
 
   public:
-    thread_pool();
-    thread_pool(const thread_pool&) = delete;
+    ThreadPool();
+    ThreadPool(const ThreadPool&) = delete;
     // Not moveable: workers hold pointers to this->controller.
-    thread_pool(thread_pool&&) = delete;
+    ThreadPool(ThreadPool&&) = delete;
 
     static thread_team* get_team_unchecked() noexcept;
 
@@ -119,7 +120,10 @@ class thread_pool {
     static void init_options();
 };
 
-extern thread_pool* thpool;
+
+extern ThreadPool* thpool;
+
+
 
 
 }  // namespace dt

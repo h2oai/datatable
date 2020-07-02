@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
   }
   // Running inside a parallel region
   else {
-    thread_team* tt = thread_pool::get_team_unchecked();
+    thread_team* tt = ThreadPool::get_team_unchecked();
     // Cannot change number of threads when in a parallel region
     xassert(nthreads == tt->size());
     auto sch = tt->shared_scheduler<dynamic_scheduler>(nthreads, nrows);

@@ -36,8 +36,8 @@
 namespace dt {
 
 
-// Singleton instance of the thread_pool
-thread_pool* thpool = new thread_pool;
+// Singleton instance of the ThreadPool
+ThreadPool* thpool = new ThreadPool;
 
 
 //------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ PythonLock::PythonLock()
 
 
 //------------------------------------------------------------------------------
-// thread_pool
+// ThreadPool
 //------------------------------------------------------------------------------
 
 // no fork on Windows
@@ -63,7 +63,7 @@ PythonLock::PythonLock()
     thpool->resize(0);
     // The monitor thread must be shut down last, because the resize() operation
     // will attempt to initialize it if absent.
-    thpool->monitor = nullptr;
+    // thpool->monitor = nullptr;
     // Resizing the thread pool back to `n` does not create any threads: we
     // postpone thread initialization until they are actually needed.
     thpool->resize(n);
@@ -75,7 +75,7 @@ PythonLock::PythonLock()
     // The previous value of `thpool` is abandoned without deleting since that
     // memory is owned by the parent process.
     size_t n = thpool->size();
-    thpool = new thread_pool;
+    thpool = new ThreadPool;
     progress::manager = new progress::progress_manager;
     thpool->resize(n);
   }
@@ -86,7 +86,7 @@ PythonLock::PythonLock()
 
 
 
-thread_pool::thread_pool()
+ThreadPool::ThreadPool()
   : num_threads_requested(0),
     current_team(nullptr)
 {
@@ -99,17 +99,17 @@ thread_pool::thread_pool()
   #endif
 }
 
-// In the current implementation the thread_pool instance never gets deleted
-// thread_pool::~thread_pool() {
+// In the current implementation the ThreadPool instance never gets deleted
+// ThreadPool::~ThreadPool() {
 //   resize(0);
 // }
 
 
-size_t thread_pool::size() const noexcept {
+size_t ThreadPool::size() const noexcept {
   return num_threads_requested;
 }
 
-void thread_pool::resize(size_t n) {
+void ThreadPool::resize(size_t n) {
   num_threads_requested = n;
   // Adjust the actual thread count, but only if the threads were already
   // instantiated.
@@ -118,7 +118,7 @@ void thread_pool::resize(size_t n) {
   }
 }
 
-void thread_pool::instantiate_threads() {
+void ThreadPool::instantiate_threads() {
   size_t n = num_threads_requested;
   init_monitor_thread();
   if (workers.size() == n) return;
@@ -151,7 +151,7 @@ void thread_pool::instantiate_threads() {
 }
 
 
-void thread_pool::init_monitor_thread() noexcept {
+void ThreadPool::init_monitor_thread() noexcept {
   // if (!monitor) {
   //   monitor = std::unique_ptr<monitor_thread>(
   //               new monitor_thread(&controller)
@@ -160,7 +160,7 @@ void thread_pool::init_monitor_thread() noexcept {
 }
 
 
-void thread_pool::execute_job(thread_scheduler* job) {
+void ThreadPool::execute_job(thread_scheduler* job) {
   xassert(current_team);
   if (workers.empty()) instantiate_threads();
   controller.awaken_and_run(job, workers.size());
@@ -170,21 +170,21 @@ void thread_pool::execute_job(thread_scheduler* job) {
 }
 
 
-bool thread_pool::in_parallel_region() const noexcept {
+bool ThreadPool::in_parallel_region() const noexcept {
   return (current_team != nullptr);
 }
 
-size_t thread_pool::n_threads_in_team() const noexcept {
+size_t ThreadPool::n_threads_in_team() const noexcept {
   return current_team? current_team->size() : 0;
 }
 
 
-thread_team* thread_pool::get_team_unchecked() noexcept {
+thread_team* ThreadPool::get_team_unchecked() noexcept {
   return thpool->current_team;
 }
 
 
-void thread_pool::enable_monitor(bool a) noexcept {
+void ThreadPool::enable_monitor(bool a) noexcept {
   (void) a;
   // init_monitor_thread();
   // monitor->set_active(a);
@@ -244,7 +244,7 @@ std::mutex& team_mutex() {
 }
 
 
-void thread_pool::init_options() {
+void ThreadPool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
   thpool->resize(get_hardware_concurrency());
 
