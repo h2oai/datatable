@@ -32,13 +32,13 @@ class simple_task : public thread_task {
     function<void()> f;
   public:
     simple_task(function<void()>);
-    void execute(thread_worker*) override;
+    void execute(ThreadWorker*) override;
 };
 
 
 simple_task::simple_task(function<void()> f_) : f(f_) {}
 
-void simple_task::execute(thread_worker*) {
+void simple_task::execute(ThreadWorker*) {
   f();
 }
 

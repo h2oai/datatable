@@ -37,14 +37,14 @@ class PythonLock;
   * Pool of threads, capable of executing a given workload in
   * parallel.
   *
-  * The pool contains a certain number of `thread_worker`s, each
+  * The pool contains a certain number of `ThreadWorker`s, each
   * running on its own thread, except for the 0th worker which
   * represents the main thread and should be invoked manually. The
   * number of workers can be adjusted up or down using `resize()`.
   *
   * Normally, the thread pool is in the "sleeping" state. This means
   * all workers are idling, executing sleep tasks from the `idle_job`
-  * (see documentation of this class in "thread_worker.h").
+  * (see documentation of this class in "ThreadWorker.h").
   *
   * However, once a user requests `execute_job()`, the threads are
   * awakened and use the supplied scheduler to perform the job. The
@@ -65,10 +65,10 @@ class ThreadPool
     // Worker instances, each running on its own thread. Each thread has a
     // reference to its own worker, so these workers must be alive as long
     // as their corresponding threads are running.
-    // Also, use pointers here instead of `thread_worker` objects, so that
+    // Also, use pointers here instead of `ThreadWorker` objects, so that
     // the pointers to each worker remain constant when the vector resizes
     // (these pointers are stored within each thread).
-    std::vector<thread_worker*> workers;
+    std::vector<ThreadWorker*> workers;
 
     // Number of threads in the pool, as requested by the user. This is
     // usually the same as `workers.size()` except in two cases: (1) when

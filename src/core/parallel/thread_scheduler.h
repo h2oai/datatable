@@ -19,14 +19,14 @@
 namespace dt {
 
 // forward-declare
-class thread_worker;
+class ThreadWorker;
 
 
 class thread_task {
   public:
     thread_task() = default;
     virtual ~thread_task();
-    virtual void execute(thread_worker*) = 0;
+    virtual void execute(ThreadWorker*) = 0;
 };
 
 

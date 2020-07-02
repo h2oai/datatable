@@ -41,7 +41,7 @@ class idle_job;
  *
  * The thread stops running when `scheduler` becomes nullptr.
  */
-class thread_worker {
+class ThreadWorker {
   friend class thread_shutdown_scheduler;
   friend class idle_job;
 
@@ -52,10 +52,10 @@ class thread_worker {
     idle_job* controller;
 
   public:
-    thread_worker(size_t i, idle_job*);
-    thread_worker(const thread_worker&) = delete;
-    thread_worker(thread_worker&&) = delete;
-    ~thread_worker();
+    ThreadWorker(size_t i, idle_job*);
+    ThreadWorker(const ThreadWorker&) = delete;
+    ThreadWorker(ThreadWorker&&) = delete;
+    ~ThreadWorker();
 
     void run() noexcept;
     void run_master(thread_scheduler*) noexcept;
@@ -122,7 +122,7 @@ class idle_job : public thread_scheduler {
       LightweightSemaphore semaphore;
 
       sleep_task(idle_job*);
-      void execute(thread_worker* worker) override;
+      void execute(ThreadWorker* worker) override;
     };
 
     // "Current" sleep task, meaning that all sleeping threads are executing
@@ -144,7 +144,7 @@ class idle_job : public thread_scheduler {
     std::exception_ptr saved_exception;
 
     // Thread-worker object corresponding to the master thread.
-    thread_worker* master_worker;
+    ThreadWorker* master_worker;
 
   public:
     idle_job();
@@ -174,7 +174,7 @@ class idle_job : public thread_scheduler {
     // This function should be called before a new thread is spawned.
     void on_before_thread_added();
 
-    void set_master_worker(thread_worker*) noexcept;
+    void set_master_worker(ThreadWorker*) noexcept;
 
     // This callback should be called before a thread is removed from the
     // threadpool.
@@ -191,7 +191,7 @@ class idle_job : public thread_scheduler {
 class thread_shutdown_scheduler : public thread_scheduler {
   private:
     struct shutdown_task : public thread_task {
-      void execute(thread_worker* worker) override;
+      void execute(ThreadWorker* worker) override;
     };
 
     size_t n_threads_to_keep;

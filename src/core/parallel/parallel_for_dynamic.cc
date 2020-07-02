@@ -43,7 +43,7 @@ struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
     dynamic_task& operator=(const dynamic_task&);
 
     void set_iter(size_t i) noexcept;
-    void execute(thread_worker*) override;
+    void execute(ThreadWorker*) override;
 };
 
 dynamic_task::dynamic_task(const dynamicfn_t& f)
@@ -63,7 +63,7 @@ void dynamic_task::set_iter(size_t i) noexcept {
   iter = i;
 }
 
-void dynamic_task::execute(thread_worker*) {
+void dynamic_task::execute(ThreadWorker*) {
   fn(iter);
 }
 

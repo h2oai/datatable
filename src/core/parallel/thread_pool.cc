@@ -123,7 +123,7 @@ void ThreadPool::instantiate_threads() {
     workers.reserve(n);
     for (size_t i = workers.size(); i < n; ++i) {
       try {
-        auto worker = new thread_worker(i, &controller);
+        auto worker = new ThreadWorker(i, &controller);
         workers.push_back(worker);
       } catch (...) {
         // If threads cannot be created (for example if user has requested

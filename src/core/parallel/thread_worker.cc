@@ -1,17 +1,23 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
@@ -27,11 +33,12 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 /**
- * The worker creates its own thread of execution. The thread will be executing
- * function `thread_worker::run()` continuously. The only way to shut down the
- * thread is to cause the `run()` function to stop its loop.
- */
-thread_worker::thread_worker(size_t i, idle_job* wc)
+  * The worker creates its own thread of execution. The thread will be
+  * executing function `ThreadWorker::run()` continuously. The only
+  * way to shut down the thread is to cause the `run()` function to
+  * stop its loop.
+  */
+ThreadWorker::ThreadWorker(size_t i, idle_job* wc)
   : thread_index(i),
     scheduler(wc),
     controller(wc)
@@ -43,12 +50,12 @@ thread_worker::thread_worker(size_t i, idle_job* wc)
   } else {
     // Create actual execution thread only when `this` is fully initialized
     wc->on_before_thread_added();
-    thread = std::thread(&thread_worker::run, this);
+    thread = std::thread(&ThreadWorker::run, this);
   }
 }
 
 
-thread_worker::~thread_worker() {
+ThreadWorker::~ThreadWorker() {
   if (thread.joinable()) thread.join();
 }
 
@@ -64,7 +71,7 @@ thread_worker::~thread_worker() {
  * switches to "sleep" scheduler and waits until it is awaken by the condition
  * variable inside the sleep task.
  */
-void thread_worker::run() noexcept {
+void ThreadWorker::run() noexcept {
   _set_thread_num(thread_index);
   while (scheduler) {
     try {
@@ -91,7 +98,7 @@ void thread_worker::run() noexcept {
  *   - the `scheduler` is not used (since it is never set by the
  *     controller), instead the `job` is passed explicitly.
  */
-void thread_worker::run_master(thread_scheduler* job) noexcept {
+void ThreadWorker::run_master(thread_scheduler* job) noexcept {
   if (!job) return;
   while (true) {
     try {
@@ -108,7 +115,7 @@ void thread_worker::run_master(thread_scheduler* job) noexcept {
 }
 
 
-size_t thread_worker::get_index() const noexcept {
+size_t ThreadWorker::get_index() const noexcept {
   return thread_index;
 }
 
@@ -121,7 +128,7 @@ size_t thread_worker::get_index() const noexcept {
 idle_job::sleep_task::sleep_task(idle_job* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
-void idle_job::sleep_task::execute(thread_worker* worker) {
+void idle_job::sleep_task::execute(ThreadWorker* worker) {
   controller->n_threads_running--;
   semaphore.wait();
   xassert(next_scheduler);
@@ -200,7 +207,7 @@ void idle_job::join() {
 }
 
 
-void idle_job::set_master_worker(thread_worker* worker) noexcept {
+void idle_job::set_master_worker(ThreadWorker* worker) noexcept {
   master_worker = worker;
 }
 
@@ -246,7 +253,7 @@ bool idle_job::is_running() const noexcept {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-void thread_shutdown_scheduler::shutdown_task::execute(thread_worker* worker) {
+void thread_shutdown_scheduler::shutdown_task::execute(ThreadWorker* worker) {
   worker->scheduler = nullptr;
 }
 
