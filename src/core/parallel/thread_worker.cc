@@ -41,7 +41,6 @@ ThreadWorker::ThreadWorker(size_t i, Job_Idle* wc)
     controller(wc)
 {
   if (i == 0) {
-    wc->set_master_worker(this);
     scheduler = nullptr;
     _set_thread_num(0);
   } else {

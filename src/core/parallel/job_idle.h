@@ -33,98 +33,97 @@ class SleepTask;
 
 
 /**
-  * This class handles putting to sleep/awaking of workers in a thread pool.
-  * A single instance of this class exists in `thread_pool`.
+  * This class handles putting to sleep/awaking of workers in the
+  * thread pool. A single instance of this class exists in the class
+  * `thread_pool`.
   *
-  * Initially all workers in a thread pool are in the "idle" state, running the
-  * sleep task returned by this scheduler. This sleep task is `tsleep[0]`, and
-  * it contains a mutex, and a condition variable. In this state the workers are
-  * simply waiting, though they may occasionally be woken by the operating system
-  * to check whether `tsleep[0].next_scheduler` became non-null.
+  * Initially all workers in a thread pool are in the "idle" state,
+  * running the sleep task returned by this job. This sleep task is
+  * `curr_sleep_task`, and it contains a semaphore that all threads
+  * are waiting for.
   *
-  * More precisely, a thread is considered to be asleep if its scheduler is this
-  * class, and if the thread already requested a sleep task from this scheduler
-  * and started executing that sleep task.
+  * More precisely, a thread is considered to be asleep if its
+  * current job is Job_Idle, and if the thread already requested a
+  * sleep task from this job and started executing that sleep task.
   *
-  * When master thread calls `awaken` (and only the master thread is allowed to
-  * do so), we do the following:
-  *   - lock `tsleep[0].mutex` (at this point no thread can awaken, even
-  *     spuriously, because they would need to acquire lock on the same mutex as
-  *     they wake up);
-  *   - set `tsleep[0].next_scheduler` to the job that needs to be executed;
-  *   - set `tsleep[1].next_scheduler` to nullptr;
-  *   - change `index` from 0 to 1;
-  *   - unlock the mutex and notify all threads waiting on
-  *     `tsleep[0].wakeup_all_threads_cv`.
+  * When main thread calls `awaken` (and only the main thread is
+  * allowed to do so), we do the following:
+  *   - "current" and "previous" sleep tasks are swapped, so that
+  *     when a thread awakens and then wants to go to sleep again,
+  *     it would receive the new `current_sleep_task_`;
+  *   - the `previous_sleep_task_` is signalled to awaken,
+  *     incrementing the semaphore and thus allowing all sleeping
+  *     tasks to stop waiting and perform the next instruction
+  *     (which is to give a new `job` to the worker).
+  *   - the main thread executes the `job` explicitly also.
   *
-  * As the threads awaken, they check their task's `next_scheduler` property, see
-  * that it is now not-null, they will switch to that scheduler and finish their
-  * current sleep task. Note that it may take some time for OS to notify and
-  * awaken all the threads; some threads may already finish their new task by the
-  * time the last thread in the team gets up.
+  * When the threads awaken from waiting on the semaphore, they will
+  * acquire the new `job` and start executing it. Note that it may
+  * take some time for OS to notify and awaken all the threads; some
+  * may already finish their jobs by the time the last thread in the
+  * team wakes up.
   *
-  * When a thread's queue is exhausted and there are no more tasks to do, that
-  * worker receives a `nullptr` from `get_next_task()`. At this moment the
-  * worker switches back to `Job_Idle`, and requests a task. The
-  * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
-  * and a condition variable, and its `.next_scheduler` is null, indicating the
-  * sleeping state. This will allow the thread to go safely to sleep, while other
-  * threads might still be waking up from the initial sleep.
+  * When a job's queue is exhausted and there are no more tasks to do,
+  * that job sends `nullptr` from `get_next_task()`. At this moment
+  * the workers switch back to `Job_Idle`, and request a task. The
+  * `Job_Idle` will return `current_sleep_task_`, which will wait on
+  * its own semaphore. This mechanism allows the threads to go safely
+  * to sleep, while other threads might still be waking up from their
+  * previous sleep.
   *
-  * The master thread that called `awaken(job)` will then call `job.join()`,
-  * and it is the responsibility of ThreadJob `job` to wait until all
-  * threads have finished execution and were put back to sleep. Thus, the master
-  * thread ensures that all threads are sleeping again before the next call to
-  * `awaken`.
+  * The main thread that called `job.awaken()` will then call
+  * `job.join()`, which causes Job_Idle to wait until all workers
+  * have finished running their tasks and indicated that they are
+  * going back to sleep. Thus, the main thread ensures that all
+  * threads are sleeping again before the next call to `awaken`
+  * may happen.
   */
 class Job_Idle : public ThreadJob {
   private:
-    // "Current" sleep task, meaning that all sleeping threads are executing
-    // `curr_sleep_task->execute()`.
-    SleepTask* curr_sleep_task;
+    // "Current" sleep task, meaning that all sleeping threads are
+    // executing `curr_sleep_task->execute()`.
+    SleepTask*         current_sleep_task_;
 
     // The "previous" sleep task. The pointers `prev_sleep_task` and
     // `curr_sleep_task` flip-flop.
-    SleepTask* prev_sleep_task;
+    SleepTask*         previous_sleep_task_;
 
     // How many threads are currently active (i.e. not sleeping)
-    std::atomic<int> n_threads_running;
+    std::atomic<int>   n_threads_running_;
     int : 32;
 
     // If an exception occurs during execution, it will be saved here
-    std::exception_ptr saved_exception;
-
-    // Thread-worker object corresponding to the master thread.
-    ThreadWorker* master_worker;
+    std::exception_ptr saved_exception_;
 
   public:
     Job_Idle();
 
     ThreadTask* get_next_task(size_t thread_index) override;
 
-    // Called from the master thread, this function will awaken all threads
-    // in the thread pool, and give them `job` to execute.
-    // Precondition: that all threads in the pool are currently sleeping.
+    // Called from the main thread, this function will awaken all
+    // workers in the thread pool, and give them `job` to execute.
+    // Precondition: that all thread workers in the pool are
+    // currently sleeping.
     void awaken_and_run(ThreadJob* job, size_t nthreads);
 
-    // Called from the master thread, this function will block until all the
-    // work is finished and all worker threads have been put to sleep. If there
-    // was an exception during execution of any of the tasks, this exception
-    // will be rethrown here (but only after all workers were put to sleep).
+    // Called from the main thread, this function will block until
+    // all the work is finished and all worker threads went back to
+    // sleep. If there was an exception during execution of any of
+    // the tasks, this exception will be rethrown here (but only
+    // after all workers are sleeping).
     void join();
 
-    // Called from worker threads, within the `catch(...){ }` block, this method
-    // is used to signal that an exception have occurred. The method will save
-    // this exception, so that it can be re-thrown after the parallel region
-    // exits.
+    // Called from worker threads, within the `catch(...){ }` block,
+    // this method is used to signal that an exception have occurred.
+    // This exception will be stored, so that it can be re-thrown
+    // later after the parallel region exits.
     void catch_exception() noexcept;
 
-    // Return true if there is a task currently being run in parallel.
+    // Return true if there is a job currently being run in parallel.
     bool is_running() const noexcept;
 
-    void set_master_worker(ThreadWorker*) noexcept;
-
-    // Register changes in the total number of currently active threads.
+    // Register changes in the total number of currently active
+    // threads.
     void add_running_thread();
     void remove_running_thread();
 };
@@ -132,15 +131,19 @@ class Job_Idle : public ThreadJob {
 
 
 class SleepTask : public ThreadTask {
-  friend class Job_Idle;
   private:
-    Job_Idle* const controller;
-    ThreadJob* next_scheduler;
+    Job_Idle* const      parent_;
+    ThreadJob*           job_;
     LightweightSemaphore semaphore_;
 
   public:
     SleepTask(Job_Idle*);
     void execute() override;
+
+    void wake_up(int nthreads, ThreadJob* next_job);
+    void fall_asleep();
+    void abort_current_job();
+    bool is_sleeping() const noexcept;
 };
 
 

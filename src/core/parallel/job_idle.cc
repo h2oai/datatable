@@ -34,21 +34,21 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Job_Idle::Job_Idle() {
-  curr_sleep_task = new SleepTask(this);
-  prev_sleep_task = new SleepTask(this);
-  n_threads_running = 0;
+  current_sleep_task_ = new SleepTask(this);
+  previous_sleep_task_ = new SleepTask(this);
+  n_threads_running_ = 0;
 }
 
 
 ThreadTask* Job_Idle::get_next_task(size_t) {
-  return curr_sleep_task;
+  return current_sleep_task_;
 }
 
 
 /**
  * When this method is run, all other threads are inside the
- * `curr_sleep_task->execute()` method. When we modify variables
- * `curr_sleep_task` / `prev_sleep_task`, we do so under the
+ * `current_sleep_task_->execute()` method. When we modify variables
+ * `current_sleep_task_` / `previous_sleep_task_`, we do so under the
  * protection of a mutex, ensuring that the other threads cannot
  * attempt to read those variables at this time. The other methods
  * of this class can treat these variables as if they were constant,
@@ -58,7 +58,7 @@ ThreadTask* Job_Idle::get_next_task(size_t) {
  * already multi-threaded: at that point other threads wake up and
  * may call arbitrary API of `Job_Idle`.
  *
- * Note that we set the variable `n_threads_running` explicitly here
+ * Note that we set the variable `n_threads_running_` explicitly here
  * (as opposed to, say, allowing each thread to increment this counter
  * upon awaking). This is necessary, because we want to prevent the
  * situation where the OS would delay waking up the threads, so that
@@ -68,19 +68,17 @@ ThreadTask* Job_Idle::get_next_task(size_t) {
 void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   xassert(job);
   xassert(this_thread_index() == 0);
-  xassert(n_threads_running == 0);
-  xassert(prev_sleep_task->next_scheduler == nullptr);
-  xassert(curr_sleep_task->next_scheduler == nullptr);
+  xassert(n_threads_running_ == 0);
+  xassert(previous_sleep_task_->is_sleeping());
+  xassert(current_sleep_task_->is_sleeping());
   int nth = static_cast<int>(nthreads) - 1;
 
-  std::swap(curr_sleep_task, prev_sleep_task);
-  n_threads_running += nth;
-  saved_exception = nullptr;
+  std::swap(current_sleep_task_, previous_sleep_task_);
+  n_threads_running_ += nth;
+  saved_exception_ = nullptr;
 
-  prev_sleep_task->next_scheduler = job;
-  prev_sleep_task->semaphore_.signal(nth);
-  // enable_monitor(true);
-  master_worker->run_master(job);
+  previous_sleep_task_->wake_up(nth, job);
+  thpool->workers_[0]->run_master(job);
 }
 
 
@@ -88,39 +86,32 @@ void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
 void Job_Idle::join() {
   xassert(this_thread_index() == 0);
   // Busy-wait until all threads finish running
-  while (n_threads_running.load() != 0);
+  while (n_threads_running_.load() != 0);
 
-  // Clear `.next_scheduler` flag of the previous sleep task, indicating that
-  // we no longer run in a parallel region (see `is_running()`).
-  prev_sleep_task->next_scheduler = nullptr;
+  previous_sleep_task_->fall_asleep();
   // enable_monitor(false);
 
-  if (saved_exception) {
+  if (saved_exception_) {
     progress::manager->reset_interrupt_status();
-    std::rethrow_exception(saved_exception);
+    std::rethrow_exception(saved_exception_);
   }
 
   progress::manager->handle_interrupt();
 }
 
 
-void Job_Idle::set_master_worker(ThreadWorker* worker) noexcept {
-  master_worker = worker;
-}
-
-
 void Job_Idle::remove_running_thread() {
-  xassert(n_threads_running > 0);
-  n_threads_running--;
+  xassert(n_threads_running_ > 0);
+  n_threads_running_--;
 }
 
 void Job_Idle::add_running_thread() {
-  n_threads_running++;
+  n_threads_running_++;
 }
 
 
 // Multiple threads may throw exceptions simultaneously, thus
-// need to protect access to `saved_exception` with a mutex.
+// need to protect access to `saved_exception_` with a mutex.
 // In addition, `job->abort_execution()` is also protected,
 // just in case, ensuring that only one thread can call that
 // method at a time.
@@ -128,19 +119,17 @@ void Job_Idle::add_running_thread() {
 void Job_Idle::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(thpool->global_mutex());
-    if (!saved_exception) {
-      saved_exception = std::current_exception();
+    if (!saved_exception_) {
+      saved_exception_ = std::current_exception();
     }
-    ThreadJob* current_job = prev_sleep_task->next_scheduler;
-    if (current_job) {
-      current_job->abort_execution();
-    }
-  } catch (...) {}
+    previous_sleep_task_->abort_current_job();
+  }
+  catch (...) {}
 }
 
 
 bool Job_Idle::is_running() const noexcept {
-  return (prev_sleep_task->next_scheduler != nullptr);
+  return !previous_sleep_task_->is_sleeping();
 }
 
 
@@ -150,14 +139,40 @@ bool Job_Idle::is_running() const noexcept {
 // SleepTask
 //------------------------------------------------------------------------------
 
-SleepTask::SleepTask(Job_Idle* ij)
-  : controller(ij), next_scheduler{nullptr} {}
+SleepTask::SleepTask(Job_Idle* idle_job)
+  : parent_(idle_job),
+    job_(nullptr) {}
+
 
 void SleepTask::execute() {
-  controller->remove_running_thread();
+  parent_->remove_running_thread();
   semaphore_.wait();
-  xassert(next_scheduler);
-  thpool->assign_job_to_current_thread(next_scheduler);
+  xassert(job_);
+  thpool->assign_job_to_current_thread(job_);
+}
+
+
+void SleepTask::wake_up(int nth, ThreadJob* next_job) {
+  job_ = next_job;
+  semaphore_.signal(nth);
+}
+
+
+void SleepTask::fall_asleep() {
+  // Clear `job_` indicating that we no longer run in a parallel region.
+  job_ = nullptr;
+}
+
+
+void SleepTask::abort_current_job() {
+  if (job_) {
+    job_->abort_execution();
+  }
+}
+
+
+bool SleepTask::is_sleeping() const noexcept {
+  return (job_ == nullptr);
 }
 
 
