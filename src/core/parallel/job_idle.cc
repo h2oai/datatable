@@ -78,7 +78,7 @@ void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   saved_exception = nullptr;
 
   prev_sleep_task->next_scheduler = job;
-  prev_sleep_task->semaphore.signal(nth);
+  prev_sleep_task->semaphore_.signal(nth);
   // enable_monitor(true);
   master_worker->run_master(job);
 }
@@ -109,12 +109,12 @@ void Job_Idle::set_master_worker(ThreadWorker* worker) noexcept {
 }
 
 
-void Job_Idle::on_before_thread_removed() {
+void Job_Idle::remove_running_thread() {
   xassert(n_threads_running > 0);
   n_threads_running--;
 }
 
-void Job_Idle::on_before_thread_added() {
+void Job_Idle::add_running_thread() {
   n_threads_running++;
 }
 
@@ -154,8 +154,8 @@ SleepTask::SleepTask(Job_Idle* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
 void SleepTask::execute() {
-  controller->on_before_thread_removed();
-  semaphore.wait();
+  controller->remove_running_thread();
+  semaphore_.wait();
   xassert(next_scheduler);
   thpool->assign_job_to_current_thread(next_scheduler);
 }

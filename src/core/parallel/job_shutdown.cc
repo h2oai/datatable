@@ -40,7 +40,7 @@ ThreadTask* Job_Shutdown::get_next_task(size_t thread_index) {
   if (thread_index < n_threads_to_keep_) {
     return nullptr;  // thread goes back to sleep
   }
-  controller_->on_before_thread_removed();
+  controller_->remove_running_thread();
   return &shutdown_task_;
 }
 

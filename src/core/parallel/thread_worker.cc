@@ -46,7 +46,7 @@ ThreadWorker::ThreadWorker(size_t i, Job_Idle* wc)
     _set_thread_num(0);
   } else {
     // Create actual execution thread only when `this` is fully initialized
-    wc->on_before_thread_added();
+    wc->add_running_thread();
     thread = std::thread(&ThreadWorker::run, this);
   }
 }

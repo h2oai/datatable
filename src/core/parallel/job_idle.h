@@ -122,14 +122,11 @@ class Job_Idle : public ThreadJob {
     // Return true if there is a task currently being run in parallel.
     bool is_running() const noexcept;
 
-    // This function should be called before a new thread is spawned.
-    void on_before_thread_added();
-
     void set_master_worker(ThreadWorker*) noexcept;
 
-    // This callback should be called before a thread is removed from the
-    // threadpool.
-    void on_before_thread_removed();
+    // Register changes in the total number of currently active threads.
+    void add_running_thread();
+    void remove_running_thread();
 };
 
 
@@ -139,7 +136,7 @@ class SleepTask : public ThreadTask {
   private:
     Job_Idle* const controller;
     ThreadJob* next_scheduler;
-    LightweightSemaphore semaphore;
+    LightweightSemaphore semaphore_;
 
   public:
     SleepTask(Job_Idle*);
