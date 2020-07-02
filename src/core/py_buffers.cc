@@ -191,7 +191,7 @@ static void try_to_resolve_object_column(Column& col)
       }
     }
 
-    xassert(offset < strbuf.size());
+    xassert(offset <= strbuf.size());
     strbuf.resize(offset);
     col = Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
   }

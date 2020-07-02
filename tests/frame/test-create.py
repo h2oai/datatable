@@ -1019,6 +1019,12 @@ def test_create_from_pandas_categorical(pandas):
                                ["(6.0, 9.0]"] * 3))
 
 
+def test_issue2517(pandas):
+    DT = dt.Frame(pandas.DataFrame(['секрет秘密']))
+    assert_equals(DT, dt.Frame(['секрет秘密'], names=["0"]))
+
+
+
 
 #-------------------------------------------------------------------------------
 # Create from Numpy
