@@ -184,6 +184,12 @@ void ThreadPool::assign_job_to_current_thread(ThreadJob* job) {
 }
 
 
+std::mutex& ThreadPool::global_mutex() {
+  return global_mutex_;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Monitor thread control.
@@ -226,14 +232,6 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
-// std::mutex& python_mutex() {
-//   return thpool->python_mutex;
-// }
-
-
-// std::mutex& team_mutex() {
-//   return thpool->global_mutex_;
-// }
 
 
 void ThreadPool::init_options() {

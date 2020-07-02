@@ -127,7 +127,7 @@ void Job_Idle::on_before_thread_added() {
 //
 void Job_Idle::catch_exception() noexcept {
   try {
-    std::lock_guard<std::mutex> lock(mutex);
+    std::lock_guard<std::mutex> lock(thpool->global_mutex());
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }

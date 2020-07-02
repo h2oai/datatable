@@ -87,9 +87,6 @@ class Job_Idle : public ThreadJob {
     // `curr_sleep_task` flip-flop.
     SleepTask* prev_sleep_task;
 
-    // Global mutex
-    std::mutex mutex;
-
     // How many threads are currently active (i.e. not sleeping)
     std::atomic<int> n_threads_running;
     int : 32;

@@ -59,7 +59,6 @@ class ThreadPool
   friend class Job_Idle;
   // friend class monitor_thread;
   friend class PythonLock;
-  // friend std::mutex& team_mutex();
   // public:
   //   std::unique_ptr<monitor_thread> monitor;
 
@@ -119,6 +118,8 @@ class ThreadPool
     // void enable_monitor(bool) noexcept;
 
     static void init_options();
+
+    std::mutex& global_mutex();
 
     // This should only be called by `sleep_task` and `shutdown_task`.
     void assign_job_to_current_thread(ThreadJob*);
