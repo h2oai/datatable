@@ -116,7 +116,7 @@ class ThreadWorker {
  */
 class idle_job : public ThreadJob {
   private:
-    struct sleep_task : public thread_task {
+    struct sleep_task : public ThreadTask {
       idle_job* const controller;
       ThreadJob* next_scheduler;
       LightweightSemaphore semaphore;
@@ -149,7 +149,7 @@ class idle_job : public ThreadJob {
   public:
     idle_job();
 
-    thread_task* get_next_task(size_t thread_index) override;
+    ThreadTask* get_next_task(size_t thread_index) override;
 
     // Called from the master thread, this function will awaken all threads
     // in the thread pool, and give them `job` to execute.
@@ -190,7 +190,7 @@ class idle_job : public ThreadJob {
 
 class thread_shutdown_scheduler : public ThreadJob {
   private:
-    struct shutdown_task : public thread_task {
+    struct shutdown_task : public ThreadTask {
       void execute(ThreadWorker* worker) override;
     };
 
@@ -200,7 +200,7 @@ class thread_shutdown_scheduler : public ThreadJob {
 
   public:
     thread_shutdown_scheduler(size_t nnew, idle_job*);
-    thread_task* get_next_task(size_t thread_index) override;
+    ThreadTask* get_next_task(size_t thread_index) override;
 };
 
 

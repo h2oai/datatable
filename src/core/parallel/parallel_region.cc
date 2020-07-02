@@ -27,7 +27,7 @@ namespace dt {
 // simple_task
 //------------------------------------------------------------------------------
 
-class simple_task : public thread_task {
+class simple_task : public ThreadTask {
   private:
     function<void()> f;
   public:
@@ -52,18 +52,18 @@ void simple_task::execute(ThreadWorker*) {
 class once_scheduler : public ThreadJob {
   private:
     std::vector<cache_aligned<size_t>> done;
-    thread_task* task;
+    ThreadTask* task;
 
   public:
-    once_scheduler(size_t nthreads, thread_task*);
-    thread_task* get_next_task(size_t thread_index) override;
+    once_scheduler(size_t nthreads, ThreadTask*);
+    ThreadTask* get_next_task(size_t thread_index) override;
 };
 
-once_scheduler::once_scheduler(size_t nth, thread_task* task_)
+once_scheduler::once_scheduler(size_t nth, ThreadTask* task_)
   : done(nth, 0),
     task(task_) {}
 
-thread_task* once_scheduler::get_next_task(size_t i) {
+ThreadTask* once_scheduler::get_next_task(size_t i) {
   if (i >= done.size() || done[i].v) {
     return nullptr;
   }

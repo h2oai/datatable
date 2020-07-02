@@ -30,11 +30,11 @@ namespace dt {
 //------------------------------------------------------------------------------
 using dynamicfn_t = std::function<void(size_t)>;
 
-struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
+struct alignas(CACHELINE_SIZE) dynamic_task : public ThreadTask {
   private:
     size_t iter;
     dynamicfn_t fn;
-    // PAD_TO_CACHELINE(sizeof(fn) + sizeof(iter) + sizeof(thread_task));
+    // PAD_TO_CACHELINE(sizeof(fn) + sizeof(iter) + sizeof(ThreadTask));
 
   public:
     dynamic_task() = default;
@@ -85,7 +85,7 @@ class dynamic_scheduler : public ThreadJob {
     dynamic_scheduler(size_t nthreads, size_t niters);
     void set_task(const dynamicfn_t&);
     void set_task(const dynamicfn_t&, size_t i);
-    thread_task* get_next_task(size_t thread_index) override;
+    ThreadTask* get_next_task(size_t thread_index) override;
     void abort_execution() override;
 };
 
@@ -107,7 +107,7 @@ void dynamic_scheduler::set_task(const dynamicfn_t& f, size_t i) {
 }
 
 
-thread_task* dynamic_scheduler::get_next_task(size_t thread_index) {
+ThreadTask* dynamic_scheduler::get_next_task(size_t thread_index) {
   if (thread_index >= nthreads) return nullptr;
   size_t next_iter = iteration_index.fetch_add(1);
   if (next_iter >= num_iterations) {
@@ -154,7 +154,12 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
     xassert(nthreads == tt->size());
     auto sch = tt->shared_scheduler<dynamic_scheduler>(nthreads, nrows);
     sch->set_task(fn, ith);
-    sch->execute_in_current_thread();
+
+    while (true) {
+      auto task = sch->get_next_task(ith);
+      if (!task) break;
+      task->execute(nullptr);
+    }
   }
 }
 

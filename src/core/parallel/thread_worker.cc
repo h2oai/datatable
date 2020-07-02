@@ -75,7 +75,7 @@ void ThreadWorker::run() noexcept {
   _set_thread_num(thread_index);
   while (scheduler) {
     try {
-      thread_task* task = scheduler->get_next_task(thread_index);
+      ThreadTask* task = scheduler->get_next_task(thread_index);
       if (task) {
         task->execute(this);
       } else {
@@ -102,7 +102,7 @@ void ThreadWorker::run_master(ThreadJob* job) noexcept {
   if (!job) return;
   while (true) {
     try {
-      thread_task* task = job->get_next_task(0);
+      ThreadTask* task = job->get_next_task(0);
       if (!task) break;
       task->execute(this);
       progress::manager->check_interrupts_main();
@@ -143,7 +143,7 @@ idle_job::idle_job() {
 }
 
 
-thread_task* idle_job::get_next_task(size_t) {
+ThreadTask* idle_job::get_next_task(size_t) {
   return curr_sleep_task;
 }
 
@@ -264,7 +264,7 @@ thread_shutdown_scheduler::thread_shutdown_scheduler(
     controller(sch) {}
 
 
-thread_task* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
+ThreadTask* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
   if (thread_index < n_threads_to_keep || thread_index == 0) {
     return nullptr;  // thread goes back to sleep
   }

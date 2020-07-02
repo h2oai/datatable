@@ -24,27 +24,26 @@
 namespace dt {
 
 
-thread_task::~thread_task() {}
+ThreadTask::~ThreadTask() {}
 
 
 ThreadJob::~ThreadJob() {}
 
 
-void ThreadJob::abort_execution() {
-  // default implementation does nothing
-}
+// default implementation does nothing
+void ThreadJob::abort_execution() {}
 
 
-void ThreadJob::execute_in_current_thread() {
-  // If this throws an exception, it will propagate to outer level, where the
-  // exception will get caught in the outer's level task executor.
-  size_t ith = dt::this_thread_index();
-  while (true) {
-    auto task = get_next_task(ith);
-    if (!task) break;
-    task->execute(nullptr);
-  }
-}
+// void ThreadJob::execute_in_current_thread() {
+//   // If this throws an exception, it will propagate to outer level, where the
+//   // exception will get caught in the outer's level task executor.
+//   size_t ith = dt::this_thread_index();
+//   while (true) {
+//     auto task = get_next_task(ith);
+//     if (!task) break;
+//     task->execute(nullptr);
+//   }
+// }
 
 
 

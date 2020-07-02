@@ -35,7 +35,7 @@ namespace dt {
 using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
-class ordered_task : public thread_task {
+class ordered_task : public ThreadTask {
   #if DT_DEBUG
     friend class ordered_scheduler;
   #endif
@@ -165,7 +165,7 @@ class ordered_scheduler : public ThreadJob {
   public:
     ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters,
                       progress::work&);
-    thread_task* get_next_task(size_t) override;
+    ThreadTask* get_next_task(size_t) override;
     void abort_execution() override;
     void wait_until_all_finalized() const;
 };
@@ -187,7 +187,7 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     ifinish(0) {}
 
 
-thread_task* ordered_scheduler::get_next_task(size_t ith) {
+ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<spin_mutex> lock(mutex);
 

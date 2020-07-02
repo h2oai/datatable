@@ -24,19 +24,19 @@
 #include <cstddef>  // size_t
 namespace dt {
 
-// forward-declare
 class ThreadWorker;
+class ThreadTask;
 
 
-class thread_task {
-  public:
-    thread_task() = default;
-    virtual ~thread_task();
-    virtual void execute(ThreadWorker*) = 0;
-};
-
-
-
+/**
+  * Abstract class representing a certain problem that must be solved
+  * by the team of thread workers working together.
+  *
+  * A thread job is subdivided into a sequence of `ThreadTask`s,
+  * where each task accomplishes only a small portion of the job, and
+  * each task is assigned to a single thread worker.
+  *
+  */
 class ThreadJob {
   public:
     virtual ~ThreadJob();
@@ -46,16 +46,24 @@ class ThreadJob {
     // The lifetime of the returned object should be at least until
     // the next invocation of `get_next_task()` by the thread with
     // the same index.
-    virtual thread_task* get_next_task(size_t thread_index) = 0;
+    virtual ThreadTask* get_next_task(size_t thread_index) = 0;
 
-    // Invoked by `handle_exception()` (and therefore on a worker thread), this
-    // method should cancel all pending tasks, or as many as feasible, since
-    // their results will not be needed. This call is not supposed to be
-    // blocking. The default implementation does nothing (all scheduled tasks
-    // continue being executed), which is allowed but sub-optimal.
+    // Invoked by `handle_exception()` (and therefore on a worker
+    // thread), this method should cancel all pending tasks, or as
+    // many as feasible, since their results will not be needed. This
+    // call is not supposed to be blocking. The default implementation
+    // does nothing (all scheduled tasks continue being executed),
+    // which is allowed but suboptimal.
     virtual void abort_execution();
+};
 
-    void execute_in_current_thread();
+
+
+class ThreadTask {
+  public:
+    ThreadTask() = default;
+    virtual ~ThreadTask();
+    virtual void execute(ThreadWorker*) = 0;
 };
 
 
