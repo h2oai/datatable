@@ -255,29 +255,4 @@ bool idle_job::is_running() const noexcept {
 
 
 
-//------------------------------------------------------------------------------
-// thread shutdown scheduler
-//------------------------------------------------------------------------------
-
-void thread_shutdown_scheduler::shutdown_task::execute() {
-  thpool->assign_job_to_current_thread(nullptr);
-}
-
-
-thread_shutdown_scheduler::thread_shutdown_scheduler(
-    size_t nnew, idle_job* sch)
-  : n_threads_to_keep(nnew),
-    controller(sch) {}
-
-
-ThreadTask* thread_shutdown_scheduler::get_next_task(size_t thread_index) {
-  if (thread_index < n_threads_to_keep || thread_index == 0) {
-    return nullptr;  // thread goes back to sleep
-  }
-  controller->on_before_thread_removed();
-  return &shutdown;
-}
-
-
-
 }  // namespace dt

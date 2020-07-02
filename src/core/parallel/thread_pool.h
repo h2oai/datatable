@@ -129,6 +129,8 @@ class ThreadPool
 
 extern ThreadPool* thpool;
 
+// [Internal] This should only be called when starting a new thread.
+void _set_thread_num(size_t);
 
 
 

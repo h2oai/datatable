@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
 #include "parallel/api.h"
+#include "parallel/job_shutdown.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
@@ -127,7 +128,7 @@ void ThreadPool::instantiate_threads() {
   }
   else {
     thread_team tt(n, this);
-    thread_shutdown_scheduler tss(n, &controller);
+    Job_Shutdown tss(n, &controller);
     execute_job(&tss);
     for (size_t i = n; i < workers_.size(); ++i) {
       delete workers_[i];
