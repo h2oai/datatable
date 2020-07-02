@@ -68,7 +68,7 @@ class ordered_task : public ThreadTask {
     void advance_state();
     void cancel();
     void start_iteration(size_t i);
-    void execute(ThreadWorker*) override;
+    void execute() override;
 };
 
 
@@ -101,7 +101,7 @@ void ordered_task::start_iteration(size_t i) {
   state = STARTING;
 }
 
-void ordered_task::execute(ThreadWorker*) {
+void ordered_task::execute() {
   switch (state) {
     case STARTING:  pre_ordered(n_iter); break;
     case ORDERING:  ordered(n_iter); break;
@@ -122,12 +122,12 @@ void ordered_task::execute(ThreadWorker*) {
 class wait_task : public ordered_task {
   public:
     wait_task();
-    void execute(ThreadWorker*) override;
+    void execute() override;
 };
 
 wait_task::wait_task() : ordered_task(nullptr, nullptr, nullptr) {}
 
-void wait_task::execute(ThreadWorker*) {
+void wait_task::execute() {
   std::this_thread::yield();
 }
 

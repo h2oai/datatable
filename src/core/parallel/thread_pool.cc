@@ -178,6 +178,10 @@ thread_team* ThreadPool::get_team_unchecked() noexcept {
 // }
 
 
+void ThreadPool::assign_job_to_current_thread(ThreadJob* job) {
+  workers_[this_thread_index()]->assign_job(job);
+}
+
 
 
 //------------------------------------------------------------------------------

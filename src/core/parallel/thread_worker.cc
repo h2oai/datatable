@@ -77,7 +77,7 @@ void ThreadWorker::run() noexcept {
     try {
       ThreadTask* task = scheduler->get_next_task(thread_index);
       if (task) {
-        task->execute(this);
+        task->execute();
       } else {
         scheduler = controller;
       }
@@ -104,7 +104,7 @@ void ThreadWorker::run_master(ThreadJob* job) noexcept {
     try {
       ThreadTask* task = job->get_next_task(0);
       if (!task) break;
-      task->execute(this);
+      task->execute();
       progress::manager->check_interrupts_main();
     } catch (...) {
       // enable_monitor(false);
@@ -120,6 +120,12 @@ size_t ThreadWorker::get_index() const noexcept {
 }
 
 
+void ThreadWorker::assign_job(ThreadJob* job) noexcept {
+  scheduler = job;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // "worker controller" scheduler
@@ -128,11 +134,11 @@ size_t ThreadWorker::get_index() const noexcept {
 idle_job::sleep_task::sleep_task(idle_job* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
-void idle_job::sleep_task::execute(ThreadWorker* worker) {
+void idle_job::sleep_task::execute() {
   controller->n_threads_running--;
   semaphore.wait();
   xassert(next_scheduler);
-  worker->scheduler = next_scheduler;
+  thpool->assign_job_to_current_thread(next_scheduler);
 }
 
 
@@ -253,8 +259,8 @@ bool idle_job::is_running() const noexcept {
 // thread shutdown scheduler
 //------------------------------------------------------------------------------
 
-void thread_shutdown_scheduler::shutdown_task::execute(ThreadWorker* worker) {
-  worker->scheduler = nullptr;
+void thread_shutdown_scheduler::shutdown_task::execute() {
+  thpool->assign_job_to_current_thread(nullptr);
 }
 
 

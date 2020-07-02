@@ -43,7 +43,7 @@ struct alignas(CACHELINE_SIZE) dynamic_task : public ThreadTask {
     dynamic_task& operator=(const dynamic_task&);
 
     void set_iter(size_t i) noexcept;
-    void execute(ThreadWorker*) override;
+    void execute() override;
 };
 
 dynamic_task::dynamic_task(const dynamicfn_t& f)
@@ -63,7 +63,7 @@ void dynamic_task::set_iter(size_t i) noexcept {
   iter = i;
 }
 
-void dynamic_task::execute(ThreadWorker*) {
+void dynamic_task::execute() {
   fn(iter);
 }
 
@@ -158,7 +158,7 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
     while (true) {
       auto task = sch->get_next_task(ith);
       if (!task) break;
-      task->execute(nullptr);
+      task->execute();
     }
   }
 }

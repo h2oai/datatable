@@ -42,9 +42,6 @@ class idle_job;
  * The thread stops running when `scheduler` becomes nullptr.
  */
 class ThreadWorker {
-  friend class thread_shutdown_scheduler;
-  friend class idle_job;
-
   private:
     const size_t thread_index;
     std::thread  thread;
@@ -60,6 +57,7 @@ class ThreadWorker {
     void run() noexcept;
     void run_master(ThreadJob*) noexcept;
     size_t get_index() const noexcept;
+    void assign_job(ThreadJob*) noexcept;
 };
 
 
@@ -122,7 +120,7 @@ class idle_job : public ThreadJob {
       LightweightSemaphore semaphore;
 
       sleep_task(idle_job*);
-      void execute(ThreadWorker* worker) override;
+      void execute() override;
     };
 
     // "Current" sleep task, meaning that all sleeping threads are executing
@@ -191,7 +189,7 @@ class idle_job : public ThreadJob {
 class thread_shutdown_scheduler : public ThreadJob {
   private:
     struct shutdown_task : public ThreadTask {
-      void execute(ThreadWorker* worker) override;
+      void execute() override;
     };
 
     size_t n_threads_to_keep;

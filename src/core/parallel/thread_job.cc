@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"           // this_thread_index
 #include "parallel/thread_job.h"    // ThreadJob
 namespace dt {
 
@@ -30,20 +29,7 @@ ThreadTask::~ThreadTask() {}
 ThreadJob::~ThreadJob() {}
 
 
-// default implementation does nothing
 void ThreadJob::abort_execution() {}
-
-
-// void ThreadJob::execute_in_current_thread() {
-//   // If this throws an exception, it will propagate to outer level, where the
-//   // exception will get caught in the outer's level task executor.
-//   size_t ith = dt::this_thread_index();
-//   while (true) {
-//     auto task = get_next_task(ith);
-//     if (!task) break;
-//     task->execute(nullptr);
-//   }
-// }
 
 
 

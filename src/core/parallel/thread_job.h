@@ -63,7 +63,7 @@ class ThreadTask {
   public:
     ThreadTask() = default;
     virtual ~ThreadTask();
-    virtual void execute(ThreadWorker*) = 0;
+    virtual void execute() = 0;
 };
 
 
