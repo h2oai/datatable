@@ -823,7 +823,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   bool k_binomial;
 
   // Set progress reporting
-  size_t work_total = dt_X->nrows() / nthreads.get();
+  size_t work_total = get_work_amount(dt_X->nrows());
+
   dt::progress::work job(work_total);
   job.set_message("Predicting...");
 
@@ -831,7 +832,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     uint64ptr x = uint64ptr(new uint64_t[nfeatures]);
     tptr<T> w = tptr<T>(new T[nfeatures]);
 
-    dt::nested_for_static(dt_X->nrows(), [&](size_t i) {
+    dt::nested_for_static(dt_X->nrows(), ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
       // Predicting for all the `nlabels`
       hash_row(x, hashers, i);
       for (size_t k = 0; k < nlabels; ++k) {
