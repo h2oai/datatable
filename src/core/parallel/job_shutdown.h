@@ -38,11 +38,11 @@ class Job_Shutdown : public ThreadJob {
     };
 
     size_t       n_threads_to_keep_;
-    idle_job*    controller_;
+    Job_Idle*    controller_;
     ShutdownTask shutdown_task_;
 
   public:
-    Job_Shutdown(size_t nnew, idle_job*);
+    Job_Shutdown(size_t nnew, Job_Idle*);
     ThreadTask* get_next_task(size_t thread_index) override;
 };
 

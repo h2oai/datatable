@@ -19,7 +19,7 @@
 #include "parallel/monitor_thread.h"
 #include "progress/_options.h"
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
-#include "parallel/thread_worker.h"     // idle_job
+#include "parallel/thread_worker.h"     // Job_Idle
 #include "parallel/thread_pool.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
@@ -61,7 +61,7 @@ namespace dt {
 // monitor_thread
 //------------------------------------------------------------------------------
 
-monitor_thread::monitor_thread(idle_job* wc)
+monitor_thread::monitor_thread(Job_Idle* wc)
 {
   controller_ = wc;
   running_ = true;

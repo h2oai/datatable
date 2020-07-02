@@ -35,7 +35,7 @@ namespace dt {
   * way to shut down the thread is to cause the `run()` function to
   * stop its loop.
   */
-ThreadWorker::ThreadWorker(size_t i, idle_job* wc)
+ThreadWorker::ThreadWorker(size_t i, Job_Idle* wc)
   : thread_index(i),
     scheduler(wc),
     controller(wc)

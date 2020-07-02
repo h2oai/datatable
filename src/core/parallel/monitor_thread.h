@@ -21,7 +21,7 @@
 #include <thread>               // std::thread
 namespace dt {
 
-class idle_job;
+class Job_Idle;
 // void enable_monitor(bool) noexcept;
 
 
@@ -37,13 +37,13 @@ class idle_job;
 class monitor_thread {
   private:
     std::thread             thread_;
-    idle_job*               controller_;
+    Job_Idle*               controller_;
     std::condition_variable_any sleep_state_cv_;
     bool                    running_;
     size_t : 56;
 
   public:
-    monitor_thread(idle_job*);
+    monitor_thread(Job_Idle*);
     monitor_thread(const monitor_thread&) = delete;
     monitor_thread(monitor_thread&&) = delete;
     ~monitor_thread();

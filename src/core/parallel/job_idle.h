@@ -64,7 +64,7 @@ namespace dt {
   *
   * When a thread's queue is exhausted and there are no more tasks to do, that
   * worker receives a `nullptr` from `get_next_task()`. At this moment the
-  * worker switches back to `idle_job`, and requests a task. The
+  * worker switches back to `Job_Idle`, and requests a task. The
   * thread sleep scheduler will now return `tsleep[1]`, which has its own mutex
   * and a condition variable, and its `.next_scheduler` is null, indicating the
   * sleeping state. This will allow the thread to go safely to sleep, while other
@@ -76,14 +76,14 @@ namespace dt {
   * thread ensures that all threads are sleeping again before the next call to
   * `awaken`.
   */
-class idle_job : public ThreadJob {
+class Job_Idle : public ThreadJob {
   private:
     struct sleep_task : public ThreadTask {
-      idle_job* const controller;
+      Job_Idle* const controller;
       ThreadJob* next_scheduler;
       LightweightSemaphore semaphore;
 
-      sleep_task(idle_job*);
+      sleep_task(Job_Idle*);
       void execute() override;
     };
 
@@ -109,7 +109,7 @@ class idle_job : public ThreadJob {
     ThreadWorker* master_worker;
 
   public:
-    idle_job();
+    Job_Idle();
 
     ThreadTask* get_next_task(size_t thread_index) override;
 

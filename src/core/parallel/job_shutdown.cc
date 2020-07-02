@@ -31,7 +31,7 @@ void Job_Shutdown::ShutdownTask::execute() {
 }
 
 
-Job_Shutdown::Job_Shutdown(size_t nnew, idle_job* sch)
+Job_Shutdown::Job_Shutdown(size_t nnew, Job_Idle* sch)
   : n_threads_to_keep_(nnew? nnew : 1),
     controller_(sch) {}
 

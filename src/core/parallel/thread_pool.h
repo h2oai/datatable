@@ -44,7 +44,7 @@ class PythonLock;
   * number of workers can be adjusted up or down using `resize()`.
   *
   * Normally, the thread pool is in the "sleeping" state. This means
-  * all workers are idling, executing sleep tasks from the `idle_job`
+  * all workers are idling, executing sleep tasks from the `Job_Idle`
   * (see documentation of this class in "ThreadWorker.h").
   *
   * However, once a user requests `execute_job()`, the threads are
@@ -56,7 +56,7 @@ class PythonLock;
 class ThreadPool
 {
   friend class thread_team;
-  friend class idle_job;
+  friend class Job_Idle;
   // friend class monitor_thread;
   friend class PythonLock;
   // friend std::mutex& team_mutex();
@@ -83,7 +83,7 @@ class ThreadPool
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
     // See definition in thread_worker.h
-    idle_job controller;
+    Job_Idle controller;
 
     // Mutex which can be used to guard operations that must be protected
     // across all threads.

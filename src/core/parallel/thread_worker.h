@@ -33,7 +33,7 @@
 namespace dt {
 
 // Forward-declare
-class idle_job;
+class Job_Idle;
 
 
 /**
@@ -52,10 +52,10 @@ class ThreadWorker {
     const size_t thread_index;
     std::thread  thread;
     ThreadJob*  scheduler;
-    idle_job* controller;
+    Job_Idle* controller;
 
   public:
-    ThreadWorker(size_t i, idle_job*);
+    ThreadWorker(size_t i, Job_Idle*);
     ThreadWorker(const ThreadWorker&) = delete;
     ThreadWorker(ThreadWorker&&) = delete;
     ~ThreadWorker();

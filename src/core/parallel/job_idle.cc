@@ -33,10 +33,10 @@ namespace dt {
 // "worker controller" scheduler
 //------------------------------------------------------------------------------
 
-idle_job::sleep_task::sleep_task(idle_job* ij)
+Job_Idle::sleep_task::sleep_task(Job_Idle* ij)
   : controller(ij), next_scheduler{nullptr} {}
 
-void idle_job::sleep_task::execute() {
+void Job_Idle::sleep_task::execute() {
   controller->n_threads_running--;
   semaphore.wait();
   xassert(next_scheduler);
@@ -44,14 +44,14 @@ void idle_job::sleep_task::execute() {
 }
 
 
-idle_job::idle_job() {
+Job_Idle::Job_Idle() {
   curr_sleep_task = new sleep_task(this);
   prev_sleep_task = new sleep_task(this);
   n_threads_running = 0;
 }
 
 
-ThreadTask* idle_job::get_next_task(size_t) {
+ThreadTask* Job_Idle::get_next_task(size_t) {
   return curr_sleep_task;
 }
 
@@ -67,7 +67,7 @@ ThreadTask* idle_job::get_next_task(size_t) {
  *
  * The second part of this method (after the lock is unlocked) is
  * already multi-threaded: at that point other threads wake up and
- * may call arbitrary API of `idle_job`.
+ * may call arbitrary API of `Job_Idle`.
  *
  * Note that we set the variable `n_threads_running` explicitly here
  * (as opposed to, say, allowing each thread to increment this counter
@@ -76,7 +76,7 @@ ThreadTask* idle_job::get_next_task(size_t) {
  * by the time we run `join()` the number of running threads would be
  * zero, even though no work has been done yet.
  */
-void idle_job::awaken_and_run(ThreadJob* job, size_t nthreads) {
+void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   xassert(job);
   xassert(this_thread_index() == 0);
   xassert(n_threads_running == 0);
@@ -96,7 +96,7 @@ void idle_job::awaken_and_run(ThreadJob* job, size_t nthreads) {
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
-void idle_job::join() {
+void Job_Idle::join() {
   xassert(this_thread_index() == 0);
   // Busy-wait until all threads finish running
   while (n_threads_running.load() != 0);
@@ -115,17 +115,17 @@ void idle_job::join() {
 }
 
 
-void idle_job::set_master_worker(ThreadWorker* worker) noexcept {
+void Job_Idle::set_master_worker(ThreadWorker* worker) noexcept {
   master_worker = worker;
 }
 
 
-void idle_job::on_before_thread_removed() {
+void Job_Idle::on_before_thread_removed() {
   xassert(n_threads_running > 0);
   n_threads_running--;
 }
 
-void idle_job::on_before_thread_added() {
+void Job_Idle::on_before_thread_added() {
   n_threads_running++;
 }
 
@@ -136,7 +136,7 @@ void idle_job::on_before_thread_added() {
 // just in case, ensuring that only one thread can call that
 // method at a time.
 //
-void idle_job::catch_exception() noexcept {
+void Job_Idle::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(mutex);
     if (!saved_exception) {
@@ -150,7 +150,7 @@ void idle_job::catch_exception() noexcept {
 }
 
 
-bool idle_job::is_running() const noexcept {
+bool Job_Idle::is_running() const noexcept {
   return (prev_sleep_task->next_scheduler != nullptr);
 }
 
