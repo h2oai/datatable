@@ -119,6 +119,7 @@ void Job_Idle::add_running_thread() {
 void Job_Idle::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(thpool->global_mutex());
+    progress::manager->set_interrupt();
     if (!saved_exception_) {
       saved_exception_ = std::current_exception();
     }
