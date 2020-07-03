@@ -114,7 +114,7 @@ void ThreadPool::instantiate_threads() {
     workers_.reserve(n);
     for (size_t i = workers_.size(); i < n; ++i) {
       try {
-        auto worker = new ThreadWorker(i, &controller);
+        auto worker = new ThreadWorker(i, &idle_job_);
         workers_.push_back(worker);
       } catch (...) {
         // If threads cannot be created (for example if user has requested
@@ -124,11 +124,11 @@ void ThreadPool::instantiate_threads() {
       }
     }
     // Wait until all threads are properly alive & safely asleep
-    controller.join();
+    idle_job_.join();
   }
   else {
     thread_team tt(n, this);
-    Job_Shutdown tss(n, &controller);
+    Job_Shutdown tss(n, &idle_job_);
     execute_job(&tss);
     for (size_t i = n; i < workers_.size(); ++i) {
       delete workers_[i];
@@ -142,7 +142,7 @@ void ThreadPool::instantiate_threads() {
 // void ThreadPool::init_monitor_thread() noexcept {
   // if (!monitor) {
   //   monitor = std::unique_ptr<monitor_thread>(
-  //               new monitor_thread(&controller)
+  //               new monitor_thread(&idle_job_)
   //             );
   // }
 // }
@@ -151,8 +151,8 @@ void ThreadPool::instantiate_threads() {
 void ThreadPool::execute_job(ThreadJob* job) {
   xassert(current_team);
   if (workers_.empty()) instantiate_threads();
-  controller.awaken_and_run(job, workers_.size());
-  controller.join();
+  idle_job_.awaken_and_run(job, workers_.size());
+  idle_job_.join();
   // careful: workers_.size() may not be equal to num_threads_requested_ during
   // shutdown
 }

@@ -82,7 +82,7 @@ class ThreadPool
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
     // See definition in thread_worker.h
-    Job_Idle controller;
+    Job_Idle idle_job_;
 
     // Mutex which can be used to guard operations that must be protected
     // across all threads.
@@ -100,7 +100,7 @@ class ThreadPool
   public:
     ThreadPool();
     ThreadPool(const ThreadPool&) = delete;
-    ThreadPool(ThreadPool&&) = delete;  // Not moveable: workers hold pointers to this->controller.
+    ThreadPool(ThreadPool&&) = delete;  // Not moveable: workers hold pointers to this->idle_job_.
     ~ThreadPool() = delete;             // ThreadPool never gets deleted
 
     static thread_team* get_team_unchecked() noexcept;
