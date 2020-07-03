@@ -17,7 +17,6 @@
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
 #include "progress/progress_manager.h"  // dt::progress::progress_manager
-#include "parallel/monitor_thread.h"
 #include "utils/assert.h"
 namespace dt {
 
@@ -121,8 +120,6 @@ void parallel_for_static(size_t n_iterations,
   // Fast case: the number of rows is too small compared to the
   // chunk size, no need to start a parallel region
   if (n_iterations <= chunk_size_ || num_threads == 1) {
-    // ensures monitor thread is turned off in the end
-    MonitorGuard _;
     size_t i0 = 0;
     while (i0 < n_iterations) {
       size_t i1 = std::min(i0 + chunk_size_, n_iterations);

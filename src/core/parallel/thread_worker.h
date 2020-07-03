@@ -27,7 +27,6 @@
 #include <memory>               // std::unique_ptr
 #include <mutex>                // std::mutex
 #include <thread>               // std::thread
-#include "parallel/monitor_thread.h"
 #include "parallel/semaphore.h"
 #include "parallel/thread_job.h"
 namespace dt {

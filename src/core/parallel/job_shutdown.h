@@ -22,6 +22,7 @@
 #ifndef dt_PARALLEL_JOB_SHUTDOWN_h
 #define dt_PARALLEL_JOB_SHUTDOWN_h
 #include "parallel/thread_job.h"
+#include "parallel/job_idle.h"
 namespace dt {
 
 

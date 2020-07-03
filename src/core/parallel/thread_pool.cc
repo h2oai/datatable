@@ -46,11 +46,8 @@ ThreadPool* thpool = new ThreadPool;
   static void _prepare_fork() {
     size_t n = thpool->size();
     // Put the threadpool into an uninitialized state, shutting down all
-    // workers and the monitor thread.
+    // workers.
     thpool->resize(0);
-    // The monitor thread must be shut down last, because the resize() operation
-    // will attempt to initialize it if absent.
-    // thpool->monitor = nullptr;
     // Resizing the thread pool back to `n` does not create any threads: we
     // postpone thread initialization until they are actually needed.
     thpool->resize(n);
@@ -108,7 +105,6 @@ void ThreadPool::resize(size_t n) {
 
 void ThreadPool::instantiate_threads() {
   size_t n = num_threads_requested_;
-  // init_monitor_thread();
   if (workers_.size() == n) return;
   if (workers_.size() < n) {
     workers_.reserve(n);
@@ -139,15 +135,6 @@ void ThreadPool::instantiate_threads() {
 }
 
 
-// void ThreadPool::init_monitor_thread() noexcept {
-  // if (!monitor) {
-  //   monitor = std::unique_ptr<monitor_thread>(
-  //               new monitor_thread(&idle_job_)
-  //             );
-  // }
-// }
-
-
 void ThreadPool::execute_job(ThreadJob* job) {
   xassert(current_team);
   if (workers_.empty()) instantiate_threads();
@@ -172,13 +159,6 @@ thread_team* ThreadPool::get_team_unchecked() noexcept {
 }
 
 
-// void ThreadPool::enable_monitor(bool a) noexcept {
-//   (void) a;
-//   // init_monitor_thread();
-//   // monitor->set_active(a);
-// }
-
-
 void ThreadPool::assign_job_to_current_thread(ThreadJob* job) {
   workers_[this_thread_index()]->assign_job(job);
 }
@@ -188,15 +168,6 @@ std::mutex& ThreadPool::global_mutex() {
   return global_mutex_;
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// Monitor thread control.
-//------------------------------------------------------------------------------
-// void enable_monitor(bool a) noexcept {
-//   thpool->enable_monitor(a);
-// }
 
 
 

@@ -57,10 +57,7 @@ class ThreadPool
 {
   friend class thread_team;
   friend class Job_Idle;
-  // friend class monitor_thread;
   friend class PythonLock;
-  // public:
-  //   std::unique_ptr<monitor_thread> monitor;
 
   private:
     // Worker instances, each running on its own thread. Each thread has a
@@ -88,14 +85,8 @@ class ThreadPool
     // across all threads.
     std::mutex global_mutex_;
 
-    // Mutex that guards access to python runtime
-    // std::recursive_mutex python_mutex;
-
     // TODO: merge thread_team functionality into the pool?
     thread_team* current_team;
-
-    // Create the monitor thread, if it was not created yet.
-    // void init_monitor_thread() noexcept;
 
   public:
     ThreadPool();
@@ -113,9 +104,6 @@ class ThreadPool
 
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
-
-    // Monitor thread control.
-    // void enable_monitor(bool) noexcept;
 
     static void init_options();
 

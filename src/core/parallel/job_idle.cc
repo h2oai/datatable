@@ -89,7 +89,6 @@ void Job_Idle::join() {
   while (n_threads_running_.load() != 0);
 
   previous_sleep_task_->fall_asleep();
-  // enable_monitor(false);
 
   if (saved_exception_) {
     progress::manager->reset_interrupt_status();

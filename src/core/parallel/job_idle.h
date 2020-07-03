@@ -21,12 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PARALLEL_JOB_IDLE_h
 #define dt_PARALLEL_JOB_IDLE_h
-#include <atomic>               // std::atomic
-#include <cstddef>              // std::size_t
-#include <mutex>                // std::mutex
-#include "parallel/monitor_thread.h"
-#include "parallel/semaphore.h"
-#include "parallel/thread_job.h"
+#include <atomic>                 // std::atomic
+#include <cstddef>                // std::size_t
+#include <mutex>                  // std::mutex
+#include "parallel/semaphore.h"   // LightweightSemaphore
+#include "parallel/thread_job.h"  // ThreadJob, ThreadTask
 namespace dt {
 
 class SleepTask;
