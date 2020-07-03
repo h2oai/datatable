@@ -126,7 +126,11 @@ void progress_manager::check_interrupts_main() {
 
   if (PyErr_CheckSignals()) {
     if (pbar) pbar->set_status_error(true);
-    interrupt_status = InterruptStatus::ABORT_EXECUTION;
+    // Do not set interrupt status here, otherwise another thread
+    // might see that status and throw its own exception before this
+    // one has a chance of getting processed.
+    // Instead, the interrupt status will be set in
+    // `Job_Idle::catch_exception()`
     throw PyError();
   }
   if (pbar) {
