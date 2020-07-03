@@ -224,6 +224,7 @@ void idle_job::on_before_thread_added() {
 void idle_job::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(mutex);
+    progress::manager->set_interrupt();
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }
