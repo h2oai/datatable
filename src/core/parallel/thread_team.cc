@@ -49,7 +49,8 @@ size_t thread_team::size() const noexcept {
 void thread_team::wait_at_barrier() {
   size_t n = barrier_counter.fetch_add(1);
   size_t n_target = n - (n % nthreads) + nthreads;
-  while (barrier_counter.load() < n_target);
+  while (barrier_counter.load() < n_target &&
+         !progress::manager->is_interrupt_occurred());
 }
 
 
