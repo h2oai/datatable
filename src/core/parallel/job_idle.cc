@@ -78,7 +78,7 @@ void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   saved_exception_ = nullptr;
 
   previous_sleep_task_->wake_up(nth, job);
-  thpool->workers_[0]->run_master(job);
+  thpool->workers_[0]->run_in_main_thread(job);
 }
 
 

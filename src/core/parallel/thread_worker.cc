@@ -30,71 +30,70 @@ namespace dt {
 
 
 /**
-  * The worker creates its own thread of execution. The thread will be
-  * executing function `ThreadWorker::run()` continuously. The only
-  * way to shut down the thread is to cause the `run()` function to
-  * stop its loop.
+  * The worker creates its own thread of execution. The thread will
+  * be executing function `ThreadWorker::run()` continuously until it
+  * exits its loop.
   */
 ThreadWorker::ThreadWorker(size_t i, Job_Idle* wc)
-  : thread_index(i),
-    scheduler(wc),
-    controller(wc)
+  : thread_index_(i),
+    job_(wc),
+    idle_job_(wc)
 {
   if (i == 0) {
-    scheduler = nullptr;
+    job_ = nullptr;
     _set_thread_num(0);
   } else {
     // Create actual execution thread only when `this` is fully initialized
     wc->add_running_thread();
-    thread = std::thread(&ThreadWorker::run, this);
+    thread_ = std::thread(&ThreadWorker::run, this);
   }
 }
 
 
 ThreadWorker::~ThreadWorker() {
-  if (thread.joinable()) thread.join();
+  if (thread_.joinable()) thread_.join();
 }
 
 
 
 /**
- * This is the main function that will be run within the thread. It
- * continuously picks up tasks from the scheduler and executes them. This
- * function stops running (terminating the thread) once `scheduler` becomes
- * nullptr.
- *
- * If the task returned from the scheduler is nullptr, then the thread worker
- * switches to "sleep" scheduler and waits until it is awaken by the condition
- * variable inside the sleep task.
- */
+  * This is the main function that will be run within the thread. It
+  * continuously picks up tasks from the job_ and executes them. This
+  * function stops running (terminating the thread) once `job_`
+  * becomes nullptr.
+  *
+  * If the task returned from the `job_` is nullptr, then the thread
+  * worker switches to "sleep" job and waits there for a signal from
+  * the semaphore.
+  */
 void ThreadWorker::run() noexcept {
-  _set_thread_num(thread_index);
-  while (scheduler) {
+  _set_thread_num(thread_index_);
+  while (job_) {
     try {
-      ThreadTask* task = scheduler->get_next_task(thread_index);
+      ThreadTask* task = job_->get_next_task(thread_index_);
       if (task) {
         task->execute();
       } else {
-        scheduler = controller;
+        job_ = idle_job_;
       }
-    } catch (...) {
-      // enable_monitor(false);
-      controller->catch_exception();
-      scheduler->abort_execution();
+    }
+    catch (...) {
+      idle_job_->catch_exception();
+      job_->abort_execution();
     }
   }
 }
 
 
 /**
- * Similar to run(), but designed to run from the master thread. The
- * differences are following:
- *   - this method does NOT run continuously, instead it starts with
- *     a new job, and finishes when the job is done.
- *   - the `scheduler` is not used (since it is never set by the
- *     controller), instead the `job` is passed explicitly.
- */
-void ThreadWorker::run_master(ThreadJob* job) noexcept {
+  * Similar to run(), but designed to run from the main thread. The
+  * differences are the following:
+  *   - this method does NOT run continuously, instead it starts with
+  *     a new job, and finishes when the job is done.
+  *   - the `job_` field is not used, instead the job is passed
+  *     as a parameter.
+  */
+void ThreadWorker::run_in_main_thread(ThreadJob* job) noexcept {
   if (!job) return;
   while (true) {
     try {
@@ -102,9 +101,9 @@ void ThreadWorker::run_master(ThreadJob* job) noexcept {
       if (!task) break;
       task->execute();
       progress::manager->check_interrupts_main();
-    } catch (...) {
-      // enable_monitor(false);
-      controller->catch_exception();
+    }
+    catch (...) {
+      idle_job_->catch_exception();
       job->abort_execution();
     }
   }
@@ -112,12 +111,12 @@ void ThreadWorker::run_master(ThreadJob* job) noexcept {
 
 
 size_t ThreadWorker::get_index() const noexcept {
-  return thread_index;
+  return thread_index_;
 }
 
 
 void ThreadWorker::assign_job(ThreadJob* job) noexcept {
-  scheduler = job;
+  job_ = job;
 }
 
 

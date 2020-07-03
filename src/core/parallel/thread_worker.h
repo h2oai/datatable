@@ -32,27 +32,27 @@
 #include "parallel/thread_job.h"
 namespace dt {
 
-// Forward-declare
 class Job_Idle;
 
 
 /**
- * A class that encapsulates thread-specific runtime information. After
- * instantiation, we expect this class to be accessed within its own thread
- * only. This makes it safe to have variables such as `scheduler` non-atomic.
- *
- * Any communication with the worker (including changing to a new scheduler)
- * is performed only via the current scheduler: the scheduler may emit a task
- * that changes the worker's state.
- *
- * The thread stops running when `scheduler` becomes nullptr.
- */
+  * A class that encapsulates thread-specific runtime information.
+  * After instantiation we expect this class to be accessed within
+  * its own thread only. This makes it safe to have variables such
+  * as `job_` non-atomic.
+  *
+  * Any communication with the worker (including changing to a new
+  * job) is performed only via the current job: the job may emit a
+  * task that changes the worker's state.
+  *
+  * The thread stops running when `job_` becomes nullptr.
+  */
 class ThreadWorker {
   private:
-    const size_t thread_index;
-    std::thread  thread;
-    ThreadJob*  scheduler;
-    Job_Idle* controller;
+    const size_t thread_index_;
+    std::thread  thread_;
+    ThreadJob*   job_;
+    Job_Idle*    idle_job_;
 
   public:
     ThreadWorker(size_t i, Job_Idle*);
@@ -61,7 +61,7 @@ class ThreadWorker {
     ~ThreadWorker();
 
     void run() noexcept;
-    void run_master(ThreadJob*) noexcept;
+    void run_in_main_thread(ThreadJob*) noexcept;
     size_t get_index() const noexcept;
     void assign_job(ThreadJob*) noexcept;
 };
