@@ -178,13 +178,13 @@ bool Stats::get_stat(Stat stat, size_t* out) {
   return ret;
 }
 
-bool Stats::get_stat(Stat stat, double* out)   {
+bool Stats::get_stat(Stat stat, double* out) {
   bool ret;
   *out = get_stat_double(stat, &ret);
   return ret;
 }
 
-bool Stats::get_stat(Stat stat, CString* out)  {
+bool Stats::get_stat(Stat stat, CString* out) {
   bool ret;
   *out = get_stat_string(stat, &ret);
   return ret;
