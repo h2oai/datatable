@@ -65,7 +65,7 @@ Frame, where each column consists of the respective bin ids.
 
 
 /**
- *  Main Python cut function.
+ *  Main Python binning function.
  */
 static oobj cut(const PKArgs& args) {
   const Arg& arg_frame = args[0];
@@ -125,12 +125,11 @@ static oobj cut(const PKArgs& args) {
     }
   }
 
-  dtptr dt_bins = cut(dt_in, bins);
+  dtptr dt_bins = bin(dt_in, bins);
   py::oobj py_bins = py::Frame::oframe(dt_bins.release());
 
   return py_bins;
 }
-
 
 
 void DatatableModule::init_methods_cut() {
@@ -141,50 +140,50 @@ void DatatableModule::init_methods_cut() {
 
 
 /**
- *  Cut a datatable.
+ *  Bin all columns in a DataTable.
  */
-dtptr cut(DataTable* dt_in, sztvec bins) {
+dtptr bin(DataTable* dt_in, sztvec bins) {
   xassert(dt_in->ncols() == bins.size());
 
   const size_t ncols = dt_in->ncols();
-  colvec outcols;
-  outcols.reserve(ncols);
+  colvec cols_bin;
+  cols_bin.reserve(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
     const Column& col = dt_in->get_column(i);
-    Column col_cut;
+    Column col_bin;
 
     switch (col.stype()) {
-      case dt::SType::BOOL:    col_cut = cut_column<int8_t, int64_t>(col, bins[i]);;
+      case dt::SType::BOOL:    col_bin = bin_column<int8_t, int64_t>(col, bins[i]);;
                                break;
-      case dt::SType::INT8:    col_cut = cut_column<int8_t, int64_t>(col, bins[i]);
+      case dt::SType::INT8:    col_bin = bin_column<int8_t, int64_t>(col, bins[i]);
                                break;
-      case dt::SType::INT16:   col_cut = cut_column<int16_t, int64_t>(col, bins[i]);
+      case dt::SType::INT16:   col_bin = bin_column<int16_t, int64_t>(col, bins[i]);
                                break;
-      case dt::SType::INT32:   col_cut = cut_column<int32_t, int64_t>(col, bins[i]);
+      case dt::SType::INT32:   col_bin = bin_column<int32_t, int64_t>(col, bins[i]);
                                break;
-      case dt::SType::INT64:   col_cut = cut_column<int64_t, int64_t>(col, bins[i]);
+      case dt::SType::INT64:   col_bin = bin_column<int64_t, int64_t>(col, bins[i]);
                                break;
-      case dt::SType::FLOAT32: col_cut = cut_column<float, double>(col, bins[i]);
+      case dt::SType::FLOAT32: col_bin = bin_column<float, double>(col, bins[i]);
                                break;
-      case dt::SType::FLOAT64: col_cut = cut_column<double, double>(col, bins[i]);
+      case dt::SType::FLOAT64: col_bin = bin_column<double, double>(col, bins[i]);
                                break;
       default:                 throw ValueError() << "Columns with stype `" << col.stype()
                                  << "` are not supported";
     }
-    outcols.push_back(col_cut);
+    cols_bin.push_back(col_bin);
   }
 
-  auto dt_bins = dtptr(new DataTable(std::move(outcols), *dt_in));
-  return dt_bins;
+  auto dt_bin = dtptr(new DataTable(std::move(cols_bin), *dt_in));
+  return dt_bin;
 }
 
 
 /**
- *  Cut a single column.
+ *  Bin a single Column.
  */
 template <typename T_elems, typename T_stats>
-Column cut_column(const Column& col_, size_t bins) {
+Column bin_column(const Column& col_, size_t bins) {
   // Virtual column to cast data to double
   Column col_dbl = Column(new dt::FuncUnary2_ColumnImpl<T_elems, double>(
                      Column(col_),
@@ -208,15 +207,8 @@ Column cut_column(const Column& col_, size_t bins) {
   double max = static_cast<double>(tmax);
 
   // Set up binning coefficients
-  double epsilon = static_cast<double>(std::numeric_limits<float>::epsilon());
-  double norm_factor, norm_shift;
-  if (tmin == tmax) {
-    norm_factor = 0;
-    norm_shift = 0.5 * (1 - epsilon) * bins;
-  } else {
-    norm_factor = (1 - epsilon) * bins / (max - min);
-    norm_shift = -norm_factor * min;
-  }
+  double bin_factor, bin_shift;
+  set_bin_coeffs(bin_factor, bin_shift, min, max, bins);
 
   // Do actual binning
   dt::parallel_for_static(col_dbl.nrows(),
@@ -224,13 +216,30 @@ Column cut_column(const Column& col_, size_t bins) {
       double value;
       bool is_valid = col_dbl.get_element(i, &value);
       if (is_valid) {
-        col_cut_data[i] = static_cast<int32_t>(norm_factor * value + norm_shift);
+        double bin_double = bin_factor * value + bin_shift;
+        col_cut_data[i] = static_cast<int32_t>(bin_double);
       } else {
         col_cut_data[i] = dt::GETNA<int32_t>();
       }
     });
 
   return col_cut;
+}
+
+
+void set_bin_coeffs(double& bin_factor, double& bin_shift,
+                     const double min, const double max, size_t bins)
+{
+  const double epsilon = static_cast<double>(
+                           std::numeric_limits<float>::epsilon()
+                         );
+  if (min == max) {
+    bin_factor = 0;
+    bin_shift = 0.5 * (1 - epsilon) * bins;
+  } else {
+    bin_factor = (1 - epsilon) * bins / (max - min);
+    bin_shift = -bin_factor * min;
+  }
 }
 
 

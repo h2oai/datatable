@@ -20,7 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
-dtptr cut(DataTable*, sztvec);
+dtptr bin(DataTable*, sztvec);
 template <typename T_elems, typename T_stats>
 
-Column cut_column(const Column& , size_t);
+Column bin_column(const Column& , size_t);
+void set_bin_coeffs(double&, double&, const double, const double, size_t);
