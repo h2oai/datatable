@@ -30,7 +30,7 @@
 
 
 static std::string get_temp_dir() {
-  std::lock_guard<std::mutex> lock(dt::python_mutex());
+  dt::PythonLock lock;
   auto gettempdirfn = py::oobj::import("tempfile", "gettempdir");
   auto tempdir = gettempdirfn.call();
   return tempdir.to_string();

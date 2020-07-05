@@ -75,7 +75,7 @@ void thread_worker::run() noexcept {
         scheduler = controller;
       }
     } catch (...) {
-      enable_monitor(false);
+      // enable_monitor(false);
       controller->catch_exception();
       scheduler->abort_execution();
     }
@@ -98,8 +98,9 @@ void thread_worker::run_master(thread_scheduler* job) noexcept {
       thread_task* task = job->get_next_task(0);
       if (!task) break;
       task->execute(this);
+      progress::manager->check_interrupts_main();
     } catch (...) {
-      enable_monitor(false);
+      // enable_monitor(false);
       controller->catch_exception();
       job->abort_execution();
     }
@@ -162,6 +163,7 @@ thread_task* idle_job::get_next_task(size_t) {
  */
 void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
   xassert(job);
+  xassert(this_thread_index() == 0);
   xassert(n_threads_running == 0);
   xassert(prev_sleep_task->next_scheduler == nullptr);
   xassert(curr_sleep_task->next_scheduler == nullptr);
@@ -173,20 +175,21 @@ void idle_job::awaken_and_run(thread_scheduler* job, size_t nthreads) {
 
   prev_sleep_task->next_scheduler = job;
   prev_sleep_task->semaphore.signal(nth);
-  enable_monitor(true);
+  // enable_monitor(true);
   master_worker->run_master(job);
 }
 
 
 // Wait until all threads go back to sleep (which would mean the job is done)
 void idle_job::join() {
+  xassert(this_thread_index() == 0);
   // Busy-wait until all threads finish running
   while (n_threads_running.load() != 0);
 
   // Clear `.next_scheduler` flag of the previous sleep task, indicating that
   // we no longer run in a parallel region (see `is_running()`).
   prev_sleep_task->next_scheduler = nullptr;
-  enable_monitor(false);
+  // enable_monitor(false);
 
   if (saved_exception) {
     progress::manager->reset_interrupt_status();
@@ -221,6 +224,7 @@ void idle_job::on_before_thread_added() {
 void idle_job::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(mutex);
+    progress::manager->set_interrupt();
     if (!saved_exception) {
       saved_exception = std::current_exception();
     }

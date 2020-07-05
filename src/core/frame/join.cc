@@ -31,7 +31,6 @@
 #include "column.h"
 #include "datatable.h"
 #include "datatablemodule.h"
-#include "types.h"
 #include "stype.h"
 
 
@@ -244,7 +243,7 @@ class StringCmp : public Cmp {
   private:
     const Column& colX;
     const Column& colJ;
-    CString x_value;
+    dt::CString x_value;
 
   public:
     StringCmp(const Column&, const Column&);
@@ -264,16 +263,16 @@ cmpptr StringCmp::make(const Column& col1, const Column& col2) {
 
 
 int StringCmp::cmp_jrow(size_t row) const {
-  CString j_value;
+  dt::CString j_value;
   bool j_valid = colJ.get_element(row, &j_value);
   bool x_valid = !x_value.isna();
   if (!(j_valid && x_valid)) return j_valid - x_valid;
 
-  int64_t xlen = x_value.size;
-  int64_t jlen = j_value.size;
-  const char* xstr = x_value.ch;
-  const char* jstr = j_value.ch;
-  for (int64_t i = 0; i < jlen; ++i) {
+  size_t xlen = x_value.size();
+  size_t jlen = j_value.size();
+  const char* xstr = x_value.data();
+  const char* jstr = j_value.data();
+  for (size_t i = 0; i < jlen; ++i) {
     if (i == xlen) return 1;  // jstr is longer than xstr
     char jch = jstr[i];
     char xch = xstr[i];
@@ -287,7 +286,7 @@ int StringCmp::cmp_jrow(size_t row) const {
 
 int StringCmp::set_xrow(size_t row) {
   bool isvalid = colX.get_element(row, &x_value);
-  if (!isvalid) x_value.ch = nullptr;
+  if (!isvalid) x_value = dt::CString();
   return 0;
 }
 

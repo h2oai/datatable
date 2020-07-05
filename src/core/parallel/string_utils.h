@@ -75,8 +75,7 @@ Column map_str2str(const Column& input_col, F f) {
           for (size_t i = i0; i < i1; ++i) {
             bool isvalid = input_col.get_element(i, &curr_str);
             if (!isvalid) {
-              curr_str.ch = nullptr;
-              curr_str.size = 0;
+              curr_str = CString();
             }
             f(i, curr_str, sb.get());
           }

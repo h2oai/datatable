@@ -22,7 +22,8 @@
 #ifndef dt_WRITE_WRITING_CONTEXT_h
 #define dt_WRITE_WRITING_CONTEXT_h
 #include <memory>     // std::unique_ptr
-#include "types.h"
+#include "_dt.h"
+#include "cstring.h"
 namespace dt {
 namespace write {
 

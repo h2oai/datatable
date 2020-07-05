@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>                   // std::memcpy
 #include "column/rbound.h"
 #include "read/output_column.h"
 #include "utils/temporary_file.h"

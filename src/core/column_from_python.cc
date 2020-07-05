@@ -19,7 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>       // std::min
 #include <cstdlib>         // std::abs
+#include <cstring>         // std::memcpy
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
 #include "column/pysources.h"  // PyList_ColumnImpl, ...
@@ -283,13 +285,13 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
     }
     if (item.is_string()) {
       parse_string:
-      CString cstr = item.to_cstring();
-      if (cstr.size) {
-        T tlen = static_cast<T>(cstr.size);
+      dt::CString cstr = item.to_cstring();
+      if (cstr.size()) {
+        T tlen = static_cast<T>(cstr.size());
         T next_offset = curr_offset + tlen;
         // Check that length or offset of the string doesn't overflow int32_t
         if (std::is_same<T, uint32_t>::value &&
-              (static_cast<int64_t>(tlen) != cstr.size ||
+              (static_cast<size_t>(tlen) != cstr.size() ||
                next_offset < curr_offset)) {
           break;
         }
@@ -300,8 +302,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch,
-                    static_cast<size_t>(cstr.size));
+        std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;
@@ -369,12 +370,12 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
       item = tmpitem;
     }
     if (item.is_string()) {
-      CString cstr = item.to_cstring();
-      if (cstr.size) {
-        T tlen = static_cast<T>(cstr.size);
+      dt::CString cstr = item.to_cstring();
+      if (cstr.size()) {
+        T tlen = static_cast<T>(cstr.size());
         T next_offset = curr_offset + tlen;
         if (std::is_same<T, int32_t>::value &&
-              (static_cast<int64_t>(tlen) != cstr.size ||
+              (static_cast<size_t>(tlen) != cstr.size() ||
                next_offset < curr_offset)) {
           offsets[i] = curr_offset ^ dt::GETNA<T>();
           continue;
@@ -385,8 +386,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
-        std::memcpy(strptr + curr_offset, cstr.ch,
-                    static_cast<size_t>(cstr.size));
+        std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
         curr_offset = next_offset;
       }
       offsets[i] = curr_offset;

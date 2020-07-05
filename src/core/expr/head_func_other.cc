@@ -67,7 +67,7 @@ class re_match_vcol : public Virtual_ColumnImpl {
       CString x;
       bool isvalid = arg.get_element(i, &x);
       if (isvalid) {
-        *out = std::regex_match(x.ch, x.ch + x.size, regex);
+        *out = std::regex_match(x.data(), x.end(), regex);
       }
       return isvalid;
     }
@@ -76,7 +76,7 @@ class re_match_vcol : public Virtual_ColumnImpl {
       CString x;
       bool isvalid = arg.get_element(i, &x);
       if (isvalid) {
-        *out = std::regex_match(x.ch, x.ch + x.size, regex);
+        *out = std::regex_match(x.data(), x.end(), regex);
       }
       return isvalid;
     }

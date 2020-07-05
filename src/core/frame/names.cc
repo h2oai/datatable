@@ -1,21 +1,29 @@
 //------------------------------------------------------------------------------
 // Copyright 2018-2020 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>          // std::min
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include "cstring.h"
 #include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
@@ -51,7 +59,7 @@ class NameProvider {
   public:
     virtual ~NameProvider() {}  // LCOV_EXCL_LINE
     virtual size_t size() const = 0;
-    virtual CString item_as_cstring(size_t i) = 0;
+    virtual dt::CString item_as_cstring(size_t i) = 0;
     virtual py::oobj item_as_pyoobj(size_t i) = 0;
 };
 
@@ -69,7 +77,7 @@ class pylistNP : public NameProvider {
       return names.size();
     }
 
-    virtual CString item_as_cstring(size_t i) override {
+    virtual dt::CString item_as_cstring(size_t i) override {
       py::robj name = names[i];
       if (!name.is_string() && !name.is_none()) {
         throw TypeError() << "Invalid `names` list: element " << i
@@ -97,9 +105,9 @@ class strvecNP : public NameProvider {
       return names.size();
     }
 
-    virtual CString item_as_cstring(size_t i) override {
+    virtual dt::CString item_as_cstring(size_t i) override {
       const std::string& name = names[i];
-      return CString { name.data(), static_cast<int64_t>(name.size()) };
+      return dt::CString { name.data(), name.size() };
     }
 
     virtual py::oobj item_as_pyoobj(size_t i) override {
@@ -505,15 +513,15 @@ void DataTable::_init_pynames() const {
 // are considered characters with ASCII codes \x00 - \x1F. If any of them
 // are found, we perform substitution s/[\x00-\x1F]+/./g.
 //
-static std::string _mangle_name(CString name, bool* was_mangled) {
-  auto chars = reinterpret_cast<const uint8_t*>(name.ch);
-  auto len = static_cast<size_t>(name.size);
+static std::string _mangle_name(const dt::CString& name, bool* was_mangled) {
+  auto chars = reinterpret_cast<const uint8_t*>(name.data());
+  auto len = name.size();
 
   size_t j = 0;
   for (; j < len && chars[j] >= 0x20; ++j);
   if (j == len) {
     *was_mangled = false;
-    return std::string(name.ch, len);
+    return name.to_string();
   }
 
   std::ostringstream out;
@@ -621,8 +629,8 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
   for (size_t i = 0; i < ncols_; ++i) {
     // Convert to a C-style name object. Note that if `name` is python None,
     // then the resulting `cname` will be `{nullptr, 0}`.
-    CString cname = nameslist->item_as_cstring(i);
-    if (cname.size == 0) {
+    dt::CString cname = nameslist->item_as_cstring(i);
+    if (cname.size() == 0) {
       fill_default_names = true;
       names_.push_back(std::string());
       continue;

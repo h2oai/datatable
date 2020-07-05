@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,10 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITE_ZLIB_WRITER_h
 #define dt_WRITE_ZLIB_WRITER_h
+#include "cstring.h"
+#include "lib/zlib/zlib.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "types.h"
-#include "lib/zlib/zlib.h"
 namespace dt {
 namespace write {
 
@@ -93,18 +93,18 @@ class zlib_writer {
      *
      */
     void compress(CString& inout) {
-      size_t input_size = static_cast<size_t>(inout.size);
+      size_t input_size = inout.size();
       if (input_size != static_cast<zlib::uLong>(input_size)) {
         throw RuntimeError() << "Cannot compress chunk of size " << input_size;
       }
       size_t out_size = zlib::deflateBound(
-                          &stream, 
+                          &stream,
                           static_cast<zlib::uLong>(input_size)
                         );  // estimated
       ensure_buffer_capacity(out_size);
 
       reset_buffer();
-      stream.next_in = reinterpret_cast<zlib::Bytef*>(const_cast<char*>(inout.ch));
+      stream.next_in = reinterpret_cast<zlib::Bytef*>(const_cast<char*>(inout.data()));
       stream.avail_in = static_cast<zlib::uInt>(input_size);
       stream.next_out = reinterpret_cast<zlib::Bytef*>(buffer);
       stream.avail_out = static_cast<zlib::uInt>(buffer_capacity);
@@ -124,8 +124,7 @@ class zlib_writer {
       }
       xassert(stream.avail_in == 0);
       xassert(stream.total_in == input_size);
-      inout.ch = buffer;
-      inout.size = static_cast<int64_t>(stream.total_out);
+      inout = CString(buffer, stream.total_out);
     }
 
 

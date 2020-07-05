@@ -21,11 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_WRITEBUF_h
 #define dt_WRITEBUF_h
-#include <memory>      // std::unique_ptr
-#include <string>      // std::string
+#include <memory>                     // std::unique_ptr
+#include <string>                     // std::string
+#include "cstring.h"                  // dt::CString
 #include "parallel/shared_mutex.h"
 #include "utils/file.h"
-#include "types.h"
 
 class Buffer;
 
@@ -118,9 +118,9 @@ class WritableBuffer
       write_at(writepos, n, src);
       return writepos;
     }
-    size_t write(const CString& src) {
-      size_t writepos = prepare_write(static_cast<size_t>(src.size), src.ch);
-      write_at(writepos, static_cast<size_t>(src.size), src.ch);
+    size_t write(const dt::CString& src) {
+      size_t writepos = prepare_write(src.size(), src.data());
+      write_at(writepos, src.size(), src.data());
       return writepos;
     }
 

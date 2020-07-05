@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>                  // std::memcpy
 #include "models/column_hasher.h"
 #include "stype.h"
 
@@ -71,9 +72,9 @@ uint64_t HasherFloat<T>::hash(size_t row) const {
  */
 uint64_t HasherString::hash(size_t row) const {
   uint64_t h = dt::NA_S8;
-  CString value;
+  dt::CString value;
   bool isvalid = column.get_element(row, &value);
-  if (isvalid) h = hash_murmur2(value.ch, static_cast<size_t>(value.size));
+  if (isvalid) h = hash_murmur2(value.data(), value.size());
   return h;
 }
 

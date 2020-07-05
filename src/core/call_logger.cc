@@ -19,9 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>        // std::max
 #include <chrono>
 #include <iostream>
 #include "call_logger.h"
+#include "cstring.h"
 #include "options.h"
 #include "python/args.h"
 #include "python/bool.h"
@@ -159,14 +161,15 @@ log::Message& log::Message::operator<<(const R& r) {
   }
   py::ostring repr = r.obj.safe_repr();
   auto strobj = repr.to_cstring();
-  if (static_cast<size_t>(strobj.size) <= opt_truncate_length) {
-    out_.write(strobj.ch, strobj.size);
+  if (strobj.size() <= opt_truncate_length) {
+    auto len = static_cast<long>(strobj.size());
+    out_.write(strobj.data(), len);
   } else {
     auto len0 = static_cast<long>(opt_truncate_length * 3/5);
     auto len1 = static_cast<long>(opt_truncate_length * 2/5 - 3);
-    out_.write(strobj.ch, len0);
+    out_.write(strobj.data(), len0);
     out_.write("...", 3);
-    out_.write(strobj.ch + strobj.size - len1, len1);
+    out_.write(strobj.end() - len1, len1);
   }
   return *this;
 }

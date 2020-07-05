@@ -10,7 +10,6 @@
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
-#include "types.h"
 
 
 DataTable::DefaultNamesTag DataTable::default_names;

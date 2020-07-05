@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <iostream>
 #include "call_logger.h"
+#include "cstring.h"
 #include "parallel/api.h"
 #include "python/string.h"
 #include "python/xobject.h"
@@ -187,8 +188,9 @@ Message& Message::operator<<(const char& c) {
 
 
 template <>
-Message& Message::operator<<(const CString& str) {
-  out_.write(str.ch, str.size);
+Message& Message::operator<<(const dt::CString& str) {
+  auto len = static_cast<long>(str.size());
+  out_.write(str.data(), len);
   return *this;
 }
 
@@ -284,7 +286,8 @@ void Logger::end_section() noexcept {
 
 
 void Logger::emit(std::string&& msg, bool warning) {
-  std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  // std::lock_guard<std::mutex> pylock(dt::python_mutex());
+  PythonLock pylock;
   CallLoggerLock loglock;
   // Use user-defined logger object
   if (pylogger_) {

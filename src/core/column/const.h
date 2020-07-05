@@ -33,7 +33,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
     static Column make_bool_column(size_t nrows, bool value);
     static Column make_int_column(size_t nrows, int64_t value, SType stype = SType::VOID);
     static Column make_float_column(size_t nrows, double value, SType stype = SType::FLOAT64);
-    static Column make_string_column(size_t nrows, CString value, SType stype = SType::STR32);
+    static Column make_string_column(size_t nrows, const CString& value, SType stype = SType::STR32);
     static Column from_1row_column(const Column& col);
 
     size_t n_children() const noexcept override;

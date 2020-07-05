@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,9 +21,11 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_UTILS_h
 #define dt_MODELS_UTILS_h
+#include <algorithm>    // std::sort
+#include <cmath>        // std::exp
 #include <limits>
 #include <memory>
-#include <numeric>
+#include <numeric>      // std::iota
 #include "datatable.h"
 
 template <typename T>

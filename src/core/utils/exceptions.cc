@@ -23,10 +23,12 @@
 #include <iostream>
 #include <errno.h>
 #include <string.h>
+#include "cstring.h"
 #include "ltype.h"
 #include "parallel/api.h"
 #include "progress/progress_manager.h"
 #include "python/obj.h"
+#include "python/python.h"
 #include "python/string.h"
 #include "python/tuple.h"
 #include "stype.h"
@@ -179,8 +181,8 @@ Error& Error::operator<<(double v)             { error << v; return *this; }
   Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
 #endif
 
-Error& Error::operator<<(const CString& str) {
-  return *this << std::string(str.ch, static_cast<size_t>(str.size));
+Error& Error::operator<<(const dt::CString& str) {
+  return *this << str.to_string();
 }
 
 Error& Error::operator<<(const py::_obj& o) {

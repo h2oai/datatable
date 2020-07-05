@@ -25,13 +25,9 @@
 #include <string>   // std::string
 #include <vector>   // std::vector
 #include "_dt.h"               // general declarations
-#include "types.h"             // CString
 #include "utils/exceptions.h"  // Error
-
-class DataTable;
-class RowIndex;
-
 namespace py {
+
 
 /**
  * This class is a C++ wrapper around pythonic C struct `PyObject*`. Its main
@@ -239,7 +235,7 @@ class _obj {
     double      to_double         (const error_manager& = _em0) const;
     py::ofloat  to_pyfloat_force  (const error_manager& = _em0) const noexcept;
 
-    CString     to_cstring        (const error_manager& = _em0) const;
+    dt::CString to_cstring        (const error_manager& = _em0) const;
     std::string to_string         (const error_manager& = _em0) const;
     py::ostring to_pystring_force (const error_manager& = _em0) const noexcept;
 
@@ -357,7 +353,7 @@ class oobj : public _obj {
     static oobj wrap(size_t v);
     static oobj wrap(float v);
     static oobj wrap(double v);
-    static oobj wrap(const CString& v);
+    static oobj wrap(const dt::CString& v);
     static oobj wrap(const py::robj& v);
 };
 

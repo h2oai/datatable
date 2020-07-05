@@ -250,8 +250,8 @@ static inline bool character_needs_escaping(char c) {
 }
 
 static void write_str_unquoted(CString value, writing_context& ctx) {
-  const char* strstart = value.ch;
-  size_t strsize = static_cast<size_t>(value.size);
+  const char* strstart = value.data();
+  size_t strsize = value.size();
   ctx.ensure_buffer_capacity(strsize);
   std::memcpy(ctx.ch, strstart, strsize);
   ctx.ch += strsize;
@@ -259,8 +259,8 @@ static void write_str_unquoted(CString value, writing_context& ctx) {
 
 template <bool Detect, bool PrintQuotes>
 static void write_str(CString value, writing_context& ctx) {
-  size_t strsize = static_cast<size_t>(value.size);
-  const char* strstart = value.ch;
+  size_t strsize = value.size();
+  const char* strstart = value.data();
   const char* strend = strstart + strsize;
   ctx.ensure_buffer_capacity(strsize * 2);
 

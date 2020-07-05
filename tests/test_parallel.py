@@ -28,14 +28,8 @@ import subprocess
 import sys
 import time
 from datatable.lib import core
+from tests import (cpp_test, skip_on_jenkins)
 
-
-#-------------------------------------------------------------------------------
-# Check if we need to run C++ tests
-#-------------------------------------------------------------------------------
-
-cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
-                              reason="C++ tests were not compiled")
 
 #-------------------------------------------------------------------------------
 # Test parallel infrastructure
@@ -145,6 +139,7 @@ def test_progress(parallel_type, nthreads):
 
 # Send interrupt signal and make sure process throws KeyboardInterrupt
 @cpp_test
+@skip_on_jenkins
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],

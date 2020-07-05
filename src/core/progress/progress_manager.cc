@@ -119,6 +119,26 @@ void progress_manager::set_status_cancelled() noexcept {
 }
 
 
+void progress_manager::check_interrupts_main() {
+  xassert(dt::this_thread_index() == 0);
+  // std::lock_guard<std::recursive_mutex> lock(dt::python_mutex());
+  PythonLock pylock;
+
+  if (PyErr_CheckSignals()) {
+    if (pbar) pbar->set_status_error(true);
+    // Do not set interrupt status here, otherwise another thread
+    // might see that status and throw its own exception before this
+    // one has a chance of getting processed.
+    // Instead, the interrupt status will be set in
+    // `Job_Idle::catch_exception()`
+    throw PyError();
+  }
+  if (pbar) {
+    pbar->refresh();
+  }
+}
+
+
 
 
 }} // namespace dt::progress

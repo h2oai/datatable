@@ -18,7 +18,6 @@
 #include <memory>           // std::unique_ptr
 #include "buffer.h"         // Buffer
 #include "column.h"
-#include "types.h"          // CString
 #include "writebuf.h"       // WritableBuffer
 
 template <typename T> class SentinelStr_ColumnImpl;
