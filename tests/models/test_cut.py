@@ -132,7 +132,6 @@ def test_cut_random(seed):
 
 	DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
 	DT_cut = cut(DT, bins)
-
 	PD = [pd.cut(data[i], bins[i], labels=False) for i in range(3)]
 
 	assert([list(PD[i]) for i in range(3)] == DT_cut.to_list())

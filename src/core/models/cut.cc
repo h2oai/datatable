@@ -196,8 +196,8 @@ Column bin_column(const Column& col_, size_t bins) {
                    ));
 
   // Output column
-  Column col_cut = Column::new_data_column(col_.nrows(), dt::SType::INT32);
-  auto col_cut_data = static_cast<int32_t*>(col_cut.get_data_editable());
+  Column col_bin = Column::new_data_column(col_.nrows(), dt::SType::INT32);
+  auto col_bin_data = static_cast<int32_t*>(col_bin.get_data_editable());
 
   // Get stats
   T_stats tmin, tmax;
@@ -217,13 +217,13 @@ Column bin_column(const Column& col_, size_t bins) {
       bool is_valid = col_dbl.get_element(i, &value);
       if (is_valid) {
         double bin_double = bin_factor * value + bin_shift;
-        col_cut_data[i] = static_cast<int32_t>(bin_double);
+        col_bin_data[i] = static_cast<int32_t>(bin_double);
       } else {
-        col_cut_data[i] = dt::GETNA<int32_t>();
+        col_bin_data[i] = dt::GETNA<int32_t>();
       }
     });
 
-  return col_cut;
+  return col_bin;
 }
 
 
