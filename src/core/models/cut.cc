@@ -31,9 +31,6 @@
 #include "parallel/api.h"
 #include "python/obj.h"
 
-#include <iostream>
-#include <iomanip>
-
 
 namespace py {
 
@@ -48,16 +45,17 @@ static PKArgs args_cut(
 R"(cut(frame, bins=10)
 --
 
-Bin data values.
+Bin all the columns in a frame.
 
 Parameters
 ----------
 frame: Frame
-    Frame, where each column is of a numeric type.
+    Frame, where each column must be of a numeric type.
 bins: int | list or a tuple of int
-    Number of bins, or a list of numbers. In the latter case
-    the list/tuple length must be equal to the number of columns
-    in the `frame`.
+    Number of bins to be used the frame, or a list/tuple
+    that contains numbers of bins for the corresponding columns.
+    In the latter case, the list/tuple length must be equal
+    to the number of columns in the frame.
 
 Returns
 -------
