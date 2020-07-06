@@ -26,6 +26,18 @@ namespace dt {
 
 
 
+/**
+  * This class represents a string that can be easily passed around
+  * without copying the data. The downside is that the pointer it
+  * returns is not owned by this class, so there is always a chance
+  * to have a dangling reference.
+  *
+  * As such, whenever a function returns a CString, it must ensure
+  * that the CString is pointing to a reasonably stable underlying
+  * string object. Conversely, if a user receives a CString from a
+  * function, it must use it right away, and do not attempt to store
+  * for a prolonged period of time.
+  */
 class CString
 {
   private:
