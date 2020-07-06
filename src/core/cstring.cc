@@ -45,7 +45,7 @@ CString::CString(const std::string& str)
   : ptr_(str.data()), size_(str.size()) {}
 
 
-CString& CString::operator=(const CString& other) {
+CString& CString::operator=(CString&& other) {
   ptr_ = other.ptr_;
   size_ = other.size_;
   return *this;

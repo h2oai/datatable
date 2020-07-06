@@ -122,13 +122,6 @@ static T _invalid(bool* isvalid) {
   return T();
 }
 
-template <>
-const dt::CString& _invalid(bool* isvalid) {
-  static dt::CString na_string;
-  if (isvalid) *isvalid = false;
-  return na_string;
-}
-
 
 int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
@@ -165,10 +158,10 @@ double Stats::get_stat_double(Stat stat, bool* isvalid) {
 }
 
 
-const dt::CString& Stats::get_stat_string(Stat stat, bool* isvalid) {
+dt::CString Stats::get_stat_string(Stat stat, bool* isvalid) {
   switch (stat) {
     case Stat::Mode: return mode_string(isvalid);
-    default:         return _invalid<const dt::CString&>(isvalid);
+    default:         return _invalid<dt::CString>(isvalid);
   }
 }
 
@@ -274,7 +267,7 @@ int64_t Stats::mode_int   (bool* isvalid) { return _invalid<int64_t>(isvalid); }
 double  Stats::min_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::max_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::mode_double(bool* isvalid) { return _invalid<double>(isvalid); }
-const dt::CString& Stats::mode_string(bool* isvalid) { return _invalid<const dt::CString&>(isvalid); }
+dt::CString Stats::mode_string(bool* isvalid) { return _invalid<dt::CString>(isvalid); }
 
 template <typename T>
 int64_t NumericStats<T>::min_int(bool* isvalid) {
@@ -330,10 +323,10 @@ double NumericStats<T>::mode_double(bool* isvalid) {
   return static_cast<double>(_mode);
 }
 
-const dt::CString& StringStats::mode_string(bool* isvalid) {
+dt::CString StringStats::mode_string(bool* isvalid) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats();
   _fill_validity_flag(Stat::Mode, isvalid);
-  return _mode;
+  return dt::CString(mode_);
 }
 
 
@@ -492,7 +485,7 @@ void NumericStats<T>::set_mode(double value, bool isvalid) {
 }
 
 void StringStats::set_mode(const dt::CString& value, bool isvalid) {
-  _mode = value;
+  mode_ = value.to_string();
   set_valid(Stat::Mode, isvalid);
 }
 

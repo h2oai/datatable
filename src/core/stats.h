@@ -171,10 +171,10 @@ class Stats
     bool get_stat(Stat, double*);
     bool get_stat(Stat, dt::CString*);
 
-    int64_t get_stat_int   (Stat, bool* isvalid = nullptr);
-    size_t  get_stat_uint  (Stat, bool* isvalid = nullptr);
-    double  get_stat_double(Stat, bool* isvalid = nullptr);
-    const dt::CString& get_stat_string(Stat, bool* isvalid = nullptr);
+    int64_t     get_stat_int   (Stat, bool* isvalid = nullptr);
+    size_t      get_stat_uint  (Stat, bool* isvalid = nullptr);
+    double      get_stat_double(Stat, bool* isvalid = nullptr);
+    dt::CString get_stat_string(Stat, bool* isvalid = nullptr);
 
     virtual size_t  nacount    (bool* isvalid = nullptr);
     virtual size_t  nunique    (bool* isvalid = nullptr);
@@ -190,7 +190,7 @@ class Stats
     virtual double  max_double (bool* isvalid = nullptr);
     virtual int64_t mode_int   (bool* isvalid = nullptr);
     virtual double  mode_double(bool* isvalid = nullptr);
-    virtual const dt::CString& mode_string(bool* isvalid = nullptr);
+    virtual dt::CString mode_string(bool* isvalid = nullptr);
 
     py::oobj get_stat_as_pyobject(Stat);
     Column get_stat_as_column(Stat);
@@ -395,14 +395,14 @@ extern template class NumericStats<int64_t>;
  */
 class StringStats : public Stats {
   private:
-    dt::CString _mode;
+    std::string mode_;
 
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
     std::unique_ptr<Stats> clone() const override;
 
-    const dt::CString& mode_string(bool* isvalid) override;
+    dt::CString mode_string(bool* isvalid) override;
     void set_mode(const dt::CString& value, bool isvalid) override;
 
   protected:

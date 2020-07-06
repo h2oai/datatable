@@ -39,8 +39,9 @@ class CString
     CString(std::string&&) = delete;
     CString(const CString&) = delete;
     CString(CString&&) noexcept;
-    CString& operator=(const CString&);
+    CString& operator=(CString&&);
     CString& operator=(const std::string& str);
+    CString& operator=(const CString&) = delete;
     CString& operator=(std::string&& str) = delete;
 
     bool operator==(const CString&) const noexcept;
