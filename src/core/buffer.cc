@@ -23,14 +23,14 @@
 #include <cerrno>              // errno
 #include <cstring>             // std::strerror, std::memcpy
 #include <mutex>               // std::mutex, std::lock_guard
+#include "buffer.h"
+#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
 #include "python/pybuffer.h"   // py::buffer
 #include "utils/alloc.h"       // dt::malloc, dt::realloc
-#include "utils/exceptions.h"  // ValueError, MemoryError
 #include "utils/macros.h"
 #include "utils/misc.h"        // malloc_size
 #include "utils/temporary_file.h"
-#include "buffer.h"
-#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
+#include "writebuf.h"
 
 #if DT_OS_WINDOWS
   #include <windows.h>         // SYSTEM_INFO, GetSystemInfo
@@ -702,20 +702,23 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   Buffer::Buffer(BufferImpl*&& impl)
     : impl_(impl) {}
 
-  Buffer::Buffer()
+  Buffer::Buffer() noexcept
     : impl_(nullptr) {}
 
-  Buffer::Buffer(const Buffer& other)
-    : impl_(other.impl_? other.impl_->acquire() : nullptr) {}
+  Buffer::Buffer(const Buffer& other) noexcept {
+    impl_ = other.impl_;
+    if (impl_) impl_->acquire();
+  }
 
-  Buffer::Buffer(Buffer&& other) {
+  Buffer::Buffer(Buffer&& other) noexcept {
     impl_ = other.impl_;
     other.impl_ = nullptr;
   }
 
   Buffer& Buffer::operator=(const Buffer& other) {
     auto old_impl = impl_;
-    impl_ = other.impl_? other.impl_->acquire() : nullptr;
+    impl_ = other.impl_;
+    if (impl_) impl_->acquire();
     if (old_impl) old_impl->release();
     return *this;
   }

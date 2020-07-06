@@ -30,6 +30,7 @@
 #include "ltype.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
+#include "parallel/shared_mutex.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "rowindex.h"

@@ -22,6 +22,7 @@
 #ifndef dt_CSTRING_h
 #define dt_CSTRING_h
 #include "_dt.h"
+#include "buffer.h"
 namespace dt {
 
 
@@ -37,12 +38,19 @@ namespace dt {
   * string object. Conversely, if a user receives a CString from a
   * function, it must use it right away, and do not attempt to store
   * for a prolonged period of time.
+  *
+  * Another possibility when a function needs to create and return
+  * a new string, is to use the built-in `buffer_` variable. This
+  * variable is not normally accessible from the outside, but it may
+  * serve as a character buffer that will remain alive as long as the
+  * CString object is kept alive.
   */
 class CString
 {
   private:
     const char* ptr_;
     size_t size_;
+    Buffer buffer_;
 
   public:
     explicit CString();   // default constructor creates an NA string

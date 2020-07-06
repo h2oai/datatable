@@ -22,6 +22,7 @@
 #include <algorithm>         // std::min
 #include <cstring>           // std::strncmp
 #include <string>            // std::string
+#include "buffer.h"
 #include "cstring.h"
 #include "utils/assert.h"    // xassert
 namespace dt {
@@ -36,7 +37,9 @@ CString::CString()
   : ptr_(nullptr), size_(0) {}
 
 CString::CString(CString&& other) noexcept
-  : ptr_(other.ptr_), size_(other.size_) {}
+  : ptr_(other.ptr_),
+    size_(other.size_),
+    buffer_(std::move(other.buffer_)) {}
 
 CString::CString(const char* ptr, size_t sz)
   : ptr_(ptr), size_(sz) {}
@@ -48,6 +51,7 @@ CString::CString(const std::string& str)
 CString& CString::operator=(CString&& other) {
   ptr_ = other.ptr_;
   size_ = other.size_;
+  buffer_ = std::move(other.buffer_);
   return *this;
 }
 

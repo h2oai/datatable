@@ -26,6 +26,7 @@
 #include "column.h"
 #include "ltype.h"
 #include "stype.h"
+#include "writebuf.h"
 namespace dt {
 namespace read {
 
