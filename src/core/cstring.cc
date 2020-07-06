@@ -35,7 +35,7 @@ namespace dt {
 CString::CString()
   : ptr_(nullptr), size_(0) {}
 
-CString::CString(const CString& other)
+CString::CString(CString&& other) noexcept
   : ptr_(other.ptr_), size_(other.size_) {}
 
 CString::CString(const char* ptr, size_t sz)

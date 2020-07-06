@@ -122,6 +122,13 @@ static T _invalid(bool* isvalid) {
   return T();
 }
 
+template <>
+const dt::CString& _invalid(bool* isvalid) {
+  static dt::CString na_string;
+  if (isvalid) *isvalid = false;
+  return na_string;
+}
+
 
 int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
@@ -158,10 +165,10 @@ double Stats::get_stat_double(Stat stat, bool* isvalid) {
 }
 
 
-dt::CString Stats::get_stat_string(Stat stat, bool* isvalid) {
+const dt::CString& Stats::get_stat_string(Stat stat, bool* isvalid) {
   switch (stat) {
     case Stat::Mode: return mode_string(isvalid);
-    default:         return _invalid<dt::CString>(isvalid);
+    default:         return _invalid<const dt::CString&>(isvalid);
   }
 }
 
@@ -267,7 +274,7 @@ int64_t Stats::mode_int   (bool* isvalid) { return _invalid<int64_t>(isvalid); }
 double  Stats::min_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::max_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::mode_double(bool* isvalid) { return _invalid<double>(isvalid); }
-dt::CString Stats::mode_string(bool* isvalid) { return _invalid<dt::CString>(isvalid); }
+const dt::CString& Stats::mode_string(bool* isvalid) { return _invalid<const dt::CString&>(isvalid); }
 
 template <typename T>
 int64_t NumericStats<T>::min_int(bool* isvalid) {
@@ -323,7 +330,7 @@ double NumericStats<T>::mode_double(bool* isvalid) {
   return static_cast<double>(_mode);
 }
 
-dt::CString StringStats::mode_string(bool* isvalid) {
+const dt::CString& StringStats::mode_string(bool* isvalid) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats();
   _fill_validity_flag(Stat::Mode, isvalid);
   return _mode;
@@ -639,17 +646,17 @@ void StringStats::compute_nunique() {
     [&](size_t i) {
       size_t j0 = i * batch_size;
       size_t j1 = std::min(j0 + batch_size, column->nrows());
-      dt::CString str;
+      dt::CString cstr;
       for (size_t j = j0; j < j1; ++j) {
-        bool isvalid = column->get_element(j, &str);
+        bool isvalid = column->get_element(j, &cstr);
         if (!isvalid) continue;
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
-          if (values_seen.contains(str)) continue;
+          if (values_seen.contains(cstr)) continue;
         }
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, true);
-          values_seen.insert(str);
+          values_seen.insert(std::move(cstr));
         }
       }
     });
@@ -1205,7 +1212,7 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
       "valid=" << isvalid1 << " in the Stats object, but was valid=" << isvalid2
       << " upon re-checking";
   }
-  if (isvalid1 && !_equal(value1, value2)) {
+  if (isvalid1 && !_equal<dt::ref_t<T>>(value1, value2)) {
     throw AssertionError() << "Stat " << stat_name(stat) << "'s value is "
       << value1 << ", but it was " << value2 << " upon recalculation";
   }
