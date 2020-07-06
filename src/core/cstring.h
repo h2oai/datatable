@@ -36,9 +36,11 @@ class CString
     explicit CString();   // default constructor creates an NA string
     explicit CString(const char* ptr, size_t size);
     explicit CString(const std::string&);
+    CString(std::string&&) = delete;
     CString(const CString&);
     CString& operator=(const CString&);
     CString& operator=(const std::string& str);
+    CString& operator=(std::string&& str) = delete;
 
     bool operator==(const CString&) const noexcept;
     bool operator<(const CString&)  const noexcept;
