@@ -29,28 +29,6 @@ namespace dt {
 namespace expr {
 
 
-static SType _find_common_stype(SType stype1, SType stype2) {
-  while (stype1 != stype2) {
-    if (stype1 == SType::BOOL)    stype1 = SType::INT8; else
-    if (stype2 == SType::BOOL)    stype2 = SType::INT8; else
-    if (stype1 == SType::INT8)    stype1 = SType::INT16; else
-    if (stype2 == SType::INT8)    stype2 = SType::INT16; else
-    if (stype1 == SType::INT16)   stype1 = SType::INT32; else
-    if (stype2 == SType::INT16)   stype2 = SType::INT32; else
-    if (stype1 == SType::INT32)   stype1 = SType::INT64; else
-    if (stype2 == SType::INT32)   stype2 = SType::INT64; else
-    if (stype1 == SType::INT64)   stype1 = SType::FLOAT32; else
-    if (stype2 == SType::INT64)   stype2 = SType::FLOAT32; else
-    if (stype1 == SType::FLOAT32) stype1 = SType::FLOAT64; else
-    if (stype2 == SType::FLOAT32) stype2 = SType::FLOAT64; else
-    if (stype1 == SType::STR32)   stype1 = SType::STR64; else
-    if (stype2 == SType::STR32)   stype2 = SType::STR64; else
-    return SType::INVALID;
-  }
-  return stype1;
-}
-
-
 
 //------------------------------------------------------------------------------
 // Op::PLUS (+)
@@ -103,7 +81,7 @@ bimaker_ptr resolve_op_plus(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -160,7 +138,7 @@ bimaker_ptr resolve_op_minus(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -220,7 +198,7 @@ bimaker_ptr resolve_op_multiply(SType stype1, SType stype2)
     throw NotImplError() << "Operator `*` is not implemented for columns "
         "of types `" << stype1 << "` and `" << stype2 << "`";
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -276,7 +254,7 @@ bimaker_ptr resolve_op_divide(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || dt::stype_to_ltype(stype0) == LType::INT) {
     stype0 = SType::FLOAT64;
   }
@@ -333,7 +311,7 @@ bimaker_ptr resolve_op_intdiv(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -392,7 +370,7 @@ bimaker_ptr resolve_op_modulo(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -457,7 +435,7 @@ bimaker_ptr resolve_op_power(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
