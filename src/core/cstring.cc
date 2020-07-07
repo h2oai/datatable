@@ -144,5 +144,28 @@ std::string CString::to_string() const {
 
 
 
+//------------------------------------------------------------------------------
+// Internal buffer functions
+//------------------------------------------------------------------------------
+
+// Prepare buffer for writing `new_size` bytes. The data pointer
+// `ptr_` will be set to the start of the buffer, and string size set
+// to `new_size`. The pointer `ptr_` is returned to the user, and it
+// is valid for writing at least `new_size` bytes of data.
+//
+char* CString::prepare_buffer(size_t new_size) {
+  size_t old_size = buffer_.size();
+  if (old_size == 0 || old_size < new_size) {
+    // if new_size is 0, we want the buffer to have at least 1 byte of
+    // storage, so that buffer_.xptr() could be a valid non-null pointer.
+    buffer_.resize(new_size + 1, false);
+  }
+  ptr_ = static_cast<const char*>(buffer_.xptr());
+  size_ = new_size;
+  return const_cast<char*>(ptr_);
+}
+
+
+
 
 }  // namespace dt

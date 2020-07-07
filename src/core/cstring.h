@@ -79,6 +79,15 @@ class CString
     // Convert to a "regular" C++ string. If this CString is NA,
     // then an empty string will be returned.
     std::string to_string() const;
+
+    // Internal buffer is prepared to write `size` bytes of data,
+    // the pointers `ptr_`+`size_` are set to match the internal
+    // buffer, so that if the user writes exactly the requested
+    // amount of data, the CString object will be ready.
+    // If the requested `size` is 0, the pointer `ptr_` will be set to
+    // some non-NULL value, so that the CString's value is equivalent
+    // to an empty string (not NA).
+    char* prepare_buffer(size_t size);
 };
 
 
