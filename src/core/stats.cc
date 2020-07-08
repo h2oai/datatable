@@ -1322,7 +1322,9 @@ static Column _make_column_str(const dt::CString& value) {
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, static_cast<T>(len));
     strbuf.resize(len);
-    std::memcpy(strbuf.wptr(), value.data(), len);
+    if (len) {
+      std::memcpy(strbuf.wptr(), value.data(), len);
+    }
   }
   return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }

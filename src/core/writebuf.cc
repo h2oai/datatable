@@ -208,7 +208,7 @@ void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
       "length " << n << ", however the buffer is allocated for " << allocsize_
       << " bytes only";
   }
-  XAssert(src);
+  XAssert(src && data_);
   dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ false);
   char* target = static_cast<char*>(data_) + pos;
   std::memcpy(target, src, n);
@@ -253,7 +253,9 @@ MemoryWritableBuffer::Writer::~Writer() {
 void MemoryWritableBuffer::Writer::write_at(size_t pos,
                                             const char* src, size_t len)
 {
+  if (!len) return;
   xassert(pos >= pos_start_ && pos + len <= pos_end_);
+  xassert(mbuf_->data_);
   std::memcpy(static_cast<char*>(mbuf_->data_) + pos, src, len);
 }
 

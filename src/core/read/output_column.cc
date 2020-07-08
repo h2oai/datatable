@@ -158,6 +158,7 @@ void OutputColumn::allocate(size_t new_nrows) {
   databuf_.resize(allocsize);
 
   if (is_string) {
+    xassert(databuf_.xptr());
     size_t zero = 0;
     std::memcpy(databuf_.xptr(), &zero, elemsize);
     if (!strbuf_) {

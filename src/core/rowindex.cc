@@ -173,8 +173,10 @@ size_t RowIndex::slice_step() const noexcept {
 
 template <typename T>
 static void _extract_into(const RowIndex& ri, T* target) {
-  if (!ri) return;
   size_t ri_size = ri.size();
+  if (!ri_size) return;
+  xassert(target);
+
   switch (ri.type()) {
     case RowIndexType::ARR32: {
       const int32_t* ri_data = ri.indices32();
