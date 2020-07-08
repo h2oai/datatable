@@ -33,6 +33,9 @@ void exception_to_python(const std::exception&) noexcept;
 
 std::string escape_backticks(const std::string&);
 
+void init_exceptions();  // called during module initialization
+
+
 
 //------------------------------------------------------------------------------
 
@@ -40,13 +43,12 @@ class Error : public std::exception
 {
   protected:
     std::ostringstream error;
-    // Owned reference; however do not use a py::oobj here in order
+    // Borrowed reference; however do not use a py::robj here in order
     // to avoid circular dependencies
-    PyObject* pycls;
+    PyObject* pycls_;
 
 public:
   Error(PyObject* cls);
-  Error(py::oobj cls);
   Error(const Error& other);
   Error(Error&& other);
   Error& operator=(Error&& other);
@@ -132,7 +134,6 @@ Error ValueError();
 class Warning : public Error {
   public:
     Warning(PyObject* cls);
-    Warning(py::oobj cls);
     Warning(const Warning&) = default;
 
     void emit();

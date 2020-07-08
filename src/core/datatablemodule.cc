@@ -51,6 +51,7 @@
 #include "read/py_read_iterator.h"
 #include "sort.h"
 #include "utils/assert.h"
+#include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
@@ -333,6 +334,14 @@ static void initialize_options(const py::PKArgs& args) {
 }
 
 
+static py::PKArgs args_initialize_final(
+  0, 0, 0, false, false, {}, "initialize_final", "");
+
+static void initialize_final(const py::PKArgs&) {
+  init_exceptions();
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -347,6 +356,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
+  ADD_FN(&initialize_final, args_initialize_final);
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
