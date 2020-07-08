@@ -10,7 +10,6 @@ jobs:
       env:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
-        - LD_PRELOAD=/lib/libSegFault.so
         - DT_HARNESS=Travis
         - CXX=$LLVM7/bin/clang-7
 
@@ -21,7 +20,6 @@ jobs:
       env:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
-        - LD_PRELOAD=/lib/libSegFault.so
         - DT_HARNESS=Travis
         - CXX=$LLVM7/bin/clang-7
 
@@ -32,7 +30,6 @@ jobs:
       env:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
-        - LD_PRELOAD=/lib/libSegFault.so
         - DT_HARNESS=Travis
         - CXX=$LLVM10/bin/clang-10
 
@@ -43,7 +40,6 @@ jobs:
       env:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
-        - LD_PRELOAD=/lib/libSegFault.so
         - DT_HARNESS=Travis
         - CXX=$LLVM10/bin/clang-10
 
