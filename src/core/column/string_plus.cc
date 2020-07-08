@@ -62,8 +62,9 @@ bool StringPlus_ColumnImpl::get_element(size_t i, CString* out) const {
       size_t lhs_size = lstr.size();
       size_t rhs_size = rstr.size();
       char* ptr = out->prepare_buffer(lhs_size + rhs_size);
-      std::memcpy(ptr, lstr.data(), lhs_size);
-      std::memcpy(ptr + lhs_size, rstr.data(), rhs_size);
+      if (lhs_size) std::memcpy(ptr, lstr.data(), lhs_size);
+      if (rhs_size) std::memcpy(ptr + lhs_size, rstr.data(), rhs_size);
+      xassert(!out->isna());
     }
   }
   return isvalid;
