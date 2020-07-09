@@ -1171,9 +1171,20 @@ std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this
 template <typename T>
 std::unique_ptr<Stats> IntegerStats<T>::clone() const { return this->_clone(this); }
 std::unique_ptr<Stats> BooleanStats::clone()    const { return this->_clone(this); }
-std::unique_ptr<Stats> StringStats::clone()     const { return this->_clone(this); }
 std::unique_ptr<Stats> PyObjectStats::clone()   const { return this->_clone(this); }
 
+// StringStats contains a `std::string` object, which cannot be copied
+// using memcpy.
+std::unique_ptr<Stats> StringStats::clone() const {
+  auto res = std::make_unique<StringStats>(column);
+  res->_computed = this->_computed;
+  res->_valid    = this->_valid;
+  res->_countna  = this->_countna;
+  res->_nunique  = this->_nunique;
+  res->_nmodal   = this->_nmodal;
+  res->mode_     = this->mode_;  // copy string
+  return std::move(res);
+}
 
 
 
