@@ -324,7 +324,7 @@ static void initialize_options(const py::PKArgs& args) {
   if (!options) return;
 
   dt::use_options_store(options);
-  dt::thread_pool::init_options();
+  dt::ThreadPool::init_options();
   dt::progress::init_options();
   py::Frame::init_names_options();
   py::Frame::init_display_options();

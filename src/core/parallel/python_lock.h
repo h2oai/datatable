@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,51 +19,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "parallel/api.h"
-#include "parallel/thread_pool.h"
-#include "parallel/thread_job.h"
-#include "parallel/thread_team.h"
-#include "utils/exceptions.h"
+#ifndef dt_PARALLEL_PYTHON_LOCK_h
+#define dt_PARALLEL_PYTHON_LOCK_h
+#include <mutex>
 namespace dt {
 
 
-thread_team::thread_team(size_t nth, ThreadPool* pool)
-  : nthreads(nth),
-    thpool(pool),
-    nested_scheduler(nullptr),
-    barrier_counter {0}
-{
-  if (thpool->current_team) {
-    throw RuntimeError() << "Unable to create a nested thread team";
-  }
-  thpool->current_team = this;
-}
+
+class PythonLock {
+  private:
+    static std::recursive_mutex mutex_;
+    std::lock_guard<std::recursive_mutex>  lock_;
+
+  public:
+    PythonLock();
+};
 
 
-thread_team::~thread_team() {
-  thpool->current_team = nullptr;
-  auto tmp = nested_scheduler.load();
-  delete tmp;
-}
 
-
-size_t thread_team::size() const noexcept {
-  return nthreads;
-}
-
-
-void thread_team::wait_at_barrier() {
-  size_t n = barrier_counter.fetch_add(1);
-  size_t n_target = n - (n % nthreads) + nthreads;
-  while (barrier_counter.load() < n_target) {
-    if (progress::manager->is_interrupt_occurred()) throw std::exception();
-  }
-}
-
-
-void barrier() {
-  ThreadPool::get_team_unchecked()->wait_at_barrier();
-}
-
-
-} // namespace dt
+}  // namespace dt
+#endif

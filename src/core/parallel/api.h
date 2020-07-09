@@ -19,6 +19,7 @@
 #include <functional>    // std::function
 #include <mutex>         // std::mutex
 #include "parallel/api_primitives.h"
+#include "parallel/python_lock.h"
 #include "utils/function.h"
 namespace dt {
 
@@ -142,16 +143,7 @@ void parallel_for_ordered(size_t n_iterations,
 
 
 // std::mutex& python_mutex();
-std::mutex& team_mutex();
-
-
-class PythonLock {
-  private:
-    std::lock_guard<std::recursive_mutex>  lock_;
-
-  public:
-    PythonLock();
-};
+// std::mutex& team_mutex();
 
 
 

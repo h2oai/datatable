@@ -19,50 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PARALLEL_THREAD_WORKER_h
-#define dt_PARALLEL_THREAD_WORKER_h
-#include <atomic>               // std::atomic
-#include <condition_variable>   // std::condition_variable
-#include <cstddef>              // std::size_t
-#include <memory>               // std::unique_ptr
-#include <mutex>                // std::mutex
-#include <thread>               // std::thread
-#include "parallel/semaphore.h"
+#ifndef dt_PARALLEL_JOB_SHUTDOWN_h
+#define dt_PARALLEL_JOB_SHUTDOWN_h
 #include "parallel/thread_job.h"
+#include "parallel/job_idle.h"
 namespace dt {
 
-class Job_Idle;
 
 
 /**
-  * A class that encapsulates thread-specific runtime information.
-  * After instantiation we expect this class to be accessed within
-  * its own thread only. This makes it safe to have variables such
-  * as `job_` non-atomic.
-  *
-  * Any communication with the worker (including changing to a new
-  * job) is performed only via the current job: the job may emit a
-  * task that changes the worker's state.
-  *
-  * The thread stops running when `job_` becomes nullptr.
+  * This ThreadJob is used to resize the thread pool by shutting down
+  * some of the existing threads.
   */
-class ThreadWorker {
+class Job_Shutdown : public ThreadJob {
   private:
-    const size_t thread_index_;
-    std::thread  thread_;
-    ThreadJob*   job_;
-    Job_Idle*    idle_job_;
+    class ShutdownTask : public ThreadTask {
+      public:
+        void execute() override;
+    };
+
+    size_t       n_threads_to_keep_;
+    Job_Idle*    controller_;
+    ShutdownTask shutdown_task_;
 
   public:
-    ThreadWorker(size_t i, Job_Idle*);
-    ThreadWorker(const ThreadWorker&) = delete;
-    ThreadWorker(ThreadWorker&&) = delete;
-    ~ThreadWorker();
-
-    void run() noexcept;
-    void run_in_main_thread(ThreadJob*) noexcept;
-    size_t get_index() const noexcept;
-    void assign_job(ThreadJob*) noexcept;
+    Job_Shutdown(size_t nnew, Job_Idle*);
+    ThreadTask* get_next_task(size_t thread_index) override;
 };
 
 

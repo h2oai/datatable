@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 #include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/function.h"
@@ -30,11 +30,11 @@ namespace dt {
 //------------------------------------------------------------------------------
 using dynamicfn_t = std::function<void(size_t)>;
 
-struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
+struct alignas(CACHELINE_SIZE) dynamic_task : public ThreadTask {
   private:
     size_t iter;
     dynamicfn_t fn;
-    // PAD_TO_CACHELINE(sizeof(fn) + sizeof(iter) + sizeof(thread_task));
+    // PAD_TO_CACHELINE(sizeof(fn) + sizeof(iter) + sizeof(ThreadTask));
 
   public:
     dynamic_task() = default;
@@ -43,7 +43,7 @@ struct alignas(CACHELINE_SIZE) dynamic_task : public thread_task {
     dynamic_task& operator=(const dynamic_task&);
 
     void set_iter(size_t i) noexcept;
-    void execute(thread_worker*) override;
+    void execute() override;
 };
 
 dynamic_task::dynamic_task(const dynamicfn_t& f)
@@ -63,7 +63,7 @@ void dynamic_task::set_iter(size_t i) noexcept {
   iter = i;
 }
 
-void dynamic_task::execute(thread_worker*) {
+void dynamic_task::execute() {
   fn(iter);
 }
 
@@ -74,7 +74,7 @@ void dynamic_task::execute(thread_worker*) {
 // dynamic_scheduler
 //------------------------------------------------------------------------------
 
-class dynamic_scheduler : public thread_scheduler {
+class dynamic_scheduler : public ThreadJob {
   private:
     std::vector<dynamic_task> tasks;
     size_t nthreads;
@@ -85,7 +85,7 @@ class dynamic_scheduler : public thread_scheduler {
     dynamic_scheduler(size_t nthreads, size_t niters);
     void set_task(const dynamicfn_t&);
     void set_task(const dynamicfn_t&, size_t i);
-    thread_task* get_next_task(size_t thread_index) override;
+    ThreadTask* get_next_task(size_t thread_index) override;
     void abort_execution() override;
 };
 
@@ -107,7 +107,7 @@ void dynamic_scheduler::set_task(const dynamicfn_t& f, size_t i) {
 }
 
 
-thread_task* dynamic_scheduler::get_next_task(size_t thread_index) {
+ThreadTask* dynamic_scheduler::get_next_task(size_t thread_index) {
   if (thread_index >= nthreads) return nullptr;
   size_t next_iter = iteration_index.fetch_add(1);
   if (next_iter >= num_iterations) {
@@ -149,12 +149,17 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
   }
   // Running inside a parallel region
   else {
-    thread_team* tt = thread_pool::get_team_unchecked();
+    thread_team* tt = ThreadPool::get_team_unchecked();
     // Cannot change number of threads when in a parallel region
     xassert(nthreads == tt->size());
     auto sch = tt->shared_scheduler<dynamic_scheduler>(nthreads, nrows);
     sch->set_task(fn, ith);
-    sch->execute_in_current_thread();
+
+    while (true) {
+      auto task = sch->get_next_task(ith);
+      if (!task) break;
+      task->execute();
+    }
   }
 }
 
