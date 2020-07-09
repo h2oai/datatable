@@ -35,18 +35,23 @@
 // ---------------------------------------------------------------------------
 
 #include <algorithm>
+#include <array>             // std::array
 #include <cassert>
 #include <cstddef>
+#include <cstdlib>           // std::abort
+#include <exception>         // std::exception
+#include <functional>
 #include <initializer_list>
 #include <iterator>
+#include <limits>            // std::numeric_limits
+#include <memory>
+#include <mutex>             // std::lock
+#include <new>               // std::bad_alloc
+#include <stdexcept>         // std::domain_error, std::underflow_error
 #include <string>
+#include <tuple>
 #include <type_traits>
 #include <utility>
-#include <functional>
-#include <tuple>
-#include <utility>
-#include <memory>
-#include <mutex> // for std::lock
 
 #include "lib/parallel_hashmap/phmap_config.h"
 

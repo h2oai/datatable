@@ -22,6 +22,7 @@
 #ifndef dt_STATS_h
 #define dt_STATS_h
 #include <bitset>
+#include <type_traits>    // std::is_same, std::conditional, ...
 #include "_dt.h"
 #include "cstring.h"
 
