@@ -291,13 +291,15 @@ ansiColor('xterm') {
                                                 groupadd -g `id -g` jenkins && \
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 ls -la dist"
                                     """
-                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl"
+                                    stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
+                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
                                     arch "dist/*.whl"
                                 }
                             }
@@ -438,6 +440,20 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test ppc64le-manylinux-py36-debug', doPpcTests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-debugwheels'
+                                    test_in_docker("ppc64le-manylinux-py36-debug", "36",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test x86_64-macos-py38', doPy38Tests, { stageName, stageDir ->
                         node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -551,6 +567,7 @@ ansiColor('xterm') {
                             unstash 'build_info'
                             if (doPpcBuild) {
                                 unstash 'ppc64le-manylinux-wheels'
+                                unstash 'ppc64le-manylinux-debugwheels'
                             }
                             // FIXME: ${versionText} is an undefined variable.
                             //        It has to be extracted from the filenames
@@ -597,6 +614,7 @@ ansiColor('xterm') {
                             unstash 'x86_64-manylinux-debugwheels'
                             unstash 'x86_64-macos-wheels'
                             unstash 'ppc64le-manylinux-wheels'
+                            unstash 'ppc64le-manylinux-debugwheels'
                             unstash 'sdist'
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {

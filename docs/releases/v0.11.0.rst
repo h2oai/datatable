@@ -194,6 +194,9 @@
   -[fix] Column names containing backticks now display properly in error
     messages. [#2406]
 
+  -[fix] Fixed rare race condition when multiple threads tried to throw an
+    exception at the same time. [#2526]
+
   -[api] All exceptions thrown by datatable are now declared in the
     ``datatable.exceptions`` module. These exceptions are now organized to
     derive from the common base class ``DtException``.

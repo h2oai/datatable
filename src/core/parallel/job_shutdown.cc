@@ -20,50 +20,31 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
-#include "parallel/thread_pool.h"
-#include "parallel/thread_job.h"
-#include "parallel/thread_team.h"
-#include "utils/exceptions.h"
+#include "parallel/job_shutdown.h"
+#include "parallel/thread_pool.h"   // thpool
 namespace dt {
 
 
-thread_team::thread_team(size_t nth, ThreadPool* pool)
-  : nthreads(nth),
-    thpool(pool),
-    nested_scheduler(nullptr),
-    barrier_counter {0}
-{
-  if (thpool->current_team) {
-    throw RuntimeError() << "Unable to create a nested thread team";
+
+void Job_Shutdown::ShutdownTask::execute() {
+  thpool->assign_job_to_current_thread(nullptr);
+}
+
+
+Job_Shutdown::Job_Shutdown(size_t nnew, Job_Idle* sch)
+  : n_threads_to_keep_(nnew? nnew : 1),
+    controller_(sch) {}
+
+
+ThreadTask* Job_Shutdown::get_next_task(size_t thread_index) {
+  if (thread_index < n_threads_to_keep_) {
+    return nullptr;  // thread goes back to sleep
   }
-  thpool->current_team = this;
+  controller_->remove_running_thread();
+  return &shutdown_task_;
 }
 
 
-thread_team::~thread_team() {
-  thpool->current_team = nullptr;
-  auto tmp = nested_scheduler.load();
-  delete tmp;
-}
 
 
-size_t thread_team::size() const noexcept {
-  return nthreads;
-}
-
-
-void thread_team::wait_at_barrier() {
-  size_t n = barrier_counter.fetch_add(1);
-  size_t n_target = n - (n % nthreads) + nthreads;
-  while (barrier_counter.load() < n_target) {
-    if (progress::manager->is_interrupt_occurred()) throw std::exception();
-  }
-}
-
-
-void barrier() {
-  ThreadPool::get_team_unchecked()->wait_at_barrier();
-}
-
-
-} // namespace dt
+}  // namespace dt
