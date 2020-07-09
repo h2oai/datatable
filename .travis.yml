@@ -11,6 +11,7 @@ jobs:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
         - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+        - SEGFAULT_SIGNALS=all
         - DT_HARNESS=Travis
         - CXX=$LLVM7/bin/clang-7
 
@@ -22,6 +23,7 @@ jobs:
         - LLVM7=$HOME/LLVM7
         - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
         - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+        - SEGFAULT_SIGNALS=all
         - DT_HARNESS=Travis
         - CXX=$LLVM7/bin/clang-7
 
@@ -33,6 +35,7 @@ jobs:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
         - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+        - SEGFAULT_SIGNALS=all
         - DT_HARNESS=Travis
         - CXX=$LLVM10/bin/clang-10
 
@@ -44,6 +47,7 @@ jobs:
         - LLVM10=$HOME/LLVM10
         - LD_LIBRARY_PATH=$LLVM10/lib:$LD_LIBRARY_PATH
         - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
+        - SEGFAULT_SIGNALS=all
         - DT_HARNESS=Travis
         - CXX=$LLVM10/bin/clang-10
 
