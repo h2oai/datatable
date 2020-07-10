@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2019-2020 H2O.ai
+# Copyright 2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@ from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 from . import xnodes
 
+supported_languages = ["shell"]
 rx_shell_program = re.compile(r"[\w\.\/\-]+")
 
 
@@ -45,10 +46,10 @@ class XcodeDirective(SphinxDirective):
     def parse_arguments(self):
         assert len(self.arguments) <= 1
         lang = self.arguments[0] if self.arguments else "python"
-        if lang not in ["shell", "python", "text"]:
+        if lang not in supported_languages:
             raise self.error("Invalid language in ..xcode directive: `%s`. "
-                             "Only 'shell', 'python' and 'text' are recognized."
-                             % lang)
+                             "Only %r languages are recognized."
+                             % (lang, supported_languages))
         self._lang = lang
 
 
