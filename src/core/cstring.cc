@@ -22,6 +22,7 @@
 #include <algorithm>         // std::min
 #include <cstring>           // std::strncmp
 #include <string>            // std::string
+#include "buffer.h"
 #include "cstring.h"
 #include "utils/assert.h"    // xassert
 namespace dt {
@@ -35,8 +36,10 @@ namespace dt {
 CString::CString()
   : ptr_(nullptr), size_(0) {}
 
-CString::CString(const CString& other)
-  : ptr_(other.ptr_), size_(other.size_) {}
+CString::CString(CString&& other) noexcept
+  : ptr_(other.ptr_),
+    size_(other.size_),
+    buffer_(std::move(other.buffer_)) {}
 
 CString::CString(const char* ptr, size_t sz)
   : ptr_(ptr), size_(sz) {}
@@ -45,9 +48,10 @@ CString::CString(const std::string& str)
   : ptr_(str.data()), size_(str.size()) {}
 
 
-CString& CString::operator=(const CString& other) {
+CString& CString::operator=(CString&& other) {
   ptr_ = other.ptr_;
   size_ = other.size_;
+  buffer_ = std::move(other.buffer_);
   return *this;
 }
 
@@ -136,6 +140,32 @@ const char* CString::end() const noexcept {
 
 std::string CString::to_string() const {
   return ptr_? std::string(ptr_, size_) : std::string();
+}
+
+
+
+//------------------------------------------------------------------------------
+// Internal buffer functions
+//------------------------------------------------------------------------------
+
+// Prepare buffer for writing `new_size` bytes. The data pointer
+// `ptr_` will be set to the start of the buffer, and string size set
+// to `new_size`. The pointer `ptr_` is returned to the user, and it
+// is valid for writing at most `new_size` bytes of data.
+//
+char* CString::prepare_buffer(size_t new_size) {
+  size_t old_size = buffer_.size();
+  if (new_size) {
+    if (old_size < new_size) {
+      buffer_.resize(new_size, false);
+    }
+    ptr_ = static_cast<const char*>(buffer_.xptr());
+  } else {
+    // make sure ptr_ is a non-null pointer
+    ptr_ = reinterpret_cast<const char*>(this);
+  }
+  size_ = new_size;
+  return const_cast<char*>(ptr_);
 }
 
 

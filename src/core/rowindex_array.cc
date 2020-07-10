@@ -403,6 +403,7 @@ static void verify_integrity_helper(
     const void* data, size_t len, size_t max, bool max_valid, bool sorted)
 {
   constexpr T TMAX = std::numeric_limits<T>::max();
+  if (len) XAssert(data);
   auto ind = static_cast<const T*>(data);
   T tmax = -TMAX;
   bool check_sorted = sorted;

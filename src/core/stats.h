@@ -172,9 +172,9 @@ class Stats
     bool get_stat(Stat, double*);
     bool get_stat(Stat, dt::CString*);
 
-    int64_t get_stat_int   (Stat, bool* isvalid = nullptr);
-    size_t  get_stat_uint  (Stat, bool* isvalid = nullptr);
-    double  get_stat_double(Stat, bool* isvalid = nullptr);
+    int64_t     get_stat_int   (Stat, bool* isvalid = nullptr);
+    size_t      get_stat_uint  (Stat, bool* isvalid = nullptr);
+    double      get_stat_double(Stat, bool* isvalid = nullptr);
     dt::CString get_stat_string(Stat, bool* isvalid = nullptr);
 
     virtual size_t  nacount    (bool* isvalid = nullptr);
@@ -396,7 +396,7 @@ extern template class NumericStats<int64_t>;
  */
 class StringStats : public Stats {
   private:
-    dt::CString _mode;
+    std::string mode_;
 
   public:
     using Stats::Stats;

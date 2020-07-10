@@ -182,7 +182,7 @@ void SentinelStr_ColumnImpl<T>::replace_values(
     Buffer mask = replace_at.as_boolean_mask(nrows_);
     auto mask_indices = static_cast<const int8_t*>(mask.rptr());
     rescol = dt::map_str2str(out,
-      [=](size_t i, CString& value, dt::string_buf* sb) {
+      [&](size_t i, const CString& value, dt::string_buf* sb) {
         sb->write(mask_indices[i]? repl_value : value);
       });
   }

@@ -25,11 +25,10 @@
 #include <memory>             // std::unique_ptr
 #include <string>             // std::string
 #include <type_traits>        // std::is_same
+#include "_dt.h"
 #include "python/python.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "_dt.h"
-#include "writebuf.h"
 
 class BufferImpl;
 namespace py { class buffer; }
@@ -84,9 +83,9 @@ class Buffer
     // a state where the only legal operations are either to destruct
     // that object, or to reinitialize using `operator=`.
     //
-    Buffer();
-    Buffer(const Buffer&);
-    Buffer(Buffer&&);
+    Buffer() noexcept;
+    Buffer(const Buffer&) noexcept;
+    Buffer(Buffer&&) noexcept;
     Buffer& operator=(const Buffer&);
     Buffer& operator=(Buffer&&);
     ~Buffer();

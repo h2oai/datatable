@@ -22,6 +22,7 @@
 #include <cstring>          // std::memcpy
 #include <stdint.h>
 #include <type_traits>      // std::is_unsigned
+#include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/misc.h"
 namespace dt {
@@ -115,6 +116,7 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count) {
     count *= sz;
     sz = 1;
   } else {
+    xassert(ptr);
     std::memcpy(ptr, value, sz);
   }
   size_t final_sz = sz * count;

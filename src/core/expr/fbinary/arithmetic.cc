@@ -21,33 +21,12 @@
 //------------------------------------------------------------------------------
 #include <cmath>                          // std::pow, std::powf
 #include <limits>                         // std::numeric_limits
+#include "column/string_plus.h"           // StringPlus_ColumnImpl
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
 #include "ltype.h"
 namespace dt {
 namespace expr {
-
-
-static SType _find_common_stype(SType stype1, SType stype2) {
-  while (stype1 != stype2) {
-    if (stype1 == SType::BOOL)    stype1 = SType::INT8; else
-    if (stype2 == SType::BOOL)    stype2 = SType::INT8; else
-    if (stype1 == SType::INT8)    stype1 = SType::INT16; else
-    if (stype2 == SType::INT8)    stype2 = SType::INT16; else
-    if (stype1 == SType::INT16)   stype1 = SType::INT32; else
-    if (stype2 == SType::INT16)   stype2 = SType::INT32; else
-    if (stype1 == SType::INT32)   stype1 = SType::INT64; else
-    if (stype2 == SType::INT32)   stype2 = SType::INT64; else
-    if (stype1 == SType::INT64)   stype1 = SType::FLOAT32; else
-    if (stype2 == SType::INT64)   stype2 = SType::FLOAT32; else
-    if (stype1 == SType::FLOAT32) stype1 = SType::FLOAT64; else
-    if (stype2 == SType::FLOAT32) stype2 = SType::FLOAT64; else
-    if (stype1 == SType::STR32)   stype1 = SType::STR64; else
-    if (stype2 == SType::STR32)   stype2 = SType::STR64; else
-    return SType::INVALID;
-  }
-  return stype1;
-}
 
 
 
@@ -70,6 +49,22 @@ static inline bimaker_ptr _plus(SType uptype1, SType uptype2, SType outtype) {
 }
 
 
+class StrPlus_bimaker : public bimaker {
+  private:
+    SType restype_;
+    size_t : 56;
+
+  public:
+    StrPlus_bimaker(SType outtype) : restype_(outtype) {}
+
+    Column compute(Column&& lhs, Column&& rhs) const override {
+      lhs.cast_inplace(restype_);
+      rhs.cast_inplace(restype_);
+      return Column(new StringPlus_ColumnImpl(std::move(lhs), std::move(rhs)));
+    }
+};
+
+
 /**
   * Operator `+` implements the following rules:
   *
@@ -86,12 +81,9 @@ bimaker_ptr resolve_op_plus(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
-  }
-  if (stype0 == SType::STR32 || stype0 == SType::STR64) {
-    throw NotImplError() << "Operator + for string columns not available yet";
   }
   SType uptype1 = (stype1 == stype0)? SType::VOID : stype0;
   SType uptype2 = (stype2 == stype0)? SType::VOID : stype0;
@@ -100,6 +92,8 @@ bimaker_ptr resolve_op_plus(SType stype1, SType stype2)
     case SType::INT64:   return _plus<int64_t>(uptype1, uptype2, stype0);
     case SType::FLOAT32: return _plus<float>(uptype1, uptype2, stype0);
     case SType::FLOAT64: return _plus<double>(uptype1, uptype2, stype0);
+    case SType::STR32:
+    case SType::STR64:   return bimaker_ptr(new StrPlus_bimaker(stype0));
     default:
       throw TypeError() << "Operator `+` cannot be applied to columns of "
         "types `" << stype1 << "` and `" << stype2 << "`";
@@ -144,7 +138,7 @@ bimaker_ptr resolve_op_minus(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -204,7 +198,7 @@ bimaker_ptr resolve_op_multiply(SType stype1, SType stype2)
     throw NotImplError() << "Operator `*` is not implemented for columns "
         "of types `" << stype1 << "` and `" << stype2 << "`";
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -260,7 +254,7 @@ bimaker_ptr resolve_op_divide(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || dt::stype_to_ltype(stype0) == LType::INT) {
     stype0 = SType::FLOAT64;
   }
@@ -317,7 +311,7 @@ bimaker_ptr resolve_op_intdiv(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -376,7 +370,7 @@ bimaker_ptr resolve_op_modulo(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
@@ -441,7 +435,7 @@ bimaker_ptr resolve_op_power(SType stype1, SType stype2)
   if (stype1 == SType::VOID || stype2 == SType::VOID) {
     return bimaker_nacol::make();
   }
-  SType stype0 = _find_common_stype(stype1, stype2);
+  SType stype0 = common_stype(stype1, stype2);
   if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
     stype0 = SType::INT32;
   }
