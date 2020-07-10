@@ -118,10 +118,11 @@ void writable_string_col::buffer_impl<T>::write(const char* ch, size_t len) {
     if (sizeof(T) == 4) {
       xassert(len <= Column::MAX_ARR32_SIZE);
     }
-
-    strbuf.ensuresize(strbuf_used + len);
-    std::memcpy(strbuf_ptr() + strbuf_used, ch, len);
-    strbuf_used += len;
+    if (len) {
+      strbuf.ensuresize(strbuf_used + len);
+      std::memcpy(strbuf_ptr() + strbuf_used, ch, len);
+      strbuf_used += len;
+    }
     *offptr++ = static_cast<T>(strbuf_used);
   } else {
     // Use XOR instead of OR in case the buffer overflows uint32_t.

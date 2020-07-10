@@ -74,7 +74,7 @@ void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
       push(i - last_i);
       last_i = i;
       last_valid = curr_valid;
-      last_value = curr_value;
+      last_value = std::move(curr_value);
     }
   }
   push(n - last_i);

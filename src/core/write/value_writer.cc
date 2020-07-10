@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@ namespace write {
 
 
 
-template <size_t N, typename T, void(*WriteValue)(T, writing_context&)>
+template <size_t N, typename T, void(*WriteValue)(ref_t<T>, writing_context&)>
 class generic_writer : public value_writer {
   public:
     generic_writer(const Column& col) : value_writer(col, N) {}
@@ -249,7 +249,7 @@ static inline bool character_needs_escaping(char c) {
   return (u <= 44) && (c == ',' || c == '"' || c == '\'' || u < 32);
 }
 
-static void write_str_unquoted(CString value, writing_context& ctx) {
+static void write_str_unquoted(const CString& value, writing_context& ctx) {
   const char* strstart = value.data();
   size_t strsize = value.size();
   ctx.ensure_buffer_capacity(strsize);
@@ -258,7 +258,7 @@ static void write_str_unquoted(CString value, writing_context& ctx) {
 }
 
 template <bool Detect, bool PrintQuotes>
-static void write_str(CString value, writing_context& ctx) {
+static void write_str(const CString& value, writing_context& ctx) {
   size_t strsize = value.size();
   const char* strstart = value.data();
   const char* strend = strstart + strsize;

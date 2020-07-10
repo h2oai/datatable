@@ -50,7 +50,7 @@ DataTable* open_jay_from_bytes(const char* ptr, size_t len) {
   // could be very short. This is why we have to copy the buffer (even storing
   // a reference will be insufficient: what if the bytes object gets modified?)
   Buffer mbuf = Buffer::mem(len);
-  std::memcpy(mbuf.xptr(), ptr, len);
+  if (len) std::memcpy(mbuf.xptr(), ptr, len);
   return open_jay_from_mbuf(mbuf);
 }
 

@@ -135,6 +135,7 @@ void insert_sort_keys(const T* x, V* o, V* tmp, int n, GroupGatherer& gg)
   for (int i = 0; i < n; ++i) {
     tmp[i] = o[tmp[i]];
   }
+  xassert(o);
   std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
 
@@ -179,6 +180,7 @@ void insert_sort_keys_str(
   if (gg) {
     gg.from_data(column, tmp, static_cast<size_t>(n));
   }
+  xassert(o);
   std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
 

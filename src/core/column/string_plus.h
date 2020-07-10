@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,58 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_WRITE_WRITING_CONTEXT_h
-#define dt_WRITE_WRITING_CONTEXT_h
-#include <memory>     // std::unique_ptr
-#include "_dt.h"
-#include "cstring.h"
+#ifndef dt_COLUMN_STRING_PLUS_h
+#define dt_COLUMN_STRING_PLUS_h
+#include "column/virtual.h"
 namespace dt {
-namespace write {
 
 
-class zlib_writer;
-
-
-class writing_context {
-  public:
-    char* ch;   // current writing position
-
-    union {
-      int32_t value_i32;
-      int64_t value_i64;
-      float   value_f32;
-      double  value_f64;
-      CString value_str;
-    };
-
+class StringPlus_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    CString output;
-    // do not write var-width fields past this pointer, need to reallocate
-    char* end;
-    char* buffer;
-    size_t buffer_capacity;
-    size_t fixed_size_per_row;
-
-    // Either nullptr if no compression is needed, or an instance of zlib_writer
-    // class, defined in "writer/zlib_writer.h"
-    zlib_writer* zwriter;
+    Column col1_;
+    Column col2_;
 
   public:
-    writing_context(size_t size_per_row, size_t nrows, bool compress = false);
-    ~writing_context();
+    StringPlus_ColumnImpl(Column&& col1, Column&& col2);
 
-    void ensure_buffer_capacity(size_t sz);
-    void finalize_buffer();
-    const CString& get_buffer() const;
-    void reset_buffer();
+    ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
-    void write_na() {}
-
-  private:
-    void allocate_buffer(size_t sz);
+    bool get_element(size_t i, CString* out) const override;
 };
 
 
 
-}}  // namespace dt::write
+}  // namespace dt
 #endif
