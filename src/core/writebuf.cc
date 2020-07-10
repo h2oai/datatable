@@ -208,8 +208,8 @@ void ThreadsafeWritableBuffer::write_at(size_t pos, size_t n, const void* src) {
       "length " << n << ", however the buffer is allocated for " << allocsize_
       << " bytes only";
   }
-  XAssert(src && data_);
   dt::shared_lock<dt::shared_mutex> lock(shmutex_, /* exclusive = */ false);
+  XAssert(src && data_);  // data_ should be accessed under the mutex
   char* target = static_cast<char*>(data_) + pos;
   std::memcpy(target, src, n);
 }
