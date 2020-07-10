@@ -22,6 +22,7 @@
 #ifndef dt_UTILS_LOGGER_h
 #define dt_UTILS_LOGGER_h
 #include <iomanip>
+#include <sstream>    // std::ostringstream
 #include "_dt.h"
 namespace py { class DefaultLogger; }
 namespace dt {

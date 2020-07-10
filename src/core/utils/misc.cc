@@ -19,11 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>          // std::memcpy
+#include <stdint.h>
+#include <type_traits>      // std::is_unsigned
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/misc.h"
-#include <stdint.h>
-#include <cstring>    // std::memcpy
 namespace dt {
 
 

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ARGS_h
 #define dt_PYTHON_ARGS_h
+#include <iterator>        // std::input_iterator_tag
 #include <unordered_map>   // std::unordered_map
 #include <vector>          // std::vector
 #include "python/arg.h"

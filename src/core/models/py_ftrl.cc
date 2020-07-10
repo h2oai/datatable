@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iterator>        // std::distance
 #include <vector>
 #include "frame/py_frame.h"
 #include "python/_all.h"

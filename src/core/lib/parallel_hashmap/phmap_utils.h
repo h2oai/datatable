@@ -21,6 +21,8 @@
 
 #include <cstdint>
 #include <functional>
+#include <type_traits>    // std::is_same, std::enable_if
+#include <utility>        // std::declval
 #include "lib/parallel_hashmap/phmap_bits.h"
 
 namespace phmap

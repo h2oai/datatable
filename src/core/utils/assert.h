@@ -22,7 +22,7 @@
 #ifndef dt_UTILS_ASSERT_h
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
-#include "macros.h"
+#include "utils/macros.h"
 #include "utils/exceptions.h"
 
 #if DT_OS_MACOS

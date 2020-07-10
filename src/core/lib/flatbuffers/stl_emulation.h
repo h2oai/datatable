@@ -19,11 +19,12 @@
 
 // clang-format off
 
+#include <limits>
+#include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
-#include <memory>
-#include <limits>
 
 #if defined(_STLPORT_VERSION) && !defined(FLATBUFFERS_CPP98_STL)
   #define FLATBUFFERS_CPP98_STL
