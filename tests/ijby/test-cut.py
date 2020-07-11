@@ -71,7 +71,7 @@ def test_cut_error_groupby():
     msg = r"cut\(\) cannot be used in a groupby context"
     DT = dt.Frame(range(10))
     with pytest.raises(NotImplementedError, match=msg):
-		    DT[:, cut(f[0]), f[0]]
+        DT[:, cut(f[0]), f[0]]
 
 
 def test_cut_empty_frame():

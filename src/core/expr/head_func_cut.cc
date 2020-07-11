@@ -214,10 +214,7 @@ Workframe Head_Func_Cut::evaluate_n(
   return wf_out;
 }
 
-
-
 }}  // dt::expr
-
 
 
 namespace py {
