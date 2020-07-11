@@ -138,8 +138,6 @@ static py::PKArgs args_isclose(
     2, 0, 2, false, false, {"x", "y", "rtol", "atol"}, "isclose", doc_isclose);
 
 
-
-
 static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
   size_t op = static_cast<size_t>(opcode);
   return robj(Expr_Type).call({ oint(op), targs, tparams });

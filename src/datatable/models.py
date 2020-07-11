@@ -22,10 +22,9 @@
 #-------------------------------------------------------------------------------
 from datatable.lib._datatable import (
 	aggregate,
-	cut,
 	Ftrl,
 	kfold,
 	kfold_random,
 )
 
-__all__ = ("aggregate", "cut", "Ftrl", "kfold", "kfold_random")
+__all__ = ("aggregate", "Ftrl", "kfold", "kfold_random")

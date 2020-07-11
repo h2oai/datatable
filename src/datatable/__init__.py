@@ -26,6 +26,7 @@ from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
 from .lib._datatable import (
     by,
     cbind,
+    cut,
     fread,
     ifelse,
     init_styles,

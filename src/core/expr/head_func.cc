@@ -178,6 +178,7 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::SETMINUS)]   = make_colsetop;
   factory[static_cast<size_t>(Op::SHIFTFN)]    = &Head_Func_Shift::make;
   factory[static_cast<size_t>(Op::IFELSE)]     = &Head_Func_IfElse::make;
+  factory[static_cast<size_t>(Op::CUT)]        = &Head_Func_Cut::make;
   factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
   factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
   factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
