@@ -37,7 +37,8 @@ int set_cut_coeffs(double& bin_factor, double& bin_shift,
                            std::numeric_limits<float>::epsilon()
                          );
 
-  if (bins == 0) return -1;
+  if (bins == 0 || !_isfinite(min) || !_isfinite(max)) return -1;
+
   if (min == max) {
     bin_factor = 0;
     bin_shift = 0.5 * (1 - epsilon) * bins;
@@ -103,7 +104,7 @@ namespace expr {
 
 
 /**
- *  Cut every column in a Workframe.
+ *  Cut a Workframe by cutting its every column.
  */
 Workframe cut_wf(Workframe& wf_in, const sztvec& bins, EvalContext& ctx) {
   const size_t ncols = wf_in.ncols();

@@ -25,6 +25,7 @@ from tests import assert_equals
 import pandas as pd
 import pytest
 import random
+import math
 
 
 #-------------------------------------------------------------------------------
@@ -103,18 +104,22 @@ def test_cut_one_row():
 
 def test_cut_simple():
 	DT = dt.Frame({
-	       "bool":  [True, None, False, False, True, None],
-	       "int":   [3, None, 4, 1, 5, 4],
-	       "float": [None, 1.4, 4.1, 1.5, 5.9, 1.4]
+	       "bool":    [True, None, False, False, True, None],
+	       "int":     [3, None, 4, 1, 5, 4],
+	       "float":   [None, 1.4, 4.1, 1.5, 5.9, 1.4],
+	       "inf_min": [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
+	       "inf_max": [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4]
 	     })
 	DT_ref = dt.Frame({
        "bool": [1, None, 0, 0, 1, None],
        "int": [1, None, 2, 0, 2, 2],
-       "float": [None, 0, 5, 0, 9, 0]
-     }, stypes = [stype.int32, stype.int32, stype.int32])
+       "float": [None, 0, 5, 0, 9, 0],
+       "inf_min": [None] * 6,
+       "inf_max": [None] * 6
+     }, stypes = [stype.int32] * 5)
 
-	DT_cut_list = cut(DT, bins = [2, 3, 10])
-	DT_cut_tuple = cut(DT, bins = (2, 3, 10))
+	DT_cut_list = cut(DT, bins = [2, 3, 10, 3, 2])
+	DT_cut_tuple = cut(DT, bins = (2, 3, 10, 3, 2))
 	assert_equals(DT_ref, DT_cut_list)
 	assert_equals(DT_ref, DT_cut_tuple)
 
