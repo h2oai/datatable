@@ -22,7 +22,6 @@
 # IN THE SOFTWARE.
 from datatable import dt, stype, f, cut
 from tests import assert_equals
-import pandas as pd
 import pytest
 import random
 import math
@@ -103,20 +102,23 @@ def test_cut_one_row():
 
 
 def test_cut_simple():
-	DT = dt.Frame({
-	       "bool":    [True, None, False, False, True, None],
-	       "int":     [3, None, 4, 1, 5, 4],
-	       "float":   [None, 1.4, 4.1, 1.5, 5.9, 1.4],
-	       "inf_min": [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
-	       "inf_max": [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4]
-	     })
-	DT_ref = dt.Frame({
-       "bool": [1, None, 0, 0, 1, None],
-       "int": [1, None, 2, 0, 2, 2],
-       "float": [None, 0, 5, 0, 9, 0],
-       "inf_min": [None] * 6,
-       "inf_max": [None] * 6
-     }, stypes = [stype.int32] * 5)
+	DT = dt.Frame(
+	       [[True, None, False, False, True, None],
+	       [3, None, 4, 1, 5, 4],
+	       [None, 1.4, 4.1, 1.5, 5.9, 1.4],
+	       [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
+	       [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4]],
+	       names = ["bool", "int", "float", "inf_max", "inf_min"]
+	     )
+	DT_ref = dt.Frame(
+		       [[1, None, 0, 0, 1, None],
+		       [1, None, 2, 0, 2, 2],
+		       [None, 0, 5, 0, 9, 0],
+		       [None] * 6,
+		       [None] * 6],
+		       names = ["bool", "int", "float", "inf_max", "inf_min"],
+		       stypes = [stype.int32] * 5
+             )
 
 	DT_cut_list = cut(DT, bins = [2, 3, 10, 3, 2])
 	DT_cut_tuple = cut(DT, bins = (2, 3, 10, 3, 2))
@@ -124,24 +126,13 @@ def test_cut_simple():
 	assert_equals(DT_ref, DT_cut_tuple)
 
 
-#-------------------------------------------------------------------------------
-# Pandas cut() behaves inconsistently in this test, i.e.
-#
-#   pd.cut(data, nbins, labels = False)
-#
-# results in `[0 21 41]` bins. See the following issue for more details
-# https://github.com/pandas-dev/pandas/issues/35126
-#-------------------------------------------------------------------------------
-def test_cut_pandas_issue35126():
-	nbins = 42
-	data = [-97, 0, 97]
-	DT = dt.Frame(data)
-	DT_cut = cut(DT, nbins)
-	assert(DT_cut.to_list() == [[0, 20, 41]])
 
-
+#-------------------------------------------------------------------------------
+# This test may fail in rare situations due to Pandas inconsistency,
+# see `test_cut_pandas_issue35126()`
+#-------------------------------------------------------------------------------
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
-def test_cut_random(seed):
+def test_cut_random(pandas, seed):
 	random.seed(seed)
 	max_size = 100
 	max_value = 1000
@@ -149,7 +140,7 @@ def test_cut_random(seed):
 	n = random.randint(1, max_size)
 
 	bins = [random.randint(1, max_size) for _ in range(3)]
-	data = [[], [], []]
+	data = [[] for _ in range(3)]
 
 	for _ in range(n):
 		data[0].append(random.randint(0, 1))
@@ -158,6 +149,28 @@ def test_cut_random(seed):
 
 	DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
 	DT_cut = cut(DT, bins)
-	PD = [pd.cut(data[i], bins[i], labels=False) for i in range(3)]
+	PD = [pandas.cut(data[i], bins[i], labels=False) for i in range(3)]
 
 	assert([list(PD[i]) for i in range(3)] == DT_cut.to_list())
+
+
+#-------------------------------------------------------------------------------
+# pandas.cut() behaves inconsistently in this test, i.e.
+#
+#   pandas.cut(data, nbins, labels = False)
+#
+# results in `[0 21 41]` bins, while it should be `[0 20 41]`.
+#
+# See the following issue for more details
+# https://github.com/pandas-dev/pandas/issues/35126
+#-------------------------------------------------------------------------------
+def test_cut_pandas_inconsistence(pandas):
+	nbins = 42
+	data = [-97, 0, 97]
+	DT = dt.Frame(data)
+	DT_cut = cut(DT, nbins)
+	PD = pandas.cut(data, nbins, labels = False)
+	assert(DT_cut.to_list() == [[0, 20, 41]])
+
+	# Testing that Pandas is inconsistent
+	assert(list(PD) == [0, 21, 41])
