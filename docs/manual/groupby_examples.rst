@@ -3,13 +3,11 @@
 Grouping with ``by``
 ====================
 
-The ``by`` modifier splits a dataframe into groups, either via the provided column(s) or an ``f-expression``, and then applies ``i`` and ``j`` within each group.  This `split-apply-combine <https://www.jstatsoft.org/article/view/v040i01#:~:text=Abstract%3A,all%20the%20pieces%20back%20together.>`_ strategy allows for a number of operations:
+The :func:`by()` modifier splits a dataframe into groups, either via the provided column(s) or an :ref:`f-expressions`, and then applies ``i`` and ``j`` within each group.  This `split-apply-combine <https://www.jstatsoft.org/article/view/v040i01#:~:text=Abstract%3A,all%20the%20pieces%20back%20together.>`_ strategy allows for a number of operations:
 
-- Aggregations per group
-- Transformation of a column or columns, where the shape of the dataframe is maintained
-- Filtration, where some data are kept and the others discarded, based on a condition or conditions
-
-See :func:`by()` for more details.
+- Aggregations per group,
+- Transformation of a column or columns, where the shape of the dataframe is maintained,
+- Filtration, where some data are kept and the others discarded, based on a condition or conditions.
 
 Aggregation
 -----------
@@ -20,26 +18,23 @@ The aggregate function is applied in the ``j`` section.
 
     from datatable import dt, f, by, ifelse, update, sort, count, min, max, mean, sum, rowsum, count
 
-    #https://stackoverflow.com/questions/39922986/pandas-group-by-and-sum/51133583#51133583
 
-    data =  """Fruit   Date       Name  Number
-               Apples  10/6/2016  Bob     7
-               Apples  10/6/2016  Bob     8
-               Apples  10/6/2016  Mike    9
-               Apples  10/7/2016  Steve  10
-               Apples  10/7/2016  Bob     1
-               Oranges 10/7/2016  Bob     2
-               Oranges 10/6/2016  Tom    15
-               Oranges 10/6/2016  Mike   57
-               Oranges 10/6/2016  Bob    65
-               Oranges 10/7/2016  Tony    1
-               Grapes  10/7/2016  Bob     1
-               Grapes  10/7/2016  Tom    87
-               Grapes  10/7/2016  Bob    22
-               Grapes  10/7/2016  Bob    12
-               Grapes  10/7/2016  Tony   15"""
-
-    df = dt.Frame(data)
+    df =  dt.Frame("""Fruit   Date       Name  Number
+                      Apples  10/6/2016  Bob     7
+                      Apples  10/6/2016  Bob     8
+                      Apples  10/6/2016  Mike    9
+                      Apples  10/7/2016  Steve  10
+                      Apples  10/7/2016  Bob     1
+                      Oranges 10/7/2016  Bob     2
+                      Oranges 10/6/2016  Tom    15
+                      Oranges 10/6/2016  Mike   57
+                      Oranges 10/6/2016  Bob    65
+                      Oranges 10/7/2016  Tony    1
+                      Grapes  10/7/2016  Bob     1
+                      Grapes  10/7/2016  Tom    87
+                      Grapes  10/7/2016  Bob    22
+                      Grapes  10/7/2016  Bob    12
+                      Grapes  10/7/2016  Tony   15""")
 
     df[:, sum(f.Number), by('Fruit')]
 
@@ -101,7 +96,7 @@ The aggregate function is applied in the ``j`` section.
 
 - Apply multiple aggregate functions to a column in the ``j`` section::
 
-    aggs = {func.__name__ : func(f.Number) for func in (dt.min, dt.max)}
+    aggs = {"min": dt.min(f.Number), "max": dt.max(f.Number)}
 
     df[:, aggs, by('Fruit','Date')]
 
@@ -112,38 +107,25 @@ The aggregate function is applied in the ``j`` section.
     3	Oranges	10/6/2016	15	65
     4	Oranges	10/7/2016	1	2
 
-- `Apply aggregate functions to multiple columns <https://stackoverflow.com/questions/46431243/pandas-dataframe-groupby-how-to-get-sum-of-multiple-columns>`_::
+* Function can be applied across a columnset
 
-    # Task: Get sum of col3 and col4, grouped by col1 and col2
-   
-    data = """ col1   col2   col3   col4   col5
-                a      c      1      2      f
-                a      c      1      2      f
-                a      d      1      2      f
-                b      d      1      2      g
-                b      e      1      2      g
-                b      e      1      2      g"""
+   - Task : Get sum of ``col3`` and ``col4``, grouped by ``col1`` and ``col2``::
 
-    df = dt.Frame(data)
+      df = dt.Frame(""" col1   col2   col3   col4   col5
+                        a      c      1      2      f
+                        a      c      1      2      f
+                        a      d      1      2      f
+                        b      d      1      2      g
+                        b      e      1      2      g
+                        b      e      1      2      g""")
 
-    df[:,[sum(f.col3), sum(f.col4)], by('col1', 'col2')]
+      df[:, sum(f["col3":"col4"]), by('col1', 'col2')]
 
-
-        col1	col2	col3	col4
-    0	a	c	2	4
-    1	a	d	1	2
-    2	b	d	1	2
-    3	b	e	2	4
-
-- If the columns are contiguous (next to each other), the aggregation can be applied once and replicated through the columns::
-
-    df[:, sum(f["col3":"col4"]), by('col1', 'col2')]
-
-            col1	col2	col3	col4
-    0	a	c	2	4
-    1	a	d	1	2
-    2	b	d	1	2
-    3	b	e	2	4
+                col1	col2	col3	col4
+      0 	a	c	2	4
+      1 	a	d	1	2
+      2  	b	d	1	2
+      3	        b	e	2	4
 
 - Apply different aggregate functions to different columns::
 
@@ -155,75 +137,53 @@ The aggregate function is applied in the ``j`` section.
     2	b	d	1	2
     3	b	e	1	2
 
-- `Apply aggregate functions to separate groups of columns <https://stackoverflow.com/questions/46891001/pandas-sum-multiple-columns-and-get-results-in-multiple-columns>`_ in ``j``::
+* Nested aggregations in ``j``
 
-    # Task: Group by column idx and get the row sum of A and B, C and D
-  
-    data = """ idx  A   B   C   D   cat
-                J   1   2   3   1   x
-                K   4   5   6   2   x
-                L   7   8   9   3   y
-                M   1   2   3   4   y
-                N   4   5   6   5   z
-                O   7   8   9   6   z"""
+   - Task : Group by column ``idx`` and get the row sum of ``A`` and ``B``, ``C`` and ``D``::
 
-    df = dt.Frame(data)
+      df = dt.Frame(""" idx  A   B   C   D   cat
+                         J   1   2   3   1   x
+                         K   4   5   6   2   x
+                         L   7   8   9   3   y
+                         M   1   2   3   4   y
+                         N   4   5   6   5   z
+                         O   7   8   9   6   z""")
 
-    df[:,
-        {"AB" : rowsum(f['A':'B']),
-         "CD" : rowsum(f['C':'D'])},
-      by('idx')
-      ]
-
-        idx	AB	CD
-    0	J	3	4
-    1	K	9	8
-    2	L	15	12
-    3	M	3	7
-    4	N	9	11
-    5	O	15	15
-
-- Nested aggregations::
-
-    df[:,
-        {"AB" : sum(rowsum(f['A':'B'])),
-         "CD" : sum(rowsum(f['C':'D']))},
-       by('cat')
-       ]
+      df[:,
+          {"AB" : sum(rowsum(f['A':'B'])),
+           "CD" : sum(rowsum(f['C':'D']))},
+         by('cat')
+         ]
 
         cat	AB	CD
-    0	x	12	12
-    1	y	18	19
-    2	z	24	26
+      0	  x	12	12
+      1	  y	18	19
+      2   z	24	26
 
-- `Computation between aggregated columns <https://stackoverflow.com/questions/40183800/pandas-difference-between-largest-and-smallest-value-within-group/40183864#40183864>`_::
+* Computation between aggregated columns
 
-    # Task : Get the difference between the largest and smallest value within each group
-   
-    data = """GROUP VALUE
-                1     5
-                2     2
-                1     10
-                2     20
-                1     7"""
+   - Task : Get the difference between the largest and smallest value within each group::
 
-    df = dt.Frame(data)
+      df = dt.Frame("""GROUP VALUE
+                        1     5
+                        2     2
+                        1     10
+                        2     20
+                        1     7""")
 
-    df[:,max(f.VALUE) - min(f.VALUE), by('GROUP')]
+      df[:, max(f.VALUE) - min(f.VALUE), by('GROUP')]
 
-        GROUP	C0
-    0	 1	 5
-    1	 2	 18
+          GROUP	  C0
+      0	   1	 5
+      1	   2	 18
 
-- `Null values are not excluded from the grouping column <https://stackoverflow.com/questions/18429491/pandas-groupby-columns-with-nan-missing-values>`_::
+- Null values are not excluded from the grouping column::
 
-    data = """  a    b    c
-                1    2.0  3
-                1    NaN  4
-                2    1.0  3
-                1    2.0  2"""
-
-    df = dt.Frame(data)
+    df = dt.Frame("""  a    b    c
+                       1    2.0  3
+                       1    NaN  4
+                       2    1.0  3
+                       1    2.0  2""")
 
     df[:, sum(f[:]), by('b')]
 
@@ -232,7 +192,7 @@ The aggregate function is applied in the ``j`` section.
         1	1	2	3
         2	2	2	5
 
-If you wish to ignore null values, you first filter them out::
+If you wish to ignore null values, first filter them out::
 
     df[f.b != None, :][:, sum(f[:]), by('b')]
 
@@ -243,28 +203,25 @@ If you wish to ignore null values, you first filter them out::
 Filtration
 -----------
 
-This occurs in the ``i`` section of the groupby, where only a subset of the data per group is needed; selection is limited to integers or slicing. 
+This occurs in the ``i`` section of the groupby, where only a subset of the data per group is needed; selection is limited to integers or slicing.
 
 **Note:**
     - ``i`` is applied after the grouping, not before.
-    - ``f-expressions`` in the ``i`` section is not yet implemented for groupby.
+    - :ref:`f-expressions` in the ``i`` section is not yet implemented for groupby.
 
 - Select the first row per group::
 
-    data =   """A B
-                1 10
-                1 20
-                2 30
-                2 40
-                3 10"""
-
-    df = dt.Frame(data)
+    df = dt.Frame("""A   B
+                     1  10
+                     1  20
+                     2  30
+                     2  40
+                     3  10""")
 
     # passing 0 as index gets the first row after the grouping
     # note that python's index starts from 0, not 1
-   
-    df[0, :, by('A')]
 
+    df[0, :, by('A')]
 
         A	B
     0	1	10
@@ -280,33 +237,31 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
     1	2	40
     2	3	10
 
-- Select the nth row per group::
+- Select the nth row per group
 
-    # Task: select the second row per group
-   
-    df[1, :, by('A')]
+   - Task : select the second row per group::
 
-    	A	B
-    0	1	20
-    1	2	40
+      df[1, :, by('A')]
+
+    	  A	   B
+      0	  1	  20
+      1	  2	  40
 
 **Note:**
     - Filtering this way can be used to drop duplicates; you can decide to keep the first or last non-duplicate.
 
-- `Select the latest entry per group <https://stackoverflow.com/questions/41525911/group-by-pandas-dataframe-and-select-latest-in-each-group>`_::
+- Select the latest entry per group::
 
-    data = """   id    product   date
-                220    6647     2014-09-01
-                220    6647     2014-09-03
-                220    6647     2014-10-16
-                826    3380     2014-11-11
-                826    3380     2014-12-09
-                826    3380     2015-05-19
-                901    4555     2014-09-01
-                901    4555     2014-10-05
-                901    4555     2014-11-01"""
-
-    df = dt.Frame(data)
+    df   =  dt.Frame("""id    product   date
+                        220    6647     2014-09-01
+                        220    6647     2014-09-03
+                        220    6647     2014-10-16
+                        826    3380     2014-11-11
+                        826    3380     2014-12-09
+                        826    3380     2015-05-19
+                        901    4555     2014-09-01
+                        901    4555     2014-10-05
+                        901    4555     2014-11-01""")
 
     df[-1, :, by('id'), sort('date')]
 
@@ -318,48 +273,47 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 **Note:**
     -If ``sort`` and ``by`` modifiers are present, the sorting occurs after the grouping, and occurs within each group.
 
-- Replicate ``SQL``'s ``HAVING`` clause::
+* Replicate ``SQL``'s ``HAVING`` clause
 
-    #Task: Filter for groups where the length/count is greater than 1
+   - Task: Filter for groups where the length/count is greater than 1::
 
-    df = dt.Frame([[1, 1, 5], [2, 3, 6]], names=['A', 'B'])
+      df = dt.Frame([[1, 1, 5], [2, 3, 6]], names=['A', 'B'])
 
-    df
-        A	B
-    0	1	2
-    1	1	3
-    2	5	6
+      df
+          A	  B
+      0	  1	  2
+      1   1	  3
+      2	  5	  6
 
-    # Get the count of each group,
-    # and assign to a new column, using the update method
-    # note that the update operation is in-place;
-    # there is no need to assign back to the dataframe
-    df[:, update(filter_col = count()), by('A')]
+      # Get the count of each group,
+      # and assign to a new column, using the update method
+      # note that the update operation is in-place;
+      # there is no need to assign back to the dataframe
 
-    # The new column will be added to the end
-    # We use an f-expression to return rows
-    # in each group where the count is greater than 1
+      df[:, update(filter_col = count()), by('A')]
 
-    df[f.filter_col > 1, f[:-1]]
+      # The new column will be added to the end
+      # We use an f-expression to return rows
+      # in each group where the count is greater than 1
 
-        A	B
-    0	1	2
-    1	1	3
+      df[f.filter_col > 1, f[:-1]]
 
-- `Keep only rows per group where diff is the minimum <https://stackoverflow.com/questions/23394476/keep-other-columns-when-doing-groupby>`_::
+          A	  B
+      0	  1	  2
+      1   1	  3
 
-    data = """ item    diff   otherstuff
-                1       2            1
-                1       1            2
-                1       3            7
-                2      -1            0
-                2       1            3
-                2       4            9
-                2      -6            2
-                3       0            0
-                3       2            9"""
+- Keep only rows per group where ``diff`` is the minimum::
 
-    df = dt.Frame(data)
+    df = dt.Frame(""" item    diff   otherstuff
+                        1       2            1
+                        1       1            2
+                        1       3            7
+                        2      -1            0
+                        2       1            3
+                        2       4            9
+                        2      -6            2
+                        3       0            0
+                        3       2            9""")
 
     df[:,
        #get boolean for rows where diff column is minimum for each group
@@ -374,21 +328,19 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
     2	 3	 0	    0
 
 
-- `Keep only entries where make has both 0 and 1 in sales <https://stackoverflow.com/questions/51109245/groupby-and-filter-pandas>`_::
+- Keep only entries where ``make`` has both 0 and 1 in ``sales``::
 
-    data = """   make    country other_columns   sale
-                honda    tokyo       data          1
-                honda    hirosima    data          0
-                toyota   tokyo       data          1
-                toyota   hirosima    data          0
-                suzuki   tokyo       data          0
-                suzuki   hirosima    data          0
-                ferrari  tokyo       data          1
-                ferrari  hirosima    data          0
-                nissan   tokyo       data          1
-                nissan   hirosima    data          0"""
-
-    df = dt.Frame(data)
+    df  =  dt.Frame(""" make    country  other_columns   sale
+                        honda    tokyo       data          1
+                        honda    hirosima    data          0
+                        toyota   tokyo       data          1
+                        toyota   hirosima    data          0
+                        suzuki   tokyo       data          0
+                        suzuki   hirosima    data          0
+                        ferrari  tokyo       data          1
+                        ferrari  hirosima    data          0
+                        nissan   tokyo       data          1
+                        nissan   hirosima    data          0""")
 
     df[:,
        update(filter_col = sum(f.sale)),
@@ -409,23 +361,21 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 Transformation
 --------------
 
-This is when a function is applied to a column after a groupby and the resulting column is appended back to the dataframe.  The number of rows of the dataframe is unchanged. The ``update`` method makes this possible and easy. Let's look at a couple of examples:
+This is when a function is applied to a column after a groupby and the resulting column is appended back to the dataframe.  The number of rows of the dataframe is unchanged. The :func:`update` method makes this possible and easy. Let's look at a couple of examples:
 
-- `Get the minimum and maximum of column <https://stackoverflow.com/questions/51074911/pandas-get-minimum-of-one-column-in-group-when-groupby-another>`_ per group, and append to dataframe::
+- Get the minimum and maximum of column ``c`` per group, and append to dataframe::
 
-    data = """  c     y
-                9     0
-                8     0
-                3     1
-                6     2
-                1     3
-                2     3
-                5     3
-                4     4
-                0     4
-                7     4"""
-
-    df = dt.Frame(data)
+    df  =  dt.Frame(""" c     y
+                        9     0
+                        8     0
+                        3     1
+                        6     2
+                        1     3
+                        2     3
+                        5     3
+                        4     4
+                        0     4
+                        7     4""")
 
     # Assign the new columns via the update method
 
@@ -447,12 +397,10 @@ This is when a function is applied to a column after a groupby and the resulting
         8	0	4	0	7
         9	7	4	0	7
 
-- `Fill missing values by group mean <https://stackoverflow.com/questions/19966018/pandas-filling-missing-values-by-mean-in-each-group>`_::
+- Fill missing values by group mean::
 
-    data = {'value' : [1, np.nan, np.nan, 2, 3, 1, 3, np.nan, 3],
-            'name' : ['A','A', 'B','B','B','B', 'C','C','C']}
-
-    df = dt.Frame(data)
+    df = dt.Frame({'value' : [1, np.nan, np.nan, 2, 3, 1, 3, np.nan, 3],
+                   'name' : ['A','A', 'B','B','B','B', 'C','C','C']})
 
     df
         value	name
@@ -486,110 +434,107 @@ This is when a function is applied to a column after a groupby and the resulting
     7	3	C
     8	3	C
 
-- `Transform and Aggregate on Multiple Columns <https://stackoverflow.com/questions/53212490/pandas-groupby-transform-and-multiple-columns>`_::
+- Transform and Aggregate on Multiple Columns
 
-    df = dt.Frame({'a' : [1,2,3,4,5,6],
-                   'b' : [1,2,3,4,5,6],
-                   'c' : ['q', 'q', 'q', 'q', 'w', 'w'],
-                   'd' : ['z','z','z','o','o','o']})
-    df
+   - Task: Get the sum of the aggregate of column ``a`` and ``b``,
+     grouped by ``c`` and ``d``,
+     and append to dataframe::
 
-        a	b	c	d
-    0	1	1	q	z
-    1	2	2	q	z
-    2	3	3	q	z
-    3	4	4	q	o
-    4	5	5	w	o
-    5	6	6	w	o
+      df = dt.Frame({'a' : [1,2,3,4,5,6],
+                     'b' : [1,2,3,4,5,6],
+                     'c' : ['q', 'q', 'q', 'q', 'w', 'w'],
+                     'd' : ['z','z','z','o','o','o']})
+      df
 
-    # Task: Get the sum of the aggregate of column a and b,
-    # grouped by c and d,
-    # and append to dataframe
+            a	b	c	d
+      0	    1	1	q	z
+      1	    2	2	q	z
+      2	    3	3	q	z
+      3	    4	4	q	o
+      4	    5	5	w	o
+      5	    6	6	w	o
 
-    df[:,
-       update(e = sum(f.a) + sum(f.b)),
-       by('c', 'd')
-       ]
 
-    df
+      df[:,
+         update(e = sum(f.a) + sum(f.b)),
+         by('c', 'd')
+         ]
 
-        a	b	c	d	e
-    0	1	1	q	z	12
-    1	2	2	q	z	12
-    2	3	3	q	z	12
-    3	4	4	q	o	8
-    4	5	5	w	o	22
-    5	6	6	w	o	22
+      df
 
-- `Replicate R's groupby mutate <https://stackoverflow.com/questions/40923165/python-pandas-equivalent-to-r-groupby-mutate>`_::
+            a	b	c	d	e
+      0	    1	1	q	z	12
+      1	    2	2	q	z	12
+      2	    3	3	q	z	12
+      3	    4	4	q	o	8
+      4	    5	5	w	o	22
+      5	    6	6	w	o	22
 
-    df = dt.Frame(dict(a = (1,1,0,1,0),
-                       b = (1,0,0,1,0),
-                       c = (10,5,1,5,10),
-                       d = (3,1,2,1,2))
-                  )
+- Replicate R's groupby `mutate <https://dplyr.tidyverse.org/reference/mutate.html>`_
+   - Task : Get ratio by dividing column ``c`` by the product of column ``c` and ``d``, grouped by ``a`` and ``b``::
 
-    df
+      df = dt.Frame(dict(a = (1,1,0,1,0),
+                         b = (1,0,0,1,0),
+                         c = (10,5,1,5,10),
+                         d = (3,1,2,1,2))
+                    )
 
-        a	b	c	d
-    0	1	1	10	3
-    1	1	0	5	1
-    2	0	0	1	2
-    3	1	1	5	1
-    4	0	0	10	2
+      df
+          a	  b	  c	  d
+      0	  1	  1	  10      3
+      1	  1	  0	  5	  1
+      2	  0       0	  1	  2
+      3	  1	  1	  5	  1
+      4	  0	  0	  10      2
 
-    # Task: Get ratio by dividing column c by the product of column c and d,
-    # grouped by a and b
+      df[:,
+         update(ratio = f.c / sum(f.c * f.d)),
+         by('a', 'b')
+         ]
 
-    df[:,
-       update(ratio = f.c / sum(f.c * f.d)),
-       by('a', 'b')
-       ]
+      df
 
-    df
-
-        a	b	c	d	ratio
-    0	1	1	10	3	0.285714
-    1	1	0	5	1	1
-    2	0	0	1	2	0.0454545
-    3	1	1	5	1	0.142857
-    4	0	0	10	2	0.454545
+            a	b	c	d	ratio
+        0   1	1	10	3	0.285714
+        1   1	0	5	1	1
+        2   0	0	1	2	0.0454545
+        3   1	1	5	1	0.142857
+        4   0	0	10	2	0.454545
 
 
 
 Groupby on Boolean Expressions
 -------------------------------
 
-- `Conditional Sum with groupby <https://stackoverflow.com/questions/17266129/python-pandas-conditional-sum-with-groupby>`_::
+- Conditional Sum with groupby
 
-    data = """    data1        data2     key1  key2
-                 0.361601    0.375297     a    one
-                 0.069889    0.809772     a    two
-                 1.468194    0.272929     b    one
-                -1.138458    0.865060     b    two
-                -0.268210    1.250340     a    one"""
+   - Task : Sum ``data1`` column, grouped by ``key1`` and rows where ``key2== "one"``::
 
-    df = dt.Frame(data)
+      df = dt.Frame("""data1        data2     key1  key2
+                       0.361601    0.375297     a    one
+                       0.069889    0.809772     a    two
+                       1.468194    0.272929     b    one
+                      -1.138458    0.865060     b    two
+                      -0.268210    1.250340     a    one""")
 
-    # Task: Sum data1 column, grouped by key1 and rows where key2== "one"
 
-    df[:,
-       sum(f.data1),
-       by(f.key2 == "one", f.key1)][f.C0 == 1, 1:]
+      df[:,
+         sum(f.data1),
+         by(f.key2 == "one", f.key1)][f.C0 == 1, 1:]
 
-        key1	data1
-    0	a	0.093391
-    1	b	1.46819
+          key1	data1
+      0	   a	0.093391
+      1	   b	1.46819
 
-- `Conditional Sums based on various Criteria <https://stackoverflow.com/questions/15259547/conditional-sums-for-pandas-aggregate>`_::
+- Conditional Sums based on various Criteria::
 
-    data = """ A_id       B       C
-                a1      "up"     100
-                a2     "down"    102
-                a3      "up"     100
-                a3      "up"     250
-                a4     "left"    100
-                a5     "right"   102"""
+    df = dt.Frame(""" A_id       B       C
+                        a1      "up"     100
+                        a2     "down"    102
+                        a3      "up"     100
+                        a3      "up"     250
+                        a4     "left"    100
+                        a5     "right"   102""")
 
     df[:,
        {"sum_up": sum(f.B == "up"),
@@ -609,147 +554,143 @@ Groupby on Boolean Expressions
 More Examples
 -------------
 
-- `Aggregation on Values in a Column <https://stackoverflow.com/questions/46501703/groupby-column-and-find-min-and-max-of-each-group>`_::
+- Aggregation on Values in a Column
 
-    data = """  Day    Element  Data_Value
-                01-01   TMAX    112
-                01-01   TMAX    101
-                01-01   TMIN    60
-                01-01   TMIN    0
-                01-01   TMIN    25
-                01-01   TMAX    113
-                01-01   TMAX    115
-                01-01   TMAX    105
-                01-01   TMAX    111
-                01-01   TMIN    44
-                01-01   TMIN    83
-                01-02   TMAX    70
-                01-02   TMAX    79
-                01-02   TMIN    0
-                01-02   TMIN    60
-                01-02   TMAX    73
-                01-02   TMIN    31
-                01-02   TMIN    26
-                01-02   TMAX    71
-                01-02   TMIN    26"""
+   - Task : group by ``Day`` and find minimum ``Data_Value`` for ``TMIN`` and maximum ``Data_Value`` for ``TMAX``::
 
-    # Task : group by Day and find minimum Data_Value for TMIN 
-    # and maximum Data_Value for TMAX
+      df = dt.Frame("""  Day    Element  Data_Value
+                        01-01   TMAX    112
+                        01-01   TMAX    101
+                        01-01   TMIN    60
+                        01-01   TMIN    0
+                        01-01   TMIN    25
+                        01-01   TMAX    113
+                        01-01   TMAX    115
+                        01-01   TMAX    105
+                        01-01   TMAX    111
+                        01-01   TMIN    44
+                        01-01   TMIN    83
+                        01-02   TMAX    70
+                        01-02   TMAX    79
+                        01-02   TMIN    0
+                        01-02   TMIN    60
+                        01-02   TMAX    73
+                        01-02   TMIN    31
+                        01-02   TMIN    26
+                        01-02   TMAX    71
+                        01-02   TMIN    26""")
 
-    df[:,
-       f.Day.extend({"TMAX" : ifelse(f.Element=="TMAX", f.Data_Value, None),
-                     "TMIN" : ifelse(f.Element=="TMIN", f.Data_Value, None)})
-      ][:, [max(f.TMAX), min(f.TMIN)], by('Day')]
+      df[:,
+         f.Day.extend({"TMAX" : max(ifelse(f.Element=="TMAX",
+                                           f.Data_Value, None)),
 
+                       "TMIN" : min(ifelse(f.Element=="TMIN",
+                                           f.Data_Value, None)}))
+         ]
 
-        Day	TMAX	TMIN
-    0	01-01	115	0
-    1	01-02	79	0
+          Day	  TMAX	TMIN
+      0	  01-01	  115	0
+      1	  01-02	  79	0
 
-- `Filter row based on aggregate value <https://stackoverflow.com/questions/15322632/python-pandas-df-groupby-agg-column-reference-in-agg>`_::
+- Filter row based on aggregate value
 
-    data = """  word  tag count
-                a     S    30
-                the   S    20
-                a     T    60
-                an    T    5
-                the   T    10"""
+   - Task : find, for every ``word``, the ``tag`` that has the most ``count``::
 
-    df = dt.Frame(data)
+      df = dt.Frame("""  word  tag count
+                          a     S    30
+                          the   S    20
+                          a     T    60
+                          an    T    5
+                          the   T    10""")
 
-    # Task: find, for every "word", the "tag" that has the most "count"
+      df[:,
+         update(filter_col = f.count == max(f.count)),
+         by('word')
+         ]
 
-    df[:,
-       update(filter_col = f.count == max(f.count)),
-       by('word')
-       ]
+      df[f.filter_col == 1, f[:-1]]
 
-    df[f.filter_col == 1, f[:-1]]
-
-        word	tag	count
-    0	the	S	20
-    1	a	T	60
-    2	an	T	5
-
-
-- `Group By and Conditional Sum and Add Back to Data Frame <https://stackoverflow.com/questions/62774794/pandas-group-by-and-conditional-sum-and-add-back-to-data-frame#62774845>`_::
-
-    data =  """ ID  Num  Letter  Count
-                1   17   D       1
-                1   12   D       2
-                1   13   D       3
-                2   17   D       4
-                2   12   A       5
-                2   16   D       1
-                3   16   D       1"""
-
-    df = dt.Frame(data)
-
-    # Task: Sum the 'Count' value for each 'ID',
-    # when 'Num' is (17 or 12) and 'Letter' is 'D',
-    # and also add the calculation back to the original data frame in 'Total'.
-
-    expression = ((f.Num==17) | (f.Num==12)) & (f.Letter == "D")
-
-    df[:,
-       update(Total = sum(ifelse(expression, f.Count, 0))),
-       by('ID')]
-
-    df
-
-        ID	Num	Letter	Count	Total
-    0	1	17	D	1	3
-    1	1	12	D	2	3
-    2	1	13	D	3	3
-    3	2	17	D	4	4
-    4	2	12	A	5	4
-    5	2	16	D	1	4
-    6	3	16	D	1	0
+          word	tag	count
+      0	  the	S	20
+      1	  a	T	60
+      2	  an	T	5
 
 
-- `Multiple indexing with multiple min and max in one aggregate <https://stackoverflow.com/questions/62295617/multiple-indexing-with-multiple-idxmin-and-idmax-in-one-aggregate-in-pandas/62295885#62295885>`_::
+- Group By and Conditional Sum and add Back to Data Frame
 
-    data = {
-            "id" : [1, 1, 1, 2, 2, 2, 2, 3, 3, 3],
-            "col1" : [1, 3, 5, 2, 5, 3, 6, 3, 67, 7],
-            "col2" : [4, 6, 8, 3, 65, 3, 5, 4, 4, 7],
-            "col3" : [34, 64, 53, 5, 6, 2, 4, 6, 4, 67],
-            }
+   - Task: Sum the ``Count`` value for each ``ID``,
+     when ``Num`` is (17 or 12) and ``Letter`` is 'D',
+     and also add the calculation back to the original data frame as 'Total'::
 
-    df = dt.Frame(data)
 
-    df
+      df =   dt.Frame(""" ID  Num  Letter  Count
+                           1   17   D       1
+                           1   12   D       2
+                           1   13   D       3
+                           2   17   D       4
+                           2   12   A       5
+                           2   16   D       1
+                           3   16   D       1""")
 
-        id	col1	col2	col3
-    0	1	1	4	34
-    1	1	3	6	64
-    2	1	5	8	53
-    3	2	2	3	5
-    4	2	5	65	6
-    5	2	3	3	2
-    6	2	6	5	4
-    7	3	3	4	6
-    8	3	67	4	4
-    9	3	7	7	67
+      expression = ((f.Num==17) | (f.Num==12)) & (f.Letter == "D")
 
-    # Task : find col1 where col2 is max,
-    # col2 where col3 is min,
-    # and col1 where col3 is max
+      df[:,
+         update(Total = sum(ifelse(expression, f.Count, 0))),
+         by('ID')]
 
-    df[:,
-       {'col1' : sum(ifelse(f.col2 == max(f.col2),
-                            f.col1, None)),
+      df
 
-        'col2' : sum(ifelse(f.col3 == min(f.col3),
-                            f.col2, None)),
+            ID	Num	Letter	Count	Total
+      0	    1	17	D	1	3
+      1	    1	12	D	2	3
+      2	    1	13	D	3	3
+      3	    2	17	D	4	4
+      4	    2	12	A	5	4
+      5	    2	16	D	1	4
+      6	    3	16	D	1	0
 
-        'col3' : sum(ifelse(f.col3 == max(f.col3),
-                            f.col1, None))
+
+- Multiple indexing with multiple min and max in one aggregate
+
+   - Task : find ``col1`` where ``col2`` is max,
+     ``col2`` where ``col3`` is min,
+     and ``col1`` where ``col3`` is max::
+
+      df = dt.Frame({
+                     "id" : [1, 1, 1, 2, 2, 2, 2, 3, 3, 3],
+                     "col1" : [1, 3, 5, 2, 5, 3, 6, 3, 67, 7],
+                     "col2" : [4, 6, 8, 3, 65, 3, 5, 4, 4, 7],
+                     "col3" : [34, 64, 53, 5, 6, 2, 4, 6, 4, 67],
+                     })
+
+      df
+
+               id	col1	col2	col3
+      0 	1	1	4	34
+      1 	1	3	6	64
+      2 	1	5	8	53
+      3 	2	2	3	5
+      4 	2	5	65	6
+      5 	2	3	3	2
+      6 	2	6	5	4
+      7	        3	3	4	6
+      8 	3	67	4	4
+      9 	3	7	7	67
+
+      df[:,
+         {'col1' : sum(ifelse(f.col2 == max(f.col2),
+                              f.col1, None)),
+
+          'col2' : sum(ifelse(f.col3 == min(f.col3),
+                              f.col2, None)),
+
+          'col3' : sum(ifelse(f.col3 == max(f.col3),
+                              f.col1, None))
           },
-       by('id')]
+         by('id')]
 
-        id	col1	col2	col3
-    0	1	5	4	3
-    1	2	5	3	5
-    2	3	7	4	7
+            id	col1	col2	col3
+      0	    1	5	4	3
+      1	    2	5	3	5
+      2	    3	7	4	7
 
