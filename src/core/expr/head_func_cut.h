@@ -24,7 +24,7 @@
 namespace dt {
 namespace expr {
 
-Workframe cut_wf(Workframe&, const sztvec&, EvalContext&);
+void cut_wf(Workframe&, const sztvec&);
 
 }}
 

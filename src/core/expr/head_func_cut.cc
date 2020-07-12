@@ -104,17 +104,14 @@ namespace expr {
 
 
 /**
- *  Cut a Workframe by cutting its every column.
+ *  Cut a workframe in-place by cutting its every column.
  */
-Workframe cut_wf(Workframe& wf_in, const sztvec& bins, EvalContext& ctx) {
-  const size_t ncols = wf_in.ncols();
+void cut_wf(Workframe& wf, const sztvec& bins) {
+  const size_t ncols = wf.ncols();
   xassert(ncols == bins.size());
 
-  Workframe wf_out(ctx);
-  auto gmode = wf_in.get_grouping_mode();
-
   for (size_t i = 0; i < ncols; ++i) {
-    const Column& col = wf_in.get_column(i);
+    const Column& col = wf.retrieve_column(i);
     Column col_cut;
 
     switch (col.stype()) {
@@ -135,10 +132,8 @@ Workframe cut_wf(Workframe& wf_in, const sztvec& bins, EvalContext& ctx) {
       default:                 throw ValueError() << "Columns with stype `" << col.stype()
                                  << "` are not supported";
     }
-    wf_out.add_column(std::move(col_cut), wf_in.retrieve_name(i), gmode);
+    wf.replace_column(i, std::move(col_cut));
   }
-
-  return wf_out;
 }
 
 
@@ -166,11 +161,11 @@ Workframe Head_Func_Cut::evaluate_n(
     throw NotImplError() << "cut() cannot be used in a groupby context";
   }
 
-  Workframe wf_in = args[0].evaluate_n(ctx);
-  const size_t ncols = wf_in.ncols();
+  Workframe wf = args[0].evaluate_n(ctx);
+  const size_t ncols = wf.ncols();
 
   for (size_t i = 0; i < ncols; ++i) {
-    const Column& col = wf_in.get_column(i);
+    const Column& col = wf.get_column(i);
     if (col.ltype() != dt::LType::BOOL &&
         col.ltype() != dt::LType::INT &&
         col.ltype() != dt::LType::REAL)
@@ -210,8 +205,9 @@ Workframe Head_Func_Cut::evaluate_n(
     }
   }
 
-  Workframe wf_out = cut_wf(wf_in, bins, ctx);
-  return wf_out;
+  // Cut workframe in-place
+  cut_wf(wf, bins);
+  return wf;
 }
 
 }}  // dt::expr
