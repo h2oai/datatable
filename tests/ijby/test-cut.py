@@ -129,7 +129,7 @@ def test_cut_simple():
 
 #-------------------------------------------------------------------------------
 # This test may fail in rare situations due to Pandas inconsistency,
-# see `test_cut_pandas_issue35126()`
+# see `test_cut_pandas_inconsistency()`
 #-------------------------------------------------------------------------------
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
 def test_cut_random(pandas, seed):
@@ -164,7 +164,7 @@ def test_cut_random(pandas, seed):
 # See the following issue for more details
 # https://github.com/pandas-dev/pandas/issues/35126
 #-------------------------------------------------------------------------------
-def test_cut_pandas_inconsistence(pandas):
+def test_cut_pandas_inconsistency(pandas):
 	nbins = 42
 	data = [-97, 0, 97]
 	DT = dt.Frame(data)
@@ -172,5 +172,5 @@ def test_cut_pandas_inconsistence(pandas):
 	PD = pandas.cut(data, nbins, labels = False)
 	assert(DT_cut.to_list() == [[0, 20, 41]])
 
-	# Testing that Pandas is inconsistent
+	# Testing that Pandas results are inconsistent
 	assert(list(PD) == [0, 21, 41])
