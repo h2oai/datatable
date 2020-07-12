@@ -8,15 +8,16 @@ Prerequisites
 
 Python 3.5 or newer is a prerequisite. You can check your python version via
 
-.. code-block:: bash
+.. xcode:: shell
 
    $ python --version
+
 
 If you don't have Python 3.5 or later, you may want to download and install
 the newest version of Python, and then create and activate a virtual
 environment for that Python. For example:
 
-.. code-block:: bash
+.. xcode:: shell
 
    $ virtualenv --python=python3.6 ~/py36
    $ source ~/py36/bin/activate
@@ -28,7 +29,7 @@ Install on macOS and Linux
 
 Run the following command to install ``datatable`` on macOS and Linux:
 
-.. code-block:: bash
+.. xcode:: shell
 
   $ pip install datatable
 
@@ -48,7 +49,7 @@ To do so, simply click on the master build of your choice and
 then navigate to ``Artifacts``. Copy the wheel URL that corresponds
 to your version of Python and then install it as:
 
-.. code-block:: bash
+.. xcode:: winshell
 
    C:\> pip install YOUR_WHEEL_URL
 
@@ -60,7 +61,7 @@ Build from Source
 In order to install the latest development version of `datatable` directly
 from GitHub, run the following command:
 
-.. code-block:: bash
+.. xcode:: shell
 
    $ pip install git+https://github.com/h2oai/datatable
 
@@ -78,30 +79,30 @@ own functionality, you are welcome to do so.
 
 1. First, clone ``datatable`` repository from GitHub:
 
-   .. code-block:: bash
+   .. xcode:: shell
 
       $ git clone https://github.com/h2oai/datatable
 
 2. Make ``datatable``:
 
-   .. code-block:: bash
+   .. xcode:: shell
 
       $ make test_install
       $ make
 
 3. Additional commands you may find occasionally interesting:
 
-   .. code-block:: bash
+   .. xcode:: shell
 
-     # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
+     $ # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
      $ make debug
 
-     # Generate code coverage report
+     $ # Generate code coverage report
      $ make coverage
 
-     # Build a debug version of datatable using an auto-generated makefile.
-     # This does not work on all systems, but when it does it will work
-     # much faster than standard "make debug".
+     $ # Build a debug version of datatable using an auto-generated makefile.
+     $ # This does not work on all systems, but when it does it will work
+     $ # much faster than standard "make debug".
      $ make fast
 
 
@@ -121,7 +122,7 @@ Troubleshooting
 - On macOS, if you are getting an error ``fatal error: 'sys/mman.h' file not
   found``, this can be fixed by installing the Xcode Command Line Tools:
 
-  .. code-block:: bash
+  .. xcode:: shell
 
      $ xcode-select --install
 
