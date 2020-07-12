@@ -129,8 +129,9 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
                                break;
       case dt::SType::FLOAT64: col_cut = cut_column<double, double>(col, bins[i]);
                                break;
-      default:                 throw ValueError() << "Columns with stype `" << col.stype()
-                                 << "` are not supported";
+      default:  throw TypeError() << "cut() can only be applied to numeric "
+                  << "columns, instead column `" << i << "` has an stype: `"
+                  << col.stype() << "`";
     }
     wf.replace_column(i, std::move(col_cut));
   }
@@ -163,19 +164,6 @@ Workframe Head_Func_Cut::evaluate_n(
 
   Workframe wf = args[0].evaluate_n(ctx);
   const size_t ncols = wf.ncols();
-
-  for (size_t i = 0; i < ncols; ++i) {
-    const Column& col = wf.get_column(i);
-    if (col.ltype() != dt::LType::BOOL &&
-        col.ltype() != dt::LType::INT &&
-        col.ltype() != dt::LType::REAL)
-    {
-
-      throw TypeError() << "cut() can only be applied to numeric columns, "
-        "instead column `" << i << "` has an stype: `" << col.stype() << "`";
-
-    }
-  }
 
   sztvec bins(ncols);
   size_t bins_default = 10;
