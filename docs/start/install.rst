@@ -49,7 +49,7 @@ To do so, simply click on the master build of your choice and
 then navigate to ``Artifacts``. Copy the wheel URL that corresponds
 to your version of Python and then install it as:
 
-.. xcode:: shell
+.. xcode:: winshell
 
    C:\> pip install YOUR_WHEEL_URL
 
@@ -94,15 +94,15 @@ own functionality, you are welcome to do so.
 
    .. xcode:: shell
 
-     # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
+     $ # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
      $ make debug
 
-     # Generate code coverage report
+     $ # Generate code coverage report
      $ make coverage
 
-     # Build a debug version of datatable using an auto-generated makefile.
-     # This does not work on all systems, but when it does it will work
-     # much faster than standard "make debug".
+     $ # Build a debug version of datatable using an auto-generated makefile.
+     $ # This does not work on all systems, but when it does it will work
+     $ # much faster than standard "make debug".
      $ make fast
 
 

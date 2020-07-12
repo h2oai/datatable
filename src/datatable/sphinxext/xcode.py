@@ -20,15 +20,92 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import pygments
+import pygments.formatter
+import pygments.token as tok
 import re
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
 from . import xnodes
 
-supported_languages = ["shell"]
-rx_shell_program = re.compile(r"[\w\.\/\-]+")
+
+class SphinxFormatter(pygments.formatter.Formatter):
+
+    _shell_token_map = {
+        tok.Comment.Hashbang: tok.Comment,
+        tok.Comment.Single:   tok.Comment,
+        tok.Generic.Output:   tok.Generic.Output,
+        tok.Generic.Prompt:   tok.Generic.Prompt,
+        tok.Keyword:          tok.Keyword,
+        tok.Name.Builtin:     tok.Keyword,
+        tok.Name.Variable:    tok.Name.Variable,
+        tok.Number:           tok.Text,
+        tok.Operator:         tok.Text,
+        tok.Punctuation:      tok.Text,
+        tok.String.Backtick:  tok.String,
+        tok.String.Double:    tok.String,
+        tok.String.Escape:    tok.String,
+        tok.String.Interpol:  tok.Name.Variable,
+        tok.String.Single:    tok.String,
+        tok.String:           tok.String,
+        tok.Text:             tok.Text,
+    }
+
+    def __init__(self, lang):
+        super().__init__()
+        self._lang = lang
+        if lang == "console":
+            self._token_map = SphinxFormatter._shell_token_map
+        else:
+            raise ValueError("Unknown lex language %r" % (lang,))
+        self._nodegen = self.build_node_generator()
 
 
+    def build_node_generator(self):
+        def class_applicator(cls):
+            return lambda v: nodes.inline("", v, classes=[cls])
+
+        nodegen = {tok.Text: nodes.Text}
+        for ttype in self._token_map.values():
+            if ttype in nodegen: continue
+            cls = str(ttype).split('.')[-1].lower()
+            nodegen[ttype] = class_applicator(cls)
+        return nodegen
+
+
+    def merge_tokens(self, tokenstream):
+        tokmap = self._token_map
+        last_value = None
+        last_ttype = None
+        for ttype, value in tokenstream:
+            if ttype in tokmap:
+                ttype = tokmap[ttype]
+                if ttype == last_ttype:
+                    last_value += value
+                else:
+                    if last_value:
+                        yield last_ttype, last_value
+                    last_ttype = ttype
+                    last_value = value
+            else:
+                raise ValueError("Unknown token type %r in %r formatter"
+                                 % (ttype, self._lang))
+        if last_value:
+            yield last_ttype, last_value
+
+
+    def format(self, tokenstream, outfile):
+        out = xnodes.div(classes=["xcode", self._lang])
+        for ttype, value in self.merge_tokens(tokenstream):
+            out += self._nodegen[ttype](value)
+        outfile.result = out
+
+
+
+
+#-------------------------------------------------------------------------------
+# Xcode Directive
+#-------------------------------------------------------------------------------
 
 class XcodeDirective(SphinxDirective):
     has_content = True
@@ -39,49 +116,34 @@ class XcodeDirective(SphinxDirective):
 
     def run(self):
         self.parse_arguments()
-        if self._lang == "shell":
-            return self.process_lang_shell()
+        lang = self._lang
+        code = "\n".join(self.content.data)
+        if lang in ["shell", "console", "bash"]:
+            lexer = pygments.lexers.get_lexer_by_name("console")
+            formatter = SphinxFormatter("console")
+        elif lang in ["winshell", "shell-windows", "winconsole", "doscon"]:
+            lexer = pygments.lexers.get_lexer_by_name("doscon")
+            formatter = SphinxFormatter("console")
+        else:
+            raise self.error("Unknown lex language %r in ..xcode:: directive"
+                             % (lang,))
+
+        outfile = type("", (object,), dict(result=None))()
+        pygments.highlight(code, lexer, formatter, outfile)
+        return [outfile.result]
 
 
     def parse_arguments(self):
         assert len(self.arguments) <= 1
         lang = self.arguments[0] if self.arguments else "python"
-        if lang not in supported_languages:
-            raise self.error("Invalid language in ..xcode directive: `%s`. "
-                             "Only %r languages are recognized."
-                             % (lang, supported_languages))
         self._lang = lang
 
 
-    def process_lang_shell(self):
-        out_node = xnodes.div(classes=["xcode", "shell"])
-        for line in self.content.data:
-            prompt = ""
-            comment = ""
-            if line[:2] == "$ ":
-                prompt = line[:2]
-                line = line[2:]
-            if line[1:5] == ":\\> ":
-                prompt = line[:5]
-                line = line[5:]
-            if prompt:
-                out_node += nodes.inline("", prompt, classes=["prompt"])
-            mm_program = re.match(rx_shell_program, line)
-            if mm_program:
-                iend = mm_program.end()
-                out_node += nodes.inline("", line[:iend], classes=["program"])
-                line = line[iend:]
-            if "#" in line:
-                istart = line.find("#")
-                comment = line[istart:]
-                line = line[:istart]
-            out_node += nodes.Text(line)
-            if comment:
-                out_node += nodes.inline("", comment, classes=["comment"])
-            out_node += nodes.Text("\n")
-        return [out_node]
 
 
+#-------------------------------------------------------------------------------
+# Extension setup
+#-------------------------------------------------------------------------------
 
 def setup(app):
     app.setup_extension("sphinxext.xnodes")

@@ -21,25 +21,25 @@ div.document p + .xcode {
 
 
 /*------------------------------------------------------------------------------
- * shell
+ * console
  *-----------------------------------------------------------------------------*/
 
-.xcode.shell {
+.xcode.console {
 	background-color: #444;
 	border: none;
-	color: #c1c1c1;
+	color: #dadada;
 }
 
-.xcode.shell .prompt {
-	opacity: 0.5;
+.xcode.console .prompt {
+	opacity: 0.35;
 	user-select: none;
 }
 
-.xcode.shell .program {
+.xcode.console .program {
 	color: #ffffae;
 }
 
-.xcode.shell .comment {
+.xcode.console .comment {
 	color: #558080;
 	font-style: italic;
 }
