@@ -20,83 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "_dt.h"
-#include "column/func_unary.h"
+#include "column/cut.h"
 #include "datatablemodule.h"
 #include "expr/eval_context.h"
 #include "expr/head_func.h"
 #include "expr/head_func_cut.h"
 #include "frame/py_frame.h"
-#include "ltype.h"
 #include "parallel/api.h"
-
-
-int set_cut_coeffs(double& bin_factor, double& bin_shift,
-                   const double min, const double max, size_t bins)
-{
-  const double epsilon = static_cast<double>(
-                           std::numeric_limits<float>::epsilon()
-                         );
-
-  if (bins == 0 || !_isfinite(min) || !_isfinite(max)) return -1;
-
-  if (min == max) {
-    bin_factor = 0;
-    bin_shift = 0.5 * (1 - epsilon) * bins;
-  } else {
-    bin_factor = (1 - epsilon) * bins / (max - min);
-    bin_shift = -bin_factor * min;
-  }
-  return 0;
-}
-
-
-/**
- *  Cut a single column.
- */
-template <typename T_elems, typename T_stats>
-Column cut_column(const Column& col_, size_t bins) {
-  // Virtual column to cast data to double
-  Column col_dbl = Column(new dt::FuncUnary2_ColumnImpl<T_elems, double>(
-                     Column(col_),
-                     [](T_elems x, bool x_isvalid, double* out) {
-                       *out = static_cast<double>(x);
-                       return x_isvalid && _isfinite(x);
-                     },
-                     col_.nrows(),
-                     dt::SType::FLOAT64
-                   ));
-
-  // Output column
-  Column col_cut = Column::new_data_column(col_.nrows(), dt::SType::INT32);
-  auto col_cut_data = static_cast<int32_t*>(col_cut.get_data_editable());
-
-  // Get stats
-  T_stats tmin, tmax;
-  col_.stats()->get_stat(Stat::Min, &tmin);
-  col_.stats()->get_stat(Stat::Max, &tmax);
-  double min = static_cast<double>(tmin);
-  double max = static_cast<double>(tmax);
-
-  // Set up binning coefficients
-  double bin_factor = dt::NA_F8, bin_shift = dt::NA_F8;
-  set_cut_coeffs(bin_factor, bin_shift, min, max, bins);
-
-  // Do actual binning
-  dt::parallel_for_static(col_dbl.nrows(),
-    [&](size_t i) {
-      double value;
-      bool is_valid = col_dbl.get_element(i, &value);
-      if (is_valid) {
-        double bin_double = bin_factor * value + bin_shift;
-        col_cut_data[i] = static_cast<int32_t>(bin_double);
-      } else {
-        col_cut_data[i] = dt::GETNA<int32_t>();
-      }
-    });
-
-  return col_cut;
-}
-
 
 
 namespace dt {
@@ -111,29 +41,42 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
   xassert(ncols == bins.size());
 
   for (size_t i = 0; i < ncols; ++i) {
-    const Column& col = wf.retrieve_column(i);
-    Column col_cut;
+    Column coli = wf.retrieve_column(i);
 
-    switch (col.stype()) {
-      case dt::SType::BOOL:    col_cut = cut_column<int8_t, int64_t>(col, bins[i]);;
+    switch (coli.stype()) {
+      case dt::SType::BOOL:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::INT8:    col_cut = cut_column<int8_t, int64_t>(col, bins[i]);
+      case dt::SType::INT8:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::INT16:   col_cut = cut_column<int16_t, int64_t>(col, bins[i]);
+      case dt::SType::INT16:   coli = Column(new Cut_ColumnImpl<int16_t, int64_t>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::INT32:   col_cut = cut_column<int32_t, int64_t>(col, bins[i]);
+      case dt::SType::INT32:   coli = Column(new Cut_ColumnImpl<int32_t, int64_t>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::INT64:   col_cut = cut_column<int64_t, int64_t>(col, bins[i]);
+      case dt::SType::INT64:   coli = Column(new Cut_ColumnImpl<int64_t, int64_t>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::FLOAT32: col_cut = cut_column<float, double>(col, bins[i]);
+      case dt::SType::FLOAT32: coli = Column(new Cut_ColumnImpl<float, double>(
+                                        coli, bins[i]
+                                      ));
                                break;
-      case dt::SType::FLOAT64: col_cut = cut_column<double, double>(col, bins[i]);
+      case dt::SType::FLOAT64: coli = Column(new Cut_ColumnImpl<double, double>(
+                                        coli, bins[i]
+                                      ));
                                break;
       default:  throw TypeError() << "cut() can only be applied to numeric "
                   << "columns, instead column `" << i << "` has an stype: `"
-                  << col.stype() << "`";
+                  << coli.stype() << "`";
     }
-    wf.replace_column(i, std::move(col_cut));
+    wf.replace_column(i, std::move(coli));
   }
 }
 

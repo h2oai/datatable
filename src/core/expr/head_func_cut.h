@@ -28,8 +28,5 @@ void cut_wf(Workframe&, const sztvec&);
 
 }}
 
-int set_cut_coeffs(double&, double&, const double, const double, size_t);
-template <typename T_elems, typename T_stats>
-Column cut_column(const Column& , size_t);
 
 
