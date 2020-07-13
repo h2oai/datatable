@@ -45,31 +45,31 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
 
     switch (coli.stype()) {
       case dt::SType::BOOL:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::INT8:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::INT16:   coli = Column(new Cut_ColumnImpl<int16_t, int64_t>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::INT32:   coli = Column(new Cut_ColumnImpl<int32_t, int64_t>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::INT64:   coli = Column(new Cut_ColumnImpl<int64_t, int64_t>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::FLOAT32: coli = Column(new Cut_ColumnImpl<float, double>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       case dt::SType::FLOAT64: coli = Column(new Cut_ColumnImpl<double, double>(
-                                        coli, bins[i]
+                                        std::move(coli), bins[i]
                                       ));
                                break;
       default:  throw TypeError() << "cut() can only be applied to numeric "

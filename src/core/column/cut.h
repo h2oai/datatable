@@ -39,8 +39,8 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     double bin_factor_, bin_shift_;
 
   public:
-    Cut_ColumnImpl(Column col, size_t bins)
-      : Virtual_ColumnImpl(col.nrows(), col.stype()),
+    Cut_ColumnImpl(Column&& col, size_t bins)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
       bin_factor_(dt::NA_F8),
       bin_shift_(dt::NA_F8)
     {
@@ -66,17 +66,13 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     Cut_ColumnImpl(Column col, double bin_factor, double bin_shift)
-      : Virtual_ColumnImpl(col.nrows(), col.stype()),
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
         col_dbl_(col),
         bin_factor_(bin_factor),
         bin_shift_(bin_shift) {}
 
     ColumnImpl* clone() const override {
       return new Cut_ColumnImpl<T_elems, T_stats>(col_dbl_, bin_factor_, bin_shift_);
-    }
-
-    bool allow_parallel_access() const override {
-      return col_dbl_.allow_parallel_access();
     }
 
     size_t n_children() const noexcept override {
@@ -93,13 +89,8 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
       double value;
       bool is_valid = col_dbl_.get_element(i, &value) && _notnan(bin_factor_);
 
-      if (is_valid) {
-        *out = static_cast<int32_t>(bin_factor_ * value + bin_shift_);
-      } else {
-        return false;
-      }
-
-      return true;
+      *out = static_cast<int32_t>(bin_factor_ * value + bin_shift_);
+      return is_valid;
     }
 
 
