@@ -107,31 +107,30 @@ def test_cut_simple():
 	       [3, None, 4, 1, 5, 4],
 	       [None, 1.4, 4.1, 1.5, 5.9, 1.4],
 	       [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
-	       [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4]],
-	       names = ["bool", "int", "float", "inf_max", "inf_min"]
+	       [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
+	       [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
+	       names = ["bool", "int", "float", "inf_max", "inf_min", "inf"]
 	     )
 	DT_ref = dt.Frame(
 		       [[1, None, 0, 0, 1, None],
 		       [1, None, 2, 0, 2, 2],
 		       [None, 0, 5, 0, 9, 0],
 		       [None] * 6,
+		       [None] * 6,
 		       [None] * 6],
-		       names = ["bool", "int", "float", "inf_max", "inf_min"],
-		       stypes = [stype.int32] * 5
+		       names = ["bool", "int", "float", "inf_max", "inf_min", "inf"],
+		       stypes = [stype.int32] * 6
              )
 
-	DT_cut_list = cut(DT, bins = [2, 3, 10, 3, 2])
-	DT_cut_tuple = cut(DT, bins = (2, 3, 10, 3, 2))
+	DT_cut_list = cut(DT, bins = [2, 3, 10, 3, 2, 5])
+	DT_cut_tuple = cut(DT, bins = (2, 3, 10, 3, 2, 5))
 	assert_equals(DT_ref, DT_cut_list)
 	assert_equals(DT_ref, DT_cut_tuple)
 
 
 
-#-------------------------------------------------------------------------------
-# This test may fail in rare situations due to Pandas inconsistency,
-# see `test_cut_pandas_inconsistency()`
-#-------------------------------------------------------------------------------
-@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10)])
+@pytest.mark.xfail(reason="See test_cut_pandas_issue_35126 test")
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
 def test_cut_random(pandas, seed):
 	random.seed(seed)
 	max_size = 100
@@ -164,7 +163,7 @@ def test_cut_random(pandas, seed):
 # See the following issue for more details
 # https://github.com/pandas-dev/pandas/issues/35126
 #-------------------------------------------------------------------------------
-def test_cut_pandas_inconsistency(pandas):
+def test_cut_pandas_issue_35126(pandas):
 	nbins = 42
 	data = [-97, 0, 97]
 	DT = dt.Frame(data)
@@ -172,5 +171,5 @@ def test_cut_pandas_inconsistency(pandas):
 	PD = pandas.cut(data, nbins, labels = False)
 	assert(DT_cut.to_list() == [[0, 20, 41]])
 
-	# Testing that Pandas results are inconsistent
+	# Testing that Pandas results are still inconsistent
 	assert(list(PD) == [0, 21, 41])
