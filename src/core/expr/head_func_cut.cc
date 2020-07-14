@@ -44,33 +44,19 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
     Column coli = wf.retrieve_column(i);
 
     switch (coli.stype()) {
-      case dt::SType::BOOL:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::INT8:    coli = Column(new Cut_ColumnImpl<int8_t, int64_t>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::INT16:   coli = Column(new Cut_ColumnImpl<int16_t, int64_t>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::INT32:   coli = Column(new Cut_ColumnImpl<int32_t, int64_t>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::INT64:   coli = Column(new Cut_ColumnImpl<int64_t, int64_t>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::FLOAT32: coli = Column(new Cut_ColumnImpl<float, double>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i]));
                                break;
-      case dt::SType::FLOAT64: coli = Column(new Cut_ColumnImpl<double, double>(
-                                        std::move(coli), bins[i]
-                                      ));
+      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i]));
                                break;
       default:  throw TypeError() << "cut() can only be applied to numeric "
                   << "columns, instead column `" << i << "` has an stype: `"
