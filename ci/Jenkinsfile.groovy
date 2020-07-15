@@ -29,10 +29,6 @@ import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
 import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
 
-String.metaClass.encodeURL = {
-   java.net.URLEncoder.encode(delegate, "UTF-8")
-}
-
 
 // initialize build summary
 buildSummary('https://github.com/h2oai/datatable', true)
@@ -584,7 +580,7 @@ ansiColor('xterm') {
                                     def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
                                                     returnStdout: true).trim()
                                     def s3path = "dev/datatable-${versionText}/${it.name}"
-                                    def s3href = "${S3_URL}/${s3path}".encodeURL()
+                                    def s3href = encodeURL("${S3_URL}/${s3path}")
                                     s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}/${s3path}\n"
                                     pyindex_links += """  <li><a href="${s3href}#sha256=${sha256}">${it.name}</a></li>\n"""
                                 }
@@ -833,4 +829,8 @@ def namedStage(String stageName, boolean doRun, Closure body) {
 
 def namedStage(String stageName, Closure body) {
     return namedStage(stageName, true, body)
+}
+
+def encodeURL(String str) {
+   return java.net.URLEncoder.encode(str, "UTF-8")
 }
