@@ -802,6 +802,7 @@ def isModified(pattern) {
 
 
 def doPublish() {
+    return true   // will be removed before merging the PR
     return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
 }
 
