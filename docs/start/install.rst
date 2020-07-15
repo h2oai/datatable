@@ -75,20 +75,16 @@ If you wish to test the latest version of ``datatable`` before it has been
 officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process.
 
-If you are on Windows
-
-
-Meanwhile, you can install the dev version of ``datatable`` on Windows
-from the pre-built wheels that are available on
-`AppVeyor <https://ci.appveyor.com/project/h2oops/datatable/history>`__.
-To do so, simply click on the master build of your choice and
-then navigate to ``Artifacts``. Copy the wheel URL that corresponds
-to your version of Python and then install it as:
+If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
+Click on a green master build of your choice, then navigate to the "Artifacts"
+tab, copy the wheel URL that corresponds to your Python version, and finally
+install it as:
 
 .. xcode:: winshell
 
    C:\> pip install YOUR_WHEEL_URL
 
+For macOS and Linux, latest wheels can be found at `S3 repository`_.
 
 
 Build from source
@@ -170,3 +166,7 @@ Troubleshooting
 .. _`PEP-513`: https://www.python.org/dev/peps/pep-0513/
 
 .. _`PEP-599`: https://www.python.org/dev/peps/pep-0599/
+
+.. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/history
+
+.. _`S3 repository`: https://h2o-release.s3.amazonaws.com/datatable/index.html
