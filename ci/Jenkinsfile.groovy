@@ -591,7 +591,7 @@ ansiColor('xterm') {
                             pyindex_content += "<h2>${versionText}</h2>\n"
                             pyindex_content += "<ul>\n"
                             pyindex_content += pyindex_links
-                            pyindex_content += "</ul>\n"
+                            pyindex_content += "</ul>\n\n"
                             pyindex_content += "</body></html>\n"
                             writeFile(file: "index.html", text: pyindex_content)
                             s3cmd += "s3cmd put -P index.html ${S3_BASE}/index.html"
@@ -798,7 +798,6 @@ def isModified(pattern) {
 
 
 def doPublish() {
-    return true   // will be removed before merging the PR
     return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
 }
 
