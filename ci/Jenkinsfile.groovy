@@ -42,10 +42,13 @@ NODE_MACOS   = 'osx'
 NODE_PPC     = 'ibm-power'
 NODE_RELEASE = 'docker && linux && !micro'
 
+// Paths for S3 artifacts
+S3_BASE = "s3://h2o-release/datatable"
+S3_URL = "https://h2o-release.s3.amazonaws.com/datatable"
 
 // Paths should be absolute
 S3_URL_STABLE = "s3://h2o-release/datatable/stable"
-HTTPS_URL_STABLE = "https://h2o-release.s3.amazonaws.com/datatable/stable"
+
 // Data map for linking into container
 LINK_MAP = [
     "Data"     : "h2oai-benchmarks/Data",
@@ -569,25 +572,49 @@ ansiColor('xterm') {
                                 unstash 'ppc64le-manylinux-wheels'
                                 unstash 'ppc64le-manylinux-debugwheels'
                             }
-                            // FIXME: ${versionText} is an undefined variable.
-                            //        It has to be extracted from the filenames
-                            //        of the wheels/sdist:
-                            //
-                            //            dist/datatable-${version}.tar.gz
-                            //            dist/datatable-${version}-*.whl
-                            //
-                            //        At this point we'd also want to verify
-                            //        that the versions on all files are the
-                            //        same, and that if we are in release mode
-                            //        the version contains only digits and dots.
-                            //
+                            sh "ls dist/"
+
                             versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
                             sh "echo versionText = ${versionText}"
-                            def _versionText = versionText
+                            println "versionText = ${versionText}"
+
+                            def s3cmd = ""
+                            def pyindex_links = ""
+                            dir("dist") {
+                                def distDir = new File(".")
+                                distDir.traverse {
+                                    def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
+                                                    returnStdout: true).trim()
+                                    def s3path = "${S3_BASE}/dev/datatable-${versionText}/{it.name}"
+                                    s3cmd += "s3cmd put -P ${it.name} ${S3_BASE}/${s3path}\n"
+                                    pyindex_links += """  <li><a href="${S3_URL}/${s3path}#sha256=${sha256}">{it.name}</a></li>\n"""
+                                }
+                            }
+
+                            def pyindex_content = "${S3_URL}/index.html".toURL().text
+                            pyindex_content -= "</body></html>\n"
+                            pyindex_content += "<h2>${versionText}</h2>\n"
+                            pyindex_content += "<ul>\n"
+                            pyindex_content += pyindex_links
+                            pyindex_content += "</ul>\n"
+                            pyindex_content += "</body></html>\n"
+                            File pyindex_file = new File("index.html")
+                            pyindex_file.write(pyindex_content)
+                            s3cmd += "s3cmd put -P index.html ${S3_BASE}/index.html"
+
+                            docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
+                                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                    docker.image("harbor.h2o.ai/library/s3cmd").inside {
+                                        sh s3cmd
+                                    }
+                                }
+                            }
+
+                            // TODO: remove?
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
-                                version = _versionText
+                                version = versionText
                                 keepPrivate = false
                                 isRelease = isRelease()
                             }
