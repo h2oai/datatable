@@ -17,7 +17,7 @@ results. You can check your python version via
     Python 3.6.6
 
 
-In addition, we recommend having ``pip`` version 20.0+, especially if you're
+In addition, we recommend using ``pip`` version 20.0+, especially if you're
 planning to install datatable from source, or if you are on a Unix machine.
 
 .. xcode:: shell
@@ -27,7 +27,7 @@ planning to install datatable from source, or if you are on a Unix machine.
 
     $ pip install pip --upgrade
     Collecting pip
-      Using cached https://files.pythonhosted.org/packages/43/84/23ed6a1796480a6f1a2d38f2802901d078266bda38388954d01d3f2e821d/pip-20.1.1-py2.py3-none-any.whl
+      Using cached https://files.pythonhosted.org/.../pip-20.1.1-py2.py3-none-any.whl
     Installing collected packages: pip
       Found existing installation: pip 19.3.1
         Uninstalling pip-19.3.1:

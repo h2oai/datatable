@@ -95,7 +95,9 @@ class SphinxFormatter(pygments.formatter.Formatter):
 
 
     def format(self, tokenstream, outfile):
-        out = xnodes.div(classes=["xcode", self._lang])
+        # The "notranslate" class stops translation of certain strings
+        # into Unicode characters, e.g. "" -> “”, ... -> …, etc.
+        out = xnodes.div(classes=["xcode", "notranslate", self._lang])
         for ttype, value in self.merge_tokens(tokenstream):
             out += self._nodegen[ttype](value)
         outfile.result = out
