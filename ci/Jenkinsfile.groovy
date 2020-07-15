@@ -581,8 +581,7 @@ ansiColor('xterm') {
                             def s3cmd = ""
                             def pyindex_links = ""
                             dir("dist") {
-                                def distDir = new File(".")
-                                distDir.traverse {
+                                findFiles(glob: "*").each {
                                     def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
                                                     returnStdout: true).trim()
                                     def s3path = "${S3_BASE}/dev/datatable-${versionText}/{it.name}"
@@ -598,8 +597,7 @@ ansiColor('xterm') {
                             pyindex_content += pyindex_links
                             pyindex_content += "</ul>\n"
                             pyindex_content += "</body></html>\n"
-                            File pyindex_file = new File("index.html")
-                            pyindex_file.write(pyindex_content)
+                            writeFile(file: "index.html", text: pyindex_content)
                             s3cmd += "s3cmd put -P index.html ${S3_BASE}/index.html"
 
                             docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
