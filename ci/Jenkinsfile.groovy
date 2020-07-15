@@ -112,6 +112,21 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
+                        println("env.BRANCH_NAME   = ${env.BRANCH_NAME}")
+                        println("env.BUILD_ID      = ${env.BUILD_ID}")
+                        println("env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}")
+                        println("env.CHANGE_ID     = ${env.CHANGE_ID}")
+                        println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
+                        println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
+                        println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
+                        println("isMasterJob       = ${isMasterJob}")
+                        println("doPpcBuild        = ${doPpcBuild}")
+                        println("doExtraTests      = ${doExtraTests}")
+                        println("doPy38Tests       = ${doPy38Tests}")
+                        println("doPpcTests        = ${doPpcTests}")
+                        println("doCoverage        = ${doCoverage}")
+                        println("doPublish()       = ${doPublish()}")
+
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
                         if (env.CHANGE_BRANCH) {
@@ -146,7 +161,6 @@ ansiColor('xterm') {
                         }
 
                         buildInfo(env.BRANCH_NAME, isRelease())
-
 
 
                         if (isRelease()) {
@@ -575,8 +589,7 @@ ansiColor('xterm') {
                             sh "ls dist/"
 
                             versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
-                            sh "echo versionText = ${versionText}"
-                            println "versionText = ${versionText}"
+                            println("versionText = ${versionText}")
 
                             def s3cmd = ""
                             def pyindex_links = ""
@@ -584,11 +597,12 @@ ansiColor('xterm') {
                                 findFiles(glob: "*").each {
                                     def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
                                                     returnStdout: true).trim()
-                                    def s3path = "${S3_BASE}/dev/datatable-${versionText}/{it.name}"
-                                    s3cmd += "s3cmd put -P ${it.name} ${S3_BASE}/${s3path}\n"
-                                    pyindex_links += """  <li><a href="${S3_URL}/${s3path}#sha256=${sha256}">{it.name}</a></li>\n"""
+                                    def s3path = "${S3_BASE}/dev/datatable-${versionText}/${it.name}"
+                                    s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}/${s3path}\n"
+                                    pyindex_links += """  <li><a href="${S3_URL}/${s3path}#sha256=${sha256}">${it.name}</a></li>\n"""
                                 }
                             }
+                            println("Adding links to index.html:\n${pyindex_links}")
 
                             def pyindex_content = "${S3_URL}/index.html".toURL().text
                             pyindex_content -= "</body></html>\n"
@@ -814,7 +828,7 @@ def isRelease() {
 
 def markSkipped(String stageName) {
     stage (stageName) {
-        echo "Stage ${stageName} SKIPPED!"
+        println("Stage ${stageName} SKIPPED!")
         markStageWithTag(STAGE_NAME, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
     }
 }
