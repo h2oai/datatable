@@ -29,6 +29,11 @@ import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
 import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
 
+String.metaClass.encodeURL = {
+   java.net.URLEncoder.encode(delegate, "UTF-8")
+}
+
+
 // initialize build summary
 buildSummary('https://github.com/h2oai/datatable', true)
 // use default StagesSummary implementation
@@ -579,8 +584,9 @@ ansiColor('xterm') {
                                     def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
                                                     returnStdout: true).trim()
                                     def s3path = "dev/datatable-${versionText}/${it.name}"
+                                    def s3href = "${S3_URL}/${s3path}".encodeURL()
                                     s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}/${s3path}\n"
-                                    pyindex_links += """  <li><a href="${S3_URL}/${s3path}#sha256=${sha256}">${it.name}</a></li>\n"""
+                                    pyindex_links += """  <li><a href="${s3href}#sha256=${sha256}">${it.name}</a></li>\n"""
                                 }
                             }
                             println("Adding links to index.html:\n${pyindex_links}")
@@ -797,6 +803,7 @@ def isModified(pattern) {
 
 
 def doPublish() {
+    return true   // will be removed before merging the PR
     return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
 }
 
