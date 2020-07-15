@@ -29,6 +29,17 @@ from sphinx.util.docutils import SphinxDirective
 from . import xnodes
 
 
+class XcodeRootElement(xnodes.div, nodes.FixedTextElement):
+    """
+    Inherit from FixedTextElement so that 'smartquotes' utility
+    wouldn't try to convert quotation marks and such.
+    """
+    def __init__(self, cls):
+        super().__init__(classes=["xcode", cls])
+
+
+
+
 class SphinxFormatter(pygments.formatter.Formatter):
 
     _shell_token_map = {
@@ -95,9 +106,7 @@ class SphinxFormatter(pygments.formatter.Formatter):
 
 
     def format(self, tokenstream, outfile):
-        # The "notranslate" class stops translation of certain strings
-        # into Unicode characters, e.g. "" -> “”, ... -> …, etc.
-        out = xnodes.div(classes=["xcode", "notranslate", self._lang])
+        out = XcodeRootElement(self._lang)
         for ttype, value in self.merge_tokens(tokenstream):
             out += self._nodegen[ttype](value)
         outfile.result = out
@@ -159,4 +168,5 @@ def setup(app):
     app.setup_extension("sphinxext.xnodes")
     app.add_css_file("xcode.css")
     app.add_directive("xcode", XcodeDirective)
+    app.add_node(XcodeRootElement, html=(xnodes.visit_div, xnodes.depart_div))
     return {"parallel_read_safe": True, "parallel_write_safe": True}

@@ -84,7 +84,7 @@ install it as:
 
    C:\> pip install YOUR_WHEEL_URL
 
-For macOS and Linux, latest wheels can be found at `S3 repository`_.
+For macOS and Linux, latest wheels can be found at our `S3 repository`_.
 
 
 Build from source
