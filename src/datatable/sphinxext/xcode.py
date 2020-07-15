@@ -120,13 +120,21 @@ class XcodeDirective(SphinxDirective):
         code = "\n".join(self.content.data)
         if lang in ["shell", "console", "bash"]:
             lexer = pygments.lexers.get_lexer_by_name("console")
-            formatter = SphinxFormatter("console")
+            lang = "console"
         elif lang in ["winshell", "shell-windows", "winconsole", "doscon"]:
             lexer = pygments.lexers.get_lexer_by_name("doscon")
-            formatter = SphinxFormatter("console")
+            lang = "console"
         else:
             raise self.error("Unknown lex language %r in ..xcode:: directive"
                              % (lang,))
+
+        if lang == "console":
+            formatter = SphinxFormatter("console")
+            # Update prompt regexp so that it would include the whitespace too
+            tail = r")(.*\n?)"
+            ps1 = lexer._ps1rgx
+            assert ps1.endswith(tail)
+            lexer._ps1rgx = ps1[:-len(tail)] + r"\s*" + ps1[-len(tail):]
 
         outfile = type("", (object,), dict(result=None))()
         pygments.highlight(code, lexer, formatter, outfile)

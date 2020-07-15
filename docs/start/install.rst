@@ -1,46 +1,65 @@
+
 Installation
 ============
 
-This section describes how to install Python ``datatable`` on various systems.
+This page describes how to install ``datatable`` on various systems.
+
 
 Prerequisites
 -------------
 
-Python 3.5 or newer is a prerequisite. You can check your python version via
+Python 3.5+ is required, although we recommend Python 3.6 or newer for best
+results. You can check your python version via
 
 .. xcode:: shell
 
-   $ python --version
+    $ python --version
+    Python 3.6.6
 
 
-If you don't have Python 3.5 or later, you may want to download and install
-the newest version of Python, and then create and activate a virtual
-environment for that Python. For example:
-
-.. xcode:: shell
-
-   $ virtualenv --python=python3.6 ~/py36
-   $ source ~/py36/bin/activate
-
-
-
-Install on macOS and Linux
------------------------------
-
-Run the following command to install ``datatable`` on macOS and Linux:
+In addition, we recommend having ``pip`` version 20.0+, especially if you're
+planning to install datatable from source, or if you are on a Unix machine.
 
 .. xcode:: shell
 
-  $ pip install datatable
+    $ pip --version
+    pip 19.3.1 from /home/pasha/py36/lib/python3.6/site-packages/pip (python 3.6)
+
+    $ pip install pip --upgrade
+    Collecting pip
+      Using cached https://files.pythonhosted.org/packages/43/84/23ed6a1796480a6f1a2d38f2802901d078266bda38388954d01d3f2e821d/pip-20.1.1-py2.py3-none-any.whl
+    Installing collected packages: pip
+      Found existing installation: pip 19.3.1
+        Uninstalling pip-19.3.1:
+          Successfully uninstalled pip-19.3.1
+    Successfully installed pip-20.1.1
 
 
 
-Install on Windows
+Basic installation
 ------------------
 
-As of version 0.11.0, ``datatable`` will also be available on Windows,
-and the installation process will be identical to the process
-for macOS and Linux.
+On most platforms ``datatable`` can be installed directly from `PyPI`_ using
+``pip``:
+
+.. xcode:: shell
+
+    $ pip install datatable
+
+The following platforms are supported:
+
+- macOS
+- Linux x86_64
+- Linux ppc64le
+
+Windows wheels cannot be installed from PyPI just yet, but they will be
+available in the next release. In the meanwhile, ``datatable`` development
+wheels can be installed.
+
+
+
+Installing latest dev version
+-----------------------------
 
 Meanwhile, you can install the dev version of ``datatable`` on Windows
 from the pre-built wheels that are available on
@@ -55,7 +74,7 @@ to your version of Python and then install it as:
 
 
 
-Build from Source
+Build from source
 -----------------
 
 In order to install the latest development version of `datatable` directly
@@ -126,4 +145,7 @@ Troubleshooting
 
      $ xcode-select --install
 
+
 .. _this SO question: https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3
+
+.. _`PyPI`: https://pypi.org/

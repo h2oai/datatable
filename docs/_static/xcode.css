@@ -31,7 +31,7 @@ div.document p + .xcode {
 }
 
 .xcode.console .prompt {
-	opacity: 0.35;
+	color: #ffdd77;
 	user-select: none;
 }
 
@@ -42,4 +42,8 @@ div.document p + .xcode {
 .xcode.console .comment {
 	color: #558080;
 	font-style: italic;
+}
+
+.xcode.console .output {
+	opacity: 0.6;
 }
