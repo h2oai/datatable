@@ -570,6 +570,7 @@ ansiColor('xterm') {
 
                             versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
                             println("versionText = ${versionText}")
+                            def _versionText = versionText
 
                             def s3cmd = ""
                             def pyindex_links = ""
@@ -606,7 +607,7 @@ ansiColor('xterm') {
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
-                                version = versionText
+                                version = _versionText
                                 keepPrivate = false
                                 isRelease = isRelease()
                             }
@@ -796,7 +797,6 @@ def isModified(pattern) {
 
 
 def doPublish() {
-    return true   // will be removed before merging the PR
     return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
 }
 
