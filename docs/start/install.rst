@@ -48,18 +48,35 @@ On most platforms ``datatable`` can be installed directly from `PyPI`_ using
 
 The following platforms are supported:
 
-- macOS
-- Linux x86_64
-- Linux ppc64le
+- **macOS**
 
-Windows wheels cannot be installed from PyPI just yet, but they will be
-available in the next release. In the meanwhile, ``datatable`` development
-wheels can be installed.
+  Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
+  (High Sierra), and macOS 10.15.2 (Catalina).
+
+- **Linux x86_64 / ppc64le**
+
+  We produce binary wheels that are tagged as ``manylinux2010`` (for x86_64
+  architecture) and ``manylinux2014`` (for ppc64le). Consequently, they will
+  work with your Linux distribution if it is compatible with one of these tags.
+  Please refer to `PEP-513`_ and `PEP-599`_ for details.
+
+- **Windows (N/A)**
+
+  Windows wheels cannot be installed from PyPI just yet, but they will be
+  available after the next release. In the meanwhile, datatable development
+  wheels can be installed (see section below).
 
 
 
 Installing latest dev version
 -----------------------------
+
+If you wish to test the latest version of ``datatable`` before it has been
+officially released, then you can use one of the binary wheels that we build
+as part of our Continuous Integration process.
+
+If you are on Windows
+
 
 Meanwhile, you can install the dev version of ``datatable`` on Windows
 from the pre-built wheels that are available on
@@ -149,3 +166,7 @@ Troubleshooting
 .. _this SO question: https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3
 
 .. _`PyPI`: https://pypi.org/
+
+.. _`PEP-513`: https://www.python.org/dev/peps/pep-0513/
+
+.. _`PEP-599`: https://www.python.org/dev/peps/pep-0599/
