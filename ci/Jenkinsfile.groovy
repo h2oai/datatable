@@ -130,28 +130,13 @@ ansiColor('xterm') {
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
                         if (env.CHANGE_BRANCH) {
-                            // Note: we do not explicitly check out the branch here,
+                            // Note: we do not explicitly checkout the branch here,
                             // because the branch may be on the forked repo
-                            sh "git fetch origin +refs/pull/${env.CHANGE_ID}/merge"
-                            sh "git checkout -qf FETCH_HEAD"
+                            sh """
+                                git fetch origin +refs/pull/${env.CHANGE_ID}/merge"
+                                git checkout -qf FETCH_HEAD
+                            """
                         }
-
-                        sh """
-                            set +x
-                            echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
-                            echo 'env.BUILD_ID      = ${env.BUILD_ID}'
-                            echo 'env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}'
-                            echo 'env.CHANGE_ID     = ${env.CHANGE_ID}'
-                            echo 'env.CHANGE_TARGET = ${env.CHANGE_TARGET}'
-                            echo 'env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}'
-                            echo 'env.CHANGE_FORK   = ${env.CHANGE_FORK}'
-                            echo 'isMasterJob  = ${isMasterJob}'
-                            echo 'doPpcBuild   = ${doPpcBuild}'
-                            echo 'doExtraTests = ${doExtraTests}'
-                            echo 'doPy38Tests  = ${doPy38Tests}'
-                            echo 'doPpcTests   = ${doPpcTests}'
-                            echo 'doCoverage   = ${doCoverage}'
-                        """
 
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
@@ -180,21 +165,16 @@ ansiColor('xterm') {
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                         }
 
-                        sh """
-                            set +x
-                            echo 'DT_RELEASE      = ${DT_RELEASE}'
-                            echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
-                            echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
-                        """
                         doLargerFreadTests = (doLargerFreadTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
                         if (doLargerFreadTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large fread tests required")
                         }
-                        sh """
-                            set +x
-                            echo 'doLargerFreadTests = ${doLargerFreadTests}'
-                        """
+
+                        println("DT_RELEASE      = ${DT_RELEASE}")
+                        println("DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}")
+                        println("DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}")
+                        println("doLargerFreadTests = ${doLargerFreadTests}")
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
@@ -322,7 +302,7 @@ ansiColor('xterm') {
                             }
                         }
                     } else {
-                        echo 'Build on ppc64le-manylinux SKIPPED'
+                        println('Build on ppc64le-manylinux SKIPPED')
                         markSkipped("Build on ppc64le-manylinux")
                     }
                 }
