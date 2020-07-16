@@ -47,17 +47,17 @@ In order to implement a new function or operator that would work with
 column expressions, the following steps must be taken:
 
 1. Create a new opcode for your function. This opcode must be declared
-   in two places: C++ "src/core/expr/op.h", and python "src/core/expr/expr.py". Obviously,
-   the numeric values must match.
+   in two places: C++ "src/core/expr/op.h", and python "src/core/expr/expr.py".
+   Obviously, the numeric values must match.
 
-2. Declare the function / method. This can be done either in python,
+2. Declare the function/method. This can be done either in python,
    or in C++. In the end the function should construct and return a
    python `Expr` object, having the opcode from step 1, as well as the
    appropriate args and kwargs.
 
 3. Import the new function in "src/datatable/__init__.py" or,
    if the function is a part of a specific datatable module,
-   in the proper "src/datatable/YOUR_MODULE_NAME.py" file. Also,
+   in the corresponding "src/datatable/YOUR_MODULE_NAME.py". Also,
    add the function name to the `__all__` tuple within the same file.
 
 4. In file "src/core/expr/head_func.h" either declare the new class derived from
