@@ -29,6 +29,17 @@ from sphinx.util.docutils import SphinxDirective
 from . import xnodes
 
 
+class XcodeRootElement(xnodes.div, nodes.FixedTextElement):
+    """
+    Inherit from FixedTextElement so that 'smartquotes' utility
+    wouldn't try to convert quotation marks and such.
+    """
+    def __init__(self, cls):
+        super().__init__(classes=["xcode", cls])
+
+
+
+
 class SphinxFormatter(pygments.formatter.Formatter):
 
     _shell_token_map = {
@@ -95,7 +106,7 @@ class SphinxFormatter(pygments.formatter.Formatter):
 
 
     def format(self, tokenstream, outfile):
-        out = xnodes.div(classes=["xcode", self._lang])
+        out = XcodeRootElement(self._lang)
         for ttype, value in self.merge_tokens(tokenstream):
             out += self._nodegen[ttype](value)
         outfile.result = out
@@ -120,13 +131,21 @@ class XcodeDirective(SphinxDirective):
         code = "\n".join(self.content.data)
         if lang in ["shell", "console", "bash"]:
             lexer = pygments.lexers.get_lexer_by_name("console")
-            formatter = SphinxFormatter("console")
+            lang = "console"
         elif lang in ["winshell", "shell-windows", "winconsole", "doscon"]:
             lexer = pygments.lexers.get_lexer_by_name("doscon")
-            formatter = SphinxFormatter("console")
+            lang = "console"
         else:
             raise self.error("Unknown lex language %r in ..xcode:: directive"
                              % (lang,))
+
+        if lang == "console":
+            formatter = SphinxFormatter("console")
+            # Update prompt regexp so that it would include the whitespace too
+            tail = r")(.*\n?)"
+            ps1 = lexer._ps1rgx
+            assert ps1.endswith(tail)
+            lexer._ps1rgx = ps1[:-len(tail)] + r"\s*" + ps1[-len(tail):]
 
         outfile = type("", (object,), dict(result=None))()
         pygments.highlight(code, lexer, formatter, outfile)
@@ -149,4 +168,5 @@ def setup(app):
     app.setup_extension("sphinxext.xnodes")
     app.add_css_file("xcode.css")
     app.add_directive("xcode", XcodeDirective)
+    app.add_node(XcodeRootElement, html=(xnodes.visit_div, xnodes.depart_div))
     return {"parallel_read_safe": True, "parallel_write_safe": True}

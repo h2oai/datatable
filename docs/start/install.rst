@@ -1,129 +1,279 @@
+
 Installation
 ============
 
-This section describes how to install Python ``datatable`` on various systems.
+This page describes how to install ``datatable`` on various systems.
+
+
 
 Prerequisites
 -------------
 
-Python 3.5 or newer is a prerequisite. You can check your python version via
+Python 3.5+ is required, although we recommend Python 3.6 or newer for best
+results. You can check your python version via
 
 .. xcode:: shell
 
-   $ python --version
+    $ python --version
+    Python 3.6.6
 
 
-If you don't have Python 3.5 or later, you may want to download and install
-the newest version of Python, and then create and activate a virtual
-environment for that Python. For example:
-
-.. xcode:: shell
-
-   $ virtualenv --python=python3.6 ~/py36
-   $ source ~/py36/bin/activate
-
-
-
-Install on macOS and Linux
------------------------------
-
-Run the following command to install ``datatable`` on macOS and Linux:
+In addition, we recommend using ``pip`` version 20.0+, especially if you're
+planning to install datatable from source, or if you are on a Unix machine.
 
 .. xcode:: shell
 
-  $ pip install datatable
+    $ pip --version
+    pip 19.3.1 from /home/pasha/py36/lib/python3.6/site-packages/pip (python 3.6)
+
+    $ pip install pip --upgrade
+    Collecting pip
+      Using cached https://files.pythonhosted.org/.../pip-20.1.1-py2.py3-none-any.whl
+    Installing collected packages: pip
+      Found existing installation: pip 19.3.1
+        Uninstalling pip-19.3.1:
+          Successfully uninstalled pip-19.3.1
+    Successfully installed pip-20.1.1
+
+There are no other prerequisites. Datatable does not depend on any other python
+module [#v11]_, nor on any non-standard system library.
 
 
 
-Install on Windows
+Basic installation
 ------------------
 
-As of version 0.11.0, ``datatable`` will also be available on Windows,
-and the installation process will be identical to the process
-for macOS and Linux.
+On most platforms ``datatable`` can be installed directly from `PyPI`_ using
+``pip``:
 
-Meanwhile, you can install the dev version of ``datatable`` on Windows
-from the pre-built wheels that are available on
-`AppVeyor <https://ci.appveyor.com/project/h2oops/datatable/history>`__.
-To do so, simply click on the master build of your choice and
-then navigate to ``Artifacts``. Copy the wheel URL that corresponds
-to your version of Python and then install it as:
+.. xcode:: shell
+
+    $ pip install datatable
+
+The following platforms are supported:
+
+- **macOS**
+
+  Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
+  (High Sierra), and macOS 10.15.2 (Catalina).
+
+- **Linux x86_64 / ppc64le**
+
+  We produce binary wheels that are tagged as ``manylinux2010`` (for x86_64
+  architecture) and ``manylinux2014`` (for ppc64le). Consequently, they will
+  work with your Linux distribution if it is compatible with one of these tags.
+  Please refer to `PEP-513`_ and `PEP-599`_ for details.
+
+- **Windows (N/A)**
+
+  Windows wheels cannot be installed from PyPI just yet, but they will be
+  available after the next release. In the meanwhile, datatable development
+  wheels can be installed (see section below).
+
+
+
+Install latest dev version
+--------------------------
+
+If you wish to test the latest version of ``datatable`` before it has been
+officially released, then you can use one of the binary wheels that we build
+as part of our Continuous Integration process.
+
+If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
+Click on a green master build of your choice, then navigate to the "Artifacts"
+tab, copy the wheel URL that corresponds to your Python version, and finally
+install it as:
 
 .. xcode:: winshell
 
-   C:\> pip install YOUR_WHEEL_URL
+    C:\> pip install YOUR_WHEEL_URL
+
+For macOS and Linux, development wheels can be found at our `S3 repository`_.
+Scroll to the bottom of the page to find the latest links, and then download
+or copy the URL of a wheel that corresponds to your Python version and
+platform. This wheel can be installed with ``pip`` as usual:
+
+.. xcode:: shell
+
+    $ pip install YOUR_WHEEL_URL
+
+Alternatively, you can instruct ``pip`` to go to that repository directly
+and find the latest version automatically:
+
+.. xcode:: shell
+
+    $ pip install --trusted-host h2o-release.s3-website-us-east-1.amazonaws.com \
+          -i http://h2o-release.s3-website-us-east-1.amazonaws.com/  datatable
 
 
-
-Build from Source
+Build from source
 -----------------
 
-In order to install the latest development version of `datatable` directly
-from GitHub, run the following command:
+In order to build and install the latest development version of ``datatable``
+directly from GitHub, run the following command:
 
 .. xcode:: shell
 
    $ pip install git+https://github.com/h2oai/datatable
 
-Since ``datatable`` is written mostly in C++, you will need to have a C++
-compiler on your computer. We recommend either `Clang 4+`, or `gcc 6+`,
-however in theory any compiler that supports C++14 should work.
+Since ``datatable`` is written mostly in C++, your computer must be set up for
+compiling C++ code. The build script will attempt to find the compiler
+automatically, searching for GCC, Clang, or MSVC on Windows. If it fails, or
+if you want to use some other compiler, then set environment variable ``CXX``
+before building the code.
+
+Datatable uses C++14 language standard, which means you must use the compiler
+that fully implements this standard. The following compiler versions are known
+to work:
+
+- Clang 5+;
+- GCC 6+;
+- MSVC 19.14+.
 
 
 
-Build modified ``datatable``
-----------------------------
+Install datatable in editable mode
+----------------------------------
 
 If you want to tweak certain features of ``datatable``, or even add your
-own functionality, you are welcome to do so.
+own functionality, you are welcome to do so. This section describes how
+to install datatable for development process.
 
-1. First, clone ``datatable`` repository from GitHub:
-
-   .. xcode:: shell
-
-      $ git clone https://github.com/h2oai/datatable
-
-2. Make ``datatable``:
+1. First, you need to fork the repository and then :ref:`clone it locally
+   <local-setup>`:
 
    .. xcode:: shell
 
-      $ make test_install
-      $ make
+      $ git clone https://github.com/your_user_name/datatable
+      $ cd datatable
 
-3. Additional commands you may find occasionally interesting:
+2. Build ``_datatable`` core library. The two most common options are:
 
    .. xcode:: shell
 
-     $ # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
-     $ make debug
+      $ # build a "production mode" datatable
+      $ make build
 
-     $ # Generate code coverage report
-     $ make coverage
+      $ # build datatable in "debug" mode, without optimizations and with
+      $ # internal asserts enabled
+      $ make debug
 
-     $ # Build a debug version of datatable using an auto-generated makefile.
-     $ # This does not work on all systems, but when it does it will work
-     $ # much faster than standard "make debug".
-     $ make fast
+   Note that you would need to have a C++ compiler in order to compile and
+   link the code. Please refer to the previous section for compiler
+   requirements.
+
+   On macOS you may also need to install Xcode Command Line Tools.
+
+   On Linux if you see an error that ``'Python.h' file not found``, then it
+   means you need to install a "development" version of Python, i.e. the one
+   that has python header files included.
+
+3. After the previous step succeeds, you will have a ``_datatable.*.so`` file
+   in the ``src/datatable/lib`` folder. Now, in order to make ``datatable``
+   usable from Python, run
+
+   .. xcode:: shell
+
+      $ echo "`pwd`/src" >> ${VIRTUAL_ENV}/lib/python*/site-packages/easy-install.pth
+
+   (This assumes that you are using a virtualenv-based python. If not, then
+   you'll need to adjust the path to your python's ``site-packages``
+   directory).
+
+4. Install additional libraries that are needed to test datatable:
+
+   .. xcode:: shell
+
+       $ pip install -r requirements_tests.txt
+       $ pip install -r requirements_extra.txt
+       $ pip install -r requirements_docs.txt
+
+5. Check that everything works correctly by running the test suite:
+
+   .. xcode:: shell
+
+       $ make test
+
+Once these steps are completed, subsequent development process is much simpler.
+After any change to C++ files, re-run ``make build`` (or ``make debug``) and
+then restart python for the changes to take effect.
+
+Datatable only recompiles those files that were modified since the last time,
+which means that usually the compile step takes only few seconds. Also note
+that you can switch between the "build" and "debug" versions of the library
+without performing ``make clean``.
 
 
 
 Troubleshooting
 ---------------
 
-- If you get the error ``ImportError: This package should not be accessible on
-  Python 3``, then you may have a ``PYTHONPATH`` environment variable that
-  causes conflicts. See `this SO question`_ for details.
+Despite our best effort to keep the installation process hassle-free, sometimes
+problems may still arise. Here we list some of the more frequent ones, where we
+know how to resolve them. If none of these help you, please ask a question on
+`StackOverflow`_ (tagging with ``[py-datatable]``), or file an issue on
+`GitHub`_.
 
-- If you see an error ``'Python.h' file not found``, then it means you have an
-  incomplete version of Python installed. This is known to sometimes happen on
-  Ubuntu systems. The solution is to run ``apt-get install python-dev`` or
-  ``apt-get install python3.6-dev``.
+``ImportError: cannot import name '_datatable'``
+  This means the internal core library ``_datatable.*.so`` is either missing
+  entirely, or is in a wrong location, or have wrong name. The first step
+  is therefore to find where that file actually is. Use the system ``find``
+  tool, limiting the search to your python directory.
 
-- On macOS, if you are getting an error ``fatal error: 'sys/mman.h' file not
-  found``, this can be fixed by installing the Xcode Command Line Tools:
+  If the file is missing entirely, then it was either deleted, or installation
+  used a broken wheel file. In either case, the only solution is to rebuild or
+  reinstall the library completely.
+
+  If the file is present but not within the ``site-packages/datatable/lib/``
+  directory, then moving it there should solve the issue.
+
+  If the file is present and is in the correct directory, then there must be a
+  name conflict. In python run::
+
+    >>> import sysconfig
+    >>> sysconfig.get_config_var("SOABI")
+    'cpython-36m-ppc64le-linux-gnu'
+
+  The reported suffix should match the suffix of the ``_datatable.*.so`` file.
+  If it doesn't then renaming the file will fix the problem.
+
+``Python.h: no such file or directory`` when compiling from source
+  Your Python distribution was shipped without the ``Python.h`` header file.
+  This have been observed on certain Linux machines. You would need to install
+  a Python package with a ``-dev`` suffix, for example ``python3.6-dev``.
+
+``fatal error: 'sys/mman.h' file not found`` on macOS
+  In order to compile from source on mac computers, you need to have Xcode
+  Command Line Tools installed. Run
 
   .. xcode:: shell
 
      $ xcode-select --install
 
-.. _this SO question: https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3
+``ImportError: This package should not be accessible``
+  The most likely cause of this error is a misconfigured ``PYTHONPATH``
+  environment variable. Unset that variable and try again.
+
+
+
+
+.. rubric:: Footnotes
+
+.. [#v11] Since version v0.11.0
+
+
+.. Other links
+
+.. _`PyPI`: https://pypi.org/
+
+.. _`PEP-513`: https://www.python.org/dev/peps/pep-0513/
+
+.. _`PEP-599`: https://www.python.org/dev/peps/pep-0599/
+
+.. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/history
+
+.. _`S3 repository`: https://h2o-release.s3.amazonaws.com/datatable/index.html
+
+.. _`StackOverflow`: https://stackoverflow.com/questions/tagged/py-datatable
+
+.. _`GitHub`: https://github.com/h2oai/datatable/issues

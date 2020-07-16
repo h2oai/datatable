@@ -11,6 +11,14 @@ div.rst-content li li {
   margin-bottom: 0;
 }
 
+div.rst-content dl dt {
+  margin-bottom: 6px;
+}
+
+div.rst-content dl dd {
+  margin-bottom: 24px;
+}
+
 #first-section { display: flex; }
 
 #first-section .part1 { padding-right: 32pt; }
