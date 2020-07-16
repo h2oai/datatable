@@ -118,7 +118,7 @@ directly from GitHub, run the following command:
 
 Since ``datatable`` is written mostly in C++, your computer must be set up for
 compiling C++ code. The build script will attempt to find the compiler
-automatically, searching for GCC, Clang, or MSVC on Windows. It it fails, or
+automatically, searching for GCC, Clang, or MSVC on Windows. If it fails, or
 if you want to use some other compiler, then set environment variable ``CXX``
 before building the code.
 
