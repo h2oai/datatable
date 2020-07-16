@@ -5,6 +5,7 @@ Installation
 This page describes how to install ``datatable`` on various systems.
 
 
+
 Prerequisites
 -------------
 
@@ -33,6 +34,9 @@ planning to install datatable from source, or if you are on a Unix machine.
         Uninstalling pip-19.3.1:
           Successfully uninstalled pip-19.3.1
     Successfully installed pip-20.1.1
+
+There are no other prerequisites. Datatable does not depend on any other python
+module [#v11]_, nor on any non-standard system library.
 
 
 
@@ -68,8 +72,8 @@ The following platforms are supported:
 
 
 
-Installing latest dev version
------------------------------
+Install latest dev version
+--------------------------
 
 If you wish to test the latest version of ``datatable`` before it has been
 officially released, then you can use one of the binary wheels that we build
@@ -82,84 +86,176 @@ install it as:
 
 .. xcode:: winshell
 
-   C:\> pip install YOUR_WHEEL_URL
+    C:\> pip install YOUR_WHEEL_URL
 
-For macOS and Linux, latest wheels can be found at our `S3 repository`_.
+For macOS and Linux, development wheels can be found at our `S3 repository`_.
+Scroll to the bottom of the page to find the latest links, and then download
+or copy the URL of a wheel that corresponds to your Python version and
+platform. This wheel can be installed with ``pip`` as usual:
+
+.. xcode:: shell
+
+    $ pip install YOUR_WHEEL_URL
+
+Alternatively, you can instruct ``pip`` to go to that repository directly
+and find the latest version automatically:
+
+.. xcode:: shell
+
+    $ pip install --trusted-host h2o-release.s3-website-us-east-1.amazonaws.com \
+          -i http://h2o-release.s3-website-us-east-1.amazonaws.com/  datatable
 
 
 Build from source
 -----------------
 
-In order to install the latest development version of `datatable` directly
-from GitHub, run the following command:
+In order to build and install the latest development version of ``datatable``
+directly from GitHub, run the following command:
 
 .. xcode:: shell
 
    $ pip install git+https://github.com/h2oai/datatable
 
-Since ``datatable`` is written mostly in C++, you will need to have a C++
-compiler on your computer. We recommend either `Clang 4+`, or `gcc 6+`,
-however in theory any compiler that supports C++14 should work.
+Since ``datatable`` is written mostly in C++, your computer must be set up for
+compiling C++ code. The build script will attempt to find the compiler
+automatically, searching for GCC, Clang, or MSVC on Windows. It it fails, or
+if you want to use some other compiler, then set environment variable ``CXX``
+before building the code.
+
+Datatable uses C++14 language standard, which means you must use the compiler
+that fully implements this standard. The following compiler versions are known
+to work:
+
+- Clang 5+;
+- GCC 6+;
+- MSVC 19.14+.
 
 
 
-Build modified ``datatable``
-----------------------------
+Install datatable in editable mode
+----------------------------------
 
 If you want to tweak certain features of ``datatable``, or even add your
 own functionality, you are welcome to do so.
 
-1. First, clone ``datatable`` repository from GitHub:
+1. First, you need to fork the repository and then :ref:`clone it locally
+   <local-setup>`:
 
    .. xcode:: shell
 
-      $ git clone https://github.com/h2oai/datatable
+      $ git clone https://github.com/your_user_name/datatable
+      $ cd datatable
 
-2. Make ``datatable``:
-
-   .. xcode:: shell
-
-      $ make test_install
-      $ make
-
-3. Additional commands you may find occasionally interesting:
+2. Build ``_datatable`` core library. The two most common options are:
 
    .. xcode:: shell
 
-     $ # Build a debug version of datatable (for example suitable for ``gdb`` debugging)
-     $ make debug
+      $ # build a "production mode" datatable
+      $ make build
 
-     $ # Generate code coverage report
-     $ make coverage
+      $ # build datatable in "debug" mode, without optimizations and with
+      $ # internal asserts enabled
+      $ make debug
 
-     $ # Build a debug version of datatable using an auto-generated makefile.
-     $ # This does not work on all systems, but when it does it will work
-     $ # much faster than standard "make debug".
-     $ make fast
+   Note that you would need to have a C++ compiler in order to compile and
+   link the code. Please refer to the previous section for compiler
+   requirements.
+
+   On macOS you may also need to install Xcode Command Line Tools.
+
+   On Linux if you see an error that ``'Python.h' file not found``, then it
+   means you need to install a "development" version of Python, i.e. the one
+   that has python header files included.
+
+3. After the previous step succeeds, you will have a ``_datatable.*.so`` file
+   in the ``src/datatable/lib`` folder. Now, in order to make ``datatable``
+   usable from Python, run
+
+   .. xcode:: shell
+
+      $ echo "`pwd`/src" >> ${VIRTUAL_ENV}/lib/python*/site-packages/easy-install.pth
+
+   (This assumes that you are using a virtualenv-based python. If not, then
+   you'll need to adjust the path to your python's ``site-packages``
+   directory).
+
+4. Install additional libraries that are needed to test datatable:
+
+   .. xcode:: shell
+
+       $ pip install -r requirements_tests.txt
+       $ pip install -r requirements_extra.txt
+       $ pip install -r requirements_docs.txt
+
+5. Check that everything works correctly by running the test suite:
+
+   .. xcode:: shell
+
+       $ make test
+
+Once these steps are completed, subsequent development process is much simpler.
+After any change to C++ files, re-run ``make build`` (or ``make debug``) and
+then restart python for the changes to take effect.
+
+Datatable only recompiles those files that were modified since the last time,
+which means that usually the compile step takes only few seconds. Also note
+that you can switch between the "build" and "debug" versions of the library
+without performing ``make clean``.
 
 
 
 Troubleshooting
 ---------------
 
-- If you get the error ``ImportError: This package should not be accessible on
-  Python 3``, then you may have a ``PYTHONPATH`` environment variable that
-  causes conflicts. See `this SO question`_ for details.
+``ImportError: cannot import name '_datatable'``
+  This means the internal core library ``_datatable.*.so`` is either missing
+  entirely, or is in a wrong location, or have wrong name. The first step
+  is therefore to find where that file actually is. Use the system ``find``
+  tool, limiting the search to your python directory.
 
-- If you see an error ``'Python.h' file not found``, then it means you have an
-  incomplete version of Python installed. This is known to sometimes happen on
-  Ubuntu systems. The solution is to run ``apt-get install python-dev`` or
-  ``apt-get install python3.6-dev``.
+  If the file is missing entirely, then it was either deleted, or installation
+  used a broken wheel file. In either case, the only solution is to rebuild or
+  reinstall the library completely.
 
-- On macOS, if you are getting an error ``fatal error: 'sys/mman.h' file not
-  found``, this can be fixed by installing the Xcode Command Line Tools:
+  If the file is present but not within the ``site-packages/datatable/lib/``
+  directory, then moving it there should solve the issue.
+
+  If the file is present and is in the correct directory, then there must be a
+  name conflict. In python run::
+
+    >>> import sysconfig
+    >>> sysconfig.get_config_var("SOABI")
+    'cpython-36m-ppc64le-linux-gnu'
+
+  The reported suffix should match the suffix of the ``_datatable.*.so`` file.
+  If it doesn't then renaming the file will fix the problem.
+
+``Python.h: no such file or directory`` when compiling from source
+  Your Python distribution was shipped without the ``Python.h`` header file.
+  This have been observed on certain Linux machines. You would need to install
+  a Python package with a ``-dev`` suffix, for example ``python3.6-dev``.
+
+``fatal error: 'sys/mman.h' file not found`` on macOS
+  In order to compile from source on mac computers, you need to have Xcode
+  Command Line Tools installed. Run
 
   .. xcode:: shell
 
      $ xcode-select --install
 
+``ImportError: This package should not be accessible``
+  The most likely cause of this error is a misconfigured ``PYTHONPATH``
+  environment variable. Unset that variable and try again.
 
-.. _this SO question: https://stackoverflow.com/questions/42214414/this-package-should-not-be-accessible-on-python-3-when-running-python3
+
+
+
+.. rubric:: Footnotes
+
+.. [#v11] Since version v0.11.0
+
+
+.. Other links
 
 .. _`PyPI`: https://pypi.org/
 
