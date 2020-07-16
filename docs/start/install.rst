@@ -136,7 +136,8 @@ Install datatable in editable mode
 ----------------------------------
 
 If you want to tweak certain features of ``datatable``, or even add your
-own functionality, you are welcome to do so.
+own functionality, you are welcome to do so. This section describes how
+to install datatable for development process.
 
 1. First, you need to fork the repository and then :ref:`clone it locally
    <local-setup>`:
@@ -207,6 +208,12 @@ without performing ``make clean``.
 Troubleshooting
 ---------------
 
+Despite our best effort to keep the installation process hassle-free, sometimes
+problems may still arise. Here we list some of the more frequent ones, where we
+know how to resolve them. If none of these help you, please ask a question on
+`StackOverflow`_ (tagging with ``[py-datatable]``), or file an issue on
+`GitHub`_.
+
 ``ImportError: cannot import name '_datatable'``
   This means the internal core library ``_datatable.*.so`` is either missing
   entirely, or is in a wrong location, or have wrong name. The first step
@@ -266,3 +273,7 @@ Troubleshooting
 .. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/history
 
 .. _`S3 repository`: https://h2o-release.s3.amazonaws.com/datatable/index.html
+
+.. _`StackOverflow`: https://stackoverflow.com/questions/tagged/py-datatable
+
+.. _`GitHub`: https://github.com/h2oai/datatable/issues
