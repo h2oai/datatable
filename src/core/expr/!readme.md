@@ -47,7 +47,7 @@ In order to implement a new function or operator that would work with
 column expressions, the following steps must be taken:
 
 1. Create a new opcode for your function. This opcode must be declared
-   in two places: C++ "expr/op.h", and python "expr/expr.py". Obviously,
+   in two places: C++ "src/core/expr/op.h", and python "expr/expr.py". Obviously,
    the numeric values must match.
 
 2. Declare the function / method. This can be done either in python,
@@ -55,14 +55,19 @@ column expressions, the following steps must be taken:
    python `Expr` object, having the opcode from step 1, as well as the
    appropriate args and kwargs.
 
-3. In file "expr/head_func.h" either declare the new class derived from
+3. Import the new function in "src/datatable/__init__.py" or,
+   if the function is a part of a specific datatable module,
+   in the proper "src/datatable/YOUR_MODULE_NAME.py" file. Also,
+   add the function name to the `__all__` tuple within the same file.
+
+4. In file "src/core/expr/head_func.h" either declare the new class derived from
    `Head_Func`, or see if you can reuse one of the existing classes there.
-   Then in file "expr/head_func.cc" add the factory method for resolving
+   Then in file "src/core/expr/head_func.cc" add the factory method for resolving
    your numeric opcode into an object of appropriate class.
 
-4. Implement the functionality of your new opcode -- either in a dedicated
+5. Implement the functionality of your new opcode -- either in a dedicated
    class, or reuse the existing classes in "funary", "fbinary", "fnary".
    In the latter case you would also need to add factory functions to
-   "expr/funary/umaker.cc" or "expr/fbinary/bimaker.cc" or
-   "expr/fnary/fnary.h".
+   "src/core/expr/funary/umaker.cc" or "src/core/expr/fbinary/bimaker.cc" or
+   "src/core/expr/fnary/fnary.h".
 
