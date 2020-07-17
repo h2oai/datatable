@@ -19,19 +19,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
-
-#include "python/bool.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/list.h"
-#include "python/namedtuple.h"
+#ifndef dt_PYTHON_SET_h
+#define dt_PYTHON_SET_h
 #include "python/obj.h"
-#include "python/pybuffer.h"
-#include "python/range.h"
-#include "python/set.h"
-#include "python/slice.h"
-#include "python/string.h"
-#include "python/tuple.h"
+namespace py {
+
+
+/**
+  * Python set object.
+  */
+class oset : public oobj {
+  public:
+    explicit oset();
+    oset(const oset&) = default;
+    oset(oset&&) = default;
+    oset& operator=(const oset&) = default;
+    oset& operator=(oset&&) = default;
+
+    size_t size() const;
+    bool has(const _obj& key) const;
+    void add(const _obj& key);
+
+  private:
+    // Used by _obj class only
+    explicit oset(const robj&);
+    friend class _obj;
+};
+
+
+}  // namespace py
+
+#endif

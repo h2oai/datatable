@@ -60,6 +60,7 @@ void* OutputColumn::data_w(size_t row) const {
 
 
 MemoryWritableBuffer* OutputColumn::strdata_w() {
+  xassert(strbuf_);
   return strbuf_.get();
 }
 
