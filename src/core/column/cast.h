@@ -19,15 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_CAST_BOOL_h
-#define dt_COLUMN_CAST_BOOL_h
+#ifndef dt_COLUMN_CAST_h
+#define dt_COLUMN_CAST_h
 #include "column/virtual.h"
 namespace dt {
 
 
 /**
   * Virtual column that casts a boolean column `arg_` into
-  * a target stype.
+  * the target stype.
   */
 class CastBool_ColumnImpl : public Virtual_ColumnImpl {
   private:
