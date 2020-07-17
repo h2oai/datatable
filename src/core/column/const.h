@@ -58,7 +58,7 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, float*)    const override;
     bool get_element(size_t, double*)   const override;
     bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element(size_t, py::oobj*) const override;
 
     ColumnImpl* clone() const override;
     void materialize(Column&, bool) override;

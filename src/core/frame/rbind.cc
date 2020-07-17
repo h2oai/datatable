@@ -489,9 +489,6 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
 //------------------------------------------------------------------------------
 // rbind fixed-width columns
 //------------------------------------------------------------------------------
-namespace dt {
-  template<> inline py::robj GETNA() { return py::rnone(); }
-}
 
 template <typename T>
 void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
@@ -596,6 +593,6 @@ template class dt::SentinelFw_ColumnImpl<int32_t>;
 template class dt::SentinelFw_ColumnImpl<int64_t>;
 template class dt::SentinelFw_ColumnImpl<float>;
 template class dt::SentinelFw_ColumnImpl<double>;
-template class dt::SentinelFw_ColumnImpl<py::robj>;
+template class dt::SentinelFw_ColumnImpl<py::oobj>;
 template class dt::SentinelStr_ColumnImpl<uint32_t>;
 template class dt::SentinelStr_ColumnImpl<uint64_t>;

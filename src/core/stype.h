@@ -25,6 +25,7 @@
 #include <limits>    // std::numeric_limits
 #include "_dt.h"     // size_t, uint8_t, PyObject
 #include "cstring.h"
+#include "python/obj.h"
 #include "python/python.h"
 namespace dt {
 
@@ -271,6 +272,7 @@ static constexpr SType stype_from = _sfr<T>();
 template <typename T> struct _ref  { using t = T; };
 template <> struct _ref<CString>   { using t = const CString&; };
 template <> struct _ref<PyObject*> { using t = const PyObject*; };
+template <> struct _ref<py::oobj>  { using t = const py::oobj&; };
 
 template <typename T>
 using ref_t = typename _ref<T>::t;
@@ -289,7 +291,7 @@ template<> inline bool compatible_type<int64_t>(SType s)  { return (s == SType::
 template<> inline bool compatible_type<float>(SType s)    { return (s == SType::FLOAT32); }
 template<> inline bool compatible_type<double>(SType s)   { return (s == SType::FLOAT64); }
 template<> inline bool compatible_type<CString>(SType s)  { return (s == SType::STR32 || s == SType::STR64); }
-template<> inline bool compatible_type<py::robj>(SType s) { return (s == SType::OBJ); }
+template<> inline bool compatible_type<py::oobj>(SType s) { return (s == SType::OBJ); }
 
 
 
@@ -328,6 +330,7 @@ template<> inline uint64_t  GETNA() { return NA_S8; }
 template<> inline float     GETNA() { return NA_F4; }
 template<> inline double    GETNA() { return NA_F8; }
 template<> inline PyObject* GETNA() { return Py_None; }
+template<> inline py::oobj  GETNA() { return py::None(); }
 template<> inline CString   GETNA() { return CString(); }
 
 /**

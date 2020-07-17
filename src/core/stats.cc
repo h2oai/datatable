@@ -532,7 +532,7 @@ void StringStats::compute_nacount() {
 }
 
 void PyObjectStats::compute_nacount() {
-  set_nacount(_compute_nacount<py::robj>(column), true);
+  set_nacount(_compute_nacount<py::oobj>(column), true);
 }
 
 

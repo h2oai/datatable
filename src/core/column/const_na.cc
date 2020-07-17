@@ -40,7 +40,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, int64_t*)  const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, float*)    const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, double*)   const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, CString*)  const { return false; }
-bool ConstNa_ColumnImpl::get_element(size_t, py::robj*) const { return false; }
+bool ConstNa_ColumnImpl::get_element(size_t, py::oobj*) const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::clone() const {

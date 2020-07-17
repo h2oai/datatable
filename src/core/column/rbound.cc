@@ -195,7 +195,7 @@ bool Rbound_ColumnImpl::get_element(size_t i, int64_t* out)  const { return _get
 bool Rbound_ColumnImpl::get_element(size_t i, float* out)    const { return _get(chunks_, i, out); }
 bool Rbound_ColumnImpl::get_element(size_t i, double* out)   const { return _get(chunks_, i, out); }
 bool Rbound_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(chunks_, i, out); }
-bool Rbound_ColumnImpl::get_element(size_t i, py::robj* out) const { return _get(chunks_, i, out); }
+bool Rbound_ColumnImpl::get_element(size_t i, py::oobj* out) const { return _get(chunks_, i, out); }
 
 
 

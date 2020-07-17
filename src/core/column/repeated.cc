@@ -67,7 +67,7 @@ bool Repeated_ColumnImpl::get_element(size_t i, int64_t* out)  const { return ar
 bool Repeated_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(i % mod, out); }
 bool Repeated_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(i % mod, out); }
 bool Repeated_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(i % mod, out); }
-bool Repeated_ColumnImpl::get_element(size_t i, py::robj* out) const { return arg.get_element(i % mod, out); }
+bool Repeated_ColumnImpl::get_element(size_t i, py::oobj* out) const { return arg.get_element(i % mod, out); }
 
 
 

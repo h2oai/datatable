@@ -76,7 +76,7 @@ static inline PyObject* str_obj(const dt::CString& x) {
   return py::ostring(x).release();
 }
 
-static inline PyObject* obj_obj(py::robj x) {
+static inline PyObject* obj_obj(const py::oobj& x) {
   return py::oobj(x).release();
 }
 
@@ -93,7 +93,7 @@ static inline void bool_str(int8_t x, dt::string_buf* buf) {
   buf->write(x? str_true : str_false);
 }
 
-static inline void obj_str(py::robj x, dt::string_buf* buf) {
+static inline void obj_str(const py::oobj& x, dt::string_buf* buf) {
   dt::CString xstr = x.to_pystring_force().to_cstring();
   buf->write(xstr);
 }
@@ -155,7 +155,7 @@ static void cast_to_pyobj(const Column& col, void* out_data)
 
 
 
-template <typename T, void (*CAST_OP)(T, dt::string_buf*)>
+template <typename T, void (*CAST_OP)(dt::ref_t<T>, dt::string_buf*)>
 static Column cast_to_str(const Column& col, Buffer&& out_offsets,
                           dt::SType target_stype)
 {
@@ -561,7 +561,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str32, cast_to_str<double, num_str<double>>);
   casts.add(str32, str32,  cast_str_to_str<uint32_t>);
   casts.add(str64, str32,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str32,  cast_to_str<py::robj, obj_str>);
+  casts.add(obj64, str32,  cast_to_str<py::oobj, obj_str>);
 
   // Casts into str64
   casts.add(bool8, str64,  cast_to_str<int8_t, bool_str>);
@@ -573,7 +573,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, str64, cast_to_str<double, num_str<double>>);
   casts.add(str32, str64,  cast_str_to_str<uint32_t>);
   casts.add(str64, str64,  cast_str_to_str<uint64_t>);
-  casts.add(obj64, str64,  cast_to_str<py::robj, obj_str>);
+  casts.add(obj64, str64,  cast_to_str<py::oobj, obj_str>);
 
   // Casts into obj64
   casts.add(bool8, obj64,  cast_to_pyobj<int8_t,   bool_obj>);
@@ -585,7 +585,7 @@ void py::DatatableModule::init_casts()
   casts.add(real64, obj64, cast_to_pyobj<double,   real_obj<double>>);
   casts.add(str32, obj64,  cast_to_pyobj<dt::CString, str_obj>);
   casts.add(str64, obj64,  cast_to_pyobj<dt::CString, str_obj>);
-  casts.add(obj64, obj64,  cast_to_pyobj<py::robj, obj_obj>);
+  casts.add(obj64, obj64,  cast_to_pyobj<py::oobj, obj_obj>);
 }
 
 

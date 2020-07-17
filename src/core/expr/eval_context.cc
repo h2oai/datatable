@@ -494,7 +494,7 @@ static void _vivify_workframe(const Workframe& wf) {
       case SType::FLOAT64: _vivify_column<double>(col); break;
       case SType::STR32:
       case SType::STR64:   _vivify_column<CString>(col); break;
-      case SType::OBJ:     _vivify_column<py::robj>(col); break;
+      case SType::OBJ:     _vivify_column<py::oobj>(col); break;
       default:
         throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
     }

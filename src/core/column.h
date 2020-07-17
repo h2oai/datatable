@@ -154,7 +154,7 @@ class Column
     bool get_element(size_t i, float* out) const;
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, dt::CString* out) const;
-    bool get_element(size_t i, py::robj* out) const;
+    bool get_element(size_t i, py::oobj* out) const;
 
     // `get_element_as_pyobject(i)` returns the i-th element of the
     // column wrapped into a pyobject of the appropriate type.

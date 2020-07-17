@@ -58,7 +58,7 @@ bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype_, "int64"); }
 bool ColumnImpl::get_element(size_t, float*)   const { err(stype_, "float32"); }
 bool ColumnImpl::get_element(size_t, double*)  const { err(stype_, "float64"); }
 bool ColumnImpl::get_element(size_t, CString*) const { err(stype_, "string"); }
-bool ColumnImpl::get_element(size_t, py::robj*)const { err(stype_, "object"); }
+bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype_, "object"); }
 
 
 
@@ -102,7 +102,7 @@ void ColumnImpl::_materialize_obj(Column& out) {
   // Treating output array as `py::oobj[]` will ensure that the elements
   // will be properly INCREF-ed.
   for (size_t i = 0; i < nrows_; ++i) {
-    py::robj value;
+    py::oobj value;
     bool isvalid = this->get_element(i, &value);
     out_data[i] = isvalid? py::oobj(value) : py::None();
   }
@@ -176,7 +176,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
     case SType::FLOAT64: _fill_npmask<double> (outmask, row0, row1); break;
     case SType::STR32:
     case SType::STR64:   _fill_npmask<CString>(outmask, row0, row1); break;
-    case SType::OBJ:     _fill_npmask<py::robj>(outmask, row0, row1); break;
+    case SType::OBJ:     _fill_npmask<py::oobj>(outmask, row0, row1); break;
     default:
       throw NotImplError() << "Cannot fill_npmask() on column of stype `"
                            << stype_ << "`";

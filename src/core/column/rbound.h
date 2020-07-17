@@ -47,7 +47,7 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, float* out)    const override;
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
-    bool get_element(size_t i, py::robj* out) const override;
+    bool get_element(size_t i, py::oobj* out) const override;
 
     void write_data_to_jay(Column&, jay::ColumnBuilder&,
                            WritableBuffer*) const override;

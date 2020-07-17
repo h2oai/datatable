@@ -52,7 +52,7 @@ class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
     virtual bool get_element(size_t i, int64_t* out) const override;
     virtual bool get_element(size_t i, float* out) const override;
     virtual bool get_element(size_t i, double* out) const override;
-    virtual bool get_element(size_t i, py::robj* out) const override;
+    virtual bool get_element(size_t i, py::oobj* out) const override;
 
     size_t      get_num_data_buffers() const noexcept override;
     bool        is_data_editable(size_t k) const override;
@@ -75,7 +75,7 @@ extern template class SentinelFw_ColumnImpl<int32_t>;
 extern template class SentinelFw_ColumnImpl<int64_t>;
 extern template class SentinelFw_ColumnImpl<float>;
 extern template class SentinelFw_ColumnImpl<double>;
-extern template class SentinelFw_ColumnImpl<py::robj>;
+extern template class SentinelFw_ColumnImpl<py::oobj>;
 
 
 
@@ -118,14 +118,14 @@ class SentinelBool_ColumnImpl : public SentinelFw_ColumnImpl<int8_t>
  * The `mbuf`'s API already respects these rules, however the user must also
  * obey them when manipulating the data manually.
  */
-class SentinelObj_ColumnImpl : public SentinelFw_ColumnImpl<py::robj>
+class SentinelObj_ColumnImpl : public SentinelFw_ColumnImpl<py::oobj>
 {
 public:
   SentinelObj_ColumnImpl(size_t nrows);
   SentinelObj_ColumnImpl(size_t nrows, Buffer&&);
   ColumnImpl* clone() const override;
 
-  bool get_element(size_t i, py::robj* out) const override;
+  bool get_element(size_t i, py::oobj* out) const override;
 
 protected:
   void rbind_impl(colvec& columns, size_t nrows, bool, SType&) override;

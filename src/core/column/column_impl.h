@@ -83,7 +83,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, float* out) const;
     virtual bool get_element(size_t i, double* out) const;
     virtual bool get_element(size_t i, CString* out) const;
-    virtual bool get_element(size_t i, py::robj* out) const;
+    virtual bool get_element(size_t i, py::oobj* out) const;
 
 
   //------------------------------------
