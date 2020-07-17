@@ -27,27 +27,29 @@ namespace py {
 
 
 /**
- * Wrapper around a Python string.
- */
+  * Wrapper around a Python string.
+  */
 class ostring : public oobj {
   public:
-    ostring();
+    ostring() = default;
+    ostring(const ostring&) = default;
+    ostring(ostring&&) = default;
+    ostring& operator=(const ostring&) = default;
+    ostring& operator=(ostring&&) = default;
+
     ostring(const std::string&);
     ostring(const dt::CString&);
     ostring(const char* str);
     ostring(const char* str, size_t len);
-    ostring(const ostring&);
-    ostring(ostring&&);
-    ostring& operator=(const ostring&);
-    ostring& operator=(ostring&&);
 
   private:
-    ostring(PyObject*);
-    static ostring from_new_reference(PyObject*);
+    explicit ostring(const robj&);  // these constructors used by py::_obj only
+    explicit ostring(oobj&&);
     friend class _obj;
 };
 
 
-}  // namespace py
 
+
+}  // namespace py
 #endif

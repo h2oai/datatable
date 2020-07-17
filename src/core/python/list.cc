@@ -121,6 +121,7 @@ void olist::set(int i, oobj&& value) {
 }
 
 void olist::append(const _obj& value) {
+  xassert(value);
   int ret = PyList_Append(v, value.to_borrowed_ref());
   if (ret == -1) throw PyError();
 }
