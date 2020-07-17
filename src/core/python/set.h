@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_PYTHON_OSET_h
-#define dt_PYTHON_OSET_h
+#ifndef dt_PYTHON_SET_h
+#define dt_PYTHON_SET_h
 #include "python/obj.h"
 namespace py {
 
