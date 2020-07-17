@@ -71,6 +71,9 @@ class CString
     bool operator>=(const CString&) const noexcept;
     char operator[](size_t i) const;
 
+    // Replace CString's contents with new ptr/size
+    void replace(const char*, size_t);
+
     bool isna() const noexcept;
     size_t size() const noexcept;
     const char* data() const noexcept;

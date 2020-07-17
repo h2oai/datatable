@@ -61,6 +61,12 @@ CString& CString::operator=(const std::string& str) {
   return *this;
 }
 
+void CString::replace(const char* ptr, size_t size) {
+  ptr_ = ptr;
+  size_ = size;
+}
+
+
 
 
 //------------------------------------------------------------------------------

@@ -412,6 +412,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
     if (col.stype() == dt::SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
       col.cast_inplace(stype_);
+      col.materialize();
     }
     new_strbuf_size += col.get_data_size(1);
   }
@@ -526,6 +527,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
       }
       if (col.stype() != stype_) {
         col.cast_inplace(stype_);
+        col.materialize();
       }
       size_t col_data_size = sizeof(T) * col.nrows();
       if (col_data_size) {
