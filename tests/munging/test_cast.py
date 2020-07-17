@@ -68,11 +68,11 @@ def test_cast_int_to_bool(source_stype):
 
 
 def test_cast_m127_to_bool():
-    DT = dt.Frame([-128, -127, 0, 127, 128])
+    DT = dt.Frame([-128, -127, 0, 127, 128, 256])
     RES = DT[:, dt.bool8(f[0])]
     frame_integrity_check(RES)
     assert RES.stypes == (dt.bool8,)
-    assert RES.to_list()[0] == [True, True, False, True, True]
+    assert RES.to_list()[0] == [True, True, False, True, True, True]
 
 
 @pytest.mark.parametrize("source_stype", ltype.real.stypes)

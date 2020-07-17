@@ -619,13 +619,26 @@ namespace dt {
 
 
 bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
-  switch (stype()) {
-    case SType::BOOL:  thiscol = Column(new CastBool_ColumnImpl(new_stype, std::move(thiscol))); break;
-    case SType::INT8:  thiscol = Column(new CastInt_ColumnImpl<int8_t>(new_stype, std::move(thiscol))); break;
-    case SType::INT16: thiscol = Column(new CastInt_ColumnImpl<int16_t>(new_stype, std::move(thiscol))); break;
-    case SType::INT32: thiscol = Column(new CastInt_ColumnImpl<int32_t>(new_stype, std::move(thiscol))); break;
-    case SType::INT64: thiscol = Column(new CastInt_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
-    default:           thiscol = casts.execute(thiscol, Buffer(), new_stype); break;
+  if (new_stype == SType::BOOL) {
+    switch (stype()) {
+      case SType::INT8:    thiscol = Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(thiscol))); break;
+      case SType::INT16:   thiscol = Column(new CastNumericToBool_ColumnImpl<int16_t>(std::move(thiscol))); break;
+      case SType::INT32:   thiscol = Column(new CastNumericToBool_ColumnImpl<int32_t>(std::move(thiscol))); break;
+      case SType::INT64:   thiscol = Column(new CastNumericToBool_ColumnImpl<int64_t>(std::move(thiscol))); break;
+      case SType::FLOAT32: thiscol = Column(new CastNumericToBool_ColumnImpl<float>(std::move(thiscol))); break;
+      case SType::FLOAT64: thiscol = Column(new CastNumericToBool_ColumnImpl<double>(std::move(thiscol))); break;
+      default:             thiscol = casts.execute(thiscol, Buffer(), new_stype); break;
+    }
+  }
+  else {
+    switch (stype()) {
+      case SType::BOOL:    thiscol = Column(new CastBool_ColumnImpl(new_stype, std::move(thiscol))); break;
+      case SType::INT8:    thiscol = Column(new CastInt_ColumnImpl<int8_t>(new_stype, std::move(thiscol))); break;
+      case SType::INT16:   thiscol = Column(new CastInt_ColumnImpl<int16_t>(new_stype, std::move(thiscol))); break;
+      case SType::INT32:   thiscol = Column(new CastInt_ColumnImpl<int32_t>(new_stype, std::move(thiscol))); break;
+      case SType::INT64:   thiscol = Column(new CastInt_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
+      default:             thiscol = casts.execute(thiscol, Buffer(), new_stype); break;
+    }
   }
   return true;
 }

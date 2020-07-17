@@ -42,6 +42,11 @@ class Cast_ColumnImpl : public Virtual_ColumnImpl {
 
 
 
+
+//------------------------------------------------------------------------------
+// CastBool_ColumnImpl
+//------------------------------------------------------------------------------
+
 /**
   * Virtual column that casts a boolean column `arg_` into
   * the target stype.
@@ -67,6 +72,34 @@ class CastBool_ColumnImpl : public Cast_ColumnImpl {
 
 
 
+
+//------------------------------------------------------------------------------
+// CastNumericToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+template <typename T>
+class CastNumericToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastNumericToBool_ColumnImpl(Column&&);
+
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*) const override;
+};
+
+extern template class CastNumericToBool_ColumnImpl<int8_t>;
+extern template class CastNumericToBool_ColumnImpl<int16_t>;
+extern template class CastNumericToBool_ColumnImpl<int32_t>;
+extern template class CastNumericToBool_ColumnImpl<int64_t>;
+extern template class CastNumericToBool_ColumnImpl<float>;
+extern template class CastNumericToBool_ColumnImpl<double>;
+
+
+
+
+//------------------------------------------------------------------------------
+// CastInt_ColumnImpl
+//------------------------------------------------------------------------------
 
 template <typename T>
 class CastInt_ColumnImpl : public Cast_ColumnImpl {
