@@ -596,8 +596,10 @@ void py::DatatableModule::init_casts()
 
 void Column::cast_inplace(dt::SType new_stype) {
   if (new_stype == stype()) return;
-  Column newcolumn = casts.execute(*this, Buffer(), new_stype);
-  std::swap(*this, newcolumn);
+  bool done = impl_->cast_const(new_stype, *this);
+  if (!done) {
+    _get_mutable_impl()->cast_mutate(new_stype);
+  }
 }
 
 
@@ -609,3 +611,19 @@ Column Column::cast(dt::SType stype) const {
 Column Column::cast(dt::SType stype, Buffer&& mem) const {
   return casts.execute(*this, std::move(mem), stype);
 }
+
+
+
+namespace dt {
+
+
+bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
+  thiscol = casts.execute(thiscol, Buffer(), new_stype);
+  return true;
+}
+
+void ColumnImpl::cast_mutate(SType) {}
+
+
+
+} // namespace dt
