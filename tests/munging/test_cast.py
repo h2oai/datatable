@@ -284,9 +284,12 @@ def test_cast_huge_to_str():
     n = 300000000
     DT = dt.Frame(BIG=range(n))
     RES = DT[:, dt.str32(f.BIG)]
-    assert RES.stype == dt.str64
+    assert RES.stype == dt.str32
     assert RES[-1, 0] == str(n - 1)
     assert RES[3194870, 0] == "3194870"
+    RES.materialize()
+    assert RES.stype == dt.str64
+    assert RES[-1, 0] == str(n - 1)
 
 
 def test_cast_empty_str32_to_str64():

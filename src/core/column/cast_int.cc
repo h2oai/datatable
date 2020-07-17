@@ -20,75 +20,94 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/cast.h"
+#include "csv/toa.h"
+#include "python/int.h"
 namespace dt {
 
 
-ColumnImpl* CastBool_ColumnImpl::clone() const {
-  return new CastBool_ColumnImpl(stype_, Column(arg_));
+
+template <typename T>
+ColumnImpl* CastInt_ColumnImpl<T>::clone() const {
+  return new CastInt_ColumnImpl<T>(stype_, Column(arg_));
 }
 
 
 
-bool CastBool_ColumnImpl::get_element(size_t i, int8_t* out) const {
-  return arg_.get_element(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, int16_t* out) const {
-  return _get<int16_t>(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, int32_t* out) const {
-  return _get<int32_t>(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, int64_t* out) const {
-  return _get<int64_t>(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, float* out) const {
-  return _get<float>(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, double* out) const {
-  return _get<double>(i, out);
-}
-
-
-bool CastBool_ColumnImpl::get_element(size_t i, CString* out)  const {
-  int8_t x;
+template <typename T>
+template <typename V>
+inline bool CastInt_ColumnImpl<T>::_get(size_t i, V* out) const {
+  T x;
   bool isvalid = arg_.get_element(i, &x);
-  if (isvalid) {
-    if (x) out->set("True", 4);
-    else   out->set("False", 5);
-  }
+  *out = static_cast<V>(x);
   return isvalid;
 }
 
 
-bool CastBool_ColumnImpl::get_element(size_t i, py::oobj* out) const {
-  static py::oobj obj_true = py::True();
-  static py::oobj obj_false = py::False();
-  int8_t x;
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+  return _get<int8_t>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+  return _get<int16_t>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+  return _get<int32_t>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+  return _get<int64_t>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, float* out) const {
+  return _get<float>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, double* out) const {
+  return _get<double>(i, out);
+}
+
+
+template <typename T>
+bool CastInt_ColumnImpl<T>::get_element(size_t i, CString* out)  const {
+  T x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    *out = x? obj_true : obj_false;
+    char* ch = out->prepare_buffer(30);
+    char* ch0 = ch;
+    toa<T>(&ch, x);
+    out->set_size(static_cast<size_t>(ch - ch0));
   }
   return isvalid;
 }
 
 
 template <typename T>
-inline bool CastBool_ColumnImpl::_get(size_t i, T* out) const {
-  int8_t x;
+bool CastInt_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
+  T x;
   bool isvalid = arg_.get_element(i, &x);
-  *out = static_cast<T>(x);
+  if (isvalid) {
+    *out = py::oint(static_cast<int64_t>(x));
+  }
   return isvalid;
 }
+
+
+template class CastInt_ColumnImpl<int8_t>;
+template class CastInt_ColumnImpl<int16_t>;
+template class CastInt_ColumnImpl<int32_t>;
+template class CastInt_ColumnImpl<int64_t>;
 
 
 

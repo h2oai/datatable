@@ -72,7 +72,9 @@ class CString
     char operator[](size_t i) const;
 
     // Replace CString's contents with new ptr/size
-    void replace(const char*, size_t);
+    void set(const char* data, size_t size);
+    void set_data(const char* data);
+    void set_size(size_t size);
 
     bool isna() const noexcept;
     size_t size() const noexcept;

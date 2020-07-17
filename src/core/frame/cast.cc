@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include <unordered_map>
 #include "column.h"
-#include "column/cast_bool.h"
+#include "column/cast.h"
 #include "csv/toa.h"
 #include "csv/reader_parsers.h"
 #include "datatablemodule.h"
@@ -621,6 +621,10 @@ namespace dt {
 bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
   switch (stype()) {
     case SType::BOOL:  thiscol = Column(new CastBool_ColumnImpl(new_stype, std::move(thiscol))); break;
+    case SType::INT8:  thiscol = Column(new CastInt_ColumnImpl<int8_t>(new_stype, std::move(thiscol))); break;
+    case SType::INT16: thiscol = Column(new CastInt_ColumnImpl<int16_t>(new_stype, std::move(thiscol))); break;
+    case SType::INT32: thiscol = Column(new CastInt_ColumnImpl<int32_t>(new_stype, std::move(thiscol))); break;
+    case SType::INT64: thiscol = Column(new CastInt_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
     default:           thiscol = casts.execute(thiscol, Buffer(), new_stype); break;
   }
   return true;

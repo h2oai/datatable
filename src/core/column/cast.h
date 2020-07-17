@@ -25,21 +25,32 @@
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// Base class used for other Cast* columns
+//------------------------------------------------------------------------------
+
+class Cast_ColumnImpl : public Virtual_ColumnImpl {
+  protected:
+    Column arg_;
+
+  public:
+    Cast_ColumnImpl(SType new_stype, Column&& col);
+
+    size_t n_children() const noexcept override;
+    const Column& child(size_t) const override;
+};
+
+
+
 /**
   * Virtual column that casts a boolean column `arg_` into
   * the target stype.
   */
-class CastBool_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg_;
-
+class CastBool_ColumnImpl : public Cast_ColumnImpl {
   public:
-    CastBool_ColumnImpl(SType new_stype, Column&&);
+    using Cast_ColumnImpl::Cast_ColumnImpl;
 
     ColumnImpl* clone() const override;
-
-    size_t n_children() const noexcept override;
-    const Column& child(size_t i) const override;
 
     bool get_element(size_t, int8_t*)   const override;
     bool get_element(size_t, int16_t*)  const override;
@@ -54,6 +65,35 @@ class CastBool_ColumnImpl : public Virtual_ColumnImpl {
     template <typename T> inline bool _get(size_t i, T* out) const;
 };
 
+
+
+
+template <typename T>
+class CastInt_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    using Cast_ColumnImpl::arg_;
+    using Cast_ColumnImpl::Cast_ColumnImpl;
+
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::oobj*) const override;
+
+  private:
+    template <typename V> inline bool _get(size_t i, V* out) const;
+};
+
+
+extern template class CastInt_ColumnImpl<int8_t>;
+extern template class CastInt_ColumnImpl<int16_t>;
+extern template class CastInt_ColumnImpl<int32_t>;
+extern template class CastInt_ColumnImpl<int64_t>;
 
 
 
