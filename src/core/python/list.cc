@@ -31,8 +31,6 @@ namespace py {
 // Constructors
 //------------------------------------------------------------------------------
 
-olist::olist() : oobj(nullptr) {}
-
 olist::olist(size_t n) {
   is_list = true;
   v = PyList_New(static_cast<Py_ssize_t>(n));
@@ -44,28 +42,8 @@ olist::olist(int n) : olist(static_cast<size_t>(n)) {}
 olist::olist(int64_t n) : olist(static_cast<size_t>(n)) {}
 
 
-olist::olist(const olist& other) : oobj(other) {
-  is_list = other.is_list;
-}
-
-olist::olist(olist&& other) : oobj(std::move(other)) {
-  is_list = other.is_list;
-}
-
-olist& olist::operator=(const olist& other) {
-  oobj::operator=(other);
-  is_list = other.is_list;
-  return *this;
-}
-
-olist& olist::operator=(olist&& other) {
-  oobj::operator=(std::move(other));
-  is_list = other.is_list;
-  return *this;
-}
-
-olist::olist(PyObject* src) : oobj(src) {
-  is_list = src && PyList_Check(src);
+olist::olist(const robj& src) : oobj(src) {
+  is_list = v && PyList_Check(v);
 }
 
 

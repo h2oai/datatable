@@ -29,4 +29,5 @@
 #include "python/namedtuple.h"
 #include "python/range.h"
 #include "python/slice.h"
+#include "python/string.h"
 #include "python/tuple.h"

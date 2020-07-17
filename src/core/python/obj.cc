@@ -698,7 +698,7 @@ py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
 py::olist _obj::to_pylist(const error_manager& em) const {
   if (is_none()) return py::olist(nullptr);
   if (is_list() || is_tuple()) {
-    return py::olist(v);
+    return py::olist(py::robj(v));
   }
   throw em.error_not_list(v);
 }
