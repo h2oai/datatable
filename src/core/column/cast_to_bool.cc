@@ -24,6 +24,10 @@
 namespace dt {
 
 
+//------------------------------------------------------------------------------
+// CastNumericToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
 template <typename T>
 CastNumericToBool_ColumnImpl<T>::CastNumericToBool_ColumnImpl(Column&& arg)
   : Cast_ColumnImpl(SType::BOOL, std::move(arg)) {}
@@ -51,6 +55,70 @@ template class CastNumericToBool_ColumnImpl<int32_t>;
 template class CastNumericToBool_ColumnImpl<int64_t>;
 template class CastNumericToBool_ColumnImpl<float>;
 template class CastNumericToBool_ColumnImpl<double>;
+
+
+
+
+//------------------------------------------------------------------------------
+// CastStringToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastStringToBool_ColumnImpl::CastStringToBool_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::BOOL, std::move(arg))
+{ xassert(compatible_type<CString>(arg_.stype())); }
+
+
+ColumnImpl* CastStringToBool_ColumnImpl::clone() const {
+  return new CastStringToBool_ColumnImpl(Column(arg_));
+}
+
+
+bool CastStringToBool_ColumnImpl::get_element(size_t i, int8_t* out) const {
+  static CString str_true ("True", 4);
+  static CString str_false("False", 5);
+  CString value;
+  bool isvalid = arg_.get_element(i, &value);
+  if (isvalid) {
+    if (value == str_true)       *out = 1;
+    else if (value == str_false) *out = 0;
+    else                         return false;
+  }
+  return isvalid;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// CastObjToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastObjToBool_ColumnImpl::CastObjToBool_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::BOOL, std::move(arg))
+{ xassert(arg_.stype() == SType::OBJ); }
+
+
+ColumnImpl* CastObjToBool_ColumnImpl::clone() const {
+  return new CastObjToBool_ColumnImpl(Column(arg_));
+}
+
+
+bool CastObjToBool_ColumnImpl::allow_parallel_access() const {
+  return false;
+}
+
+
+bool CastObjToBool_ColumnImpl::get_element(size_t i, int8_t* out) const {
+  py::oobj value;
+  bool isvalid = arg_.get_element(i, &value);
+  if (isvalid) {
+    if (value.is_true())       *out = 1;
+    else if (value.is_false()) *out = 0;
+    else                       isvalid = false;
+  }
+  return isvalid;
+}
+
 
 
 

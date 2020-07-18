@@ -44,6 +44,66 @@ class Cast_ColumnImpl : public Virtual_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
+// CastNumericToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+// This class may be removed once we are able to properly distinguish
+// between int8_t and bool8 types in get_element() overloads.
+template <typename T>
+class CastNumericToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastNumericToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*) const override;
+};
+
+extern template class CastNumericToBool_ColumnImpl<int8_t>;
+extern template class CastNumericToBool_ColumnImpl<int16_t>;
+extern template class CastNumericToBool_ColumnImpl<int32_t>;
+extern template class CastNumericToBool_ColumnImpl<int64_t>;
+extern template class CastNumericToBool_ColumnImpl<float>;
+extern template class CastNumericToBool_ColumnImpl<double>;
+
+
+
+
+//------------------------------------------------------------------------------
+// CastStringToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+// This class may be removed once we are able to properly distinguish
+// between int8_t and bool8 types in get_element() overloads.
+class CastStringToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastStringToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// CastObjToBool_ColumnImpl
+//------------------------------------------------------------------------------
+
+// This class may be removed once we are able to properly distinguish
+// between int8_t and bool8 types in get_element() overloads.
+class CastObjToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+
+    bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
 // CastBool_ColumnImpl
 //------------------------------------------------------------------------------
 
@@ -54,7 +114,6 @@ class Cast_ColumnImpl : public Virtual_ColumnImpl {
 class CastBool_ColumnImpl : public Cast_ColumnImpl {
   public:
     using Cast_ColumnImpl::Cast_ColumnImpl;
-
     ColumnImpl* clone() const override;
 
     bool get_element(size_t, int8_t*)   const override;
@@ -74,39 +133,14 @@ class CastBool_ColumnImpl : public Cast_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// CastNumericToBool_ColumnImpl
+// CastNumeric_ColumnImpl
 //------------------------------------------------------------------------------
 
 template <typename T>
-class CastNumericToBool_ColumnImpl : public Cast_ColumnImpl {
-  public:
-    CastNumericToBool_ColumnImpl(Column&&);
-
-    ColumnImpl* clone() const override;
-
-    bool get_element(size_t, int8_t*) const override;
-};
-
-extern template class CastNumericToBool_ColumnImpl<int8_t>;
-extern template class CastNumericToBool_ColumnImpl<int16_t>;
-extern template class CastNumericToBool_ColumnImpl<int32_t>;
-extern template class CastNumericToBool_ColumnImpl<int64_t>;
-extern template class CastNumericToBool_ColumnImpl<float>;
-extern template class CastNumericToBool_ColumnImpl<double>;
-
-
-
-
-//------------------------------------------------------------------------------
-// CastInt_ColumnImpl
-//------------------------------------------------------------------------------
-
-template <typename T>
-class CastInt_ColumnImpl : public Cast_ColumnImpl {
+class CastNumeric_ColumnImpl : public Cast_ColumnImpl {
   public:
     using Cast_ColumnImpl::arg_;
     using Cast_ColumnImpl::Cast_ColumnImpl;
-
     ColumnImpl* clone() const override;
 
     bool get_element(size_t, int8_t*)   const override;
@@ -122,11 +156,15 @@ class CastInt_ColumnImpl : public Cast_ColumnImpl {
     template <typename V> inline bool _get(size_t i, V* out) const;
 };
 
+extern template class CastNumeric_ColumnImpl<int8_t>;
+extern template class CastNumeric_ColumnImpl<int16_t>;
+extern template class CastNumeric_ColumnImpl<int32_t>;
+extern template class CastNumeric_ColumnImpl<int64_t>;
+extern template class CastNumeric_ColumnImpl<float>;
+extern template class CastNumeric_ColumnImpl<double>;
 
-extern template class CastInt_ColumnImpl<int8_t>;
-extern template class CastInt_ColumnImpl<int16_t>;
-extern template class CastInt_ColumnImpl<int32_t>;
-extern template class CastInt_ColumnImpl<int64_t>;
+
+
 
 
 

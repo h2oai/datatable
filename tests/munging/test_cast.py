@@ -92,6 +92,11 @@ def test_cast_str_to_bool():
     assert_equals(DT, dt.Frame([1, 0, None, None, None] / dt.bool8))
 
 
+def test_cast_obj_to_bool():
+    DT = dt.Frame([True, False, None, 1, 3.2, "True"] / dt.obj64)
+    DT[0] = bool
+    assert_equals(DT, dt.Frame([True, False, None, None, None, None]))
+
 
 
 #-------------------------------------------------------------------------------
@@ -162,9 +167,9 @@ def test_cast_badstr_to_int():
     assert_equals(RES, dt.Frame([345, None, None, None, None, None]))
 
 
-@pytest.mark.parametrize("source_stype", [stype.obj64])
-@pytest.mark.parametrize("target_stype", numeric_stypes)
-def test_cast_object_to_numeric(source_stype, target_stype):
+@pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
+def test_cast_object_to_numeric(target_stype):
+    source_stype = stype.obj64
     DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
     assert DT.stypes == (source_stype,)
     with pytest.raises(NotImplementedError) as e:

@@ -19,23 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <type_traits>
 #include "column/cast.h"
 #include "csv/toa.h"
+#include "python/float.h"
 #include "python/int.h"
 namespace dt {
 
 
 
 template <typename T>
-ColumnImpl* CastInt_ColumnImpl<T>::clone() const {
-  return new CastInt_ColumnImpl<T>(stype_, Column(arg_));
+ColumnImpl* CastNumeric_ColumnImpl<T>::clone() const {
+  return new CastNumeric_ColumnImpl<T>(stype_, Column(arg_));
 }
 
 
-
+// Retrieve element of type T, then cast into type V and write to `out`.
+//
 template <typename T>
 template <typename V>
-inline bool CastInt_ColumnImpl<T>::_get(size_t i, V* out) const {
+inline bool CastNumeric_ColumnImpl<T>::_get(size_t i, V* out) const {
   T x;
   bool isvalid = arg_.get_element(i, &x);
   *out = static_cast<V>(x);
@@ -44,43 +47,43 @@ inline bool CastInt_ColumnImpl<T>::_get(size_t i, V* out) const {
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
   return _get<int8_t>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
   return _get<int16_t>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
   return _get<int32_t>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
   return _get<int64_t>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, float* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, float* out) const {
   return _get<float>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, double* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, double* out) const {
   return _get<double>(i, out);
 }
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, CString* out)  const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, CString* out)  const {
   T x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
@@ -94,20 +97,23 @@ bool CastInt_ColumnImpl<T>::get_element(size_t i, CString* out)  const {
 
 
 template <typename T>
-bool CastInt_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
+bool CastNumeric_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
   T x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    *out = py::oint(static_cast<int64_t>(x));
+    if (std::is_integral<T>::value) *out = py::oint(static_cast<int64_t>(x));
+    else                            *out = py::ofloat(static_cast<double>(x));
   }
   return isvalid;
 }
 
 
-template class CastInt_ColumnImpl<int8_t>;
-template class CastInt_ColumnImpl<int16_t>;
-template class CastInt_ColumnImpl<int32_t>;
-template class CastInt_ColumnImpl<int64_t>;
+template class CastNumeric_ColumnImpl<int8_t>;
+template class CastNumeric_ColumnImpl<int16_t>;
+template class CastNumeric_ColumnImpl<int32_t>;
+template class CastNumeric_ColumnImpl<int64_t>;
+template class CastNumeric_ColumnImpl<float>;
+template class CastNumeric_ColumnImpl<double>;
 
 
 
