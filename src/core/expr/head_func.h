@@ -166,9 +166,11 @@ class Head_Func_IfElse : public Head_Func {
 class Head_Func_Cut : public Head_Func {
   private:
     py::oobj py_bins_;
+    bool right_;
+    size_t: 56;
 
   public:
-    Head_Func_Cut(py::oobj py_bins);
+    Head_Func_Cut(py::oobj py_bins, py::oobj right);
     static ptrHead make(Op, const py::otuple& params);
 
     Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;

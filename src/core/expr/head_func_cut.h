@@ -24,7 +24,7 @@
 namespace dt {
 namespace expr {
 
-void cut_wf(Workframe&, const sztvec&);
+void cut_wf(Workframe&, const sztvec&, bool);
 
 }}
 

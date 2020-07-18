@@ -36,7 +36,7 @@ namespace expr {
 /**
  *  Cut a workframe in-place by cutting its every column.
  */
-void cut_wf(Workframe& wf, const sztvec& bins) {
+void cut_wf(Workframe& wf, const sztvec& bins, bool right) {
   const size_t ncols = wf.ncols();
   xassert(ncols == bins.size());
 
@@ -44,19 +44,19 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
     Column coli = wf.retrieve_column(i);
 
     switch (coli.stype()) {
-      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
+      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
+      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
+      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
+      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i]));
+      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i]));
+      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i], right));
                                break;
-      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i]));
+      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i], right));
                                break;
       default:  throw TypeError() << "cut() can only be applied to numeric "
                   << "columns, instead column `" << i << "` has an stype: `"
@@ -72,14 +72,13 @@ void cut_wf(Workframe& wf, const sztvec& bins) {
 // Head_Func_Cut
 //------------------------------------------------------------------------------
 
-Head_Func_Cut::Head_Func_Cut(py::oobj py_bins)
-  : py_bins_(py_bins) {}
+Head_Func_Cut::Head_Func_Cut(py::oobj py_bins, py::oobj right)
+  : py_bins_(py_bins), right_(right.to_bool()) {}
 
 
 ptrHead Head_Func_Cut::make(Op, const py::otuple& params) {
-  xassert(params.size() == 1);
-  py::oobj py_bins = params[0];
-  return ptrHead(new Head_Func_Cut(py_bins));
+  xassert(params.size() == 2);
+  return ptrHead(new Head_Func_Cut(params[0], params[1]));
 }
 
 
@@ -123,7 +122,7 @@ Workframe Head_Func_Cut::evaluate_n(
   }
 
   // Cut workframe in-place
-  cut_wf(wf, bins);
+  cut_wf(wf, bins, right_);
   return wf;
 }
 
@@ -138,31 +137,32 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 }
 
 
-static oobj cut_frame(oobj arg1, oobj arg2) {
+static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
   auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
   auto f_all = make_pyexpr(dt::expr::Op::COL,
                            otuple{ slice_all },
                            otuple{ oint(0) });
   auto cutexpr = make_pyexpr(dt::expr::Op::CUT,
                                otuple{ f_all },
-                               otuple{ arg2 });
-  auto frame = static_cast<Frame*>(arg1.to_borrowed_ref());
+                               otuple{ arg1, arg2 });
+  auto frame = static_cast<Frame*>(arg0.to_borrowed_ref());
   return frame->m__getitem__(otuple{ slice_all, cutexpr });
 }
 
 
 
 static PKArgs args_cut(
-  1, 1, 0, false, false,
+  1, 2, 0, false, false,
   {
-    "input", "bins"
+    "input", "bins", "right"
   },
   "cut",
 
-R"(cut(input, bins=10)
+R"(cut(input, bins=10, right=True)
 --
 
-Bin all the columns in a Frame/f-expression.
+Cut all the columns in a Frame/f-expression by binning
+their values into discrete intervals.
 
 Parameters
 ----------
@@ -173,6 +173,8 @@ bins: int | list or a tuple of int
     or a list/tuple with the numbers of bins for the corresponding columns.
     In the latter case, the list/tuple length must be equal
     to the number of columns in the Frame/f-expression.
+right: bool
+    Indicates whether bins should include the rightmost edge or not.
 
 Returns
 -------
@@ -193,13 +195,14 @@ static oobj pyfn_cut(const PKArgs& args)
   }
   oobj arg0 = args[0].to_oobj();
   oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
+  oobj arg2 = args[2].is_none_or_undefined()? py::True() : args[2].to_oobj();
 
   if (arg0.is_frame()) {
-    return cut_frame(arg0, arg1);
+    return cut_frame(arg0, arg1, arg2);
   }
   if (arg0.is_dtexpr()) {
     return make_pyexpr(dt::expr::Op::CUT,
-                       otuple{ arg0 }, otuple{ arg1 });
+                       otuple{ arg0 }, otuple{ arg1, arg2 });
   }
   throw TypeError() << "The first argument to `cut()` must be a column "
       "expression or a Frame, instead got " << arg0.typeobj();

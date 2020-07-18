@@ -31,17 +31,53 @@ namespace dt {
 
 
 /**
-  * Virtual column for data binning.
-  */
+ *  Virtual column to bin numeric values into discrete intervals.
+ *
+ *  The binning method consists of the following steps
+ *  1) we calculate min/max for the input column, and if one of these is NaN
+ *     or inf, or bins == 0 the `ConstNa_ColumnImpl` is returned.
+ *  2) for valid and finite min/max we normalize column data to
+ *     [0; 1 - epsilon] interval for right == true. or
+ *     [epsilon - 1; 0] interval for right == false. Then, we multiply
+ *     the normalized values by the number of requested bins adding
+ *     a proper shift to compute the final bin numbers.
+ *
+ *  Step #2 is implemented by employing the following formula
+ *    bin_i = x_i * bin_a + bin_b + bin_shift
+ *
+ *  If max == min, all values end up in the central bin, where
+ *  the central bin is determined based on the `right` parameter
+ *    bin_a = 0;
+ *    bin_b = (1 + (1 - 2 * right) * epsilon) * bins / 2;
+ *    bin_shift = 0
+ *
+ *  When min != max, for right == true, we set
+ *    bin_a = bins / (max + epsilon - min)
+ *    bin_b  = -bin_a * min
+ *    bin_shift = 0
+ *  simply scaling data to [0; 1 - epsilon] and then multiplying
+ *  them by `bins` number.
+ *
+ *  For right == false, we set
+ *    bin_a = bins / (max + epsilon - min)
+ *    bin_b  = -bin_a * min + (epsilon - 1) * bins
+ *    bin_shift = bins - 1;
+ *  scaling data to [epsilon - 1; 0], multiplying them by `bins` and
+ *  at the end shifting everything by `bins - 1`. The last shift is
+ *  needed to convert auxiliary negative bins to the corresponding
+ *  positive bins.
+ */
 class Cut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    double bin_factor_, bin_shift_;
+    double bin_a_, bin_b_;
+    int32_t bin_shift_;
+    size_t: 32;
 
   public:
 
     template <typename T>
-    static ColumnImpl* make(Column&& col, size_t bins) {
+    static ColumnImpl* make(Column&& col, size_t bins, bool right) {
       T tmin, tmax;
       bool min_valid = col.stats()->get_stat(Stat::Min, &tmin);
       bool max_valid = col.stats()->get_stat(Stat::Max, &tmax);
@@ -50,24 +86,26 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
       } else {
         double min = static_cast<double>(tmin);
         double max = static_cast<double>(tmax);
-        double bin_factor, bin_shift;
+        double bin_a, bin_b;
+        int32_t bin_shift;
 
         col.cast_inplace(SType::FLOAT64);
-        set_cut_coeffs(bin_factor, bin_shift, min, max, bins);
+        set_cut_coeffs(bin_a, bin_b, bin_shift, min, max, bins, right);
 
-        return new Cut_ColumnImpl(std::move(col), bin_factor, bin_shift);
+        return new Cut_ColumnImpl(std::move(col), bin_a, bin_b, bin_shift);
       }
 
     }
 
-    Cut_ColumnImpl(Column&& col, double bin_factor, double bin_shift)
+    Cut_ColumnImpl(Column&& col, double bin_a, double bin_b, int32_t bin_shift)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
         col_(col),
-        bin_factor_(bin_factor),
+        bin_a_(bin_a),
+        bin_b_(bin_b),
         bin_shift_(bin_shift) {}
 
     ColumnImpl* clone() const override {
-      return new Cut_ColumnImpl(Column(col_), bin_factor_, bin_shift_);
+      return new Cut_ColumnImpl(Column(col_), bin_a_, bin_b_, bin_shift_);
     }
 
     size_t n_children() const noexcept override {
@@ -82,26 +120,34 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
 
     bool get_element(size_t i, int32_t* out)  const override {
       double value;
-      bool is_valid = col_.get_element(i, &value) && _notnan(bin_factor_);
+      bool is_valid = col_.get_element(i, &value);
 
-      *out = static_cast<int32_t>(bin_factor_ * value + bin_shift_);
+      *out = static_cast<int32_t>(bin_a_ * value + bin_b_) + bin_shift_;
       return is_valid;
     }
 
 
-    static void set_cut_coeffs(double& bin_factor, double& bin_shift,
-                              const double min, const double max,
-                              const size_t bins)
+    static void set_cut_coeffs(double& bin_a, double& bin_b, int32_t& bin_shift,
+                               double min, double max,
+                               size_t bins, const bool right)
     {
       const double epsilon = static_cast<double>(
                                std::numeric_limits<float>::epsilon()
                              );
+
+      bin_shift = 0;
+
       if (min == max) {
-        bin_factor = 0;
-        bin_shift = 0.5 * (1 - epsilon) * bins;
+        bin_a = 0;
+        bin_b = (1 + (1 - 2 * right) * epsilon) * bins / 2;
       } else {
-        bin_factor = (1 - epsilon) * bins / (max - min);
-        bin_shift = -bin_factor * min;
+        max += epsilon;
+        bin_a = bins / (max - min);
+        bin_b = -bin_a * min;
+        if (!right) {
+          bin_b += (epsilon - 1) * bins;
+          bin_shift = static_cast<int32_t>(bins) - 1;
+        }
       }
     }
 
@@ -110,4 +156,6 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
 
 
 }  // namespace dt
+
+
 #endif

@@ -66,6 +66,13 @@ def test_cut_error_inconsistent_bins():
         cut(DT, [10])
 
 
+def test_cut_error_wrong_right():
+    msg = "Expected a boolean, instead got <class 'int'>"
+    DT = dt.Frame(range(10))
+    with pytest.raises(TypeError, match=msg):
+        cut(DT, right = 1492)
+
+
 def test_cut_error_groupby():
     msg = r"cut\(\) cannot be used in a groupby context"
     DT = dt.Frame(range(10))
@@ -97,48 +104,74 @@ def test_cut_expr():
 
 def test_cut_one_row():
 	DT = dt.Frame([[True], [404], [3.1415926], [None]])
-	DT_cut = cut(DT)
-	assert(DT_cut.to_list() == [[4], [4], [4], [None]])
+	DT_cut_right = cut(DT)
+	DT_cut_left = cut(DT, right = False)
+	assert(DT_cut_right.to_list() == [[4], [4], [4], [None]])
+	assert(DT_cut_left.to_list() == [[5], [5], [5], [None]])
 
 
-def test_cut_simple():
+def test_cut_small():
+	bins = [4, 2, 5, 4, 10, 3, 2, 5]
+	colnames = ["bool", "int_pos", "int_neg", "int", "float",
+	            "inf_max", "inf_min", "inf"]
+
 	DT = dt.Frame(
 	       [[True, None, False, False, True, None],
 	       [3, None, 4, 1, 5, 4],
+	       [-5, -1, -1, -1, None, 0],
+	       [None, -5, -314, 0, 5, 314],
 	       [None, 1.4, 4.1, 1.5, 5.9, 1.4],
 	       [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
 	       [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
 	       [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
-	       names = ["bool", "int", "float", "inf_max", "inf_min", "inf"]
+	       names = colnames
 	     )
-	DT_ref = dt.Frame(
-		       [[1, None, 0, 0, 1, None],
-		       [1, None, 2, 0, 2, 2],
-		       [None, 0, 5, 0, 9, 0],
-		       [None] * 6,
-		       [None] * 6,
-		       [None] * 6],
-		       names = ["bool", "int", "float", "inf_max", "inf_min", "inf"],
-		       stypes = [stype.int32] * 6
-             )
+	DT_ref_right = dt.Frame(
+			         [[3, None, 0, 0, 3, None],
+			         [0, None, 1, 0, 1, 1],
+			         [0, 3, 3, 3, None, 4],
+			         [None, 1, 0, 1, 2, 3],
+			         [None, 0, 5, 0, 9, 0],
+			         [None] * DT.nrows,
+			         [None] * DT.nrows,
+			         [None] * DT.nrows],
+			         names = colnames,
+			         stypes = [stype.int32] * DT.ncols
+	               )
 
-	DT_cut_list = cut(DT, bins = [2, 3, 10, 3, 2, 5])
-	DT_cut_tuple = cut(DT, bins = (2, 3, 10, 3, 2, 5))
-	assert_equals(DT_ref, DT_cut_list)
-	assert_equals(DT_ref, DT_cut_tuple)
+	DT_ref_left = dt.Frame(
+			        [[3, None, 0, 0, 3, None],
+			        [1, None, 1, 0, 1, 1],
+			        [0, 4, 4, 4, None, 4],
+			        [None, 1, 0, 2, 2, 3],
+			        [None, 0, 6, 0, 9, 0],
+			        [None] * DT.nrows,
+			        [None] * DT.nrows,
+			        [None] * DT.nrows],
+			        names = colnames,
+			        stypes = [stype.int32] * DT.ncols
+	              )
+
+	DT_cut_list = cut(DT, bins = bins)
+	DT_cut_tuple = cut(DT, bins = tuple(bins))
+	DT_cut_list_left = cut(DT, bins = bins, right = False)
+	assert_equals(DT_ref_right, DT_cut_list)
+	assert_equals(DT_ref_right, DT_cut_tuple)
+	assert_equals(DT_ref_left, DT_cut_list_left)
 
 
 
 @pytest.mark.xfail(reason="See test_cut_pandas_issue_35126 test")
-@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10000)])
 def test_cut_random(pandas, seed):
 	random.seed(seed)
-	max_size = 100
-	max_value = 1000
+	max_size = 5
+	max_value = 5
 
 	n = random.randint(1, max_size)
 
 	bins = [random.randint(1, max_size) for _ in range(3)]
+	right = random.randint(0, 1)
 	data = [[] for _ in range(3)]
 
 	for _ in range(n):
@@ -147,8 +180,9 @@ def test_cut_random(pandas, seed):
 		data[2].append(random.random() * 2 * max_value - max_value)
 
 	DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
-	DT_cut = cut(DT, bins)
-	PD = [pandas.cut(data[i], bins[i], labels=False) for i in range(3)]
+	DT_cut = cut(DT, bins, right)
+
+	PD = [pandas.cut(data[i], bins[i], labels=False, right=right) for i in range(3)]
 
 	assert([list(PD[i]) for i in range(3)] == DT_cut.to_list())
 
@@ -167,9 +201,12 @@ def test_cut_pandas_issue_35126(pandas):
 	nbins = 42
 	data = [-97, 0, 97]
 	DT = dt.Frame(data)
-	DT_cut = cut(DT, nbins)
-	PD = pandas.cut(data, nbins, labels = False)
-	assert(DT_cut.to_list() == [[0, 20, 41]])
+	DT_cut_right = cut(DT, nbins)
+	DT_cut_left = cut(DT, nbins, right = False)
+	assert(DT_cut_right.to_list() == [[0, 20, 41]])
+	assert(DT_cut_left.to_list() == [[0, 21, 41]])
 
-	# Testing that Pandas results are still inconsistent
+	# Testing that Pandas results are inconsistent
+	PD = pandas.cut(data, nbins, labels = False)
 	assert(list(PD) == [0, 21, 41])
+
