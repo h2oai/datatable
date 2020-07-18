@@ -35,35 +35,36 @@ namespace dt {
  *
  *  The binning method consists of the following steps
  *  1) we calculate min/max for the input column, and if one of these is NaN
- *     or inf, or bins == 0 the `ConstNa_ColumnImpl` is returned.
+ *     or inf, or `bins == 0` the `ConstNa_ColumnImpl` is returned.
  *  2) for valid and finite min/max we normalize column data to
- *     [0; 1 - epsilon] interval for right == true. or
- *     [epsilon - 1; 0] interval for right == false. Then, we multiply
- *     the normalized values by the number of requested bins adding
- *     a proper shift to compute the final bin numbers.
+ *       [0; 1 - epsilon] range for `right == true`
+ *     or to
+ *       [epsilon - 1; 0] range for `right == false`.
+ *     Then, we multiply the normalized values by the number of the requested
+ *     bins and add a proper shift to compute the final bin numbers.
  *
  *  Step #2 is implemented by employing the following formula
- *    bin_i = x_i * bin_a + bin_b + bin_shift
+ *    bin_i = static_cast<int32_t>(x_i * bin_a + bin_b) + bin_shift
  *
- *  If max == min, all values end up in the central bin, where
- *  the central bin is determined based on the `right` parameter
+ *  If max == min, all values end up in the central bin determined
+ *  based on the `right` parameter, i.e.
  *    bin_a = 0;
  *    bin_b = (1 + (1 - 2 * right) * epsilon) * bins / 2;
  *    bin_shift = 0
  *
- *  When min != max, for right == true, we set
+ *  When `min != max`, and `right == true`, we set
  *    bin_a = bins / (max + epsilon - min)
  *    bin_b  = -bin_a * min
  *    bin_shift = 0
  *  simply scaling data to [0; 1 - epsilon] and then multiplying
  *  them by `bins` number.
  *
- *  For right == false, we set
+ *  When `min != max`, and `right == false`, we set
  *    bin_a = bins / (max + epsilon - min)
  *    bin_b  = -bin_a * min + (epsilon - 1) * bins
  *    bin_shift = bins - 1;
- *  scaling data to [epsilon - 1; 0], multiplying them by `bins` and
- *  at the end shifting everything by `bins - 1`. The last shift is
+ *  scaling data to [epsilon - 1; 0], multiplying them by `bins`,
+ *  and then shifting the resulting values by `bins - 1`. The last shift is
  *  needed to convert auxiliary negative bins to the corresponding
  *  positive bins.
  */
@@ -121,7 +122,6 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, int32_t* out)  const override {
       double value;
       bool is_valid = col_.get_element(i, &value);
-
       *out = static_cast<int32_t>(bin_a_ * value + bin_b_) + bin_shift_;
       return is_valid;
     }

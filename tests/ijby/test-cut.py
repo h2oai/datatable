@@ -162,7 +162,7 @@ def test_cut_small():
 
 
 @pytest.mark.xfail(reason="See test_cut_pandas_issue_35126 test")
-@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(10000)])
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
 def test_cut_random(pandas, seed):
 	random.seed(seed)
 	max_size = 5
