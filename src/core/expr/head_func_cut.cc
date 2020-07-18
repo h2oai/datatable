@@ -24,7 +24,6 @@
 #include "datatablemodule.h"
 #include "expr/eval_context.h"
 #include "expr/head_func.h"
-#include "expr/head_func_cut.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 
@@ -33,47 +32,13 @@ namespace dt {
 namespace expr {
 
 
-/**
- *  Cut a workframe in-place by cutting its every column.
- */
-void cut_wf(Workframe& wf, const sztvec& bins, bool right) {
-  const size_t ncols = wf.ncols();
-  xassert(ncols == bins.size());
-
-  for (size_t i = 0; i < ncols; ++i) {
-    Column coli = wf.retrieve_column(i);
-
-    switch (coli.stype()) {
-      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i], right));
-                               break;
-      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), bins[i], right));
-                               break;
-      default:  throw TypeError() << "cut() can only be applied to numeric "
-                  << "columns, instead column `" << i << "` has an stype: `"
-                  << coli.stype() << "`";
-    }
-    wf.replace_column(i, std::move(coli));
-  }
-}
-
-
 
 //------------------------------------------------------------------------------
 // Head_Func_Cut
 //------------------------------------------------------------------------------
 
-Head_Func_Cut::Head_Func_Cut(py::oobj py_bins, py::oobj right)
-  : py_bins_(py_bins), right_(right.to_bool()) {}
+Head_Func_Cut::Head_Func_Cut(py::oobj py_nbins, py::oobj right_closed)
+  : py_nbins_(py_nbins), right_closed_(right_closed.to_bool()) {}
 
 
 ptrHead Head_Func_Cut::make(Op, const py::otuple& params) {
@@ -86,43 +51,68 @@ ptrHead Head_Func_Cut::make(Op, const py::otuple& params) {
 Workframe Head_Func_Cut::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
+
   if (ctx.has_groupby()) {
     throw NotImplError() << "cut() cannot be used in a groupby context";
   }
 
+  size_t nbins_default = 10;
   Workframe wf = args[0].evaluate_n(ctx);
   const size_t ncols = wf.ncols();
 
-  sztvec bins(ncols);
-  size_t bins_default = 10;
-  bool defined_bins = !py_bins_.is_none();
-  bool bins_list_or_tuple = py_bins_.is_list_or_tuple();
+  sztvec nbins(ncols);
+  bool defined_nbins = !py_nbins_.is_none();
+  bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
 
-  if (bins_list_or_tuple) {
-    py::oiter py_bins = py_bins_.to_oiter();
-    if (py_bins.size() != ncols) {
-      throw ValueError() << "When `bins` is a list or a tuple, its length must be "
+  if (nbins_list_or_tuple) {
+    py::oiter py_nbins = py_nbins_.to_oiter();
+    if (py_nbins.size() != ncols) {
+      throw ValueError() << "When `nbins` is a list or a tuple, its length must be "
         << "the same as the number of columns in the frame/expression, i.e. `"
-        << ncols << "`, instead got: `" << py_bins.size() << "`";
+        << ncols << "`, instead got: `" << py_nbins.size() << "`";
 
     }
 
     size_t i = 0;
-    for (auto py_bin : py_bins) {
-      size_t bin = py_bin.to_size_t();
-      bins[i++] = bin;
+    for (auto py_nbin : py_nbins) {
+      size_t nbin = py_nbin.to_size_t();
+      nbins[i++] = nbin;
     }
     xassert(i == ncols);
 
   } else {
-    if (defined_bins) bins_default = py_bins_.to_size_t();
+    if (defined_nbins) nbins_default = py_nbins_.to_size_t();
     for (size_t i = 0; i < ncols; ++i) {
-      bins[i] = bins_default;
+      nbins[i] = nbins_default;
     }
   }
 
   // Cut workframe in-place
-  cut_wf(wf, bins, right_);
+  for (size_t i = 0; i < ncols; ++i) {
+    Column coli = wf.retrieve_column(i);
+
+    switch (coli.stype()) {
+      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
+                               break;
+      default:  throw TypeError() << "cut() can only be applied to numeric "
+                  << "columns, instead column `" << i << "` has an stype: `"
+                  << coli.stype() << "`";
+    }
+    wf.replace_column(i, std::move(coli));
+  }
+
   return wf;
 }
 
@@ -154,11 +144,11 @@ static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
 static PKArgs args_cut(
   1, 2, 0, false, false,
   {
-    "input", "bins", "right"
+    "cols", "nbins", "right_closed"
   },
   "cut",
 
-R"(cut(input, bins=10, right=True)
+R"(cut(cols, nbins=10, right_closed=True)
 --
 
 Cut all the columns in a Frame/f-expression by binning
@@ -166,14 +156,16 @@ their values into discrete intervals.
 
 Parameters
 ----------
-input: Frame | f-expression
-    Frame or f-expression that consists of numeric columns only.
-bins: int | list or a tuple of int
-    Number of bins to be used for the whole Frame/f-expression,
-    or a list/tuple with the numbers of bins for the corresponding columns.
-    In the latter case, the list/tuple length must be equal
-    to the number of columns in the Frame/f-expression.
-right: bool
+cols: Frame | f-expression
+    Frame or f-expression consisting of numeric columns.
+nbins: int | list of ints | tuple of ints
+    When a single number is specified, this number of bins
+    will be used to bin each column of `cols`.
+    When a list or a tuple is provided, each column will be binned
+    by using its own number of bins. In the latter case,
+    the list/tuple length must be equal to the number of columns
+    in `cols`.
+right_closed: bool
     Indicates whether bins should include the rightmost edge or not.
 
 Returns
@@ -201,8 +193,11 @@ static oobj pyfn_cut(const PKArgs& args)
     return cut_frame(arg0, arg1, arg2);
   }
   if (arg0.is_dtexpr()) {
-    return make_pyexpr(dt::expr::Op::CUT,
-                       otuple{ arg0 }, otuple{ arg1, arg2 });
+    return make_pyexpr(
+             dt::expr::Op::CUT,
+             otuple{ arg0 },
+             otuple{ arg1, arg2 }
+           );
   }
   throw TypeError() << "The first argument to `cut()` must be a column "
       "expression or a Frame, instead got " << arg0.typeobj();
