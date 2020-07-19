@@ -152,7 +152,7 @@ R"(cut(cols, nbins=10, right_closed=True)
 --
 
 Cut all the columns in a Frame/f-expression by binning
-their values into discrete intervals.
+their values into equal width discrete intervals.
 
 Parameters
 ----------
