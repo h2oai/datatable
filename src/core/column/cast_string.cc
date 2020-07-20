@@ -27,7 +27,7 @@ namespace dt {
 static bool parse_int(const char* ch, const char* end, int64_t* out) {
   if (ch == end) return false;
   bool negative = (*ch == '-');
-  ch += negative || (*ch == '+');       // skip sign
+  ch += negative || (*ch == '+');  // skip sign
   if (ch == end) return false;
 
   uint64_t value = 0;

@@ -168,9 +168,22 @@ def test_cast_str_zeroes_to_int():
 
 
 def test_cast_badstr_to_int():
-    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5"])
+    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5",
+                   "-", "+", "", "~"])
     RES = DT[:, dt.int32(f[0])]
-    assert_equals(RES, dt.Frame([345, 1410065408, None, None, None, None]))
+    assert_equals(RES, dt.Frame([345, 1410065408, None, None, None, None,
+                                 None, None, None, None]))
+
+
+@pytest.mark.parametrize("target_stype", ltype.int.stypes)
+def test_cast_str_to_int_with_overflow(target_stype):
+    offset = target_stype.max + 1
+    mask = offset * 2
+    data = [7**i for i in range(1000)]
+    expected = [(x + offset) % mask - offset for x in data]
+    DT = dt.Frame([str(x) for x in data])
+    DT[:, 0] = target_stype
+    assert_equals(DT, dt.Frame(expected / target_stype))
 
 
 @pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
