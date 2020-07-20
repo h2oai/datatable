@@ -95,27 +95,7 @@ Workframe Head_Func_Cut::evaluate_n(
     if (nbins[i] == 0) {
       coli = Column(new ConstNa_ColumnImpl(coli.nrows(), dt::SType::INT32));
     } else {
-
-      switch (coli.stype()) {
-        case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                                 break;
-        default:  throw TypeError() << "cut() can only be applied to numeric "
-                    << "columns, instead column `" << i << "` has an stype: `"
-                    << coli.stype() << "`";
-      }
-
+      coli = Column(Cut_ColumnImpl::make(std::move(coli), i, nbins[i], right_closed_));
     }
 
     wf.replace_column(i, std::move(coli));

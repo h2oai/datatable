@@ -26,6 +26,7 @@
 #include "column/virtual.h"
 #include "models/utils.h"
 #include "stype.h"
+#include "ltype.h"
 
 
 namespace dt {
@@ -87,19 +88,40 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     size_t: 32;
 
   public:
-    template <typename T>
-    static ColumnImpl* make(Column&& col, size_t nbins, bool right_closed) {
+    static ColumnImpl* make(Column&& col, size_t icol, size_t nbins, bool right_closed) {
       xassert(nbins != 0);
-      T tmin, tmax;
-      bool min_valid = col.stats()->get_stat(Stat::Min, &tmin);
-      bool max_valid = col.stats()->get_stat(Stat::Max, &tmax);
 
-      if (!min_valid || !max_valid || _isinf(tmin) || _isinf(tmax)) {
+      bool min_valid, max_valid;
+      double min, max;
+
+      switch (col.ltype()) {
+        case dt::LType::BOOL:
+        case dt::LType::INT:   {
+                                 int64_t min_int, max_int;
+                                 min_valid = col.stats()->get_stat(Stat::Min, &min_int);
+                                 max_valid = col.stats()->get_stat(Stat::Max, &max_int);
+                                 min = static_cast<double>(min_int);
+                                 max = static_cast<double>(max_int);
+                               }
+                               break;
+
+        case dt::LType::REAL:  {
+                                 min_valid = col.stats()->get_stat(Stat::Min, &min);
+                                 max_valid = col.stats()->get_stat(Stat::Max, &max);
+
+                               }
+                               break;
+
+        default:  throw TypeError() << "cut() can only be applied to numeric "
+                    << "columns, instead column `" << icol << "` has an stype: `"
+                    << col.stype() << "`";
+      }
+
+
+      if (!min_valid || !max_valid || _isinf(min) || _isinf(max)) {
         return new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32);
 
       } else {
-        double min = static_cast<double>(tmin);
-        double max = static_cast<double>(tmax);
         double a, b;
         int32_t shift;
 
