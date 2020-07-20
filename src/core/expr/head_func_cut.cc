@@ -91,25 +91,33 @@ Workframe Head_Func_Cut::evaluate_n(
   for (size_t i = 0; i < ncols; ++i) {
     Column coli = wf.retrieve_column(i);
 
-    switch (coli.stype()) {
-      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      default:  throw TypeError() << "cut() can only be applied to numeric "
-                  << "columns, instead column `" << i << "` has an stype: `"
-                  << coli.stype() << "`";
+    // If number of bins is zero, we immediately bin all values to NA's
+    if (nbins[i] == 0) {
+      coli = Column(new ConstNa_ColumnImpl(coli.nrows(), dt::SType::INT32));
+    } else {
+
+      switch (coli.stype()) {
+        case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
+                                 break;
+        default:  throw TypeError() << "cut() can only be applied to numeric "
+                    << "columns, instead column `" << i << "` has an stype: `"
+                    << coli.stype() << "`";
+      }
+
     }
+
     wf.replace_column(i, std::move(coli));
   }
 
@@ -164,7 +172,7 @@ right_closed: bool
 Returns
 -------
 Frame/f-expression, where each column is filled with the respective bin ids.
-)"
+)";
 
 
 static PKArgs args_cut(

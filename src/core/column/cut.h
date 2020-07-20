@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -87,14 +87,16 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     size_t: 32;
 
   public:
-
     template <typename T>
     static ColumnImpl* make(Column&& col, size_t nbins, bool right_closed) {
+      xassert(nbins != 0);
       T tmin, tmax;
       bool min_valid = col.stats()->get_stat(Stat::Min, &tmin);
       bool max_valid = col.stats()->get_stat(Stat::Max, &tmax);
-      if (!min_valid || !max_valid || _isinf(tmin) || _isinf(tmax) || nbins == 0) {
+
+      if (!min_valid || !max_valid || _isinf(tmin) || _isinf(tmax)) {
         return new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32);
+
       } else {
         double min = static_cast<double>(tmin);
         double max = static_cast<double>(tmax);
@@ -102,19 +104,11 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
         int32_t shift;
 
         col.cast_inplace(SType::FLOAT64);
-        set_cut_coeffs(a, b, shift, min, max, nbins, right_closed);
+        compute_cut_coeffs(a, b, shift, min, max, nbins, right_closed);
 
         return new Cut_ColumnImpl(std::move(col), a, b, shift);
       }
-
     }
-
-    Cut_ColumnImpl(Column&& col, double a, double b, int32_t shift)
-      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        col_(col),
-        a_(a),
-        b_(b),
-        shift_(shift) {}
 
     ColumnImpl* clone() const override {
       return new Cut_ColumnImpl(Column(col_), a_, b_, shift_);
@@ -138,9 +132,9 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     }
 
 
-    static void set_cut_coeffs(double& a, double& b, int32_t& shift,
-                               const double min, const double max,
-                               const size_t nbins, const bool right_closed)
+    static void compute_cut_coeffs(double& a, double& b, int32_t& shift,
+                                   const double min, const double max,
+                                   const size_t nbins, const bool right_closed)
     {
       const double epsilon = static_cast<double>(
                                std::numeric_limits<float>::epsilon()
@@ -158,6 +152,18 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
           shift = static_cast<int32_t>(nbins) - 1;
         }
       }
+    }
+
+
+  private:
+    Cut_ColumnImpl(Column&& col, double a, double b, int32_t shift)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
+        a_(a),
+        b_(b),
+        shift_(shift)
+    {
+      xassert(col.stype() == dt::SType::FLOAT64);
+      col_ = std::move(col);
     }
 
 };
