@@ -140,14 +140,7 @@ static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
 }
 
 
-
-static PKArgs args_cut(
-  1, 2, 0, false, false,
-  {
-    "cols", "nbins", "right_closed"
-  },
-  "cut",
-
+static const char* doc_cut =
 R"(cut(cols, nbins=10, right_closed=True)
 --
 
@@ -172,6 +165,14 @@ Returns
 -------
 Frame/f-expression, where each column is filled with the respective bin ids.
 )"
+
+
+static PKArgs args_cut(
+  1, 2, 0, false, false,
+  {
+    "cols", "nbins", "right_closed"
+  },
+  "cut", doc_cut
 );
 
 
