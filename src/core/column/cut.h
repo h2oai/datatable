@@ -31,7 +31,7 @@
 namespace dt {
 
 /**
- *  Virtual column to bin numeric values into discrete intervals.
+ *  Virtual column to bin numeric values into equal width discrete intervals.
  *
  *  The binning method consists of the following steps
  *

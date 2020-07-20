@@ -73,6 +73,7 @@ __all__ = (
     "corr",
     "count",
     "cov",
+    "cut",
     "dt",
     "exp",
     "f",
