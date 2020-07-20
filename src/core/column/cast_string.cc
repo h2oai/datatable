@@ -19,10 +19,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cmath>            // std::ismath
+#include <cstdlib>          // std::strtod
 #include "column/cast.h"
 namespace dt {
 
 
+
+ColumnImpl* CastString_ColumnImpl::clone() const {
+  return new CastString_ColumnImpl(stype_, Column(arg_));
+}
+
+
+
+//------------------------------------------------------------------------------
+// Parse integers
+//------------------------------------------------------------------------------
 
 static bool parse_int(const char* ch, const char* end, int64_t* out) {
   if (ch == end) return false;
@@ -43,7 +55,7 @@ static bool parse_int(const char* ch, const char* end, int64_t* out) {
 
 
 template <typename V>
-inline bool CastString_ColumnImpl::_parse_int(size_t i, V* out) const {
+inline bool CastString_ColumnImpl::_get_int(size_t i, V* out) const {
   CString x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
@@ -55,46 +67,170 @@ inline bool CastString_ColumnImpl::_parse_int(size_t i, V* out) const {
 }
 
 
-
-ColumnImpl* CastString_ColumnImpl::clone() const {
-  return new CastString_ColumnImpl(stype_, Column(arg_));
-}
-
-
-
-
-
 bool CastString_ColumnImpl::get_element(size_t i, int8_t* out) const {
-  return _parse_int<int8_t>(i, out);
+  return _get_int<int8_t>(i, out);
 }
 
 
 bool CastString_ColumnImpl::get_element(size_t i, int16_t* out) const {
-  return _parse_int<int16_t>(i, out);
+  return _get_int<int16_t>(i, out);
 }
 
 
 bool CastString_ColumnImpl::get_element(size_t i, int32_t* out) const {
-  return _parse_int<int32_t>(i, out);
+  return _get_int<int32_t>(i, out);
 }
 
 
 bool CastString_ColumnImpl::get_element(size_t i, int64_t* out) const {
-  return _parse_int<int64_t>(i, out);
+  return _get_int<int64_t>(i, out);
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Parse floats
+//------------------------------------------------------------------------------
+
 /*
+static bool parse_double(const char* ch, const char* end, double* out) {
+  constexpr int MAX_DIGITS = 18;
+  if (ch == end) return false;
+  bool negative = (*ch == '-');
+  ch += negative || (*ch == '+');  // skip sign
+  if (ch == end) return false;
+
+  const char* start = ch; // beginning of the number, without the initial sign
+  uint64_t mantissa = 0;  // mantissa NNN.MMM as a single 64-bit integer NNNMMM
+  int_fast32_t e = 0;     // the number's exponent. The value being parsed is
+                          // equal to mantissa·10ᵉ
+  uint_fast8_t digit;     // temporary variable, holds last scanned digit.
+
+  // Skip leading zeros
+  while (ch < end && *ch == '0') ch++;
+
+  // Read the first, integer part of the floating number (but no more than
+  // MAX_DIGITS digits).
+  int_fast32_t sflimit = MAX_DIGITS;
+  while (ch < end && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10 && sflimit) {
+    mantissa = 10*mantissa + digit;
+    sflimit--;
+    ch++;
+  }
+
+  // If maximum allowed number of digits were read, but more are present -- then
+  // we will read and discard those extra digits, but only if they are followed
+  // by a decimal point (otherwise it's a just big integer, which should be
+  // treated as a string instead of losing precision).
+  if (ch < end && sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
+    while (ch < end && static_cast<uint_fast8_t>(*ch - '0') < 10) {
+      ch++;
+      e++;
+    }
+    if (ch == end || *ch != ctx.dec) goto fail;
+  }
+
+  // Read the fractional part of the number, if it's present
+  if (ch < end && *ch == ctx.dec) {
+    ch++;  // skip the dot
+    // If the integer part was 0, then leading zeros in the fractional part do
+    // not count against the number's precision: skip them.
+    if (ch < end && *ch == '0' && mantissa == 0) {
+      int_fast32_t k = 0;
+      while (ch + k < end && ch[k] == '0') k++;
+      ch += k;
+      e = -k;
+    }
+    // Now read the significant digits in the fractional part of the number
+    int_fast32_t k = 0;
+    while (ch + k < end && (digit = static_cast<uint_fast8_t>(ch[k] - '0')) < 10 && sflimit) {
+      mantissa = 10*mantissa + digit;
+      k++;
+      sflimit--;
+    }
+    ch += k;
+    e -= k;
+    // If more digits are present, skip them
+    if (ch < end && sflimit == 0 && static_cast<uint_fast8_t>(*ch - '0') < 10) {
+      ch++;
+      while (ch < end && static_cast<uint_fast8_t>(*ch - '0') < 10) ch++;
+    }
+    // Check that at least 1 digit was present either in the integer or
+    // fractional part ("+1" here accounts for the decimal point symbol).
+    if (ch == start + 1) goto fail;
+  }
+  // If there is no fractional part, then check that the integer part actually
+  // exists (otherwise it's not a valid number)...
+  else {
+    if (ch == start) goto fail;
+  }
+
+  // Now scan the "exponent" part of the number (if present)
+  if (ch < end && (*ch == 'E' || *ch == 'e')) {
+    bool Eneg = 0;
+    if (ch + 1 < end) {
+      ch += (Eneg = (ch[1]=='-')) + (ch[1]=='+');
+    }
+    ch += 1;
+
+    int_fast32_t exp = 0;
+    if (ch < end && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+      exp = digit;
+      ch++;
+      if (ch < end && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+        exp = exp*10 + digit;
+        ch++;
+        if (ch < end && (digit = static_cast<uint_fast8_t>(*ch - '0')) < 10) {
+          exp = exp*10 + digit;
+          ch++;
+        }
+      }
+    } else {
+      goto fail;
+    }
+    e += Eneg? -exp : exp;
+  }
+  e += 350; // lookup table is arranged from -350 (0) to +350 (700)
+  if (e < 0 || e > 700) goto fail;
+
+  double r = static_cast<double>(static_cast<long double>(mantissa) * dt::read::pow10lookup[e]);
+  ctx.target->float64 = negative? -r : r;
+  ctx.ch = ch;
+  return;
+
+  fail: {
+    ctx.target->uint64 = NA_FLOAT64_I64;
+  }
+}
+*/
+
+template <typename V>
+inline bool CastString_ColumnImpl::_get_float(size_t i, V* out) const {
+  CString x;
+  bool isvalid = arg_.get_element(i, &x);
+  if (isvalid) {
+    const char* start = x.data();
+    const char* end = x.end();
+    double y = std::strtod(start, const_cast<char**>(&end));
+    *out = static_cast<V>(y);
+    isvalid = (end == x.end) && !std::isnan(y);
+  }
+  return isvalid;
+}
+
 
 bool CastString_ColumnImpl::get_element(size_t i, float* out) const {
-  return _get<float>(i, out);
+  return _get_float<float>(i, out);
 }
 
 
 bool CastString_ColumnImpl::get_element(size_t i, double* out) const {
-  return _get<double>(i, out);
+  return _get_float<double>(i, out);
 }
 
+
+/*
 
 bool CastString_ColumnImpl::get_element(size_t i, CString* out)  const {
   int8_t x;

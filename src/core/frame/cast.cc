@@ -646,7 +646,7 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::FLOAT64: thiscol = Column(new CastNumeric_ColumnImpl<double>(new_stype, std::move(thiscol))); break;
       case SType::STR32:
       case SType::STR64:   {
-        if (new_stype <= SType::INT64)
+        if (new_stype <= SType::FLOAT64)
           thiscol = Column(new CastString_ColumnImpl(new_stype, std::move(thiscol)));
         else
           thiscol = casts.execute(thiscol, Buffer(), new_stype);

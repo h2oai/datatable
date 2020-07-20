@@ -184,13 +184,14 @@ class CastString_ColumnImpl : public Cast_ColumnImpl {
     bool get_element(size_t, int16_t*)  const override;
     bool get_element(size_t, int32_t*)  const override;
     bool get_element(size_t, int64_t*)  const override;
-    // bool get_element(size_t, float*)    const override;
-    // bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
     // bool get_element(size_t, CString*)  const override;
     // bool get_element(size_t, py::oobj*) const override;
 
   private:
-    template <typename V> inline bool _parse_int(size_t i, V* out) const;
+    template <typename V> inline bool _get_int(size_t i, V* out) const;
+    template <typename V> inline bool _get_float(size_t i, V* out) const;
 };
 
 
