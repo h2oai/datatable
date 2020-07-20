@@ -621,7 +621,7 @@ namespace dt {
 bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
   if (new_stype == SType::BOOL) {
     switch (stype()) {
-      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype);
+      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
       case SType::INT8:    thiscol = Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(thiscol))); break;
       case SType::INT16:   thiscol = Column(new CastNumericToBool_ColumnImpl<int16_t>(std::move(thiscol))); break;
       case SType::INT32:   thiscol = Column(new CastNumericToBool_ColumnImpl<int32_t>(std::move(thiscol))); break;
@@ -636,7 +636,7 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
   }
   else {
     switch (stype()) {
-      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype);
+      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
       case SType::BOOL:    thiscol = Column(new CastBool_ColumnImpl(new_stype, std::move(thiscol))); break;
       case SType::INT8:    thiscol = Column(new CastNumeric_ColumnImpl<int8_t>(new_stype, std::move(thiscol))); break;
       case SType::INT16:   thiscol = Column(new CastNumeric_ColumnImpl<int16_t>(new_stype, std::move(thiscol))); break;
@@ -644,6 +644,14 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::INT64:   thiscol = Column(new CastNumeric_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT32: thiscol = Column(new CastNumeric_ColumnImpl<float>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT64: thiscol = Column(new CastNumeric_ColumnImpl<double>(new_stype, std::move(thiscol))); break;
+      case SType::STR32:
+      case SType::STR64:   {
+        if (new_stype <= SType::INT64)
+          thiscol = Column(new CastString_ColumnImpl(new_stype, std::move(thiscol)));
+        else
+          thiscol = casts.execute(thiscol, Buffer(), new_stype);
+        break;
+      }
       default:             thiscol = casts.execute(thiscol, Buffer(), new_stype); break;
     }
   }

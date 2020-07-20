@@ -109,7 +109,7 @@ class CastObjToBool_ColumnImpl : public Cast_ColumnImpl {
 
 /**
   * Virtual column that casts a boolean column `arg_` into
-  * the target stype.
+  * any other stype.
   */
 class CastBool_ColumnImpl : public Cast_ColumnImpl {
   public:
@@ -136,6 +136,10 @@ class CastBool_ColumnImpl : public Cast_ColumnImpl {
 // CastNumeric_ColumnImpl
 //------------------------------------------------------------------------------
 
+/**
+  * Virtual column that casts an int/float column `arg_` into
+  * any other stype.
+  */
 template <typename T>
 class CastNumeric_ColumnImpl : public Cast_ColumnImpl {
   public:
@@ -164,6 +168,30 @@ extern template class CastNumeric_ColumnImpl<float>;
 extern template class CastNumeric_ColumnImpl<double>;
 
 
+
+
+//------------------------------------------------------------------------------
+// CastString_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastString_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    using Cast_ColumnImpl::arg_;
+    using Cast_ColumnImpl::Cast_ColumnImpl;
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    // bool get_element(size_t, float*)    const override;
+    // bool get_element(size_t, double*)   const override;
+    // bool get_element(size_t, CString*)  const override;
+    // bool get_element(size_t, py::oobj*) const override;
+
+  private:
+    template <typename V> inline bool _parse_int(size_t i, V* out) const;
+};
 
 
 
