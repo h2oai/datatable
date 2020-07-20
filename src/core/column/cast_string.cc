@@ -19,40 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cstddef>           // offsetof
 #include "column/cast.h"
-#include "csv/reader_parsers.h"
-#include "read/parse_context.h"
 namespace dt {
 
 
-struct MiniParseContext {
-  const char* ch;
-  const char* eof;
-  read::field64* target;
-};
-static_assert(offsetof(MiniParseContext, ch) == offsetof(read::ParseContext, ch), "Invalid offset of MiniParseContext::ch");
-static_assert(offsetof(MiniParseContext, eof) == offsetof(read::ParseContext, eof), "Invalid offset of MiniParseContext::eof");
-static_assert(offsetof(MiniParseContext, target) == offsetof(read::ParseContext, target), "Invalid offset of MiniParseContext::target");
+
+static bool parse_int(const char* ch, const char* end, int64_t* out) {
+  if (ch == end) return false;
+  bool negative = (*ch == '-');
+  ch += negative || (*ch == '+');       // skip sign
+  if (ch == end) return false;
+
+  uint64_t value = 0;
+  for (; ch < end; ch++) {
+    auto digit = static_cast<uint8_t>(*ch - '0');
+    if (digit >= 10) return false;
+    value = 10*value + digit;
+  }
+
+  *out = negative? -static_cast<int64_t>(value) : static_cast<int64_t>(value);
+  return true;
+}
+
 
 template <typename V>
 inline bool CastString_ColumnImpl::_parse_int(size_t i, V* out) const {
-  using M = typename std::conditional<std::is_same<V, int64_t>::value,
-                                      int64_t, int32_t>::type;
   CString x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    const char* ch = x.data();
-    const char* end = x.end();
-    M y;
-    MiniParseContext ctx { ch, end, reinterpret_cast<read::field64*>(&y) };
-    parse_int_simple<M, true>(*reinterpret_cast<read::ParseContext*>(&ctx));
-    if (ctx.ch == end) {
-      *out = static_cast<V>(y);
-      return true;
-    }
+    int64_t y;
+    isvalid = parse_int(x.data(), x.end(), &y);
+    *out = static_cast<V>(y);
   }
-  return false;
+  return isvalid;
 }
 
 

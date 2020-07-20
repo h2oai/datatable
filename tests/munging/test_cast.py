@@ -161,10 +161,16 @@ def test_cast_str_to_int(source_stype, target_stype):
     assert_equals(RES, dt.Frame(W=[0, 23, 56, -17, 101] / target_stype))
 
 
+def test_cast_str_zeroes_to_int():
+    DT = dt.Frame(["0", "+0", "-0", "00", "+00", "-00", "-000", "0"*100])
+    RES = DT[:, dt.int32(f[0])]
+    assert_equals(RES, dt.Frame([0] * 8 / dt.int32))
+
+
 def test_cast_badstr_to_int():
     DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5"])
     RES = DT[:, dt.int32(f[0])]
-    assert_equals(RES, dt.Frame([345, None, None, None, None, None]))
+    assert_equals(RES, dt.Frame([345, 1410065408, None, None, None, None]))
 
 
 @pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
