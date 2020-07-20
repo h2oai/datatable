@@ -55,7 +55,7 @@ namespace dt {
  *            `true` or `false`, i.e.
  *
  *              a = 0;
- *              b = nbins * (1 ∓ epsilon) / 2;
+ *              b = (nbins - right_closed) / 2;
  *              shift = 0
  *
  *       2.2) when `min != max`, and `right_closed == true`, set
@@ -136,14 +136,14 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
                                    const double min, const double max,
                                    const size_t nbins, const bool right_closed)
     {
-      const double epsilon = static_cast<double>(
-                               std::numeric_limits<float>::epsilon()
-                             );
+      constexpr double epsilon = static_cast<double>(
+                                   std::numeric_limits<float>::epsilon()
+                                 );
       shift = 0;
 
       if (min == max) {
         a = 0;
-        b = 0.5 * nbins * (1 + (1 - 2 * right_closed) * epsilon);
+        b = (nbins - right_closed) / 2;
       } else {
         a = (1 - epsilon) * nbins / (max - min);
         b = -a * min;

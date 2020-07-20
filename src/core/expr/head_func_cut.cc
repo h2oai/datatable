@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -167,11 +167,16 @@ nbins: int | list of ints | tuple of ints
     the list/tuple length must be equal to the number of columns
     in `cols`.
 right_closed: bool
-    Indicates whether bins should include the rightmost edge or not.
+    Each binning interval is half-open. This flag indicates which
+    side of the interval is closed.
 
-Returns
--------
-Frame/f-expression, where each column is filled with the respective bin ids.
+(return): Frame | Expr
+    The return type matches the type of the `cols` argument.
+    If the function is applied to a frame, then the result is a frame where
+    each column from the original frame has been cut into the specified bins.
+    If the `cols` argument is an f-expression, then the result is a new
+    f-expression that transforms every column into its cut version.
+
 )";
 
 

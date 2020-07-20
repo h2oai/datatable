@@ -103,11 +103,12 @@ def test_cut_expr():
 
 
 def test_cut_one_row():
+    nbins = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
-    DT_cut_right = cut(DT)
-    DT_cut_left = cut(DT, right_closed = False)
-    assert(DT_cut_right.to_list() == [[4], [4], [4], [None]])
-    assert(DT_cut_left.to_list() == [[5], [5], [5], [None]])
+    DT_cut_right = cut(DT, nbins)
+    DT_cut_left = cut(DT, nbins, right_closed = False)
+    assert(DT_cut_right.to_list() == [[0], [0], [1], [None]])
+    assert(DT_cut_left.to_list() == [[0], [1], [1], [None]])
 
 
 def test_cut_small():
