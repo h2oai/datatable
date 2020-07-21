@@ -174,7 +174,7 @@ See also
 
 
 static PKArgs args_cut(
-  1, 2, 0, false, false,
+  1, 0, 2, false, false,
   {
     "cols", "nbins", "right_closed"
   },

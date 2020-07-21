@@ -44,18 +44,32 @@ def test_cut_error_wrong_column_types():
         cut(DT)
 
 
+def test_cut_error_float_bins():
+    msg = "Expected an integer, instead got <class 'float'>"
+    DT = dt.Frame(range(10))
+    with pytest.raises(TypeError, match=msg):
+        cut(DT, nbins = 1.5)
+
+
+def test_cut_error_zero_bins():
+    msg = "Number of bins must be positive, instead got: 0"
+    DT = dt.Frame(range(10))
+    with pytest.raises(ValueError, match=msg):
+        cut(DT, nbins = 0)
+
+
 def test_cut_error_negative_bins():
     msg = "Number of bins must be positive, instead got: -10"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        cut(DT, -10)
+        cut(DT, nbins = -10)
 
 
 def test_cut_error_negative_bins_list():
     msg = r"All elements in nbins must be positive, got nbins\[0\]: 0"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        cut(DT, [0, -1])
+        cut(DT, nbins = [0, -1])
 
 
 def test_cut_error_inconsistent_bins():
@@ -63,7 +77,7 @@ def test_cut_error_inconsistent_bins():
            "the number of columns in the frame/expression, i.e. 2, instead got: 1")
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        cut(DT, [10])
+        cut(DT, nbins = [10])
 
 
 def test_cut_error_wrong_right():
@@ -100,8 +114,8 @@ def test_cut_expr():
 def test_cut_one_row():
     nbins = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
-    DT_cut_right = cut(DT, nbins)
-    DT_cut_left = cut(DT, nbins, right_closed = False)
+    DT_cut_right = cut(DT, nbins = nbins)
+    DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
     assert(DT_cut_right.to_list() == [[0], [0], [1], [None]])
     assert(DT_cut_left.to_list() == [[0], [1], [1], [None]])
 
@@ -177,7 +191,7 @@ def test_cut_random(pandas, seed):
         data[2].append(random.random() * 2 * max_value - max_value)
 
     DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
-    DT_cut = cut(DT, nbins, right_closed)
+    DT_cut = cut(DT, nbins = nbins, right_closed = right_closed)
 
     PD = [pandas.cut(data[i], nbins[i], labels=False, right=right_closed) for i in range(3)]
 
@@ -198,8 +212,8 @@ def test_cut_pandas_issue_35126(pandas):
     nbins = 42
     data = [-97, 0, 97]
     DT = dt.Frame(data)
-    DT_cut_right = cut(DT, nbins)
-    DT_cut_left = cut(DT, nbins, right_closed = False)
+    DT_cut_right = cut(DT, nbins = nbins)
+    DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
     assert(DT_cut_right.to_list() == [[0, 20, 41]])
     assert(DT_cut_left.to_list() == [[0, 21, 41]])
 
