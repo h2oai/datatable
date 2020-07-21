@@ -551,8 +551,8 @@ class XobjectDirective(SphinxDirective):
                     for p in self.parsed_params]
         rx_codeblock = re.compile(
             r"``(.*?)``|"
-            r":`([^`]+)`|"
-            r"`([^`]+)`"
+            r"[:_]`([^`]+)`|"
+            r"`([^`]+)`(?!_)"
         )
         def replacefn(match):
             txt3 = match.group(3)

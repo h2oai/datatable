@@ -128,8 +128,8 @@ static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
                            otuple{ slice_all },
                            otuple{ oint(0) });
   auto cutexpr = make_pyexpr(dt::expr::Op::CUT,
-                               otuple{ f_all },
-                               otuple{ arg1, arg2 });
+                             otuple{ f_all },
+                             otuple{ arg1, arg2 });
   auto frame = static_cast<Frame*>(arg0.to_borrowed_ref());
   return frame->m__getitem__(otuple{ slice_all, cutexpr });
 }
@@ -140,7 +140,7 @@ R"(cut(cols, nbins=10, right_closed=True)
 --
 
 Cut all the columns in a Frame/f-expression by binning
-their values into equal width discrete intervals.
+their values into equal-width discrete intervals.
 
 Parameters
 ----------
@@ -154,15 +154,21 @@ nbins: int | list of ints | tuple of ints
     the list/tuple length must be equal to the number of columns
     in `cols`.
 right_closed: bool
-    Each binning interval is half-open. This flag indicates which
+    Each binning interval is `half-open`_. This flag indicates which
     side of the interval is closed.
 
-(return): Frame | Expr
+return: Frame | Expr
     The return type matches the type of the `cols` argument.
     If the function is applied to a frame, then the result is a frame where
     each column from the original frame has been cut into the specified bins.
     If the `cols` argument is an f-expression, then the result is a new
     f-expression that transforms every column into its cut version.
+
+See also
+--------
+:func:`qcut()` -- function for quantile binning.
+
+.. _`half-open`: https://en.wikipedia.org/wiki/Interval_(mathematics)#Terminology
 
 )";
 

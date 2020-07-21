@@ -28,7 +28,7 @@ datatable API
 :func:`ifelse()`           Ternary if operator
 :func:`isna()`
 :func:`shift()`
-:func:`cut()`              Bin frame/f-expression into equal width intervals
+:func:`cut()`              Bin frame/f-expression into equal-width intervals
 
 :func:`init_styles()`
 

@@ -20,7 +20,7 @@
     or boolean. [#1313]
 
   -[new] Added a new function :func:`cut()` to bin numeric data
-   to equal width discrete intervals.
+   to equal-width discrete intervals.
 
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]

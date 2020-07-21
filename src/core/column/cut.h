@@ -32,54 +32,54 @@
 namespace dt {
 
 /**
- *  Virtual column to bin numeric values into equal width discrete intervals.
- *
- *  The binning method consists of the following steps
- *
- *    1) calculate min/max for the input column, and if one of these is NaN
- *       or inf, or `nbins == 0` return the `ConstNa_ColumnImpl`.
- *
- *    2) for valid and finite min/max normalize column data to
- *
- *         - [0; 1 - epsilon] interval, if right-closed bins are requested, or to
- *         - [epsilon - 1; 0] interval, otherwise.
- *
- *       Then, multiply the normalized values by the number of the requested
- *       bins and add a proper shift to compute the final bin ids. The following
- *       formula is used for that (note, casting to an integer will truncate
- *       toward zero)
- *
- *         bin_id_i = static_cast<int32_t>(x_i * a + b) + shift
- *
- *       2.1) if `max == min`, all values end up in the central bin which id
- *            is determined based on the `right_closed` parameter being
- *            `true` or `false`, i.e.
- *
- *              a = 0;
- *              b = (nbins - right_closed) / 2;
- *              shift = 0
- *
- *       2.2) when `min != max`, and `right_closed == true`, set
- *
- *              a = (1 - epsilon) * nbins / (max - min)
- *              b = -a * min
- *              shift = 0
- *
- *            scaling data to [0; 1 - epsilon] and then multiplying them
- *            by `nbins`.
- *
- *       2.3) When `min != max`, and `right_closed == false`, set
- *
- *              a = (1 - epsilon) * nbins / (max - min)
- *              b = -a * max
- *              shift = nbins - 1;
- *
- *            scaling data to [epsilon - 1; 0], multiplying them by `nbins`,
- *            and then shifting the resulting values by `nbins - 1`. The final
- *            shift converts the auxiliary negative bin ids to the corresponding
- *            positive bin ids.
- *
- */
+  *  Virtual column to bin numeric values into equal-width discrete intervals.
+  *
+  *  The binning method consists of the following steps
+  *
+  *    1) calculate min/max for the input column, and if one of these is NaN
+  *       or inf, or `nbins == 0` return the `ConstNa_ColumnImpl`.
+  *
+  *    2) for valid and finite min/max normalize column data to
+  *
+  *         - [0; 1 - epsilon] interval, if right-closed bins are requested, or to
+  *         - [epsilon - 1; 0] interval, otherwise.
+  *
+  *       Then, multiply the normalized values by the number of the requested
+  *       bins and add a proper shift to compute the final bin ids. The following
+  *       formula is used for that (note, casting to an integer will truncate
+  *       toward zero)
+  *
+  *         bin_id_i = static_cast<int32_t>(x_i * a + b) + shift
+  *
+  *       2.1) if `max == min`, all values end up in the central bin which id
+  *            is determined based on the `right_closed` parameter being
+  *            `true` or `false`, i.e.
+  *
+  *              a = 0;
+  *              b = (nbins - right_closed) / 2;
+  *              shift = 0
+  *
+  *       2.2) when `min != max`, and `right_closed == true`, set
+  *
+  *              a = (1 - epsilon) * nbins / (max - min)
+  *              b = -a * min
+  *              shift = 0
+  *
+  *            scaling data to [0; 1 - epsilon] and then multiplying them
+  *            by `nbins`.
+  *
+  *       2.3) When `min != max`, and `right_closed == false`, set
+  *
+  *              a = (1 - epsilon) * nbins / (max - min)
+  *              b = -a * max
+  *              shift = nbins - 1;
+  *
+  *            scaling data to [epsilon - 1; 0], multiplying them by `nbins`,
+  *            and then shifting the resulting values by `nbins - 1`. The final
+  *            shift converts the auxiliary negative bin ids to the corresponding
+  *            positive bin ids.
+  *
+  */
 class Cut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -158,15 +158,19 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
                                    const double min, const double max,
                                    const int32_t nbins, const bool right_closed)
     {
-      constexpr double epsilon = static_cast<double>(
-                                   std::numeric_limits<float>::epsilon()
-                                 );
       shift = 0;
 
       if (min == max) {
         a = 0;
         b = (nbins - right_closed) / 2;
       } else {
+        // Reasonably small epsilon for scaling, note that
+        // std::numeric_limits<double>::epsilon() is too small and will
+        // have no effect for some data
+        constexpr double epsilon = static_cast<double>(
+                                     std::numeric_limits<float>::epsilon()
+                                   );
+
         a = (1 - epsilon) * nbins / (max - min);
         b = -a * min;
 
