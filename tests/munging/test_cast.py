@@ -188,13 +188,10 @@ def test_cast_str_to_int_with_overflow(target_stype):
 
 @pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
 def test_cast_object_to_numeric(target_stype):
-    source_stype = stype.obj64
-    DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    with pytest.raises(NotImplementedError) as e:
-        noop(DT[:, target_stype(f.W)])
-    assert ("Unable to cast %s into %s"
-            % (source_stype.name, target_stype.name) in str(e.value))
+    DT = dt.Frame(W=[0, 1, 2], stype=stype.obj64)
+    assert DT.stypes == (stype.obj64,)
+    RES = DT[:, target_stype(f.W)]
+    assert_equals(RES, dt.Frame(W=[0, 1, 2], stype=target_stype))
 
 
 

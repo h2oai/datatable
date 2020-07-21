@@ -197,5 +197,32 @@ class CastString_ColumnImpl : public Cast_ColumnImpl {
 
 
 
+//------------------------------------------------------------------------------
+// CastObject_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastObject_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    using Cast_ColumnImpl::arg_;
+    using Cast_ColumnImpl::Cast_ColumnImpl;
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+
+  private:
+    template <typename V> inline bool _get_int(size_t i, V* out) const;
+    template <typename V> inline bool _get_float(size_t i, V* out) const;
+};
+
+
+
+
 }  // namespace dt
 #endif
