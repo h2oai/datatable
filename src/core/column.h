@@ -231,7 +231,6 @@ class Column
     void rbind(colvec& columns);
     void cast_inplace(dt::SType stype);
     Column cast(dt::SType stype) const;
-    Column cast(dt::SType stype, Buffer&& mr) const;
     void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);

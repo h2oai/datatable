@@ -104,7 +104,7 @@ void ColumnImpl::_materialize_obj(Column& out) {
   for (size_t i = 0; i < nrows_; ++i) {
     py::oobj value;
     bool isvalid = this->get_element(i, &value);
-    out_data[i] = isvalid? py::oobj(value) : py::None();
+    out_data[i] = isvalid? std::move(value) : py::None();
   }
   out = std::move(out_column);
 }

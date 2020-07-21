@@ -183,36 +183,21 @@ void ArrayRowIndexImpl::init_from_integer_column(const Column& col) {
   length = col.nrows();
   bool allow_arr32 = (length <= Column::MAX_ARR32_SIZE) &&
                      (max <= Column::MAX_ARR32_SIZE);
-
-  if (!col.is_virtual()) {
-    if (col.stype() == dt::SType::INT32 && allow_arr32) {
-      type = RowIndexType::ARR32;
-      buf_ = col.get_data_buffer();
-      return;
-    }
-    if (col.stype() == dt::SType::INT64) {
-      type = RowIndexType::ARR64;
-      buf_ = col.get_data_buffer();
-      return;
-    }
+  Column colcopy = col;
+  if (colcopy.stype() != dt::SType::INT64) {
+    colcopy.cast_inplace(allow_arr32? dt::SType::INT32 : dt::SType::INT64);
   }
+  colcopy.materialize();
 
-  if (allow_arr32) {
+  if (colcopy.stype() == dt::SType::INT32) {
+    xassert(allow_arr32);
     type = RowIndexType::ARR32;
-    _resize_data();
-    // Column cast either converts the data, or memcpy-es it. The `col3`s data
-    // will be written into `xbuf`, which is just a view onto `ind32`. Also,
-    // since `xbuf` is ExternalMemBuf, its memory won't be reclaimed when
-    // the column is destructed.
-    Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
-    xassert(xbuf.is_writable());
-    auto col3 = col.cast(dt::SType::INT32, std::move(xbuf));
-  } else {
+    buf_ = colcopy.get_data_buffer();
+  }
+  else {
+    xassert(colcopy.stype() == dt::SType::INT64);
     type = RowIndexType::ARR64;
-    _resize_data();
-    Buffer xbuf = Buffer::view(buf_, buf_.size(), 0);
-    xassert(xbuf.is_writable());
-    auto col3 = col.cast(dt::SType::INT64, std::move(xbuf));
+    buf_ = colcopy.get_data_buffer();
   }
 }
 

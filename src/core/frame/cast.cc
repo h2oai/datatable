@@ -611,11 +611,6 @@ Column Column::cast(dt::SType new_stype) const {
 }
 
 
-Column Column::cast(dt::SType stype, Buffer&& mem) const {
-  return casts.execute(*this, std::move(mem), stype);
-}
-
-
 
 namespace dt {
 
