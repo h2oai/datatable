@@ -84,6 +84,9 @@
   -[bug] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
 
+  -[new] Added a new function :func:`cut()` to bin numeric data
+   to equal width discrete intervals.
+
 
   Fread
   -----
@@ -209,6 +212,8 @@
 
   -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
+
+  -[fix] Fixed inconsistency in progress reporting. [#2520]
 
 
   .. contributors::
