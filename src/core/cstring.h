@@ -22,23 +22,47 @@
 #ifndef dt_CSTRING_h
 #define dt_CSTRING_h
 #include "_dt.h"
+#include "buffer.h"
 namespace dt {
 
 
 
+/**
+  * This class represents a string that can be easily passed around
+  * without copying the data. The downside is that the pointer it
+  * returns is not owned by this class, so there is always a chance
+  * to have a dangling reference.
+  *
+  * As such, whenever a function returns a CString, it must ensure
+  * that the CString is pointing to a reasonably stable underlying
+  * string object. Conversely, if a user receives a CString from a
+  * function, it must use it right away, and do not attempt to store
+  * for a prolonged period of time.
+  *
+  * Another possibility when a function needs to create and return
+  * a new string, is to use the built-in `buffer_` variable. This
+  * variable is not normally accessible from the outside, but it may
+  * serve as a character buffer that will remain alive as long as the
+  * CString object is kept alive.
+  */
 class CString
 {
   private:
     const char* ptr_;
     size_t size_;
+    Buffer buffer_;
 
   public:
     explicit CString();   // default constructor creates an NA string
     explicit CString(const char* ptr, size_t size);
     explicit CString(const std::string&);
-    CString(const CString&);
-    CString& operator=(const CString&);
+    CString(std::string&&) = delete;
+    CString(const CString&) = delete;
+    CString(CString&&) noexcept;
+    CString& operator=(CString&&);
     CString& operator=(const std::string& str);
+    CString& operator=(const CString&) = delete;
+    CString& operator=(std::string&& str) = delete;
 
     bool operator==(const CString&) const noexcept;
     bool operator<(const CString&)  const noexcept;
@@ -55,6 +79,15 @@ class CString
     // Convert to a "regular" C++ string. If this CString is NA,
     // then an empty string will be returned.
     std::string to_string() const;
+
+    // Internal buffer is prepared to write `size` bytes of data,
+    // the pointers `ptr_`+`size_` are set to match the internal
+    // buffer, so that if the user writes exactly the requested
+    // amount of data, the CString object will be ready.
+    // If the requested `size` is 0, the pointer `ptr_` will be set to
+    // some non-NULL value, so that the CString's value is equivalent
+    // to an empty string (not NA).
+    char* prepare_buffer(size_t size);
 };
 
 

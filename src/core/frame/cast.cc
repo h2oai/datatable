@@ -71,7 +71,7 @@ static inline PyObject* real_obj(T x) {
   return py::ofloat(x).release();
 }
 
-static inline PyObject* str_obj(dt::CString x) {
+static inline PyObject* str_obj(const dt::CString& x) {
   return py::ostring(x).release();
 }
 
@@ -141,7 +141,7 @@ static void cast_fw2(const Column& col, void* out_data)
 // is safe to simply overwrite the contents of that buffer. Thus,
 // the buffer should not contain any existing PyObjects.
 //
-template <typename T, PyObject* (*CAST_OP)(T)>
+template <typename T, PyObject* (*CAST_OP)(dt::ref_t<T>)>
 static void cast_to_pyobj(const Column& col, void* out_data)
 {
   auto out = static_cast<PyObject**>(out_data);

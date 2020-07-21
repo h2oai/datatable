@@ -39,36 +39,33 @@
 // Singleton, used to write the current "errno" into the stream
 CErrno Errno;
 
-static py::oobj DtExc_ImportError;
-static py::oobj DtExc_IndexError;
-static py::oobj DtExc_InvalidOperationError;
-static py::oobj DtExc_IOError;
-static py::oobj DtExc_KeyError;
-static py::oobj DtExc_MemoryError;
-static py::oobj DtExc_NotImplementedError;
-static py::oobj DtExc_OverflowError;
-static py::oobj DtExc_TypeError;
-static py::oobj DtExc_ValueError;
-static py::oobj DtWrn_DatatableWarning;
-static py::oobj DtWrn_IOWarning;
+static PyObject* DtExc_ImportError           = PyExc_Exception;
+static PyObject* DtExc_IndexError            = PyExc_Exception;
+static PyObject* DtExc_InvalidOperationError = PyExc_Exception;
+static PyObject* DtExc_IOError               = PyExc_Exception;
+static PyObject* DtExc_KeyError              = PyExc_Exception;
+static PyObject* DtExc_MemoryError           = PyExc_Exception;
+static PyObject* DtExc_NotImplementedError   = PyExc_Exception;
+static PyObject* DtExc_OverflowError         = PyExc_Exception;
+static PyObject* DtExc_TypeError             = PyExc_Exception;
+static PyObject* DtExc_ValueError            = PyExc_Exception;
+static PyObject* DtWrn_DatatableWarning      = PyExc_Exception;
+static PyObject* DtWrn_IOWarning             = PyExc_Exception;
 
-static void init() {
-  static bool initialized = false;
-  if (initialized) return;
+void init_exceptions() {
   auto dx = py::oobj::import("datatable", "exceptions");
-  DtExc_ImportError           = dx.get_attr("ImportError");
-  DtExc_IndexError            = dx.get_attr("IndexError");
-  DtExc_InvalidOperationError = dx.get_attr("InvalidOperationError");
-  DtExc_IOError               = dx.get_attr("IOError");
-  DtExc_KeyError              = dx.get_attr("KeyError");
-  DtExc_MemoryError           = dx.get_attr("MemoryError");
-  DtExc_NotImplementedError   = dx.get_attr("NotImplementedError");
-  DtExc_OverflowError         = dx.get_attr("OverflowError");
-  DtExc_TypeError             = dx.get_attr("TypeError");
-  DtExc_ValueError            = dx.get_attr("ValueError");
-  DtWrn_DatatableWarning      = dx.get_attr("DatatableWarning");
-  DtWrn_IOWarning             = dx.get_attr("IOWarning");
-  initialized = true;
+  DtExc_ImportError           = dx.get_attr("ImportError").release();
+  DtExc_IndexError            = dx.get_attr("IndexError").release();
+  DtExc_InvalidOperationError = dx.get_attr("InvalidOperationError").release();
+  DtExc_IOError               = dx.get_attr("IOError").release();
+  DtExc_KeyError              = dx.get_attr("KeyError").release();
+  DtExc_MemoryError           = dx.get_attr("MemoryError").release();
+  DtExc_NotImplementedError   = dx.get_attr("NotImplementedError").release();
+  DtExc_OverflowError         = dx.get_attr("OverflowError").release();
+  DtExc_TypeError             = dx.get_attr("TypeError").release();
+  DtExc_ValueError            = dx.get_attr("ValueError").release();
+  DtWrn_DatatableWarning      = dx.get_attr("DatatableWarning").release();
+  DtWrn_IOWarning             = dx.get_attr("IOWarning").release();
 }
 
 
@@ -131,15 +128,12 @@ std::string escape_backticks(const std::string& str) {
 
 //==============================================================================
 
-Error::Error(py::oobj cls)
-  : pycls(std::move(cls).release()) {}
-
-Error::Error(PyObject* _pycls)
-  : Error(py::oobj(_pycls)) {}
+Error::Error(PyObject* exception_class)
+  : pycls_(exception_class) {}
 
 Error::Error(const Error& other) {
   error << other.error.str();
-  pycls = other.pycls;
+  pycls_ = other.pycls_;
 }
 
 Error::Error(Error&& other) : Error(nullptr) {
@@ -153,7 +147,7 @@ Error& Error::operator=(Error&& other) {
   #else
     std::swap(error, other.error);
   #endif
-  std::swap(pycls, other.pycls);
+  std::swap(pycls_, other.pycls_);
   return *this;
 }
 
@@ -264,7 +258,7 @@ void Error::to_python() const noexcept {
   // See https://stackoverflow.com/questions/1374468
   try {
     const std::string errstr = error.str();
-    PyErr_SetString(pycls, errstr.c_str());
+    PyErr_SetString(pycls_, errstr.c_str());
   } catch (const std::exception& e) {
     PyErr_SetString(PyExc_RuntimeError, e.what());
   }
@@ -324,19 +318,18 @@ std::string PyError::message() const {
 
 //==============================================================================
 
-Error AssertionError() { return Error(PyExc_AssertionError); }
-Error RuntimeError()   { return Error(PyExc_RuntimeError); }
-Error ImportError()    { init(); return Error(DtExc_ImportError); }
-Error IndexError()     { init(); return Error(DtExc_IndexError); }
-Error IOError()        { init(); return Error(DtExc_IOError); }
-Error KeyError()       { init(); return Error(DtExc_KeyError); }
-Error MemoryError()    { init(); return Error(DtExc_MemoryError); }
-Error NotImplError()   { init(); return Error(DtExc_NotImplementedError); }
-Error OverflowError()  { init(); return Error(DtExc_OverflowError); }
-Error TypeError()      { init(); return Error(DtExc_TypeError); }
-Error ValueError()     { init(); return Error(DtExc_ValueError); }
-Error InvalidOperationError()
-                       { init(); return Error(DtExc_InvalidOperationError); }
+Error AssertionError()        { return Error(PyExc_AssertionError); }
+Error RuntimeError()          { return Error(PyExc_RuntimeError); }
+Error ImportError()           { return Error(DtExc_ImportError); }
+Error IndexError()            { return Error(DtExc_IndexError); }
+Error IOError()               { return Error(DtExc_IOError); }
+Error KeyError()              { return Error(DtExc_KeyError); }
+Error MemoryError()           { return Error(DtExc_MemoryError); }
+Error NotImplError()          { return Error(DtExc_NotImplementedError); }
+Error OverflowError()         { return Error(DtExc_OverflowError); }
+Error TypeError()             { return Error(DtExc_TypeError); }
+Error ValueError()            { return Error(DtExc_ValueError); }
+Error InvalidOperationError() { return Error(DtExc_InvalidOperationError); }
 
 
 
@@ -344,7 +337,6 @@ Error InvalidOperationError()
 //==============================================================================
 
 Warning::Warning(PyObject* cls) : Error(cls) {}
-Warning::Warning(py::oobj cls) : Error(cls) {}
 
 void Warning::emit() {
   const std::string errstr = error.str();
@@ -352,14 +344,14 @@ void Warning::emit() {
   // configured in such a way that all warnings are converted into errors,
   // then PyErr_WarnEx will return -1. At that point we should throw
   // an exception too, the error message is already set in Python.
-  int ret = PyErr_WarnEx(pycls, errstr.c_str(), 1);
+  int ret = PyErr_WarnEx(pycls_, errstr.c_str(), 1);
   if (ret) throw PyError();
 }
 
 
 Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
-Warning DatatableWarning()   { init(); return Warning(DtWrn_DatatableWarning); }
-Warning IOWarning()          { init(); return Warning(DtWrn_IOWarning); }
+Warning DatatableWarning()   { return Warning(DtWrn_DatatableWarning); }
+Warning IOWarning()          { return Warning(DtWrn_IOWarning); }
 
 
 

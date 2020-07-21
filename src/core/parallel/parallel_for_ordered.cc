@@ -19,7 +19,7 @@
 #include <vector>     // std::vector
 #include "parallel/api.h"
 #include "parallel/spin_mutex.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "progress/work.h"
 #include "utils/assert.h"
@@ -35,7 +35,7 @@ namespace dt {
 using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
-class ordered_task : public thread_task {
+class ordered_task : public ThreadTask {
   #if DT_DEBUG
     friend class ordered_scheduler;
   #endif
@@ -68,7 +68,7 @@ class ordered_task : public thread_task {
     void advance_state();
     void cancel();
     void start_iteration(size_t i);
-    void execute(thread_worker*) override;
+    void execute() override;
 };
 
 
@@ -101,7 +101,7 @@ void ordered_task::start_iteration(size_t i) {
   state = STARTING;
 }
 
-void ordered_task::execute(thread_worker*) {
+void ordered_task::execute() {
   switch (state) {
     case STARTING:  pre_ordered(n_iter); break;
     case ORDERING:  ordered(n_iter); break;
@@ -122,12 +122,12 @@ void ordered_task::execute(thread_worker*) {
 class wait_task : public ordered_task {
   public:
     wait_task();
-    void execute(thread_worker*) override;
+    void execute() override;
 };
 
 wait_task::wait_task() : ordered_task(nullptr, nullptr, nullptr) {}
 
-void wait_task::execute(thread_worker*) {
+void wait_task::execute() {
   std::this_thread::yield();
 }
 
@@ -138,7 +138,7 @@ void wait_task::execute(thread_worker*) {
 // ordered_scheduler
 //------------------------------------------------------------------------------
 
-class ordered_scheduler : public thread_scheduler {
+class ordered_scheduler : public ThreadJob {
   friend class ordered;
   private:
     size_t n_tasks;
@@ -165,7 +165,7 @@ class ordered_scheduler : public thread_scheduler {
   public:
     ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters,
                       progress::work&);
-    thread_task* get_next_task(size_t) override;
+    ThreadTask* get_next_task(size_t) override;
     void abort_execution() override;
     void wait_until_all_finalized() const;
 };
@@ -187,7 +187,7 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     ifinish(0) {}
 
 
-thread_task* ordered_scheduler::get_next_task(size_t ith) {
+ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<spin_mutex> lock(mutex);
 
@@ -355,7 +355,6 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> post_ordered)
 {
   if (sch->n_threads <= 1) {
-    MonitorGuard _;
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
@@ -422,7 +421,7 @@ void parallel_for_ordered(size_t niters, NThreads NThreads_,
   dt::progress::work job(niters);
   size_t nthreads = NThreads_.get();
 
-  thpool->instantiate_threads();  // temp fix
+  // thpool->instantiate_threads();  // temp fix
   xassert(!thpool->in_parallel_region());
   size_t nthreads0 = thpool->size();
   if (nthreads > nthreads0) nthreads = nthreads0;

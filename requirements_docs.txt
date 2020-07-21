@@ -1,4 +1,5 @@
 docutils>=0.15
+pygments
 sphinx>=1.8,<3.0
 sphinx_rtd_theme
 nbsphinx>=0.5

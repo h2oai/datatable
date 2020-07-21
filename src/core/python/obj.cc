@@ -650,6 +650,9 @@ dt::CString _obj::to_cstring(const error_manager& em) const {
   Py_ssize_t str_size;
   const char* str;
 
+  if (v == Py_None || v == nullptr) {
+    return dt::CString();
+  }
   if (PyUnicode_Check(v)) {
     str = PyUnicode_AsUTF8AndSize(v, &str_size);
     if (!str) throw PyError();  // e.g. MemoryError
@@ -657,10 +660,6 @@ dt::CString _obj::to_cstring(const error_manager& em) const {
   else if (PyBytes_Check(v)) {
     str_size = PyBytes_Size(v);
     str = PyBytes_AsString(v);
-  }
-  else if (v == Py_None) {
-    str_size = 0;
-    str = nullptr;
   }
   else {
     throw em.error_not_string(v);
@@ -676,15 +675,18 @@ std::string _obj::to_string(const error_manager& em) const {
 
 
 py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
-  if (PyUnicode_Check(v) || v == Py_None) {
-    return py::ostring(v);
+  if (v == Py_None || v == nullptr) {
+    return py::ostring();
   }
-  PyObject* w = PyObject_Str(v);
-  if (!w) {
+  if (PyUnicode_Check(v)) {
+    return py::ostring(py::robj(v));
+  }
+  PyObject* res = PyObject_Str(v);  // new reference
+  if (!res) {
     PyErr_Clear();
-    w = nullptr;
+    return py::ostring();
   }
-  return py::ostring(w);
+  return py::ostring(oobj::from_new_reference(res));
 }
 
 
@@ -696,7 +698,7 @@ py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
 py::olist _obj::to_pylist(const error_manager& em) const {
   if (is_none()) return py::olist(nullptr);
   if (is_list() || is_tuple()) {
-    return py::olist(v);
+    return py::olist(py::robj(v));
   }
   throw em.error_not_list(v);
 }
@@ -992,24 +994,26 @@ oobj _obj::call(otuple args, odict kws) const {
 
 
 ostring _obj::str() const {
-  return ostring::from_new_reference(PyObject_Str(v));
+  PyObject* res = PyObject_Str(v);
+  if (!res) throw PyError();
+  return ostring(oobj::from_new_reference(res));
 }
 
 
 ostring _obj::repr() const {
-  PyObject* reprobj = PyObject_Repr(v);
-  if (!reprobj) throw PyError();
-  return ostring::from_new_reference(reprobj);
+  PyObject* res = PyObject_Repr(v);
+  if (!res) throw PyError();
+  return ostring(oobj::from_new_reference(res));
 }
 
 
 ostring _obj::safe_repr() const {
-  PyObject* reprobj = PyObject_Repr(v);
-  if (!reprobj) {
+  PyObject* res = PyObject_Repr(v);
+  if (!res) {
     PyErr_Clear();
     return ostring("<?>");
   }
-  return ostring::from_new_reference(reprobj);
+  return ostring(oobj::from_new_reference(res));
 }
 
 

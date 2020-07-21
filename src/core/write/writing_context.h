@@ -61,7 +61,7 @@ class writing_context {
 
     void ensure_buffer_capacity(size_t sz);
     void finalize_buffer();
-    CString get_buffer() const;
+    const CString& get_buffer() const;
     void reset_buffer();
 
     void write_na() {}

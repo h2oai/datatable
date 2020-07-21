@@ -22,11 +22,12 @@
 #include <cstdio>                   // std::remove, std::perror
 #include <cstdlib>                  // std::rand
 #include <ctime>
+#include "buffer.h"
 #include "parallel/api.h"
 #include "python/obj.h"
 #include "utils/temporary_file.h"
 #include "utils/macros.h"
-#include "buffer.h"
+#include "writebuf.h"
 
 
 static std::string get_temp_dir() {

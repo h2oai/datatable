@@ -35,11 +35,16 @@
 // ---------------------------------------------------------------------------
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <new>
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 #include <utility>

@@ -259,13 +259,3 @@ class Option:
         self._value = x
         if self._onchange is not None:
             self._onchange(x)
-
-
-
-
-#-------------------------------------------------------------------------------
-# Global options store
-#-------------------------------------------------------------------------------
-
-options = Config(options={}, prefix="")
-core.initialize_options(options)

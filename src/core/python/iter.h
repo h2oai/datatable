@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_PYTHON_ITER_h
 #define dt_PYTHON_ITER_h
+#include <iterator>        // std::input_iterator_tag
 #include "python/obj.h"
 
 namespace py {

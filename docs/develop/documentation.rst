@@ -10,9 +10,9 @@ The basic workflow for developing documentation, after
 :ref:`setting up a local datatable repository <local-setup>`, is to go into
 the ``docs/`` directory and run
 
-.. code-block:: bash
+.. xcode:: shell
 
-    make html
+    $ make html
 
 After that, if there were no errors, the documentation can be viewed locally
 by opening the file ``docs/_build/html/index.html`` in a browser.
@@ -96,15 +96,15 @@ paragraph (code) indented with 4 spaces::
         print("Hello, world!", flush=True)
 
 
-A slightly more advanced method is to use an explicit ``code-block`` directive::
+A slightly more advanced method is to use an explicit ``xcode`` directive::
 
-    .. code-block:: bash
+    .. xcode:: shell
 
         $ pip install datatable
 
 This directive allows you to explicitly select the language of your code snippet,
-which will affect how it is highlighted. The code inside ``code-block`` must be
-indented, and there has to be an empty line between the ``.. code-block::``
+which will affect how it is highlighted. The code inside ``xcode`` must be
+indented, and there has to be an empty line between the ``.. xcode::``
 declaration and the actual code.
 
 

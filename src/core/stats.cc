@@ -30,6 +30,7 @@
 #include "ltype.h"
 #include "models/murmurhash.h"
 #include "parallel/api.h"
+#include "parallel/shared_mutex.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "rowindex.h"
@@ -326,7 +327,7 @@ double NumericStats<T>::mode_double(bool* isvalid) {
 dt::CString StringStats::mode_string(bool* isvalid) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats();
   _fill_validity_flag(Stat::Mode, isvalid);
-  return _mode;
+  return dt::CString(mode_);
 }
 
 
@@ -485,7 +486,7 @@ void NumericStats<T>::set_mode(double value, bool isvalid) {
 }
 
 void StringStats::set_mode(const dt::CString& value, bool isvalid) {
-  _mode = value;
+  mode_ = value.to_string();
   set_valid(Stat::Mode, isvalid);
 }
 
@@ -639,17 +640,17 @@ void StringStats::compute_nunique() {
     [&](size_t i) {
       size_t j0 = i * batch_size;
       size_t j1 = std::min(j0 + batch_size, column->nrows());
-      dt::CString str;
+      dt::CString cstr;
       for (size_t j = j0; j < j1; ++j) {
-        bool isvalid = column->get_element(j, &str);
+        bool isvalid = column->get_element(j, &cstr);
         if (!isvalid) continue;
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, false);
-          if (values_seen.contains(str)) continue;
+          if (values_seen.contains(cstr)) continue;
         }
         {
           dt::shared_lock<dt::shared_bmutex> lock(rwmutex, true);
-          values_seen.insert(str);
+          values_seen.insert(std::move(cstr));
         }
       }
     });
@@ -1170,9 +1171,20 @@ std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this
 template <typename T>
 std::unique_ptr<Stats> IntegerStats<T>::clone() const { return this->_clone(this); }
 std::unique_ptr<Stats> BooleanStats::clone()    const { return this->_clone(this); }
-std::unique_ptr<Stats> StringStats::clone()     const { return this->_clone(this); }
 std::unique_ptr<Stats> PyObjectStats::clone()   const { return this->_clone(this); }
 
+// StringStats contains a `std::string` object, which cannot be copied
+// using memcpy.
+std::unique_ptr<Stats> StringStats::clone() const {
+  auto res = std::make_unique<StringStats>(column);
+  res->_computed = this->_computed;
+  res->_valid    = this->_valid;
+  res->_countna  = this->_countna;
+  res->_nunique  = this->_nunique;
+  res->_nmodal   = this->_nmodal;
+  res->mode_     = this->mode_;  // copy string
+  return std::move(res);
+}
 
 
 
@@ -1205,7 +1217,7 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
       "valid=" << isvalid1 << " in the Stats object, but was valid=" << isvalid2
       << " upon re-checking";
   }
-  if (isvalid1 && !_equal(value1, value2)) {
+  if (isvalid1 && !_equal<dt::ref_t<T>>(value1, value2)) {
     throw AssertionError() << "Stat " << stat_name(stat) << "'s value is "
       << value1 << ", but it was " << value2 << " upon recalculation";
   }
@@ -1321,7 +1333,9 @@ static Column _make_column_str(const dt::CString& value) {
     mbuf.set_element<T>(0, 0);
     mbuf.set_element<T>(1, static_cast<T>(len));
     strbuf.resize(len);
-    std::memcpy(strbuf.wptr(), value.data(), len);
+    if (len) {
+      std::memcpy(strbuf.wptr(), value.data(), len);
+    }
   }
   return Column::new_string_column(1, std::move(mbuf), std::move(strbuf));
 }

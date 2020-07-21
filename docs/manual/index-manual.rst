@@ -7,3 +7,4 @@ User Guide
 	name_mangling
 	f-expressions
 	fread_examples
+	groupby_examples

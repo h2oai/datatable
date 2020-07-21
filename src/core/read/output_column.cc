@@ -26,6 +26,7 @@
 #include "column.h"
 #include "ltype.h"
 #include "stype.h"
+#include "writebuf.h"
 namespace dt {
 namespace read {
 
@@ -59,6 +60,7 @@ void* OutputColumn::data_w(size_t row) const {
 
 
 MemoryWritableBuffer* OutputColumn::strdata_w() {
+  xassert(strbuf_);
   return strbuf_.get();
 }
 
@@ -157,6 +159,7 @@ void OutputColumn::allocate(size_t new_nrows) {
   databuf_.resize(allocsize);
 
   if (is_string) {
+    xassert(databuf_.xptr());
     size_t zero = 0;
     std::memcpy(databuf_.xptr(), &zero, elemsize);
     if (!strbuf_) {

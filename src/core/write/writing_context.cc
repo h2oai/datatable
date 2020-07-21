@@ -68,7 +68,7 @@ void writing_context::reset_buffer() {
 }
 
 
-CString writing_context::get_buffer() const {
+const CString& writing_context::get_buffer() const {
   xassert(!output.isna());
   return output;
 }

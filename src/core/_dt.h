@@ -21,10 +21,12 @@
 //------------------------------------------------------------------------------
 #ifndef dt__DT_h
 #define dt__DT_h
-#include <cstdint>
-#include <memory>
-#include <string>
-#include <vector>
+#include <cstddef>      // std::size_t
+#include <cstdint>      // uint8_t
+#include <memory>       // std::unique_ptr
+#include <string>       // std::string
+#include <utility>      // std::move, std::pair
+#include <vector>       // std::vector
 
 typedef struct _object     PyObject;
 typedef struct _typeobject PyTypeObject;

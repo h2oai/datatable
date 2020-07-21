@@ -22,6 +22,7 @@
 #ifndef dt_ROWINDEX_h
 #define dt_ROWINDEX_h
 #include <cstdint>
+#include <limits>      // std::numeric_limits
 #include "buffer.h"
 
 class Column;
