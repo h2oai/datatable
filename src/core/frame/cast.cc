@@ -604,8 +604,10 @@ void Column::cast_inplace(dt::SType new_stype) {
 }
 
 
-Column Column::cast(dt::SType stype) const {
-  return casts.execute(*this, Buffer(), stype);
+Column Column::cast(dt::SType new_stype) const {
+  Column newcol(*this);
+  newcol.cast_inplace(new_stype);
+  return newcol;
 }
 
 

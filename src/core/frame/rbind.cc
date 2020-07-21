@@ -569,15 +569,11 @@ void dt::SentinelObj_ColumnImpl::rbind_impl(
     if (col.stype() == dt::SType::VOID) {
       dest_data += col.nrows();
     } else {
-      if (col.stype() != dt::SType::OBJ) {
-        col = col.cast(stype_);
-      }
-      auto src_data = static_cast<PyObject* const*>(
-                        col.get_data_readonly());
+      col.cast_inplace(dt::SType::OBJ);
       for (size_t i = 0; i < col.nrows(); ++i) {
-        Py_INCREF(src_data[i]);
-        Py_DECREF(*dest_data);
-        *dest_data = src_data[i];
+        auto dd = reinterpret_cast<py::oobj*>(dest_data);
+        bool isvalid = col.get_element(i, dd);
+        if (!isvalid) *dd = py::None();
         dest_data++;
       }
     }
