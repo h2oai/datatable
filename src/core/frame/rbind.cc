@@ -384,6 +384,7 @@ void Column::rbind(colvec& columns) {
   newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
   if (new_stype != dt::SType::VOID) {
     newcol.cast_inplace(new_stype);
+    newcol.materialize();
     newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
   }
 

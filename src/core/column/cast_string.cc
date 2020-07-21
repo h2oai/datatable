@@ -19,9 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cmath>            // std::ismath
-#include <cstdlib>          // std::strtod
+#include <cmath>             // std::ismath
+#include <cstdlib>           // std::strtod
 #include "column/cast.h"
+#include "python/string.h"
+#include "read/constants.h"  // dt::read::pow10lookup
 namespace dt {
 
 
@@ -93,7 +95,6 @@ bool CastString_ColumnImpl::get_element(size_t i, int64_t* out) const {
 // Parse floats
 //------------------------------------------------------------------------------
 
-/*
 static bool parse_double(const char* ch, const char* end, double* out) {
   constexpr int MAX_DIGITS = 18;
   if (ch == end) return false;
@@ -128,11 +129,11 @@ static bool parse_double(const char* ch, const char* end, double* out) {
       ch++;
       e++;
     }
-    if (ch == end || *ch != ctx.dec) goto fail;
+    if (ch == end || *ch != '.') return false;
   }
 
   // Read the fractional part of the number, if it's present
-  if (ch < end && *ch == ctx.dec) {
+  if (ch < end && *ch == '.') {
     ch++;  // skip the dot
     // If the integer part was 0, then leading zeros in the fractional part do
     // not count against the number's precision: skip them.
@@ -158,12 +159,12 @@ static bool parse_double(const char* ch, const char* end, double* out) {
     }
     // Check that at least 1 digit was present either in the integer or
     // fractional part ("+1" here accounts for the decimal point symbol).
-    if (ch == start + 1) goto fail;
+    if (ch == start + 1) return false;
   }
   // If there is no fractional part, then check that the integer part actually
   // exists (otherwise it's not a valid number)...
   else {
-    if (ch == start) goto fail;
+    if (ch == start) return false;
   }
 
   // Now scan the "exponent" part of the number (if present)
@@ -187,34 +188,28 @@ static bool parse_double(const char* ch, const char* end, double* out) {
         }
       }
     } else {
-      goto fail;
+      return false;
     }
     e += Eneg? -exp : exp;
   }
   e += 350; // lookup table is arranged from -350 (0) to +350 (700)
-  if (e < 0 || e > 700) goto fail;
+  if (e < 0 || e > 700 || ch != end) return false;
 
-  double r = static_cast<double>(static_cast<long double>(mantissa) * dt::read::pow10lookup[e]);
-  ctx.target->float64 = negative? -r : r;
-  ctx.ch = ch;
-  return;
-
-  fail: {
-    ctx.target->uint64 = NA_FLOAT64_I64;
-  }
+  double r = static_cast<double>(static_cast<long double>(mantissa) *
+                                 dt::read::pow10lookup[e]);
+  *out = negative? -r : r;
+  return true;
 }
-*/
+
 
 template <typename V>
 inline bool CastString_ColumnImpl::_get_float(size_t i, V* out) const {
   CString x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    const char* start = x.data();
-    const char* end = x.end();
-    double y = std::strtod(start, const_cast<char**>(&end));
+    double y;
+    isvalid = parse_double(x.data(), x.end(), &y);
     *out = static_cast<V>(y);
-    isvalid = (end == x.end) && !std::isnan(y);
   }
   return isvalid;
 }
@@ -230,39 +225,25 @@ bool CastString_ColumnImpl::get_element(size_t i, double* out) const {
 }
 
 
-/*
 
-bool CastString_ColumnImpl::get_element(size_t i, CString* out)  const {
-  int8_t x;
-  bool isvalid = arg_.get_element(i, &x);
-  if (isvalid) {
-    if (x) out->set("True", 4);
-    else   out->set("False", 5);
-  }
-  return isvalid;
+//------------------------------------------------------------------------------
+// Parse other
+//------------------------------------------------------------------------------
+
+bool CastString_ColumnImpl::get_element(size_t i, CString* out) const {
+  return arg_.get_element(i, out);
 }
 
 
 bool CastString_ColumnImpl::get_element(size_t i, py::oobj* out) const {
-  static py::oobj obj_true = py::True();
-  static py::oobj obj_false = py::False();
-  int8_t x;
+  CString x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    *out = x? obj_true : obj_false;
+    *out = py::ostring(x);
   }
   return isvalid;
 }
 
-
-template <typename T>
-inline bool CastString_ColumnImpl::_get(size_t i, T* out) const {
-  int8_t x;
-  bool isvalid = arg_.get_element(i, &x);
-  *out = static_cast<T>(x);
-  return isvalid;
-}
-*/
 
 
 
