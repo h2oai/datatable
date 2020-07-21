@@ -71,7 +71,7 @@ namespace dt {
  *       2.3) When `min != max`, and `right_closed == false`, set
  *
  *              a = (1 - epsilon) * nbins / (max - min)
- *              b = -a * min + (epsilon - 1) * nbins
+ *              b = -a * max
  *              shift = nbins - 1;
  *
  *            scaling data to [epsilon - 1; 0], multiplying them by `nbins`,
@@ -169,8 +169,9 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
       } else {
         a = (1 - epsilon) * nbins / (max - min);
         b = -a * min;
+
         if (!right_closed) {
-          b += (epsilon - 1) * nbins;
+          b = -a * max;
           shift = nbins - 1;
         }
       }
