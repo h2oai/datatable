@@ -19,6 +19,9 @@
   -[new] Added ability to cast string columns into numeric types: int, float
     or boolean. [#1313]
 
+  -[new] Added a new function :func:`cut()` to bin numeric data
+   to equal width discrete intervals.
+
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]
 
@@ -83,9 +86,6 @@
 
   -[bug] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
-
-  -[new] Added a new function :func:`cut()` to bin numeric data
-   to equal width discrete intervals.
 
 
   Fread
