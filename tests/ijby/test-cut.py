@@ -45,17 +45,17 @@ def test_cut_error_wrong_column_types():
 
 
 def test_cut_error_negative_bins():
-    msg = "Integer value cannot be negative"
+    msg = "Number of bins must be positive, instead got: -10"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
         cut(DT, -10)
 
 
 def test_cut_error_negative_bins_list():
-    msg = "Integer value cannot be negative"
+    msg = r"All elements in nbins must be positive, got nbins\[0\]: 0"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        cut(DT, [10, -1])
+        cut(DT, [0, -1])
 
 
 def test_cut_error_inconsistent_bins():
@@ -83,11 +83,6 @@ def test_cut_error_groupby():
 def test_cut_empty_frame():
     DT_cut = cut(dt.Frame())
     assert_equals(DT_cut, dt.Frame())
-
-
-def test_cut_zero_bins():
-    DT_cut = cut(dt.Frame(range(10)), 0)
-    assert_equals(DT_cut, dt.Frame([None] * 10, stypes = [stype.int32]))
 
 
 def test_cut_trivial():

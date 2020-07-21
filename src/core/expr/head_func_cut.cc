@@ -56,11 +56,11 @@ Workframe Head_Func_Cut::evaluate_n(
     throw NotImplError() << "cut() cannot be used in a groupby context";
   }
 
-  size_t nbins_default = 10;
+  int32_t nbins_default = 10;
   Workframe wf = args[0].evaluate_n(ctx);
   const size_t ncols = wf.ncols();
 
-  sztvec nbins(ncols);
+  int32vec nbins(ncols);
   bool defined_nbins = !py_nbins_.is_none();
   bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
 
@@ -75,13 +75,25 @@ Workframe Head_Func_Cut::evaluate_n(
 
     size_t i = 0;
     for (auto py_nbin : py_nbins) {
-      size_t nbin = py_nbin.to_size_t();
+      int32_t nbin = py_nbin.to_int32_strict();
+      if (nbin <= 0) {
+        throw ValueError() << "All elements in `nbins` must be positive, "
+                              "got `nbins[" << i << "`]: `" << nbin << "`";
+      }
+
       nbins[i++] = nbin;
     }
     xassert(i == ncols);
 
   } else {
-    if (defined_nbins) nbins_default = py_nbins_.to_size_t();
+    if (defined_nbins) {
+      nbins_default = py_nbins_.to_int32_strict();
+      if (nbins_default <= 0) {
+        throw ValueError() << "Number of bins must be positive, "
+                              "instead got: `" << nbins_default << "`";
+      }
+    }
+
     for (size_t i = 0; i < ncols; ++i) {
       nbins[i] = nbins_default;
     }
@@ -90,14 +102,9 @@ Workframe Head_Func_Cut::evaluate_n(
   // Cut workframe in-place
   for (size_t i = 0; i < ncols; ++i) {
     Column coli = wf.retrieve_column(i);
-
-    // If number of bins is zero, we immediately bin all values to NA's
-    if (nbins[i] == 0) {
-      coli = Column(new ConstNa_ColumnImpl(coli.nrows(), dt::SType::INT32));
-    } else {
-      coli = Column(Cut_ColumnImpl::make(std::move(coli), i, nbins[i], right_closed_));
-    }
-
+    coli = Column(Cut_ColumnImpl::make(
+             std::move(coli), i, nbins[i], right_closed_
+           ));
     wf.replace_column(i, std::move(coli));
   }
 

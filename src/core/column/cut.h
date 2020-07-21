@@ -88,8 +88,8 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     size_t: 32;
 
   public:
-    static ColumnImpl* make(Column&& col, size_t icol, size_t nbins, bool right_closed) {
-      xassert(nbins != 0);
+    static ColumnImpl* make(Column&& col, size_t icol, int32_t nbins, bool right_closed) {
+      xassert(nbins > 0);
 
       bool min_valid, max_valid;
       double min, max;
@@ -156,7 +156,7 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
 
     static void compute_cut_coeffs(double& a, double& b, int32_t& shift,
                                    const double min, const double max,
-                                   const size_t nbins, const bool right_closed)
+                                   const int32_t nbins, const bool right_closed)
     {
       constexpr double epsilon = static_cast<double>(
                                    std::numeric_limits<float>::epsilon()
@@ -171,7 +171,7 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
         b = -a * min;
         if (!right_closed) {
           b += (epsilon - 1) * nbins;
-          shift = static_cast<int32_t>(nbins) - 1;
+          shift = nbins - 1;
         }
       }
     }
