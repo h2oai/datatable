@@ -114,7 +114,7 @@ class ColumnImpl
     virtual Buffer      get_data_buffer(size_t k) const = 0;
 
     virtual void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                                   WritableBuffer*) const = 0;
+                                   WritableBuffer*) = 0;
 
 
   //------------------------------------

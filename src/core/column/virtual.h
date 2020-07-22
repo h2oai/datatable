@@ -45,7 +45,7 @@ class Virtual_ColumnImpl : public ColumnImpl
     void* get_data_editable(size_t k) override;
     Buffer get_data_buffer(size_t k) const override;
     void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                           WritableBuffer*) const override;
+                           WritableBuffer*) override;
 
 };
 
