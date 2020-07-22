@@ -125,8 +125,10 @@ dt::ColumnImpl* Column::_get_mutable_impl(bool keep_stats) {
   xassert(impl_);
   if (impl_->refcount_ > 1) {
     auto newimpl = impl_->clone();
-    xassert(!newimpl->stats_);
-    if (keep_stats && impl_->stats_) {
+    if (newimpl->stats_) {
+      if (!keep_stats) newimpl->stats_ = nullptr;
+    }
+    else if (keep_stats && impl_->stats_) {
       newimpl->stats_ = impl_->stats_->clone();
       newimpl->stats_->column = newimpl;
     }
