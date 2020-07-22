@@ -381,3 +381,19 @@ void Column::verify_integrity() const {
 void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
   impl_->fill_npmask(out_mask, row0, row1);
 }
+
+
+void Column::cast_inplace(dt::SType new_stype) {
+  if (new_stype == stype()) return;
+  bool done = impl_->cast_const(new_stype, *this);
+  if (!done) {
+    _get_mutable_impl()->cast_mutate(new_stype);
+  }
+}
+
+
+Column Column::cast(dt::SType new_stype) const {
+  Column newcol(*this);
+  newcol.cast_inplace(new_stype);
+  return newcol;
+}
