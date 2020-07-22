@@ -30,6 +30,7 @@
 #include "python/string.h"
 #include "utils/assert.h"
 #include "datatable.h"
+#include "ltype.h"
 #include "stype.h"
 #include "writebuf.h"
 
@@ -211,6 +212,15 @@ void dt::Rbound_ColumnImpl::write_data_to_jay(
     for (const Column& col : chunks_) {
       const void* data = col.get_data_readonly(i);
       size_t size = col.get_data_size(i);
+      // When rbinding string columns, the offsets buffer contains an extra
+      // 0 at the beginning. This 0 should be stripped from all chunks except
+      // the first one.
+      if (pos0 && i == 0 && col.ltype() == dt::LType::STRING) {
+        size_t elemsize = stype_elemsize(col.stype());
+        xassert(size == (col.nrows() + 1) * elemsize);
+        size -= elemsize;
+        data = static_cast<const char*>(data) + elemsize;
+      }
       size_t pos = wb->write(size, data);
       xassert(pos >= 8);
       if (!pos0) pos0 = pos;
