@@ -22,6 +22,9 @@
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
+  -[new] Added a new function :func:`cut()` to bin numeric data
+   to equal-width discrete intervals.
+
   -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
     and ``>=``. [#2274]
 
@@ -215,6 +218,8 @@
 
   -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
+
+  -[fix] Fixed inconsistency in progress reporting. [#2520]
 
 
   .. contributors::

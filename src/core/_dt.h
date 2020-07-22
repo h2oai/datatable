@@ -53,6 +53,8 @@ using dtptr = std::unique_ptr<DataTable>;
 using colvec = std::vector<Column>;
 using strvec = std::vector<std::string>;
 using sztvec = std::vector<size_t>;
+using int32vec = std::vector<int32_t>;
+using dblvec = std::vector<double>;
 using RiGb = std::pair<RowIndex, Groupby>;
 
 

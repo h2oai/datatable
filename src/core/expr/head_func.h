@@ -163,6 +163,19 @@ class Head_Func_IfElse : public Head_Func {
 
 
 
+class Head_Func_Cut : public Head_Func {
+  private:
+    py::oobj py_nbins_;
+    bool right_closed_;
+    size_t: 56;
+
+  public:
+    Head_Func_Cut(py::oobj py_nbins, py::oobj right_closed);
+    static ptrHead make(Op, const py::otuple& params);
+
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+};
+
 
 }}  // namespace dt::expr
 #endif

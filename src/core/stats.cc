@@ -179,7 +179,7 @@ bool Stats::get_stat(Stat stat, size_t* out) {
   return ret;
 }
 
-bool Stats::get_stat(Stat stat, double* out)   {
+bool Stats::get_stat(Stat stat, double* out) {
   bool ret;
   *out = get_stat_double(stat, &ret);
   return ret;
