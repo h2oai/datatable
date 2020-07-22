@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/oset.h"
+#include "python/set.h"
 #include "python/python.h"
 namespace py {
 
@@ -33,21 +33,7 @@ oset::oset() {
   if (!v) throw PyError();
 }
 
-oset::oset(const oset& other) : oobj(other) {}
-
-oset::oset(oset&& other) : oobj(std::move(other)) {}
-
-oset& oset::operator=(const oset& other) {
-  oobj::operator=(other);
-  return *this;
-}
-
-oset& oset::operator=(oset&& other) {
-  oobj::operator=(std::move(other));
-  return *this;
-}
-
-oset::oset(PyObject* src) : oobj(src) {}
+oset::oset(const robj& src) : oobj(src) {}
 
 
 

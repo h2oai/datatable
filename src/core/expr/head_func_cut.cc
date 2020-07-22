@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -56,11 +56,11 @@ Workframe Head_Func_Cut::evaluate_n(
     throw NotImplError() << "cut() cannot be used in a groupby context";
   }
 
-  size_t nbins_default = 10;
+  int32_t nbins_default = 10;
   Workframe wf = args[0].evaluate_n(ctx);
   const size_t ncols = wf.ncols();
 
-  sztvec nbins(ncols);
+  int32vec nbins(ncols);
   bool defined_nbins = !py_nbins_.is_none();
   bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
 
@@ -75,13 +75,25 @@ Workframe Head_Func_Cut::evaluate_n(
 
     size_t i = 0;
     for (auto py_nbin : py_nbins) {
-      size_t nbin = py_nbin.to_size_t();
+      int32_t nbin = py_nbin.to_int32_strict();
+      if (nbin <= 0) {
+        throw ValueError() << "All elements in `nbins` must be positive, "
+                              "got `nbins[" << i << "`]: `" << nbin << "`";
+      }
+
       nbins[i++] = nbin;
     }
     xassert(i == ncols);
 
   } else {
-    if (defined_nbins) nbins_default = py_nbins_.to_size_t();
+    if (defined_nbins) {
+      nbins_default = py_nbins_.to_int32_strict();
+      if (nbins_default <= 0) {
+        throw ValueError() << "Number of bins must be positive, "
+                              "instead got: `" << nbins_default << "`";
+      }
+    }
+
     for (size_t i = 0; i < ncols; ++i) {
       nbins[i] = nbins_default;
     }
@@ -90,26 +102,9 @@ Workframe Head_Func_Cut::evaluate_n(
   // Cut workframe in-place
   for (size_t i = 0; i < ncols; ++i) {
     Column coli = wf.retrieve_column(i);
-
-    switch (coli.stype()) {
-      case dt::SType::BOOL:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT8:    coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT16:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT32:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::INT64:   coli = Column(Cut_ColumnImpl::make<int64_t>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::FLOAT32: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      case dt::SType::FLOAT64: coli = Column(Cut_ColumnImpl::make<double>(std::move(coli), nbins[i], right_closed_));
-                               break;
-      default:  throw TypeError() << "cut() can only be applied to numeric "
-                  << "columns, instead column `" << i << "` has an stype: `"
-                  << coli.stype() << "`";
-    }
+    coli = Column(Cut_ColumnImpl::make(
+             std::move(coli), i, nbins[i], right_closed_
+           ));
     wf.replace_column(i, std::move(coli));
   }
 
@@ -133,26 +128,19 @@ static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
                            otuple{ slice_all },
                            otuple{ oint(0) });
   auto cutexpr = make_pyexpr(dt::expr::Op::CUT,
-                               otuple{ f_all },
-                               otuple{ arg1, arg2 });
+                             otuple{ f_all },
+                             otuple{ arg1, arg2 });
   auto frame = static_cast<Frame*>(arg0.to_borrowed_ref());
   return frame->m__getitem__(otuple{ slice_all, cutexpr });
 }
 
 
-
-static PKArgs args_cut(
-  1, 2, 0, false, false,
-  {
-    "cols", "nbins", "right_closed"
-  },
-  "cut",
-
+static const char* doc_cut =
 R"(cut(cols, nbins=10, right_closed=True)
 --
 
 Cut all the columns in a Frame/f-expression by binning
-their values into equal width discrete intervals.
+their values into equal-width discrete intervals.
 
 Parameters
 ----------
@@ -166,12 +154,31 @@ nbins: int | list of ints | tuple of ints
     the list/tuple length must be equal to the number of columns
     in `cols`.
 right_closed: bool
-    Indicates whether bins should include the rightmost edge or not.
+    Each binning interval is `half-open`_. This flag indicates which
+    side of the interval is closed.
 
-Returns
--------
-Frame/f-expression, where each column is filled with the respective bin ids.
-)"
+return: Frame | Expr
+    The return type matches the type of the `cols` argument.
+    If the function is applied to a frame, then the result is a frame where
+    each column from the original frame has been cut into the specified bins.
+    If the `cols` argument is an f-expression, then the result is a new
+    f-expression that transforms every column into its cut version.
+
+See also
+--------
+:func:`qcut()` -- function for quantile binning.
+
+.. _`half-open`: https://en.wikipedia.org/wiki/Interval_(mathematics)#Terminology
+
+)";
+
+
+static PKArgs args_cut(
+  1, 0, 2, false, false,
+  {
+    "cols", "nbins", "right_closed"
+  },
+  "cut", doc_cut
 );
 
 

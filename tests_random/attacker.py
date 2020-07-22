@@ -224,6 +224,8 @@ def fork_and_run(frame, nrounds):
     seed = random.getrandbits(64)
     try:
         frame.save_to_jay(filename)
+        print("Starting mp.Process for fattack(%r, %r, %r)"
+              % (filename, seed, nrounds))
         process = mp.Process(target=fattack, args=(filename, seed, nrounds))
         process.start()
         process.join()

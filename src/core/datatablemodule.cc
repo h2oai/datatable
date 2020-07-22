@@ -51,6 +51,7 @@
 #include "read/py_read_iterator.h"
 #include "sort.h"
 #include "utils/assert.h"
+#include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
@@ -323,13 +324,21 @@ static void initialize_options(const py::PKArgs& args) {
   if (!options) return;
 
   dt::use_options_store(options);
-  dt::thread_pool::init_options();
+  dt::ThreadPool::init_options();
   dt::progress::init_options();
   py::Frame::init_names_options();
   py::Frame::init_display_options();
   dt::read::GenericReader::init_options();
   sort_init_options();
   dt::CallLogger::init_options();
+}
+
+
+static py::PKArgs args_initialize_final(
+  0, 0, 0, false, false, {}, "initialize_final", "");
+
+static void initialize_final(const py::PKArgs&) {
+  init_exceptions();
 }
 
 
@@ -347,6 +356,7 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
+  ADD_FN(&initialize_final, args_initialize_final);
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
@@ -356,7 +366,6 @@ void py::DatatableModule::init_methods() {
   init_methods_cbind();
   init_methods_csv();
   init_methods_cut();
-  init_methods_qcut();
   init_methods_ifelse();
   init_methods_isclose();
   init_methods_jay();
@@ -368,6 +377,7 @@ void py::DatatableModule::init_methods() {
   init_methods_shift();
   init_methods_str();
   init_methods_styles();
+  init_methods_qcut();
 
   init_casts();
   init_fbinary();

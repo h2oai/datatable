@@ -535,3 +535,9 @@ def test_issue2458(capsys):
     mm = re.search(r"\(\s?(\d+)%\) saving into the output frame", out)
     time_percent = int(mm.group(1))
     assert time_percent < 30
+
+
+def test_issue2523():
+    # Make sure no AssertionError occurs here
+    with pytest.raises(IOError):
+        dt.fread("{\n  \"cells\": [\n    {\n\"import numpy \\n\",\n")

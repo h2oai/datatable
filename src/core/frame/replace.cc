@@ -420,7 +420,7 @@ void ReplaceAgent::split_x_y_str() {
   }
   if (!na_repl.isna()) {
     x_str.push_back(dt::CString());
-    y_str.push_back(na_repl);
+    y_str.push_back(std::move(na_repl));
   }
 }
 

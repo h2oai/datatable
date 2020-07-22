@@ -106,10 +106,10 @@ void config_option::impl_init_type(XTypeMaker& xt) {
 namespace dt {
 
 
-static py::oobj dt_options = nullptr;
+static PyObject* dt_options = nullptr;
 
 void use_options_store(py::oobj options) {
-  dt_options = options;
+  dt_options = std::move(options).release();
 }
 
 
@@ -130,12 +130,12 @@ void register_option(const char* name,
   p->getter = std::move(getter);
   p->setter = std::move(setter);
   p->arg = new py::Arg(name);
-  dt_options.invoke("register", opt);
+  py::robj(dt_options).invoke("register", opt);
 }
 
 
 py::oobj get_option(const char* name) {
-  return dt_options.invoke("get", py::ostring(name));
+  return py::robj(dt_options).invoke("get", py::ostring(name));
 }
 
 void init_config_option(void* module) {

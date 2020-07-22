@@ -32,14 +32,15 @@ class olist : public oobj {
     size_t : 56;
 
   public:
-    olist();
-    olist(int n);
-    olist(size_t n);
-    olist(int64_t n);
-    olist(const olist&);
-    olist(olist&&);
-    olist& operator=(const olist&);
-    olist& operator=(olist&&);
+    olist() = default;
+    olist(const olist&) = default;
+    olist(olist&&) = default;
+    olist& operator=(const olist&) = default;
+    olist& operator=(olist&&) = default;
+
+    explicit olist(int n);
+    explicit olist(size_t n);
+    explicit olist(int64_t n);
 
     operator bool() const noexcept;
     size_t size() const noexcept;
@@ -58,9 +59,8 @@ class olist : public oobj {
     void append(const _obj& value);
 
   private:
-    // Wrap an existing PyObject* into an `olist`. This constructor is private,
-    // use `py::robj(src).to_pylist()` instead.
-    olist(PyObject* src);
+    // Private constructor for ust by py::_obj
+    explicit olist(const robj&);
 
     friend class _obj;
 };

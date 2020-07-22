@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <ios>        // std::hex, std::dec
 #include <sstream>
 #include "frame/py_frame.h"
 #include "frame/repr/repr_options.h"

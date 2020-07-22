@@ -102,6 +102,7 @@
   #include <iomanip>
   #include <ios>
   #include <iostream>
+  #include <ostream>
   #include <vector>
   #include <stdio.h>
   #include <unistd.h>

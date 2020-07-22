@@ -44,6 +44,7 @@
 #define dt_PARALLEL_SEMAPHORE_h
 #include <atomic>
 #include <algorithm>
+#include <thread>          // std::this_thread
 #include "utils/assert.h"
 #include "utils/macros.h"
 namespace dt {

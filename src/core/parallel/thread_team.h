@@ -19,24 +19,23 @@
 #include <cstddef>
 #include "parallel/thread_pool.h"
 #include <atomic>
-
 namespace dt {
 
 // Forward-declare
-class thread_scheduler;
+class ThreadJob;
 
 
 
 class thread_team {
   private:
     size_t nthreads;
-    thread_pool* thpool;
-    std::atomic<thread_scheduler*> nested_scheduler;
+    ThreadPool* thpool;
+    std::atomic<ThreadJob*> nested_scheduler;
 
     std::atomic<size_t> barrier_counter;
 
   public:
-    thread_team(size_t nth, thread_pool*);
+    thread_team(size_t nth, ThreadPool*);
     ~thread_team();
 
     size_t size() const noexcept;
@@ -45,7 +44,7 @@ class thread_team {
     S* shared_scheduler(Args&&... args) {
       auto tmp = nested_scheduler.load(std::memory_order_acquire);
       if (!tmp) {
-        std::lock_guard<std::mutex> lock(thpool->global_mutex);
+        std::lock_guard<std::mutex> lock(thpool->global_mutex());
         tmp = nested_scheduler.load(std::memory_order_acquire);
         if (!tmp) {
           tmp = new S(std::forward<Args>(args)...);

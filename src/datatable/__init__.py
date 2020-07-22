@@ -54,12 +54,12 @@ from .lib._datatable import (
     unique,
     update,
 )
-from .options import options
 from .str import split_into_nhot
 from .types import stype, ltype
 import datatable.math
 import datatable.internal
 import datatable.exceptions
+import datatable.options
 try:
     from ._build_info import build_info
     __version__ = build_info.version
@@ -143,6 +143,9 @@ dt = datatable
 # This will run only in Jupyter notebook
 init_styles()
 
+options = datatable.options.Config(options={}, prefix="")
+datatable.lib._datatable.initialize_options(options)
+datatable.lib._datatable.initialize_final()
 
 def open(path):
     """

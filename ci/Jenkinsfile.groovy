@@ -29,6 +29,7 @@ import ai.h2o.ci.buildsummary.DetailsSummary
 import ai.h2o.ci.BuildResult
 import static org.jenkinsci.plugins.pipeline.modeldefinition.Utils.markStageWithTag
 
+
 // initialize build summary
 buildSummary('https://github.com/h2oai/datatable', true)
 // use default StagesSummary implementation
@@ -42,10 +43,13 @@ NODE_MACOS   = 'osx'
 NODE_PPC     = 'ibm-power'
 NODE_RELEASE = 'docker && linux && !micro'
 
+// Paths for S3 artifacts
+S3_BASE = "s3://h2o-release/datatable"
+S3_URL = "https://h2o-release.s3.amazonaws.com/datatable"
 
 // Paths should be absolute
 S3_URL_STABLE = "s3://h2o-release/datatable/stable"
-HTTPS_URL_STABLE = "https://h2o-release.s3.amazonaws.com/datatable/stable"
+
 // Data map for linking into container
 LINK_MAP = [
     "Data"     : "h2oai-benchmarks/Data",
@@ -109,31 +113,31 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
+                        println("env.BRANCH_NAME   = ${env.BRANCH_NAME}")
+                        println("env.BUILD_ID      = ${env.BUILD_ID}")
+                        println("env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}")
+                        println("env.CHANGE_ID     = ${env.CHANGE_ID}")
+                        println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
+                        println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
+                        println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
+                        println("isMasterJob       = ${isMasterJob}")
+                        println("doPpcBuild        = ${doPpcBuild}")
+                        println("doExtraTests      = ${doExtraTests}")
+                        println("doPy38Tests       = ${doPy38Tests}")
+                        println("doPpcTests        = ${doPpcTests}")
+                        println("doCoverage        = ${doCoverage}")
+                        println("doPublish()       = ${doPublish()}")
+
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
                         if (env.CHANGE_BRANCH) {
-                            // Note: we do not explicitly check out the branch here,
+                            // Note: we do not explicitly checkout the branch here,
                             // because the branch may be on the forked repo
-                            sh "git fetch origin +refs/pull/${env.CHANGE_ID}/merge"
-                            sh "git checkout -qf FETCH_HEAD"
+                            sh """
+                                git fetch origin +refs/pull/${env.CHANGE_ID}/merge
+                                git checkout -qf FETCH_HEAD
+                            """
                         }
-
-                        sh """
-                            set +x
-                            echo 'env.BRANCH_NAME   = ${env.BRANCH_NAME}'
-                            echo 'env.BUILD_ID      = ${env.BUILD_ID}'
-                            echo 'env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}'
-                            echo 'env.CHANGE_ID     = ${env.CHANGE_ID}'
-                            echo 'env.CHANGE_TARGET = ${env.CHANGE_TARGET}'
-                            echo 'env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}'
-                            echo 'env.CHANGE_FORK   = ${env.CHANGE_FORK}'
-                            echo 'isMasterJob  = ${isMasterJob}'
-                            echo 'doPpcBuild   = ${doPpcBuild}'
-                            echo 'doExtraTests = ${doExtraTests}'
-                            echo 'doPy38Tests  = ${doPy38Tests}'
-                            echo 'doPpcTests   = ${doPpcTests}'
-                            echo 'doCoverage   = ${doCoverage}'
-                        """
 
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
@@ -143,7 +147,6 @@ ansiColor('xterm') {
                         }
 
                         buildInfo(env.BRANCH_NAME, isRelease())
-
 
 
                         if (isRelease()) {
@@ -163,21 +166,16 @@ ansiColor('xterm') {
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                         }
 
-                        sh """
-                            set +x
-                            echo 'DT_RELEASE      = ${DT_RELEASE}'
-                            echo 'DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}'
-                            echo 'DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}'
-                        """
                         doLargerFreadTests = (doLargerFreadTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
                         if (doLargerFreadTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large fread tests required")
                         }
-                        sh """
-                            set +x
-                            echo 'doLargerFreadTests = ${doLargerFreadTests}'
-                        """
+
+                        println("DT_RELEASE      = ${DT_RELEASE}")
+                        println("DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}")
+                        println("DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}")
+                        println("doLargerFreadTests = ${doLargerFreadTests}")
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
@@ -291,19 +289,21 @@ ansiColor('xterm') {
                                                 groupadd -g `id -g` jenkins && \
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 ls -la dist"
                                     """
-                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl"
+                                    stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
+                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
                                     arch "dist/*.whl"
                                 }
                             }
                         }
                     } else {
-                        echo 'Build on ppc64le-manylinux SKIPPED'
+                        println('Build on ppc64le-manylinux SKIPPED')
                         markSkipped("Build on ppc64le-manylinux")
                     }
                 }
@@ -438,6 +438,20 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test ppc64le-manylinux-py36-debug', doPpcTests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-debugwheels'
+                                    test_in_docker("ppc64le-manylinux-py36-debug", "36",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test x86_64-macos-py38', doPy38Tests, { stageName, stageDir ->
                         node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -551,22 +565,46 @@ ansiColor('xterm') {
                             unstash 'build_info'
                             if (doPpcBuild) {
                                 unstash 'ppc64le-manylinux-wheels'
+                                unstash 'ppc64le-manylinux-debugwheels'
                             }
-                            // FIXME: ${versionText} is an undefined variable.
-                            //        It has to be extracted from the filenames
-                            //        of the wheels/sdist:
-                            //
-                            //            dist/datatable-${version}.tar.gz
-                            //            dist/datatable-${version}-*.whl
-                            //
-                            //        At this point we'd also want to verify
-                            //        that the versions on all files are the
-                            //        same, and that if we are in release mode
-                            //        the version contains only digits and dots.
-                            //
+                            sh "ls dist/"
+
                             versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
-                            sh "echo versionText = ${versionText}"
+                            println("versionText = ${versionText}")
                             def _versionText = versionText
+
+                            def s3cmd = ""
+                            def pyindex_links = ""
+                            dir("dist") {
+                                findFiles(glob: "*").each {
+                                    def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
+                                                    returnStdout: true).trim()
+                                    def s3path = "dev/datatable-${versionText}/${it.name}"
+                                    s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}/${s3path}\n"
+                                    pyindex_links += """  <li><a href="${S3_URL}/${encodeURL(s3path)}#sha256=${sha256}">${it.name}</a></li>\n"""
+                                }
+                            }
+                            println("Adding links to index.html:\n${pyindex_links}")
+
+                            def pyindex_content = "${S3_URL}/index.html".toURL().text
+                            pyindex_content -= "</body></html>\n"
+                            pyindex_content += "<h2>${versionText}</h2>\n"
+                            pyindex_content += "<ul>\n"
+                            pyindex_content += pyindex_links
+                            pyindex_content += "</ul>\n\n"
+                            pyindex_content += "</body></html>\n"
+                            writeFile(file: "index.html", text: pyindex_content)
+                            s3cmd += "s3cmd put -P index.html ${S3_BASE}/index.html"
+
+                            docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
+                                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: "awsArtifactsUploader"]]) {
+                                    docker.image("harbor.h2o.ai/library/s3cmd").inside {
+                                        sh s3cmd
+                                    }
+                                }
+                            }
+
+                            // TODO: remove?
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
@@ -597,6 +635,7 @@ ansiColor('xterm') {
                             unstash 'x86_64-manylinux-debugwheels'
                             unstash 'x86_64-macos-wheels'
                             unstash 'ppc64le-manylinux-wheels'
+                            unstash 'ppc64le-manylinux-debugwheels'
                             unstash 'sdist'
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
@@ -770,7 +809,7 @@ def isRelease() {
 
 def markSkipped(String stageName) {
     stage (stageName) {
-        echo "Stage ${stageName} SKIPPED!"
+        println("Stage ${stageName} SKIPPED!")
         markStageWithTag(STAGE_NAME, "STAGE_STATUS", "SKIPPED_FOR_CONDITIONAL")
     }
 }
@@ -788,4 +827,8 @@ def namedStage(String stageName, boolean doRun, Closure body) {
 
 def namedStage(String stageName, Closure body) {
     return namedStage(stageName, true, body)
+}
+
+def encodeURL(String str) {
+   return java.net.URLEncoder.encode(str, "UTF-8")
 }

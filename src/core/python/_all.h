@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,12 @@
 #include "python/float.h"
 #include "python/int.h"
 #include "python/iter.h"
+#include "python/list.h"
 #include "python/namedtuple.h"
+#include "python/obj.h"
+#include "python/pybuffer.h"
 #include "python/range.h"
+#include "python/set.h"
 #include "python/slice.h"
+#include "python/string.h"
 #include "python/tuple.h"

@@ -1,0 +1,50 @@
+
+.xcode {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    margin: 0 0 12pt 36pt;
+    overflow-x: auto;
+    padding: 8px 12px;
+    white-space: pre;
+}
+
+div.document p + .xcode {
+    margin-top: -22px;
+}
+
+.rst-content .section ol li>p + .xcode,
+.rst-content .section ul li>p + .xcode,
+.rst-content .section dl dd>p + .xcode {
+    margin-left: 24px;
+    margin-top: -10px;
+}
+
+
+/*------------------------------------------------------------------------------
+ * console
+ *-----------------------------------------------------------------------------*/
+
+.xcode.console {
+    background-color: #444;
+    border: none;
+    color: #dadada;
+}
+
+.xcode.console .prompt {
+    color: #ffdd77;
+    user-select: none;
+}
+
+.xcode.console .program {
+    color: #ffffae;
+}
+
+.xcode.console .comment {
+    color: #558080;
+    font-style: italic;
+}
+
+.xcode.console .output {
+    opacity: 0.6;
+}

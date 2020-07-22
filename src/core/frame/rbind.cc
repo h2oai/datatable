@@ -528,8 +528,10 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
         col.cast_inplace(stype_);
       }
       size_t col_data_size = sizeof(T) * col.nrows();
-      std::memcpy(resptr, col.get_data_readonly(), col_data_size);
-      resptr += col_data_size;
+      if (col_data_size) {
+        std::memcpy(resptr, col.get_data_readonly(), col_data_size);
+        resptr += col_data_size;
+      }
     }
   }
   if (rows_to_fill) {

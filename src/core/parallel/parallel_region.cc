@@ -15,7 +15,7 @@
 //------------------------------------------------------------------------------
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
-#include "parallel/thread_scheduler.h"
+#include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
 #include "utils/macros.h"          // cache_aligned
@@ -27,18 +27,18 @@ namespace dt {
 // simple_task
 //------------------------------------------------------------------------------
 
-class simple_task : public thread_task {
+class simple_task : public ThreadTask {
   private:
     function<void()> f;
   public:
     simple_task(function<void()>);
-    void execute(thread_worker*) override;
+    void execute() override;
 };
 
 
 simple_task::simple_task(function<void()> f_) : f(f_) {}
 
-void simple_task::execute(thread_worker*) {
+void simple_task::execute() {
   f();
 }
 
@@ -49,21 +49,21 @@ void simple_task::execute(thread_worker*) {
 //------------------------------------------------------------------------------
 
 // Implementation class for `dt::parallel_region()` function.
-class once_scheduler : public thread_scheduler {
+class once_scheduler : public ThreadJob {
   private:
     std::vector<cache_aligned<size_t>> done;
-    thread_task* task;
+    ThreadTask* task;
 
   public:
-    once_scheduler(size_t nthreads, thread_task*);
-    thread_task* get_next_task(size_t thread_index) override;
+    once_scheduler(size_t nthreads, ThreadTask*);
+    ThreadTask* get_next_task(size_t thread_index) override;
 };
 
-once_scheduler::once_scheduler(size_t nth, thread_task* task_)
+once_scheduler::once_scheduler(size_t nth, ThreadTask* task_)
   : done(nth, 0),
     task(task_) {}
 
-thread_task* once_scheduler::get_next_task(size_t i) {
+ThreadTask* once_scheduler::get_next_task(size_t i) {
   if (i >= done.size() || done[i].v) {
     return nullptr;
   }

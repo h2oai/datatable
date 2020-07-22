@@ -7,7 +7,7 @@ Install datatable
 
 Let's begin by installing the latest stable version of ``datatable`` from PyPI:
 
-.. code-block:: bash
+.. xcode:: shell
 
     $ pip install datatable
 
