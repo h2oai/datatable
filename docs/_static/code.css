@@ -112,24 +112,6 @@ div.document p + div.notranslate {
 
 
 
-/* ------- Shell code highlighting ------------------------------------------ */
-
-div.document div.notranslate.highlight-bash {
-  border-style: none;
-  margin-left: 0;
-}
-
-div.document div.notranslate.highlight-bash .highlight {
-  background-color: #444;
-  color: #ccc;
-}
-
-div.document div.notranslate.highlight-bash .highlight .nb {
-  color: #5de885;
-}
-
-
-
 /* ------- Python code highlighting ----------------------------------------- */
 
 div.document div.notranslate.highlight-python,
