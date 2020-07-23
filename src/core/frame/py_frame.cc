@@ -566,9 +566,23 @@ void Frame::set_source(const std::string& src) {
 // .stypes
 //------------------------------------------------------------------------------
 
-static GSArgs args_stypes(
-  "stypes",
-  "The tuple of each column's stypes (\"storage types\")\n");
+static const char* doc_stypes =
+R"(
+The tuple of each column's stypes ("storage types").
+
+Parameters
+----------
+return: Tuple[stype, ...]
+    The length of the tuple is the same as the number of columns in
+    the frame.
+
+See also
+--------
+- :data:`.stype` -- common stype for all columns
+- :data:`.ltypes` -- tuple of columns' logical types
+)";
+
+static GSArgs args_stypes("stypes", doc_stypes);
 
 oobj Frame::get_stypes() const {
   if (stypes == nullptr) {
@@ -588,13 +602,26 @@ oobj Frame::get_stypes() const {
 // .stype
 //------------------------------------------------------------------------------
 
-static GSArgs args_stype(
-  "stype",
-  "The common stype for all columns.\n\n"
-  "This property is well-defined only for frames where all columns\n"
-  "share the same stype. For heterogeneous frames accessing this\n"
-  "property will raise an error. For 0-column frames this property\n"
-  "returns None.\n");
+static const char* doc_stype =
+R"(
+The common stype for all columns.
+
+This property is well-defined only for frames where all columns share
+the same stype. For heterogeneous frames accessing this property will
+raise an error. For 0-column frames this property returns None.
+
+Parameters
+----------
+return: stype | None
+
+raises: InvalidOperationError
+
+See also
+--------
+- :data:`.stypes` -- tuple of stypes for all columns.
+)";
+
+static GSArgs args_stype("stype", doc_stype);
 
 oobj Frame::get_stype() const {
   if (dt->ncols() == 0) return None();
@@ -602,7 +629,8 @@ oobj Frame::get_stype() const {
   for (size_t i = 1; i < dt->ncols(); ++i) {
     dt::SType col_stype = dt->get_column(i).stype();
     if (col_stype != stype) {
-      throw ValueError() << "The stype of column '" << dt->get_names()[i]
+      throw InvalidOperationError()
+          << "The stype of column '" << dt->get_names()[i]
           << "' is `" << col_stype << "`, which is different from the "
           "stype of the previous column" << (i>1? "s" : "");
     }
@@ -616,9 +644,22 @@ oobj Frame::get_stype() const {
 // .ltypes
 //------------------------------------------------------------------------------
 
-static GSArgs args_ltypes(
-  "ltypes",
-  "The tuple of each column's ltypes (\"logical types\")\n");
+static const char* doc_ltypes =
+R"(
+The tuple of each column's ltypes ("logical types").
+
+Parameters
+----------
+return: Tuple[ltype, ...]
+    The length of the tuple is the same as the number of columns in
+    the frame.
+
+See also
+--------
+- :data:`.stypes` -- tuple of columns' storage types
+)";
+
+static GSArgs args_ltypes("ltypes", doc_ltypes);
 
 oobj Frame::get_ltypes() const {
   if (ltypes == nullptr) {

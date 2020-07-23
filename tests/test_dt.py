@@ -373,7 +373,7 @@ def test_dt_stype(dt0):
 
 
 def test_dt_stype_heterogenous(dt0):
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(dt.exceptions.InvalidOperationError) as e:
         noop(dt0.stype)
     assert ("The stype of column 'B' is bool8, which is different "
             "from the stype of the previous column" in str(e.value))
