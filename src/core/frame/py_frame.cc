@@ -190,7 +190,7 @@ deep: bool
     Flag indicating whether to return a "shallow" (default), or a
     "deep" copy of the original frame.
 
-(return): Frame
+return: Frame
     A new Frame, which is the copy of the current frame.
 
 
@@ -411,7 +411,7 @@ the total memory footprint. The use of virtual columns is generally
 transparent to the user, and datatable will materialize them as
 needed.
 
-However there could be situations where you might want to materialize
+However, there could be situations where you might want to materialize
 your Frame explicitly. In particular, materialization will carry out
 all delayed computations and break internal references on other
 Frames' data. Thus, for example if you subset a large frame to create
@@ -433,9 +433,8 @@ to_memory: bool
     about the disk speed, or if the file is on a removable drive, or
     if you want to delete the source file.
 
-Returns
--------
-None, this operation applies to the Frame and modifies it in-place.
+return: None
+    This operation modifies the frame in-place.
 )";
 
 static PKArgs args_materialize(
@@ -453,9 +452,26 @@ void Frame::materialize(const PKArgs& args) {
 // .ncols
 //------------------------------------------------------------------------------
 
-static GSArgs args_ncols(
-  "ncols",
-  "Number of columns in the Frame\n");
+static const char* doc_ncols =
+R"(
+Number of columns in the frame.
+
+Parameters
+----------
+return: int
+    The number of columns can be either zero or a positive integer.
+
+Notes
+-----
+The expression `len(DT)` also returns the number of columns in the
+frame `DT`. Such usage, however, is not recommended.
+
+See also
+--------
+- :data:`.nrows`: getter for the number of rows of the frame.
+)";
+
+static GSArgs args_ncols("ncols", doc_ncols);
 
 oobj Frame::get_ncols() const {
   return py::oint(dt->ncols());
@@ -467,16 +483,31 @@ oobj Frame::get_ncols() const {
 // .nrows
 //------------------------------------------------------------------------------
 
-static GSArgs args_nrows(
-  "nrows",
-R"(Number of rows in the Frame.
+static const char* doc_nrows =
+R"(
+Number of rows in the Frame.
 
 Assigning to this property will change the height of the Frame,
 either by truncating if the new number of rows is smaller than the
 current, or filling with NAs if the new number of rows is greater.
 
 Increasing the number of rows of a keyed Frame is not allowed.
-)");
+
+Parameters
+----------
+return: int
+    The number of rows can be either zero or a positive integer.
+
+n: int
+    The new number of rows for the frame, this should be a nonnegative
+    integer.
+
+See also
+--------
+- :data:`.ncols`: getter for the number of columns of the frame.
+)";
+
+static GSArgs args_nrows("nrows", doc_nrows);
 
 oobj Frame::get_nrows() const {
   return py::oint(dt->nrows());
@@ -500,9 +531,21 @@ void Frame::set_nrows(const Arg& nr) {
 // .shape
 //------------------------------------------------------------------------------
 
-static GSArgs args_shape(
-  "shape",
-  "Tuple with (nrows, ncols) dimensions of the Frame\n");
+static const char* doc_shape =
+R"(
+Tuple with (nrows, ncols) dimensions of the Frame.
+
+Parameters
+----------
+return: Tuple[int, int]
+
+See also
+--------
+- :data:`.nrows`: getter for the number of rows of the frame;
+- :data:`.ncols`: getter for the number of columns of the frame.
+)";
+
+static GSArgs args_shape("shape", doc_shape);
 
 oobj Frame::get_shape() const {
   return otuple(get_nrows(), get_ncols());
@@ -543,7 +586,7 @@ the worksheet, and possibly even the range of cells that were read.
 
 Parameters
 ----------
-(return): str | None
+return: str | None
     If the frame was loaded from a file or similar resource, the
     name of that file is returned. If the frame was computed, or its
     data modified, the property will return ``None``.
@@ -604,17 +647,23 @@ oobj Frame::get_stypes() const {
 
 static const char* doc_stype =
 R"(
-The common stype for all columns.
+.. xversionadded:: v0.10.0
 
-This property is well-defined only for frames where all columns share
-the same stype. For heterogeneous frames accessing this property will
-raise an error. For 0-column frames this property returns None.
+The common :class:`stype` for all columns.
+
+This property is well-defined only for frames where all columns have
+the same stype.
 
 Parameters
 ----------
 return: stype | None
+    For frames where all columns have the same stype, this common
+    stype is returned. If a frame has 0 columns, `None` will be
+    returned.
 
-raises: InvalidOperationError
+except: InvalidOperationError
+    This exception will be raised if the columns in the frame have
+    different stypes.
 
 See also
 --------

@@ -8,7 +8,7 @@ Frame
     :undoc-members:
     :exclude-members: cbind, colindex, copy, countna, countna1, export_names,
                       head, key, ltypes, names, replace, source, stype, stypes,
-                      tail, to_csv
+                      tail, to_csv, materialize, ncols, ndims, nrows, shape
 
 
 
@@ -24,8 +24,12 @@ Frame
     .head()          <frame/head>
     .key             <frame/key>
     .ltypes          <frame/ltypes>
+    .materialize     <frame/materialize>
     .names           <frame/names>
+    .ncols           <frame/ncols>
+    .nrows           <frame/nrows>
     .replace()       <frame/replace>
+    .shape           <frame/shape>
     .source          <frame/source>
     .stype           <frame/stype>
     .stypes          <frame/stypes>
