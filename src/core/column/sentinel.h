@@ -43,7 +43,7 @@ class Sentinel_ColumnImpl : public ColumnImpl
     size_t n_children() const noexcept override;
 
     void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                           WritableBuffer*) const override;
+                           WritableBuffer*) override;
 
   protected:
     Sentinel_ColumnImpl(size_t nrows, SType stype);

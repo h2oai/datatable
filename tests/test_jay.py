@@ -75,7 +75,7 @@ def test_fread(tempfile_jay):
         assert f2.source == tempfile_joy
     finally:
         # The file `tempfile_joy` is memory-mapped as the frame `f2`.
-        # So in order to delete `tempfile_joy` we first need to 
+        # So in order to delete `tempfile_joy` we first need to
         # delete `f2`. Otherwise (for instance, on Windows) we won't
         # have permissions to delete this file.
         f2 = None
@@ -185,6 +185,19 @@ def test_jay_keys(tempfile_jay):
     assert d1.key == ("x",)
     assert d1.source == tempfile_jay
     assert_equals(d0, d1)
+
+
+def test_jay_rbound_column(tempfile_jay):
+    # See issue #2543
+    data = ["loooooooooooooooooooooooong"] * 10000 + ["A"] * 30000
+    src = "Z\n%s\n" % "\n".join(data)
+    DT = dt.fread(src)
+    assert dt.internal.frame_columns_virtual(DT)[0] is True
+    DT.to_jay(tempfile_jay)
+    RES = dt.fread(tempfile_jay)
+    frame_integrity_check(RES)
+    assert_equals(RES, dt.Frame(Z=data))
+
 
 
 
