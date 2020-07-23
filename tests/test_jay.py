@@ -193,7 +193,7 @@ def test_jay_rbound_column(tempfile_jay):
     src = "Z\n%s\n" % "\n".join(data)
     DT = dt.fread(src)
     assert dt.internal.frame_columns_virtual(DT)[0] is True
-    DT.to_jay(RES)
+    DT.to_jay(tempfile_jay)
     RES = dt.fread(tempfile_jay)
     frame_integrity_check(RES)
     assert_equals(RES, dt.Frame(Z=data))
