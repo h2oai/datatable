@@ -304,7 +304,7 @@ class Memory_BufferImpl : public BufferImpl
   * This class represents a piece of memory owned by some external
   * entity. The lifetime of the memory region may be guarded by a
   * Py_buffer object. However, it is also possible to wrap a
-  * completely unguarded memory range, in which cast it is the
+  * completely unguarded memory range, in which case it is the
   * responsibility of the user to ensure that the memory remains
   * valid during the lifetime of External_BufferImpl object.
   */
@@ -314,23 +314,19 @@ class External_BufferImpl : public BufferImpl
     std::unique_ptr<py::buffer> pybufinfo_;
 
   public:
-    External_BufferImpl(const void* ptr, size_t n,
-                        std::unique_ptr<py::buffer>&& pybuf)
-    {
-      XAssert(ptr || n == 0);
-      data_ = const_cast<void*>(ptr);
-      size_ = n;
-      pybufinfo_ = std::move(pybuf);
-      resizable_ = false;
-      writable_ = false;
-    }
-
     External_BufferImpl(const void* ptr, size_t n) {
       XAssert(ptr || n == 0);
       data_ = const_cast<void*>(ptr);
       size_ = n;
       resizable_ = false;
       writable_ = false;
+    }
+
+    External_BufferImpl(const void* ptr, size_t n,
+                        std::unique_ptr<py::buffer>&& pybuf)
+      : External_BufferImpl(ptr, n)
+    {
+      pybufinfo_ = std::move(pybuf);
     }
 
     External_BufferImpl(void* ptr, size_t n)
@@ -352,6 +348,40 @@ class External_BufferImpl : public BufferImpl
 
     void to_memory(Buffer& out) override {
       if (pybufinfo_) out = Buffer::copy(data_, size_);
+    }
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// PyBytes_BufferImpl
+//------------------------------------------------------------------------------
+
+/**
+  * This class represents a piece of memory owned by a python `bytes`
+  * object. In theory, this class can also work with memoryview or
+  * bytesarray objects as well, but since those are mutable, it could
+  * potentially be dangerous.
+  */
+class PyBytes_BufferImpl : public BufferImpl {
+  private:
+    py::oobj owner_;
+
+  public:
+    PyBytes_BufferImpl(const py::oobj& src) {
+      xassert(src.is_bytes() || src.is_string());
+      dt::CString cstr = src.to_cstring();
+      data_ = const_cast<char*>(cstr.data());
+      size_ = cstr.size() + 1;  // for last \0 byte
+      resizable_ = false;
+      writable_ = false;
+      owner_ = src;
+    }
+
+    size_t memory_footprint() const noexcept override {
+      // All memory is owned externally
+      return sizeof(PyBytes_BufferImpl) + size_;
     }
 };
 
@@ -766,6 +796,10 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   Buffer Buffer::external(const void* ptr, size_t n, py::buffer&& pb) {
     return Buffer(new External_BufferImpl(
               ptr, n, std::make_unique<py::buffer>(std::move(pb))));
+  }
+
+  Buffer Buffer::pybytes(const py::oobj& src) {
+    return Buffer(new PyBytes_BufferImpl(src));
   }
 
   Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {

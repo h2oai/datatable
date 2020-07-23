@@ -75,11 +75,20 @@ def test_fread(tempfile_jay):
         assert f2.source == tempfile_joy
     finally:
         # The file `tempfile_joy` is memory-mapped as the frame `f2`.
-        # So in order to delete `tempfile_joy` we first need to 
+        # So in order to delete `tempfile_joy` we first need to
         # delete `f2`. Otherwise (for instance, on Windows) we won't
         # have permissions to delete this file.
         f2 = None
         os.remove(tempfile_joy)
+
+
+def test_jay_bytes_object():
+    # Make sure that opening a Jay bytes object produces a valid object
+    # even after the original bytes object is garbage-collected.
+    # See issue #2547
+    DT = dt.Frame(["abcd"] * 100000)
+    RES = dt.fread(DT.to_jay())
+    assert_equals(RES, DT)
 
 
 def test_jay_empty_string_col(tempfile_jay):
