@@ -275,18 +275,15 @@ static flatbuffers::Offset<void> saveStats(
 //------------------------------------------------------------------------------
 namespace py {
 
-
-static PKArgs args_to_jay(
-  1, 0, 1, false, false, {"path", "method"}, "to_jay",
-
-R"(to_jay(self, path, method='auto')
+static const char* doc_to_jay =
+R"(to_jay(self, path=None, method='auto')
 --
 
-Save this frame to a binary file on disk, in .jay format.
+Save this frame to a binary file on disk, in `.jay` format.
 
 Parameters
 ----------
-path: str
+path: str | None
     The destination file name. Although not necessary, we recommend
     using extension ".jay" for the file. If the file exists, it will
     be overwritten.
@@ -298,7 +295,15 @@ method: 'mmap' | 'write' | 'auto'
     method is more portable across different operating systems, but
     may be slower. This parameter has no effect when `path` is
     omitted.
-)");
+
+return: None | bytes
+    If the `path` parameter is given, this method returns nothing.
+    However, if `path` was omitted, the return value is a `bytes`
+    object containing encoded frame's data.
+)";
+
+static PKArgs args_to_jay(
+  1, 0, 1, false, false, {"path", "method"}, "to_jay", doc_to_jay);
 
 
 oobj Frame::to_jay(const PKArgs& args) {

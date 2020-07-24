@@ -64,11 +64,7 @@ class pybuffers_context {
 // to_numpy()
 //------------------------------------------------------------------------------
 
-
-static PKArgs args_to_numpy(
-    0, 2, 0, false, false,
-    {"stype", "column"}, "to_numpy",
-
+static const char* doc_to_numpy =
 R"(to_numpy(self, stype=None)
 --
 
@@ -79,8 +75,7 @@ In a limited set of circumstances the returned numpy array will be
 created as a data view, avoiding copying the data. This happens if
 all of these conditions are met:
 
-  - the frame is not a view;
-  - the frame has only 1 column;
+  - the frame has only 1 column, which is not virtual;
   - the column's type is not string;
   - the `stype` argument was not used.
 
@@ -93,14 +88,23 @@ be an instance of `numpy.ma.masked_array`.
 
 Parameters
 ----------
-stype: datatable.stype, numpy.dtype or str
+stype: stype | numpy.dtype | str | type
     Cast frame into this stype before converting it into a numpy
     array.
 
 column: int
     Convert only the specified column; the returned value will be
     a 1D-array instead of a regular 2D-array.
-)");
+
+return: numpy.array
+
+except: ImportError
+    If the ``numpy`` module is not installed.
+)";
+
+static PKArgs args_to_numpy(
+    0, 2, 0, false, false,
+    {"stype", "column"}, "to_numpy", doc_to_numpy);
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
@@ -164,16 +168,22 @@ oobj Frame::to_numpy(const PKArgs& args) {
 // to_pandas()
 //------------------------------------------------------------------------------
 
-static PKArgs args_to_pandas(
-    0, 0, 0, false, false, {}, "to_pandas",
-
+static const char* doc_to_pandas =
 R"(to_pandas(self)
 --
 
 Convert this frame to a pandas DataFrame.
 
-The `pandas` module is required to run this function.
-)");
+Parameters
+----------
+return: pandas.DataFrame
+
+except: ImportError
+    If the `pandas` module is not installed.
+)";
+
+static PKArgs args_to_pandas(
+    0, 0, 0, false, false, {}, "to_pandas", doc_to_pandas);
 
 
 oobj Frame::to_pandas(const PKArgs&) {
