@@ -96,6 +96,92 @@ div.small-links div {
 }
 
 
+/* ------- Side menu adjustments -------------------------------------------- */
+
+.wy-menu-vertical {
+  margin-bottom: 48pt;
+}
+
+.wy-menu-vertical li code {
+  font-size: 95%;
+}
+
+.wy-menu-vertical li>a span.toctree-expand,
+.wy-menu-vertical li.current>a span.toctree-expand {
+  line-height: 1.8em;
+}
+
+/* First-level menu */
+.wy-menu-vertical li.toctree-l1 > a:hover {
+  background-color: #555;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a {
+  background-color: #f0f0f0;
+  border: 1px solid #ccc;
+  border-top-style: none;
+  border-left-style: none;
+  font-weight: normal;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a:hover {
+  background-color: white;
+}
+
+.wy-menu-vertical li.toctree-l1.current > a.current {
+  background-color: #fcfcfc;
+  border-right-style: none;
+}
+
+
+/* Second-level menu */
+.wy-menu-vertical li.toctree-l1 > ul {
+  background: #ddd;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2 > a {
+  font-weight: normal;
+  padding: 3.5pt 0 3pt 24pt;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a {
+  background-color: #eee;
+  border: 1px solid #ccc;
+  border-style: none solid none none;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a:hover {
+  background-color: #fff;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a.current {
+  background-color: #fcfcfc;
+  border-right: none;
+}
+
+
+/* Third-level menu */
+.wy-menu-vertical li.toctree-l1 li.toctree-l2 > ul {
+  border-style: solid none;
+  border-width: 1px;
+  border-color: #999;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a {
+  padding: 1.5pt 0 1.5pt 36pt;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a:hover {
+  background-color: #fff;
+}
+
+.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a.current {
+  background-color: #fcfcfc;
+  font-weight: normal;
+}
+
+
+
 /* ------- All code highlighting -------------------------------------------- */
 
 div.document div.notranslate {
@@ -108,24 +194,6 @@ div.document div.notranslate .highlight {
 
 div.document p + div.notranslate {
   margin-top: -10px;
-}
-
-
-
-/* ------- Shell code highlighting ------------------------------------------ */
-
-div.document div.notranslate.highlight-bash {
-  border-style: none;
-  margin-left: 0;
-}
-
-div.document div.notranslate.highlight-bash .highlight {
-  background-color: #444;
-  color: #ccc;
-}
-
-div.document div.notranslate.highlight-bash .highlight .nb {
-  color: #5de885;
 }
 
 
