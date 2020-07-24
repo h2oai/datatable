@@ -26,7 +26,7 @@ Frame
     .head()          <frame/head>
     .key             <frame/key>
     .ltypes          <frame/ltypes>
-    .materialize     <frame/materialize>
+    .materialize()   <frame/materialize>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>
