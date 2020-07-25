@@ -172,19 +172,19 @@ Trigonometric/hyperbolic functions
 .. function:: sinh(x)
 
     The hyperbolic sine of ``x``, defined as
-    :math:`\sinh(x) = \frac12(e^x - e^{-x})``.
+    :math:`\sinh(x) = \frac12(e^x - e^{-x})`.
 
 
 .. function:: cosh(x)
 
     The hyperbolic cosine of ``x``, defined as
-    :math:`\cosh(x) = \frac12(e^x + e^{-x})``.
+    :math:`\cosh(x) = \frac12(e^x + e^{-x})`.
 
 
 .. function:: tanh(x)
 
     The hyperbolic tangent of ``x``, defines as
-    :math:`\tanh(x) = \frac{\sinh x}{\cosh x} = \frac{e^x-e^{-x}}{e^x+e^{-x}}``.
+    :math:`\tanh(x) = \frac{\sinh x}{\cosh x} = \frac{e^x-e^{-x}}{e^x+e^{-x}}`.
 
 
 .. function:: arsinh(x)
