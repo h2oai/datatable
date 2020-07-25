@@ -547,8 +547,18 @@ class XobjectDirective(SphinxDirective):
 
 
     def _transform_codeblocks(self, lines):
-        fnparams = [(p if isinstance(p, str) else p[0]).lstrip('*')
-                    for p in self.parsed_params]
+        fnparams = []
+        for p in self.parsed_params:
+            if isinstance(p, str):
+                # Regular parameter
+                fnparams.append(p)
+                if p.startswith("*"):
+                    # A vararg/varkwd parameter can be referred to in two ways:
+                    # either with or without starting *s.
+                    fnparams.append(p.lstrip("*"))
+            else:
+                # Parameter with a default value
+                fnparams.append(p[0])
         rx_codeblock = re.compile(
             r"``(.*?)``|"
             r"[:_]`([^`]+)`|"
@@ -816,7 +826,7 @@ class XobjectDirective(SphinxDirective):
                     if param in ["self", "*", "/"]:
                         ref = nodes.Text(param)
                     else:
-                        ref = a_node(text=param, href="#" + param)
+                        ref = a_node(text=param, href="#" + param.lstrip("*"))
                     params += xnodes.div(ref, classes=classes)
                 else:
                     assert isinstance(param, tuple)
@@ -943,7 +953,7 @@ class XversionaddedDirective(SphinxDirective):
 #-------------------------------------------------------------------------------
 
 def xparamref(name, rawtext, text, lineno, inliner, options={}, content=[]):
-    node = a_node(href="#" + text, classes=["xparam-ref"])
+    node = a_node(href="#" + text.lstrip("*"), classes=["xparam-ref"])
     node += nodes.literal("", "", nodes.Text(text))
     return [node], []
 
