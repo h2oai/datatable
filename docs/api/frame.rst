@@ -17,6 +17,7 @@ Frame
 .. toctree::
     :hidden:
 
+    .__init__()      <frame/__init__>
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>

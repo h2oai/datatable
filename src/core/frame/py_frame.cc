@@ -729,9 +729,169 @@ oobj Frame::get_ltypes() const {
 // Declare Frame's API
 //------------------------------------------------------------------------------
 
+static const char* doc___init__ =
+R"(__init__(self, _src=None, *, names=None, stypes=None, stype=None, **srcs)
+--
+
+Create a new Frame from a single or multiple sources.
+
+Parameters
+----------
+_src: Any
+    The first argument to the constructor represents the source from
+    which to construct the Frame. If this argument is given, then the
+    varkwd arguments `**srcs` should not be used.
+
+
+**srcs: Any
+    Sequence of varkwd column initializers. The keys become column
+    names, and the values are column initializers. Using varkwd
+    arguments is equivalent to passing a `dict` as the `_src`
+    argument.
+
+    When varkwd initializers are used, the `names` parameter may not
+    be given.
+
+names: List[str|None]
+    Explicit list (or tuple) of column names. The number of elements
+    in the list must be the same as the number of columns being
+    constructed.
+
+    This parameter should not be used when constructing the frame
+    from varkwd arguments `srcs`.
+
+stypes: List[stype-like] | Dict[str, stype-like]
+    Explicit list (or tuple) of column types. The number of elements
+    in the list must be the same as the number of columns being
+    constructed.
+
+stype: stype | type
+    Similar to `stypes`, but provide a single type that will be used
+    for all columns. This option cannot be specified together with
+    `stypes`.
+
+except: ValueError
+    This exception is raised if the lengths of `names` or `stypes`
+    lists are different from the number of columns created, or when
+    creating several columns and they have incompatible lengths.
+
+
+Details
+-------
+The shape of the constructed Frame depends on the type of the source
+argument `_src` (or `srcs`). The argument `_src` and varkwd arguments
+`srcs` are mutually exclusive: they cannot be used at the same time.
+However, it is possible to use neither and construct an empty frame::
+
+    dt.Frame()       # empty 0x0 frame
+    dt.Frame(None)   # same
+    dt.Frame([])     # same
+
+The varkwd arguments `srcs` can be used to construct a Frame by
+columns. In this case the keys become column names, and the values
+are column initializers. This form is mostly used for convenience,
+it is equivalent to converting `srcs` into a `dict` and passing as
+the first argument::
+
+    dt.Frame(A = range(7),
+             B = [0.1, 0.3, 0.5, 0.7, None, 1.0, 1.5],
+             C = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
+    # equivalent to
+    dt.Frame({"A": range(7), "B": ..., "C": ...})
+
+If the `_src` argument is a non-empty list, we look at its first
+element in order to determine whether this is a list of "primitives",
+or a list of
+
+`List[List | Frame | np.array | pd.DataFrame | pd.Series | range]`
+    When the source is a list of lists or other similar objects,
+    then each item will be interpreted as a column, and the
+    resulting frame will have as many columns as the number of
+    items in the list.
+
+    Each element in the list must produce a single column. Thus,
+    it is not allowed to use multi-column `Frame`s, or
+    multi-dimensional numpy arrays or pandas `DataFrame`s.
+
+    If the list is empty, then a 0x0 frame will be created.
+
+`List[Dict]`
+    If the source is a list of `dict` objects, then each element
+    in the list is a record representing a single row. The keys
+    in each dictionary are column names, and the values contain
+    contents of each cell.
+
+    The rows don't have to have the same number or order of
+    entries: all missing elements will be filled with NAs.
+
+    If the `names` parameter is given, then only the keys given
+    in the list of names will be taken into account, all extra
+    fields will be discarded.
+
+`List[Tuple]`
+    If the source is a list of `tuple`s, then each tuple
+    represents a single row. The tuples must have the same size,
+    or otherwise an exception will be raised.
+
+    If the tuples are in fact `namedtuple`s, then the field names
+    will be used for the column names in the resulting Frame. No
+    check is made whether the named tuples in fact belong to the
+    same class.
+
+`List[Any] | typed_list`
+    If the list's first element does not match any of the cases
+    above, then it is considered a "list of primitives". Such list
+    will be parsed as a single column.
+
+    The entries are typically `bool`s, `int`s, `float`s, `str`s,
+    or `None`s; but may also be numpy scalars. If the list has
+    elements of heterogeneous types, then we will attempt to
+    convert them to the smallest common stype.
+
+    A typed list can be created by taking a regular list and
+    dividing it by an stype. It behaves similarly to a simple
+    list, except that it is forced into the specific stype.
+
+`Dict[str, Any]`
+    The keys are column names, and values can be any objects from
+    which a single-column frame can be constructed: list, range,
+    np.array, single-column Frame, pandas series, etc.
+
+`range`
+    Same as if the range was expanded into a list of integers,
+    except that the column created from a range is virtual and
+    its creation time does not depend on the range's length.
+
+`Frame`
+    If the argument is a :class:`Frame <datatable.Frame>`, then
+    a shallow copy of that frame will be created, same as
+    :meth:`.copy()`.
+
+`str`
+    If the source is a simple string, then the frame is created
+    by :func:`fread <datatable.fread>`-ing this string.
+    In particular, if the string contains the name of a file, the
+    data will be loaded from that file; if it is a URL, the data
+    will be downloaded and parsed from that URL. Lastly, the
+    string may simply contain a table of data.
+
+`pd.DataFrame | pd.Series`
+    ???
+
+`np.array`
+    ???
+
+`None`
+    When the source is not given at all, then a 0x0 frame will be
+    created; unless a `names` parameter is provided, in which
+    case the resulting frame will have 0 rows but as many columns
+    as given in the `names` list.
+
+)";
+
 static PKArgs args___init__(1, 0, 3, false, true,
-                            {"src", "names", "stypes", "stype"},
-                            "__init__", nullptr);
+                            {"_src", "names", "stypes", "stype"},
+                            "__init__", doc___init__);
 
 void Frame::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.Frame");
