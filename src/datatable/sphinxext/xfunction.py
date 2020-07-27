@@ -732,8 +732,10 @@ class XobjectDirective(SphinxDirective):
 
         # Tell Sphinx that this is a target for `:py:obj:` references
         self.state.document.note_explicit_target(sig_node)
-        inv = self.env.domaindata["py"]["objects"]
-        inv[targetname] = (self.env.docname, self.name[1:])
+        domain = self.env.get_domain("py")
+        domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
+                           objtype=self.name[1:],  # remove initial 'x'
+                           node_id=targetname)
         return [sig_node]
 
 
