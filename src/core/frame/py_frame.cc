@@ -735,12 +735,12 @@ R"(__init__(self, _data=None, *, names=None, stypes=None, stype=None, **cols)
 
 Create a new Frame from a single or multiple sources.
 
-Argument `_data` (or `**cols`) contains the data for Frame's columns.
-Column names are either derived from the data, given explicitly
-via the `names` argument, or generated automatically. Either way, the
-constructor ensures that column names are unique, non-empty, and do
-not contain certain special characters (see :ref:`name-mangling` for
-details).
+Argument `_data` (or `**cols`) contains the source data for Frame's
+columns. Column names are either derived from the data, given
+explicitly via the `names` argument, or generated automatically.
+Either way, the constructor ensures that column names are unique,
+non-empty, and do not contain certain special characters (see
+:ref:`name-mangling` for details).
 
 Parameters
 ----------
@@ -777,6 +777,10 @@ stype: stype | type
     Similar to `stypes`, but provide a single type that will be used
     for all columns. This option cannot be specified together with
     `stypes`.
+
+return: Frame
+    A :class:`Frame <datatable.Frame>` object is constructed and
+    returned.
 
 except: ValueError
     This exception is raised if the lengths of `names` or `stypes`

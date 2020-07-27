@@ -786,6 +786,24 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_sigbody(self, node, kind):
+        # When describing a constructor, it is more helpful to a user
+        # to present it in the form of actual object construction,
+        # i.e. show
+        #
+        #         Frame(...args)
+        #
+        # instead of
+        #
+        #         Frame.__init__(self, ...args)
+        #
+        if self.obj_name == "__init__":
+            qual_parts = self.qualifier.split(".")
+            assert qual_parts[-1] == ""
+            self.obj_name = qual_parts[-2]
+            self.qualifier = ".".join(qual_parts[:-2]) + "."
+            assert self.parsed_params[0] == "self"
+            del self.parsed_params[0]
+
         row1 = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
