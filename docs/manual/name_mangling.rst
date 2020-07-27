@@ -13,9 +13,9 @@ Column names in a :class:`Frame` satisfy several invariants:
 
 - within a single Frame column names must be unique;
 
-- no column name may contain characters from the `C0 control block`_. Among
-  others, this set of forbidden characters includes: the NULL character ``\0``,
-  TAB character ``\t``, and the newline ``\n``.
+- no column name may contain characters from the ASCII `C0 control block`_.
+  This set of forbidden characters includes: the NULL character ``\0``,
+  TAB character ``\t``, newline ``\n``, and similar.
 
 
 If the user makes an attempt to create a Frame that would violate some of

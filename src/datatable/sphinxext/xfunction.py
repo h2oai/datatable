@@ -107,6 +107,7 @@ class XobjectDirective(SphinxDirective):
         self.src_line_last -- final line of the function in self.src_file
         self.src_github_url -- URL of the function's code on GitHub
         self.doc_text -- text of the object's docstring
+        self.doc_line_start -- starting line of the docstring in self.doc_file
         self.doc_github_url -- URL of the docstring on GitHub
         self.tests_github_url -- URL of the test file on GitHub
 
@@ -378,9 +379,10 @@ class XobjectDirective(SphinxDirective):
         `const char* {docname}` variable. An error will be raised if
         the docstring cannot be found.
 
-        Upon success, this function creates variable `self.doc_text`
-        containing the text of the docstring, and also the property
-        `self.doc_github_url`.
+        Upon success, this function creates variables `self.doc_text`
+        containing the text of the docstring, `self.doc_line_start`
+        the line number of the doc string in the source file, and
+        lastly the property `self.doc_github_url`.
         """
         rx_cc_docstring = re.compile(r"\s*(?:static\s+)?const\s+char\s*\*\s*" +
                                      docname +
@@ -428,6 +430,7 @@ class XobjectDirective(SphinxDirective):
                              % (docname, filename, start_line))
 
         self.doc_text = doc_text.strip()
+        self.doc_line_start = start_line
         self.doc_github_url = self.permalink(filename, start_line, finish_line)
 
 
@@ -445,7 +448,7 @@ class XobjectDirective(SphinxDirective):
         """
         if self.name == "xdata":
             self.parsed_params = []
-            self._parse_body(self.doc_text)
+            self._parse_body(self.doc_text, self.doc_line_start)
             return
 
         tmp = self.doc_text.split("--\n", 1)
@@ -454,6 +457,7 @@ class XobjectDirective(SphinxDirective):
         if len(tmp) == 1:
             raise self.error("Docstring for `%s` does not contain '--\\n'"
                              % self.obj_name)
+        signature_num_newlines = tmp[0].count("\n")
         signature = tmp[0].strip()
         if not (signature.startswith(self.obj_name + "(") and
                 signature.endswith(")")):
@@ -463,7 +467,7 @@ class XobjectDirective(SphinxDirective):
         # strip objname and the parentheses
         signature = signature[(len(self.obj_name) + 1):-1]
         self._parse_parameters(signature)
-        self._parse_body(tmp[1])
+        self._parse_body(tmp[1], self.doc_line_start + signature_num_newlines)
 
 
     def _parse_parameters(self, sig):
@@ -508,25 +512,26 @@ class XobjectDirective(SphinxDirective):
         self.parsed_params = parsed
 
 
-    def _parse_body(self, body):
+    def _parse_body(self, body, line0):
         """
         Parse/transform the body of the function's docstring.
         """
-        self.parsed_body = self._split_into_sections(body)
-        for header, section in self.parsed_body:
+        self.parsed_body = self._split_into_sections(body, line0)
+        for header, section, linenos in self.parsed_body:
             self._transform_codeblocks(section)
             if header == "Parameters":
-                self._transform_parameters(section)
+                self._transform_parameters(section, linenos)
             if header == "Examples":
-                self._transform_examples(section)
+                self._transform_examples(section, linenos)
 
 
-    def _split_into_sections(self, body):
+    def _split_into_sections(self, body, line0):
         body = body.strip()
         parsed = [[]]
+        linenos = [[]]
         headers = [None]
         last_line = None
-        for line in  body.split("\n"):
+        for i, line in enumerate(body.split("\n")):
             mm = rx_header.fullmatch(line)
             if mm:
                 header = last_line.strip()
@@ -537,13 +542,16 @@ class XobjectDirective(SphinxDirective):
                                      % (header, self.obj_name, len(header),
                                         len(mm.group(1))))
                 parsed[-1].pop()
+                linenos[-1].pop()
                 parsed.append([])
+                linenos.append([])
                 headers.append(header)
                 last_line = None
             else:
                 parsed[-1].append(line)
+                linenos[-1].append(i + line0)
                 last_line = line
-        return list(zip(headers, parsed))
+        return list(zip(headers, parsed, linenos))
 
 
     def _transform_codeblocks(self, lines):
@@ -578,17 +586,18 @@ class XobjectDirective(SphinxDirective):
                 lines[i] = re.sub(rx_codeblock, replacefn, line)
 
 
-    def _transform_parameters(self, lines):
+    def _transform_parameters(self, lines, linenos):
         i = 0
         while i < len(lines):
             line = lines[i]
             if line and line[0] != " ":
                 lines[i] = ".. xparam:: " + line
                 lines.insert(i + 1, "")
+                linenos.insert(i + 1, None)
             i += 1
 
 
-    def _transform_examples(self, lines):
+    def _transform_examples(self, lines, linenos):
         out = []
         i = 0
         while i < len(lines):
@@ -599,6 +608,7 @@ class XobjectDirective(SphinxDirective):
                 out.append(line)
                 i += 1
         lines[:] = out
+        linenos[:] = list(range(len(out)))
 
 
     def _parse_example_code(self, i, lines, out):
@@ -850,10 +860,14 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_body(self):
         out = xnodes.div(classes=["x-function-body"])
-        for head, lines in self.parsed_body:
+        for head, lines, linenos in self.parsed_body:
             if head:
                 lines = [head, "="*len(head), ""] + lines
-            content = StringList(lines)
+                i0 = linenos[0]
+                linenos = [i0-3, i0-2, i0-1] + linenos
+            assert len(lines) == len(linenos)
+            content = StringList(lines,
+                                 items=[(self.doc_file, i) for i in linenos])
             self.state.nested_parse(content, self.content_offset, out,
                                     match_titles=True)
         return out
