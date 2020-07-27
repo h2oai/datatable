@@ -1030,6 +1030,10 @@ size_t _obj::get_sizeof() const {
   return _PySys_GetSizeOf(v);
 }
 
+size_t _obj::get_refcount() const {
+  return static_cast<size_t>(Py_REFCNT(v));
+}
+
 
 PyObject* oobj::release() && {
   PyObject* t = v;

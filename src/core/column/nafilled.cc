@@ -106,7 +106,7 @@ bool NaFilled_ColumnImpl::get_element(size_t i, CString* out)  const {
   return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 
-bool NaFilled_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool NaFilled_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   return (i < arg_nrows_) && arg_.get_element(i, out);
 }
 

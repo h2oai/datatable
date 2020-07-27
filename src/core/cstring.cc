@@ -63,6 +63,21 @@ CString& CString::operator=(const std::string& str) {
 
 
 
+void CString::set(const char* ptr, size_t size) {
+  ptr_ = ptr;
+  size_ = size;
+}
+
+void CString::set_data(const char* ptr) {
+  ptr_ = ptr;
+}
+
+void CString::set_size(size_t sz) {
+  size_ = sz;
+}
+
+
+
 //------------------------------------------------------------------------------
 // CString operators
 //------------------------------------------------------------------------------

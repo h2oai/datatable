@@ -253,7 +253,7 @@ class HtmlWidget : public dt::Widget {
     }
 
     void _render_obj_value(const Column& col, size_t row) {
-      py::robj val;
+      py::oobj val;
       bool isvalid = col.get_element(row, &val);
       if (isvalid) {
         // Should we use repr() here instead?

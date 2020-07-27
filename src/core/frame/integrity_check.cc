@@ -269,7 +269,7 @@ void SentinelStr_ColumnImpl<T>::verify_integrity() const {
 //------------------------------------------------------------------------------
 
 void SentinelObj_ColumnImpl::verify_integrity() const {
-  SentinelFw_ColumnImpl<py::robj>::verify_integrity();
+  SentinelFw_ColumnImpl<py::oobj>::verify_integrity();
 
   if (!mbuf_.is_pyobjects()) {
     throw AssertionError() << "obj64 column's internal buffer is "
@@ -299,7 +299,7 @@ template class SentinelFw_ColumnImpl<int32_t>;
 template class SentinelFw_ColumnImpl<int64_t>;
 template class SentinelFw_ColumnImpl<float>;
 template class SentinelFw_ColumnImpl<double>;
-template class SentinelFw_ColumnImpl<py::robj>;
+template class SentinelFw_ColumnImpl<py::oobj>;
 template class SentinelStr_ColumnImpl<uint32_t>;
 template class SentinelStr_ColumnImpl<uint64_t>;
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,44 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_NAFILLED_h
-#define dt_COLUMN_NAFILLED_h
-#include <memory>
-#include "column/virtual.h"
+#include "column/cast.h"
 namespace dt {
 
 
-/**
-  * Virtual column representing the `arg` column padded with NAs
-  * up to `nrows_ > arg.nrows()`.
-  */
-class NaFilled_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    size_t arg_nrows_;
-    Column arg_;
 
-  public:
-    NaFilled_ColumnImpl(Column&&, size_t nrows);
-    NaFilled_ColumnImpl(Column&&, size_t nrows, size_t arg_nrows);
-    ColumnImpl* clone() const override;
+Cast_ColumnImpl::Cast_ColumnImpl(SType new_stype, Column&& col)
+  : Virtual_ColumnImpl(col.nrows(), new_stype),
+    arg_(std::move(col)) {}
 
-    void na_pad(size_t new_nrows, Column& out) override;
-    void truncate(size_t new_nrows, Column& out) override;
-    size_t n_children() const noexcept override;
-    const Column& child(size_t i) const override;
 
-    bool get_element(size_t, int8_t*)   const override;
-    bool get_element(size_t, int16_t*)  const override;
-    bool get_element(size_t, int32_t*)  const override;
-    bool get_element(size_t, int64_t*)  const override;
-    bool get_element(size_t, float*)    const override;
-    bool get_element(size_t, double*)   const override;
-    bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::oobj*) const override;
-};
+size_t Cast_ColumnImpl::n_children() const noexcept {
+  return 1;
+}
+
+
+const Column& Cast_ColumnImpl::child(size_t) const {
+  return arg_;
+}
 
 
 
 
-}  // namespace dt
-#endif
+} // namespace dt

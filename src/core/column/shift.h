@@ -71,7 +71,7 @@ class Shift_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, float* out)    const override { return _elem(i, out); }
     bool get_element(size_t i, double* out)   const override { return _elem(i, out); }
     bool get_element(size_t i, CString* out)  const override { return _elem(i, out); }
-    bool get_element(size_t i, py::robj* out) const override { return _elem(i, out); }
+    bool get_element(size_t i, py::oobj* out) const override { return _elem(i, out); }
 
   private:
     template <typename T>
@@ -133,7 +133,7 @@ class ShiftWithFill_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, float* out)    const override { return _elem(i, out); }
     bool get_element(size_t i, double* out)   const override { return _elem(i, out); }
     bool get_element(size_t i, CString* out)  const override { return _elem(i, out); }
-    bool get_element(size_t i, py::robj* out) const override { return _elem(i, out); }
+    bool get_element(size_t i, py::oobj* out) const override { return _elem(i, out); }
 
   private:
     template <typename T>

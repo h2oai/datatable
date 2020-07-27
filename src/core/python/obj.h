@@ -137,6 +137,7 @@ class _obj {
     PyTypeObject* typeobj() const noexcept;  // borrowed ref
     std::string typestr() const;
     size_t get_sizeof() const;
+    size_t get_refcount() const;
 
     explicit operator bool() const noexcept;  // opposite of is_undefined()
     bool operator==(const _obj& other) const noexcept;

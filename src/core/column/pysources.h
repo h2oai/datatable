@@ -40,7 +40,7 @@ class PyList_ColumnImpl : public Virtual_ColumnImpl {
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
     size_t n_children() const noexcept override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element(size_t, py::oobj*) const override;
 };
 
 
@@ -60,7 +60,7 @@ class PyTupleList_ColumnImpl : public Virtual_ColumnImpl {
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
     size_t n_children() const noexcept override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element(size_t, py::oobj*) const override;
 };
 
 
@@ -81,7 +81,7 @@ class PyDictList_ColumnImpl : public Virtual_ColumnImpl {
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
     size_t n_children() const noexcept override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element(size_t, py::oobj*) const override;
 };
 
 

@@ -46,7 +46,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods_shift();     // expr/head_func_shift.cc
     void init_methods_str();       // str/py_str.cc
     void init_methods_styles();    // frame/repr/html_styles.cc
-    void init_casts();             // frame/cast.cc
     void init_fbinary();           // expr/fbinary/pyfn.cc
     void init_fuzzy();             // utils/fuzzy.cc
     void init_funary();            // expr/funary/pyfn.cc

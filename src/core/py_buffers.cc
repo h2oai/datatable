@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2020 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 // Functionality related to "Buffers" interface
 // See: https://www.python.org/dev/peps/pep-3118/
@@ -12,6 +26,7 @@
 #include <stdlib.h>  // atoi
 #include "column/view.h"
 #include "frame/py_frame.h"
+#include "parallel/api.h"
 #include "python/obj.h"
 #include "python/string.h"
 #include "python/pybuffer.h"
@@ -32,6 +47,7 @@ namespace pybuffers {
 static void try_to_resolve_object_column(Column& col);
 static const char* format_from_stype(dt::SType stype);
 static Column convert_fwchararray_to_column(py::buffer&& view);
+static void copy_column_into_buffer(const Column& col, Buffer& buf);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
 #define REQ_FORMAT(flags)   ((flags & PyBUF_FORMAT) == PyBUF_FORMAT)
@@ -359,8 +375,10 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // created having the converted data; but the side-effect of this is
     // that `mbuf` will have the same data, and in the right place.
     {
-      Column newcol = dt->get_column(i + i0).cast(stype, std::move(xmb));
-      newcol.materialize();
+      Column newcol = dt->get_column(i + i0); //.cast(stype, std::move(xmb));
+      newcol.cast_inplace(stype);
+      copy_column_into_buffer(newcol, xmb);
+      // newcol.materialize();
       // We can now delete the new column: this will delete `xmb` as well,
       // however a "view buffer" object does not attempt to free its
       // memory. The converted data that was written to `xmb` will
@@ -443,4 +461,51 @@ static const char* format_from_stype(dt::SType stype)
          stype == dt::SType::FLOAT32? "f" :
          stype == dt::SType::FLOAT64? "d" :
          stype == dt::SType::OBJ? "O" : "x";
+}
+
+
+
+template <typename T>
+static void _copy_column_fw(const Column& col, Buffer& buf) {
+  xassert(dt::compatible_type<T>(col.stype()));
+  xassert(buf.size() == col.nrows() * sizeof(T));
+  auto nthreads = dt::NThreads(col.allow_parallel_access());
+  auto out_data = static_cast<T*>(buf.wptr());
+
+  dt::parallel_for_static(col.nrows(), nthreads,
+    [&](size_t i) {
+      T value;
+      bool isvalid = col.get_element(i, &value);
+      out_data[i] = isvalid? value : dt::GETNA<T>();
+    });
+}
+
+static void _copy_column_obj(const Column& col, Buffer& buf) {
+  xassert(dt::compatible_type<py::oobj>(col.stype()));
+  xassert(buf.size() == col.nrows() * sizeof(py::oobj));
+  xassert(!buf.is_pyobjects());
+  auto out_data = reinterpret_cast<PyObject**>(buf.wptr());
+
+  for (size_t i = 0; i < col.nrows(); ++i) {
+    py::oobj value;
+    bool isvalid = col.get_element(i, &value);
+    out_data[i] = (isvalid? std::move(value) : py::None()).release();
+  }
+  buf.set_pyobjects(false);
+  xassert(buf.is_pyobjects());
+}
+
+static void copy_column_into_buffer(const Column& col, Buffer& buf) {
+  switch (col.stype()) {
+    case dt::SType::BOOL:
+    case dt::SType::INT8:    _copy_column_fw<int8_t>(col, buf); break;
+    case dt::SType::INT16:   _copy_column_fw<int16_t>(col, buf); break;
+    case dt::SType::INT32:   _copy_column_fw<int32_t>(col, buf); break;
+    case dt::SType::INT64:   _copy_column_fw<int64_t>(col, buf); break;
+    case dt::SType::FLOAT32: _copy_column_fw<float>(col, buf); break;
+    case dt::SType::FLOAT64: _copy_column_fw<double>(col, buf); break;
+    case dt::SType::OBJ:     _copy_column_obj(col, buf); break;
+    default: throw RuntimeError() << "Cannot write " << col.stype()
+                << " values into a numpy array";
+  }
 }

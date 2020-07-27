@@ -52,13 +52,13 @@
   */
 template <typename T>
 static size_t parse_as_X(const Column& inputcol, Buffer& mbuf, size_t i0,
-                         bool(*f)(py::robj, T*))
+                         bool(*f)(const py::oobj&, T*))
 {
   size_t nrows = inputcol.nrows();
   mbuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(mbuf.xptr());
 
-  py::robj item;
+  py::oobj item;
   for (size_t i = i0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     bool ok = f(item, outdata + i);
@@ -82,7 +82,7 @@ static size_t parse_as_X(const Column& inputcol, Buffer& mbuf, size_t i0,
 static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<int8_t>(inputcol, mbuf, i0,
-            [](py::robj item, int8_t* out) {
+            [](const py::oobj& item, int8_t* out) {
               return item.parse_bool(out) ||
                      item.parse_none(out);
             });
@@ -106,7 +106,7 @@ static void force_as_bool(const Column& inputcol, Buffer& mbuf)
   mbuf.resize(nrows);
   auto outdata = static_cast<int8_t*>(mbuf.xptr());
 
-  py::robj item;
+  py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     outdata[i] = item.to_bool_force();
@@ -134,7 +134,7 @@ template <typename T>
 static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<T>(inputcol, mbuf, i0,
-            [](py::robj item, T* out) {
+            [](const py::oobj& item, T* out) {
               return (sizeof(T) >= 4 && item.parse_int(out)) ||
                      item.parse_none(out) ||
                      item.parse_numpy_int(out) ||
@@ -146,7 +146,7 @@ static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
 static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<int8_t>(inputcol, mbuf, i0,
-            [](py::robj item, int8_t* out) {
+            [](const py::oobj& item, int8_t* out) {
               return item.parse_01(out) ||
                      item.parse_none(out) ||
                      item.parse_numpy_int(out) ||
@@ -157,7 +157,7 @@ static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
 static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<int16_t>(inputcol, mbuf, i0,
-            [](py::robj item, int16_t* out) {
+            [](const py::oobj& item, int16_t* out) {
               return item.parse_numpy_int(out) ||
                      item.parse_none(out) ||
                      item.parse_01(out) ||
@@ -182,7 +182,7 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
   membuf.resize(nrows * sizeof(T));
   T* outdata = static_cast<T*>(membuf.wptr());
 
-  py::robj item;
+  py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     if (item.is_none()) {
@@ -203,7 +203,7 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
 static size_t parse_as_float32(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<float>(inputcol, mbuf, i0,
-            [](py::robj item, float* out) {
+            [](const py::oobj& item, float* out) {
               return item.parse_numpy_float(out) ||
                      item.parse_none(out);
             });
@@ -213,7 +213,7 @@ static size_t parse_as_float32(const Column& inputcol, Buffer& mbuf, size_t i0)
 static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
 {
   return parse_as_X<double>(inputcol, mbuf, i0,
-            [](py::robj item, double* out) {
+            [](const py::oobj& item, double* out) {
               return item.parse_double(out) ||
                      item.parse_none(out) ||
                      item.parse_int(out) ||
@@ -232,7 +232,7 @@ static void force_as_real(const Column& inputcol, Buffer& membuf)
   T* outdata = static_cast<T*>(membuf.wptr());
 
   int overflow = 0;
-  py::robj item;
+  py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
 
@@ -274,7 +274,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
 
   T curr_offset = 0;
   size_t i = 0;
-  py::robj item;
+  py::oobj item;
   py::oobj tmpitem;
   for (i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
@@ -356,7 +356,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
   char* strptr = static_cast<char*>(strbuf.xptr());
 
   T curr_offset = 0;
-  py::robj item;
+  py::oobj item;
   py::oobj tmpitem;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
@@ -410,7 +410,7 @@ static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
   membuf.resize(nrows * sizeof(PyObject*));
   PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
 
-  py::robj item;
+  py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     if (item.is_float() && std::isnan(item.to_double())) {

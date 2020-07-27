@@ -378,7 +378,6 @@ void py::DatatableModule::init_methods() {
   init_methods_str();
   init_methods_styles();
 
-  init_casts();
   init_fbinary();
   init_fnary();
   init_funary();
