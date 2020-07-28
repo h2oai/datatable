@@ -30,12 +30,12 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// ordered_task
+// OrderedTask
 //------------------------------------------------------------------------------
 using f1t = function<void(size_t)>;
 static f1t noop = [](size_t) {};
 
-class ordered_task : public ThreadTask {
+class OrderedTask : public ThreadTask {
   #if DT_DEBUG
     friend class ordered_scheduler;
   #endif
@@ -55,9 +55,9 @@ class ordered_task : public ThreadTask {
     size_t n_iter;
 
   public:
-    ordered_task(f1t pre, f1t ord, f1t post);
-    ordered_task(const ordered_task&) = delete;
-    ordered_task(ordered_task&&);
+    OrderedTask(f1t pre, f1t ord, f1t post);
+    OrderedTask(const OrderedTask&) = delete;
+    OrderedTask(OrderedTask&&);
 
     bool ready_to_start()  const noexcept { return state == READY_TO_START; }
     bool ready_to_order()  const noexcept { return state == READY_TO_ORDER; }
@@ -72,36 +72,36 @@ class ordered_task : public ThreadTask {
 };
 
 
-ordered_task::ordered_task(f1t pre, f1t ord, f1t post)
+OrderedTask::OrderedTask(f1t pre, f1t ord, f1t post)
   : pre_ordered(pre? pre : noop),
     ordered(ord? ord : noop),
     post_ordered(post? post : noop),
     state(READY_TO_START),
     n_iter(0) {}
 
-ordered_task::ordered_task(ordered_task&& other)
+OrderedTask::OrderedTask(OrderedTask&& other)
   : pre_ordered(std::move(other.pre_ordered)),
     ordered(std::move(other.ordered)),
     post_ordered(std::move(other.post_ordered)),
     state(other.state),
     n_iter(other.n_iter) {}
 
-void ordered_task::advance_state() {
+void OrderedTask::advance_state() {
   state++;
   if (state == RECYCLE) state = READY_TO_START;
 }
 
-void ordered_task::cancel() {
+void OrderedTask::cancel() {
   state = CANCELLED;
 }
 
-void ordered_task::start_iteration(size_t i) {
+void OrderedTask::start_iteration(size_t i) {
   xassert(state == READY_TO_START);
   n_iter = i;
   state = STARTING;
 }
 
-void ordered_task::execute() {
+void OrderedTask::execute() {
   switch (state) {
     case STARTING:  pre_ordered(n_iter); break;
     case ORDERING:  ordered(n_iter); break;
@@ -117,15 +117,15 @@ void ordered_task::execute() {
 // wait_task
 //------------------------------------------------------------------------------
 
-// This subclass of `ordered_task` is specifically used for waiting. The state
+// This subclass of `OrderedTask` is specifically used for waiting. The state
 // inherited from the parent class is completely ignored.
-class wait_task : public ordered_task {
+class wait_task : public OrderedTask {
   public:
     wait_task();
     void execute() override;
 };
 
-wait_task::wait_task() : ordered_task(nullptr, nullptr, nullptr) {}
+wait_task::wait_task() : OrderedTask(nullptr, nullptr, nullptr) {}
 
 void wait_task::execute() {
   std::this_thread::yield();
@@ -144,8 +144,8 @@ class ordered_scheduler : public ThreadJob {
     size_t n_tasks;
     size_t n_threads;
     size_t n_iterations;
-    std::vector<ordered_task> tasks;
-    std::vector<ordered_task*> assigned_tasks;
+    std::vector<OrderedTask> tasks;
+    std::vector<OrderedTask*> assigned_tasks;
 
     // Runtime
     static constexpr size_t NO_THREAD = size_t(-1);
@@ -191,7 +191,7 @@ ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<spin_mutex> lock(mutex);
 
-  ordered_task* task = assigned_tasks[ith];
+  OrderedTask* task = assigned_tasks[ith];
   task->advance_state();  // finish previously assigned task
 
   if (ith == ordering_thread_index) {
@@ -208,7 +208,7 @@ ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
     task = &tasks[iorder];
     task->advance_state();
     xassert(task->n_iter == next_to_order &&
-            task->state == ordered_task::ORDERING);
+            task->state == OrderedTask::ORDERING);
     iorder = (++next_to_order) % n_tasks;
   }
   // Otherwise, if there are any tasks that are ready to be finished, then
@@ -217,7 +217,7 @@ ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
     task = &tasks[ifinish];
     task->advance_state();
     xassert(task->n_iter == next_to_finish &&
-            task->state == ordered_task::FINISHING);
+            task->state == OrderedTask::FINISHING);
     ifinish = (++next_to_finish) % n_tasks;
   }
   // Otherwise if there are still tasks in the start queue, and there are
