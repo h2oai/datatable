@@ -33,6 +33,45 @@ namespace dt {
 // Ordered iteration, produce a string column
 //------------------------------------------------------------------------------
 
+class GenStringColumn : public OrderedTask2 {
+  using Buf32 = writable_string_col::buffer_impl<uint32_t>;
+  using Buf64 = writable_string_col::buffer_impl<uint64_t>;
+  private:
+    std::unique_ptr<string_buf> sb_;
+    function<void(size_t, string_buf*)> fn_;
+    size_t chunk_size_;
+    size_t nrows_;
+
+  public:
+    GenStringColumn(function<void(size_t, string_buf*)> fn,
+                    writable_string_col& outcol, bool force_str64,
+                    size_t chunksize, size_t nrows)
+      : sb_(force_str64? std::unique_ptr<string_buf>(new Buf64(outcol))
+                       : std::unique_ptr<string_buf>(new Buf32(outcol))),
+        fn_(fn),
+        chunk_size_(chunksize),
+        nrows_(nrows) {}
+
+    ~GenStringColumn() override {
+      sb_->commit_and_start_new_chunk(nrows_);
+    }
+
+    void start(size_t j) override {
+      size_t i0 = std::min(j * chunk_size_, nrows_);
+      size_t i1 = std::min(i0 + chunk_size_, nrows_);
+
+      sb_->commit_and_start_new_chunk(i0);
+      for (size_t i = i0; i < i1; ++i) {
+        fn_(i, sb_.get());
+      }
+    }
+
+    void order(size_t) override {
+      sb_->order();
+    }
+};
+
+
 Column generate_string_column(function<void(size_t, string_buf*)> fn,
                               size_t nrows,
                               Buffer&& offsets_buffer,
@@ -53,33 +92,11 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
     ? NThreads(1)
     : nthreads_from_niters(nchunks, min_nrows_per_thread);
 
-  dt::parallel_for_ordered(
-    nchunks,
-    nthreads,
-    [&](ordered* o) {
-      using sbptr = std::unique_ptr<string_buf>;
-      auto sb = force_str64
-        ? sbptr(new writable_string_col::buffer_impl<uint64_t>(outcol))
-        : sbptr(new writable_string_col::buffer_impl<uint32_t>(outcol));
-
-      o->parallel(
-        [&](size_t j) {
-          size_t i0 = std::min(j * chunksize, nrows);
-          size_t i1 = std::min(i0 + chunksize, nrows);
-
-          sb->commit_and_start_new_chunk(i0);
-          for (size_t i = i0; i < i1; ++i) {
-            fn(i, sb.get());
-          }
-        },
-        [&](size_t) {
-          sb->order();
-        },
-        nullptr
-      );
-
-      sb->commit_and_start_new_chunk(nrows);
-    });
+  dt::parallel_for_ordered2(nchunks, nthreads,
+      [&] {
+        return std::make_unique<GenStringColumn>(fn, outcol, force_str64,
+                                                 chunksize, nrows);
+      });
 
   return std::move(outcol).to_ocolumn();
 }
