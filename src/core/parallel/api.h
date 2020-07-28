@@ -20,6 +20,7 @@
 #include <mutex>         // std::mutex
 #include "parallel/api_primitives.h"
 #include "parallel/python_lock.h"
+#include "parallel/thread_job.h"
 #include "utils/function.h"
 namespace dt {
 
@@ -133,7 +134,6 @@ class ordered {
     void wait_until_all_finalized() const;
 
     size_t get_n_iterations() const;
-    size_t current_iteration() const;
 };
 
 void parallel_for_ordered(size_t n_iterations, NThreads nthreads,
@@ -142,8 +142,57 @@ void parallel_for_ordered(size_t n_iterations, NThreads nthreads,
 void parallel_for_ordered(size_t n_iterations,
                           function<void(ordered*)> fn);
 
+
+//------------------------------------------------------------------------------
+
+class OrderedJob2 : public ThreadJob {
+  public:
+    // This should be called from within an "ordered" section only.
+    // This function will block until all tasks that are currently in
+    // READY_TO_FINISH or FINISHING state are completed.
+    virtual void wait_until_all_finalized() = 0;
+    virtual void set_n_iterations(size_t) = 0;
+};
+
+class MultiThreaded_OrderedJob;
+class SingleThreaded_OrderedJob;
+
+class OrderedTask2 : public ThreadTask {
+  enum State : size_t;
+  private:
+    State  state_;
+    size_t iter_;
+    OrderedJob2* parent_job_;  // borrowed ref
+
+  public:
+    OrderedTask2();
+    OrderedTask2(const OrderedTask2&) = delete;
+    OrderedTask2(OrderedTask2&&) noexcept = default;
+
+    virtual void start(size_t i);
+    virtual void order(size_t i);
+    virtual void finish(size_t i);
+    size_t get_iteration() const noexcept;
+
+    void execute() override;  // ThreadTask's API
+
+  private:
+    friend class MultiThreaded_OrderedJob;
+    friend class SingleThreaded_OrderedJob;
+    void init_parent(OrderedJob2* parent);
+    bool ready_to_start()  const noexcept;
+    bool ready_to_order()  const noexcept;
+    bool ready_to_finish() const noexcept;
+    bool is_starting()     const noexcept;
+    bool is_ordering()     const noexcept;
+    bool is_finishing()    const noexcept;
+    void advance_state();
+    void cancel();
+    void start_iteration(size_t i);
+};
+
 void parallel_for_ordered2(size_t n_iterations, NThreads nthreads,
-                          function<std::unique_ptr<OrderedTask>()> factory);
+                          function<std::unique_ptr<OrderedTask2>()> factory);
 
 
 

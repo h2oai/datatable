@@ -396,10 +396,6 @@ size_t ordered::get_n_iterations() const {
   return job_->n_iterations_;
 }
 
-size_t ordered::current_iteration() const {
-  return job_->assigned_tasks_[dt::this_thread_index()]->iteration();
-}
-
 
 
 
@@ -427,20 +423,6 @@ void parallel_for_ordered(size_t niters, NThreads NThreads_,
   ordered octx(&sch, fn);
   fn(&octx);
   job.done();
-}
-
-
-void parallel_for_ordered2(size_t niters, NThreads nthreads,
-                          function<std::unique_ptr<OrderedTask>()> factory)
-{
-  if (!niters) return;
-  dt::progress::work job(niters);
-  size_t nth = nthreads.get();
-
-  size_t ntasks = std::min(niters, nth * 3/2);
-  if (nth > ntasks) nth = ntasks;
-
-  ThreadTeam tt(nth, thpool);
 }
 
 
