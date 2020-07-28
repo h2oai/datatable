@@ -144,7 +144,7 @@ class OrderedJob : public ThreadJob {
     size_t n_tasks_;
     size_t n_threads_;
     size_t n_iterations_;
-    std::vector<OrderedTask> tasks_;
+    std::vector<std::unique_ptr<OrderedTask>> tasks_;
     std::vector<OrderedTask*> assigned_tasks_;
 
     // Runtime
@@ -202,9 +202,9 @@ ThreadTask* OrderedJob::get_next_task(size_t ith) {
   // doing ordering right now, then process that frame. Clearing up the
   // "to-be-ordered" queue should always be the highest priority.
   if (ordering_thread_index_ == NO_THREAD &&
-      next_to_order_ < n_iterations_ && tasks_[iorder_].ready_to_order()) {
+      next_to_order_ < n_iterations_ && tasks_[iorder_]->ready_to_order()) {
     ordering_thread_index_ = ith;
-    task = &tasks_[iorder_];
+    task = tasks_[iorder_].get();
     task->advance_state();
     xassert(task->n_iter == next_to_order_ &&
             task->state == OrderedTask::ORDERING);
@@ -212,8 +212,8 @@ ThreadTask* OrderedJob::get_next_task(size_t ith) {
   }
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
-  else if (next_to_finish_ < n_iterations_ && tasks_[ifinish_].ready_to_finish()) {
-    task = &tasks_[ifinish_];
+  else if (next_to_finish_ < n_iterations_ && tasks_[ifinish_]->ready_to_finish()) {
+    task = tasks_[ifinish_].get();
     task->advance_state();
     xassert(task->n_iter == next_to_finish_ &&
             task->state == OrderedTask::FINISHING);
@@ -221,8 +221,8 @@ ThreadTask* OrderedJob::get_next_task(size_t ith) {
   }
   // Otherwise if there are still tasks in the start queue, and there are
   // tasks available where to execute those, then do the next "start" task.
-  else if (next_to_start_ < n_iterations_ && tasks_[istart_].ready_to_start()) {
-    task = &tasks_[istart_];
+  else if (next_to_start_ < n_iterations_ && tasks_[istart_]->ready_to_start()) {
+    task = tasks_[istart_].get();
     task->start_iteration(next_to_start_);
     istart_ = (++next_to_start_) % n_tasks_;
   }
@@ -249,7 +249,7 @@ void OrderedJob::abort_execution() {
   // next_to_order_ = n_iterations_;
   next_to_finish_ = n_iterations_;
   ordering_thread_index_ = INVALID_THREAD;
-  tasks_[iorder_].cancel();
+  tasks_[iorder_]->cancel();
 }
 
 
@@ -277,7 +277,7 @@ void OrderedJob::wait_until_all_finalized() const {
   // FINISHING stage, and false otherwise.
   auto no_tasks_finishing = [&]() -> bool {
     for (const auto& task : tasks_) {
-      if (task.is_finishing()) return false;
+      if (task->is_finishing()) return false;
     }
     return true;
   };
@@ -367,7 +367,9 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
     return;
   }
 
-  job_->tasks_.emplace_back(pre_ordered, do_ordered, post_ordered);
+  job_->tasks_.emplace_back(
+      new OrderedTask(pre_ordered, do_ordered, post_ordered)
+  );
   if (job_->tasks_.size() == job_->n_tasks_) {
     thpool->execute_job(job_);
   } else {
