@@ -114,20 +114,20 @@ void OrderedTask::execute() {
 
 
 //------------------------------------------------------------------------------
-// wait_task
+// WaitTask
 //------------------------------------------------------------------------------
 
 // This subclass of `OrderedTask` is specifically used for waiting. The state
 // inherited from the parent class is completely ignored.
-class wait_task : public OrderedTask {
+class WaitTask : public OrderedTask {
   public:
-    wait_task();
+    WaitTask();
     void execute() override;
 };
 
-wait_task::wait_task() : OrderedTask(nullptr, nullptr, nullptr) {}
+WaitTask::WaitTask() : OrderedTask(nullptr, nullptr, nullptr) {}
 
-void wait_task::execute() {
+void WaitTask::execute() {
   std::this_thread::yield();
 }
 
@@ -151,7 +151,7 @@ class ordered_scheduler : public ThreadJob {
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
     progress::work& work;
-    wait_task waittask;
+    WaitTask waittask;
     mutable dt::spin_mutex mutex;  // 1 byte
     size_t : 56;
     size_t next_to_start;
