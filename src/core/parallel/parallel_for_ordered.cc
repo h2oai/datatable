@@ -37,7 +37,7 @@ static f1t noop = [](size_t) {};
 
 class OrderedTask : public ThreadTask {
   #if DT_DEBUG
-    friend class ordered_scheduler;
+    friend class OrderedJob;
   #endif
   private:
     static constexpr size_t READY_TO_START = 0;
@@ -135,10 +135,10 @@ void WaitTask::execute() {
 
 
 //------------------------------------------------------------------------------
-// ordered_scheduler
+// OrderedJob
 //------------------------------------------------------------------------------
 
-class ordered_scheduler : public ThreadJob {
+class OrderedJob : public ThreadJob {
   friend class ordered;
   private:
     size_t n_tasks;
@@ -163,7 +163,7 @@ class ordered_scheduler : public ThreadJob {
     size_t ifinish;
 
   public:
-    ordered_scheduler(size_t ntasks, size_t nthreads, size_t niters,
+    OrderedJob(size_t ntasks, size_t nthreads, size_t niters,
                       progress::work&);
     ThreadTask* get_next_task(size_t) override;
     void abort_execution() override;
@@ -171,7 +171,7 @@ class ordered_scheduler : public ThreadJob {
 };
 
 
-ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
+OrderedJob::OrderedJob(size_t ntasks, size_t nthreads,
                                      size_t niters, progress::work& work_)
   : n_tasks(ntasks),
     n_threads(nthreads),
@@ -187,7 +187,7 @@ ordered_scheduler::ordered_scheduler(size_t ntasks, size_t nthreads,
     ifinish(0) {}
 
 
-ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
+ThreadTask* OrderedJob::get_next_task(size_t ith) {
   if (ith >= n_threads) return nullptr;
   std::lock_guard<spin_mutex> lock(mutex);
 
@@ -244,7 +244,7 @@ ThreadTask* ordered_scheduler::get_next_task(size_t ith) {
 }
 
 
-void ordered_scheduler::abort_execution() {
+void OrderedJob::abort_execution() {
   std::lock_guard<spin_mutex> lock(mutex);
   next_to_start = n_iterations;
   // next_to_order = n_iterations;
@@ -263,7 +263,7 @@ void ordered_scheduler::abort_execution() {
   * ORDERING task, which means no new tasks can become
   * READY_TO_FINISH in the meanwhile.
   */
-void ordered_scheduler::wait_until_all_finalized() const {
+void OrderedJob::wait_until_all_finalized() const {
   if (n_threads == 1) return;
   size_t ordering_iter;
   {
@@ -303,7 +303,7 @@ void ordered_scheduler::wait_until_all_finalized() const {
 // ordered
 //------------------------------------------------------------------------------
 
-ordered::ordered(ordered_scheduler* s, function<void(ordered*)> f)
+ordered::ordered(OrderedJob* s, function<void(ordered*)> f)
   : sch(s), init(f) {}
 
 /**
@@ -430,7 +430,7 @@ void parallel_for_ordered(size_t niters, NThreads NThreads_,
   if (nthreads == 0) ntasks = 1;
   else if (nthreads > ntasks) nthreads = ntasks;
   thread_team tt(nthreads, thpool);
-  ordered_scheduler sch(ntasks, nthreads, niters, job);
+  OrderedJob sch(ntasks, nthreads, niters, job);
   ordered octx(&sch, fn);
   fn(&octx);
   job.done();
