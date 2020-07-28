@@ -141,30 +141,29 @@ void WaitTask::execute() {
 class OrderedJob : public ThreadJob {
   friend class ordered;
   private:
-    size_t n_tasks;
-    size_t n_threads;
-    size_t n_iterations;
-    std::vector<OrderedTask> tasks;
-    std::vector<OrderedTask*> assigned_tasks;
+    size_t n_tasks_;
+    size_t n_threads_;
+    size_t n_iterations_;
+    std::vector<OrderedTask> tasks_;
+    std::vector<OrderedTask*> assigned_tasks_;
 
     // Runtime
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
-    progress::work& work;
-    WaitTask waittask;
-    mutable dt::spin_mutex mutex;  // 1 byte
+    progress::work& work_;
+    WaitTask wait_task_;
+    mutable dt::spin_mutex mutex_;  // 1 byte
     size_t : 56;
-    size_t next_to_start;
-    size_t next_to_order;
-    size_t next_to_finish;
-    size_t ordering_thread_index;
-    size_t istart;
-    size_t iorder;
-    size_t ifinish;
+    size_t next_to_start_;
+    size_t next_to_order_;
+    size_t next_to_finish_;
+    size_t ordering_thread_index_;
+    size_t istart_;
+    size_t iorder_;
+    size_t ifinish_;
 
   public:
-    OrderedJob(size_t ntasks, size_t nthreads, size_t niters,
-                      progress::work&);
+    OrderedJob(size_t ntasks, size_t nthreads, size_t niters, progress::work&);
     ThreadTask* get_next_task(size_t) override;
     void abort_execution() override;
     void wait_until_all_finalized() const;
@@ -172,85 +171,85 @@ class OrderedJob : public ThreadJob {
 
 
 OrderedJob::OrderedJob(size_t ntasks, size_t nthreads,
-                                     size_t niters, progress::work& work_)
-  : n_tasks(ntasks),
-    n_threads(nthreads),
-    n_iterations(niters),
-    assigned_tasks(nthreads, &waittask),
-    work(work_),
-    next_to_start(0),
-    next_to_order(0),
-    next_to_finish(0),
-    ordering_thread_index(NO_THREAD),
-    istart(0),
-    iorder(0),
-    ifinish(0) {}
+                       size_t niters, progress::work& work)
+  : n_tasks_(ntasks),
+    n_threads_(nthreads),
+    n_iterations_(niters),
+    assigned_tasks_(nthreads, &wait_task_),
+    work_(work),
+    next_to_start_(0),
+    next_to_order_(0),
+    next_to_finish_(0),
+    ordering_thread_index_(NO_THREAD),
+    istart_(0),
+    iorder_(0),
+    ifinish_(0) {}
 
 
 ThreadTask* OrderedJob::get_next_task(size_t ith) {
-  if (ith >= n_threads) return nullptr;
-  std::lock_guard<spin_mutex> lock(mutex);
+  if (ith >= n_threads_) return nullptr;
+  std::lock_guard<spin_mutex> lock(mutex_);
 
-  OrderedTask* task = assigned_tasks[ith];
+  OrderedTask* task = assigned_tasks_[ith];
   task->advance_state();  // finish previously assigned task
 
-  if (ith == ordering_thread_index) {
-    ordering_thread_index = NO_THREAD;
-    work.set_done_amount(next_to_order);
+  if (ith == ordering_thread_index_) {
+    ordering_thread_index_ = NO_THREAD;
+    work_.set_done_amount(next_to_order_);
   }
 
-  // If `iorder`th frame is ready to be ordered, and no other thread is
+  // If `iorder_`th frame is ready to be ordered, and no other thread is
   // doing ordering right now, then process that frame. Clearing up the
   // "to-be-ordered" queue should always be the highest priority.
-  if (ordering_thread_index == NO_THREAD &&
-      next_to_order < n_iterations && tasks[iorder].ready_to_order()) {
-    ordering_thread_index = ith;
-    task = &tasks[iorder];
+  if (ordering_thread_index_ == NO_THREAD &&
+      next_to_order_ < n_iterations_ && tasks_[iorder_].ready_to_order()) {
+    ordering_thread_index_ = ith;
+    task = &tasks_[iorder_];
     task->advance_state();
-    xassert(task->n_iter == next_to_order &&
+    xassert(task->n_iter == next_to_order_ &&
             task->state == OrderedTask::ORDERING);
-    iorder = (++next_to_order) % n_tasks;
+    iorder_ = (++next_to_order_) % n_tasks_;
   }
   // Otherwise, if there are any tasks that are ready to be finished, then
   // perform those, clearing up the backlog.
-  else if (next_to_finish < n_iterations && tasks[ifinish].ready_to_finish()) {
-    task = &tasks[ifinish];
+  else if (next_to_finish_ < n_iterations_ && tasks_[ifinish_].ready_to_finish()) {
+    task = &tasks_[ifinish_];
     task->advance_state();
-    xassert(task->n_iter == next_to_finish &&
+    xassert(task->n_iter == next_to_finish_ &&
             task->state == OrderedTask::FINISHING);
-    ifinish = (++next_to_finish) % n_tasks;
+    ifinish_ = (++next_to_finish_) % n_tasks_;
   }
   // Otherwise if there are still tasks in the start queue, and there are
   // tasks available where to execute those, then do the next "start" task.
-  else if (next_to_start < n_iterations && tasks[istart].ready_to_start()) {
-    task = &tasks[istart];
-    task->start_iteration(next_to_start);
-    istart = (++next_to_start) % n_tasks;
+  else if (next_to_start_ < n_iterations_ && tasks_[istart_].ready_to_start()) {
+    task = &tasks_[istart_];
+    task->start_iteration(next_to_start_);
+    istart_ = (++next_to_start_) % n_tasks_;
   }
   // Otherwise we can't do any actual tasks right now. However, if there will
   // be some tasks in the future (not all iterations finished yet), then do a
   // simple wait task until more work becomes available.
-  else if (next_to_finish < n_iterations) {
-    task = &waittask;
+  else if (next_to_finish_ < n_iterations_) {
+    task = &wait_task_;
   }
-  // Otherwise (next_to_finish == n_iters) there isn't anything left to do:
+  // Otherwise (next_to_finish_ == n_iters) there isn't anything left to do:
   // hooray! We allow the worker to go back to sleep by returning nullptr.
   else {
     return nullptr;
   }
-  assigned_tasks[ith] = task;
+  assigned_tasks_[ith] = task;
 
   return task;
 }
 
 
 void OrderedJob::abort_execution() {
-  std::lock_guard<spin_mutex> lock(mutex);
-  next_to_start = n_iterations;
-  // next_to_order = n_iterations;
-  next_to_finish = n_iterations;
-  ordering_thread_index = INVALID_THREAD;
-  tasks[iorder].cancel();
+  std::lock_guard<spin_mutex> lock(mutex_);
+  next_to_start_ = n_iterations_;
+  // next_to_order_ = n_iterations_;
+  next_to_finish_ = n_iterations_;
+  ordering_thread_index_ = INVALID_THREAD;
+  tasks_[iorder_].cancel();
 }
 
 
@@ -264,20 +263,20 @@ void OrderedJob::abort_execution() {
   * READY_TO_FINISH in the meanwhile.
   */
 void OrderedJob::wait_until_all_finalized() const {
-  if (n_threads == 1) return;
+  if (n_threads_ == 1) return;
   size_t ordering_iter;
   {
-    std::lock_guard<dt::spin_mutex> lock(mutex);
-    xassert(dt::this_thread_index() == ordering_thread_index);
-    // next_to_order was incremented when the ordering task was
+    std::lock_guard<dt::spin_mutex> lock(mutex_);
+    xassert(dt::this_thread_index() == ordering_thread_index_);
+    // next_to_order_ was incremented when the ordering task was
     // started, so the iteration number that is currently being
-    // ordered is 1 less than `next_to_order`.
-    ordering_iter = next_to_order - 1;
+    // ordered is 1 less than `next_to_order_`.
+    ordering_iter = next_to_order_ - 1;
   }
   // Helper function: returns true if there are no tasks in the
   // FINISHING stage, and false otherwise.
   auto no_tasks_finishing = [&]() -> bool {
-    for (const auto& task : tasks) {
+    for (const auto& task : tasks_) {
       if (task.is_finishing()) return false;
     }
     return true;
@@ -286,11 +285,11 @@ void OrderedJob::wait_until_all_finalized() const {
   // "post-ordered" section.
   while (true) {
     std::this_thread::yield();
-    std::lock_guard<dt::spin_mutex> lock(mutex);
-    // when `next_to_finish` becomes equal to the current ordering
+    std::lock_guard<dt::spin_mutex> lock(mutex_);
+    // when `next_to_finish_` becomes equal to the current ordering
     // iteration, it means all iterations that were READY_TO_FINISH
     // has at least entered the FINISHING stage.
-    if (next_to_finish == ordering_iter && no_tasks_finishing()) {
+    if (next_to_finish_ == ordering_iter && no_tasks_finishing()) {
       break;
     }
   }
@@ -304,7 +303,7 @@ void OrderedJob::wait_until_all_finalized() const {
 //------------------------------------------------------------------------------
 
 ordered::ordered(OrderedJob* s, function<void(ordered*)> f)
-  : sch(s), init(f) {}
+  : job_(s), init(f) {}
 
 /**
  * This function finishes initializing the scheduler object, and then runs
@@ -354,26 +353,23 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
                        function<void(size_t)> do_ordered,
                        function<void(size_t)> post_ordered)
 {
-  if (sch->n_threads <= 1) {
+  if (job_->n_threads_ <= 1) {
     if (!pre_ordered)  pre_ordered = noop;
     if (!do_ordered)   do_ordered = noop;
     if (!post_ordered) post_ordered = noop;
-    for (size_t i = 0; i < sch->n_iterations; ++i) {
+    for (size_t i = 0; i < job_->n_iterations_; ++i) {
       pre_ordered(i);
       do_ordered(i);
       post_ordered(i);
-      sch->work.add_done_amount(1);
+      job_->work_.add_done_amount(1);
       progress::manager->check_interrupts_main();
-      // if (progress::manager->is_interrupt_occurred()) {
-      //   progress::manager->handle_interrupt();
-      // }
     }
     return;
   }
 
-  sch->tasks.emplace_back(pre_ordered, do_ordered, post_ordered);
-  if (sch->tasks.size() == sch->n_tasks) {
-    thpool->execute_job(sch);
+  job_->tasks_.emplace_back(pre_ordered, do_ordered, post_ordered);
+  if (job_->tasks_.size() == job_->n_tasks_) {
+    thpool->execute_job(job_);
   } else {
     init(this);
   }
@@ -381,25 +377,25 @@ void ordered::parallel(function<void(size_t)> pre_ordered,
 
 
 void ordered::set_n_iterations(size_t n) {
-  std::lock_guard<dt::spin_mutex> lock(sch->mutex);
-  size_t delta = n - sch->n_iterations;
-  sch->n_iterations = n;
-  sch->work.add_work_amount(delta);
+  std::lock_guard<dt::spin_mutex> lock(job_->mutex_);
+  size_t delta = n - job_->n_iterations_;
+  job_->n_iterations_ = n;
+  job_->work_.add_work_amount(delta);
 }
 
 
 void ordered::wait_until_all_finalized() const {
-  sch->wait_until_all_finalized();
+  job_->wait_until_all_finalized();
 }
 
 
 size_t ordered::get_n_iterations() const {
-  std::lock_guard<dt::spin_mutex> lock(sch->mutex);
-  return sch->n_iterations;
+  std::lock_guard<dt::spin_mutex> lock(job_->mutex_);
+  return job_->n_iterations_;
 }
 
 size_t ordered::current_iteration() const {
-  return sch->assigned_tasks[dt::this_thread_index()]->iteration();
+  return job_->assigned_tasks_[dt::this_thread_index()]->iteration();
 }
 
 

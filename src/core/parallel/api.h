@@ -121,7 +121,7 @@ void parallel_for_dynamic(size_t nrows, NThreads,
  */
 class OrderedJob;
 class ordered {
-  OrderedJob* sch;
+  OrderedJob* job_;
   function<void(ordered*)> init;
   public:
     ordered(OrderedJob*, function<void(ordered*)>);
