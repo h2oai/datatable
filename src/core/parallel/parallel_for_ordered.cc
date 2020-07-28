@@ -416,23 +416,33 @@ void parallel_for_ordered(size_t niters, NThreads NThreads_,
                           function<void(ordered*)> fn)
 {
   if (!niters) return;
+  xassert(!thpool->in_parallel_region());
   dt::progress::work job(niters);
   size_t nthreads = NThreads_.get();
 
-  // thpool->instantiate_threads();  // temp fix
-  xassert(!thpool->in_parallel_region());
-  size_t nthreads0 = thpool->size();
-  if (nthreads > nthreads0) nthreads = nthreads0;
-
   size_t ntasks = std::min(niters, nthreads * 2);
-  if (nthreads == 0) ntasks = 1;
-  else if (nthreads > ntasks) nthreads = ntasks;
-  thread_team tt(nthreads, thpool);
+  if (nthreads > ntasks) nthreads = ntasks;
+  ThreadTeam tt(nthreads, thpool);
   OrderedJob sch(ntasks, nthreads, niters, job);
   ordered octx(&sch, fn);
   fn(&octx);
   job.done();
 }
+
+
+void parallel_for_ordered2(size_t niters, NThreads nthreads,
+                          function<std::unique_ptr<OrderedTask>()> factory)
+{
+  if (!niters) return;
+  dt::progress::work job(niters);
+  size_t nth = nthreads.get();
+
+  size_t ntasks = std::min(niters, nth * 3/2);
+  if (nth > ntasks) nth = ntasks;
+
+  ThreadTeam tt(nth, thpool);
+}
+
 
 
 

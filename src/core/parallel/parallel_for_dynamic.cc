@@ -141,7 +141,7 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
     size_t tp_size = thpool->size();
     if (nthreads == 0) nthreads = tp_size;
     size_t tt_size = std::min(nthreads, tp_size);
-    thread_team tt(tt_size, thpool);
+    ThreadTeam tt(tt_size, thpool);
     dynamic_scheduler sch(tt_size, nrows);
     sch.set_task(fn);
 
@@ -149,7 +149,7 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
   }
   // Running inside a parallel region
   else {
-    thread_team* tt = ThreadPool::get_team_unchecked();
+    ThreadTeam* tt = ThreadPool::get_team_unchecked();
     // Cannot change number of threads when in a parallel region
     xassert(nthreads == tt->size());
     auto sch = tt->shared_scheduler<dynamic_scheduler>(nthreads, nrows);

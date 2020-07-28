@@ -120,6 +120,7 @@ void parallel_for_dynamic(size_t nrows, NThreads,
  * mode.
  */
 class OrderedJob;
+class OrderedTask;
 class ordered {
   OrderedJob* job_;
   function<void(ordered*)> init;
@@ -135,16 +136,14 @@ class ordered {
     size_t current_iteration() const;
 };
 
-void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
+void parallel_for_ordered(size_t n_iterations, NThreads nthreads,
                           function<void(ordered*)> fn);
 
 void parallel_for_ordered(size_t n_iterations,
                           function<void(ordered*)> fn);
 
-
-// std::mutex& python_mutex();
-// std::mutex& team_mutex();
-
+void parallel_for_ordered2(size_t n_iterations, NThreads nthreads,
+                          function<std::unique_ptr<OrderedTask>()> factory);
 
 
 
