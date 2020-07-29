@@ -108,7 +108,7 @@ void PreFrame::preallocate(size_t nrows) {
   * thus should be called from the ordered section only.
   */
 size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
-                                     dt::OrderedTask2* otask)
+                                     dt::OrderedTask* otask)
 {
   size_t nrows_in_chunk = nrows_in_chunk0;  // may be changed due to max_nrows
   size_t nrows_new = nrows_written_ + nrows_in_chunk;

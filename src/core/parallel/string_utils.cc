@@ -33,7 +33,7 @@ namespace dt {
 // Ordered iteration, produce a string column
 //------------------------------------------------------------------------------
 
-class GenStringColumn : public OrderedTask2 {
+class GenStringColumn : public OrderedTask {
   using Buf32 = writable_string_col::buffer_impl<uint32_t>;
   using Buf64 = writable_string_col::buffer_impl<uint64_t>;
   private:
@@ -92,7 +92,7 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
     ? NThreads(1)
     : nthreads_from_niters(nchunks, min_nrows_per_thread);
 
-  dt::parallel_for_ordered2(nchunks, nthreads,
+  dt::parallel_for_ordered(nchunks, nthreads,
       [&] {
         return std::make_unique<GenStringColumn>(fn, outcol, force_str64,
                                                  chunksize, nrows);

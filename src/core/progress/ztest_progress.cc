@@ -113,7 +113,7 @@ void test_progress_ordered(size_t n, size_t nth) {
   size_t niterations= n * nthreads.get();
   std::vector<size_t> data(niterations, 0);
 
-  class OTask : public dt::OrderedTask2 {
+  class OTask : public dt::OrderedTask {
     private:
       sztvec& data_;
       size_t iteration_size_;
@@ -142,7 +142,7 @@ void test_progress_ordered(size_t n, size_t nth) {
       }
   };
 
-  dt::parallel_for_ordered2(
+  dt::parallel_for_ordered(
     niterations, nthreads,
     [&] { return std::make_unique<OTask>(data); });
 }

@@ -79,7 +79,6 @@ class ParallelReader
     ChunkCoordinates compute_chunk_boundaries(size_t, ThreadContext*) const;
     void determine_chunking_strategy();
     double work_done_amount() const;
-    void realloc_output_columns(size_t i, size_t new_nrows, ordered*);
     void order_chunk(ChunkCoordinates& acc, ChunkCoordinates& xcc,
                      ThreadContext* ctx);
 };

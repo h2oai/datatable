@@ -91,7 +91,7 @@ class ThreadContext    // TODO: rename
     void set_row0();
     void allocate_tbuf(size_t ncols, size_t nrows);
 
-    size_t ensure_output_nrows(size_t chunk_nrows, size_t ichunk, dt::OrderedTask2*);
+    size_t ensure_output_nrows(size_t chunk_nrows, size_t ichunk, dt::OrderedTask*);
 
   private:
     void preorder_bool_column(size_t j);

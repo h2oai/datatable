@@ -170,7 +170,7 @@ void ParallelReader::read_all()
   }
 
   // TODO: merge with the ThreadContext class
-  class OTask : public dt::OrderedTask2 {
+  class OTask : public dt::OrderedTask {
     private:
       std::unique_ptr<ThreadContext> tctx;
       ParallelReader* rdr;
@@ -219,7 +219,7 @@ void ParallelReader::read_all()
       }
   };
 
-  dt::parallel_for_ordered2(
+  dt::parallel_for_ordered(
     /* n_iterations = */ chunk_count,
     NThreads(nthreads),
     [&] { return std::make_unique<OTask>(this); }

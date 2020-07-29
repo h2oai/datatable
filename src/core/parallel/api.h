@@ -107,59 +107,44 @@ void parallel_for_dynamic(size_t nrows, NThreads,
                           std::function<void(size_t)> fn);
 
 
-
-/**
- * Execute loop
- *
- *     for i in range(n_iterations):
- *         pre-ordered(i)
- *         ordered(i)
- *         post-ordered(i)
- *
- * where `pre-ordered` and `post-ordered` are allowed to run in parallel,
- * whereas the `ordered(i)` parts will run sequentially, in single-threaded
- * mode.
- */
 class OrderedJob;
 class OrderedTask;
-class ordered {
-  OrderedJob* job_;
-  function<void(ordered*)> init;
-  public:
-    ordered(OrderedJob*, function<void(ordered*)>);
-    void parallel(function<void(size_t)> pre_ordered,
-                  function<void(size_t)> do_ordered,
-                  function<void(size_t)> post_ordered);
-    void set_n_iterations(size_t n);
-    void wait_until_all_finalized() const;
 
-    size_t get_n_iterations() const;
-};
-
+/**
+  * Execute loop
+  *
+  *     for i in range(n_iterations):
+  *         start(i)
+  *         order(i)
+  *         finish(i)
+  *
+  * where `start` and `finish` are allowed to run in parallel,
+  * whereas the `order(i)` parts will run sequentially, in single
+  * -threaded mode.
+  *
+  * Functions `start()`, `order()` and `finish()` must be implemented
+  * by a class derived from `OrderedTask`. This function takes a
+  * factory method for generating instances of your class. The number
+  * of instances generated will depend on the number of iterations
+  * and the number of threads.
+  */
 void parallel_for_ordered(size_t n_iterations, NThreads nthreads,
-                          function<void(ordered*)> fn);
-
+                          function<std::unique_ptr<OrderedTask>()>);
 void parallel_for_ordered(size_t n_iterations,
-                          function<void(ordered*)> fn);
+                          function<std::unique_ptr<OrderedTask>()>);
 
 
-//------------------------------------------------------------------------------
-
-class OrderedJob2;
-class MultiThreaded_OrderedJob;
-class SingleThreaded_OrderedJob;
-
-class OrderedTask2 : public ThreadTask {
+class OrderedTask : public ThreadTask {
   enum State : size_t;
   private:
     State  state_;
     size_t iter_;
-    OrderedJob2* parent_job_;  // borrowed ref
+    OrderedJob* parent_job_;  // borrowed ref
 
   public:
-    OrderedTask2();
-    OrderedTask2(const OrderedTask2&) = delete;
-    OrderedTask2(OrderedTask2&&) noexcept = default;
+    OrderedTask();
+    OrderedTask(const OrderedTask&) = delete;
+    OrderedTask(OrderedTask&&) noexcept = default;
 
     virtual void start(size_t i);
     virtual void order(size_t i);
@@ -175,7 +160,7 @@ class OrderedTask2 : public ThreadTask {
   private:
     friend class MultiThreaded_OrderedJob;
     friend class SingleThreaded_OrderedJob;
-    void init_parent(OrderedJob2* parent);
+    void init_parent(OrderedJob* parent);
     bool ready_to_start()  const noexcept;
     bool ready_to_order()  const noexcept;
     bool ready_to_finish() const noexcept;
@@ -187,8 +172,6 @@ class OrderedTask2 : public ThreadTask {
     void start_iteration(size_t i);
 };
 
-void parallel_for_ordered2(size_t n_iterations, NThreads nthreads,
-                          function<std::unique_ptr<OrderedTask2>()> factory);
 
 
 

@@ -124,7 +124,7 @@ void write_manager::write_rows()
   size_t nrows = dt->nrows();
   xassert(nchunks <= size_t(-1) / nrows);
 
-  class OTask : public OrderedTask2 {
+  class OTask : public OrderedTask {
     private:
       writing_context ctx_;
       WritableBuffer* wb_;
@@ -168,7 +168,7 @@ void write_manager::write_rows()
       }
   };
 
-  parallel_for_ordered2(nchunks, NThreads(),
+  parallel_for_ordered(nchunks, NThreads(),
     [&] {
       return std::make_unique<OTask>(nrows, nchunks, fixed_size_per_row,
                                      this, wb.get(), options.compress_zlib);

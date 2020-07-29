@@ -100,7 +100,7 @@ void test_parallel_for_ordered(size_t n)
   std::vector<size_t> done(n, 0);
   std::atomic<size_t> next_ordered {0};
 
-  class OTask : public dt::OrderedTask2 {
+  class OTask : public dt::OrderedTask {
     private:
       std::atomic_flag& executing_global_;
       std::vector<size_t>& done_;
@@ -142,7 +142,7 @@ void test_parallel_for_ordered(size_t n)
       }
   };
 
-  dt::parallel_for_ordered2(n, dt::NThreads(),
+  dt::parallel_for_ordered(n, dt::NThreads(),
     [&]{
       return std::make_unique<OTask>(global, next_ordered, done);
     });

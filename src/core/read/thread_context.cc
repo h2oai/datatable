@@ -74,7 +74,7 @@ void ThreadContext::set_row0() {
 
 
 size_t ThreadContext::ensure_output_nrows(
-    size_t chunk_nrows, size_t ichunk, dt::OrderedTask2* otask)
+    size_t chunk_nrows, size_t ichunk, dt::OrderedTask* otask)
 {
   return preframe_.ensure_output_nrows(chunk_nrows, ichunk, otask);
 }
