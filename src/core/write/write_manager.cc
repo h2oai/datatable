@@ -124,38 +124,54 @@ void write_manager::write_rows()
   size_t nrows = dt->nrows();
   xassert(nchunks <= size_t(-1) / nrows);
 
-  parallel_for_ordered(
-    nchunks,  // number of iterations
-    [&](ordered* o) {
-      size_t nrows_per_chunk =  dt->nrows() / nchunks;
-      writing_context ctx(fixed_size_per_row, nrows_per_chunk,
-                          options.compress_zlib);
-      size_t th_write_at = 0;
-      size_t th_write_size = 0;
+  class OTask : public OrderedTask2 {
+    private:
+      writing_context ctx_;
+      WritableBuffer* wb_;
+      write_manager* wmanager_;
+      size_t nrows_;
+      size_t nchunks_;
+      size_t th_write_at_;
+      size_t th_write_size_;
 
-      o->parallel(
-        [&](size_t i) {  // pre-ordered
-          size_t row0 = i * nrows / nchunks;
-          size_t row1 = (i + 1) * nrows / nchunks;
-          for (size_t row = row0; row < row1; ++row) {
-            write_row(ctx, row);
-          }
-          ctx.finalize_buffer();
-        }, // end of pre-ordered
+    public:
+      OTask(size_t nrows, size_t nch, size_t rowsize,
+            write_manager* wm, WritableBuffer* wbuf, bool compress)
+        : ctx_(rowsize, nrows / nch, compress),
+          wb_(wbuf),
+          wmanager_(wm),
+          nrows_(nrows),
+          nchunks_(nch),
+          th_write_at_(0),
+          th_write_size_(0) {}
 
-        [&](size_t) {  // ordered
-          const CString& buf = ctx.get_buffer();
-          th_write_size = buf.size();
-          th_write_at = wb->prepare_write(th_write_size, buf.data());
-        },
-
-        [&](size_t) {  // post-ordered
-          const CString& buf = ctx.get_buffer();
-          wb->write_at(th_write_at, th_write_size, buf.data());
-          th_write_size = 0;
-          ctx.reset_buffer();
+      void start(size_t i) override {
+        size_t row0 = i * nrows_ / nchunks_;
+        size_t row1 = (i + 1) * nrows_ / nchunks_;
+        for (size_t row = row0; row < row1; ++row) {
+          wmanager_->write_row(ctx_, row);
         }
-      );
+        ctx_.finalize_buffer();
+      }
+
+      void order(size_t) override {
+        const CString& buf = ctx_.get_buffer();
+        th_write_size_ = buf.size();
+        th_write_at_ = wb_->prepare_write(th_write_size_, buf.data());
+      }
+
+      void finish(size_t) override {
+        const CString& buf = ctx_.get_buffer();
+        wb_->write_at(th_write_at_, th_write_size_, buf.data());
+        th_write_size_ = 0;
+        ctx_.reset_buffer();
+      }
+  };
+
+  parallel_for_ordered2(nchunks, NThreads(),
+    [&] {
+      return std::make_unique<OTask>(nrows, nchunks, fixed_size_per_row,
+                                     this, wb.get(), options.compress_zlib);
     });
 }
 
