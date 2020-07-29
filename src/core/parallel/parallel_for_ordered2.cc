@@ -90,7 +90,6 @@ bool OrderedTask2::is_finishing()    const noexcept { return state_ == State::FI
 
 
 void OrderedTask2::advance_state() {
-  xassert(state_ < State::RECYCLE);
   state_ = static_cast<State>(state_ + 1);
   if (state_ == State::RECYCLE) {
     state_ = State::READY_TO_START;
