@@ -51,6 +51,8 @@ class writable_string_col {
 
     class buffer {
       public:
+        CString tmp_str;
+
         buffer();
         virtual ~buffer();
         virtual void write(const char* ch, size_t len) = 0;

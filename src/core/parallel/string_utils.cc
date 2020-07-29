@@ -102,4 +102,22 @@ Column generate_string_column(function<void(size_t, string_buf*)> fn,
 }
 
 
+Column map_str2str(const Column& input_col,
+                   dt::function<void(size_t, CString&, string_buf*)> fn)
+{
+  return generate_string_column(
+    [&](size_t i, string_buf* sb) {
+      CString& cstr = sb->tmp_str;
+      bool isvalid = input_col.get_element(i, &cstr);
+      if (!isvalid) cstr.set_na();
+      fn(i, cstr, sb);
+    },
+    input_col.nrows(),
+    Buffer(),
+    (input_col.stype() == SType::STR64),  // force_str64
+    !input_col.allow_parallel_access()    // force_single_threaded
+  );
+}
+
+
 }  // namespace dt

@@ -48,7 +48,6 @@ enum OrderedTask2::State : size_t {
   READY_TO_FINISH = 4,
   FINISHING       = 5,
   RECYCLE         = 6,
-  CANCELLED       = 9,
 };
 
 
@@ -99,11 +98,6 @@ void OrderedTask2::advance_state() {
 }
 
 
-void OrderedTask2::cancel() {
-  state_ = State::CANCELLED;
-}
-
-
 void OrderedTask2::start_iteration(size_t i) {
   xassert(state_ == State::READY_TO_START);
   iter_ = i;
@@ -114,13 +108,15 @@ void OrderedTask2::start_iteration(size_t i) {
 
 
 //------------------------------------------------------------------------------
-// WaitTask
+// WaitTask2
 //------------------------------------------------------------------------------
 
 // This subclass of `OrderedTask2` is specifically used for waiting. The state
 // inherited from the parent class is completely ignored.
-class WaitTask : public OrderedTask2 {
+class WaitTask2 : public OrderedTask2 {
   public:
+    WaitTask2() = default;
+
     void execute() override {
       std::this_thread::yield();
     }
@@ -192,7 +188,7 @@ class MultiThreaded_OrderedJob : public OrderedJob2 {
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
     progress::work* progress_;
-    WaitTask wait_task_;
+    WaitTask2 wait_task_;
     mutable dt::spin_mutex mutex_;  // 1 byte
     size_t : 56;
     size_t next_to_start_;
@@ -215,11 +211,13 @@ class MultiThreaded_OrderedJob : public OrderedJob2 {
         next_to_start_(0),
         next_to_order_(0),
         next_to_finish_(0),
+        ordering_thread_index_(NO_THREAD),
         istart_(0),
         iorder_(0),
         ifinish_(0)
     {
       xassert(n_tasks_ && n_threads_ > 1 && n_iterations_);
+      xassert(wait_task_.ready_to_start());
       for (auto& task : tasks_) {
         task->init_parent(this);
       }
@@ -284,10 +282,11 @@ class MultiThreaded_OrderedJob : public OrderedJob2 {
     void abort_execution() override {
       std::lock_guard<spin_mutex> lock(mutex_);
       next_to_start_ = n_iterations_;
+      next_to_order_ = n_iterations_;
       next_to_finish_ = n_iterations_;
       ordering_thread_index_ = INVALID_THREAD;
-      tasks_[iorder_]->cancel();
     }
+
 
     void wait_until_all_finalized() override {
       // This function is called by the thread which is performing an
@@ -335,7 +334,7 @@ class MultiThreaded_OrderedJob : public OrderedJob2 {
 
 
 //------------------------------------------------------------------------------
-// parallel_for_ordered
+// parallel_for_ordered2
 //------------------------------------------------------------------------------
 
 void parallel_for_ordered2(size_t niters, NThreads nthreads0,

@@ -18,7 +18,6 @@
 #include <atomic>
 #include <cstddef>
 #include "parallel/thread_pool.h"
-#include <atomic>
 namespace dt {
 
 // Forward-declare

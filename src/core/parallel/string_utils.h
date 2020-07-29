@@ -44,53 +44,8 @@ Column generate_string_column(dt::function<void(size_t, string_buf*)> fn,
 // Map over a string column producing a new ostring column
 //------------------------------------------------------------------------------
 
-template <typename F>
-Column map_str2str(const Column& input_col, F f) {
-  bool use_str64 = (input_col.stype() == SType::STR64);
-  size_t nrows = input_col.nrows();
-  if (nrows == 0) {
-    return Column::new_data_column(0, input_col.stype());
-  }
-  writable_string_col output_col(nrows, use_str64);
-
-  // Do not allow the case of nrows==0 here, because then `nrows-1` overflows
-  size_t nchunks = 1 + (nrows - 1)/1000;
-  size_t chunksize = 1 + (nrows - 1)/nchunks;
-
-  constexpr size_t min_nrows_per_thread = 100;
-  NThreads nthreads = nthreads_from_niters(nrows, min_nrows_per_thread);
-  dt::parallel_for_ordered(
-    nchunks,
-    nthreads,
-    [&](ordered* o) {
-      auto sb = output_col.make_buffer();
-
-      o->parallel(
-        [&](size_t iter) {
-          size_t i0 = std::min(iter * chunksize, nrows);
-          size_t i1 = std::min(i0 + chunksize, nrows);
-
-          sb->commit_and_start_new_chunk(i0);
-          CString curr_str;
-          for (size_t i = i0; i < i1; ++i) {
-            bool isvalid = input_col.get_element(i, &curr_str);
-            if (!isvalid) {
-              curr_str = CString();
-            }
-            f(i, curr_str, sb.get());
-          }
-        },
-        [&](size_t) {
-          sb->order();
-        },
-        nullptr
-      );
-
-      sb->commit_and_start_new_chunk(nrows);
-    });
-
-  return std::move(output_col).to_ocolumn();
-}
+Column map_str2str(const Column& input_col,
+                   dt::function<void(size_t, CString&, string_buf*)> fn);
 
 
 
