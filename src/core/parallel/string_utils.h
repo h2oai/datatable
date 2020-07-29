@@ -17,7 +17,6 @@
 #define dt_PARALLEL_STRING_UTILS_h
 #include <memory>             // std::unique_ptr
 #include <vector>             // std::vector
-#include "parallel/api.h"     // dt::parallel_for_ordered
 #include "utils/function.h"   // dt::function
 #include "rowindex.h"         // RowIndex
 #include "wstringcol.h"       // writable_string_col
