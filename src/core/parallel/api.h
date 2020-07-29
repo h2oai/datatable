@@ -145,15 +145,7 @@ void parallel_for_ordered(size_t n_iterations,
 
 //------------------------------------------------------------------------------
 
-class OrderedJob2 : public ThreadJob {
-  public:
-    // This should be called from within an "ordered" section only.
-    // This function will block until all tasks that are currently in
-    // READY_TO_FINISH or FINISHING state are completed.
-    virtual void wait_until_all_finalized() = 0;
-    virtual void set_n_iterations(size_t) = 0;
-};
-
+class OrderedJob2;
 class MultiThreaded_OrderedJob;
 class SingleThreaded_OrderedJob;
 
@@ -175,6 +167,10 @@ class OrderedTask2 : public ThreadTask {
     size_t get_iteration() const noexcept;
 
     void execute() override;  // ThreadTask's API
+
+    size_t get_num_iterations() const;
+    void set_num_iterations(size_t n);
+    void wait_until_all_finalized();
 
   private:
     friend class MultiThreaded_OrderedJob;

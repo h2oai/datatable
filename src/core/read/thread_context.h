@@ -21,9 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_THREADCONTEXT_h
 #define dt_READ_THREADCONTEXT_h
+#include "_dt.h"
+#include "parallel/api.h"
 #include "read/colinfo.h"
 #include "read/parse_context.h"
-#include "_dt.h"
 namespace dt {
 namespace read {
 
@@ -87,8 +88,10 @@ class ThreadContext    // TODO: rename
 
     size_t get_nrows() const;
     void set_nrows(size_t n);
-    void set_row0(size_t n);
+    void set_row0();
     void allocate_tbuf(size_t ncols, size_t nrows);
+
+    size_t ensure_output_nrows(size_t chunk_nrows, size_t ichunk, dt::OrderedTask2*);
 
   private:
     void preorder_bool_column(size_t j);

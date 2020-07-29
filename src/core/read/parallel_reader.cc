@@ -169,15 +169,11 @@ void ParallelReader::read_all()
     determine_chunking_strategy();
   }
 
-  dt::parallel_for_ordered(
-    /* n_iterations = */ chunk_count,
-    NThreads(nthreads),
-
-    [&](dt::ordered* o) {
-      // Thread-local parse context. This object does most of the parsing job.
-      auto tctx = init_thread_context();
-      xassert(tctx);
-
+  // TODO: merge with the ThreadContext class
+  class OTask : public dt::OrderedTask2 {
+    private:
+      std::unique_ptr<ThreadContext> tctx;
+      ParallelReader* rdr;
       // Helper variables for keeping track of chunk's coordinates:
       // `txcc` has the expected chunk coordinates (i.e. as determined ex ante
       // in `compute_chunk_coordinates()`), and `tacc` the actual chunk
@@ -187,38 +183,47 @@ void ParallelReader::read_all()
       ChunkCoordinates txcc;
       ChunkCoordinates tacc;
 
-      // Main data reading loop
-      o->parallel(
-        [&](size_t i) {
-          txcc = compute_chunk_boundaries(i, tctx.get());
+    public:
+      OTask(ParallelReader* reader)
+        : tctx(reader->init_thread_context()),
+          rdr(reader)
+      { xassert(tctx); }
 
-          // Read the chunk with the expected coordinates `txcc`. The actual
-          // coordinates of the data read will be stored in variable `tacc`.
-          // If the method fails with a recoverable error (such as a type
-          // exception), it will return with `tacc.get_end() == nullptr`. If the
-          // method fails without possibility of recovery, it will raise an
-          // exception.
-          tctx->read_chunk(txcc, tacc);
-        },
+      void start(size_t i) override {
+        txcc = rdr->compute_chunk_boundaries(i, tctx.get());
 
-        [&](size_t i) {
-          tctx->set_row0(preframe.nrows_written());
-          order_chunk(tacc, txcc, tctx.get());
+        // Read the chunk with the expected coordinates `txcc`. The actual
+        // coordinates of the data read will be stored in variable `tacc`.
+        // If the method fails with a recoverable error (such as a type
+        // exception), it will return with `tacc.get_end() == nullptr`. If the
+        // method fails without possibility of recovery, it will raise an
+        // exception.
+        tctx->read_chunk(txcc, tacc);
+      }
 
-          size_t chunk_nrows = tctx->get_nrows();
-          size_t new_nrows = preframe.ensure_output_nrows(chunk_nrows, i, o);
-          if (new_nrows != chunk_nrows) {
-            tctx->set_nrows(new_nrows);
-            tctx->preorder();  // recalculate chunk stats, etc
-          }
-          tctx->order();
-        },
+      void order(size_t i) override {
+        tctx->set_row0();
+        rdr->order_chunk(tacc, txcc, tctx.get());
 
-        [&](size_t) {
-          tctx->postorder();
+        size_t chunk_nrows = tctx->get_nrows();
+        size_t new_nrows = tctx->ensure_output_nrows(chunk_nrows, i, this);
+        if (new_nrows != chunk_nrows) {
+          tctx->set_nrows(new_nrows);
+          tctx->preorder();  // recalculate chunk stats, etc
         }
-      );  // o->parallel()
-    });  // dt::parallel_for_ordered
+        tctx->order();
+      }
+
+      void finish(size_t) override {
+        tctx->postorder();
+      }
+  };
+
+  dt::parallel_for_ordered2(
+    /* n_iterations = */ chunk_count,
+    NThreads(nthreads),
+    [&] { return std::make_unique<OTask>(this); }
+  );
 
   // Check that all input was read (unless interrupted early because of
   // nrows_max).

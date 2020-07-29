@@ -66,9 +66,17 @@ void ThreadContext::set_nrows(size_t n) {
 }
 
 
-void ThreadContext::set_row0(size_t n) {
+void ThreadContext::set_row0() {
+  size_t n = preframe_.nrows_written();
   xassert(row0_ <= n);
   row0_ = n;
+}
+
+
+size_t ThreadContext::ensure_output_nrows(
+    size_t chunk_nrows, size_t ichunk, dt::OrderedTask2* otask)
+{
+  return preframe_.ensure_output_nrows(chunk_nrows, ichunk, otask);
 }
 
 

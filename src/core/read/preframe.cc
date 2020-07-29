@@ -108,7 +108,7 @@ void PreFrame::preallocate(size_t nrows) {
   * thus should be called from the ordered section only.
   */
 size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
-                                     dt::ordered* ordered_loop)
+                                     dt::OrderedTask2* otask)
 {
   size_t nrows_in_chunk = nrows_in_chunk0;  // may be changed due to max_nrows
   size_t nrows_new = nrows_written_ + nrows_in_chunk;
@@ -129,7 +129,7 @@ size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
     }
 
     // Estimate the final number of rows that will be needed
-    size_t nchunks = ordered_loop->get_n_iterations();
+    size_t nchunks = otask->get_num_iterations();
     xassert(ichunk < nchunks);
     if (ichunk < nchunks - 1) {
       nrows_new = std::min(
@@ -141,7 +141,7 @@ size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
     }
 
     xassert(nrows_new >= nrows_in_chunk + nrows_written_);
-    ordered_loop->wait_until_all_finalized();
+    otask->wait_until_all_finalized();
     archive_column_chunks(nrows_new);
 
     // If there is a memory limit, then we potentially need to adjust
@@ -175,7 +175,7 @@ size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
   }
 
   if (nrows_new == nrows_max) {
-    ordered_loop->set_n_iterations(ichunk + 1);
+    otask->set_num_iterations(ichunk + 1);
   }
   nrows_written_ += nrows_in_chunk;
   xassert(nrows_written_ <= nrows_allocated_);

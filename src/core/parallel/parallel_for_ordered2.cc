@@ -37,6 +37,24 @@ using uqOrderedTask = std::unique_ptr<OrderedTask2>;
 
 
 //------------------------------------------------------------------------------
+// OrderedJob2
+//------------------------------------------------------------------------------
+
+class OrderedJob2 : public ThreadJob {
+  public:
+    // This should be called from within an "ordered" section only.
+    // This function will block until all tasks that are currently in
+    // READY_TO_FINISH or FINISHING state are completed.
+    virtual void wait_until_all_finalized() = 0;
+
+    virtual size_t get_num_iterations() const = 0;
+    virtual void set_num_iterations(size_t n) = 0;
+};
+
+
+
+
+//------------------------------------------------------------------------------
 // OrderedTask2
 //------------------------------------------------------------------------------
 
@@ -63,6 +81,18 @@ void OrderedTask2::finish(size_t) {}
 
 size_t OrderedTask2::get_iteration() const noexcept {
   return iter_;
+}
+
+size_t OrderedTask2::get_num_iterations() const {
+  return parent_job_->get_num_iterations();
+}
+
+void OrderedTask2::set_num_iterations(size_t n) {
+  parent_job_->set_num_iterations(n);
+}
+
+void OrderedTask2::wait_until_all_finalized() {
+  parent_job_->wait_until_all_finalized();
 }
 
 
@@ -123,7 +153,6 @@ class WaitTask2 : public OrderedTask2 {
 
 
 
-
 //------------------------------------------------------------------------------
 // SingleThreaded_OrderedJob
 //------------------------------------------------------------------------------
@@ -159,7 +188,11 @@ class SingleThreaded_OrderedJob : public OrderedJob2 {
 
     void wait_until_all_finalized() override {}
 
-    void set_n_iterations(size_t n) override {
+    size_t get_num_iterations() const override {
+      return n_iterations_;
+    }
+
+    void set_num_iterations(size_t n) override {
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
     }
@@ -322,7 +355,11 @@ class MultiThreaded_OrderedJob : public OrderedJob2 {
       }
     }
 
-    void set_n_iterations(size_t n) override {
+    size_t get_num_iterations() const override {
+      return n_iterations_;
+    }
+
+    void set_num_iterations(size_t n) override {
       std::lock_guard<dt::spin_mutex> lock(mutex_);
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
