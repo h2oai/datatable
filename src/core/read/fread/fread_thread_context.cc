@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>                 // std::memcpy
 #include "csv/reader_fread.h"      // FreadReader
 #include "read/fread/fread_thread_context.h"
 #include "read/parallel_reader.h"  // ChunkCoordinates
@@ -31,9 +32,9 @@ namespace read {
 
 
 FreadThreadContext::FreadThreadContext(
-    size_t bcols, size_t brows, FreadReader& f, PT* types_
+    size_t bcols, size_t brows, FreadReader& f, PT* types
   ) : ThreadContext(bcols, brows, f.preframe),
-      types(types_),
+      global_types_(types),
       freader(f),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -74,6 +75,9 @@ void FreadThreadContext::read_chunk(
   used_nrows = 0;
   parse_ctx_.target = tbuf.data();
   parse_ctx_.bytes_written = 0;
+
+  local_types_.clear();
+  PT* types = global_types_;
 
   while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {
@@ -152,7 +156,7 @@ void FreadThreadContext::read_chunk(
             break;
           }
 
-          // Only perform bumping types / quote rules, when we are sure that the
+          // Only perform bumping type / quote rules, when we are sure that the
           // start of the chunk is valid.
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
@@ -176,6 +180,11 @@ void FreadThreadContext::read_chunk(
                                       // TODO: use line number instead
                                       static_cast<int64_t>(row0_ + used_nrows + freader.line));
           }
+          // if (local_types_.empty()) {
+          //   local_types_.resize(ncols);
+          //   types = local_types_.data();
+          //   std::memcpy(types, global_types_, sizeof(PT) * ncols);
+          // }
           types[j] = *ptype_iter;
           colj.set_ptype(types[j]);
           if (!freader.reread_scheduled) {

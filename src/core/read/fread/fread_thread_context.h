@@ -46,7 +46,8 @@ class FreadThreadContext : public ThreadContext
     int64_t : 48;
     double ttime_push;
     double ttime_read;
-    PT* types;
+    PT* global_types_;
+    std::vector<PT> local_types_;
 
     FreadReader& freader;
     const ParserFnPtr* parsers;
