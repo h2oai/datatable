@@ -109,33 +109,42 @@ void test_progress_dynamic(size_t n, size_t nth) {
 
 
 void test_progress_ordered(size_t n, size_t nth) {
-  const size_t iteration_size = 1000;
-
   dt::NThreads nthreads = dt::NThreads(nth);
   size_t niterations= n * nthreads.get();
   std::vector<size_t> data(niterations, 0);
 
+  class OTask : public dt::OrderedTask {
+    private:
+      sztvec& data_;
+      size_t iteration_size_;
+
+    public:
+      OTask(sztvec& data)
+        : data_(data),
+          iteration_size_(1000) {}
+
+      void start(size_t i) override {
+        for (size_t j = 0; j < iteration_size_; ++j) {
+          data_[i] += i % (j + 1) + 1;
+        }
+      }
+
+      void order(size_t i) override {
+        for (size_t j = 0; j < iteration_size_; ++j) {
+          data_[i] += i % (j + 1) + 2;
+        }
+      }
+
+      void finish(size_t i) override {
+        for (size_t j = 0; j < iteration_size_; ++j) {
+          data_[i] += i % (j + 1) + 3;
+        }
+      }
+  };
+
   dt::parallel_for_ordered(
-    /* n_iters = */ niterations,
-    /* n_threads = */ nthreads,
-    [&] (dt::ordered* o) {
-      o->parallel(
-        [&](size_t i) {
-          for (size_t j = 0; j < iteration_size; ++j) {
-            data[i] += i % (j + 1) + 1;
-          }
-        },
-        [&](size_t i) {
-          for (size_t j = 0; j < iteration_size; ++j) {
-            data[i] += i % (j + 1) + 2;
-          }
-        },
-        [&](size_t i) {
-          for (size_t j = 0; j < iteration_size; ++j) {
-            data[i] += i % (j + 1) + 3;
-          }
-        });
-    });
+    niterations, nthreads,
+    [&] { return std::make_unique<OTask>(data); });
 }
 
 

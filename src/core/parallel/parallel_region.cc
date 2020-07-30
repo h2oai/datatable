@@ -85,7 +85,7 @@ void parallel_region(function<void()> fn) {
 void parallel_region(NThreads nthreads_, function<void()> fn) {
   xassert(!thpool->in_parallel_region());
   size_t nthreads = nthreads_.get();
-  thread_team tt(nthreads, thpool);
+  ThreadTeam tt(nthreads, thpool);
 
   simple_task task(fn);
   once_scheduler sch(nthreads, &task);

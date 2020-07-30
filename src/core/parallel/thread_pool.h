@@ -29,7 +29,7 @@
 #include "parallel/thread_worker.h"
 namespace dt {
 
-class thread_team;
+class ThreadTeam;
 class PythonLock;
 
 
@@ -55,7 +55,7 @@ class PythonLock;
   */
 class ThreadPool
 {
-  friend class thread_team;
+  friend class ThreadTeam;
   friend class Job_Idle;
   friend class PythonLock;
 
@@ -85,8 +85,8 @@ class ThreadPool
     // across all threads.
     std::mutex global_mutex_;
 
-    // TODO: merge thread_team functionality into the pool?
-    thread_team* current_team;
+    // TODO: merge ThreadTeam functionality into the pool?
+    ThreadTeam* current_team;
 
   public:
     ThreadPool();
@@ -94,7 +94,7 @@ class ThreadPool
     ThreadPool(ThreadPool&&) = delete;  // Not moveable: workers hold pointers to this->idle_job_.
     ~ThreadPool() = delete;             // ThreadPool never gets deleted
 
-    static thread_team* get_team_unchecked() noexcept;
+    static ThreadTeam* get_team_unchecked() noexcept;
 
 
     void execute_job(ThreadJob*);

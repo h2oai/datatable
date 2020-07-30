@@ -68,6 +68,11 @@ void CString::set(const char* ptr, size_t size) {
   size_ = size;
 }
 
+void CString::set_na() {
+  ptr_ = nullptr;
+  size_ = 0;
+}
+
 void CString::set_data(const char* ptr) {
   ptr_ = ptr;
 }

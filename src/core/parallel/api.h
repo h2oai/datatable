@@ -20,6 +20,7 @@
 #include <mutex>         // std::mutex
 #include "parallel/api_primitives.h"
 #include "parallel/python_lock.h"
+#include "parallel/thread_job.h"
 #include "utils/function.h"
 namespace dt {
 
@@ -106,44 +107,70 @@ void parallel_for_dynamic(size_t nrows, NThreads,
                           std::function<void(size_t)> fn);
 
 
+class OrderedJob;
+class OrderedTask;
 
 /**
- * Execute loop
- *
- *     for i in range(n_iterations):
- *         pre-ordered(i)
- *         ordered(i)
- *         post-ordered(i)
- *
- * where `pre-ordered` and `post-ordered` are allowed to run in parallel,
- * whereas the `ordered(i)` parts will run sequentially, in single-threaded
- * mode.
- */
-class ordered_scheduler;
-class ordered {
-  ordered_scheduler* sch;
-  function<void(ordered*)> init;
-  public:
-    ordered(ordered_scheduler*, function<void(ordered*)>);
-    void parallel(function<void(size_t)> pre_ordered,
-                  function<void(size_t)> do_ordered,
-                  function<void(size_t)> post_ordered);
-    void set_n_iterations(size_t n);
-    void wait_until_all_finalized() const;
-
-    size_t get_n_iterations() const;
-    size_t current_iteration() const;
-};
-
-void parallel_for_ordered(size_t n_iterations, NThreads NThreads_,
-                          function<void(ordered*)> fn);
-
+  * Execute loop
+  *
+  *     for i in range(n_iterations):
+  *         start(i)
+  *         order(i)
+  *         finish(i)
+  *
+  * where `start` and `finish` are allowed to run in parallel,
+  * whereas the `order(i)` parts will run sequentially, in single
+  * -threaded mode.
+  *
+  * Functions `start()`, `order()` and `finish()` must be implemented
+  * by a class derived from `OrderedTask`. This function takes a
+  * factory method for generating instances of your class. The number
+  * of instances generated will depend on the number of iterations
+  * and the number of threads.
+  */
+void parallel_for_ordered(size_t n_iterations, NThreads nthreads,
+                          function<std::unique_ptr<OrderedTask>()>);
 void parallel_for_ordered(size_t n_iterations,
-                          function<void(ordered*)> fn);
+                          function<std::unique_ptr<OrderedTask>()>);
 
 
-// std::mutex& python_mutex();
-// std::mutex& team_mutex();
+class OrderedTask : public ThreadTask {
+  enum State : size_t;
+  private:
+    State  state_;
+    size_t iter_;
+    OrderedJob* parent_job_;  // borrowed ref
+
+  public:
+    OrderedTask();
+    OrderedTask(const OrderedTask&) = delete;
+    OrderedTask(OrderedTask&&) noexcept = default;
+
+    virtual void start(size_t i);
+    virtual void order(size_t i);
+    virtual void finish(size_t i);
+    size_t get_iteration() const noexcept;
+
+    void execute() override;  // ThreadTask's API
+
+    size_t get_num_iterations() const;
+    void set_num_iterations(size_t n);
+    void wait_until_all_finalized();
+
+  private:
+    friend class MultiThreaded_OrderedJob;
+    friend class SingleThreaded_OrderedJob;
+    void init_parent(OrderedJob* parent);
+    bool ready_to_start()  const noexcept;
+    bool ready_to_order()  const noexcept;
+    bool ready_to_finish() const noexcept;
+    bool is_starting()     const noexcept;
+    bool is_ordering()     const noexcept;
+    bool is_finishing()    const noexcept;
+    void advance_state();
+    void cancel();
+    void start_iteration(size_t i);
+};
 
 
 

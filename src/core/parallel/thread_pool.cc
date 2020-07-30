@@ -123,7 +123,7 @@ void ThreadPool::instantiate_threads() {
     idle_job_.join();
   }
   else {
-    thread_team tt(n, this);
+    ThreadTeam tt(n, this);
     Job_Shutdown tss(n, &idle_job_);
     execute_job(&tss);
     for (size_t i = n; i < workers_.size(); ++i) {
@@ -154,7 +154,7 @@ size_t ThreadPool::n_threads_in_team() const noexcept {
 }
 
 
-thread_team* ThreadPool::get_team_unchecked() noexcept {
+ThreadTeam* ThreadPool::get_team_unchecked() noexcept {
   return thpool->current_team;
 }
 

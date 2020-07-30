@@ -88,62 +88,60 @@ TEST(parallel, for_dynamic_nested) {
 
 
 
-void test_parallel_for_ordered(size_t n) {
-  std::atomic_flag executing_ordered = ATOMIC_FLAG_INIT;
-  std::vector<size_t> done(n, 0);
-  std::atomic<int> ordered_section {0};
+void test_parallel_for_ordered(size_t n)
+{
+  std::atomic_flag global = ATOMIC_FLAG_INIT;
+  std::vector<int> done(n, 0);
   std::atomic<size_t> next_ordered {0};
 
-  dt::parallel_for_ordered(
-    /* n_iters = */ n,
-    /* n_threads = */ dt::NThreads(),
-    [&] (dt::ordered* o) {
-      std::atomic_flag executing_local = ATOMIC_FLAG_INIT;
-      int k = ordered_section.fetch_add(1);
+  class OTask : public dt::OrderedTask {
+    private:
+      std::atomic_flag& executing_global_;
+      std::vector<int>& done_;
+      std::atomic<size_t>& next_ordered_;
+      std::atomic_flag executing_local_ = ATOMIC_FLAG_INIT;
+      size_t : 56;
 
-      o->parallel(
-        [&](size_t j) {
-          if (executing_local.test_and_set()) {
-            throw AssertionError() << "Frame " << k
-              << " is executed in another thread, start = " << j;
-          }
-          ASSERT_LT(j, n);
-          ASSERT_EQ(done[j], 0);
-          done[j] = 1;
-          executing_local.clear();
-        },
-        [&](size_t j) {
-          if (executing_ordered.test_and_set()) {
-            throw AssertionError() << "Another thread is executing ordered section";
-          }
-          if (executing_local.test_and_set()) {
-            throw AssertionError() << "Frame " << k << " is executed in another thread, ordered = " << j;
-          }
-          // body of ordered section
-          ASSERT_EQ(next_ordered, j);
-          next_ordered++;
-          ASSERT_EQ(done[j], 1);
-          done[j] = 2;
-          // end of ordered section
-          executing_local.clear();
-          executing_ordered.clear();
-        },
-        [&](size_t j) {
-          if (executing_local.test_and_set()) {
-            throw AssertionError() << "Frame " << k << " is executed in another thread, final = " << j;
-          }
-          ASSERT_EQ(done[j], 2);
-          done[j] = 3;
-          executing_local.clear();
-        });
+    public:
+      OTask(std::atomic_flag& global,
+            std::atomic<size_t>& next_ordered, std::vector<int>& done)
+        : executing_global_(global),
+          done_(done),
+          next_ordered_(next_ordered) {}
 
-      if (executing_local.test_and_set()) {
-        throw AssertionError() << "Exiting parallel, while another thread is "
-            "still executing this frame";
+      void start(size_t j) override {
+        XAssert(!executing_local_.test_and_set());
+        ASSERT_LT(j, done_.size());
+        ASSERT_EQ(done_[j], 0);
+        done_[j] = 1;
+        executing_local_.clear();
       }
+
+      void order(size_t j) override {
+        XAssert(!executing_global_.test_and_set());
+        XAssert(!executing_local_.test_and_set());
+        ASSERT_EQ(next_ordered_.load(), j);
+        next_ordered_++;
+        ASSERT_EQ(done_[j], 1);
+        done_[j] = 2;
+        executing_local_.clear();
+        executing_global_.clear();
+      }
+
+      void finish(size_t j) override {
+        XAssert(!executing_local_.test_and_set());
+        ASSERT_EQ(done_[j], 2);
+        done_[j] = 3;
+        executing_local_.clear();
+      }
+  };
+
+  dt::parallel_for_ordered(n, dt::NThreads(),
+    [&]{
+      return std::make_unique<OTask>(global, next_ordered, done);
     });
 
-  ASSERT_EQ(next_ordered, n);
+  ASSERT_EQ(next_ordered.load(), n);
   for (size_t i = 0; i < n; ++i) {
     ASSERT_EQ(done[i], 3);
   }

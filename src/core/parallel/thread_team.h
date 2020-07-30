@@ -18,7 +18,6 @@
 #include <atomic>
 #include <cstddef>
 #include "parallel/thread_pool.h"
-#include <atomic>
 namespace dt {
 
 // Forward-declare
@@ -26,7 +25,7 @@ class ThreadJob;
 
 
 
-class thread_team {
+class ThreadTeam {
   private:
     size_t nthreads;
     ThreadPool* thpool;
@@ -35,8 +34,8 @@ class thread_team {
     std::atomic<size_t> barrier_counter;
 
   public:
-    thread_team(size_t nth, ThreadPool*);
-    ~thread_team();
+    ThreadTeam(size_t nth, ThreadPool*);
+    ~ThreadTeam();
 
     size_t size() const noexcept;
 
