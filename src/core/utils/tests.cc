@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <memory>              // std::unique_ptr
 #include <string>              // std::string
 #include <unordered_map>       // std::unordered_map
 #include <utility>             // std::pair
-#include <iostream>
 #include <vector>              // std::vector
 #include "datatablemodule.h"
 #include "python/_all.h"
@@ -33,11 +33,10 @@
 namespace dt {
 namespace tests {
 
-using testfn = std::function<void()>;
+using testfn = void(*)(); //std::function<void()>;
 using strvec = std::vector<std::string>;
-using TestInstance = std::pair<std::string, testfn>;
-using TestRegistry = std::unordered_map<std::string,
-                                        std::vector<TestInstance>>;
+using TestSuite = std::vector<std::unique_ptr<TestCase>>;
+using TestRegistry = std::unordered_map<std::string, TestSuite>;
 
 
 //------------------------------------------------------------------------------
@@ -62,7 +61,7 @@ static strvec get_suites_list() {
 }
 
 
-static std::vector<TestInstance>& get_suite(const std::string& suite) {
+static TestSuite& get_suite(const std::string& suite) {
   if (!get_tests_registry().count(suite)) {
     throw KeyError() << "Test suite `" << suite << "` does not exist";
   }
@@ -70,10 +69,10 @@ static std::vector<TestInstance>& get_suite(const std::string& suite) {
 }
 
 
-static strvec get_tests(const std::string& suite) {
+static strvec get_tests_list(const std::string& suite) {
   strvec result;
   for (const auto& entry : get_suite(suite)) {
-    result.push_back(entry.first);
+    result.push_back(entry->name());
   }
   return result;
 }
@@ -81,8 +80,8 @@ static strvec get_tests(const std::string& suite) {
 
 static void run_test(const std::string& suite, const std::string& name) {
   for (const auto& entry : get_suite(suite)) {
-    if (entry.first == name) {
-      (entry.second)();
+    if (entry->name() == name) {
+      entry->xrun();
       return;
     }
   }
@@ -91,8 +90,8 @@ static void run_test(const std::string& suite, const std::string& name) {
 }
 
 
-Register::Register(testfn fn, const char* suite, const char* name) {
-  get_tests_registry()[suite].emplace_back(std::move(name), fn);
+Register::Register(TestCase* testcase) {
+  get_tests_registry()[testcase->suite()].emplace_back(testcase);
 }
 
 
@@ -140,7 +139,7 @@ static PKArgs arg_get_tests_in_suite(
 
 static oobj get_tests_in_suite(const PKArgs& args) {
   std::string suite = args[0].to_string();
-  auto tests = dt::tests::get_tests(suite);
+  auto tests = dt::tests::get_tests_list(suite);
   olist result(tests.size());
   for (size_t i = 0; i < tests.size(); ++i) {
     result.set(i, ostring(tests[i]));

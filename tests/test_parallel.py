@@ -31,6 +31,27 @@ from datatable.lib import core
 from tests import (cpp_test, skip_on_jenkins)
 
 
+def get_core_tests(suite):
+    # This must be a function, so that `n` is properly captured within
+    def param(n):
+        return pytest.param(lambda: n, id=n)
+
+    if hasattr(core, "get_test_suites"):
+        return [param(n) for n in core.get_tests_in_suite(suite)]
+    else:
+        return [pytest.param(lambda: pytest.skip(
+                                        reason="C++ tests not compiled"))]
+
+@pytest.fixture()
+def testname(request):
+    return request.param()
+
+
+@pytest.mark.parametrize("testname", get_core_tests("parallel"), indirect=True)
+def test_parallel(testname):
+    core.run_test("parallel", testname)
+
+
 #-------------------------------------------------------------------------------
 # Test parallel infrastructure
 #-------------------------------------------------------------------------------
@@ -84,15 +105,6 @@ def test_internal_shared_mutex():
 def test_internal_shared_bmutex():
     core.test_shmutex(1000, dt.options.nthreads * 2, 0)
 
-
-@cpp_test
-def test_internal_atomic():
-    core.test_atomic()
-
-
-@cpp_test
-def test_internal_barrier():
-    core.test_barrier(100)
 
 
 @cpp_test

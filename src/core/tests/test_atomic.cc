@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -69,27 +69,11 @@ static void test_atomic_impl() {
   int q_exp = n - 1;
   int r_exp = 0;
 
-  T eps = static_cast<T>(sizeof(T) == 4? 1e-6 : 1e-10);
-  if (std::abs(x_act/x_exp - 1) > eps) {
-    throw AssertionError() << "Invalid x = " << x_act << " after " << n
-        << " atomic operations, expected = " << x_exp;
-  }
-  if (std::abs(y_act/y_exp - 1) > eps) {
-    throw AssertionError() << "Invalid y = " << y_act << " after " << n
-        << " atomic operations, expected = " << y_exp;
-  }
-  if (std::abs(z_act/z_exp - 1) > eps) {
-    throw AssertionError() << "Invalid z = " << z_act << " after " << n
-        << " atomic operations, expected = " << z_exp;
-  }
-  if (q_act != q_exp) {
-    throw AssertionError() << "Invalid q = " << q_act << " after " << n
-        << " atomic operations, expected = " << q_exp;
-  }
-  if (r_act != r_exp) {
-    throw AssertionError() << "Invalid r = " << r_act << " after " << n
-        << " atomic operations, expected = " << r_exp;
-  }
+  ASSERT_FLOAT_EQ(x_act, x_exp);
+  ASSERT_FLOAT_EQ(y_act, y_exp);
+  ASSERT_FLOAT_EQ(z_act, z_exp);
+  ASSERT_EQ(q_act, q_exp);
+  ASSERT_EQ(r_act, r_exp);
 }
 
 

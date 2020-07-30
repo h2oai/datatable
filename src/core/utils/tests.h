@@ -19,33 +19,161 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// Simplified test framework. Use as follows:
+//
+// In a C++ file:
+//
+//      TEST(suite_name, test_name) {
+//        ... test body ...
+//        ... throw an exception here if something goes wrong ...
+//      }
+//
+// Neither `suite_name` nor `test_name` should be put in quotes. In
+// fact, they should both be valid identifiers.
+// The `suite_name` is any name that organizes the test into a
+// collection of similar tests. Thus, all tests form a single-level
+// hierarchy with several suites and multiple tests within each
+// suite. This is quite similar to how pytest organizes tests into
+// files, with multiple tests per file.
+//
+// After a test is declared in a C++ source file, it becomes
+// automatically available within python via API
+//
+//   core.get_test_suites()                # -> List[str]
+//   core.get_tests_in_suite(suite: str)   # -> List[str]
+//   core.run_test(suite: str, test: str)  # -> None
+//
+// It is thus easy to setup pytest framework to automatically find
+// and execute all these tests.
+//
+//------------------------------------------------------------------------------
 #ifndef dt_UTILS_TESTS_h
 #define dt_UTILS_TESTS_h
-#include <functional>      // std::function
+#include <cmath>                // std::isnan
+#include <functional>           // std::function
+#include <type_traits>          // std::is_floating_point
+#include "utils/exceptions.h"
 namespace dt {
 namespace tests {
-#ifdef DTTEST
+#ifndef DTTEST
+#define TEST(suite, name)  \
+  static_assert(0, "TEST() macro should not be used when DTTEST not defined");
+#else
+
+//------------------------------------------------------------------------------
+// Internal
+//------------------------------------------------------------------------------
+
+class TestCase {
+  protected:
+    const char* suite_name_;
+    const char* test_name_;
+    const char* file_name_;
+
+  public:
+    TestCase(const char* suite, const char* test, const char* file)
+      : suite_name_(suite), test_name_(test), file_name_(file) {}
+    virtual ~TestCase() = default;
+
+    const char* suite() const { return suite_name_; }
+    const char* name() const { return test_name_; }
+    virtual void xrun() = 0;
+};
 
 class Register {
   public:
-    Register(std::function<void()> fn, const char* suite, const char* name);
+    Register(TestCase* testcase);
 };
 
+#define TESTNAME(suite, name) test_##suite##_##name
 
-#define TEST(suite, name)  \
-  static void test_##suite##_##name(); \
-  static dt::tests::Register \
-            reg_##suite##_##name(test_##suite##_##name, #suite, #name); \
-  void test_##suite##_##name()
-
-
-
-
-#else  // ifdef DTTEST
-
-#define TEST(suite, name)  \
-  static_assert(0, "TEST() macro should not be used when DTTEST not defined");
-
+#ifndef ___STRINGIFY
+  #define ___STRINGIFY(TEXT) #TEXT
 #endif
-}}  // namespace dt::tests
+
+template <typename T>
+void assert_cmp(bool ok, T x, T y, const char* xstr, const char* ystr,
+                const char* opstr, const char* filename, int lineno)
+{
+  if (ok) return;
+  throw AssertionError() << '(' << xstr << ')' << opstr << '(' << ystr << ')'
+      << " failed in " << filename << ", line " << lineno << ", where "
+      << "lhs = " << x << ", rhs = " << y;
+}
+
+template <typename T>
+void assert_float_eq(T x, T y, const char* xstr, const char* ystr,
+                     const char* filename, int lineno)
+{
+  static_assert(std::is_floating_point<T>::value,
+                "Invalid argument in assert_float_eq()");
+  if (x == y) return;
+  if (std::isnan(x) && std::isnan(y)) return;
+  T z = std::nextafter(x, y);  // 1 ulp
+  if (z == y) return;
+  z = std::nextafter(z, y);    // 2 ulps
+  if (z == y) return;
+  z = std::nextafter(z, y);    // 3 ulps
+  if (z == y) return;
+  z = std::nextafter(z, y);    // 4 ulps
+  if (z == y) return;
+  throw AssertionError() << '(' << xstr << ")==(" << ystr << ')'
+      << " failed in " << filename << ":" << lineno << ", where "
+      << "lhs = " << x << ", rhs = " << y;
+}
+
+
+//------------------------------------------------------------------------------
+// Public API
+//------------------------------------------------------------------------------
+
+#define TEST(suite, name)                                                      \
+    class TESTNAME(suite, name) : public dt::tests::TestCase {                 \
+      public:                                                                  \
+        using dt::tests::TestCase::TestCase;                                   \
+        void xrun() override;                                                  \
+    };                                                                         \
+    static dt::tests::Register reg_##suite##_##name                            \
+              (new TESTNAME(suite, name)(#suite, #name, __FILE__));            \
+    void TESTNAME(suite, name)::xrun()
+
+
+#define ASSERT_EQ(x, y)                                                        \
+    dt::tests::assert_cmp((x==y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+                          "==", __FILE__, __LINE__)
+
+#define ASSERT_NE(x, y)                                                        \
+    dt::tests::assert_cmp((x!=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+                          "!=", __FILE__, __LINE__)
+
+#define ASSERT_LT(x, y)                                                        \
+    dt::tests::assert_cmp((x<y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+                          "<", __FILE__, __LINE__)
+
+#define ASSERT_GT(x, y)                                                        \
+    dt::tests::assert_cmp((x>y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+                          ">", __FILE__, __LINE__)
+
+#define ASSERT_LE(x, y)                                                        \
+    dt::tests::assert_cmp((x<=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+                          "<=", __FILE__, __LINE__)
+
+#define ASSERT_GE(x, y)                                                        \
+    dt::tests::assert_cmp((x>=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+                          ">=", __FILE__, __LINE__)
+
+// Similar to ASSERT_EQ(x, y), but for floating-point arguments:
+//   - NaNs compare equal to each other;
+//   - the values x and y are considered equal if they are within 4 ulps
+//     from each other.
+#define ASSERT_FLOAT_EQ(x, y)                                                  \
+    dt::tests::assert_float_eq(x, y, ___STRINGIFY(x), ___STRINGIFY(y),         \
+                               __FILE__, __LINE__)
+
+
+
+
+#endif  // ifdef DTTEST
+}}      // namespace dt::tests
 #endif
