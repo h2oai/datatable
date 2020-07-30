@@ -107,11 +107,8 @@ void test_parallel_for_ordered(size_t n) {
             throw AssertionError() << "Frame " << k
               << " is executed in another thread, start = " << j;
           }
-          if (j >= n) throw AssertionError() << "Invalid iteration index " << j;
-          if (done[j]) {
-            throw AssertionError() << "Iteration " << j
-              << " was already executed before: done=" << done[j];
-          }
+          ASSERT_LT(j, n);
+          ASSERT_EQ(done[j], 0);
           done[j] = 1;
           executing_local.clear();
         },
@@ -123,13 +120,9 @@ void test_parallel_for_ordered(size_t n) {
             throw AssertionError() << "Frame " << k << " is executed in another thread, ordered = " << j;
           }
           // body of ordered section
-          if (next_ordered != j) {
-            throw AssertionError() << "Wrong ordered iteration " << j << ", expected " << next_ordered;
-          }
+          ASSERT_EQ(next_ordered, j);
           next_ordered++;
-          if (done[j] != 1) {
-            throw AssertionError() << "Iteration " << j << " was ordered with done=" << done[j];
-          }
+          ASSERT_EQ(done[j], 1);
           done[j] = 2;
           // end of ordered section
           executing_local.clear();
@@ -139,11 +132,8 @@ void test_parallel_for_ordered(size_t n) {
           if (executing_local.test_and_set()) {
             throw AssertionError() << "Frame " << k << " is executed in another thread, final = " << j;
           }
-          if (done[j] != 2) {
-            throw AssertionError() << "Iteration " << j << " is finalized with done=" << done[j];
-          }
+          ASSERT_EQ(done[j], 2);
           done[j] = 3;
-
           executing_local.clear();
         });
 
@@ -153,15 +143,9 @@ void test_parallel_for_ordered(size_t n) {
       }
     });
 
-  if (next_ordered != n) {
-    throw AssertionError() << "Only " << next_ordered
-        << " iterations were ordered, out of " << n;
-  }
+  ASSERT_EQ(next_ordered, n);
   for (size_t i = 0; i < n; ++i) {
-    if (done[i] != 3) {
-      throw AssertionError() << "Iteration " << i
-        << " was not run correctly: " << done[i];
-    }
+    ASSERT_EQ(done[i], 3);
   }
 }
 
