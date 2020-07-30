@@ -35,7 +35,7 @@ namespace tests {
 
 using testfn = void(*)(); //std::function<void()>;
 using strvec = std::vector<std::string>;
-using TestSuite = std::vector<std::unique_ptr<TestCase>>;
+using TestSuite = std::vector<TestCase*>;
 using TestRegistry = std::unordered_map<std::string, TestSuite>;
 
 
@@ -90,8 +90,12 @@ static void run_test(const std::string& suite, const std::string& name) {
 }
 
 
-Register::Register(TestCase* testcase) {
-  get_tests_registry()[testcase->suite()].emplace_back(testcase);
+TestCase::TestCase(const char* suite, const char* test, const char* file)
+  : suite_name_(suite),
+    test_name_(test),
+    file_name_(file)
+{
+  get_tests_registry()[suite_name_].emplace_back(this);
 }
 
 

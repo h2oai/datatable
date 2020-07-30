@@ -220,3 +220,15 @@ def assert_value_error(f, msg):
 
 def isview(frame):
     return any(frame_columns_virtual(frame))
+
+
+def get_core_tests(suite):
+    # This must be a function, so that `n` is properly captured within
+    def param(n):
+        return pytest.param(lambda: n, id=n)
+
+    if hasattr(core, "get_test_suites"):
+        return [param(n) for n in core.get_tests_in_suite(suite)]
+    else:
+        return [pytest.param(lambda: pytest.skip(
+                                        reason="C++ tests not compiled"))]

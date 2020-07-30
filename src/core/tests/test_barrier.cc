@@ -45,10 +45,7 @@ TEST(parallel, barrier1) {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = i + 1 + nthreads;
-    if (data_new[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data_new[i]
-        << " in test_barrier_1(), expected " << reference_i;
-    }
+    ASSERT_EQ(data_new[i], reference_i);
   }
 }
 
@@ -70,10 +67,7 @@ TEST(parallel, barrier2) {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = i + 1 + nthreads;
-    if (data[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_barrier_2(), expected " << reference_i;
-    }
+    ASSERT_EQ(data[i], reference_i);
   }
 }
 
@@ -99,10 +93,7 @@ TEST(parallel, barrierN) {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = n;
-    if (data[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_barrier_n(), expected " << reference_i;
-    }
+    ASSERT_EQ(data[i], reference_i);
   }
 }
 

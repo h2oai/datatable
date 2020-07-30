@@ -28,28 +28,15 @@ import subprocess
 import sys
 import time
 from datatable.lib import core
-from tests import (cpp_test, skip_on_jenkins)
+from tests import (cpp_test, skip_on_jenkins, get_core_tests)
 
-
-def get_core_tests(suite):
-    # This must be a function, so that `n` is properly captured within
-    def param(n):
-        return pytest.param(lambda: n, id=n)
-
-    if hasattr(core, "get_test_suites"):
-        return [param(n) for n in core.get_tests_in_suite(suite)]
-    else:
-        return [pytest.param(lambda: pytest.skip(
-                                        reason="C++ tests not compiled"))]
-
-@pytest.fixture()
-def testname(request):
-    return request.param()
 
 
 @pytest.mark.parametrize("testname", get_core_tests("parallel"), indirect=True)
-def test_parallel(testname):
+def test_core(testname):
+    # Run all core tests in suite "parallel"
     core.run_test("parallel", testname)
+
 
 
 #-------------------------------------------------------------------------------
@@ -70,41 +57,6 @@ def test_multiprocessing_threadpool():
             # After a fork the child may or may not get the same thread IDs
             # as the parent (this is implementation-dependent)
             # assert chthreads != parent_threads
-
-
-@cpp_test
-@pytest.mark.parametrize('test_name, nargs',
-                         [
-                            ["shmutex", 3],
-                            ["barrier", 1],
-                            ["parallel_for_static", 1],
-                            ["parallel_for_dynamic", 1],
-                            ["parallel_for_ordered", 1],
-                            ["progress_static", 2],
-                            ["progress_nested", 2],
-                            ["progress_dynamic", 2],
-                            ["progress_ordered", 2]
-                         ]
-                        )
-def test_parameters(test_name, nargs):
-    for i in range(nargs - 1):
-        args = list(range(i))
-        message = ("In %s the number of arguments required is %d, "
-                   "got: %d" % ("test_" + test_name + r"\(\)", nargs, i))
-        with pytest.raises(ValueError, match = message):
-            testfn = "test_%s" % test_name
-            getattr(core, testfn)(*args)
-
-
-@cpp_test
-def test_internal_shared_mutex():
-    core.test_shmutex(500, dt.options.nthreads * 2, 1)
-
-
-@cpp_test
-def test_internal_shared_bmutex():
-    core.test_shmutex(1000, dt.options.nthreads * 2, 0)
-
 
 
 @cpp_test

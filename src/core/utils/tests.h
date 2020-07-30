@@ -72,18 +72,12 @@ class TestCase {
     const char* file_name_;
 
   public:
-    TestCase(const char* suite, const char* test, const char* file)
-      : suite_name_(suite), test_name_(test), file_name_(file) {}
+    TestCase(const char* suite, const char* test, const char* file);
     virtual ~TestCase() = default;
 
     const char* suite() const { return suite_name_; }
     const char* name() const { return test_name_; }
     virtual void xrun() = 0;
-};
-
-class Register {
-  public:
-    Register(TestCase* testcase);
 };
 
 #define TESTNAME(suite, name) test_##suite##_##name
@@ -98,8 +92,8 @@ void assert_cmp(bool ok, T x, T y, const char* xstr, const char* ystr,
 {
   if (ok) return;
   throw AssertionError() << '(' << xstr << ')' << opstr << '(' << ystr << ')'
-      << " failed in " << filename << ", line " << lineno << ", where "
-      << "lhs = " << x << ", rhs = " << y;
+      << " failed in " << filename << ":" << lineno << ", where "
+      << "lhs = " << x << " and rhs = " << y;
 }
 
 template <typename T>
@@ -120,7 +114,7 @@ void assert_float_eq(T x, T y, const char* xstr, const char* ystr,
   if (z == y) return;
   throw AssertionError() << '(' << xstr << ")==(" << ystr << ')'
       << " failed in " << filename << ":" << lineno << ", where "
-      << "lhs = " << x << ", rhs = " << y;
+      << "lhs = " << x << " and rhs = " << y;
 }
 
 
@@ -134,8 +128,8 @@ void assert_float_eq(T x, T y, const char* xstr, const char* ystr,
         using dt::tests::TestCase::TestCase;                                   \
         void xrun() override;                                                  \
     };                                                                         \
-    static dt::tests::Register reg_##suite##_##name                            \
-              (new TESTNAME(suite, name)(#suite, #name, __FILE__));            \
+    static TESTNAME(suite, name) testcase_##suite##_##name                     \
+                                        (#suite, #name, __FILE__);             \
     void TESTNAME(suite, name)::xrun()
 
 
