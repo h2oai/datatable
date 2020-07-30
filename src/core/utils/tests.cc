@@ -22,6 +22,7 @@
 #include <string>              // std::string
 #include <unordered_map>       // std::unordered_map
 #include <utility>             // std::pair
+#include <iostream>
 #include <vector>              // std::vector
 #include "datatablemodule.h"
 #include "python/_all.h"
@@ -35,36 +36,43 @@ namespace tests {
 using testfn = std::function<void()>;
 using strvec = std::vector<std::string>;
 using TestInstance = std::pair<std::string, testfn>;
+using TestRegistry = std::unordered_map<std::string,
+                                        std::vector<TestInstance>>;
 
 
 //------------------------------------------------------------------------------
 // Tests registry
 //------------------------------------------------------------------------------
 
-static std::unordered_map<std::string,
-                          std::vector<TestInstance>> tests;
-
-
-static void register_test(testfn fn, std::string suite, std::string name) {
-  tests[suite].push_back(TestInstance(name, fn));
+// This cannot be a simple global variable, because the order of initialization
+// of static variables is not well-defined, and it is possible that some of the
+// `Register` objects would be created before the TestsRegistry is initialized.
+static TestRegistry& get_tests_registry() {
+  static TestRegistry all_tests;
+  return all_tests;
 }
 
 
-static strvec get_suites() {
+static strvec get_suites_list() {
   strvec result;
-  for (const auto& entry : tests) {
+  for (const auto& entry : get_tests_registry()) {
     result.push_back(entry.first);
   }
   return result;
 }
 
 
-static strvec get_tests(const std::string& suite) {
-  if (!tests.count(suite)) {
+static std::vector<TestInstance>& get_suite(const std::string& suite) {
+  if (!get_tests_registry().count(suite)) {
     throw KeyError() << "Test suite `" << suite << "` does not exist";
   }
+  return get_tests_registry()[suite];
+}
+
+
+static strvec get_tests(const std::string& suite) {
   strvec result;
-  for (const auto& entry : tests[suite]) {
+  for (const auto& entry : get_suite(suite)) {
     result.push_back(entry.first);
   }
   return result;
@@ -72,10 +80,7 @@ static strvec get_tests(const std::string& suite) {
 
 
 static void run_test(const std::string& suite, const std::string& name) {
-  if (!tests.count(suite)) {
-    throw KeyError() << "Test suite `" << suite << "` does not exist";
-  }
-  for (const auto& entry : tests[suite]) {
+  for (const auto& entry : get_suite(suite)) {
     if (entry.first == name) {
       (entry.second)();
       return;
@@ -87,7 +92,7 @@ static void run_test(const std::string& suite, const std::string& name) {
 
 
 Register::Register(testfn fn, const char* suite, const char* name) {
-  register_test(fn, suite, name);
+  get_tests_registry()[suite].emplace_back(std::move(name), fn);
 }
 
 
@@ -112,7 +117,7 @@ static PKArgs arg_get_test_suites(
     0, 0, 0, false, false, {}, "get_test_suites", doc_get_test_suites);
 
 static oobj get_test_suites(const PKArgs&) {
-  auto suites = dt::tests::get_suites();
+  auto suites = dt::tests::get_suites_list();
   olist result(suites.size());
   for (size_t i = 0; i < suites.size(); ++i) {
     result.set(i, ostring(suites[i]));
