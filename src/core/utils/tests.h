@@ -48,6 +48,20 @@
 // and execute all these tests.
 //
 //------------------------------------------------------------------------------
+//
+// Several assert macros are also available to simplify writing of tests:
+//
+//   ASSERT_EQ(x, y)        # assert x == y
+//   ASSERT_NE(x, y)        # assert x != y
+//   ASSERT_LT(x, y)        # assert x < y
+//   ASSERT_GT(x, y)        # assert x > y
+//   ASSERT_LE(x, y)        # assert x <= y
+//   ASSERT_GE(x, y)        # assert x >= y
+//   ASSERT_FLOAT_EQ(x, y)  # assert isclose(x, y)  # up to 4 ulps
+//   ASSERT_TRUE(s)         # assert s
+//   ASSERT_FALSE(s)        # assert not s
+//
+//------------------------------------------------------------------------------
 #ifndef dt_UTILS_TESTS_h
 #define dt_UTILS_TESTS_h
 #include <cmath>                // std::isnan
@@ -117,6 +131,15 @@ void assert_float_eq(T x, T y, const char* xstr, const char* ystr,
       << "lhs = " << x << " and rhs = " << y;
 }
 
+template <bool EXP>
+void assert_bool(bool arg, const char* argstr, const char* filename, int lineno)
+{
+  if (arg == EXP) return;
+  throw AssertionError() << (EXP? "" : "!") << '(' << argstr << ") failed in "
+            << filename << ':' << lineno;
+}
+
+
 
 //------------------------------------------------------------------------------
 // Public API
@@ -164,6 +187,14 @@ void assert_float_eq(T x, T y, const char* xstr, const char* ystr,
 #define ASSERT_FLOAT_EQ(x, y)                                                  \
     dt::tests::assert_float_eq(x, y, ___STRINGIFY(x), ___STRINGIFY(y),         \
                                __FILE__, __LINE__)
+
+
+#define ASSERT_TRUE(s)                                                         \
+    dt::tests::assert_bool<true>(s, ___STRINGIFY(s), __FILE__, __LINE__);
+
+
+#define ASSERT_FALSE(s)                                                        \
+    dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__);
 
 
 

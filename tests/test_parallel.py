@@ -60,19 +60,19 @@ def test_multiprocessing_threadpool():
 
 
 
-@cpp_test
-def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(1723)
+# @cpp_test
+# def test_internal_parallel_for_ordered1():
+#     core.test_parallel_for_ordered(1723)
 
 
-@cpp_test
-def test_internal_parallel_for_ordered2():
-    n0 = dt.options.nthreads
-    try:
-        dt.options.nthreads = 2
-        core.test_parallel_for_ordered(1723)
-    finally:
-        dt.options.nthreads = n0
+# @cpp_test
+# def test_internal_parallel_for_ordered2():
+#     n0 = dt.options.nthreads
+#     try:
+#         dt.options.nthreads = 2
+#         core.test_parallel_for_ordered(1723)
+#     finally:
+#         dt.options.nthreads = n0
 
 
 # Make sure C++ tests run cleanly when not interrupted

@@ -23,6 +23,7 @@
 #include <atomic>
 #include <vector>
 #include "parallel/api.h"
+#include "parallel/thread_pool.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
 namespace dttest {
@@ -88,7 +89,7 @@ TEST(parallel, for_dynamic_nested) {
 
 
 
-void test_parallel_for_ordered(size_t n)
+static void test_parallel_for_ordered(size_t n)
 {
   std::atomic_flag global = ATOMIC_FLAG_INIT;
   std::vector<int> done(n, 0);
@@ -110,7 +111,7 @@ void test_parallel_for_ordered(size_t n)
           next_ordered_(next_ordered) {}
 
       void start(size_t j) override {
-        XAssert(!executing_local_.test_and_set());
+        ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_LT(j, done_.size());
         ASSERT_EQ(done_[j], 0);
         done_[j] = 1;
@@ -118,8 +119,8 @@ void test_parallel_for_ordered(size_t n)
       }
 
       void order(size_t j) override {
-        XAssert(!executing_global_.test_and_set());
-        XAssert(!executing_local_.test_and_set());
+        ASSERT_FALSE(executing_global_.test_and_set());
+        ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_EQ(next_ordered_.load(), j);
         next_ordered_++;
         ASSERT_EQ(done_[j], 1);
@@ -129,7 +130,7 @@ void test_parallel_for_ordered(size_t n)
       }
 
       void finish(size_t j) override {
-        XAssert(!executing_local_.test_and_set());
+        ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_EQ(done_[j], 2);
         done_[j] = 3;
         executing_local_.clear();
@@ -146,6 +147,20 @@ void test_parallel_for_ordered(size_t n)
     ASSERT_EQ(done[i], 3);
   }
 }
+
+
+TEST(parallel, for_ordered1) {
+  test_parallel_for_ordered(1723);
+}
+
+TEST(parallel, for_ordered2) {
+  size_t nth0 = dt::num_threads_in_pool();
+  dt::thpool->resize(2);
+  test_parallel_for_ordered(1723);
+  dt::thpool->resize(nth0);
+}
+
+
 
 
 
