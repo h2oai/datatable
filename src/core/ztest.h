@@ -28,11 +28,6 @@ void cover_names_FrameNameProviders();
 void cover_names_integrity_checks();
 
 
-
-// Defined in parallel/ztest_parallel_for.cc
-void test_parallel_for_ordered(size_t);
-
-
 // Defined in progress/ztest_progress.cc
 void test_progress_static(size_t, size_t);
 void test_progress_nested(size_t, size_t);
