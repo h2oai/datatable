@@ -32,16 +32,16 @@ from tests import (cpp_test, skip_on_jenkins, get_core_tests)
 
 
 
+#-------------------------------------------------------------------------------
+# "parallel" tests
+#-------------------------------------------------------------------------------
+
 @pytest.mark.parametrize("testname", get_core_tests("parallel"), indirect=True)
-def test_core(testname):
+def test_core_parallel(testname):
     # Run all core tests in suite "parallel"
     core.run_test("parallel", testname)
 
 
-
-#-------------------------------------------------------------------------------
-# Test parallel infrastructure
-#-------------------------------------------------------------------------------
 
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)
@@ -60,21 +60,14 @@ def test_multiprocessing_threadpool():
 
 
 
-# Make sure C++ tests run cleanly when not interrupted
-@cpp_test
-@pytest.mark.parametrize('parallel_type, nthreads',
-                         itertools.product(
-                            ["static", "nested", "dynamic", "ordered"],
-                            [1, dt.options.nthreads//2, dt.options.nthreads]
-                         )
-                        )
-def test_progress(parallel_type, nthreads):
-    niterations = 1000
-    ntimes = 2
-    cmd = "core.test_progress_%s(%s, %s);" % (
-              parallel_type, niterations, nthreads)
-    for _ in range(ntimes) :
-        exec(cmd)
+#-------------------------------------------------------------------------------
+# "progress" tests
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("testname", get_core_tests("progress"), indirect=True)
+def test_core_progress(testname):
+    # Run all core tests in suite "progress"
+    core.run_test("progress", testname)
 
 
 # Send interrupt signal and make sure process throws KeyboardInterrupt
@@ -83,29 +76,28 @@ def test_progress(parallel_type, nthreads):
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
-                            [1, dt.options.nthreads//2, dt.options.nthreads]
+                            ["1", "half", "all"]
                          )
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niterations = 10000
     sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
     message = "[cancelled]\x1b[K\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
     cmd += "dt.options.progress.min_duration = 0;"
-    cmd += "print('%s start', flush = True); " % parallel_type;
+    cmd += "print('%s start', flush = True); " % (parallel_type,);
 
     if parallel_type:
-        if parallel_type == "ordered":
-            niterations //= 10
-        cmd += "core.test_progress_%s(%s, %s)" % (
-                  parallel_type, niterations, nthreads)
+        cmd += "core.run_test('progress', '%s_%s')" % (parallel_type, nthreads)
     else:
+        nth = 1 if nthreads == "1" else \
+              dt.options.nthreads//2 if nthreads == "half" else \
+              dt.options.nthreads
         cmd += "import time; "
-        cmd += "dt.options.nthreads = %s; " % nthreads
-        cmd += "time.sleep(%s);" % sleep_time * 10
+        cmd += "dt.options.nthreads = %d; " % nth
+        cmd += "time.sleep(%r);" % (sleep_time * 10)
 
     proc = subprocess.Popen([sys.executable, "-c", cmd],
                             stdout = subprocess.PIPE,
@@ -125,8 +117,9 @@ def test_progress_interrupt(parallel_type, nthreads):
     is_cancelled = stdout_str.endswith(message) if parallel_type else is_exception
 
     if not is_exception or not is_cancelled:
-        print("\nstdout: \n%s" % stdout_str)
-        print("\nstderr: \n%s" % stderr_str)
+        print("\ncmd:\n  %s" % cmd)
+        print("\nstdout:\n%s" % stdout_str)
+        print("\nstderr:\n%s" % stderr_str)
 
     assert is_cancelled
     assert is_exception

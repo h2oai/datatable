@@ -23,68 +23,18 @@ namespace py {
 static PKArgs arg_test_coverage(0, 0, 0, false, false, {}, "test_coverage");
 
 static void test_coverage(const PKArgs&) {
-  dttest::cover_init_FrameInitializationManager_em();
-  dttest::cover_names_FrameNameProviders();
-  dttest::cover_names_integrity_checks();
+  // dttest::cover_names_FrameNameProviders();
+  // dttest::cover_names_integrity_checks();
 }
 
-
-// Test progress reporting
-
-static PKArgs arg_test_progress_static(2, 0, 0, false, false,
-  {"n_iters", "n_threads"},
-  "test_progress_static");
-
-static void test_progress_static(const PKArgs& args) {
-  args.check_posonly_args();
-  size_t n_iters = args[0].to_size_t();
-  size_t n_threads = args[1].to_size_t();
-  dttest::test_progress_static(n_iters, n_threads);
-}
-
-
-static PKArgs arg_test_progress_nested(2, 0, 0, false, false,
-  {"n_iters", "n_threads"},
-  "test_progress_nested");
-
-static void test_progress_nested(const PKArgs& args) {
-  args.check_posonly_args();
-  size_t n_iters = args[0].to_size_t();
-  size_t n_threads = args[1].to_size_t();
-  dttest::test_progress_nested(n_iters, n_threads);
-}
-
-
-static PKArgs arg_test_progress_dynamic(2, 0, 0, false, false,
-  {"n_iters", "n_threads"},
-  "test_progress_dynamic");
-
-static void test_progress_dynamic(const PKArgs& args) {
-  args.check_posonly_args();
-  size_t n_iters = args[0].to_size_t();
-  size_t n_threads = args[1].to_size_t();
-  dttest::test_progress_dynamic(n_iters, n_threads);
-}
-
-
-static PKArgs arg_test_progress_ordered(2, 0, 0, false, false,
-  {"n_iters", "n_threads"},
-  "test_progress_ordered");
-
-static void test_progress_ordered(const PKArgs& args) {
-  args.check_posonly_args();
-  size_t n_iters = args[0].to_size_t();
-  size_t n_threads = args[1].to_size_t();
-  dttest::test_progress_ordered(n_iters, n_threads);
-}
 
 
 void DatatableModule::init_tests() {
   ADD_FN(&test_coverage, arg_test_coverage);
-  ADD_FN(&test_progress_static, arg_test_progress_static);
-  ADD_FN(&test_progress_nested, arg_test_progress_nested);
-  ADD_FN(&test_progress_dynamic, arg_test_progress_dynamic);
-  ADD_FN(&test_progress_ordered, arg_test_progress_ordered);
+  // ADD_FN(&test_progress_static, arg_test_progress_static);
+  // ADD_FN(&test_progress_nested, arg_test_progress_nested);
+  // ADD_FN(&test_progress_dynamic, arg_test_progress_dynamic);
+  // ADD_FN(&test_progress_ordered, arg_test_progress_ordered);
 }
 
 

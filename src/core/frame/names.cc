@@ -31,9 +31,9 @@
 #include "python/tuple.h"
 #include "utils/assert.h"
 #include "utils/fuzzy_match.h"
+#include "utils/tests.h"
 #include "options.h"
 #include "stype.h"
-#include "ztest.h"
 
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 {
@@ -767,11 +767,12 @@ void DataTable::_integrity_check_pynames() const {
 
 
 
-
+//------------------------------------------------------------------------------
+// Tests
+//------------------------------------------------------------------------------
 #ifdef DTTEST
-namespace dttest {
 
-  void cover_names_FrameNameProviders() {
+  TEST(coverage, names_FrameNameProviders) {
     pylistNP* t1 = new pylistNP(py::olist(0));
     delete t1;
 
@@ -788,7 +789,7 @@ namespace dttest {
     delete t2;
   }
 
-
+  /*
   void cover_names_integrity_checks() {
     DataTable* dt = new DataTable({
                         Column::new_data_column(1, dt::SType::INT32),
@@ -837,6 +838,6 @@ namespace dttest {
     dt->verify_integrity();
     delete dt;
   }
+  */
 
-}
 #endif

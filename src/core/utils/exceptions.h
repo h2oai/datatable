@@ -42,7 +42,7 @@ void init_exceptions();  // called during module initialization
 class Error : public std::exception
 {
   protected:
-    std::ostringstream error;
+    std::ostringstream error_message_;
     // Borrowed reference; however do not use a py::robj here in order
     // to avoid circular dependencies
     PyObject* pycls_;
@@ -54,29 +54,11 @@ public:
   Error& operator=(Error&& other);
   virtual ~Error() override {}
 
-  Error& operator<<(const std::string&);
-  Error& operator<<(const char*);
-  Error& operator<<(const void*);
-  Error& operator<<(const dt::CString&);
-  Error& operator<<(int64_t);
-  Error& operator<<(int32_t);
-  Error& operator<<(int8_t);
-  Error& operator<<(char);
-  Error& operator<<(size_t);
-  Error& operator<<(uint32_t);
-  Error& operator<<(float);
-  Error& operator<<(double);
-  Error& operator<<(dt::SType);
-  Error& operator<<(dt::LType);
-  Error& operator<<(const CErrno&);
-  Error& operator<<(const py::_obj&);
-  Error& operator<<(const py::ostring&);
-  Error& operator<<(PyObject*);
-  Error& operator<<(PyTypeObject*);
-  #ifdef __APPLE__
-    Error& operator<<(uint64_t);
-    Error& operator<<(ssize_t);
-  #endif
+  template <typename T>
+  Error& operator<<(const T& value) {
+    error_message_ << value;
+    return *this;
+  }
 
   void to_stderr() const;
   std::string to_string() const;
@@ -90,6 +72,20 @@ public:
   // Check whether this is a "KeyboardInterrupt" exception
   virtual bool is_keyboard_interrupt() const noexcept;
 };
+
+using PyObjectPtr = PyObject*;
+using PyTypeObjectPtr = PyTypeObject*;
+template <> Error& Error::operator<<(const dt::CString&);
+template <> Error& Error::operator<<(const dt::SType&);
+template <> Error& Error::operator<<(const dt::LType&);
+template <> Error& Error::operator<<(const py::robj&);
+template <> Error& Error::operator<<(const py::oobj&);
+template <> Error& Error::operator<<(const py::ostring&);
+template <> Error& Error::operator<<(const CErrno&);
+template <> Error& Error::operator<<(const PyObjectPtr&);
+template <> Error& Error::operator<<(const PyTypeObjectPtr&);
+template <> Error& Error::operator<<(const char&);
+
 
 
 //------------------------------------------------------------------------------
