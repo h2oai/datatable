@@ -385,6 +385,7 @@ void py::DatatableModule::init_methods() {
 
   #ifdef DTTEST
     init_tests();
+    init_tests2();
   #endif
 }
 

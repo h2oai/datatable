@@ -53,6 +53,7 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
     #ifdef DTTEST
       void init_tests();
+      void init_tests2();
     #endif
 };
 
