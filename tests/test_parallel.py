@@ -59,15 +59,6 @@ def test_multiprocessing_threadpool():
             # assert chthreads != parent_threads
 
 
-@cpp_test
-def test_internal_parallel_for_static():
-    core.test_parallel_for_static(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_dynamic():
-    core.test_parallel_for_dynamic(1000)
-
 
 @cpp_test
 def test_internal_parallel_for_ordered1():

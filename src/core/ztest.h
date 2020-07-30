@@ -27,20 +27,11 @@ void cover_init_FrameInitializationManager_em();
 void cover_names_FrameNameProviders();
 void cover_names_integrity_checks();
 
-// Defined in parallel/ztest_atomic.cc
-void test_atomic();
 
-// Defined in parallel/ztest_barrier.cc
-void test_barrier(size_t);
 
 // Defined in parallel/ztest_parallel_for.cc
-void test_parallel_for_static(size_t);
-void test_parallel_for_dynamic(size_t);
-void test_parallel_for_dynamic_nested(size_t);
 void test_parallel_for_ordered(size_t);
 
-// Defined in parallel/ztest_shared_mutex.cc
-void test_shmutex(size_t n_iters, size_t n_threads, int impl);
 
 // Defined in progress/ztest_progress.cc
 void test_progress_static(size_t, size_t);

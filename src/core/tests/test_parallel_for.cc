@@ -28,7 +28,8 @@
 namespace dttest {
 
 
-void test_parallel_for_static(size_t n) {
+TEST(parallel, for_static) {
+  constexpr size_t n = 1000;
   for (size_t nth = 0; nth <= dt::num_threads_in_pool() * 2; ++nth) {
     std::vector<size_t> data(n, 0);
 
@@ -44,7 +45,8 @@ void test_parallel_for_static(size_t n) {
 }
 
 
-void test_parallel_for_dynamic(size_t n) {
+TEST(parallel, for_dynamic) {
+  constexpr size_t n = 1000;
   for (size_t nth = 0; nth <= dt::num_threads_in_pool(); ++nth) {
     std::vector<size_t> data(n, 0);
 
@@ -61,7 +63,8 @@ void test_parallel_for_dynamic(size_t n) {
 
 
 
-void test_parallel_for_dynamic_nested(size_t n) {
+TEST(parallel, for_dynamic_nested) {
+  constexpr size_t n = 1000;
   std::vector<size_t> data(n, 0);
   std::atomic<size_t> total { 0 };
 
