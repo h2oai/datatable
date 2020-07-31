@@ -230,5 +230,4 @@ def get_core_tests(suite):
     if hasattr(core, "get_test_suites"):
         return [param(n) for n in core.get_tests_in_suite(suite)]
     else:
-        return [pytest.param(lambda: pytest.skip(
-                                        reason="C++ tests not compiled"))]
+        return [pytest.param(lambda: pytest.skip("C++ tests not compiled"))]
