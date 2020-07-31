@@ -189,27 +189,27 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 
 #define ASSERT_EQ(x, y)                                                        \
-    dt::tests::assert_cmp((x==y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)==(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "==", __FILE__, __LINE__)
 
 #define ASSERT_NE(x, y)                                                        \
-    dt::tests::assert_cmp((x!=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)!=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "!=", __FILE__, __LINE__)
 
 #define ASSERT_LT(x, y)                                                        \
-    dt::tests::assert_cmp((x<y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+    dt::tests::assert_cmp(((x)<(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
                           "<", __FILE__, __LINE__)
 
 #define ASSERT_GT(x, y)                                                        \
-    dt::tests::assert_cmp((x>y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+    dt::tests::assert_cmp(((x)>(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
                           ">", __FILE__, __LINE__)
 
 #define ASSERT_LE(x, y)                                                        \
-    dt::tests::assert_cmp((x<=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)<=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "<=", __FILE__, __LINE__)
 
 #define ASSERT_GE(x, y)                                                        \
-    dt::tests::assert_cmp((x>=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)>=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           ">=", __FILE__, __LINE__)
 
 // Similar to ASSERT_EQ(x, y), but for floating-point arguments:

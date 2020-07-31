@@ -191,34 +191,37 @@ TEST(parallel, for_ordered_except_same_step) {
 // set_num_iterations
 //------------------------------------------------------------------------------
 
-TEST(parallel, for_ordered_setnumiters) {
+class OTask_SetNumIters : public dt::OrderedTask {
+  private:
+    std::vector<size_t>& status_;
+    size_t stop_at_;
+
+  public:
+    OTask_SetNumIters(std::vector<size_t>& status, size_t stop_at)
+      : status_(status), stop_at_(stop_at) {}
+
+    void start(size_t i) override {
+      status_[i] = 1;
+    }
+    void order(size_t i) override {
+      status_[i] = 2;
+      if (i == stop_at_ - 1) {
+        set_num_iterations(stop_at_);
+      }
+    }
+    void finish(size_t i) override {
+      status_[i] = 3;
+    }
+};
+
+
+TEST(parallel, for_ordered_setnumiters_all) {
   constexpr size_t N_ITERS = 1000;
   constexpr size_t STOPAT = 123;
   std::vector<size_t> status(N_ITERS);
 
-  class OTask : public dt::OrderedTask {
-    private:
-      std::vector<size_t>& status_;
-    public:
-      OTask(std::vector<size_t>& status)
-        : status_(status) {}
-
-      void start(size_t i) override {
-        status_[i] = 1;
-      }
-      void order(size_t i) override {
-        status_[i] = 2;
-        if (i == STOPAT - 1) {
-          set_num_iterations(STOPAT);
-        }
-      }
-      void finish(size_t i) override {
-        status_[i] = 3;
-      }
-  };
-
   dt::parallel_for_ordered(N_ITERS, [&]{
-    return std::make_unique<OTask>(status);
+    return std::make_unique<OTask_SetNumIters>(status, STOPAT);
   });
 
   size_t i = 0;
@@ -230,6 +233,22 @@ TEST(parallel, for_ordered_setnumiters) {
   }
   for (; i < N_ITERS; ++i) {
     ASSERT_EQ(status[i], size_t(0));
+  }
+}
+
+
+TEST(parallel, for_ordered_setnumiters_1) {
+  constexpr size_t N_ITERS = 1000;
+  constexpr size_t STOPAT = 123;
+  std::vector<size_t> status(N_ITERS);
+
+  dt::parallel_for_ordered(N_ITERS, dt::NThreads(1), [&]{
+    return std::make_unique<OTask_SetNumIters>(status, STOPAT);
+  });
+
+  size_t i = 0;
+  for (; i < N_ITERS; ++i) {
+    ASSERT_EQ(status[i], i < STOPAT? size_t(3) : size_t(0));
   }
 }
 
