@@ -126,7 +126,7 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
           << "Wrong exception class thrown in " << filename << ':' << lineno
           << ": " << emsg;
     }
-    if (message && !(emsg == message)) {
+    if (message && std::strncmp(emsg.data(), message, std::strlen(message))) {
       throw AssertionError()
           << "Wrong exception message in " << filename << ':' << lineno
           << "\n  Actual:   " << emsg
@@ -210,7 +210,7 @@ static void run_test(const PKArgs& args) {
 }
 
 
-void DatatableModule::init_tests2() {
+void DatatableModule::init_tests() {
   ADD_FN(&get_test_suites, arg_get_test_suites);
   ADD_FN(&get_tests_in_suite, arg_get_tests_in_suite);
   ADD_FN(&run_test, arg_run_test);

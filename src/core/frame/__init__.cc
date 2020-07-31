@@ -27,8 +27,6 @@
 #include "python/_all.h"
 #include "utils/alloc.h"
 #include "stype.h"
-#include "ztest.h"
-
 namespace py {
 
 
@@ -670,11 +668,6 @@ class FrameInitializationManager {
     void make_datatable(const DataTable* names_src) {
       frame->dt = new DataTable(std::move(cols), *names_src);
     }
-
-
-    #ifdef DTTEST
-      friend void dttest::cover_init_FrameInitializationManager_em();
-    #endif
 };
 
 

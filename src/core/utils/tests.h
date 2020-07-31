@@ -61,6 +61,16 @@
 //   ASSERT_TRUE(s)         # assert s
 //   ASSERT_FALSE(s)        # assert not s
 //
+// In addition, these asserts allow working with code that throws exceptions.
+// Here function `fn()` is executed, which must throw an exception
+//   1) of class `cls`
+//   2) starting with message `msg`
+//   3) having class `cls` and starting with message `msg`
+//
+//   ASSERT_THROWS(fn, cls)
+//   ASSERT_THROWS(fn, msg)
+//   ASSERT_THROWS(fn, cls, msg)
+//
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_TESTS_h
 #define dt_UTILS_TESTS_h
@@ -68,12 +78,19 @@
 #include <functional>           // std::function
 #include <type_traits>          // std::is_floating_point
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 namespace dt {
 namespace tests {
 #ifndef DTTEST
 #define TEST(suite, name)  \
   static_assert(0, "TEST() macro should not be used when DTTEST not defined");
 #else
+
+DISABLE_CLANG_WARNING("-Wkeyword-macro")
+#define private   public
+#define protected public
+RESTORE_CLANG_WARNING("-Wkeyword-macro")
+
 
 //------------------------------------------------------------------------------
 // Internal

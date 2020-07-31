@@ -56,7 +56,6 @@
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 #include "utils/terminal/terminal_style.h"
-#include "ztest.h"
 
 
 
@@ -385,7 +384,7 @@ void py::DatatableModule::init_methods() {
 
   #ifdef DTTEST
     init_tests();
-    init_tests2();
+    init_tests();
   #endif
 }
 
