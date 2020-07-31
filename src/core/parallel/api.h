@@ -153,8 +153,18 @@ class OrderedTask : public ThreadTask {
 
     void execute() override;  // ThreadTask's API
 
-    size_t get_num_iterations() const;
+    // Change the number of iterations in the ordered job. This may
+    // only be called from an ordered section. The new number of
+    // iterations cannot be less than the number of iterations that
+    // were already ordered.
+    //
+    // If the new number of iterations is smaller than the original
+    // total count, then it is guaranteed that no task will be
+    // ordered or finished past `n`, although it is possible that
+    // some tasks will have started at an index `n` or above.
+    //
     void set_num_iterations(size_t n);
+    size_t get_num_iterations() const;
     void wait_until_all_finalized();
 
   private:

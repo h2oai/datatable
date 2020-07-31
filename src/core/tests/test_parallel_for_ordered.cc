@@ -186,5 +186,55 @@ TEST(parallel, for_ordered_except_same_step) {
 
 
 
+
+//------------------------------------------------------------------------------
+// set_num_iterations
+//------------------------------------------------------------------------------
+
+TEST(parallel, for_ordered_setnumiters) {
+  constexpr size_t N_ITERS = 1000;
+  constexpr size_t STOPAT = 123;
+  std::vector<size_t> status(N_ITERS);
+
+  class OTask : public dt::OrderedTask {
+    private:
+      std::vector<size_t>& status_;
+    public:
+      OTask(std::vector<size_t>& status)
+        : status_(status) {}
+
+      void start(size_t i) override {
+        status_[i] = 1;
+      }
+      void order(size_t i) override {
+        status_[i] = 2;
+        if (i == STOPAT - 1) {
+          set_num_iterations(STOPAT);
+        }
+      }
+      void finish(size_t i) override {
+        status_[i] = 3;
+      }
+  };
+
+  dt::parallel_for_ordered(N_ITERS, [&]{
+    return std::make_unique<OTask>(status);
+  });
+
+  size_t i = 0;
+  for (; i < STOPAT; ++i) {
+    ASSERT_EQ(status[i], size_t(3));
+  }
+  for (; i < STOPAT + dt::num_threads_in_pool()*3/2; ++i) {
+    ASSERT_LE(status[i], size_t(1));
+  }
+  for (; i < N_ITERS; ++i) {
+    ASSERT_EQ(status[i], size_t(0));
+  }
+}
+
+
+
+
 }  // namespace dttest
 #endif

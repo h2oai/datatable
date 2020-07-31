@@ -88,6 +88,7 @@ size_t OrderedTask::get_num_iterations() const {
 }
 
 void OrderedTask::set_num_iterations(size_t n) {
+  xassert(is_ordering());
   parent_job_->set_num_iterations(n);
 }
 
@@ -370,6 +371,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
 
     void set_num_iterations(size_t n) override {
       std::lock_guard<dt::spin_mutex> lock(mutex_);
+      xassert(n >= next_to_order_);
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
     }
