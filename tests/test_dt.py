@@ -35,7 +35,7 @@ from datatable import stype, ltype
 from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
 from tests import (same_iterables, list_equals, noop, isview, assert_equals,
-                   skip_on_jenkins, cpp_test)
+                   skip_on_jenkins, cpp_test, get_core_tests)
 
 
 #-------------------------------------------------------------------------------
@@ -339,6 +339,12 @@ def test_collections():
         if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
             assert isinstance(DT, collections.Reversible)
 
+
+
+@pytest.mark.parametrize("testname", get_core_tests("coverage"), indirect=True)
+def test_core_progress(testname):
+    # Run all core tests in suite "coverage"
+    core.run_test("coverage", testname)
 
 
 

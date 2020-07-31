@@ -47,30 +47,37 @@ class Error : public std::exception
     // to avoid circular dependencies
     PyObject* pycls_;
 
-public:
-  Error(PyObject* cls);
-  Error(const Error& other);
-  Error(Error&& other);
-  Error& operator=(Error&& other);
-  virtual ~Error() override {}
+    // These fields are only used by PyError, and they are owned references
+    mutable PyObject* exc_type_;
+    mutable PyObject* exc_value_;
+    mutable PyObject* exc_traceback_;
 
-  template <typename T>
-  Error& operator<<(const T& value) {
-    error_message_ << value;
-    return *this;
-  }
+  public:
+    explicit Error();
+    explicit Error(PyObject* cls);
+    Error(const Error&);
+    Error(Error&&);
+    ~Error() override;
 
-  void to_stderr() const;
-  std::string to_string() const;
+    template <typename T>
+    Error& operator<<(const T& value) {
+      error_message_ << value;
+      return *this;
+    }
 
-  /**
-   * Translate this exception into a Python error by calling PyErr_SetString
-   * with the appropriate exception class and message.
-   */
-  virtual void to_python() const noexcept;
+    void to_stderr() const;
+    std::string to_string() const;
 
-  // Check whether this is a "KeyboardInterrupt" exception
-  virtual bool is_keyboard_interrupt() const noexcept;
+    bool matches_exception_class(Error(*)()) const;
+
+    /**
+     * Translate this exception into a Python error by calling PyErr_SetString
+     * with the appropriate exception class and message.
+     */
+    void to_python() const noexcept;
+
+    // Check whether this is a "KeyboardInterrupt" exception
+    bool is_keyboard_interrupt() const noexcept;
 };
 
 using PyObjectPtr = PyObject*;
@@ -90,26 +97,6 @@ template <> Error& Error::operator<<(const char&);
 
 //------------------------------------------------------------------------------
 
-class PyError : public Error
-{
-  mutable PyObject* exc_type;
-  mutable PyObject* exc_value;
-  mutable PyObject* exc_traceback;
-
-public:
-  PyError();
-  PyError(PyError&&);
-  virtual ~PyError() override;
-
-  void to_python() const noexcept override;
-  bool is_keyboard_interrupt() const noexcept override;
-  bool is_assertion_error() const noexcept;
-  std::string message() const;
-};
-
-
-//------------------------------------------------------------------------------
-
 Error AssertionError();
 Error ImportError();
 Error IndexError();
@@ -122,7 +109,7 @@ Error OverflowError();
 Error RuntimeError();
 Error TypeError();
 Error ValueError();
-
+Error PyError();
 
 
 //------------------------------------------------------------------------------
@@ -153,9 +140,9 @@ Warning IOWarning();
   */
 class HidePythonError {
   private:
-    PyObject* ptype_;
-    PyObject* pvalue_;
-    PyObject* ptraceback_;
+    PyObject* exc_type_;
+    PyObject* exc_value_;
+    PyObject* exc_traceback_;
 
   public:
     HidePythonError();

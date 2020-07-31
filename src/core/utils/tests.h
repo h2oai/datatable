@@ -139,6 +139,15 @@ void assert_bool(bool arg, const char* argstr, const char* filename, int lineno)
             << filename << ':' << lineno;
 }
 
+void assert_throws(std::function<void()> expr, Error(*exception_class)(),
+                   const char* filename, int lineno);
+
+void assert_throws(std::function<void()> expr,
+                   const char* message, const char* filename, int lineno);
+
+void assert_throws(std::function<void()> expr, Error(*exception_class)(),
+                   const char* message, const char* filename, int lineno);
+
 
 
 //------------------------------------------------------------------------------
@@ -196,6 +205,9 @@ void assert_bool(bool arg, const char* argstr, const char* filename, int lineno)
 #define ASSERT_FALSE(s)                                                        \
     dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__);
 
+
+#define ASSERT_THROWS(...)                                                     \
+    dt::tests::assert_throws(__VA_ARGS__, __FILE__, __LINE__);
 
 
 

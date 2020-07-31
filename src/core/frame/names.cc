@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>          // std::min
+#include <iostream>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -778,14 +779,12 @@ void DataTable::_integrity_check_pynames() const {
 
     std::vector<std::string> src2 = {"\xFF__", "foo"};
     strvecNP* t2 = new strvecNP(src2);
-    bool test_ok = false;
-    try {
-      // This should throw, since the name is not valid UTF8
-      auto r = t2->item_as_pyoobj(0);
-    } catch (const std::exception&) {
-      test_ok = true;
-    }
-    xassert(test_ok);
+
+    ASSERT_THROWS(
+      [&]{ t2->item_as_pyoobj(0); },
+      PyError,
+      "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+    );
     delete t2;
   }
 

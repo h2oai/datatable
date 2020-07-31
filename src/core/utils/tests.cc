@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <memory>              // std::unique_ptr
 #include <string>              // std::string
 #include <unordered_map>       // std::unordered_map
@@ -96,6 +97,45 @@ TestCase::TestCase(const char* suite, const char* test, const char* file)
     file_name_(file)
 {
   get_tests_registry()[suite_name_].emplace_back(this);
+}
+
+
+
+void assert_throws(std::function<void()> expr,
+                   const char* message, const char* filename, int lineno)
+{
+  assert_throws(expr, nullptr, message, filename, lineno);
+}
+
+void assert_throws(std::function<void()> expr, Error(*exception_class)(),
+                   const char* filename, int lineno)
+{
+  assert_throws(expr, exception_class, nullptr, filename, lineno);
+}
+
+void assert_throws(std::function<void()> expr, Error(*exception_class)(),
+                   const char* message, const char* filename, int lineno)
+{
+  try {
+    expr();
+
+  } catch (const Error& e) {
+    std::string emsg = e.to_string();
+    if (exception_class && !e.matches_exception_class(exception_class)) {
+      throw AssertionError()
+          << "Wrong exception class thrown in " << filename << ':' << lineno
+          << ": " << emsg;
+    }
+    if (message && !(emsg == message)) {
+      throw AssertionError()
+          << "Wrong exception message in " << filename << ':' << lineno
+          << "\n  Actual:   " << emsg
+          << "\n  Expected: " << message;
+    }
+    return;
+  }
+  throw AssertionError()
+      << "Exception was not thrown in " << filename << ':' << lineno;
 }
 
 
