@@ -86,6 +86,12 @@ namespace tests {
   static_assert(0, "TEST() macro should not be used when DTTEST not defined");
 #else
 
+// C++ tests always need access to private fields and methods, which
+// is why we turn all access public when compiling with tests. This
+// has an obvious drawback though: in debug mode the access control
+// is no longer verified by the compiler, which means it's easier to
+// inadvertently introduce a compiler error. Such errors would be
+// revealed by building in the production mode ("make build").
 DISABLE_CLANG_WARNING("-Wkeyword-macro")
 #define private   public
 #define protected public

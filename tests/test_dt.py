@@ -192,9 +192,16 @@ def test_sizeof():
     DT2 = dt.Frame(A=["foo" * 1001])
     assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
 
+
 @cpp_test
-def test_coverage():
-    core.test_coverage()
+def test_check_suites():
+    # If this test fails (found an extra suite), then a new test must be
+    # created in order to cover that suite. See test_core_coverage()
+    # above for an example.
+    found = core.get_test_suites()
+    expected = ["parallel", "progress", "coverage"]
+    assert set(found) == set(expected)
+
 
 
 def test_internal_compiler_version():
@@ -342,7 +349,7 @@ def test_collections():
 
 
 @pytest.mark.parametrize("testname", get_core_tests("coverage"), indirect=True)
-def test_core_progress(testname):
+def test_core_coverage(testname):
     # Run all core tests in suite "coverage"
     core.run_test("coverage", testname)
 

@@ -15,7 +15,7 @@ from datatable.internal import frame_columns_virtual, frame_integrity_check
 
 
 
-cpp_test = pytest.mark.skipif(not hasattr(core, "test_coverage"),
+cpp_test = pytest.mark.skipif(not hasattr(core, "get_test_suites"),
                               reason="C++ tests were not compiled")
 
 skip_on_jenkins = pytest.mark.skipif(os.environ.get("DT_HARNESS") == "Jenkins",
