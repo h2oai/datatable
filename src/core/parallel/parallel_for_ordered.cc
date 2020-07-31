@@ -137,14 +137,23 @@ void OrderedTask::start_iteration(size_t i) {
 
 
 //------------------------------------------------------------------------------
-// WaitTask
+// NoopTask
 //------------------------------------------------------------------------------
 
-// This subclass of `OrderedTask` is specifically used for waiting. The state
-// inherited from the parent class is completely ignored.
-class WaitTask : public OrderedTask {
+// This subclass of `OrderedTask` is specifically used for waiting.
+// The state inherited from the parent class is completely ignored.
+//
+// Even though this class is used for waiting, it does not do any
+// waiting explicitly. Instead it finishes almost immediately and
+// then the thread tries to re-acquire a new task.
+//
+// After this task is executed, the parent OrderedJob will call
+// `.advance_state()` on it. This is ok, as long as we do not expect
+// the `state_` of this class to be meaningful.
+//
+class NoopTask : public OrderedTask {
   public:
-    WaitTask() = default;
+    NoopTask() = default;
 
     void execute() override {
       std::this_thread::yield();
@@ -220,7 +229,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
     progress::work* progress_;
-    WaitTask wait_task_;
+    NoopTask noop_task_;
     mutable dt::spin_mutex mutex_;  // 1 byte
     size_t : 56;
     size_t next_to_start_;
@@ -238,7 +247,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
         n_threads_(num_threads_in_team()),
         n_tasks_(tasks.size()),
         tasks_(std::move(tasks)),
-        assigned_tasks_(n_tasks_, &wait_task_),
+        assigned_tasks_(n_tasks_, &noop_task_),
         progress_(progress),
         next_to_start_(0),
         next_to_order_(0),
@@ -249,7 +258,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
         ifinish_(0)
     {
       xassert(n_tasks_ && n_threads_ > 1 && n_iterations_);
-      xassert(wait_task_.ready_to_start());
+      xassert(noop_task_.ready_to_start());
       for (auto& task : tasks_) {
         task->init_parent(this);
       }
@@ -298,7 +307,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       // be some tasks in the future (not all iterations finished yet), then do a
       // simple wait task until more work becomes available.
       else if (next_to_finish_ < n_iterations_) {
-        task = &wait_task_;
+        task = &noop_task_;
       }
       // Otherwise (next_to_finish_ == n_iters) there isn't anything left to do:
       // hooray! We allow the worker to go back to sleep by returning nullptr.
