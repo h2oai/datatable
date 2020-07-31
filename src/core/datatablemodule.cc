@@ -56,7 +56,6 @@
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 #include "utils/terminal/terminal_style.h"
-#include "ztest.h"
 
 
 

@@ -28,12 +28,20 @@ import subprocess
 import sys
 import time
 from datatable.lib import core
-from tests import (cpp_test, skip_on_jenkins)
+from tests import (cpp_test, skip_on_jenkins, get_core_tests)
+
 
 
 #-------------------------------------------------------------------------------
-# Test parallel infrastructure
+# "parallel" tests
 #-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("testname", get_core_tests("parallel"), indirect=True)
+def test_core_parallel(testname):
+    # Run all core tests in suite "parallel"
+    core.run_test("parallel", testname)
+
+
 
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)
@@ -51,90 +59,15 @@ def test_multiprocessing_threadpool():
             # assert chthreads != parent_threads
 
 
-@cpp_test
-@pytest.mark.parametrize('test_name, nargs',
-                         [
-                            ["shmutex", 3],
-                            ["barrier", 1],
-                            ["parallel_for_static", 1],
-                            ["parallel_for_dynamic", 1],
-                            ["parallel_for_ordered", 1],
-                            ["progress_static", 2],
-                            ["progress_nested", 2],
-                            ["progress_dynamic", 2],
-                            ["progress_ordered", 2]
-                         ]
-                        )
-def test_parameters(test_name, nargs):
-    for i in range(nargs - 1):
-        args = list(range(i))
-        message = ("In %s the number of arguments required is %d, "
-                   "got: %d" % ("test_" + test_name + r"\(\)", nargs, i))
-        with pytest.raises(ValueError, match = message):
-            testfn = "test_%s" % test_name
-            getattr(core, testfn)(*args)
 
+#-------------------------------------------------------------------------------
+# "progress" tests
+#-------------------------------------------------------------------------------
 
-@cpp_test
-def test_internal_shared_mutex():
-    core.test_shmutex(500, dt.options.nthreads * 2, 1)
-
-
-@cpp_test
-def test_internal_shared_bmutex():
-    core.test_shmutex(1000, dt.options.nthreads * 2, 0)
-
-
-@cpp_test
-def test_internal_atomic():
-    core.test_atomic()
-
-
-@cpp_test
-def test_internal_barrier():
-    core.test_barrier(100)
-
-
-@cpp_test
-def test_internal_parallel_for_static():
-    core.test_parallel_for_static(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_dynamic():
-    core.test_parallel_for_dynamic(1000)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered1():
-    core.test_parallel_for_ordered(1723)
-
-
-@cpp_test
-def test_internal_parallel_for_ordered2():
-    n0 = dt.options.nthreads
-    try:
-        dt.options.nthreads = 2
-        core.test_parallel_for_ordered(1723)
-    finally:
-        dt.options.nthreads = n0
-
-
-# Make sure C++ tests run cleanly when not interrupted
-@cpp_test
-@pytest.mark.parametrize('parallel_type, nthreads',
-                         itertools.product(
-                            ["static", "nested", "dynamic", "ordered"],
-                            [1, dt.options.nthreads//2, dt.options.nthreads]
-                         )
-                        )
-def test_progress(parallel_type, nthreads):
-    niterations = 1000
-    ntimes = 2
-    cmd = "core.test_progress_%s(%s, %s);" % (
-              parallel_type, niterations, nthreads)
-    for _ in range(ntimes) :
-        exec(cmd)
+@pytest.mark.parametrize("testname", get_core_tests("progress"), indirect=True)
+def test_core_progress(testname):
+    # Run all core tests in suite "progress"
+    core.run_test("progress", testname)
 
 
 # Send interrupt signal and make sure process throws KeyboardInterrupt
@@ -143,29 +76,28 @@ def test_progress(parallel_type, nthreads):
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
-                            [1, dt.options.nthreads//2, dt.options.nthreads]
+                            ["1", "half", "all"]
                          )
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
-    niterations = 10000
     sleep_time = 0.01
     exception = "KeyboardInterrupt\n"
     message = "[cancelled]\x1b[K\n"
     cmd = "import datatable as dt; from datatable.lib import core;"
     cmd += "dt.options.progress.enabled = True;"
     cmd += "dt.options.progress.min_duration = 0;"
-    cmd += "print('%s start', flush = True); " % parallel_type;
+    cmd += "print('%s start', flush = True); " % (parallel_type,);
 
     if parallel_type:
-        if parallel_type == "ordered":
-            niterations //= 10
-        cmd += "core.test_progress_%s(%s, %s)" % (
-                  parallel_type, niterations, nthreads)
+        cmd += "core.run_test('progress', '%s_%s')" % (parallel_type, nthreads)
     else:
+        nth = 1 if nthreads == "1" else \
+              dt.options.nthreads//2 if nthreads == "half" else \
+              dt.options.nthreads
         cmd += "import time; "
-        cmd += "dt.options.nthreads = %s; " % nthreads
-        cmd += "time.sleep(%s);" % sleep_time * 10
+        cmd += "dt.options.nthreads = %d; " % nth
+        cmd += "time.sleep(%r);" % (sleep_time * 10)
 
     proc = subprocess.Popen([sys.executable, "-c", cmd],
                             stdout = subprocess.PIPE,
@@ -185,8 +117,9 @@ def test_progress_interrupt(parallel_type, nthreads):
     is_cancelled = stdout_str.endswith(message) if parallel_type else is_exception
 
     if not is_exception or not is_cancelled:
-        print("\nstdout: \n%s" % stdout_str)
-        print("\nstderr: \n%s" % stderr_str)
+        print("\ncmd:\n  %s" % cmd)
+        print("\nstdout:\n%s" % stdout_str)
+        print("\nstderr:\n%s" % stderr_str)
 
     assert is_cancelled
     assert is_exception

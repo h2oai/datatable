@@ -139,3 +139,10 @@ def tempdir():
     dirname = mod_tempfile.mkdtemp()
     yield dirname
     shutil.rmtree(dirname, ignore_errors=True)
+
+
+# Without this fixture, get_core_tests() does not work properly...
+@pytest.fixture()
+def testname(request):
+    return request.param()
+

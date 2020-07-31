@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>          // std::min
+#include <iostream>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -31,9 +32,9 @@
 #include "python/tuple.h"
 #include "utils/assert.h"
 #include "utils/fuzzy_match.h"
+#include "utils/tests.h"
 #include "options.h"
 #include "stype.h"
-#include "ztest.h"
 
 static Error _name_not_found_error(const DataTable* dt, const std::string& name)
 {
@@ -698,7 +699,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
 
   // If there were any duplicate names, issue a warning
   if (n_duplicates > 0 && warn_duplicates) {
-    Warning w = DatatableWarning();
+    auto w = DatatableWarning();
     if (n_duplicates == 1) {
       w << "Duplicate column name found, and was assigned a unique name: "
         << "'" << duplicates[0] << "' -> '" << replacements[0] << "'";
@@ -712,7 +713,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
           << replacements[i] << "'";
       }
     }
-    w.emit();
+    w.emit_warning();
   }
 
   xassert(ncols_ == names_.size());
@@ -767,76 +768,98 @@ void DataTable::_integrity_check_pynames() const {
 
 
 
-
+//------------------------------------------------------------------------------
+// Tests
+//------------------------------------------------------------------------------
 #ifdef DTTEST
-namespace dttest {
 
-  void cover_names_FrameNameProviders() {
-    pylistNP* t1 = new pylistNP(py::olist(0));
-    delete t1;
+TEST(coverage, names_FrameNameProviders) {
+  pylistNP* t1 = new pylistNP(py::olist(0));
+  delete t1;
 
-    std::vector<std::string> src2 = {"\xFF__", "foo"};
-    strvecNP* t2 = new strvecNP(src2);
-    bool test_ok = false;
-    try {
-      // This should throw, since the name is not valid UTF8
-      auto r = t2->item_as_pyoobj(0);
-    } catch (const std::exception&) {
-      test_ok = true;
-    }
-    xassert(test_ok);
-    delete t2;
-  }
+  std::vector<std::string> src2 = {"\xFF__", "foo"};
+  strvecNP* t2 = new strvecNP(src2);
 
-
-  void cover_names_integrity_checks() {
-    DataTable* dt = new DataTable({
-                        Column::new_data_column(1, dt::SType::INT32),
-                        Column::new_data_column(1, dt::SType::FLOAT64)
-                    });
-
-    auto check1 = [dt]() { dt->_integrity_check_names(); };
-    dt->names_.clear();
-    test_assert(check1, "DataTable.names has size 0, however there are 2 "
-                        "columns in the Frame");
-    dt->names_ = { "foo", "foo" };
-    test_assert(check1, "Duplicate name 'foo' for column 1");
-    dt->names_ = { "foo", "f\x0A\x0D" };
-    xassert(dt->names_.size() == 2);  // silence "unused var" warning
-    test_assert(check1, "Invalid character '\\n' in column 1's name");
-    dt->names_ = { "one", "two" };
-
-    auto check2 = [dt]() { dt->_integrity_check_pynames(); };
-    py::oobj q = py::None();
-    dt->py_inames_.set(q, q);
-    test_assert(check2, "Assertion 'py_inames_.size() == 0' failed");
-    dt->py_inames_.del(q);
-
-    dt->py_names_ = *static_cast<const py::otuple*>(&q);
-    test_assert(check2, "Assertion 'py_names_.is_tuple()' failed");
-    dt->py_inames_ = *static_cast<const py::odict*>(&q);
-    dt->py_names_ = py::otuple(1);
-    test_assert(check2, "Assertion 'py_inames_.is_dict()' failed");
-    dt->py_inames_ = py::odict();
-    test_assert(check2, "Assertion 'py_names_.size() == ncols_' failed");
-    dt->py_names_ = py::otuple(2);
-    test_assert(check2, "Assertion 'py_inames_.size() == ncols_' failed");
-    dt->py_inames_.set(py::ostring("one"), py::oint(0));
-    dt->py_inames_.set(py::ostring("TWO"), py::oint(2));
-    dt->py_names_.set(0, py::oint(1));
-    dt->py_names_.set(1, py::ostring("two"));
-    test_assert(check2, "Assertion 'elem.is_string()' failed");
-    dt->py_names_.set(0, py::ostring("1"));
-    test_assert(check2, "Assertion 'elem.to_string() == names_[i]' failed");
-    dt->py_names_.set(0, py::ostring("one"));
-    test_assert(check2, "Assertion 'bool(res) && \"column in py_inames_ dict\"' failed");
-    dt->py_inames_.del(py::ostring("TWO"));
-    dt->py_inames_.set(py::ostring("two"), py::oint(2));
-    test_assert(check2, "Assertion 'res.to_int64_strict() == static_cast<int64_t>(i)' failed");
-    dt->py_inames_.set(py::ostring("two"), py::oint(1));
-    dt->verify_integrity();
-    delete dt;
-  }
-
+  ASSERT_THROWS(
+    [&]{ t2->item_as_pyoobj(0); },
+    PyError,
+    "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte"
+  );
+  delete t2;
 }
+
+
+TEST(coverage, names_integrity_checks) {
+  DataTable* dt = new DataTable({
+                      Column::new_data_column(1, dt::SType::INT32),
+                      Column::new_data_column(1, dt::SType::FLOAT64)
+                  });
+
+  auto check1 = [=]{ dt->_integrity_check_names(); };
+  dt->names_.clear();
+  ASSERT_THROWS(check1, AssertionError,
+      "DataTable.names has size 0, however there are 2 columns in the Frame");
+
+  dt->names_ = { "foo", "foo" };
+  ASSERT_THROWS(check1, AssertionError,
+      "Duplicate name 'foo' for column 1");
+
+  dt->names_ = { "foo", "f\x0A\x0D" };
+  ASSERT_THROWS(check1, AssertionError,
+      "Invalid character '\\n' in column 1's name");
+
+  dt->names_ = { "one", "two" };
+  dt->_integrity_check_names();  // should not throw
+
+  auto check2 = [dt]() { dt->_integrity_check_pynames(); };
+  py::oobj q = py::None();
+  dt->py_inames_.set(q, q);
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'py_inames_.size() == 0' failed");
+  dt->py_inames_.del(q);
+
+  dt->py_names_ = *static_cast<const py::otuple*>(&q);
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'py_names_.is_tuple()' failed");
+
+  dt->py_inames_ = *static_cast<const py::odict*>(&q);
+  dt->py_names_ = py::otuple(1);
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'py_inames_.is_dict()' failed");
+
+  dt->py_inames_ = py::odict();
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'py_names_.size() == ncols_' failed");
+
+  dt->py_names_ = py::otuple(2);
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'py_inames_.size() == ncols_' failed");
+
+  dt->py_inames_.set(py::ostring("one"), py::oint(0));
+  dt->py_inames_.set(py::ostring("TWO"), py::oint(2));
+  dt->py_names_.set(0, py::oint(1));
+  dt->py_names_.set(1, py::ostring("two"));
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'elem.is_string()' failed");
+
+  dt->py_names_.set(0, py::ostring("1"));
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'elem.to_string() == names_[i]' failed");
+
+  dt->py_names_.set(0, py::ostring("one"));
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'bool(res) && \"column in py_inames_ dict\"' failed");
+
+  dt->py_inames_.del(py::ostring("TWO"));
+  dt->py_inames_.set(py::ostring("two"), py::oint(2));
+  ASSERT_THROWS(check2, AssertionError,
+      "Assertion 'res.to_int64_strict() == static_cast<int64_t>(i)' failed");
+
+  dt->py_inames_.set(py::ostring("two"), py::oint(1));
+  dt->verify_integrity();
+  delete dt;
+}
+
+
+
 #endif
