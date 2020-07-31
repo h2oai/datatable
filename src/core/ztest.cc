@@ -23,7 +23,6 @@ namespace py {
 static PKArgs arg_test_coverage(0, 0, 0, false, false, {}, "test_coverage");
 
 static void test_coverage(const PKArgs&) {
-  // dttest::cover_names_FrameNameProviders();
   // dttest::cover_names_integrity_checks();
 }
 
@@ -31,10 +30,6 @@ static void test_coverage(const PKArgs&) {
 
 void DatatableModule::init_tests() {
   ADD_FN(&test_coverage, arg_test_coverage);
-  // ADD_FN(&test_progress_static, arg_test_progress_static);
-  // ADD_FN(&test_progress_nested, arg_test_progress_nested);
-  // ADD_FN(&test_progress_dynamic, arg_test_progress_dynamic);
-  // ADD_FN(&test_progress_ordered, arg_test_progress_ordered);
 }
 
 
@@ -55,6 +50,8 @@ namespace dttest {
  */
 void test_assert(const std::function<void(void)>& f,
                  const std::string& expected_error) {
+  (void)f;
+  (void)expected_error;
   // try {
   //   f();
   // } catch (const std::exception& e) {

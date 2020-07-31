@@ -699,7 +699,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
 
   // If there were any duplicate names, issue a warning
   if (n_duplicates > 0 && warn_duplicates) {
-    Warning w = DatatableWarning();
+    auto w = DatatableWarning();
     if (n_duplicates == 1) {
       w << "Duplicate column name found, and was assigned a unique name: "
         << "'" << duplicates[0] << "' -> '" << replacements[0] << "'";
@@ -713,7 +713,7 @@ void DataTable::_set_names_impl(NameProvider* nameslist, bool warn_duplicates) {
           << replacements[i] << "'";
       }
     }
-    w.emit();
+    w.emit_warning();
   }
 
   xassert(ncols_ == names_.size());
@@ -789,7 +789,7 @@ void DataTable::_integrity_check_pynames() const {
   }
 
   /*
-  void cover_names_integrity_checks() {
+  TEST(coverage, names_integrity_checks) {
     DataTable* dt = new DataTable({
                         Column::new_data_column(1, dt::SType::INT32),
                         Column::new_data_column(1, dt::SType::FLOAT64)

@@ -76,6 +76,8 @@ class Error : public std::exception
      */
     void to_python() const noexcept;
 
+    void emit_warning() const;
+
     // Check whether this is a "KeyboardInterrupt" exception
     bool is_keyboard_interrupt() const noexcept;
 };
@@ -111,22 +113,11 @@ Error TypeError();
 Error ValueError();
 Error PyError();
 
+Error DatatableWarning();
+Error DeprecationWarning();
+Error IOWarning();
 
-//------------------------------------------------------------------------------
-
-class Warning : public Error {
-  public:
-    Warning(PyObject* cls);
-    Warning(const Warning&) = default;
-
-    void emit();
-};
-
-Warning DatatableWarning();
-Warning DeprecationWarning();
-Warning IOWarning();
-
-
+using Warning = Error;
 
 
 //------------------------------------------------------------------------------
