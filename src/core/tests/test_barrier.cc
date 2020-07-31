@@ -1,28 +1,34 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
 //
-//     http://www.apache.org/licenses/LICENSE-2.0
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
 //
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifdef DTTEST
-#include <vector>
 #include <algorithm>
+#include <vector>
 #include "parallel/api.h"
 #include "utils/exceptions.h"
-#include "ztest.h"
+#include "utils/tests.h"
 namespace dttest {
 
 
-static void test_barrier_1() {
+TEST(parallel, barrier1) {
   size_t nthreads = dt::num_threads_in_pool();
   std::vector<size_t> data_old(nthreads, 0);
   std::vector<size_t> data_new(nthreads, 0);
@@ -39,15 +45,12 @@ static void test_barrier_1() {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = i + 1 + nthreads;
-    if (data_new[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data_new[i]
-        << " in test_barrier_1(), expected " << reference_i;
-    }
+    ASSERT_EQ(data_new[i], reference_i);
   }
 }
 
 
-static void test_barrier_2() {
+TEST(parallel, barrier2) {
   size_t nthreads = dt::num_threads_in_pool();
   std::vector<size_t> data(nthreads, 0);
 
@@ -64,15 +67,13 @@ static void test_barrier_2() {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = i + 1 + nthreads;
-    if (data[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_barrier_2(), expected " << reference_i;
-    }
+    ASSERT_EQ(data[i], reference_i);
   }
 }
 
 
-static void test_barrier_n(size_t n) {
+TEST(parallel, barrierN) {
+  size_t n = 100;
   size_t nthreads = dt::num_threads_in_pool();
   std::vector<size_t> data(nthreads, 0);
 
@@ -92,19 +93,10 @@ static void test_barrier_n(size_t n) {
 
   for (size_t i = 0; i < nthreads; ++i) {
     size_t reference_i = n;
-    if (data[i] != reference_i) {
-      throw AssertionError() << "Incorrect data[" << i << "] = " << data[i]
-        << " in test_barrier_n(), expected " << reference_i;
-    }
+    ASSERT_EQ(data[i], reference_i);
   }
 }
 
-
-void test_barrier(size_t n) {
-  test_barrier_1();
-  test_barrier_2();
-  test_barrier_n(n);
-}
 
 
 }  // namespace dttest

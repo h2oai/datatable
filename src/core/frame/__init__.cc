@@ -27,8 +27,6 @@
 #include "python/_all.h"
 #include "utils/alloc.h"
 #include "stype.h"
-#include "ztest.h"
-
 namespace py {
 
 
@@ -670,11 +668,6 @@ class FrameInitializationManager {
     void make_datatable(const DataTable* names_src) {
       frame->dt = new DataTable(std::move(cols), *names_src);
     }
-
-
-    #ifdef DTTEST
-      friend void dttest::cover_init_FrameInitializationManager_em();
-    #endif
 };
 
 
@@ -752,27 +745,3 @@ void Frame::_init_init(XTypeMaker& xt) {
 
 
 }  // namespace py
-
-
-
-//------------------------------------------------------------------------------
-// Testing
-//------------------------------------------------------------------------------
-
-// This test ensures coverage for `_ZN2py26FrameInitializationManager2emD0Ev`
-// symbol. See https://stackoverflow.com/questions/46447674 for details.
-#ifdef DTTEST
-namespace dttest {
-
-  void cover_init_FrameInitializationManager_em() {
-    auto t = new py::FrameInitializationManager::em;
-    delete t;
-  }
-
-}
-#endif
-
-// Two lines in the file are marked as LCOV_EXCL_LINE: these lines are related
-// to auto-generated exception-handling code, and they are not covered because
-// those exceptions are almost impossible to trigger.
-// See https://stackoverflow.com/questions/46367192

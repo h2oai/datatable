@@ -124,9 +124,8 @@ void DataTable::verify_integrity() const
       col.verify_integrity();
     }
     catch (Error& e) {
-      e = std::move(AssertionError() << "in column " << i
-                    << " '" << col_name << "': " << e.to_string());
-      throw;
+      throw AssertionError() << "in column " << i
+                << " '" << col_name << "': " << e.to_string();
     }
   }
 
