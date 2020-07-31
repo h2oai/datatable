@@ -236,5 +236,55 @@ TEST(parallel, for_ordered_setnumiters) {
 
 
 
+//------------------------------------------------------------------------------
+// wait_until_all_finalized
+//------------------------------------------------------------------------------
+
+TEST(parallel, for_ordered_wait_until_all_finalized) {
+  constexpr size_t N_ITERS = 1000;
+  constexpr size_t TEST_1  = 200;
+  constexpr size_t TEST_0  = 160;
+  std::vector<size_t> status(N_ITERS);
+
+  class OTask : public dt::OrderedTask {
+    private:
+      std::vector<size_t>& status_;
+    public:
+      OTask(std::vector<size_t>& status)
+        : status_(status) {}
+
+      void start(size_t i) override {
+        status_[i] = 1;
+      }
+      void order(size_t i) override {
+        status_[i] = 2;
+        if (i == TEST_1) {
+          wait_until_all_finalized();
+          // set status[] to 5 for iterations [TEST_0; TEST_1]
+          for (size_t j = i; j >= TEST_0; --j) {
+            status_[j] = 5;
+          }
+        }
+      }
+      void finish(size_t i) override {
+        status_[i] = 3;
+      }
+  };
+
+  dt::parallel_for_ordered(N_ITERS, [&]{
+    return std::make_unique<OTask>(status);
+  });
+
+  for (size_t i = 0; i < N_ITERS; ++i) {
+    // Note: although iteration TEST_1's status was set to 5, that
+    // iteration was later finished, setting its status back to 3.
+    size_t exp = (i < TEST_1 && i >= TEST_0)? 5 : 3;
+    ASSERT_EQ(status[i], exp);
+  }
+}
+
+
+
+
 }  // namespace dttest
 #endif
