@@ -29,11 +29,14 @@
 namespace dttest {
 
 
+//------------------------------------------------------------------------------
+// Simple ordered loop
+//------------------------------------------------------------------------------
 
-static void test_parallel_for_ordered(size_t n)
+static void ordered_simple(size_t niters, size_t nthreads)
 {
   std::atomic_flag global = ATOMIC_FLAG_INIT;
-  std::vector<int> done(n, 0);
+  std::vector<int> done(niters, 0);
   std::atomic<size_t> next_ordered {0};
 
   class OTask : public dt::OrderedTask {
@@ -78,30 +81,108 @@ static void test_parallel_for_ordered(size_t n)
       }
   };
 
-  dt::parallel_for_ordered(n, dt::NThreads(),
+  dt::parallel_for_ordered(niters, dt::NThreads(nthreads),
     [&]{
       return std::make_unique<OTask>(global, next_ordered, done);
     });
 
-  ASSERT_EQ(next_ordered.load(), n);
-  for (size_t i = 0; i < n; ++i) {
+  ASSERT_EQ(next_ordered.load(), niters);
+  for (size_t i = 0; i < niters; ++i) {
     ASSERT_EQ(done[i], 3);
   }
 }
 
 
-TEST(parallel, for_ordered1) {
-  test_parallel_for_ordered(1723);
+TEST(parallel, for_ordered_all) {
+  ordered_simple(1723, 0);
 }
 
-TEST(parallel, for_ordered2) {
-  size_t nth0 = dt::num_threads_in_pool();
-  dt::thpool->resize(2);
-  test_parallel_for_ordered(1723);
-  dt::thpool->resize(nth0);
+TEST(parallel, for_ordered_2) {
+  ordered_simple(1723, 2);
 }
 
 
+
+//------------------------------------------------------------------------------
+// Throw exceptions during ordered loop
+//------------------------------------------------------------------------------
+
+// Try throwing exceptions from all threads at the same time
+TEST(parallel, for_ordered_except_startall) {
+  constexpr size_t niters = 1111;
+
+  class OTask : public dt::OrderedTask {
+    public:
+      void start(size_t i) override {
+        std::this_thread::yield();
+        throw RuntimeError() << "Exception in iteration " << i;
+      }
+  };
+
+  ASSERT_THROWS([]{
+    dt::parallel_for_ordered(niters, []{ return std::make_unique<OTask>(); });
+  }, RuntimeError);
+}
+
+
+// Throw exception at iterations xstart/xorder/xfinish in the
+// corresponding code sections
+static void except1(size_t niters, size_t xstart, size_t xorder, size_t xfinish) {
+  class OTask : public dt::OrderedTask {
+    private:
+      size_t xstart_, xorder_, xfinish_;
+    public:
+      OTask(size_t xstart, size_t xorder, size_t xfinish)
+        : xstart_(xstart), xorder_(xorder), xfinish_(xfinish) {}
+
+      void start(size_t i) override {
+        if (i == xstart_) throw RuntimeError() << "Exception in [start]";
+      }
+
+      void order(size_t i) override {
+        if (i == xorder_) throw RuntimeError() << "Exception in [order]";
+      }
+
+      void finish(size_t i) override {
+        if (i == xfinish_) throw RuntimeError() << "Exception in [finish]";
+      }
+  };
+
+  dt::parallel_for_ordered(niters, [=]{
+    return std::make_unique<OTask>(xstart, xorder, xfinish);
+  });
+}
+
+TEST(parallel, for_ordered_except_start) {
+  ASSERT_THROWS([]{
+    except1(8645, 123, size_t(-1), size_t(-1));
+  }, RuntimeError, "Exception in [start]");
+}
+
+TEST(parallel, for_ordered_except_order) {
+  ASSERT_THROWS([]{
+    except1(8645, size_t(-1), 456, size_t(-1));
+  }, RuntimeError, "Exception in [order]");
+}
+
+TEST(parallel, for_ordered_except_finish) {
+  ASSERT_THROWS([]{
+    except1(8645, size_t(-1), size_t(-1), 789);
+  }, RuntimeError, "Exception in [finish]");
+}
+
+// Throw an exception on the very last iteration
+TEST(parallel, for_ordered_except_last_step) {
+  ASSERT_THROWS([]{
+    except1(8645, size_t(-1), size_t(-1), 8644);
+  }, RuntimeError, "Exception in [finish]");
+}
+
+TEST(parallel, for_ordered_except_same_step) {
+  ASSERT_THROWS([]{
+    except1(8645, 17, 17, 17);
+  }, RuntimeError, "Exception in [start]");
+}
 
 
 
