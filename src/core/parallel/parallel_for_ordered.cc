@@ -42,13 +42,10 @@ using uqOrderedTask = std::unique_ptr<OrderedTask>;
 
 class OrderedJob : public ThreadJob {
   public:
-    // This should be called from within an "ordered" section only.
-    // This function will block until all tasks that are currently in
-    // READY_TO_FINISH or FINISHING state are completed.
     virtual void wait_until_all_finalized() = 0;
-
     virtual size_t get_num_iterations() const = 0;
     virtual void set_num_iterations(size_t n) = 0;
+    virtual void super_ordered(std::function<void()> f) = 0;
 };
 
 
@@ -94,6 +91,11 @@ void OrderedTask::set_num_iterations(size_t n) {
 
 void OrderedTask::wait_until_all_finalized() {
   parent_job_->wait_until_all_finalized();
+}
+
+void OrderedTask::super_ordered(std::function<void()> f) {
+  xassert(is_ordering());
+  parent_job_->super_ordered(f);
 }
 
 
@@ -204,6 +206,11 @@ class SingleThreaded_OrderedJob : public OrderedJob {
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
     }
+
+    void super_ordered(std::function<void()> f) override {
+      f();
+    }
+
 
     ThreadTask* get_next_task(size_t) override {  // unused
       throw RuntimeError();  // LCOV_EXCL_LINE
@@ -372,6 +379,50 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       xassert(n >= next_to_order_);
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
+    }
+
+
+    void super_ordered(std::function<void()> f) override {
+      {
+        std::lock_guard<dt::spin_mutex> lock(mutex_);
+        // prevent new tasks from starting
+        next_to_start_ = n_iterations_;
+      }
+      // Wait for all tasks to complete their steps
+      while (any_tasks_running()) {
+        std::this_thread::yield();
+      }
+      // At this moment all other threads should be executing
+      // a NoopTask. Just to be sure, we will lock the mutex,
+      // preventing them from acquiring any new task.
+      {
+        std::lock_guard<dt::spin_mutex> lock(mutex_);
+        // execute the payload function
+        f();
+
+        // And lastly, resume the iterations
+        next_to_start_ = next_to_order_;
+        istart_ = iorder_;
+        for (const auto& task : tasks_) {
+          if (task->ready_to_order()) {
+            xassert(task->iter_ >= next_to_start_);
+            task->state_ = OrderedTask::State::READY_TO_START;
+          }
+        }
+      }
+    }
+
+  private:
+    // Return true if there are any tasks that are either starting
+    // or finishing, or ready to finish.
+    bool any_tasks_running() const {
+      std::lock_guard<dt::spin_mutex> lock(mutex_);
+      for (const auto& task : tasks_) {
+        if (task->is_finishing())    return true;
+        if (task->is_starting())     return true;
+        if (task->ready_to_finish()) return true;
+      }
+      return false;
     }
 };
 

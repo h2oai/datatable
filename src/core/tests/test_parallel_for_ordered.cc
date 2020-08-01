@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifdef DTTEST
 #include <atomic>
+#include <numeric>     // std::accumulate
 #include <vector>
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
@@ -316,6 +317,76 @@ TEST(parallel, for_ordered_wait_until_all_finalized) {
     // iteration was later finished, setting its status back to 3.
     size_t exp = (i < TEST_1 && i >= TEST_0)? 5 : 3;
     ASSERT_EQ(status[i], exp);
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// super_ordered
+//------------------------------------------------------------------------------
+
+TEST(parallel, for_ordered_super_ordered) {
+  constexpr size_t N_ITERS  = 1000;
+  constexpr size_t SUPER_AT = 200;
+  constexpr size_t START0  = 1;
+  constexpr size_t FINISH0 = 2;
+  constexpr size_t START1  = 5;
+  constexpr size_t FINISH1 = 7;
+
+  class OTask : public dt::OrderedTask {
+    private:
+      std::vector<size_t>& status_;
+      size_t& start_;
+      size_t& finish_;
+
+    public:
+      OTask(std::vector<size_t>& status, size_t& start, size_t& finish)
+        : status_(status), start_(start), finish_(finish) {}
+
+      void start(size_t i) override {
+        for (size_t j = 0; j < 1000; ++j) {
+          status_[i]++;
+        }
+        status_[i] = start_;
+      }
+
+      void order(size_t i) override {
+        if (i == SUPER_AT) {
+          super_ordered([&]{
+            size_t sum0 = std::accumulate(status_.begin(), status_.end(), size_t(0));
+            size_t sum1 = std::accumulate(status_.begin(), status_.end(), size_t(0));
+            // If there are any threads doing either start() or
+            // finish() steps, these sums would differ.
+            ASSERT_EQ(sum0, sum1);
+            // Modify global start_ / finish_
+            start_ = START1;
+            finish_ = FINISH1;
+          });
+        }
+      }
+      void finish(size_t i) override {
+        for (size_t j = 0; j < 100; ++j) {
+          status_[i] += 100;
+        }
+        status_[i] = (status_[i] % 100) + finish_;
+      }
+  };
+
+  std::vector<size_t> status(N_ITERS);
+  size_t start = START0;
+  size_t finish = FINISH0;
+
+  dt::parallel_for_ordered(N_ITERS, [&]{
+    return std::make_unique<OTask>(status, start, finish);
+  });
+
+  for (size_t i = 0; i < N_ITERS; ++i) {
+    size_t expected = (i < SUPER_AT) ? START0 + FINISH0 :
+                      (i == SUPER_AT)? START0 + FINISH1 :
+                      (i > SUPER_AT) ? START1 + FINISH1 : 0;
+    ASSERT_EQ(status[i], expected);
   }
 }
 
