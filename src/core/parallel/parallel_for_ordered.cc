@@ -335,41 +335,6 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     }
 
 
-    void wait_until_all_finalized() override {
-      // This function is called by the thread which is performing an
-      // ORDERING task, which means no new tasks can become
-      // READY_TO_FINISH in the meanwhile.
-      size_t ordering_iter;
-      {
-        std::lock_guard<dt::spin_mutex> lock(mutex_);
-        xassert(dt::this_thread_index() == ordering_thread_index_);
-        // next_to_order_ was incremented when the ordering task was
-        // started, so the iteration number that is currently being
-        // ordered is 1 less than `next_to_order_`.
-        ordering_iter = next_to_order_ - 1;
-      }
-      // Helper function: returns true if there are no tasks in the
-      // FINISHING stage, and false otherwise.
-      auto no_tasks_finishing = [&]() -> bool {
-        for (const auto& task : tasks_) {
-          if (task->is_finishing()) return false;
-        }
-        return true;
-      };
-      // Busy-wait loop until all eligible tasks have finished their
-      // "post-ordered" section.
-      while (true) {
-        std::this_thread::yield();
-        std::lock_guard<dt::spin_mutex> lock(mutex_);
-        // when `next_to_finish_` becomes equal to the current ordering
-        // iteration, it means all iterations that were READY_TO_FINISH
-        // has at least entered the FINISHING stage.
-        if (next_to_finish_ == ordering_iter && no_tasks_finishing()) {
-          break;
-        }
-      }
-    }
-
     size_t get_num_iterations() const override {
       return n_iterations_;
     }
@@ -382,19 +347,26 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     }
 
 
+    void wait_until_all_finalized() override {
+      while (any_task_finishing()) {
+        std::this_thread::yield();
+      }
+    }
+
+
     void super_ordered(std::function<void()> f) override {
       {
         std::lock_guard<dt::spin_mutex> lock(mutex_);
         // prevent new tasks from starting
         next_to_start_ = n_iterations_;
       }
-      // Wait for all tasks to complete their steps
-      while (any_tasks_running()) {
+      // Wait for all other tasks to complete their steps
+      while (any_task_starting_or_finishing()) {
         std::this_thread::yield();
       }
       // At this moment all other threads should be executing
       // a NoopTask. Just to be sure, we will lock the mutex,
-      // preventing them from acquiring any new task.
+      // preventing them from acquiring any new tasks.
       {
         std::lock_guard<dt::spin_mutex> lock(mutex_);
         // execute the payload function
@@ -413,9 +385,18 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     }
 
   private:
-    // Return true if there are any tasks that are either starting
-    // or finishing, or ready to finish.
-    bool any_tasks_running() const {
+    // Tasks that are READY_TO_FINISH are considered "finishing" too,
+    // because they may enter the FINISHING stage at any moment.
+    bool any_task_finishing() const {
+      std::lock_guard<dt::spin_mutex> lock(mutex_);
+      for (const auto& task : tasks_) {
+        if (task->is_finishing())    return true;
+        if (task->ready_to_finish()) return true;
+      }
+      return false;
+    }
+
+    bool any_task_starting_or_finishing() const {
       std::lock_guard<dt::spin_mutex> lock(mutex_);
       for (const auto& task : tasks_) {
         if (task->is_finishing())    return true;
