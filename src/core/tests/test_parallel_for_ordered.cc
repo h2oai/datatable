@@ -30,6 +30,20 @@ namespace dttest {
 
 
 //------------------------------------------------------------------------------
+// No-op loop
+//------------------------------------------------------------------------------
+
+TEST(parallel, for_ordered_empty) {
+  // Simply check that this doesn't crash
+  dt::parallel_for_ordered(53, []{
+    return std::make_unique<dt::OrderedTask>();
+  });
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // Simple ordered loop
 //------------------------------------------------------------------------------
 
@@ -55,6 +69,7 @@ static void ordered_simple(size_t niters, size_t nthreads)
           next_ordered_(next_ordered) {}
 
       void start(size_t j) override {
+        ASSERT_TRUE(is_starting());
         ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_LT(j, done_.size());
         ASSERT_EQ(done_[j], 0);
@@ -63,6 +78,7 @@ static void ordered_simple(size_t niters, size_t nthreads)
       }
 
       void order(size_t j) override {
+        ASSERT_TRUE(is_ordering());
         ASSERT_FALSE(executing_global_.test_and_set());
         ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_EQ(next_ordered_.load(), j);
@@ -74,6 +90,7 @@ static void ordered_simple(size_t niters, size_t nthreads)
       }
 
       void finish(size_t j) override {
+        ASSERT_TRUE(is_finishing());
         ASSERT_FALSE(executing_local_.test_and_set());
         ASSERT_EQ(done_[j], 2);
         done_[j] = 3;

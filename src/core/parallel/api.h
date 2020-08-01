@@ -167,6 +167,10 @@ class OrderedTask : public ThreadTask {
     size_t get_num_iterations() const;
     void wait_until_all_finalized();
 
+    bool is_starting()  const noexcept;
+    bool is_ordering()  const noexcept;
+    bool is_finishing() const noexcept;
+
   private:
     friend class MultiThreaded_OrderedJob;
     friend class SingleThreaded_OrderedJob;
@@ -174,11 +178,7 @@ class OrderedTask : public ThreadTask {
     bool ready_to_start()  const noexcept;
     bool ready_to_order()  const noexcept;
     bool ready_to_finish() const noexcept;
-    bool is_starting()     const noexcept;
-    bool is_ordering()     const noexcept;
-    bool is_finishing()    const noexcept;
     void advance_state();
-    void cancel();
     void start_iteration(size_t i);
 };
 

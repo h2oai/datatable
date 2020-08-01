@@ -49,8 +49,6 @@ class OrderedJob : public ThreadJob {
 
     virtual size_t get_num_iterations() const = 0;
     virtual void set_num_iterations(size_t n) = 0;
-
-    virtual bool has_state() const = 0;
 };
 
 
@@ -90,7 +88,7 @@ size_t OrderedTask::get_num_iterations() const {
 }
 
 void OrderedTask::set_num_iterations(size_t n) {
-  xassert(is_ordering() || !parent_job_->has_state());
+  xassert(is_ordering());
   parent_job_->set_num_iterations(n);
 }
 
@@ -187,12 +185,10 @@ class SingleThreaded_OrderedJob : public OrderedJob {
 
     void run() {
       for (size_t i = 0; i < n_iterations_; ++i) {
-        // Note: we do not bother to advance the task's state_ since
-        //       it won't be used by anyone
         task_->iter_ = i;
-        task_->start(i);
-        task_->order(i);
-        task_->finish(i);
+        task_->state_ = OrderedTask::State::STARTING;   task_->start(i);
+        task_->state_ = OrderedTask::State::ORDERING;   task_->order(i);
+        task_->state_ = OrderedTask::State::FINISHING;  task_->finish(i);
         progress_->add_done_amount(1);
         progress::manager->check_interrupts_main();
       }
@@ -211,11 +207,7 @@ class SingleThreaded_OrderedJob : public OrderedJob {
 
     ThreadTask* get_next_task(size_t) override {  // unused
       throw RuntimeError();  // LCOV_EXCL_LINE
-    }
-
-    bool has_state() const override {
-      return false;
-    }
+    }                        // LCOV_EXCL_LINE
 };
 
 
@@ -380,10 +372,6 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       xassert(n >= next_to_order_);
       progress_->add_work_amount(n - n_iterations_);
       n_iterations_ = n;
-    }
-
-    bool has_state() const override {
-      return true;
     }
 };
 
