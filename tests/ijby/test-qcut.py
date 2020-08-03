@@ -40,7 +40,8 @@ def test_qcut_error_noargs():
 
 def test_qcut_error_wrong_column_types():
     DT = dt.Frame([[0], [dt]])
-    msg = r"qcut\(\) can only be applied to numeric and string columns, instead column 1 has an stype: obj64"
+    msg = r"qcut\(\) can only be applied to numeric and string columns, instead " \
+          "column 1 has an stype: obj64"
     with pytest.raises(TypeError, match=msg):
         qcut(DT)
 

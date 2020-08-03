@@ -39,7 +39,8 @@ def test_cut_error_noargs():
 
 def test_cut_error_wrong_column_types():
     DT = dt.Frame([[1, 0], ["1", "0"]])
-    msg = r"cut\(\) can only be applied to numeric columns, instead column 1 has an stype: str32"
+    msg = r"cut\(\) can only be applied to numeric columns, instead column 1 " \
+          "has an stype: str32"
     with pytest.raises(TypeError, match=msg):
         cut(DT)
 
