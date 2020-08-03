@@ -1,6 +1,6 @@
 docutils>=0.15
-pygments
-sphinx>=1.8,<3.0
-sphinx_rtd_theme
+pygments>=2.6
+sphinx>=3.0
+sphinx_rtd_theme>=0.5
 nbsphinx>=0.5
 datatable

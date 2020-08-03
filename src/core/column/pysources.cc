@@ -50,7 +50,7 @@ size_t PyList_ColumnImpl::n_children() const noexcept {
 }
 
 
-bool PyList_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool PyList_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows_);
   *out = list_[i];
   return true;
@@ -82,7 +82,7 @@ size_t PyTupleList_ColumnImpl::n_children() const noexcept {
 }
 
 
-bool PyTupleList_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool PyTupleList_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows_);
   *out = py::rtuple::unchecked(tuple_list_[i])[index_];
   return true;
@@ -114,7 +114,7 @@ size_t PyDictList_ColumnImpl::n_children() const noexcept {
 }
 
 
-bool PyDictList_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool PyDictList_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows_);
   *out = py::rdict::unchecked(dict_list_[i]).get_or_none(key_);
   return true;

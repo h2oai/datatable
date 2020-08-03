@@ -133,7 +133,7 @@ class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, float*    out) const override { return _get(i, out); }
     bool get_element(size_t i, double*   out) const override { return _get(i, out); }
     bool get_element(size_t i, CString*  out) const override { return _get(i, out); }
-    bool get_element(size_t i, py::robj* out) const override { return _get(i, out); }
+    bool get_element(size_t i, py::oobj* out) const override { return _get(i, out); }
 
 
     bool computationally_expensive() const override {

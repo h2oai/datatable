@@ -70,7 +70,9 @@ void init_exceptions() {
 
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
+// Helper functions
+//------------------------------------------------------------------------------
 
 static bool is_string_empty(const char* msg) noexcept {
   if (!msg) return true;
@@ -86,7 +88,6 @@ static bool is_string_empty(const char* msg) noexcept {
 
 void exception_to_python(const std::exception& e) noexcept {
   wassert(dt::num_threads_in_team() == 0);
-  // dt::progress::manager->update_view();
   const Error* error = dynamic_cast<const Error*>(&e);
   if (error) {
     error->to_python();
@@ -126,193 +127,225 @@ std::string escape_backticks(const std::string& str) {
 
 
 
-//==============================================================================
+//------------------------------------------------------------------------------
+// Error: constructors
+//------------------------------------------------------------------------------
+
+Error::Error()
+  : pycls_(nullptr),
+    exc_type_(nullptr),
+    exc_value_(nullptr),
+    exc_traceback_(nullptr)
+{
+  PyErr_Fetch(&exc_type_, &exc_value_, &exc_traceback_);
+  if (is_keyboard_interrupt()) {
+    dt::progress::manager->set_status_cancelled();
+  }
+}
+
 
 Error::Error(PyObject* exception_class)
-  : pycls_(exception_class) {}
+  : pycls_(exception_class),
+    exc_type_(nullptr),
+    exc_value_(nullptr),
+    exc_traceback_(nullptr) {}
+
 
 Error::Error(const Error& other) {
-  error << other.error.str();
+  error_message_ << other.error_message_.str();
   pycls_ = other.pycls_;
+  exc_type_      = other.exc_type_;       Py_XINCREF(exc_type_);
+  exc_value_     = other.exc_value_;      Py_XINCREF(exc_value_);
+  exc_traceback_ = other.exc_traceback_;  Py_XINCREF(exc_traceback_);
 }
 
 Error::Error(Error&& other) : Error(nullptr) {
-  *this = std::move(other);
-}
-
-Error& Error::operator=(Error&& other) {
-  #if defined(__GNUC__) && __GNUC__ < 5
-    // In gcc4.8 string stream was not moveable
-    error.str(other.error.str());
-  #else
-    std::swap(error, other.error);
-  #endif
+  std::swap(error_message_, other.error_message_);
   std::swap(pycls_, other.pycls_);
-  return *this;
+  std::swap(exc_type_, other.exc_type_);
+  std::swap(exc_value_, other.exc_value_);
+  std::swap(exc_traceback_, other.exc_traceback_);
 }
 
-void Error::to_stderr() const {
-  std::cerr << error.str() << "\n";
+Error::~Error() {
+  Py_XDECREF(exc_type_);      exc_type_ = nullptr;
+  Py_XDECREF(exc_value_);     exc_value_ = nullptr;
+  Py_XDECREF(exc_traceback_); exc_traceback_ = nullptr;
 }
 
-std::string Error::to_string() const {
-  return error.str();
-}
 
 
-Error& Error::operator<<(const std::string& v) { error << v; return *this; }
-Error& Error::operator<<(const char* v)        { error << v; return *this; }
-Error& Error::operator<<(const void* v)        { error << v; return *this; }
-Error& Error::operator<<(int64_t v)            { error << v; return *this; }
-Error& Error::operator<<(int32_t v)            { error << v; return *this; }
-Error& Error::operator<<(int8_t v)             { error << v; return *this; }
-Error& Error::operator<<(size_t v)             { error << v; return *this; }
-Error& Error::operator<<(uint32_t v)           { error << v; return *this; }
-Error& Error::operator<<(float v)              { error << v; return *this; }
-Error& Error::operator<<(double v)             { error << v; return *this; }
-#ifdef __APPLE__
-  Error& Error::operator<<(uint64_t v)         { error << v; return *this; }
-  Error& Error::operator<<(ssize_t v)          { error << v; return *this; }
-#endif
 
+//------------------------------------------------------------------------------
+// Error: message logging methods
+//------------------------------------------------------------------------------
+
+template <>
 Error& Error::operator<<(const dt::CString& str) {
   return *this << str.to_string();
 }
 
-Error& Error::operator<<(const py::_obj& o) {
+
+template <>
+Error& Error::operator<<(const py::robj& o) {
   return *this << o.to_borrowed_ref();
 }
 
+
+template <>
+Error& Error::operator<<(const py::oobj& o) {
+  return *this << o.to_borrowed_ref();
+}
+
+
+template <>
 Error& Error::operator<<(const py::ostring& o) {
   PyObject* ptr = o.to_borrowed_ref();
   Py_ssize_t size;
   const char* chardata = PyUnicode_AsUTF8AndSize(ptr, &size);
   if (chardata) {
-    error << std::string(chardata, static_cast<size_t>(size));
+    error_message_ << std::string(chardata, static_cast<size_t>(size));
   } else {
-    error << "<unknown>";
+    error_message_ << "<unknown>";
     PyErr_Clear();
   }
   return *this;
 }
 
-Error& Error::operator<<(PyObject* v) {
+
+template <>
+Error& Error::operator<<(const PyObjectPtr& v) {
   PyObject* repr = PyObject_Repr(v);
   Py_ssize_t size;
   const char* chardata = PyUnicode_AsUTF8AndSize(repr, &size);
   if (chardata) {
-    error << std::string(chardata, static_cast<size_t>(size));
+    error_message_ << std::string(chardata, static_cast<size_t>(size));
   } else {
-    error << "<unknown>";
+    error_message_ << "<unknown>";
     PyErr_Clear();
   }
   Py_XDECREF(repr);
   return *this;
 }
 
-Error& Error::operator<<(PyTypeObject* v) {
-  return *this << reinterpret_cast<PyObject*>(v);
+
+template <>
+Error& Error::operator<<(const PyTypeObjectPtr& v) {
+  return *this << reinterpret_cast<const PyObjectPtr>(v);
 }
 
+
+template <>
 Error& Error::operator<<(const CErrno&) {
-  error << "[errno " << errno << "] " << strerror(errno);
+  error_message_ << "[errno " << errno << "] " << strerror(errno);
   return *this;
 }
 
-Error& Error::operator<<(dt::SType stype) {
-  error << dt::stype_name(stype);
+
+template <>
+Error& Error::operator<<(const dt::SType& stype) {
+  error_message_ << dt::stype_name(stype);
   return *this;
 }
 
-Error& Error::operator<<(dt::LType ltype) {
-  error << dt::ltype_name(ltype);
+
+template <>
+Error& Error::operator<<(const dt::LType& ltype) {
+  error_message_ << dt::ltype_name(ltype);
   return *this;
 }
 
-Error& Error::operator<<(char c) {
+
+template <>
+Error& Error::operator<<(const char& c) {
   uint8_t uc = static_cast<uint8_t>(c);
   if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {
-    error << '\\';
-    if (c == '\n') error << 'n';
-    else if (c == '\r') error << 'r';
-    else if (c == '\t') error << 't';
-    else if (c == '\\') error << '\\';
-    else if (c == '`')  error << '`';
+    error_message_ << '\\';
+    if (c == '\n') error_message_ << 'n';
+    else if (c == '\r') error_message_ << 'r';
+    else if (c == '\t') error_message_ << 't';
+    else if (c == '\\') error_message_ << '\\';
+    else if (c == '`')  error_message_ << '`';
     else {
       uint8_t d1 = uc >> 4;
       uint8_t d2 = uc & 15;
-      error << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
+      error_message_ << "\\x" << static_cast<char>((d1 <= 9? '0' : 'a' - 10) + d1)
                      << static_cast<char>((d2 <= 9? '0' : 'a' - 10) + d2);
     }
   } else {
-    error << c;
+    error_message_ << c;
   }
   return *this;
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Error: misc methods
+//------------------------------------------------------------------------------
+
+void Error::to_stderr() const {
+  std::cerr << to_string() << "\n";
+}
+
+std::string Error::to_string() const {
+  if (pycls_) {
+    return error_message_.str();
+  }
+  else {
+    py::ostring msg = py::robj(exc_value_).to_pystring_force();
+    return msg.to_string();
+  }
+}
+
+
+// This will not work with PyError though
+bool Error::matches_exception_class(Error(*exc)()) const {
+  return exc().pycls_ == pycls_;
+}
+
+
 void Error::to_python() const noexcept {
   // The pointer returned by errstr.c_str() is valid until errstr gets out
-  // of scope. By contrast, `error.str().c_str()` returns a dangling pointer,
+  // of scope. By contrast, `error_message_.str().c_str()` returns a dangling pointer,
   // which usually works but sometimes doesn't...
   // See https://stackoverflow.com/questions/1374468
   try {
-    const std::string errstr = error.str();
-    PyErr_SetString(pycls_, errstr.c_str());
-  } catch (const std::exception& e) {
+    if (pycls_) {
+      auto errstr = to_string();
+      PyErr_SetString(pycls_, errstr.c_str());
+    } else {
+      // This call takes away a reference to each object: you must own a
+      // reference to each object before the call and after the call you no
+      // longer own these references.
+      PyErr_Restore(exc_type_, exc_value_, exc_traceback_);
+      exc_type_ = nullptr;
+      exc_value_ = nullptr;
+      exc_traceback_ = nullptr;
+    }
+  }
+  catch (const std::exception& e) {
     PyErr_SetString(PyExc_RuntimeError, e.what());
   }
 }
 
 
 bool Error::is_keyboard_interrupt() const noexcept {
-  return false;
+  return exc_type_ == PyExc_KeyboardInterrupt;
 }
 
 
-
-//==============================================================================
-
-PyError::PyError() : Error(nullptr) {
-  PyErr_Fetch(&exc_type, &exc_value, &exc_traceback);
-  if (is_keyboard_interrupt()) {
-    dt::progress::manager->set_status_cancelled();
-  }
+void Error::emit_warning() const {
+  auto errstr = to_string();
+  // Normally, PyErr_WarnEx returns 0. However, when the `warnings` module is
+  // configured in such a way that all warnings are converted into errors,
+  // then PyErr_WarnEx will return -1. At that point we should throw
+  // an exception too, the error message is already set in Python.
+  int ret = PyErr_WarnEx(pycls_, errstr.c_str(), 1);
+  if (ret) throw PyError();
 }
 
-PyError::PyError(PyError&& other) : Error(std::move(other)) {
-  exc_type = other.exc_type;
-  exc_value = other.exc_value;
-  exc_traceback = other.exc_traceback;
-  other.exc_type = nullptr;
-  other.exc_value = nullptr;
-  other.exc_traceback = nullptr;
-}
-
-PyError::~PyError() {
-  Py_XDECREF(exc_type);
-  Py_XDECREF(exc_value);
-  Py_XDECREF(exc_traceback);
-}
-
-void PyError::to_python() const noexcept {
-  PyErr_Restore(exc_type, exc_value, exc_traceback);
-  exc_type = nullptr;
-  exc_value = nullptr;
-  exc_traceback = nullptr;
-}
-
-bool PyError::is_keyboard_interrupt() const noexcept {
-  return exc_type == PyExc_KeyboardInterrupt;
-}
-
-bool PyError::is_assertion_error() const noexcept {
-  return exc_type == PyExc_AssertionError;
-}
-
-std::string PyError::message() const {
-  return py::robj(exc_value).to_pystring_force().to_string();
-}
 
 
 
@@ -330,28 +363,11 @@ Error OverflowError()         { return Error(DtExc_OverflowError); }
 Error TypeError()             { return Error(DtExc_TypeError); }
 Error ValueError()            { return Error(DtExc_ValueError); }
 Error InvalidOperationError() { return Error(DtExc_InvalidOperationError); }
+Error PyError()               { return Error(); }
 
-
-
-
-//==============================================================================
-
-Warning::Warning(PyObject* cls) : Error(cls) {}
-
-void Warning::emit() {
-  const std::string errstr = error.str();
-  // Normally, PyErr_WarnEx returns 0. However, when the `warnings` module is
-  // configured in such a way that all warnings are converted into errors,
-  // then PyErr_WarnEx will return -1. At that point we should throw
-  // an exception too, the error message is already set in Python.
-  int ret = PyErr_WarnEx(pycls_, errstr.c_str(), 1);
-  if (ret) throw PyError();
-}
-
-
-Warning DeprecationWarning() { return Warning(PyExc_FutureWarning); }
-Warning DatatableWarning()   { return Warning(DtWrn_DatatableWarning); }
-Warning IOWarning()          { return Warning(DtWrn_IOWarning); }
+Error DeprecationWarning() { return Error(PyExc_FutureWarning); }
+Error DatatableWarning()   { return Error(DtWrn_DatatableWarning); }
+Error IOWarning()          { return Error(DtWrn_IOWarning); }
 
 
 
@@ -362,16 +378,16 @@ Warning IOWarning()          { return Warning(DtWrn_IOWarning); }
 
 HidePythonError::HidePythonError() {
   if (PyErr_Occurred()) {
-    PyErr_Fetch(&ptype_, &pvalue_, &ptraceback_);
+    PyErr_Fetch(&exc_type_, &exc_value_, &exc_traceback_);
   } else {
-    ptype_ = nullptr;
-    pvalue_ = nullptr;
-    ptraceback_ = nullptr;
+    exc_type_ = nullptr;
+    exc_value_ = nullptr;
+    exc_traceback_ = nullptr;
   }
 }
 
 HidePythonError::~HidePythonError() {
-  if (ptype_) {
-    PyErr_Restore(ptype_, pvalue_, ptraceback_);
+  if (exc_type_) {
+    PyErr_Restore(exc_type_, exc_value_, exc_traceback_);
   }
 }

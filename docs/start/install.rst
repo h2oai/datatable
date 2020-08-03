@@ -59,7 +59,7 @@ The following platforms are supported:
 
 - **Linux x86_64 / ppc64le**
 
-  We produce binary wheels that are tagged as ``manylinux2010`` (for x86_64
+  We produce binary wheels that are tagged as ``manylinux2010`` (for ``x86_64``
   architecture) and ``manylinux2014`` (for ppc64le). Consequently, they will
   work with your Linux distribution if it is compatible with one of these tags.
   Please refer to `PEP-513`_ and `PEP-599`_ for details.

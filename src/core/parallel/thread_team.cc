@@ -27,7 +27,7 @@
 namespace dt {
 
 
-thread_team::thread_team(size_t nth, ThreadPool* pool)
+ThreadTeam::ThreadTeam(size_t nth, ThreadPool* pool)
   : nthreads(nth),
     thpool(pool),
     nested_scheduler(nullptr),
@@ -40,19 +40,19 @@ thread_team::thread_team(size_t nth, ThreadPool* pool)
 }
 
 
-thread_team::~thread_team() {
+ThreadTeam::~ThreadTeam() {
   thpool->current_team = nullptr;
   auto tmp = nested_scheduler.load();
   delete tmp;
 }
 
 
-size_t thread_team::size() const noexcept {
+size_t ThreadTeam::size() const noexcept {
   return nthreads;
 }
 
 
-void thread_team::wait_at_barrier() {
+void ThreadTeam::wait_at_barrier() {
   size_t n = barrier_counter.fetch_add(1);
   size_t n_target = n - (n % nthreads) + nthreads;
   while (barrier_counter.load() < n_target) {

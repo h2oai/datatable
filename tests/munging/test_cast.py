@@ -68,11 +68,11 @@ def test_cast_int_to_bool(source_stype):
 
 
 def test_cast_m127_to_bool():
-    DT = dt.Frame([-128, -127, 0, 127, 128])
+    DT = dt.Frame([-128, -127, 0, 127, 128, 256])
     RES = DT[:, dt.bool8(f[0])]
     frame_integrity_check(RES)
     assert RES.stypes == (dt.bool8,)
-    assert RES.to_list()[0] == [True, True, False, True, True]
+    assert RES.to_list()[0] == [True, True, False, True, True, True]
 
 
 @pytest.mark.parametrize("source_stype", ltype.real.stypes)
@@ -91,6 +91,11 @@ def test_cast_str_to_bool():
     DT[0] = bool
     assert_equals(DT, dt.Frame([1, 0, None, None, None] / dt.bool8))
 
+
+def test_cast_obj_to_bool():
+    DT = dt.Frame([True, False, None, 1, 3.2, "True"] / dt.obj64)
+    DT[0] = bool
+    assert_equals(DT, dt.Frame([True, False, None, None, None, None]))
 
 
 
@@ -156,21 +161,37 @@ def test_cast_str_to_int(source_stype, target_stype):
     assert_equals(RES, dt.Frame(W=[0, 23, 56, -17, 101] / target_stype))
 
 
-def test_cast_badstr_to_int():
-    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5"])
+def test_cast_str_zeroes_to_int():
+    DT = dt.Frame(["0", "+0", "-0", "00", "+00", "-00", "-000", "0"*100])
     RES = DT[:, dt.int32(f[0])]
-    assert_equals(RES, dt.Frame([345, None, None, None, None, None]))
+    assert_equals(RES, dt.Frame([0] * 8 / dt.int32))
 
 
-@pytest.mark.parametrize("source_stype", [stype.obj64])
-@pytest.mark.parametrize("target_stype", numeric_stypes)
-def test_cast_object_to_numeric(source_stype, target_stype):
-    DT = dt.Frame(W=[0, 1, 2], stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    with pytest.raises(NotImplementedError) as e:
-        noop(DT[:, target_stype(f.W)])
-    assert ("Unable to cast %s into %s"
-            % (source_stype.name, target_stype.name) in str(e.value))
+def test_cast_badstr_to_int():
+    DT = dt.Frame(["345", "10000000000", "24e100", "abc500", None, "--5",
+                   "-", "+", "", "~"])
+    RES = DT[:, dt.int32(f[0])]
+    assert_equals(RES, dt.Frame([345, 1410065408, None, None, None, None,
+                                 None, None, None, None]))
+
+
+@pytest.mark.parametrize("target_stype", ltype.int.stypes)
+def test_cast_str_to_int_with_overflow(target_stype):
+    offset = target_stype.max + 1
+    mask = offset * 2
+    data = [7**i for i in range(1000)]
+    expected = [(x + offset) % mask - offset for x in data]
+    DT = dt.Frame([str(x) for x in data])
+    DT[:, 0] = target_stype
+    assert_equals(DT, dt.Frame(expected / target_stype))
+
+
+@pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
+def test_cast_object_to_numeric(target_stype):
+    DT = dt.Frame(W=[0, 1, 2], stype=stype.obj64)
+    assert DT.stypes == (stype.obj64,)
+    RES = DT[:, target_stype(f.W)]
+    assert_equals(RES, dt.Frame(W=[0, 1, 2], stype=target_stype))
 
 
 
@@ -284,9 +305,12 @@ def test_cast_huge_to_str():
     n = 300000000
     DT = dt.Frame(BIG=range(n))
     RES = DT[:, dt.str32(f.BIG)]
-    assert RES.stype == dt.str64
+    assert RES.stype == dt.str32
     assert RES[-1, 0] == str(n - 1)
     assert RES[3194870, 0] == "3194870"
+    RES.materialize()
+    assert RES.stype == dt.str64
+    assert RES[-1, 0] == str(n - 1)
 
 
 def test_cast_empty_str32_to_str64():

@@ -160,4 +160,4 @@ html_static_path = ['_static']
 # -- Custom setup ------------------------------------------------------------
 
 def setup(app):
-    app.add_stylesheet("code.css")
+    app.add_css_file("code.css")

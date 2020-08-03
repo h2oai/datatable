@@ -125,8 +125,10 @@ dt::ColumnImpl* Column::_get_mutable_impl(bool keep_stats) {
   xassert(impl_);
   if (impl_->refcount_ > 1) {
     auto newimpl = impl_->clone();
-    xassert(!newimpl->stats_);
-    if (keep_stats && impl_->stats_) {
+    if (newimpl->stats_) {
+      if (!keep_stats) newimpl->stats_ = nullptr;
+    }
+    else if (keep_stats && impl_->stats_) {
       newimpl->stats_ = impl_->stats_->clone();
       newimpl->stats_->column = newimpl;
     }
@@ -234,7 +236,7 @@ bool Column::get_element(size_t i, dt::CString* out) const {
   return impl_->get_element(i, out);
 }
 
-bool Column::get_element(size_t i, py::robj* out) const {
+bool Column::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows());
   return impl_->get_element(i, out);
 }
@@ -263,7 +265,11 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case dt::SType::FLOAT64: return getelem<double>(*this, i);
     case dt::SType::STR32:
     case dt::SType::STR64:   return getelem<dt::CString>(*this, i);
-    case dt::SType::OBJ:     return getelem<py::robj>(*this, i);
+    case dt::SType::OBJ: {
+      py::oobj x;
+      bool isvalid = get_element(i, &x);
+      return isvalid? x : py::None();
+    }
     case dt::SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype `"
@@ -414,4 +420,20 @@ void Column::verify_integrity() const {
 
 void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
   impl_->fill_npmask(out_mask, row0, row1);
+}
+
+
+void Column::cast_inplace(dt::SType new_stype) {
+  if (new_stype == stype()) return;
+  bool done = impl_->cast_const(new_stype, *this);
+  if (!done) {
+    _get_mutable_impl()->cast_mutate(new_stype);
+  }
+}
+
+
+Column Column::cast(dt::SType new_stype) const {
+  Column newcol(*this);
+  newcol.cast_inplace(new_stype);
+  return newcol;
 }

@@ -384,6 +384,7 @@ void Column::rbind(colvec& columns) {
   newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
   if (new_stype != dt::SType::VOID) {
     newcol.cast_inplace(new_stype);
+    newcol.materialize();
     newcol._get_mutable_impl()->rbind_impl(columns, new_nrows, col_empty, new_stype);
   }
 
@@ -412,6 +413,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
     if (col.stype() == dt::SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
       col.cast_inplace(stype_);
+      col.materialize();
     }
     new_strbuf_size += col.get_data_size(1);
   }
@@ -488,9 +490,6 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
 //------------------------------------------------------------------------------
 // rbind fixed-width columns
 //------------------------------------------------------------------------------
-namespace dt {
-  template<> inline py::robj GETNA() { return py::rnone(); }
-}
 
 template <typename T>
 void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
@@ -526,6 +525,7 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
       }
       if (col.stype() != stype_) {
         col.cast_inplace(stype_);
+        col.materialize();
       }
       size_t col_data_size = sizeof(T) * col.nrows();
       if (col_data_size) {
@@ -569,15 +569,11 @@ void dt::SentinelObj_ColumnImpl::rbind_impl(
     if (col.stype() == dt::SType::VOID) {
       dest_data += col.nrows();
     } else {
-      if (col.stype() != dt::SType::OBJ) {
-        col = col.cast(stype_);
-      }
-      auto src_data = static_cast<PyObject* const*>(
-                        col.get_data_readonly());
+      col.cast_inplace(dt::SType::OBJ);
       for (size_t i = 0; i < col.nrows(); ++i) {
-        Py_INCREF(src_data[i]);
-        Py_DECREF(*dest_data);
-        *dest_data = src_data[i];
+        auto dd = reinterpret_cast<py::oobj*>(dest_data);
+        bool isvalid = col.get_element(i, dd);
+        if (!isvalid) *dd = py::None();
         dest_data++;
       }
     }
@@ -594,6 +590,6 @@ template class dt::SentinelFw_ColumnImpl<int32_t>;
 template class dt::SentinelFw_ColumnImpl<int64_t>;
 template class dt::SentinelFw_ColumnImpl<float>;
 template class dt::SentinelFw_ColumnImpl<double>;
-template class dt::SentinelFw_ColumnImpl<py::robj>;
+template class dt::SentinelFw_ColumnImpl<py::oobj>;
 template class dt::SentinelStr_ColumnImpl<uint32_t>;
 template class dt::SentinelStr_ColumnImpl<uint64_t>;

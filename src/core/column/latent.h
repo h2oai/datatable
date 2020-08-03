@@ -61,7 +61,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, float*)    const override;
     bool get_element(size_t, double*)   const override;
     bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::robj*) const override;
+    bool get_element(size_t, py::oobj*) const override;
 
   private:
     ColumnImpl* vivify(bool to_memory = false) const;

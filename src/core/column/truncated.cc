@@ -95,7 +95,7 @@ bool Truncated_ColumnImpl::get_element(size_t i, CString* out)  const {
   return arg_.get_element(i, out);
 }
 
-bool Truncated_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool Truncated_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows_);
   return arg_.get_element(i, out);
 }

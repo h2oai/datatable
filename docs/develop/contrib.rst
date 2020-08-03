@@ -99,7 +99,7 @@ which is your repository fork:
    $ git push origin your_branch_name
 
 Then go back to the GitHub website to your fork of the datatable repository
-https://github.com/your_user_name/datatable. There you should see a pop-up
+https://github.com/your\_user\_name/datatable. There you should see a pop-up
 that notifies about the changes pushed to ``your_branch_name``. There will also
 be a green button "Compare & pull request". Pressing that button you will see
 an "Open a pull request" form.

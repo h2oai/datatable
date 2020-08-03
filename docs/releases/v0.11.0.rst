@@ -19,6 +19,9 @@
   -[new] Added ability to cast string columns into numeric types: int, float
     or boolean. [#1313]
 
+  -[new] String columns now support comparison operators ``<``, ``>``, ``<=``
+    and ``>=``. [#2274]
+
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
@@ -27,9 +30,6 @@
 
   -[new] Added a new function :func:`qcut()` to bin data
    to equal-population discrete intervals.
-
-  -[enh] String columns now support comparison operators ``<``, ``>``, ``<=``
-    and ``>=``. [#2274]
 
   -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
     f-expression as an argument.
@@ -71,26 +71,26 @@
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
-  -[bug] Deleting a key from the Frame (``del DT.key``) no longer causes a
+  -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
 
-  -[bug] Casting a 0-row ``str32`` column into ``str64`` stype no longer goes
+  -[fix] Casting a 0-row ``str32`` column into ``str64`` stype no longer goes
     into an infinite loop. [#2369]
 
-  -[bug] Fixed creation of a ``str64`` column from a python list of strings
+  -[fix] Fixed creation of a ``str64`` column from a python list of strings
     when the total size of all strings is greater than 2GB. [#2368]
 
-  -[bug] Rbinding several ``str32`` columns such that their combined string
+  -[fix] Rbinding several ``str32`` columns such that their combined string
     buffers have size over 2GB now properly creates a ``str64`` column as a
     result. [#2367]
 
-  -[bug] Fixed crash when writing to CSV a frame with many boolean columns
+  -[fix] Fixed crash when writing to CSV a frame with many boolean columns
     when the option ``quoting="all"`` is used. [#2382]
 
-  -[bug] It is no longer allowed to combine ``compression="gzip"`` and
+  -[fix] It is no longer allowed to combine ``compression="gzip"`` and
     ``append=True`` in :meth:`.to_csv()`.
 
-  -[bug] Empty strings no longer get confused with NA strings in
+  -[fix] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
 
 
@@ -143,6 +143,9 @@
 
   -[fix] Fread now properly detects ``\r``-newlines in the presence of fields
     with quoted ``\n``-newlines. [#1343]
+
+  -[fix] Opening Jay file from a bytes object now produces a Frame that
+    remains valid even after the bytes object is deleted. [#2547]
 
   -[api] Function :func:`fread()` now always returns a single Frame object;
     previously it could return a dict of Frames if multiple sources were

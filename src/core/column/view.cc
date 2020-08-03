@@ -66,7 +66,7 @@ bool SliceView_ColumnImpl::get_element(size_t i, int64_t* out)  const { return a
 bool SliceView_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(start + i*step, out); }
 bool SliceView_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(start + i*step, out); }
 bool SliceView_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, py::robj* out) const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, py::oobj* out) const { return arg.get_element(start + i*step, out); }
 
 
 
@@ -181,7 +181,7 @@ bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
 }
 
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
   xassert(i < nrows_);
   T j = indices[i];
   if (j < 0) return false;

@@ -27,10 +27,9 @@
 #include "column.h"
 #include "groupby.h"
 #include "python/_all.h"
+#include "utils/tests.h"
 #include "rowindex.h"
 #include "writebuf.h"
-#include "ztest.h"
-
 
 class NameProvider;
 
@@ -133,10 +132,6 @@ class DataTable {
     void _integrity_check_pynames() const;
 
     void save_jay_impl(WritableBuffer*);
-
-    #ifdef DTTEST
-      friend void dttest::cover_names_integrity_checks();
-    #endif
 };
 
 

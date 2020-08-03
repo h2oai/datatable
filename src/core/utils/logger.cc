@@ -304,7 +304,7 @@ void Logger::emit(std::string&& msg, bool warning) {
     if (warning) {
       auto w = IOWarning();
       w << std::move(msg);
-      w.emit();
+      w.emit_warning();
     }
     else if (enabled_) {
       print_message(msg, prefix_, use_colors_);

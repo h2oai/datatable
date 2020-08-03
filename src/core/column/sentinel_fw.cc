@@ -65,7 +65,7 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows)
 }
 
 SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows)
-  : SentinelFw_ColumnImpl<py::robj>(nrows)
+  : SentinelFw_ColumnImpl<py::oobj>(nrows)
 {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ true);
@@ -92,7 +92,7 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows, Buffer&& mem)
 }
 
 SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows, Buffer&& mem)
-    : SentinelFw_ColumnImpl<py::robj>(nrows, std::move(mem))
+    : SentinelFw_ColumnImpl<py::oobj>(nrows, std::move(mem))
 {
   stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ false);
@@ -188,12 +188,13 @@ bool SentinelFw_ColumnImpl<T>::get_element(size_t i, double* out) const {
 
 
 template <typename T>
-bool SentinelFw_ColumnImpl<T>::get_element(size_t i, py::robj* out) const {
+bool SentinelFw_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
   return ColumnImpl::get_element(i, out);
 }
 
 
-bool SentinelObj_ColumnImpl::get_element(size_t i, py::robj* out) const {
+bool SentinelObj_ColumnImpl::get_element(size_t i, py::oobj* out) const {
+  static_assert(sizeof(py::robj) == sizeof(PyObject*), "Invalid size of py::robj");
   py::robj x = static_cast<const py::robj*>(mbuf_.rptr())[i];
   *out = x;
   return !x.is_none();
@@ -309,7 +310,7 @@ template class SentinelFw_ColumnImpl<int32_t>;
 template class SentinelFw_ColumnImpl<int64_t>;
 template class SentinelFw_ColumnImpl<float>;
 template class SentinelFw_ColumnImpl<double>;
-template class SentinelFw_ColumnImpl<py::robj>;
+template class SentinelFw_ColumnImpl<py::oobj>;
 
 
 } // namespace dt

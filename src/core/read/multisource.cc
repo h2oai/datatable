@@ -263,16 +263,16 @@ static Error _multisrc_error() {
 }
 
 static void emit_multisrc_warning() {
-  Warning w = IOWarning();
+  auto w = IOWarning();
   w << "fread() input contains multiple sources, only the first will be used. "
        "Use iread() if you need to read all sources";
-  w.emit();
+  w.emit_warning();
 }
 
 static void emit_badsrc_warning(const std::string& name, const Error& e) {
-  Warning w = IOWarning();
+  auto w = IOWarning();
   w << "Could not read `" << name << "`: " << e.to_string();
-  w.emit();
+  w.emit_warning();
 }
 
 

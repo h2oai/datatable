@@ -35,7 +35,7 @@ from datatable import stype, ltype
 from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
 from tests import (same_iterables, list_equals, noop, isview, assert_equals,
-                   skip_on_jenkins, cpp_test)
+                   skip_on_jenkins, cpp_test, get_core_tests)
 
 
 #-------------------------------------------------------------------------------
@@ -192,9 +192,16 @@ def test_sizeof():
     DT2 = dt.Frame(A=["foo" * 1001])
     assert sys.getsizeof(DT2) - sys.getsizeof(DT1) == 3000
 
+
 @cpp_test
-def test_coverage():
-    core.test_coverage()
+def test_check_suites():
+    # If this test fails (found an extra suite), then a new test must be
+    # created in order to cover that suite. See test_core_coverage()
+    # above for an example.
+    found = core.get_test_suites()
+    expected = ["parallel", "progress", "coverage"]
+    assert set(found) == set(expected)
+
 
 
 def test_internal_compiler_version():
@@ -341,6 +348,12 @@ def test_collections():
 
 
 
+@pytest.mark.parametrize("testname", get_core_tests("coverage"), indirect=True)
+def test_core_coverage(testname):
+    # Run all core tests in suite "coverage"
+    core.run_test("coverage", testname)
+
+
 
 #-------------------------------------------------------------------------------
 # Run several random attacks on a datatable as a whole
@@ -373,7 +386,7 @@ def test_dt_stype(dt0):
 
 
 def test_dt_stype_heterogenous(dt0):
-    with pytest.raises(ValueError) as e:
+    with pytest.raises(dt.exceptions.InvalidOperationError) as e:
         noop(dt0.stype)
     assert ("The stype of column 'B' is bool8, which is different "
             "from the stype of the previous column" in str(e.value))

@@ -56,7 +56,6 @@
 #include "utils/terminal/terminal.h"
 #include "utils/terminal/terminal_stream.h"
 #include "utils/terminal/terminal_style.h"
-#include "ztest.h"
 
 
 
@@ -379,7 +378,6 @@ void py::DatatableModule::init_methods() {
   init_methods_styles();
   init_methods_qcut();
 
-  init_casts();
   init_fbinary();
   init_fnary();
   init_funary();

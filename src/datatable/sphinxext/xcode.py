@@ -143,9 +143,9 @@ class XcodeDirective(SphinxDirective):
             formatter = SphinxFormatter("console")
             # Update prompt regexp so that it would include the whitespace too
             tail = r")(.*\n?)"
-            ps1 = lexer._ps1rgx
+            ps1 = lexer._ps1rgx.pattern
             assert ps1.endswith(tail)
-            lexer._ps1rgx = ps1[:-len(tail)] + r"\s*" + ps1[-len(tail):]
+            lexer._ps1rgx = re.compile(ps1[:-len(tail)] + r"\s*" + tail)
 
         outfile = type("", (object,), dict(result=None))()
         pygments.highlight(code, lexer, formatter, outfile)

@@ -66,8 +66,8 @@ an error.
 
 This square-bracket form is also useful when you want to access a column
 dynamically, i.e. if its name is not known in advance. For example, suppose
-there is a frame with columns "2017_01", "2017_02", ..., "2019_12". Then
-all these columns can be addressed as::
+there is a frame with columns ``"2017_01"``, ``"2017_02"``, ..., ``"2019_12"``.
+Then all these columns can be addressed as::
 
     [f["%d_%02d" % (year, month)]
      for month in range(1, 13)

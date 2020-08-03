@@ -79,7 +79,6 @@ void ThreadWorker::run() noexcept {
     }
     catch (...) {
       idle_job_->catch_exception();
-      job_->abort_execution();
     }
   }
 }
@@ -104,7 +103,6 @@ void ThreadWorker::run_in_main_thread(ThreadJob* job) noexcept {
     }
     catch (...) {
       idle_job_->catch_exception();
-      job->abort_execution();
     }
   }
 }

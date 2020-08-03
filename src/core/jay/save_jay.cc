@@ -25,11 +25,13 @@
 #include "column/virtual.h"
 #include "frame/py_frame.h"
 #include "jay/jay_generated.h"
+#include "parallel/api.h"
 #include "python/_all.h"
 #include "python/args.h"
 #include "python/string.h"
 #include "utils/assert.h"
 #include "datatable.h"
+#include "ltype.h"
 #include "stype.h"
 #include "writebuf.h"
 
@@ -80,7 +82,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
     if (col.stype() == dt::SType::OBJ) {
       auto w = DatatableWarning();
       w << "Column `" << names_[i] << "` of type obj64 was not saved";
-      w.emit();
+      w.emit_warning();
     } else {
       auto saved_col = col.write_to_jay(names_[i], fbb, wb);
       msg_columns.push_back(saved_col);
@@ -172,12 +174,12 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
 
 
 void Column::write_data_to_jay(jay::ColumnBuilder& cbb, WritableBuffer* wb) {
-  impl_->write_data_to_jay(*this, cbb, wb);
+  const_cast<dt::ColumnImpl*>(impl_)->write_data_to_jay(*this, cbb, wb);
 }
 
 
 void dt::Sentinel_ColumnImpl::write_data_to_jay(
-    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb)
 {
   size_t nbufs = get_num_data_buffers();
   for (size_t i = 0; i < nbufs; ++i) {
@@ -191,38 +193,164 @@ void dt::Sentinel_ColumnImpl::write_data_to_jay(
 
 
 void dt::Virtual_ColumnImpl::write_data_to_jay(
-    Column& thiscol, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+    Column& thiscol, jay::ColumnBuilder& cbb, WritableBuffer* wb)
 {
   thiscol.materialize(false);
   thiscol.write_data_to_jay(cbb, wb);
 }
 
 
-void dt::Rbound_ColumnImpl::write_data_to_jay(
-    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb) const
+
+void dt::Rbound_ColumnImpl::_write_fw_to_jay(
+    jay::ColumnBuilder& cbb, WritableBuffer* wb)
 {
+  size_t pos0 = 0;
+  size_t size_total = 0;
   for (const Column& col : chunks_) {
-    const_cast<Column*>(&col)->materialize();
+    xassert(col.stype() == stype_);
+    xassert(col.get_num_data_buffers() == 1);
+    const void* data = col.get_data_readonly(0);
+    size_t size = col.get_data_size(0);
+    size_t pos = wb->write(size, data);
+    if (pos0) {
+      xassert(pos == pos0 + size_total);
+    } else {
+      pos0 = pos;
+    }
+    size_total += size;
   }
-  size_t nbufs = chunks_[0].get_num_data_buffers();
-  for (size_t i = 0; i < nbufs; ++i) {
-    size_t pos0 = 0;
-    size_t size0 = 0;
+  if (size_total & 7) {
+    size_t zero = 0;
+    wb->write(8 - (size_total & 7), &zero);
+  }
+  xassert(pos0 >= 8);
+  jay::Buffer saved_buf(pos0 - 8, size_total);
+  cbb.add_data(&saved_buf);
+}
+
+
+template <typename TIN, typename TOUT>
+static Buffer _recode_offsets(const void* data, size_t n, size_t offset0) {
+  Buffer outbuf = Buffer::mem(n * sizeof(TOUT));
+  auto offsets_in = static_cast<const TIN*>(data);
+  auto offsets_out = static_cast<TOUT*>(outbuf.xptr());
+  dt::parallel_for_static(n,
+    [=](size_t i) {
+      offsets_out[i] = static_cast<TOUT>(offsets_in[i]) + static_cast<TOUT>(offset0);
+      if (!std::is_same<TIN, TOUT>::value && (offsets_in[i] & dt::GETNA<TIN>())) {
+        offsets_out[i] += dt::GETNA<TOUT>() - dt::GETNA<TIN>();
+      }
+    });
+  return outbuf;
+}
+
+
+void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
+    jay::ColumnBuilder& cbb, WritableBuffer* wb)
+{
+  // Check whether the column may end up being over the maximum
+  // allowed size for the STR32 stype.
+  if (stype() == dt::SType::STR32) {
+    size_t strdata_size = 0;
     for (const Column& col : chunks_) {
-      const void* data = col.get_data_readonly(i);
-      size_t size = col.get_data_size(i);
-      size_t pos = wb->write(size, data);
-      xassert(pos >= 8);
-      if (!pos0) pos0 = pos;
-      size0 += size;
+      xassert(!col.is_virtual());
+      strdata_size += col.get_data_size(1);
     }
-    if (size0 & 7) {
-      size_t zero = 0;
-      wb->write(8 - (size0 & 7), &zero);
+    if (strdata_size > Column::MAX_ARR32_SIZE ||
+        nrows_ > Column::MAX_ARR32_SIZE) {
+      stype_ = SType::STR64;
+      cbb.add_type(stype_to_jaytype[static_cast<int>(SType::STR64)]);
     }
-    jay::Buffer saved_buf(pos0 - 8, size0);
-    if (i == 0) cbb.add_data(&saved_buf);
-    if (i == 1) cbb.add_strdata(&saved_buf);
+  }
+
+  // Write initial zero
+  size_t pos0 = 0;
+  size_t elemsize0 = stype_elemsize(stype_);
+  pos0 = wb->write(elemsize0, &pos0);
+
+  size_t offsets_size = elemsize0;  // total size of all offsets written so far
+  size_t strdata_size = 0;          // total size of strdata chunks
+  for (const Column& col : chunks_) {
+    xassert(col.get_num_data_buffers() == 2);
+    size_t elemsize = stype_elemsize(col.stype());
+    auto data = static_cast<const char*>(col.get_data_readonly(0)) + elemsize;
+    auto size = col.get_data_size(0) - elemsize;
+
+    // If no strdata has been written yet, either because this is the first
+    // chunk or because the first chunk was empty, then the offsets buffer
+    // can be written into the output as-is without the need for additional
+    // offsetting. However, this wouldn't apply in a case of a STR32->STR64
+    // type bump.
+    if (strdata_size == 0 && col.stype() == stype_) {
+      wb->write(size, data);
+      offsets_size += size;
+    }
+    // For all subsequent chunks we need to modify the offsets and
+    // remove the initial 0 from the `data` array.
+    else {
+      xassert((col.stype() == stype_) ||
+              (col.stype() == SType::STR32 && stype_ == SType::STR64));
+      size_t n = col.nrows();
+      Buffer newbuf = (col.stype() == dt::SType::STR32)
+          ? (stype_ == dt::SType::STR32
+              ? _recode_offsets<uint32_t, uint32_t>(data, n, strdata_size)
+              : _recode_offsets<uint32_t, uint64_t>(data, n, strdata_size))
+          : _recode_offsets<uint64_t, uint64_t>(data, n, strdata_size);
+      wb->write(newbuf.size(), newbuf.rptr());
+      offsets_size += newbuf.size();
+    }
+    strdata_size += col.get_data_size(1);
+  }
+  if (offsets_size & 7) {
+    size_t zero = 0;
+    wb->write(8 - (offsets_size & 7), &zero);
+  }
+  xassert(pos0 >= 8);
+  jay::Buffer saved_buf(pos0 - 8, offsets_size);
+  cbb.add_data(&saved_buf);
+}
+
+
+void dt::Rbound_ColumnImpl::_write_str_data_to_jay(
+    jay::ColumnBuilder& cbb, WritableBuffer* wb)
+{
+  size_t pos0 = 0;
+  size_t size_total = 0;
+  for (const Column& col : chunks_) {
+    xassert(col.get_num_data_buffers() == 2);
+    const void* data = col.get_data_readonly(1);
+    size_t size = col.get_data_size(1);
+    size_t pos = wb->write(size, data);
+    if (pos0) {
+      xassert(pos == pos0 + size_total);
+    } else {
+      pos0 = pos;
+    }
+    size_total += size;
+  }
+  if (size_total & 7) {
+    size_t zero = 0;
+    wb->write(8 - (size_total & 7), &zero);
+  }
+  xassert(pos0 >= 8);
+  jay::Buffer saved_buf(pos0 - 8, size_total);
+  cbb.add_strdata(&saved_buf);
+}
+
+
+
+void dt::Rbound_ColumnImpl::write_data_to_jay(
+    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb)
+{
+  for (Column& col : chunks_) {
+    col.materialize();
+  }
+
+  if (stype_ == dt::SType::STR32 || stype_ == dt::SType::STR64) {
+    _write_str_offsets_to_jay(cbb, wb);
+    _write_str_data_to_jay(cbb, wb);
+  } else {
+    _write_fw_to_jay(cbb, wb);
   }
 }
 
@@ -275,18 +403,15 @@ static flatbuffers::Offset<void> saveStats(
 //------------------------------------------------------------------------------
 namespace py {
 
-
-static PKArgs args_to_jay(
-  1, 0, 1, false, false, {"path", "method"}, "to_jay",
-
-R"(to_jay(self, path, method='auto')
+static const char* doc_to_jay =
+R"(to_jay(self, path=None, method='auto')
 --
 
-Save this frame to a binary file on disk, in .jay format.
+Save this frame to a binary file on disk, in `.jay` format.
 
 Parameters
 ----------
-path: str
+path: str | None
     The destination file name. Although not necessary, we recommend
     using extension ".jay" for the file. If the file exists, it will
     be overwritten.
@@ -298,7 +423,15 @@ method: 'mmap' | 'write' | 'auto'
     method is more portable across different operating systems, but
     may be slower. This parameter has no effect when `path` is
     omitted.
-)");
+
+return: None | bytes
+    If the `path` parameter is given, this method returns nothing.
+    However, if `path` was omitted, the return value is a `bytes`
+    object containing encoded frame's data.
+)";
+
+static PKArgs args_to_jay(
+  1, 0, 1, false, false, {"path", "method"}, "to_jay", doc_to_jay);
 
 
 oobj Frame::to_jay(const PKArgs& args) {
