@@ -29,7 +29,6 @@
 #include "sort.h"
 #include "stype.h"
 #include "ltype.h"
-#include <iostream>
 
 namespace dt {
 
