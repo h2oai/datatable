@@ -140,7 +140,7 @@ static oobj qcut_frame(oobj arg0, oobj arg1) {
 }
 
 static const char* doc_qcut =
-R"(qcut(cols, nquantiles=10
+R"(qcut(cols, nquantiles=10)
 --
 
 Qcut all the columns in a Frame/f-expression by binning
@@ -158,13 +158,13 @@ nquantiles: int | list of ints | tuple of ints
     the list/tuple length must be equal to the number of columns
     in `cols`.
 
-Returns
--------
-Frame/f-expression, where each column is filled with the respective bin ids.
+return: Frame | Expr
+    Frame/f-expression, where each column is filled with
+    the respective quantile ids.
 )";
 
 static PKArgs args_qcut(
-  1, 1, 0, false, false,
+  1, 0, 1, false, false,
   {
     "cols", "nquantiles"
   },

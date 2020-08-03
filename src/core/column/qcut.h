@@ -61,7 +61,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
       RowIndex ri = std::move(res.first);
       Groupby gb = std::move(res.second);
 
-      // If we only have one group fill it with a constant or NA's.
+      // If we have one group only, fill it with constants or NA's.
       if (gb.size() == 1) {
 
         if (col.get_element_isvalid(0)) {
@@ -86,27 +86,32 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
       auto data_out = static_cast<int32_t*>(col_out.get_data_editable());
       bool has_nas = false;
 
-      // For NA group, if present, quantiles also become NA.
+      // For NA group, if present, quantiles also become NA's.
       {
         size_t row;
         bool row_valid = ri.get_element(0, &row);
         xassert(row_valid); (void)row_valid;
         if (!col.get_element_isvalid(row)) {
+          has_nas = true;
           size_t j0, j1;
           gb.get_group(0, &j0, &j1);
-          for (size_t j = j0; j < j1; ++j) {
-            row_valid = ri.get_element(static_cast<size_t>(j), &row);
-            xassert(row_valid); (void)row_valid;
-            data_out[row] = GETNA<int32_t>();
-          }
-          has_nas = true;
+          xassert(j0 == 0); (void) j0;
+
+          dt::parallel_for_static(j1,
+            [&](size_t j) {
+              row_valid = ri.get_element(j, &row);
+              xassert(row_valid); (void)row_valid;
+              data_out[row] = GETNA<int32_t>();
+            }
+          );
         }
       }
 
-      // For non-NA groups set up the actual quantile information.
+      // For all the other groups set up the actual quantiles.
       constexpr double epsilon = static_cast<double>(
                                    std::numeric_limits<float>::epsilon()
                                  );
+
       // Number of groups excluding NA group, if it exists.
       size_t ngroups = gb.size() - has_nas;
       double a = nquantiles * (1 - epsilon) / (ngroups - 1);
