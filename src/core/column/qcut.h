@@ -39,49 +39,48 @@ namespace dt {
 class Qcut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    double a_, b_;
-    int32_t shift_;
-    size_t: 32;
+    int32_t nquantiles_;
+    size_t : 32;
 
   public:
-    static Column make(Column&& col, size_t icol, int32_t nquantiles) {
+    Qcut_ColumnImpl(Column&& col, int32_t nquantiles)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
+        nquantiles_(nquantiles)
+    {
       xassert(nquantiles > 0);
-
-      if (col.ltype() != dt::LType::BOOL && col.ltype() != dt::LType::INT &&
-          col.ltype() != dt::LType::REAL && col.ltype() != dt::LType::STRING)
-      {
-        throw TypeError() << "qcut() can only be applied to numeric and string "
-          << "columns, instead column `" << icol << "` has an stype: `"
-          << col.stype() << "`";
-      }
+      xassert(col.ltype() == dt::LType::BOOL || col.ltype() == dt::LType::INT ||
+              col.ltype() == dt::LType::REAL || col.ltype() == dt::LType::STRING);
+      col_ = std::move(col);
+    }
 
 
-      auto res = group({col}, {SortFlag::NONE});
+    void materialize(Column& col_out, bool) override {
+      auto res = group({col_}, {SortFlag::NONE});
       RowIndex ri = std::move(res.first);
       Groupby gb = std::move(res.second);
 
       // If we have one group only, fill it with constants or NA's.
       if (gb.size() == 1) {
+        if (col_.get_element_isvalid(0)) {
 
-        if (col.get_element_isvalid(0)) {
-
-          return Const_ColumnImpl::make_int_column(
-                   col.nrows(),
-                   (nquantiles - 1) / 2,
-                   SType::INT32
-                  );
+          col_out = Column(Const_ColumnImpl::make_int_column(
+                      col_.nrows(),
+                      (nquantiles_ - 1) / 2,
+                      SType::INT32
+                    ));
 
         } else {
 
-          return Column(new ConstNa_ColumnImpl(
-                   col.nrows(),
-                   SType::INT32
-                 ));
+          col_out = Column(new ConstNa_ColumnImpl(
+                      col_.nrows(),
+                      SType::INT32
+                    ));
 
         }
+        return;
       }
 
-      auto col_out = Column::new_data_column(col.nrows(), SType::INT32);;
+      col_out = Column::new_data_column(col_.nrows(), SType::INT32);;
       auto data_out = static_cast<int32_t*>(col_out.get_data_editable());
       bool has_nas = false;
 
@@ -90,7 +89,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         size_t row;
         bool row_valid = ri.get_element(0, &row);
         xassert(row_valid); (void)row_valid;
-        if (!col.get_element_isvalid(row)) {
+        if (!col_.get_element_isvalid(row)) {
           has_nas = true;
           size_t j0, j1;
           gb.get_group(0, &j0, &j1);
@@ -113,7 +112,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 
       // Number of groups excluding NA group, if it exists.
       size_t ngroups = gb.size() - has_nas;
-      double a = nquantiles * (1 - epsilon) / (ngroups - 1);
+      double a = nquantiles_ * (1 - epsilon) / (ngroups - 1);
 
       dt::parallel_for_dynamic(ngroups,
         [&](size_t i) {
@@ -127,41 +126,22 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
             data_out[row] = static_cast<int32_t>(a * i);
           }
       });
-
-      return col_out;
     }
+
 
     ColumnImpl* clone() const override {
-      return new Qcut_ColumnImpl(Column(col_), a_, b_, shift_);
+      return new Qcut_ColumnImpl(Column(col_), nquantiles_);
     }
+
 
     size_t n_children() const noexcept override {
       return 1;
     }
 
+
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;
-    }
-
-
-    bool get_element(size_t i, int32_t* out)  const override {
-      double value;
-      bool is_valid = col_.get_element(i, &value);
-      *out = static_cast<int32_t>(a_ * value + b_) + shift_;
-      return is_valid;
-    }
-
-
-  private:
-    Qcut_ColumnImpl(Column&& col, double a, double b, int32_t shift)
-      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        a_(a),
-        b_(b),
-        shift_(shift)
-    {
-      xassert(col.stype() == dt::SType::FLOAT64);
-      col_ = std::move(col);
     }
 
 };

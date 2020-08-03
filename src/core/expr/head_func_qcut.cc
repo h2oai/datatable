@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "_dt.h"
+#include "column/latent.h"
 #include "column/sentinel_fw.h"
 #include "column/qcut.h"
 #include "datatablemodule.h"
@@ -104,9 +105,18 @@ Workframe Head_Func_Qcut::evaluate_n(
   if (wf.nrows()) {
     for (size_t i = 0; i < ncols; ++i) {
       Column coli = wf.retrieve_column(i);
-      coli = Qcut_ColumnImpl::make(
-               std::move(coli), i, nquantiles[i]
-             );
+
+      if (coli.ltype() != dt::LType::BOOL && coli.ltype() != dt::LType::INT &&
+          coli.ltype() != dt::LType::REAL && coli.ltype() != dt::LType::STRING)
+      {
+        throw TypeError() << "qcut() can only be applied to numeric and string "
+          << "columns, instead column `" << i << "` has an stype: `"
+          << coli.stype() << "`";
+      }
+
+      coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
+               std::move(coli), nquantiles[i]
+             )));
 
       wf.replace_column(i, std::move(coli));
     }
