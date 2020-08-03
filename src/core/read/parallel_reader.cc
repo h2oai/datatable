@@ -203,7 +203,16 @@ void ParallelReader::read_all()
 
       void order(size_t i) override {
         tctx->set_row0();
-        rdr->order_chunk(tacc, txcc, tctx.get());
+
+        // Re-read the chunk if its start was determined incorrectly
+        auto prev_end = rdr->end_of_last_chunk;
+        if (!(tacc.get_start() == prev_end && tacc.get_end() >= prev_end)) {
+          txcc.set_start_exact(prev_end);
+          tctx->read_chunk(txcc, tacc);  // updates `tacc`
+          xassert(tacc.get_start() == prev_end &&
+                  tacc.get_end() >= prev_end);
+        }
+        rdr->end_of_last_chunk = tacc.get_end();
 
         size_t chunk_nrows = tctx->get_nrows();
         size_t new_nrows = tctx->ensure_output_nrows(chunk_nrows, i, this);
@@ -233,41 +242,6 @@ void ParallelReader::read_all()
 }
 
 
-
-
-/**
- * Ensure that the chunks were placed properly.
- *
- * This method must be called from the #ordered section. It takes three
- * arguments:
- *   - `acc` the *actual* coordinates of the chunk just read;
- *   - `xcc` the coordinates that were *expected*; and
- *   - `ctx` the thread-local parse context.
- *
- * If the chunk was ordered properly (i.e. started reading from the place
- * where the previous chunk ended), then this method updates the internal
- * `end_of_last_chunk` variable and returns.
- *
- * Otherwise, it re-parses the chunk with correct coordinates. When doing
- * so, it will set `xcc.start_exact` to true, thus informing the chunk
- * parser that the coordinates that it received are true.
- */
-void ParallelReader::order_chunk(
-    ChunkCoordinates& acc, ChunkCoordinates& xcc, ThreadContext* ctx)
-{
-  for (int i = 0; i < 2; ++i) {
-    if (acc.get_start() == end_of_last_chunk &&
-        acc.get_end() >= end_of_last_chunk)
-    {
-      end_of_last_chunk = acc.get_end();
-      return;
-    }
-    xassert(i == 0);
-    xcc.set_start_exact(end_of_last_chunk);
-
-    ctx->read_chunk(xcc, acc);  // updates `acc`
-  }
-}
 
 
 
