@@ -85,11 +85,8 @@ class PreFrame
     const char* print_ptypes() const;
 
     size_t n_columns_in_output() const;
-    size_t n_columns_in_buffer() const;
-    size_t n_columns_to_reread() const;
     size_t total_allocsize() const;
 
-    void prepare_for_rereading();
     std::unique_ptr<DataTable> to_datatable() &&;
 
   private:

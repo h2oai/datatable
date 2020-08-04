@@ -133,7 +133,6 @@ void InputColumn::set_rtype(int64_t it) {
     case RStr32:   parse_type_ = PT::Str32; break;
     case RStr64:   parse_type_ = PT::Str64; break;
   }
-  // outcol_.set_stype(get_stype());
 }
 
 const char* InputColumn::typeName() const {
@@ -227,54 +226,6 @@ size_t InputColumn::archived_size() const {
   }
   return sz;
 }
-
-
-void InputColumn::prepare_for_rereading() {
-  throw RuntimeError() << "prepare_for_rereading()";
-  // if (type_bumped_ && present_in_output_) {
-  //   present_in_buffer_ = true;
-  //   type_bumped_ = false;
-  //   outcol_.chunks_.clear();
-  //   outcol_.nrows_in_chunks_ = 0;
-  //   outcol_.strbuf_ = nullptr;
-  //   outcol_.type_bumped_ = false;
-  //   outcol_.present_in_buffer_ = true;
-  //   outcol_.colinfo_.na_count = 0;
-  // }
-  // else {
-  //   present_in_buffer_ = false;
-  //   outcol_.present_in_buffer_ = false;
-  // }
-}
-
-
-
-//---- ptype_iterator ----------------------------------------------------------
-
-// InputColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
-//   : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
-
-// PT InputColumn::ptype_iterator::operator*() const {
-//   return curr_ptype;
-// }
-
-// RT InputColumn::ptype_iterator::get_rtype() const {
-//   return rtype;
-// }
-
-// InputColumn::ptype_iterator& InputColumn::ptype_iterator::operator++() {
-//   if (curr_ptype < PT::Str32) {
-//     curr_ptype = static_cast<PT>(curr_ptype + 1);
-//   } else {
-//     *pqr = *pqr + 1;
-//   }
-//   return *this;
-// }
-
-// bool InputColumn::ptype_iterator::has_incremented() const {
-//   return curr_ptype != orig_ptype;
-// }
-
 
 
 

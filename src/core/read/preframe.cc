@@ -332,19 +332,6 @@ size_t PreFrame::n_columns_in_output() const {
   return n;
 }
 
-size_t PreFrame::n_columns_in_buffer() const {
-  size_t n = 0;
-  for (const auto& col : columns_) {
-    n += col.is_in_buffer();
-  }
-  return n;
-}
-
-size_t PreFrame::n_columns_to_reread() const {
-  return 0;
-}
-
-
 size_t PreFrame::total_allocsize() const {
   size_t allocsize = sizeof(*this);
   for (const auto& col : columns_) {
@@ -359,16 +346,6 @@ size_t PreFrame::total_allocsize() const {
 //------------------------------------------------------------------------------
 // Finalizing
 //------------------------------------------------------------------------------
-
-void PreFrame::prepare_for_rereading() {
-  for (auto& col : columns_) {
-    col.outcol().archive_data(nrows_written_, tempfile_);
-    col.prepare_for_rereading();
-  }
-  nrows_written_ = 0;
-  nrows_allocated_ = 0;
-}
-
 
 dtptr PreFrame::to_datatable() && {
   std::vector<::Column> ccols;

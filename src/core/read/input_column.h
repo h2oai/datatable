@@ -101,7 +101,6 @@ class InputColumn
     py::oobj py_descriptor() const;
     size_t memory_footprint() const;
     size_t archived_size() const;
-    void prepare_for_rereading();
 };
 
 
