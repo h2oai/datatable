@@ -57,19 +57,14 @@ class InputColumn
     std::string name_;
     PT parse_type_;
     RT requested_type_;
-
-    // [Deprecated]
-    // bool type_bumped_;
-    bool present_in_output_;
-    // bool present_in_buffer_;
-    size_t : 40;
+    size_t : 48;
 
     // TODO: make OutputColumn completely separate from InputColumn
     OutputColumn outcol_;
 
   public:
     InputColumn();
-    InputColumn(InputColumn&&) noexcept;
+    InputColumn(InputColumn&&) noexcept = default;
     InputColumn(const InputColumn&) = delete;
 
     // Column's data
@@ -87,13 +82,11 @@ class InputColumn
     SType get_stype() const;
     void set_rtype(int64_t it);
     void set_ptype(PT new_ptype);
-    void force_ptype(PT new_ptype);
     const char* typeName() const;
 
     // Column info
     bool is_string() const;
     bool is_dropped() const noexcept;
-    bool is_in_output() const noexcept;
     size_t elemsize() const;
 
     // Misc

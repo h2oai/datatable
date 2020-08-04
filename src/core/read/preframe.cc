@@ -282,14 +282,14 @@ void PreFrame::set_ptypes(const std::vector<PT>& types) {
   xassert(types.size() == columns_.size());
   size_t i = 0;
   for (auto& col : columns_) {
-    col.force_ptype(types[i++]);
+    col.set_ptype(types[i++]);
     col.outcol().set_stype(col.get_stype());
   }
 }
 
 void PreFrame::reset_ptypes() {
   for (auto& col : columns_) {
-    col.force_ptype(PT::Mu);
+    col.set_ptype(PT::Mu);
     col.outcol().set_stype(col.get_stype());
   }
 }
@@ -327,7 +327,7 @@ const char* PreFrame::print_ptypes() const {
 size_t PreFrame::n_columns_in_output() const {
   size_t n = 0;
   for (const auto& col : columns_) {
-    n += col.is_in_output();
+    n += !col.is_dropped();
   }
   return n;
 }
@@ -359,7 +359,7 @@ dtptr PreFrame::to_datatable() && {
     tempfile_ = nullptr;
   }
   for (auto& col : columns_) {
-    if (!col.is_in_output()) continue;
+    if (col.is_dropped()) continue;
     auto& outcol = col.outcol();
     col.outcol().archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());

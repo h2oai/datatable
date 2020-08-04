@@ -38,20 +38,7 @@ namespace read {
 
 InputColumn::InputColumn()
   : parse_type_(PT::Mu),
-    requested_type_(RT::RAuto),
-    // type_bumped_(false),
-    present_in_output_(true)
-    // present_in_buffer_(true)
-    {}
-
-InputColumn::InputColumn(InputColumn&& o) noexcept
-  : name_(std::move(o.name_)),
-    parse_type_(o.parse_type_),
-    requested_type_(o.requested_type_),
-    // type_bumped_(o.type_bumped_),
-    present_in_output_(o.present_in_output_),
-    // present_in_buffer_(o.present_in_buffer_),
-    outcol_(std::move(o.outcol_)) {}
+    requested_type_(RT::RAuto) {}
 
 
 OutputColumn& InputColumn::outcol() {
@@ -99,27 +86,15 @@ SType InputColumn::get_stype() const {
 
 
 void InputColumn::set_ptype(PT new_ptype) {
-  // type_bumped_ = true;
   parse_type_ = new_ptype;
-  // outcol_.type_bumped_ = true;
-  // outcol_.set_stype(get_stype());
 }
 
-// Set .parse_type_ to the provided value, disregarding the restrictions imposed
-// by the .requested_type_ field.
-void InputColumn::force_ptype(PT new_ptype) {
-  parse_type_ = new_ptype;
-  // outcol_.set_stype(get_stype());
-}
 
 void InputColumn::set_rtype(int64_t it) {
   requested_type_ = static_cast<RT>(it);
   // Temporary
   switch (requested_type_) {
-    case RDrop:
-      parse_type_ = PT::Str32;
-      present_in_output_ = false;
-      break;
+    case RDrop:    parse_type_ = PT::Str32; break;
     case RAuto:    break;
     case RBool:    parse_type_ = PT::Bool01; break;
     case RInt:     parse_type_ = PT::Int32; break;
@@ -148,10 +123,6 @@ bool InputColumn::is_string() const {
 
 bool InputColumn::is_dropped() const noexcept {
   return requested_type_ == RT::RDrop;
-}
-
-bool InputColumn::is_in_output() const noexcept {
-  return present_in_output_;
 }
 
 size_t InputColumn::elemsize() const {

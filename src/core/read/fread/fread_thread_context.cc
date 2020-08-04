@@ -271,7 +271,7 @@ bool FreadThreadContext::handle_typebumps(OrderedTask* otask) {
       if (ptype != global_types_[i]) {
         global_types_[i] = ptype;
         auto& inpcol = preframe_.column(i);
-        inpcol.force_ptype(ptype);
+        inpcol.set_ptype(ptype);
 
         auto& outcol = preframe_.column(i).outcol();
         outcol.set_stype(inpcol.get_stype(), row0_, tempfile);
