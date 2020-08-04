@@ -94,7 +94,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
                                    std::numeric_limits<float>::epsilon()
                                  );
 
-      // Check if we have NA group.
+      // Check if there is an NA group.
       bool has_na_group;
       {
         size_t row;
@@ -103,16 +103,16 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         has_na_group = !col_.get_element_isvalid(row);
       }
 
-      // Set up number of valid groups and the quantile multiplicator.
-      size_t nvgroups = gb.size() - has_na_group;
-      double a = nquantiles_ * (1 - epsilon) / (nvgroups - 1);
+      // Set up number of valid groups and the quantile coefficient.
+      size_t ngroups = gb.size() - has_na_group;
+      double a = nquantiles_ * (1 - epsilon) / (ngroups - 1);
 
       // Set up the actual quantiles.
       dt::parallel_for_dynamic(gb.size(),
         [&](size_t i) {
-          size_t j0, j1;
           bool is_na_group = (i == 0 && has_na_group);
-          auto v = is_na_group? GETNA<int32_t>()
+          size_t j0, j1;
+          auto q = is_na_group? GETNA<int32_t>()
                               : static_cast<int32_t>(a * (i - has_na_group));
 
           gb.get_group(i, &j0, &j1);
@@ -121,7 +121,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
             size_t row;
             bool row_valid = ri.get_element(j, &row);
             xassert(row_valid); (void) row_valid;
-            data_out_[row] = v;
+            data_out_[row] = q;
           }
       });
 

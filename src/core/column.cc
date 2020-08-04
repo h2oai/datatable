@@ -310,7 +310,7 @@ bool Column::get_element_isvalid(size_t i) const {
       return get_element(i, &x);
     }
     default:
-      throw NotImplError() << "Unable to check validity of elements "
+      throw NotImplError() << "Unable to check validity of the element "
                            << "for stype: `" << stype() << "`";
   }
 }
