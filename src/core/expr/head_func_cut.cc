@@ -100,14 +100,12 @@ Workframe Head_Func_Cut::evaluate_n(
   }
 
   // Cut workframe in-place
-  if (wf.nrows()) {
-    for (size_t i = 0; i < ncols; ++i) {
-      Column coli = wf.retrieve_column(i);
-      coli = Column(Cut_ColumnImpl::make(
-               std::move(coli), i, nbins[i], right_closed_
-             ));
-      wf.replace_column(i, std::move(coli));
-    }
+  for (size_t i = 0; i < ncols; ++i) {
+    Column coli = wf.retrieve_column(i);
+    coli = Column(Cut_ColumnImpl::make(
+             std::move(coli), i, nbins[i], right_closed_
+           ));
+    wf.replace_column(i, std::move(coli));
   }
 
   return wf;

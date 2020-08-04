@@ -46,6 +46,14 @@ def test_qcut_error_wrong_column_types():
         qcut(DT)
 
 
+def test_qcut_error_wrong_column_type_zero_rows():
+    DT = dt.Frame(obj = [] / dt.obj64)
+    msg = r"qcut\(\) can only be applied to numeric and string columns, instead column 0 " \
+          "has an stype: obj64"
+    with pytest.raises(TypeError, match=msg):
+        qcut(DT)
+
+
 def test_qcut_error_float_nquantiles():
     msg = "Expected an integer, instead got <class 'float'>"
     DT = dt.Frame(range(10))
@@ -97,7 +105,7 @@ def test_qcut_empty_frame():
 def test_qcut_zerorow_frame():
     DT = dt.Frame([[], []])
     DT_qcut = qcut(DT)
-    assert_equals(DT_qcut, DT)
+    assert_equals(DT_qcut, dt.Frame([[] / dt.int32, [] / dt.int32]))
 
 
 def test_qcut_trivial():
@@ -108,7 +116,7 @@ def test_qcut_trivial():
 
 def test_qcut_expr():
     DT = dt.Frame([range(0, 30, 3), range(0, 20, 2)])
-    DT_qcut = DT[:, qcut(qcut(f[0] - f[1]))]
+    DT_qcut = DT[:, qcut(f[0] - f[1])]
     assert_equals(dt.Frame(range(10)), DT_qcut)
 
 

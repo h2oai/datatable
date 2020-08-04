@@ -101,25 +101,22 @@ Workframe Head_Func_Qcut::evaluate_n(
   }
 
   // Qcut workframe in-place
+  for (size_t i = 0; i < ncols; ++i) {
+    Column coli = wf.retrieve_column(i);
 
-  if (wf.nrows()) {
-    for (size_t i = 0; i < ncols; ++i) {
-      Column coli = wf.retrieve_column(i);
-
-      if (coli.ltype() != dt::LType::BOOL && coli.ltype() != dt::LType::INT &&
-          coli.ltype() != dt::LType::REAL && coli.ltype() != dt::LType::STRING)
-      {
-        throw TypeError() << "qcut() can only be applied to numeric and string "
-          << "columns, instead column `" << i << "` has an stype: `"
-          << coli.stype() << "`";
-      }
-
-      coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
-               std::move(coli), nquantiles[i]
-             )));
-
-      wf.replace_column(i, std::move(coli));
+    if (coli.ltype() != dt::LType::BOOL && coli.ltype() != dt::LType::INT &&
+        coli.ltype() != dt::LType::REAL && coli.ltype() != dt::LType::STRING)
+    {
+      throw TypeError() << "qcut() can only be applied to numeric and string "
+        << "columns, instead column `" << i << "` has an stype: `"
+        << coli.stype() << "`";
     }
+
+    coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
+             std::move(coli), nquantiles[i]
+           )));
+
+    wf.replace_column(i, std::move(coli));
   }
 
   return wf;
