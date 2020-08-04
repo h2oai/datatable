@@ -40,7 +40,7 @@ def test_qcut_error_noargs():
 
 def test_qcut_error_wrong_column_types():
     DT = dt.Frame([[0], [dt]])
-    msg = r"qcut\(\) can only be applied to numeric and string columns, instead " \
+    msg = r"qcut\(\) can only be applied to numeric columns, instead " \
           "column 1 has an stype: obj64"
     with pytest.raises(TypeError, match=msg):
         qcut(DT)
@@ -48,7 +48,7 @@ def test_qcut_error_wrong_column_types():
 
 def test_qcut_error_wrong_column_type_zero_rows():
     DT = dt.Frame(obj = [] / dt.obj64)
-    msg = r"qcut\(\) can only be applied to numeric and string columns, instead column 0 " \
+    msg = r"qcut\(\) can only be applied to numeric columns, instead column 0 " \
           "has an stype: obj64"
     with pytest.raises(TypeError, match=msg):
         qcut(DT)
@@ -128,9 +128,9 @@ def test_qcut_one_row():
 
 
 def test_qcut_small():
-    nquantiles = [4, 2, 5, 4, 10, 3, 2, 5, 10]
+    nquantiles = [4, 2, 5, 4, 10, 3, 2, 5]
     colnames = ["bool", "int_pos", "int_neg", "int", "float",
-                "inf_max", "inf_min", "inf", "str"]
+                "inf_max", "inf_min", "inf"]
 
     DT = dt.Frame(
            [[True, None, False, False, True, None],
@@ -140,8 +140,7 @@ def test_qcut_small():
            [None, 1.4, 4.1, 1.5, 5.9, 1.4],
            [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
            [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
-           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4],
-           ["blue", None, "red", None, "green", "blue"]],
+           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
            names = colnames
          )
     DT_ref = dt.Frame(
@@ -152,8 +151,7 @@ def test_qcut_small():
                      [None, 0, 6, 3, 9, 0],
                      [2, 0, 1, 0, 2, 0],
                      [0, 0, 1, 0, 1, 0],
-                     [0, 1, 2, 4, 3, 1],
-                     [0, None, 9, None, 4, 0]],
+                     [0, 1, 2, 4, 3, 1]],
                      names = colnames,
                      stypes = [stype.int32] * DT.ncols
                    )
