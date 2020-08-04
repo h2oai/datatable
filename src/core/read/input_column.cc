@@ -39,17 +39,18 @@ namespace read {
 InputColumn::InputColumn()
   : parse_type_(PT::Mu),
     requested_type_(RT::RAuto),
-    type_bumped_(false),
-    present_in_output_(true),
-    present_in_buffer_(true) {}
+    // type_bumped_(false),
+    present_in_output_(true)
+    // present_in_buffer_(true)
+    {}
 
 InputColumn::InputColumn(InputColumn&& o) noexcept
   : name_(std::move(o.name_)),
     parse_type_(o.parse_type_),
     requested_type_(o.requested_type_),
-    type_bumped_(o.type_bumped_),
+    // type_bumped_(o.type_bumped_),
     present_in_output_(o.present_in_output_),
-    present_in_buffer_(o.present_in_buffer_),
+    // present_in_buffer_(o.present_in_buffer_),
     outcol_(std::move(o.outcol_)) {}
 
 
@@ -97,9 +98,6 @@ SType InputColumn::get_stype() const {
   return ParserLibrary::info(parse_type_).stype;
 }
 
-PtypeIterator InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
-  return PtypeIterator(parse_type_, requested_type_, qr_ptr);
-}
 
 void InputColumn::set_ptype(PT new_ptype) {
   // type_bumped_ = true;
@@ -154,26 +152,19 @@ bool InputColumn::is_dropped() const noexcept {
   return requested_type_ == RT::RDrop;
 }
 
-bool InputColumn::is_type_bumped() const noexcept {
-  return type_bumped_;
-}
-
 bool InputColumn::is_in_output() const noexcept {
   return present_in_output_;
 }
 
 bool InputColumn::is_in_buffer() const noexcept {
-  return present_in_buffer_;
+  // return present_in_buffer_;
+  return true;
 }
 
 size_t InputColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
 }
 
-void InputColumn::reset_type_bumped() {
-  type_bumped_ = false;
-  outcol_.type_bumped_ = false;
-}
 
 
 
@@ -239,20 +230,21 @@ size_t InputColumn::archived_size() const {
 
 
 void InputColumn::prepare_for_rereading() {
-  if (type_bumped_ && present_in_output_) {
-    present_in_buffer_ = true;
-    type_bumped_ = false;
-    outcol_.chunks_.clear();
-    outcol_.nrows_in_chunks_ = 0;
-    outcol_.strbuf_ = nullptr;
-    outcol_.type_bumped_ = false;
-    outcol_.present_in_buffer_ = true;
-    outcol_.colinfo_.na_count = 0;
-  }
-  else {
-    present_in_buffer_ = false;
-    outcol_.present_in_buffer_ = false;
-  }
+  throw RuntimeError() << "prepare_for_rereading()";
+  // if (type_bumped_ && present_in_output_) {
+  //   present_in_buffer_ = true;
+  //   type_bumped_ = false;
+  //   outcol_.chunks_.clear();
+  //   outcol_.nrows_in_chunks_ = 0;
+  //   outcol_.strbuf_ = nullptr;
+  //   outcol_.type_bumped_ = false;
+  //   outcol_.present_in_buffer_ = true;
+  //   outcol_.colinfo_.na_count = 0;
+  // }
+  // else {
+  //   present_in_buffer_ = false;
+  //   outcol_.present_in_buffer_ = false;
+  // }
 }
 
 

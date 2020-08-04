@@ -495,7 +495,8 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    auto ptype_iter = col.get_ptype_iterator(&fctx.quoteRule);
+    auto ptype_iter = dt::read::PtypeIterator(
+                          col.get_ptype(), col.get_rtype(), &fctx.quoteRule);
     while (true) {
       // Try to parse using the regular field parser
       tch = fieldStart;

@@ -59,28 +59,13 @@ class InputColumn
     RT requested_type_;
 
     // [Deprecated]
-    bool type_bumped_;
+    // bool type_bumped_;
     bool present_in_output_;
-    bool present_in_buffer_;
-    int : 24;
+    // bool present_in_buffer_;
+    size_t : 40;
 
     // TODO: make OutputColumn completely separate from InputColumn
     OutputColumn outcol_;
-
-    // class ptype_iterator {
-    //   private:
-    //     int8_t* pqr;
-    //     RT rtype;
-    //     PT orig_ptype;
-    //     PT curr_ptype;
-    //     int64_t : 40;
-    //   public:
-    //     ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
-    //     PT operator*() const;
-    //     ptype_iterator& operator++();
-    //     bool has_incremented() const;
-    //     RT get_rtype() const;
-    // };
 
   public:
     InputColumn();
@@ -100,7 +85,6 @@ class InputColumn
     PT get_ptype() const noexcept;
     RT get_rtype() const noexcept;
     SType get_stype() const;
-    PtypeIterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
     void set_ptype(PT new_ptype);
     void force_ptype(PT new_ptype);
@@ -109,11 +93,9 @@ class InputColumn
     // Column info
     bool is_string() const;
     bool is_dropped() const noexcept;
-    bool is_type_bumped() const noexcept;
     bool is_in_output() const noexcept;
     bool is_in_buffer() const noexcept;
     size_t elemsize() const;
-    void reset_type_bumped();
 
     // Misc
     py::oobj py_descriptor() const;

@@ -341,11 +341,7 @@ size_t PreFrame::n_columns_in_buffer() const {
 }
 
 size_t PreFrame::n_columns_to_reread() const {
-  size_t n = 0;
-  for (const auto& col : columns_) {
-    n += col.is_type_bumped();
-  }
-  return n;
+  return 0;
 }
 
 

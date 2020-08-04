@@ -90,7 +90,6 @@ void ThreadContext::preorder() {
   size_t j = 0;
   for (const auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (col.is_type_bumped()) { j++; continue; }
 
     switch (col.get_stype()) {
       case SType::BOOL:    preorder_bool_column(j); break;
@@ -236,7 +235,6 @@ void ThreadContext::order() {
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (col.is_type_bumped()) { j++; continue; }
 
     auto& outcol = col.outcol();
     outcol.merge_chunk_stats(colinfo_[j]);
@@ -264,7 +262,6 @@ void ThreadContext::postorder() {
   size_t j = 0;
   for (auto& col : preframe_) {
     if (!col.is_in_buffer()) continue;
-    if (col.is_type_bumped()) { j++; continue; }
 
     auto& outcol = col.outcol();
     switch (col.get_stype()) {

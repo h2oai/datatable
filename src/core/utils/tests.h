@@ -222,15 +222,15 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 
 #define ASSERT_TRUE(s)                                                         \
-    dt::tests::assert_bool<true>(s, ___STRINGIFY(s), __FILE__, __LINE__);
+    dt::tests::assert_bool<true>(s, ___STRINGIFY(s), __FILE__, __LINE__)
 
 
 #define ASSERT_FALSE(s)                                                        \
-    dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__);
+    dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__)
 
 
 #define ASSERT_THROWS(...)                                                     \
-    dt::tests::assert_throws(__VA_ARGS__, __FILE__, __LINE__);
+    dt::tests::assert_throws(__VA_ARGS__, __FILE__, __LINE__)
 
 
 

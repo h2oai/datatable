@@ -36,7 +36,7 @@ OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
     nrows_allocated_(0),
     stype_(SType::BOOL),
-    type_bumped_(false),
+    // type_bumped_(false),
     present_in_buffer_(true)
 {
   reset_colinfo();
@@ -51,7 +51,7 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
     nrows_allocated_(o.nrows_allocated_),
     colinfo_(o.colinfo_),
     stype_(o.stype_),
-    type_bumped_(o.type_bumped_),
+    // type_bumped_(o.type_bumped_),
     present_in_buffer_(o.present_in_buffer_) {}
 
 
@@ -74,7 +74,8 @@ void OutputColumn::archive_data(size_t nrows_written,
 {
   // std::cout << this << ".archive_data(" << nrows_written << ")\n";
   if (nrows_written == nrows_in_chunks_ ||
-      type_bumped_ || !present_in_buffer_) {
+      // type_bumped_ ||
+      !present_in_buffer_) {
     databuf_ = Buffer();
     strbuf_ = nullptr;
     nrows_allocated_ = nrows_written;
@@ -159,7 +160,7 @@ void OutputColumn::archive_data(size_t nrows_written,
 
 void OutputColumn::allocate(size_t new_nrows) {
   // std::cout << this << ".allocate(" << new_nrows << ")\n";
-  if (type_bumped_ || !present_in_buffer_) return;
+  if (!present_in_buffer_) return;
   xassert(new_nrows >= nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);

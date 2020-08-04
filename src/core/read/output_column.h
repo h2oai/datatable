@@ -51,9 +51,9 @@ class OutputColumn
     ColInfo colinfo_;
     SType stype_;
 
-    bool type_bumped_;        // tmp
+    // bool type_bumped_;        // tmp
     bool present_in_buffer_;  // tmp
-    size_t : 40;
+    size_t : 48;
 
   public:
     OutputColumn();
