@@ -54,7 +54,6 @@ InputColumn::InputColumn(InputColumn&& o) noexcept
     outcol_(std::move(o.outcol_)) {}
 
 
-
 OutputColumn& InputColumn::outcol() {
   return outcol_;
 }
@@ -153,11 +152,6 @@ bool InputColumn::is_dropped() const noexcept {
 
 bool InputColumn::is_in_output() const noexcept {
   return present_in_output_;
-}
-
-bool InputColumn::is_in_buffer() const noexcept {
-  // return present_in_buffer_;
-  return true;
 }
 
 size_t InputColumn::elemsize() const {

@@ -94,7 +94,7 @@ void FreadThreadContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](parse_ctx_);
         if (tch >= parse_ctx_.eof || *tch != sep) break;
-        parse_ctx_.target += preframe_.column(j).is_in_buffer();
+        parse_ctx_.target ++;
         tch++;
         j++;
       }
@@ -106,7 +106,7 @@ void FreadThreadContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (parse_ctx_.skip_eol() && j < ncols) {
-        parse_ctx_.target += preframe_.column(j).is_in_buffer();
+        parse_ctx_.target ++;
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -187,15 +187,14 @@ void FreadThreadContext::read_chunk(
           }
           types[j] = *ptype_iter;
         }
-        parse_ctx_.target += colj.is_in_buffer();
+        parse_ctx_.target ++;
         j++;
         if (tch < parse_ctx_.eof && *tch==sep) { tch++; continue; }
         if (fill && (tch == parse_ctx_.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (colj.is_string() && colj.is_in_buffer() &&
-              parse_ctx_.target[-1].str32.length == 0) {
+          if (colj.is_string() && parse_ctx_.target[-1].str32.length == 0) {
             parse_ctx_.target[-1].str32.setna();
           }
           continue;

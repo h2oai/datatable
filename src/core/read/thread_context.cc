@@ -89,8 +89,6 @@ void ThreadContext::preorder() {
   if (!used_nrows) return;
   size_t j = 0;
   for (const auto& col : preframe_) {
-    if (!col.is_in_buffer()) continue;
-
     switch (col.get_stype()) {
       case SType::BOOL:    preorder_bool_column(j); break;
       case SType::INT32:   preorder_int32_column(j); break;
@@ -234,8 +232,6 @@ void ThreadContext::order() {
   if (!used_nrows) return;
   size_t j = 0;
   for (auto& col : preframe_) {
-    if (!col.is_in_buffer()) continue;
-
     auto& outcol = col.outcol();
     outcol.merge_chunk_stats(colinfo_[j]);
     if (col.is_string()) {
@@ -261,8 +257,6 @@ void ThreadContext::postorder() {
 
   size_t j = 0;
   for (auto& col : preframe_) {
-    if (!col.is_in_buffer()) continue;
-
     auto& outcol = col.outcol();
     switch (col.get_stype()) {
       case SType::BOOL:    postorder_bool_column(outcol, j); break;

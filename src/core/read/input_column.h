@@ -94,7 +94,6 @@ class InputColumn
     bool is_string() const;
     bool is_dropped() const noexcept;
     bool is_in_output() const noexcept;
-    bool is_in_buffer() const noexcept;
     size_t elemsize() const;
 
     // Misc
