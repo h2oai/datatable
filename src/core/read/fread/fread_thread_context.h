@@ -60,6 +60,7 @@ class FreadThreadContext : public ThreadContext
 
     void read_chunk(const ChunkCoordinates&, ChunkCoordinates&) override;
     void postorder() override;
+    bool handle_typebumps(OrderedTask*) override;
 
     ParseContext& get_tokenizer() { return parse_ctx_; }
 };

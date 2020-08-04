@@ -85,6 +85,7 @@ class ThreadContext    // TODO: rename
     virtual void preorder();
     virtual void order();
     virtual void postorder();
+    virtual bool handle_typebumps(OrderedTask*) { return false; }
 
     size_t get_nrows() const;
     void set_nrows(size_t n);

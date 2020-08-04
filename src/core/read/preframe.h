@@ -67,6 +67,7 @@ class PreFrame
     void preallocate(size_t nrows);
     size_t ensure_output_nrows(size_t nrows_in_chunk, size_t ichunk, dt::OrderedTask*);
     void archive_column_chunks(size_t expected_nrows);
+    std::shared_ptr<TemporaryFile>& get_tempfile();
 
     // Column iterator / access
     const_iterator begin() const;

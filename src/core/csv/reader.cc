@@ -899,6 +899,7 @@ void GenericReader::report_columns_to_python() {
         auto& coli = preframe.column(i);
         py::robj elem = newTypesList[i];
         coli.set_rtype(elem.to_int64());
+        coli.outcol().set_stype(coli.get_stype());
         if (newNamesList && coli.get_rtype() != RT::RDrop) {
           XAssert(j < newNamesList.size());
           elem = newNamesList[j++];

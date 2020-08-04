@@ -188,12 +188,21 @@ class OrderedTask : public ThreadTask {
     //     "start" or "finish" stages;
     //   - executes the payload function `f()`;
     //   - resumes the multithreaded execution, making sure that all
-    //     iterations after the current will be re-"start"-ed
+    //     iterations beginning with the current will be re"start"ed.
+    //     More specifically, the current iteration that was
+    //     executing an ordered section, will not finish. Instead,
+    //     this iteration will start again from the "start" step, then
+    //     execute "ordered" again, and only after that it will
+    //     "finish".
     //
     // Thus, this method creates a region of execution which behaves
     // as-if the ordered loop was cancelled, then f() executed in a
     // single-threaded environment, then the ordered loop restarted
-    // from the same iteration where it left off.
+    // from the same iteration where it broke off.
+    //
+    // The programmer must take care not to create an infinite loop
+    // by repeatedly calling `super_ordered` on each execution of
+    // the same task.
     //
     void super_ordered(std::function<void()> f);
 

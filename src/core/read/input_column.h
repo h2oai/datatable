@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_INPUT_COLUMN_h
 #define dt_READ_INPUT_COLUMN_h
+#include "csv/reader_parsers.h"
 #include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj
@@ -66,20 +67,20 @@ class InputColumn
     // TODO: make OutputColumn completely separate from InputColumn
     OutputColumn outcol_;
 
-    class ptype_iterator {
-      private:
-        int8_t* pqr;
-        RT rtype;
-        PT orig_ptype;
-        PT curr_ptype;
-        int64_t : 40;
-      public:
-        ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
-        PT operator*() const;
-        ptype_iterator& operator++();
-        bool has_incremented() const;
-        RT get_rtype() const;
-    };
+    // class ptype_iterator {
+    //   private:
+    //     int8_t* pqr;
+    //     RT rtype;
+    //     PT orig_ptype;
+    //     PT curr_ptype;
+    //     int64_t : 40;
+    //   public:
+    //     ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
+    //     PT operator*() const;
+    //     ptype_iterator& operator++();
+    //     bool has_incremented() const;
+    //     RT get_rtype() const;
+    // };
 
   public:
     InputColumn();
@@ -99,7 +100,7 @@ class InputColumn
     PT get_ptype() const noexcept;
     RT get_rtype() const noexcept;
     SType get_stype() const;
-    ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
+    PtypeIterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
     void set_ptype(PT new_ptype);
     void force_ptype(PT new_ptype);

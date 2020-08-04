@@ -353,7 +353,7 @@ TEST(parallel, for_ordered_super_ordered) {
       }
 
       void order(size_t i) override {
-        if (i == SUPER_AT) {
+        if (i == SUPER_AT && start_ == START0) {
           super_ordered([&]{
             size_t sum0 = std::accumulate(status_.begin(), status_.end(), size_t(0));
             size_t sum1 = std::accumulate(status_.begin(), status_.end(), size_t(0));
@@ -383,9 +383,8 @@ TEST(parallel, for_ordered_super_ordered) {
   });
 
   for (size_t i = 0; i < N_ITERS; ++i) {
-    size_t expected = (i < SUPER_AT) ? START0 + FINISH0 :
-                      (i == SUPER_AT)? START0 + FINISH1 :
-                      (i > SUPER_AT) ? START1 + FINISH1 : 0;
+    size_t expected = (i < SUPER_AT) ? START0 + FINISH0
+                                     : START1 + FINISH1;
     ASSERT_EQ(status[i], expected);
   }
 }

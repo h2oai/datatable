@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <cstring>                   // std::memcpy
 #include "column/rbound.h"
 #include "read/output_column.h"
@@ -33,6 +34,7 @@ namespace read {
 
 OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
+    nrows_allocated_(0),
     stype_(SType::BOOL),
     type_bumped_(false),
     present_in_buffer_(true)
@@ -46,6 +48,7 @@ OutputColumn::OutputColumn(OutputColumn&& o) noexcept
     strbuf_(std::move(o.strbuf_)),
     chunks_(std::move(o.chunks_)),
     nrows_in_chunks_(o.nrows_in_chunks_),
+    nrows_allocated_(o.nrows_allocated_),
     colinfo_(o.colinfo_),
     stype_(o.stype_),
     type_bumped_(o.type_bumped_),
@@ -69,10 +72,13 @@ MemoryWritableBuffer* OutputColumn::strdata_w() {
 void OutputColumn::archive_data(size_t nrows_written,
                                 std::shared_ptr<TemporaryFile>& tempfile)
 {
+  // std::cout << this << ".archive_data(" << nrows_written << ")\n";
   if (nrows_written == nrows_in_chunks_ ||
       type_bumped_ || !present_in_buffer_) {
     databuf_ = Buffer();
     strbuf_ = nullptr;
+    nrows_allocated_ = nrows_written;
+    reset_colinfo();
     return;
   }
   xassert(nrows_written > nrows_in_chunks_);
@@ -116,6 +122,7 @@ void OutputColumn::archive_data(size_t nrows_written,
                                                        std::move(stored_strbuf))
                            : Column::new_mbuf_column(nrows_chunk, stype_,
                                                      std::move(stored_databuf));
+  /*
   {
     Stats* stats = newcol.stats();
     stats->set_nacount(colinfo_.na_count);
@@ -140,15 +147,18 @@ void OutputColumn::archive_data(size_t nrows_written,
       default: break;
     }
   }
+  */
   chunks_.push_back(std::move(newcol));
   reset_colinfo();
   nrows_in_chunks_ = nrows_written;
+  nrows_allocated_ = nrows_written;
   xassert(!databuf_ && !strbuf_);
 }
 
 
 
 void OutputColumn::allocate(size_t new_nrows) {
+  // std::cout << this << ".allocate(" << new_nrows << ")\n";
   if (type_bumped_ || !present_in_buffer_) return;
   xassert(new_nrows >= nrows_in_chunks_);
 
@@ -167,6 +177,7 @@ void OutputColumn::allocate(size_t new_nrows) {
                     new MemoryWritableBuffer(allocsize));
     }
   }
+  nrows_allocated_ = new_nrows;
 }
 
 
@@ -183,8 +194,20 @@ Column OutputColumn::to_column() {
 
 
 void OutputColumn::set_stype(SType stype) {
-  xassert(type_bumped_ || !databuf_);
+  xassert(!databuf_);
   stype_ = stype;
+  reset_colinfo();
+}
+
+void OutputColumn::set_stype(SType stype, size_t nrows_written,
+                             std::shared_ptr<TemporaryFile>& tempfile)
+{
+  // std::cout << this << ".set_stype(stype=" << (int)stype << ", nrows=" << nrows_written << ")\n";
+  if (stype == stype_) return;
+  size_t nrows_alloc0 = nrows_allocated_;
+  archive_data(nrows_written, tempfile);
+  stype_ = stype;
+  allocate(nrows_alloc0);
   reset_colinfo();
 }
 
@@ -213,7 +236,11 @@ void OutputColumn::reset_colinfo() {
       break;
     }
     case SType::STR32:
-    case SType::STR64: break;
+    case SType::STR64: {
+      colinfo_.str.size = 0;
+      colinfo_.str.write_at = 0;
+      break;
+    }
     default:
       throw RuntimeError() << "Unexpected stype in fread: " << stype_;
   }

@@ -75,7 +75,6 @@ void FreadThreadContext::read_chunk(
   used_nrows = 0;
   parse_ctx_.target = tbuf.data();
   parse_ctx_.bytes_written = 0;
-
   local_types_.clear();
   PT* types = global_types_;
 
@@ -118,7 +117,6 @@ void FreadThreadContext::read_chunk(
     }
     //*** END TEPID. NOW COLD.
 
-
     if (sep==' ') {
       while (tch < parse_ctx_.eof && *tch==' ') tch++;
       fieldStart = tch;
@@ -128,7 +126,9 @@ void FreadThreadContext::read_chunk(
     if (fillme || (tch == parse_ctx_.eof || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        auto ptype_iter = preframe_.column(j).get_ptype_iterator(&parse_ctx_.quoteRule);
+        // auto ptype_iter = preframe_.column(j).get_ptype_iterator(&parse_ctx_.quoteRule);
+        PtypeIterator ptype_iter(types[j], preframe_.column(j).get_rtype(),
+                                 &parse_ctx_.quoteRule);
 
         while (true) {
           tch = fieldStart;
@@ -180,17 +180,12 @@ void FreadThreadContext::read_chunk(
                                       // TODO: use line number instead
                                       static_cast<int64_t>(row0_ + used_nrows + freader.line));
           }
-          // if (local_types_.empty()) {
-          //   local_types_.resize(ncols);
-          //   types = local_types_.data();
-          //   std::memcpy(types, global_types_, sizeof(PT) * ncols);
-          // }
-          types[j] = *ptype_iter;
-          colj.set_ptype(types[j]);
-          if (!freader.reread_scheduled) {
-            freader.reread_scheduled = true;
-            freader.job->add_work_amount(GenericReader::WORK_REREAD);
+          if (local_types_.empty()) {
+            local_types_.resize(ncols);
+            types = local_types_.data();
+            std::memcpy(types, global_types_, sizeof(PT) * ncols);
           }
+          types[j] = *ptype_iter;
         }
         parse_ctx_.target += colj.is_in_buffer();
         j++;
@@ -248,7 +243,9 @@ void FreadThreadContext::read_chunk(
     used_nrows++;
   }
 
-  preorder();
+  if (local_types_.empty()) {
+    preorder();
+  }
 
   // Tell the caller where we finished reading the chunk. This is why
   // the parameter `actual_cc` was passed to this function.
@@ -258,13 +255,34 @@ void FreadThreadContext::read_chunk(
 
 
 
-
-
 void FreadThreadContext::postorder() {
   double t0 = verbose? wallclock() : 0;
   ThreadContext::postorder();
   if (verbose) ttime_push += wallclock() - t0;
 }
+
+
+bool FreadThreadContext::handle_typebumps(OrderedTask* otask) {
+  if (local_types_.empty()) return false;
+  otask->super_ordered([&]{
+    auto tempfile = preframe_.get_tempfile();
+    size_t ncols = local_types_.size();
+    for (size_t i = 0; i < ncols; ++i) {
+      auto ptype = local_types_[i];
+      if (ptype != global_types_[i]) {
+        global_types_[i] = ptype;
+        auto& inpcol = preframe_.column(i);
+        inpcol.force_ptype(ptype);
+
+        auto& outcol = preframe_.column(i).outcol();
+        outcol.set_stype(inpcol.get_stype(), row0_, tempfile);
+      }
+    }
+    local_types_.clear();
+  });
+  return true;
+}
+
 
 
 

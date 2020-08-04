@@ -97,23 +97,22 @@ SType InputColumn::get_stype() const {
   return ParserLibrary::info(parse_type_).stype;
 }
 
-InputColumn::ptype_iterator
-InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
-  return InputColumn::ptype_iterator(parse_type_, requested_type_, qr_ptr);
+PtypeIterator InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
+  return PtypeIterator(parse_type_, requested_type_, qr_ptr);
 }
 
 void InputColumn::set_ptype(PT new_ptype) {
-  type_bumped_ = true;
+  // type_bumped_ = true;
   parse_type_ = new_ptype;
-  outcol_.type_bumped_ = true;
-  outcol_.set_stype(get_stype());
+  // outcol_.type_bumped_ = true;
+  // outcol_.set_stype(get_stype());
 }
 
 // Set .parse_type_ to the provided value, disregarding the restrictions imposed
 // by the .requested_type_ field.
 void InputColumn::force_ptype(PT new_ptype) {
   parse_type_ = new_ptype;
-  outcol_.set_stype(get_stype());
+  // outcol_.set_stype(get_stype());
 }
 
 void InputColumn::set_rtype(int64_t it) {
@@ -136,7 +135,7 @@ void InputColumn::set_rtype(int64_t it) {
     case RStr32:   parse_type_ = PT::Str32; break;
     case RStr64:   parse_type_ = PT::Str64; break;
   }
-  outcol_.set_stype(get_stype());
+  // outcol_.set_stype(get_stype());
 }
 
 const char* InputColumn::typeName() const {
@@ -260,29 +259,29 @@ void InputColumn::prepare_for_rereading() {
 
 //---- ptype_iterator ----------------------------------------------------------
 
-InputColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
-  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
+// InputColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
+//   : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
 
-PT InputColumn::ptype_iterator::operator*() const {
-  return curr_ptype;
-}
+// PT InputColumn::ptype_iterator::operator*() const {
+//   return curr_ptype;
+// }
 
-RT InputColumn::ptype_iterator::get_rtype() const {
-  return rtype;
-}
+// RT InputColumn::ptype_iterator::get_rtype() const {
+//   return rtype;
+// }
 
-InputColumn::ptype_iterator& InputColumn::ptype_iterator::operator++() {
-  if (curr_ptype < PT::Str32) {
-    curr_ptype = static_cast<PT>(curr_ptype + 1);
-  } else {
-    *pqr = *pqr + 1;
-  }
-  return *this;
-}
+// InputColumn::ptype_iterator& InputColumn::ptype_iterator::operator++() {
+//   if (curr_ptype < PT::Str32) {
+//     curr_ptype = static_cast<PT>(curr_ptype + 1);
+//   } else {
+//     *pqr = *pqr + 1;
+//   }
+//   return *this;
+// }
 
-bool InputColumn::ptype_iterator::has_incremented() const {
-  return curr_ptype != orig_ptype;
-}
+// bool InputColumn::ptype_iterator::has_incremented() const {
+//   return curr_ptype != orig_ptype;
+// }
 
 
 

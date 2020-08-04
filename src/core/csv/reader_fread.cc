@@ -532,6 +532,7 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
     }
     if (j < ncols && ptype_iter.has_incremented()) {
       col.set_ptype(*ptype_iter);
+      col.outcol().set_stype(col.get_stype());
     }
     j++;
 

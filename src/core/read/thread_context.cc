@@ -316,6 +316,7 @@ void ThreadContext::postorder_string_column(OutputColumn& col, size_t j) {
 void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<int8_t*>(col.data_w(row0_));
+  xassert(src_data && out_data);
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int8;
     src_data += tbuf_ncols;
@@ -326,6 +327,7 @@ void ThreadContext::postorder_bool_column(OutputColumn& col, size_t j) {
 void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<int32_t*>(col.data_w(row0_));
+  xassert(src_data && out_data);
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int32;
     src_data += tbuf_ncols;
@@ -336,6 +338,7 @@ void ThreadContext::postorder_int32_column(OutputColumn& col, size_t j) {
 void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<int64_t*>(col.data_w(row0_));
+  xassert(src_data && out_data);
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->int64;
     src_data += tbuf_ncols;
@@ -346,6 +349,7 @@ void ThreadContext::postorder_int64_column(OutputColumn& col, size_t j) {
 void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<float*>(col.data_w(row0_));
+  xassert(src_data && out_data);
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->float32;
     src_data += tbuf_ncols;
@@ -356,6 +360,7 @@ void ThreadContext::postorder_float32_column(OutputColumn& col, size_t j) {
 void ThreadContext::postorder_float64_column(OutputColumn& col, size_t j) {
   auto src_data = tbuf.data() + j;
   auto out_data = static_cast<double*>(col.data_w(row0_));
+  xassert(src_data && out_data);
   for (size_t i = 0; i < used_nrows; ++i) {
     *out_data++ = src_data->float64;
     src_data += tbuf_ncols;

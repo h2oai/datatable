@@ -99,10 +99,9 @@ void PreFrame::preallocate(size_t nrows) {
   * returned. This number may be less than `nrows_in_chunk0` if the
   * total number of rows exceeds `max_nrows` parameter.
   *
-  * The `ordered_loop` variable allows us to retrieve information
-  * about the current state of iteration, and to wait until the
-  * currently pending data is safely written if we need to reallocate
-  * buffers.
+  * The `otask` variable allows us to retrieve information about the
+  * current state of iteration, and to wait until the currently
+  * pending data is safely written if we need to reallocate buffers.
   *
   * This function will also adjust the `nrows_written` counter, and
   * thus should be called from the ordered section only.
@@ -210,6 +209,12 @@ void PreFrame::init_tempfile() {
 }
 
 
+std::shared_ptr<TemporaryFile>& PreFrame::get_tempfile() {
+  return tempfile_;
+}
+
+
+
 
 
 //------------------------------------------------------------------------------
@@ -278,12 +283,14 @@ void PreFrame::set_ptypes(const std::vector<PT>& types) {
   size_t i = 0;
   for (auto& col : columns_) {
     col.force_ptype(types[i++]);
+    col.outcol().set_stype(col.get_stype());
   }
 }
 
 void PreFrame::reset_ptypes() {
   for (auto& col : columns_) {
     col.force_ptype(PT::Mu);
+    col.outcol().set_stype(col.get_stype());
   }
 }
 

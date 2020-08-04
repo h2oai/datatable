@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include <algorithm>  // std::min
 #include <mutex>      // std::lock_guard
 #include <thread>     // std::this_thread
@@ -209,6 +210,9 @@ class SingleThreaded_OrderedJob : public OrderedJob {
 
     void super_ordered(std::function<void()> f) override {
       f();
+      size_t i = task_->iter_;
+      task_->state_ = OrderedTask::State::STARTING;  task_->start(i);
+      task_->state_ = OrderedTask::State::ORDERING;  task_->order(i);
     }
 
 
@@ -274,6 +278,12 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     ThreadTask* get_next_task(size_t ith) override {
       if (ith >= n_threads_) return nullptr;
       std::lock_guard<spin_mutex> lock(mutex_);
+      // std::cout << '[' << dt::this_thread_index() << "] ";
+      // std::cout << "<ord=" << static_cast<int>(ordering_thread_index_)
+      //           << ", n.start=" << next_to_start_
+      //           << ", n.order=" << next_to_order_
+      //           << ", n.finish=" << next_to_finish_
+      //           << "> ";
 
       OrderedTask* task = assigned_tasks_[ith];
       task->advance_state();  // finish previously assigned task
@@ -288,6 +298,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       // "to-be-ordered" queue should always be the highest priority.
       if (ordering_thread_index_ == NO_THREAD &&
           next_to_order_ < n_iterations_ && tasks_[iorder_]->ready_to_order()) {
+        // std::cout << "assigned ORDER task " << iorder_;
         ordering_thread_index_ = ith;
         task = tasks_[iorder_].get();
         task->advance_state();
@@ -297,6 +308,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       // Otherwise, if there are any tasks that are ready to be finished, then
       // perform those, clearing up the backlog.
       else if (next_to_finish_ < n_iterations_ && tasks_[ifinish_]->ready_to_finish()) {
+        // std::cout << "assigned FINISH task " << ifinish_;
         task = tasks_[ifinish_].get();
         task->advance_state();
         xassert(task->get_iteration() == next_to_finish_ && task->is_finishing());
@@ -305,6 +317,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       // Otherwise if there are still tasks in the start queue, and there are
       // tasks available where to execute those, then do the next "start" task.
       else if (next_to_start_ < n_iterations_ && tasks_[istart_]->ready_to_start()) {
+        // std::cout << "assigned START task " << istart_;
         task = tasks_[istart_].get();
         task->start_iteration(next_to_start_);
         istart_ = (++next_to_start_) % n_tasks_;
@@ -313,21 +326,25 @@ class MultiThreaded_OrderedJob : public OrderedJob {
       // be some tasks in the future (not all iterations finished yet), then do a
       // simple wait task until more work becomes available.
       else if (next_to_finish_ < n_iterations_) {
+        // std::cout << "assigned WAIT task ";
         task = &noop_task_;
       }
       // Otherwise (next_to_finish_ == n_iters) there isn't anything left to do:
       // hooray! We allow the worker to go back to sleep by returning nullptr.
       else {
+        // std::cout << "DONE.\n";
         return nullptr;
       }
       assigned_tasks_[ith] = task;
 
+      // std::cout << "\n";
       return task;
     }
 
 
     void abort_execution() override {
       std::lock_guard<spin_mutex> lock(mutex_);
+      // std::cout << '[' << dt::this_thread_index() << "] === abort_execution ===\n";
       next_to_start_ = n_iterations_;
       next_to_order_ = n_iterations_;
       next_to_finish_ = n_iterations_;
@@ -357,6 +374,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     void super_ordered(std::function<void()> f) override {
       {
         std::lock_guard<dt::spin_mutex> lock(mutex_);
+        // std::cout << '[' << dt::this_thread_index() << "] === super_ordered ===\n";
         // prevent new tasks from starting
         next_to_start_ = n_iterations_;
       }
@@ -373,13 +391,20 @@ class MultiThreaded_OrderedJob : public OrderedJob {
         f();
 
         // And lastly, resume the iterations
-        next_to_start_ = next_to_order_;
-        istart_ = iorder_;
+        xassert(next_to_finish_ == next_to_order_ - 1);
+        next_to_start_ = next_to_order_ = next_to_finish_;
+        istart_ = iorder_ = ifinish_;
+        ordering_thread_index_ = NO_THREAD;
+        tasks_[istart_]->state_ = OrderedTask::State::READY_TO_START;
+        assigned_tasks_[dt::this_thread_index()] = &noop_task_;
         for (const auto& task : tasks_) {
           if (task->ready_to_order()) {
             xassert(task->iter_ >= next_to_start_);
             task->state_ = OrderedTask::State::READY_TO_START;
           }
+        }
+        for (size_t i = 0; i < n_tasks_; ++i) {
+          xassert(assigned_tasks_[i] == &noop_task_);
         }
       }
     }

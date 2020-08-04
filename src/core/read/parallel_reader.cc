@@ -209,11 +209,12 @@ void ParallelReader::read_all()
         if (!(tacc.get_start() == prev_end && tacc.get_end() >= prev_end)) {
           txcc.set_start_exact(prev_end);
           tctx->read_chunk(txcc, tacc);  // updates `tacc`
-          xassert(tacc.get_start() == prev_end &&
-                  tacc.get_end() >= prev_end);
+          xassert(tacc.get_start() == prev_end && tacc.get_end() >= prev_end);
         }
-        rdr->end_of_last_chunk = tacc.get_end();
 
+        if (tctx->handle_typebumps(this)) return;
+
+        rdr->end_of_last_chunk = tacc.get_end();
         size_t chunk_nrows = tctx->get_nrows();
         size_t new_nrows = tctx->ensure_output_nrows(chunk_nrows, i, this);
         if (new_nrows != chunk_nrows) {
