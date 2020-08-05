@@ -51,13 +51,11 @@ class OutputColumn
     ColInfo colinfo_;
     SType stype_;
 
-    // bool type_bumped_;        // tmp
-    bool present_in_buffer_;  // tmp
-    size_t : 48;
+    size_t : 56;
 
   public:
     OutputColumn();
-    OutputColumn(OutputColumn&&) noexcept;
+    OutputColumn(OutputColumn&&) noexcept = default;
     OutputColumn(const OutputColumn&) = delete;
 
     // Return pointer to the main data buffer for writing at the

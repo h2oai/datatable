@@ -40,16 +40,7 @@ namespace read {
   *
   * An input column usually translates into an output column in a
   * DataTable returned to the user. The exception to this are
-  * "dropped" columns. They are marked with `present_in_output_ =
-  * false` flag (and have `requested_type_ = RT::RDrop`).
-  *
-  * The `present_in_buffer_` flag tracks whether the column should be
-  * read from the csv file. Normally, this flag has the same value as
-  * `present_in_output_`; however, during a reread stage we want to
-  * reread only those columns that were type-bumped while skipping the
-  * others. Thus, during a reread only type-bumped columns will be
-  * "present in buffer", while those that were read correctly on the
-  * first try will have this flag set to false.
+  * "dropped" columns (they have `requested_type_ = RT::RDrop`).
   */
 class InputColumn
 {

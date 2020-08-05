@@ -35,25 +35,10 @@ namespace read {
 OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
     nrows_allocated_(0),
-    stype_(SType::BOOL),
-    // type_bumped_(false),
-    present_in_buffer_(true)
+    stype_(SType::BOOL)
 {
   reset_colinfo();
 }
-
-
-OutputColumn::OutputColumn(OutputColumn&& o) noexcept
-  : databuf_(std::move(o.databuf_)),
-    strbuf_(std::move(o.strbuf_)),
-    chunks_(std::move(o.chunks_)),
-    nrows_in_chunks_(o.nrows_in_chunks_),
-    nrows_allocated_(o.nrows_allocated_),
-    colinfo_(o.colinfo_),
-    stype_(o.stype_),
-    // type_bumped_(o.type_bumped_),
-    present_in_buffer_(o.present_in_buffer_) {}
-
 
 
 void* OutputColumn::data_w(size_t row) const {
@@ -72,10 +57,7 @@ MemoryWritableBuffer* OutputColumn::strdata_w() {
 void OutputColumn::archive_data(size_t nrows_written,
                                 std::shared_ptr<TemporaryFile>& tempfile)
 {
-  // std::cout << this << ".archive_data(" << nrows_written << ")\n";
-  if (nrows_written == nrows_in_chunks_ ||
-      // type_bumped_ ||
-      !present_in_buffer_) {
+  if (nrows_written == nrows_in_chunks_) {
     databuf_ = Buffer();
     strbuf_ = nullptr;
     nrows_allocated_ = nrows_written;
@@ -159,8 +141,6 @@ void OutputColumn::archive_data(size_t nrows_written,
 
 
 void OutputColumn::allocate(size_t new_nrows) {
-  // std::cout << this << ".allocate(" << new_nrows << ")\n";
-  if (!present_in_buffer_) return;
   xassert(new_nrows >= nrows_in_chunks_);
 
   size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
@@ -203,7 +183,6 @@ void OutputColumn::set_stype(SType stype) {
 void OutputColumn::set_stype(SType stype, size_t nrows_written,
                              std::shared_ptr<TemporaryFile>& tempfile)
 {
-  // std::cout << this << ".set_stype(stype=" << (int)stype << ", nrows=" << nrows_written << ")\n";
   if (stype == stype_) return;
   size_t nrows_alloc0 = nrows_allocated_;
   archive_data(nrows_written, tempfile);
