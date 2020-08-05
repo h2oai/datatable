@@ -131,6 +131,7 @@ def test_h2o3_smalldata(f):
         os.path.join("arff", "folder1", "iris0.csv"),
         os.path.join("jira", "pubdev_2897.csv"),
         os.path.join("jira", "runit_pubdev_3590_unexpected_column.csv"),
+        os.path.join("junit", "iris.xls.zip")
         os.path.join("junit", "test_parse_mix.csv"),
         os.path.join("junit", "arff", "jm1_arff.txt"),
         os.path.join("junit", "arff", "jm1.arff.txt"),
