@@ -134,6 +134,9 @@
     them in per-column stats. For integer and floating point columns we also
     compute min/max value in each column. [#1097]
 
+  -[enh] When reading from a URL, fread will now escape url-unsafe characters
+    in that URL, so that the user doesn't have to.
+
   -[fix] When reading Excel files, the cells with datetime or boolean types
     are now handled correctly, in particular a datetime value is converted
     into its string representation. [#1701]

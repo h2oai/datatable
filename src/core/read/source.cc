@@ -209,8 +209,24 @@ py::oobj Source_Url::read(GenericReader& reader) {
   {
     dt::progress::work job(1);
     job.set_message("Downloading " + url_);
+    // Characters [0-9a-zA-Z._~-] are always considered "safe".
+    // Further, "/" is typically used as a path separator, and ":"
+    // is in the protocol. Both can be used in URLs safely.
+    // The "%" character, on the other hand, is not "safe" -- it is
+    // used to indicate an escape character. However, we designate it
+    // as "safe" so that the user may be able to pass a URL that is
+    // already correctly encoded. The downside is that if the url
+    // is not encoded, but happens to have a % character in it, then
+    // this function will throw an exception, but I consider such
+    // cases to be very rare. If they do occur, then the user could
+    // simply pass a correctly encoded URL, and then everything
+    // would work.
+    auto quoted_url = py::oobj::import("urllib.parse", "quote")
+                        .call({py::ostring(url_)},
+                              {py::ostring("safe"), py::ostring(":/%")});
+
     auto retriever = py::oobj::import("urllib.request", "urlretrieve");
-    retriever.call({py::ostring(url_),
+    retriever.call({quoted_url,
                     py::ostring(tmpfile.name()),
                     ReportHook::make(&job)});
   }

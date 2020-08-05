@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,6 +81,7 @@ class odict : public oobj {
     odict(odict&&) = default;
     odict& operator=(const odict&) = default;
     odict& operator=(odict&&) = default;
+    odict(std::initializer_list<oobj>);
 
     odict copy() const;
 

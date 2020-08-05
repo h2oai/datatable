@@ -359,7 +359,9 @@ def _resolve_source_url(url, tempfiles, reporthook=None):
     assert url is not None
     import urllib.request
     targetfile = tempfiles.create_temp_file()
-    urllib.request.urlretrieve(url, filename=targetfile, reporthook=reporthook)
+    encoded_url = urllib.parse.quote(url, safe=":/")
+    urllib.request.urlretrieve(encoded_url, filename=targetfile,
+                               reporthook=reporthook)
     # src, file, fileno, text, result
     return (url, targetfile, None, None), None
 

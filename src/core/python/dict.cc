@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 // for the details of Python API
 //------------------------------------------------------------------------------
 #include "python/dict.h"
+#include "utils/assert.h"
 namespace py {
 
 
@@ -39,6 +40,16 @@ odict::odict() {
 odict::odict(oobj&& src) : oobj(std::move(src)) {}
 odict::odict(const robj& src) : oobj(src) {}
 rdict::rdict(const robj& src) : robj(src) {}
+
+odict::odict(std::initializer_list<oobj> args)
+  : odict()
+{
+  xassert(args.size() % 2 == 0);  // number of elements must be even
+  for (size_t i = 0; i < args.size(); i += 2) {
+    set(args.begin()[i], args.begin()[i + 1]);
+  }
+}
+
 
 rdict rdict::unchecked(const robj& src) {
   return rdict(src);
