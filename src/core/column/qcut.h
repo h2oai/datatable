@@ -22,13 +22,12 @@
 #ifndef dt_COLUMN_CUT_h
 #define dt_COLUMN_CUT_h
 #include <memory>
-#include "parallel/api.h"
 #include "column/const.h"
 #include "column/virtual.h"
-#include "models/utils.h"
-#include "sort.h"
-#include "stype.h"
 #include "ltype.h"
+#include "models/utils.h"
+#include "parallel/api.h"
+#include "sort.h"
 
 namespace dt {
 
@@ -43,7 +42,7 @@ namespace dt {
   *  into `nquantiles` equal-width discrete intervals. As a result,
   *  all the duplicates of a value `x` will go to the same `x_q` quantile.
   *
-  *  In simple cases, when all the values are missing or constant,
+  *  In a simple case, when all the values are missing or constant,
   *  `Qcut_ColumnImpl::make()` will immediately return a pointer to the
   *  corresponding virtual column implementation: `ConstNa_ColumnImpl`
   *  or `ConstInt_ColumnImpl`.
@@ -89,6 +88,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 
     }
 
+
     void materialize(Column& col_out, bool) override {
       Column col_out_ = Column::new_data_column(col_.nrows(), SType::INT32);
       auto data_out_ = static_cast<int32_t*>(col_out_.get_data_editable());
@@ -128,6 +128,9 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
           }
       });
 
+      // Note, this assignment shoud be done at the very end,
+      // as it destroys the current object, including `col_`,
+      // `nquantiles_`, `ri_` and `gb_` members.
       col_out = std::move(col_out_);
     }
 

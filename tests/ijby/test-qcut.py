@@ -143,18 +143,19 @@ def test_qcut_small():
            [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
            names = colnames
          )
+
     DT_ref = dt.Frame(
-                     [[3, None, 0, 0, 3, None],
-                     [0, None, 1, 0, 1, 1],
-                     [0, 2, 2, 2, None, 4],
-                     [None, 0, 0, 1, 2, 3],
-                     [None, 0, 6, 3, 9, 0],
-                     [2, 0, 1, 0, 2, 0],
-                     [0, 0, 1, 0, 1, 0],
-                     [0, 1, 2, 4, 3, 1]],
-                     names = colnames,
-                     stypes = [stype.int32] * DT.ncols
-                   )
+               [[3, None, 0, 0, 3, None],
+               [0, None, 1, 0, 1, 1],
+               [0, 2, 2, 2, None, 4],
+               [None, 0, 0, 1, 2, 3],
+               [None, 0, 6, 3, 9, 0],
+               [2, 0, 1, 0, 2, 0],
+               [0, 0, 1, 0, 1, 0],
+               [0, 1, 2, 4, 3, 1]],
+               names = colnames,
+               stypes = [stype.int32] * DT.ncols
+             )
 
 
     DT_qcut = qcut(DT, nquantiles = nquantiles)

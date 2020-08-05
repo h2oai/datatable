@@ -147,8 +147,9 @@ static const char* doc_qcut =
 R"(qcut(cols, nquantiles=10)
 --
 
-Qcut all the columns in a Frame/f-expression by binning
-their values into discrete intervals with equal population.
+Bin all the columns in a Frame/f-expression into equal-population
+discrete intervals, i.e. quantiles. In reality, for some data
+these quantiles may not have exactly the same population.
 
 Parameters
 ----------
@@ -156,7 +157,7 @@ cols: Frame | f-expression
     Frame or f-expression consisting of numeric columns.
 nquantiles: int | list of ints | tuple of ints
     When a single number is specified, this number of quantiles
-    will be used to bin each column of `cols`.
+    will be used to bin each column in `cols`.
     When a list or a tuple is provided, each column will be binned
     by using its own number of quantiles. In the latter case,
     the list/tuple length must be equal to the number of columns
@@ -177,8 +178,8 @@ static PKArgs args_qcut(
 
 
 /**
-  * Python-facing function that can take as an argument either a Frame or
-  * an f-expression.
+  * Python-facing function that can take either a Frame or
+  * an f-expression as an argument.
   */
 static oobj pyfn_qcut(const PKArgs& args)
 {
