@@ -34,7 +34,26 @@ namespace dt {
 
 /**
   *  Virtual column to bin numeric values into equal-population
-  *  discrete intervals.
+  *  discrete intervals, i.e. quantiles. In reality, for some data
+  *  these quantiles won't have exactly the same population.
+  *
+  *  Quantiles are generated based on the element/group information
+  *  obtained from the groupby operation, i.e. rowindex and offsets.
+  *  These groups, having ids 0, 1, ..., ngroups - 1, are binned
+  *  into `nquantiles` equal-width discrete intervals. As a result,
+  *  all the duplicates of a value `x` will go to the same `x_q` quantile.
+  *
+  *  In simple cases, when all the values are missing or constant,
+  *  `Qcut_ColumnImpl::make()` will immediately return a pointer to the
+  *  corresponding virtual column implementation: `ConstNa_ColumnImpl`
+  *  or `ConstInt_ColumnImpl`.
+  *
+  *  In the general case `Qcut_ColumnImpl::make()` will return a pointer
+  *  to the `Latent_ColumnImpl` that wraps a `Qcut_ColumnImpl*`.
+  *  This column implementation will be materialized on the first access
+  *  to the data, because it is much more efficient to generate
+  *  all the quantiles at once in parallel.
+  *
   */
 class Qcut_ColumnImpl : public Virtual_ColumnImpl {
   private:
