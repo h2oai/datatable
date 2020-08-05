@@ -113,7 +113,9 @@ Workframe Head_Func_Qcut::evaluate_n(
         << coli.stype() << "`";
     }
 
-    coli = Column(Qcut_ColumnImpl::make(std::move(coli), nquantiles[i]));
+    coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
+             std::move(coli), nquantiles[i]
+           )));
     wf.replace_column(i, std::move(coli));
   }
 

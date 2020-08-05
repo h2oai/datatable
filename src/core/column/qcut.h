@@ -57,53 +57,59 @@ namespace dt {
 class Qcut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    RowIndex ri_;
-    Groupby gb_;
     int32_t nquantiles_;
     size_t : 32;
 
   public:
-    static ColumnImpl* make(Column&& col, int32_t nquantiles) {
+    Qcut_ColumnImpl(Column&& col, int32_t nquantiles)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
+        nquantiles_(nquantiles)
+    {
       xassert(nquantiles > 0);
-      auto res = group({col}, {SortFlag::NONE});
+      xassert(col.ltype() == dt::LType::BOOL ||
+              col.ltype() == dt::LType::INT ||
+              col.ltype() == dt::LType::REAL);
+      col_ = std::move(col);
+    }
+
+    void materialize(Column& col_out, bool) override {
+      auto res = group({col_}, {SortFlag::NONE});
       RowIndex ri = std::move(res.first);
       Groupby gb = std::move(res.second);
+      Column col_tmp;
 
       // If there is one group only, fill it with constants or NA's.
       if (gb.size() == 1) {
-        if (col.get_element_isvalid(0)) {
-          return new ConstInt_ColumnImpl(
-                   col.nrows(),
-                   (nquantiles - 1) / 2,
-                   SType::INT32
-                 );
+        if (col_.get_element_isvalid(0)) {
+          col_tmp = Column(new ConstInt_ColumnImpl(
+                      col_.nrows(),
+                      (nquantiles_ - 1) / 2,
+                      SType::INT32
+                    ));
         } else {
-          return new ConstNa_ColumnImpl(col.nrows(), SType::INT32);
+          col_tmp = Column(new ConstNa_ColumnImpl(
+                      col_.nrows(), SType::INT32
+                    ));
         }
+        col_tmp.materialize();
+        col_out = std::move(col_tmp);
+        return;
       }
 
-      return new Latent_ColumnImpl(new Qcut_ColumnImpl(
-                   std::move(col), nquantiles, std::move(ri), std::move(gb)
-                 ));
-
-    }
-
-
-    void materialize(Column& col_out, bool) override {
-      Column col_tmp = Column::new_data_column(col_.nrows(), SType::INT32);
+      col_tmp = Column::new_data_column(col_.nrows(), SType::INT32);
       auto data_tmp = static_cast<int32_t*>(col_tmp.get_data_editable());
 
       // Check if there is an NA group.
       bool has_na_group;
       {
         size_t row;
-        bool row_valid = ri_.get_element(0, &row);
+        bool row_valid = ri.get_element(0, &row);
         xassert(row_valid); (void) row_valid;
         has_na_group = !col_.get_element_isvalid(row);
       }
 
       // Set up number of valid groups and the quantile coefficients.
-      size_t ngroups = gb_.size() - has_na_group;
+      size_t ngroups = gb.size() - has_na_group;
       double a, b;
       if (ngroups == 1) {
         a = 0;
@@ -113,7 +119,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         b = -a * has_na_group;
       }
 
-      dt::parallel_for_dynamic(gb_.size(),
+      dt::parallel_for_dynamic(gb.size(),
         [&](size_t i) {
           bool is_na_group = (i == 0 && has_na_group);
           size_t j0, j1;
@@ -123,11 +129,11 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
                                   a * i + b, 0
                                 ));
 
-          gb_.get_group(i, &j0, &j1);
+          gb.get_group(i, &j0, &j1);
 
           for (size_t j = j0; j < j1; ++j) {
             size_t row;
-            bool row_valid = ri_.get_element(j, &row);
+            bool row_valid = ri.get_element(j, &row);
             xassert(row_valid); (void) row_valid;
             data_tmp[row] = q;
           }
@@ -141,9 +147,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 
 
     ColumnImpl* clone() const override {
-      return new Qcut_ColumnImpl(
-                   Column(col_), nquantiles_, RowIndex(ri_), Groupby(gb_)
-                 );
+      return new Qcut_ColumnImpl(Column(col_), nquantiles_);
     }
 
 
@@ -155,22 +159,6 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;
-    }
-
-  private:
-    Qcut_ColumnImpl(Column&& col, int32_t nquantiles, RowIndex&& ri, Groupby&& gb)
-      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        nquantiles_(nquantiles)
-    {
-      xassert(nquantiles > 0);
-      xassert(ri.size() == col.nrows());
-      xassert(gb.last_offset() == col.nrows());
-      xassert(col.ltype() == dt::LType::BOOL ||
-              col.ltype() == dt::LType::INT ||
-              col.ltype() == dt::LType::REAL);
-      col_ = std::move(col);
-      ri_ = std::move(ri);
-      gb_ = std::move(gb);
     }
 
 };
