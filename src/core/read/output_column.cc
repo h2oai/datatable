@@ -105,7 +105,6 @@ void OutputColumn::archive_data(size_t nrows_written,
                                                        std::move(stored_strbuf))
                            : Column::new_mbuf_column(nrows_chunk, stype_,
                                                      std::move(stored_databuf));
-  /*
   {
     Stats* stats = newcol.stats();
     stats->set_nacount(colinfo_.na_count);
@@ -130,7 +129,6 @@ void OutputColumn::archive_data(size_t nrows_written,
       default: break;
     }
   }
-  */
   chunks_.push_back(std::move(newcol));
   reset_colinfo();
   nrows_in_chunks_ = nrows_written;
