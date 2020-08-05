@@ -951,7 +951,6 @@ FreadObserver::FreadObserver(const dt::read::GenericReader& g_) : g(g_) {
   t_column_types_detected = 0;
   t_frame_allocated = 0;
   t_data_read = 0;
-  t_data_reread = 0;
   time_read_data = 0.0;
   time_push_data = 0.0;
   input_size = 0;
@@ -960,7 +959,6 @@ FreadObserver::FreadObserver(const dt::read::GenericReader& g_) : g(g_) {
   n_lines_sampled = 0;
   n_rows_allocated = 0;
   n_cols_allocated = 0;
-  n_cols_reread = 0;
   allocation_size = 0;
   read_data_nthreads = 0;
 }
@@ -976,8 +974,7 @@ void FreadObserver::report() {
           t_parse_parameters_detected <= t_column_types_detected &&
           t_column_types_detected <= t_frame_allocated &&
           t_frame_allocated <= t_data_read &&
-          t_data_read <= t_data_reread &&
-          t_data_reread <= t_end &&
+          t_data_read <= t_end &&
           read_data_nthreads > 0);
   double total_time = std::max(t_end - t_start + g.t_open_input, 1e-6);
   int    total_minutes = static_cast<int>(total_time/60);
@@ -986,11 +983,10 @@ void FreadObserver::report() {
   double types_time = t_column_types_detected - t_parse_parameters_detected;
   double alloc_time = t_frame_allocated - t_column_types_detected;
   double read_time = t_data_read - t_frame_allocated;
-  double reread_time = t_data_reread - t_data_read;
-  double makedt_time = t_end - t_data_reread;
+  double makedt_time = t_end - t_data_read;
   double t_read = time_read_data.load() / read_data_nthreads;
   double t_push = time_push_data.load() / read_data_nthreads;
-  double time_wait_data = read_time + reread_time - t_read - t_push;
+  double time_wait_data = read_time - t_read - t_push;
   int p = total_time < 10 ? 5 :
           total_time < 100 ? 6 :
           total_time < 1000 ? 7 : 8;
@@ -1023,12 +1019,6 @@ void FreadObserver::report() {
   g.d() << " + " << ff(p, 3, read_time) << "s ("
         << ff(2, 0, 100 * read_time / total_time) << "%)"
         << " reading data";
-  if (n_cols_reread) {
-    g.d() << " + " << ff(p, 3, reread_time) << "s ("
-          << ff(2, 0, 100 * reread_time / total_time) << "%)"
-          << " re-reading " << n_cols_reread
-          << " columns due to out-of-sample type exceptions";
-  }
   g.d() << "    = " << ff(p, 3, t_read) << "s (" << ff(2, 0, 100 * t_read / total_time) << "%) reading into row-major buffers";
   g.d() << "    = " << ff(p, 3, t_push) << "s (" << ff(2, 0, 100 * t_push / total_time) << "%) saving into the output frame";
   g.d() << "    = " << ff(p, 3, time_wait_data) << "s (" << ff(2, 0, 100 * time_wait_data / total_time) << "%) waiting";

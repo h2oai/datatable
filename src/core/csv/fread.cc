@@ -110,7 +110,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     scr.read_all();
     subwork.done();
 
-    fo.t_data_read = fo.t_data_reread = wallclock();
+    fo.t_data_read = wallclock();
     fo.n_rows_read = preframe.nrows_written();
     fo.n_cols_read = preframe.n_columns_in_output();
   }
