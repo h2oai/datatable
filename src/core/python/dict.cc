@@ -44,7 +44,9 @@ rdict::rdict(const robj& src) : robj(src) {}
 odict::odict(std::initializer_list<oobj> args)
   : odict()
 {
-  xassert(args.size() % 2 == 0);  // number of elements must be even
+  // Entries in the initializer list are key=value pairs, so their
+  // total count must be even:
+  xassert(args.size() % 2 == 0);
   for (size_t i = 0; i < args.size(); i += 2) {
     set(args.begin()[i], args.begin()[i + 1]);
   }
