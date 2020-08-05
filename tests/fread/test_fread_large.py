@@ -86,9 +86,11 @@ def get_file_list(*path, skip=None):
                         pass
                     out.add(param(f))
                 except Exception as e:
-                    out.add(skipped("%s: '%s'" % (e.__class__.__name__, f), id=f))
+                    # out.add(skipped("%s: '%s'" % (e.__class__.__name__, f), id=f))
+                    pass
             else:
-                out.add(skipped("Invalid file: '%s'" % f, id=f))
+                # out.add(skipped("Invalid file: '%s'" % f, id=f))
+                pass
     return out
 
 
