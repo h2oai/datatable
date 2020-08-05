@@ -90,12 +90,8 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 
 
     void materialize(Column& col_out, bool) override {
-      Column col_out_ = Column::new_data_column(col_.nrows(), SType::INT32);
-      auto data_out_ = static_cast<int32_t*>(col_out_.get_data_editable());
-
-      constexpr double epsilon = static_cast<double>(
-                                   std::numeric_limits<float>::epsilon()
-                                 );
+      Column col_tmp = Column::new_data_column(col_.nrows(), SType::INT32);
+      auto data_tmp = static_cast<int32_t*>(col_tmp.get_data_editable());
 
       // Check if there is an NA group.
       bool has_na_group;
@@ -106,17 +102,26 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         has_na_group = !col_.get_element_isvalid(row);
       }
 
-      // Set up number of valid groups and the quantile coefficient.
+      // Set up number of valid groups and the quantile coefficients.
       size_t ngroups = gb_.size() - has_na_group;
-      double a = nquantiles_ * (1 - epsilon) / (ngroups - 1);
+      double a, b;
+      if (ngroups == 1) {
+        a = 0;
+        b = nextafter(0.5 * (nquantiles_ - 1), nquantiles_);
+      } else {
+        a = static_cast<double>(nquantiles_) / (ngroups - 1);
+        b = -a * has_na_group;
+      }
 
-      // Set up the actual quantiles.
       dt::parallel_for_dynamic(gb_.size(),
         [&](size_t i) {
           bool is_na_group = (i == 0 && has_na_group);
           size_t j0, j1;
+
           auto q = is_na_group? GETNA<int32_t>()
-                              : static_cast<int32_t>(a * (i - has_na_group));
+                              : static_cast<int32_t>(nextafter(
+                                  a * i + b, 0
+                                ));
 
           gb_.get_group(i, &j0, &j1);
 
@@ -124,14 +129,14 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
             size_t row;
             bool row_valid = ri_.get_element(j, &row);
             xassert(row_valid); (void) row_valid;
-            data_out_[row] = q;
+            data_tmp[row] = q;
           }
       });
 
       // Note, this assignment shoud be done at the very end,
       // as it destroys the current object, including `col_`,
       // `nquantiles_`, `ri_` and `gb_` members.
-      col_out = std::move(col_out_);
+      col_out = std::move(col_tmp);
     }
 
 

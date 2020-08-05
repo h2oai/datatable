@@ -128,12 +128,14 @@ def test_qcut_one_row():
 
 
 def test_qcut_small():
-    nquantiles = [4, 2, 5, 4, 10, 3, 2, 5]
-    colnames = ["bool", "int_pos", "int_neg", "int", "float",
+    dt.options.nthreads = 1
+    nquantiles = [4, 3, 2, 5, 4, 10, 3, 2, 5]
+    colnames = ["bool", "one_group", "int_pos", "int_neg", "int", "float",
                 "inf_max", "inf_min", "inf"]
 
     DT = dt.Frame(
            [[True, None, False, False, True, None],
+           [None, 10, None, 10, 10, 10],
            [3, None, 4, 1, 5, 4],
            [-5, -1, -1, -1, None, 0],
            [None, -5, -314, 0, 5, 314],
@@ -146,6 +148,7 @@ def test_qcut_small():
 
     DT_ref = dt.Frame(
                [[3, None, 0, 0, 3, None],
+               [None, 1, None, 1, 1, 1],
                [0, None, 1, 0, 1, 1],
                [0, 2, 2, 2, None, 4],
                [None, 0, 0, 1, 2, 3],
