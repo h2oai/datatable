@@ -102,11 +102,11 @@ class EvalContext
 
   private:
     // Inputs
-    OldExpr  iexpr_;
-    OldExpr  jexpr_;
-    OldExpr  byexpr_;
-    OldExpr  sortexpr_;
-    OldExpr  rexpr_;
+    std::shared_ptr<OldExpr>  iexpr_;
+    std::shared_ptr<OldExpr>  jexpr_;
+    std::shared_ptr<OldExpr>  byexpr_;
+    std::shared_ptr<OldExpr>  sortexpr_;
+    std::shared_ptr<OldExpr>  rexpr_;
 
     // Runtime
     frameVec   frames_;

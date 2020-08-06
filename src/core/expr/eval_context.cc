@@ -59,7 +59,7 @@ void EvalContext::add_groupby(py::oby obj) {
   if (byexpr_) {
     throw TypeError() << "Multiple by()'s are not allowed";
   }
-  byexpr_ = OldExpr(obj.get_arguments());
+  byexpr_ = std::make_shared<OldExpr>(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
 }
 
@@ -68,12 +68,12 @@ void EvalContext::add_sortby(py::osort obj) {
   if (sortexpr_) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
-  sortexpr_ = OldExpr(obj.get_arguments());
+  sortexpr_ = std::make_shared<OldExpr>(obj.get_arguments());
 }
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr_ = OldExpr(oi);
+  iexpr_ = std::make_shared<OldExpr>(oi);
 }
 
 
@@ -89,16 +89,16 @@ void EvalContext::add_j(py::oobj oj) {
                             "assignment expression";
     }
     eval_mode_ = EvalMode::UPDATE;
-    jexpr_ = OldExpr(arg_update.get_names());
-    rexpr_ = OldExpr(arg_update.get_exprs());
+    jexpr_ = std::make_shared<OldExpr>(arg_update.get_names());
+    rexpr_ = std::make_shared<OldExpr>(arg_update.get_exprs());
   } else {
-    jexpr_ = OldExpr(oj);
+    jexpr_ = std::make_shared<OldExpr>(oj);
   }
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  rexpr_ = OldExpr(obj);
+  rexpr_ = std::make_shared<OldExpr>(obj);
 }
 
 
@@ -152,11 +152,11 @@ py::oobj EvalContext::evaluate() {
 
   // Compute i filter
   if (byexpr_ || sortexpr_) {
-    auto rigb = iexpr_.evaluate_iby(*this);
+    auto rigb = iexpr_->evaluate_iby(*this);
     apply_rowindex(std::move(rigb.first));
     replace_groupby(std::move(rigb.second));
   } else {
-    RowIndex rowindex = iexpr_.evaluate_i(*this);
+    RowIndex rowindex = iexpr_->evaluate_i(*this);
     apply_rowindex(std::move(rowindex));
     replace_groupby(Groupby::single_group(nrows()));
   }
@@ -186,7 +186,7 @@ py::oobj EvalContext::evaluate() {
 sztvec EvalContext::evaluate_j_as_column_index() {
   bool allow_new = (eval_mode_ == EvalMode::UPDATE);
   DataTable* dt0 = get_datatable(0);
-  auto jres = jexpr_.evaluate_j(*this, allow_new);
+  auto jres = jexpr_->evaluate_j(*this, allow_new);
   size_t n = jres.ncols();
   sztvec indices(n);
 
@@ -241,11 +241,11 @@ void EvalContext::compute_groupby_and_sort() {
     std::vector<SortFlag> flags;
     size_t n_group_cols = 0;
     if (byexpr_) {
-      byexpr_.prepare_by(*this, wf, flags);
+      byexpr_->prepare_by(*this, wf, flags);
       n_group_cols = wf.ncols();
     }
     if (sortexpr_) {
-      sortexpr_.prepare_by(*this, wf, flags);
+      sortexpr_->prepare_by(*this, wf, flags);
     }
     size_t ncols = wf.ncols();
     xassert(flags.size() == ncols);
@@ -286,7 +286,7 @@ void EvalContext::compute_groupby_and_sort() {
 //   - delete all rows & all columns (i.e. delete the entire frame).
 //
 py::oobj EvalContext::evaluate_delete() {
-  Kind jkind = jexpr_.get_expr_kind();
+  Kind jkind = jexpr_->get_expr_kind();
   if (jkind == Kind::SliceAll) {
     evaluate_delete_rows();
   } else if (jkind == Kind::NamedList) {
@@ -384,7 +384,7 @@ py::oobj EvalContext::evaluate_update() {
     }
   }
 
-  Workframe replacement = rexpr_.evaluate_r(*this, indices);
+  Workframe replacement = rexpr_->evaluate_r(*this, indices);
   size_t lrows = nrows();
   size_t lcols = indices.size();
   replacement.reshape_for_update(lrows, lcols);
@@ -503,7 +503,7 @@ static void _vivify_workframe(const Workframe& wf) {
 
 
 py::oobj EvalContext::evaluate_select() {
-  Workframe res = jexpr_.evaluate_j(*this);
+  Workframe res = jexpr_->evaluate_j(*this);
   if (add_groupby_columns_) {
     update_groupby_columns(res.get_grouping_mode());
     res.cbind(std::move(groupby_columns_), /* at_end= */ false);
