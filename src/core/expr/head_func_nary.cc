@@ -37,7 +37,7 @@ Workframe Head_Func_Nary::evaluate_n(
 {
   Workframe inputs(ctx);
   for (const auto& arg : args) {
-    inputs.cbind(arg.evaluate_n(ctx));
+    inputs.cbind(arg->evaluate_n(ctx));
   }
 
   Grouping gmode = inputs.get_grouping_mode();

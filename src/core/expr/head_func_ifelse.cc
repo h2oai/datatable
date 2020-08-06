@@ -40,9 +40,9 @@ Workframe Head_Func_IfElse::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 3);
-  Workframe wf_cond = args[0].evaluate_n(ctx);
-  Workframe wf_true = args[1].evaluate_n(ctx);
-  Workframe wf_false = args[2].evaluate_n(ctx);
+  Workframe wf_cond = args[0]->evaluate_n(ctx);
+  Workframe wf_true = args[1]->evaluate_n(ctx);
+  Workframe wf_false = args[2]->evaluate_n(ctx);
   if (wf_cond.ncols() != 1 || wf_true.ncols() != 1 || wf_false.ncols() != 1) {
     throw TypeError() << "Multi-column expressions are not supported in "
         "`ifelse()` function";

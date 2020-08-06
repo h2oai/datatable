@@ -725,7 +725,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 1);
-  Workframe inputs = args[0].evaluate_n(ctx);
+  Workframe inputs = args[0]->evaluate_n(ctx);
   Groupby gby = ctx.get_groupby();
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 

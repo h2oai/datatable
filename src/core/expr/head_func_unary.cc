@@ -36,7 +36,7 @@ Workframe Head_Func_Unary::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 1);
-  Workframe outputs = args[0].evaluate_n(ctx);
+  Workframe outputs = args[0]->evaluate_n(ctx);
   size_t n = outputs.ncols();
   for (size_t i = 0; i < n; ++i) {
     Column col = outputs.retrieve_column(i);

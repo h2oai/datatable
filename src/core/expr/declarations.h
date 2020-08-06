@@ -36,7 +36,7 @@ namespace expr {
   class EvalContext;
 
   using ptrHead = std::unique_ptr<Head>;
-  using vecExpr = std::vector<OldExpr>;
+  using vecExpr = std::vector<std::shared_ptr<OldExpr>>;
 
 
   // Evaluation mode, this distinguishes between expressions of the

@@ -231,8 +231,8 @@ Workframe Head_Reduce_Binary::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 2);
-  Workframe inputs1 = args[0].evaluate_n(ctx);
-  Workframe inputs2 = args[1].evaluate_n(ctx);
+  Workframe inputs1 = args[0]->evaluate_n(ctx);
+  Workframe inputs2 = args[1]->evaluate_n(ctx);
   Groupby gby = ctx.get_groupby();
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 

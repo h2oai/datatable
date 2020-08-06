@@ -57,7 +57,7 @@ Workframe Head_Func_Cut::evaluate_n(
   }
 
   int32_t nbins_default = 10;
-  Workframe wf = args[0].evaluate_n(ctx);
+  Workframe wf = args[0]->evaluate_n(ctx);
   const size_t ncols = wf.ncols();
 
   int32vec nbins(ncols);

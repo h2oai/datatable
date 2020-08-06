@@ -78,7 +78,7 @@ void OldExpr::_init_from_dictionary(py::robj src) {
       throw TypeError() << "Keys in the dictionary must be strings";
     }
     names.push_back(kv.first.to_string());
-    inputs.emplace_back(kv.second);
+    inputs.emplace_back(std::make_shared<OldExpr>(kv.second));
   }
   head = ptrHead(new Head_NamedList(std::move(names)));
 }
@@ -90,7 +90,7 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
   auto params = src.get_attr("_params").to_otuple();
 
   for (size_t i = 0; i < args.size(); ++i) {
-    inputs.emplace_back(args[i]);
+    inputs.emplace_back(std::make_shared<OldExpr>(args[i]));
   }
   head = Head_Func::from_op(static_cast<Op>(op), params);
 }
@@ -129,7 +129,7 @@ void OldExpr::_init_from_int(py::robj src) {
 
 void OldExpr::_init_from_iterable(py::robj src) {
   for (auto elem : src.to_oiter()) {
-    inputs.emplace_back(elem);
+    inputs.emplace_back(std::make_shared<OldExpr>(elem));
   }
   head = ptrHead(new Head_List);
 }
@@ -139,7 +139,7 @@ void OldExpr::_init_from_list(py::robj src) {
   auto srclist = src.to_pylist();
   size_t nelems = srclist.size();
   for (size_t i = 0; i < nelems; ++i) {
-    inputs.emplace_back(srclist[i]);
+    inputs.emplace_back(std::make_shared<OldExpr>(srclist[i]));
   }
   head = ptrHead(new Head_List);
 }
@@ -262,9 +262,9 @@ bool OldExpr::is_negated_column(EvalContext& ctx, size_t* iframe,
   if (unaryfn_head) {
     if (unaryfn_head->get_op() == Op::UMINUS) {
       xassert(inputs.size() == 1);
-      auto column_head = dynamic_cast<Head_Func_Column*>(inputs[0].head.get());
+      auto column_head = dynamic_cast<Head_Func_Column*>(inputs[0]->head.get());
       if (column_head) {
-        Workframe wf = inputs[0].evaluate_n(ctx);
+        Workframe wf = inputs[0]->evaluate_n(ctx);
         xassert(wf.ncols() == 1);
         return wf.is_reference_column(0, iframe, icol);
       }

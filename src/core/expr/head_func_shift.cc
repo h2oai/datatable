@@ -86,7 +86,7 @@ Workframe Head_Func_Shift::evaluate_n(
     const vecExpr& args, EvalContext& ctx, bool) const
 {
   xassert(args.size() == 1);
-  Workframe inputs = args[0].evaluate_n(ctx);
+  Workframe inputs = args[0]->evaluate_n(ctx);
   if (shift_ == 0) {
     // do nothing
   }

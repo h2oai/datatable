@@ -38,16 +38,16 @@ Workframe Head_Func_Colset::evaluate_n(
 {
   xassert(args.size() == 2);
   if (op == Op::SETPLUS) {
-    Workframe lhs = args[0].evaluate_n(ctx);
-    Workframe rhs = args[1].evaluate_n(ctx);
+    Workframe lhs = args[0]->evaluate_n(ctx);
+    Workframe rhs = args[1]->evaluate_n(ctx);
     lhs.cbind(std::move(rhs));
     return lhs;
   }
   else {
-    Workframe lhs = args[0].evaluate_n(ctx);
+    Workframe lhs = args[0]->evaluate_n(ctx);
     // RHS must be evaluated with `allow_new = true`, so that removing
     // a column which is not in the frame would not throw an error.
-    Workframe rhs = args[1].evaluate_n(ctx, true);
+    Workframe rhs = args[1]->evaluate_n(ctx, true);
     lhs.remove(rhs);
     return lhs;
   }

@@ -40,7 +40,7 @@ Workframe Head_Func_Column::evaluate_n(
     throw ValueError()
         << "Column expression references a non-existing join frame";
   }
-  return args[0].evaluate_f(ctx, frame_id, allow_new);
+  return args[0]->evaluate_f(ctx, frame_id, allow_new);
 }
 
 
