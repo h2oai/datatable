@@ -189,27 +189,27 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 
 #define ASSERT_EQ(x, y)                                                        \
-    dt::tests::assert_cmp((x==y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)==(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "==", __FILE__, __LINE__)
 
 #define ASSERT_NE(x, y)                                                        \
-    dt::tests::assert_cmp((x!=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)!=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "!=", __FILE__, __LINE__)
 
 #define ASSERT_LT(x, y)                                                        \
-    dt::tests::assert_cmp((x<y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+    dt::tests::assert_cmp(((x)<(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
                           "<", __FILE__, __LINE__)
 
 #define ASSERT_GT(x, y)                                                        \
-    dt::tests::assert_cmp((x>y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),       \
+    dt::tests::assert_cmp(((x)>(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
                           ">", __FILE__, __LINE__)
 
 #define ASSERT_LE(x, y)                                                        \
-    dt::tests::assert_cmp((x<=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)<=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           "<=", __FILE__, __LINE__)
 
 #define ASSERT_GE(x, y)                                                        \
-    dt::tests::assert_cmp((x>=y), x, y, ___STRINGIFY(x), ___STRINGIFY(y),      \
+    dt::tests::assert_cmp(((x)>=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
                           ">=", __FILE__, __LINE__)
 
 // Similar to ASSERT_EQ(x, y), but for floating-point arguments:
@@ -222,15 +222,15 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 
 #define ASSERT_TRUE(s)                                                         \
-    dt::tests::assert_bool<true>(s, ___STRINGIFY(s), __FILE__, __LINE__);
+    dt::tests::assert_bool<true>(s, ___STRINGIFY(s), __FILE__, __LINE__)
 
 
 #define ASSERT_FALSE(s)                                                        \
-    dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__);
+    dt::tests::assert_bool<false>(s, ___STRINGIFY(s), __FILE__, __LINE__)
 
 
 #define ASSERT_THROWS(...)                                                     \
-    dt::tests::assert_throws(__VA_ARGS__, __FILE__, __LINE__);
+    dt::tests::assert_throws(__VA_ARGS__, __FILE__, __LINE__)
 
 
 

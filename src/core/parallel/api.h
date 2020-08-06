@@ -134,6 +134,16 @@ void parallel_for_ordered(size_t n_iterations,
                           function<std::unique_ptr<OrderedTask>()>);
 
 
+/**
+  * This class facilitates execution of ordered for-loops. A user
+  * is expected to derive from this class, overriding methods
+  * `start(i)`, `order(i)` and `finish(i)`; and then call
+  * `dt::parallel_for_ordered()` supplying a factory function to
+  * create instances of the derived class.
+  *
+  * The class also has several methods for controlling the execution
+  * of the orderer loop. See their descriptions below.
+  */
 class OrderedTask : public ThreadTask {
   enum State : size_t;
   private:
@@ -149,13 +159,59 @@ class OrderedTask : public ThreadTask {
     virtual void start(size_t i);
     virtual void order(size_t i);
     virtual void finish(size_t i);
+
+    // (This method may only be called from an ordered section).
+    // Change the number of iterations in the ordered job. The new
+    // number of iterations cannot be less than the number of
+    // iterations that were already ordered.
+    //
+    // If the new number of iterations is smaller than the original
+    // total count, then it is guaranteed that no task will be
+    // ordered or finished past `n`, although it is possible that
+    // some tasks will have started at an index `n` or above.
+    //
+    void set_num_iterations(size_t n);
+    size_t get_num_iterations() const;
+
+    // (This method may only be called from an ordered section).
+    // By the time this method returns, all tasks with the index
+    // less than the current will have completed their "finish"
+    // stage. Furthermore, no new tasks will start a "finish" stage
+    // until the end of the enclosing "ordered" step.
+    //
+    void wait_until_all_finalized();
+
+    // (This method may only be called from an ordered section).
+    // This method performs the following sequence of actions:
+    //   - blocks new tasks from entering the "start" stage;
+    //   - waits until there are no tasks executing either the
+    //     "start" or "finish" stages;
+    //   - executes the payload function `f()`;
+    //   - resumes the multithreaded execution, making sure that all
+    //     iterations beginning with the current will be re"start"ed.
+    //     More specifically, the current iteration that was
+    //     executing an ordered section, will not finish. Instead,
+    //     this iteration will start again from the "start" step, then
+    //     execute "ordered" again, and only after that it will
+    //     "finish".
+    //
+    // Thus, this method creates a region of execution which behaves
+    // as-if the ordered loop was cancelled, then f() executed in a
+    // single-threaded environment, then the ordered loop restarted
+    // from the same iteration where it broke off.
+    //
+    // The programmer must take care not to create an infinite loop
+    // by repeatedly calling `super_ordered` on each execution of
+    // the same task.
+    //
+    void super_ordered(std::function<void()> f);
+
     size_t get_iteration() const noexcept;
+    bool is_starting()  const noexcept;
+    bool is_ordering()  const noexcept;
+    bool is_finishing() const noexcept;
 
     void execute() override;  // ThreadTask's API
-
-    size_t get_num_iterations() const;
-    void set_num_iterations(size_t n);
-    void wait_until_all_finalized();
 
   private:
     friend class MultiThreaded_OrderedJob;
@@ -164,11 +220,7 @@ class OrderedTask : public ThreadTask {
     bool ready_to_start()  const noexcept;
     bool ready_to_order()  const noexcept;
     bool ready_to_finish() const noexcept;
-    bool is_starting()     const noexcept;
-    bool is_ordering()     const noexcept;
-    bool is_finishing()    const noexcept;
     void advance_state();
-    void cancel();
     void start_iteration(size_t i);
 };
 

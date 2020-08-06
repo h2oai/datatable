@@ -47,16 +47,15 @@ class OutputColumn
     std::unique_ptr<MemoryWritableBuffer> strbuf_;
     std::vector<Column> chunks_;
     size_t nrows_in_chunks_;
+    size_t nrows_allocated_;
     ColInfo colinfo_;
     SType stype_;
 
-    bool type_bumped_;        // tmp
-    bool present_in_buffer_;  // tmp
-    size_t : 40;
+    size_t : 56;
 
   public:
     OutputColumn();
-    OutputColumn(OutputColumn&&) noexcept;
+    OutputColumn(OutputColumn&&) noexcept = default;
     OutputColumn(const OutputColumn&) = delete;
 
     // Return pointer to the main data buffer for writing at the
@@ -103,6 +102,8 @@ class OutputColumn
     void merge_chunk_stats(const ColInfo& info);
 
     void set_stype(SType stype);
+    void set_stype(SType stype, size_t nrows_written,
+                   std::shared_ptr<TemporaryFile>& tempfile);
 
   private:
     void reset_colinfo();
