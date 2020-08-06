@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "expr/fexpr.h"
 #include "expr/head.h"
 #include "expr/op.h"
 #include "expr/declarations.h"
