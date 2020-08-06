@@ -111,11 +111,14 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
       // Set up number of valid groups and the quantile coefficients.
       size_t ngroups = gb.size() - has_na_group;
       double a, b;
+      constexpr double epsilon = static_cast<double>(
+                                   std::numeric_limits<float>::epsilon()
+                                 );
       if (ngroups == 1) {
         a = 0;
-        b = nextafter(0.5 * (nquantiles_ - 1), nquantiles_);
+        b = (nquantiles_ - 1) / 2;
       } else {
-        a = static_cast<double>(nquantiles_) / (ngroups - 1);
+        a =  nquantiles_ * (1 - epsilon) / (ngroups - 1);
         b = -a * has_na_group;
       }
 
@@ -125,9 +128,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
           size_t j0, j1;
 
           auto q = is_na_group? GETNA<int32_t>()
-                              : static_cast<int32_t>(nextafter(
-                                  a * i + b, 0
-                                ));
+                              : static_cast<int32_t>(a * i + b);
 
           gb.get_group(i, &j0, &j1);
 

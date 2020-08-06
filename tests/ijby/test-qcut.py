@@ -172,17 +172,20 @@ def test_qcut_random(pandas, seed):
     random.seed(seed)
     max_size = 20
     max_value = 100
-    n = random.randint(1, max_size)
+    nrows = random.randint(1, max_size)
     ncols = 3
     stypes = (stype.bool8, stype.int32, stype.float64)
     names = ("bool", "int", "float")
     nquantiles = [random.randint(1, max_size) for _ in range(ncols)]
     data = [[] for _ in range(ncols)]
 
-    for _ in range(n):
-        data[0].append(random.randint(0, 1))
-        data[1].append(random.randint(-max_value, max_value))
-        data[2].append(random.random() * 2 * max_value - max_value)
+    for _ in range(nrows):
+        data[0].append(random.randint(0, 1)
+                       if random.random() > 0.1 else None)
+        data[1].append(random.randint(-max_value, max_value)
+                       if random.random() > 0.05 else None)
+        data[2].append(random.random() * 2 * max_value - max_value
+                       if random.random() > 0.2 else None)
 
     DT = dt.Frame(data, stypes = stypes, names = names)
     DT_qcut = qcut(DT, nquantiles = nquantiles)
@@ -193,13 +196,18 @@ def test_qcut_random(pandas, seed):
     assert(DT_qcut.names == names)
     assert(DT_qcut.stypes == tuple(stype.int32 for _ in range(ncols)))
 
-    for i in range(ncols):
-        if DT_nunique[0, i] == 1:
-            c = int((nquantiles[i] - 1) / 2)
-            assert(DT_qcut[i].to_list() == [[c for _ in range(n)]])
+    for j in range(ncols):
+        if DT_nunique[0, j] == 1:
+            c = int((nquantiles[j] - 1) / 2)
+            assert(DT_qcut[j].to_list() ==
+                   [[None if DT[i, j] is None else c for i in range(nrows)]])
         else:
-            assert(DT_qcut[i].min1() == 0)
-            assert(DT_qcut[i].max1() == nquantiles[i] - 1)
+            if DT_qcut[j].countna1() == nrows:
+                assert(DT_qcut[j].min1() == None)
+                assert(DT_qcut[j].max1() == None)
+            else:
+                assert(DT_qcut[j].min1() == 0)
+                assert(DT_qcut[j].max1() == nquantiles[j] - 1)
 
 
 @pytest.mark.skip(reason="This test is used for dev only as we are not "
