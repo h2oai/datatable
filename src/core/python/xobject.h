@@ -49,20 +49,40 @@ class XTypeMaker {
     std::vector<PyMethodDef> meth_defs;
 
   public:
-    static struct ConstructorTag {} constructor_tag;
-    static struct DestructorTag {} destructor_tag;
-    static struct GetSetTag {} getset_tag;
-    static struct MethodTag {} method_tag;
-    static struct Method0Tag {} method0_tag;
-    static struct ReprTag {} repr_tag;
-    static struct StrTag {} str_tag;
-    static struct LengthTag {} length_tag;
-    static struct GetitemTag {} getitem_tag;
-    static struct SetitemTag {} setitem_tag;
-    static struct BuffersTag {} buffers_tag;
-    static struct IterTag {} iter_tag;
-    static struct NextTag {} next_tag;
-    static struct CallTag {} call_tag;
+    static struct ConstructorTag {}   constructor_tag;
+    static struct DestructorTag {}    destructor_tag;
+    static struct GetSetTag {}        getset_tag;
+    static struct MethodTag {}        method_tag;
+    static struct Method0Tag {}       method0_tag;
+    static struct ReprTag {}          repr_tag;
+    static struct StrTag {}           str_tag;
+    static struct LengthTag {}        length_tag;
+    static struct GetitemTag {}       getitem_tag;
+    static struct SetitemTag {}       setitem_tag;
+    static struct BuffersTag {}       buffers_tag;
+    static struct IterTag {}          iter_tag;
+    static struct NextTag {}          next_tag;
+    static struct CallTag {}          call_tag;
+    static struct NbAddTag {}         nb_add_tag;
+    static struct NbSubtractTag {}    nb_subtract_tag;
+    static struct NbMultiplyTag {}    nb_multiply_tag;
+    static struct NbRemainderTag {}   nb_remainder_tag;
+    static struct NbDivmodTag {}      nb_divmod_tag;
+    static struct NbPowerTag {}       nb_power_tag;
+    static struct NbNegativeTag {}    nb_negative_tag;
+    static struct NbPositiveTag {}    nb_positive_tag;
+    static struct NbAbsoluteTag {}    nb_absolute_tag;
+    static struct NbInvertTag {}      nb_invert_tag;
+    static struct NbBoolTag {}        nb_bool_tag;
+    static struct NbLShiftTag {}      nb_lshift_tag;
+    static struct NbRShiftTag {}      nb_rshift_tag;
+    static struct NbAndTag {}         nb_and_tag;
+    static struct NbXorTag {}         nb_xor_tag;
+    static struct NbOrTag {}          nb_or_tag;
+    static struct NbIntTag {}         nb_int_tag;
+    static struct NbFloatTag {}       nb_float_tag;
+    static struct NbFloorDivideTag {} nb_floordivide_tag;
+    static struct NbTrueDivideTag {}  nb_truedivide_tag;
 
     XTypeMaker(PyTypeObject* t, size_t objsize);
     void attach_to_module(PyObject* module);
@@ -117,11 +137,37 @@ class XTypeMaker {
     // ternaryfunc = PyObject*(*)(PyObject*, PyObject*, PyObject*)
     void add(ternaryfunc meth, CallTag);
 
+    // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
+    void add(binaryfunc meth, NbAddTag);
+    void add(binaryfunc meth, NbSubtractTag);
+    void add(binaryfunc meth, NbMultiplyTag);
+    void add(binaryfunc meth, NbRemainderTag);
+    void add(binaryfunc meth, NbDivmodTag);
+    void add(ternaryfunc meth, NbPowerTag);
+    void add(binaryfunc meth, NbLShiftTag);
+    void add(binaryfunc meth, NbRShiftTag);
+    void add(binaryfunc meth, NbAndTag);
+    void add(binaryfunc meth, NbXorTag);
+    void add(binaryfunc meth, NbOrTag);
+    void add(binaryfunc meth, NbFloorDivideTag);
+    void add(binaryfunc meth, NbTrueDivideTag);
+
+    // unaryfunc = PyObject*(*)(PyObject*)
+    void add(unaryfunc meth, NbNegativeTag);
+    void add(unaryfunc meth, NbPositiveTag);
+    void add(unaryfunc meth, NbAbsoluteTag);
+    void add(unaryfunc meth, NbInvertTag);
+    void add(unaryfunc meth, NbIntTag);
+    void add(unaryfunc meth, NbFloatTag);
+
+    // inquiry = int(*)(void*)
+    void add(inquiry meth, NbBoolTag);
+
   private:
     PyGetSetDef* finalize_getsets();
     PyMethodDef* finalize_methods();
     void init_tp_as_mapping();
-
+    PyNumberMethods* tp_as_number();
 };
 
 
