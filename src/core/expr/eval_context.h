@@ -102,11 +102,11 @@ class EvalContext
 
   private:
     // Inputs
-    Expr  iexpr_;
-    Expr  jexpr_;
-    Expr  byexpr_;
-    Expr  sortexpr_;
-    Expr  rexpr_;
+    OldExpr  iexpr_;
+    OldExpr  jexpr_;
+    OldExpr  byexpr_;
+    OldExpr  sortexpr_;
+    OldExpr  rexpr_;
 
     // Runtime
     frameVec   frames_;

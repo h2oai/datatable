@@ -28,7 +28,7 @@ namespace expr {
 
 
 class FExpr {
-  private:
+  protected:
     FExpr* parent_;
     std::vector<std::shared_ptr<FExpr>> children_;
 
@@ -38,7 +38,7 @@ class FExpr {
     FExpr& operator=(FExpr&&) = default;
     virtual ~FExpr() = default;
 
-    virtual Workframe evaluate_n(EvalContext&) = 0;
+    virtual Workframe evaluate_fn(EvalContext&) = 0;
 
     /**
       * Return operator precedence of this expression. This will be

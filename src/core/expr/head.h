@@ -30,7 +30,7 @@ namespace expr {
 
 
 /**
-  * `Head` is the part of an `Expr`. It can be thought of as a
+  * `Head` is the part of an `OldExpr`. It can be thought of as a
   * function without the arguments. For example:
   *
   *    Expr            Head            Arguments

@@ -39,7 +39,7 @@ namespace expr {
 // Expr construction
 //------------------------------------------------------------------------------
 
-Expr::Expr(py::robj src) {
+OldExpr::OldExpr(py::robj src) {
   if      (src.is_dtexpr())        _init_from_dtexpr(src);
   else if (src.is_int())           _init_from_int(src);
   else if (src.is_string())        _init_from_string(src);
@@ -65,13 +65,13 @@ Expr::Expr(py::robj src) {
 }
 
 
-void Expr::_init_from_bool(py::robj src) {
+void OldExpr::_init_from_bool(py::robj src) {
   int8_t t = src.to_bool_strict();
   head = ptrHead(new Head_Literal_Bool(t));
 }
 
 
-void Expr::_init_from_dictionary(py::robj src) {
+void OldExpr::_init_from_dictionary(py::robj src) {
   strvec names;
   for (auto kv : src.to_pydict()) {
     if (!kv.first.is_string()) {
@@ -84,7 +84,7 @@ void Expr::_init_from_dictionary(py::robj src) {
 }
 
 
-void Expr::_init_from_dtexpr(py::robj src) {
+void OldExpr::_init_from_dtexpr(py::robj src) {
   auto op     = src.get_attr("_op").to_size_t();
   auto args   = src.get_attr("_args").to_otuple();
   auto params = src.get_attr("_params").to_otuple();
@@ -96,23 +96,23 @@ void Expr::_init_from_dtexpr(py::robj src) {
 }
 
 
-void Expr::_init_from_ellipsis() {
+void OldExpr::_init_from_ellipsis() {
   head = ptrHead(new Head_Literal_SliceAll);
 }
 
 
-void Expr::_init_from_float(py::robj src) {
+void OldExpr::_init_from_float(py::robj src) {
   double x = src.to_double();
   head = ptrHead(new Head_Literal_Float(x));
 }
 
 
-void Expr::_init_from_frame(py::robj src) {
+void OldExpr::_init_from_frame(py::robj src) {
   head = Head_Frame::from_datatable(src);
 }
 
 
-void Expr::_init_from_int(py::robj src) {
+void OldExpr::_init_from_int(py::robj src) {
   py::oint src_int = src.to_pyint();
   int overflow;
   int64_t x = src_int.ovalue<int64_t>(&overflow);
@@ -127,7 +127,7 @@ void Expr::_init_from_int(py::robj src) {
 }
 
 
-void Expr::_init_from_iterable(py::robj src) {
+void OldExpr::_init_from_iterable(py::robj src) {
   for (auto elem : src.to_oiter()) {
     inputs.emplace_back(elem);
   }
@@ -135,7 +135,7 @@ void Expr::_init_from_iterable(py::robj src) {
 }
 
 
-void Expr::_init_from_list(py::robj src) {
+void OldExpr::_init_from_list(py::robj src) {
   auto srclist = src.to_pylist();
   size_t nelems = srclist.size();
   for (size_t i = 0; i < nelems; ++i) {
@@ -145,28 +145,28 @@ void Expr::_init_from_list(py::robj src) {
 }
 
 
-void Expr::_init_from_none() {
+void OldExpr::_init_from_none() {
   head = ptrHead(new Head_Literal_None);
 }
 
 
-void Expr::_init_from_numpy(py::robj src) {
+void OldExpr::_init_from_numpy(py::robj src) {
   head = Head_Frame::from_numpy(src);
 }
 
 
-void Expr::_init_from_pandas(py::robj src) {
+void OldExpr::_init_from_pandas(py::robj src) {
   head = Head_Frame::from_pandas(src);
 }
 
 
-void Expr::_init_from_range(py::robj src) {
+void OldExpr::_init_from_range(py::robj src) {
   py::orange rr = src.to_orange();
   head = ptrHead(new Head_Literal_Range(std::move(rr)));
 }
 
 
-void Expr::_init_from_slice(py::robj src) {
+void OldExpr::_init_from_slice(py::robj src) {
   auto src_as_slice = src.to_oslice();
   if (src_as_slice.is_trivial()) {
     head = ptrHead(new Head_Literal_SliceAll);
@@ -183,12 +183,12 @@ void Expr::_init_from_slice(py::robj src) {
 }
 
 
-void Expr::_init_from_string(py::robj src) {
+void OldExpr::_init_from_string(py::robj src) {
   head = ptrHead(new Head_Literal_String(src));
 }
 
 
-void Expr::_init_from_type(py::robj src) {
+void OldExpr::_init_from_type(py::robj src) {
   head = ptrHead(new Head_Literal_Type(src));
 }
 
@@ -199,63 +199,63 @@ void Expr::_init_from_type(py::robj src) {
 // Expr core functionality
 //------------------------------------------------------------------------------
 
-Kind Expr::get_expr_kind() const {
+Kind OldExpr::get_expr_kind() const {
   return head->get_expr_kind();
 }
 
-Expr::operator bool() const noexcept {
+OldExpr::operator bool() const noexcept {
   return bool(head);
 }
 
 
-Workframe Expr::evaluate_n(EvalContext& ctx, bool allow_new) const {
+Workframe OldExpr::evaluate_n(EvalContext& ctx, bool allow_new) const {
   return head->evaluate_n(inputs, ctx, allow_new);
 }
 
 
-Workframe Expr::evaluate_j(EvalContext& ctx, bool allow_new) const
+Workframe OldExpr::evaluate_j(EvalContext& ctx, bool allow_new) const
 {
   return head->evaluate_j(inputs, ctx, allow_new);
 }
 
-Workframe Expr::evaluate_r(EvalContext& ctx, const sztvec& indices) const
+Workframe OldExpr::evaluate_r(EvalContext& ctx, const sztvec& indices) const
 {
   return head->evaluate_r(inputs, ctx, indices);
 }
 
 
-Workframe Expr::evaluate_f(
+Workframe OldExpr::evaluate_f(
     EvalContext& ctx, size_t frame_id, bool allow_new) const
 {
   return head->evaluate_f(ctx, frame_id, allow_new);
 }
 
 
-RowIndex Expr::evaluate_i(EvalContext& ctx) const {
+RowIndex OldExpr::evaluate_i(EvalContext& ctx) const {
   return head->evaluate_i(inputs, ctx);
 }
 
 
-void Expr::prepare_by(EvalContext& ctx, Workframe& wf,
+void OldExpr::prepare_by(EvalContext& ctx, Workframe& wf,
                       std::vector<SortFlag>& flags) const
 {
   head->prepare_by(inputs, ctx, wf, flags);
 }
 
 
-RiGb Expr::evaluate_iby(EvalContext& ctx) const {
+RiGb OldExpr::evaluate_iby(EvalContext& ctx) const {
   return head->evaluate_iby(inputs, ctx);
 }
 
 
-bool Expr::evaluate_bool() const {
+bool OldExpr::evaluate_bool() const {
   auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
   xassert(boolhead);
   return boolhead->get_value();
 }
 
 
-bool Expr::is_negated_column(EvalContext& ctx, size_t* iframe,
+bool OldExpr::is_negated_column(EvalContext& ctx, size_t* iframe,
                              size_t* icol) const
 {
   auto unaryfn_head = dynamic_cast<Head_Func_Unary*>(head.get());
@@ -274,7 +274,7 @@ bool Expr::is_negated_column(EvalContext& ctx, size_t* iframe,
 }
 
 
-int64_t Expr::evaluate_int() const {
+int64_t OldExpr::evaluate_int() const {
   auto inthead = dynamic_cast<Head_Literal_Int*>(head.get());
   xassert(inthead);
   return inthead->get_value();

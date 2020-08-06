@@ -26,18 +26,17 @@
 #include <utility>    // std::pair
 #include <vector>
 #include "sort.h"
-
-
 namespace dt {
 namespace expr {
 
+
   class Head;
-  class Expr;
+  class OldExpr;
   class Workframe;
   class EvalContext;
 
   using ptrHead = std::unique_ptr<Head>;
-  using vecExpr = std::vector<Expr>;
+  using vecExpr = std::vector<OldExpr>;
 
 
   // Evaluation mode, this distinguishes between expressions of the

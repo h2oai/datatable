@@ -83,19 +83,19 @@ namespace expr {
   *   equal to `Bool`).
   *
   */
-class Expr {
+class OldExpr {
   private:
     ptrHead  head;
     vecExpr  inputs;
 
   public:
-    explicit Expr(py::robj src);
-    Expr(ptrHead&&, vecExpr&&);
-    Expr() = default;
-    Expr(Expr&&) = default;
-    Expr(const Expr&) = delete;
-    Expr& operator=(Expr&&) = default;
-    Expr& operator=(const Expr&) = delete;
+    explicit OldExpr(py::robj src);
+    OldExpr(ptrHead&&, vecExpr&&);
+    OldExpr() = default;
+    OldExpr(OldExpr&&) = default;
+    OldExpr(const OldExpr&) = delete;
+    OldExpr& operator=(OldExpr&&) = default;
+    OldExpr& operator=(const OldExpr&) = delete;
 
     Kind get_expr_kind() const;
     operator bool() const noexcept;  // Check whether the Expr is empty or not

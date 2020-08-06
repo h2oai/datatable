@@ -42,7 +42,7 @@ Workframe Head_List::evaluate_n(
     const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
 {
   Workframe outputs(ctx);
-  for (const Expr& arg : inputs) {
+  for (const OldExpr& arg : inputs) {
     outputs.cbind( arg.evaluate_n(ctx, allow_new) );
   }
   return outputs;
@@ -174,7 +174,7 @@ static Workframe _evaluate_f_list(
     const vecExpr& inputs, EvalContext& ctx, bool allow_new)
 {
   Workframe outputs(ctx);
-  for (const Expr& arg : inputs) {
+  for (const OldExpr& arg : inputs) {
     outputs.cbind( arg.evaluate_f(ctx, 0, allow_new) );
   }
   return outputs;
@@ -303,14 +303,14 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
 
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Str || kind == Kind::Int) {
-    for (const Expr& arg : inputs) {
+    for (const OldExpr& arg : inputs) {
       outwf.cbind( arg.evaluate_f(ctx, 0, false) );
       outflags.push_back(SortFlag::NONE);
     }
   }
   else if (kind == Kind::Func) {
     size_t iframe, icol;
-    for (const Expr& arg : inputs) {
+    for (const OldExpr& arg : inputs) {
       if (arg.is_negated_column(ctx, &iframe, &icol)) {
         outwf.add_ref_column(iframe, icol);
         outflags.push_back(SortFlag::DESCENDING);

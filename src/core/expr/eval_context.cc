@@ -59,7 +59,7 @@ void EvalContext::add_groupby(py::oby obj) {
   if (byexpr_) {
     throw TypeError() << "Multiple by()'s are not allowed";
   }
-  byexpr_ = Expr(obj.get_arguments());
+  byexpr_ = OldExpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
 }
 
@@ -68,12 +68,12 @@ void EvalContext::add_sortby(py::osort obj) {
   if (sortexpr_) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
-  sortexpr_ = Expr(obj.get_arguments());
+  sortexpr_ = OldExpr(obj.get_arguments());
 }
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr_ = Expr(oi);
+  iexpr_ = OldExpr(oi);
 }
 
 
@@ -89,16 +89,16 @@ void EvalContext::add_j(py::oobj oj) {
                             "assignment expression";
     }
     eval_mode_ = EvalMode::UPDATE;
-    jexpr_ = Expr(arg_update.get_names());
-    rexpr_ = Expr(arg_update.get_exprs());
+    jexpr_ = OldExpr(arg_update.get_names());
+    rexpr_ = OldExpr(arg_update.get_exprs());
   } else {
-    jexpr_ = Expr(oj);
+    jexpr_ = OldExpr(oj);
   }
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  rexpr_ = Expr(obj);
+  rexpr_ = OldExpr(obj);
 }
 
 
