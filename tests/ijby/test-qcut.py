@@ -173,9 +173,9 @@ def test_qcut_random(pandas, seed):
     max_size = 20
     max_value = 100
     nrows = random.randint(1, max_size)
-    ncols = 3
-    stypes = (stype.bool8, stype.int32, stype.float64)
-    names = ("bool", "int", "float")
+    ncols = 4
+    stypes = (stype.bool8, stype.int32, stype.float64, stype.float64)
+    names = ("bool", "int", "float", "nafloat")
     nquantiles = [random.randint(1, max_size) for _ in range(ncols)]
     data = [[] for _ in range(ncols)]
 
@@ -186,10 +186,11 @@ def test_qcut_random(pandas, seed):
                        if random.random() > 0.05 else None)
         data[2].append(random.random() * 2 * max_value - max_value
                        if random.random() > 0.2 else None)
+        data[3].append(random.random() * 2 * max_value - max_value
+                       if random.random() < 0.1 else None)
 
     DT = dt.Frame(data, stypes = stypes, names = names)
     DT_qcut = qcut(DT, nquantiles = nquantiles)
-
     DT_nunique = DT.nunique()
 
     frame_integrity_check(DT_qcut)
