@@ -150,7 +150,7 @@ void OrderedTask::start_iteration(size_t i) {
 // waiting explicitly. Instead it finishes almost immediately and
 // then the thread tries to re-acquire a new task.
 //
-// After this task is executed, the parent OrderedJob will call
+// After this task is executed, the parent `OrderedJob` will call
 // `.advance_state()` on it. This is ok, as long as we do not expect
 // the `state_` of this class to be meaningful.
 //
