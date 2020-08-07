@@ -40,6 +40,8 @@ class FExpr {
     virtual ~FExpr() = default;
 
     virtual Workframe evaluate_fn(EvalContext&) const = 0;
+    virtual RowIndex  evaluate_i(EvalContext&) const = 0;
+    virtual RiGb      evaluate_iby(EvalContext&) const = 0;
 
     /**
       * Return operator precedence of this expression. This will be

@@ -104,11 +104,11 @@ class OldExpr : public FExpr {
     Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
     Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
     Workframe evaluate_r(EvalContext& ctx, const sztvec&) const;
-    RowIndex  evaluate_i(EvalContext& ctx) const;
-    RiGb      evaluate_iby(EvalContext& ctx) const;
 
     // FExpr API
     Workframe evaluate_fn(EvalContext&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
     int precedence() const noexcept override;
     std::string repr() const override;
 
