@@ -66,9 +66,8 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         nquantiles_(nquantiles)
     {
       xassert(nquantiles > 0);
-      xassert(col.ltype() == dt::LType::BOOL ||
-              col.ltype() == dt::LType::INT ||
-              col.ltype() == dt::LType::REAL);
+      xassert(col.ltype() != dt::LType::STRING &&
+              col.ltype() != dt::LType::OBJECT);
       col_ = std::move(col);
     }
 

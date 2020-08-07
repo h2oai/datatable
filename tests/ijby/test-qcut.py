@@ -20,12 +20,13 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
-from datatable import dt, stype, f, qcut
-from datatable.internal import frame_integrity_check
-from tests import assert_equals
+import math
 import pytest
 import random
-import math
+from datatable import dt, stype, f, qcut
+from datatable.expr import Expr
+from datatable.internal import frame_integrity_check
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -33,61 +34,63 @@ import math
 #-------------------------------------------------------------------------------
 
 def test_qcut_error_noargs():
-    msg = r"Function qcut\(\) requires one positional argument, but none were given"
+    msg = r"Function qcut\(\) requires one positional argument, " \
+           "but none were given"
     with pytest.raises(TypeError, match=msg):
         qcut()
 
 
 def test_qcut_error_wrong_column_types():
     DT = dt.Frame([[0], [dt]])
-    msg = r"qcut\(\) can only be applied to numeric columns, instead " \
-          "column 1 has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to string or object columns, instead " \
+           "column 1 has an stype: obj64"
     with pytest.raises(TypeError, match=msg):
-        qcut(DT)
+        DT[:, qcut(f[:])]
 
 
 def test_qcut_error_wrong_column_type_zero_rows():
     DT = dt.Frame(obj = [] / dt.obj64)
-    msg = r"qcut\(\) can only be applied to numeric columns, instead column 0 " \
-          "has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to string or object columns, instead " \
+           "column 0 has an stype: obj64"
     with pytest.raises(TypeError, match=msg):
-        qcut(DT)
+        DT[:, qcut(f[:])]
 
 
 def test_qcut_error_float_nquantiles():
     msg = "Expected an integer, instead got <class 'float'>"
     DT = dt.Frame(range(10))
     with pytest.raises(TypeError, match=msg):
-        qcut(DT, nquantiles = 1.5)
+        DT[:, qcut(f[:], nquantiles = 1.5)]
 
 
 def test_qcut_error_zero_nquantiles():
     msg = "Number of quantiles must be positive, instead got: 0"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        qcut(DT, nquantiles = 0)
+        DT[:, qcut(f[:], nquantiles = 0)]
 
 
-def test_qcut_error_negative_nnquantiles():
+def test_qcut_error_negative_nquantiles():
     msg = "Number of quantiles must be positive, instead got: -10"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        qcut(DT, nquantiles = -10)
+        DT[:, qcut(f[:], nquantiles = -10)]
 
 
 def test_qcut_error_negative_nquantiles_list():
-    msg = r"All elements in nquantiles must be positive, got nquantiles\[0\]: 0"
+    msg = r"All elements in nquantiles must be positive, got nquantiles\[1\]: -1"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        qcut(DT, nquantiles = [0, -1])
+        DT[:, qcut(f[:], nquantiles = [10, -1])]
 
 
 def test_qcut_error_inconsistent_nquantiles():
-    msg = ("When nquantiles is a list or a tuple, its length must be the same as "
-           "the number of columns in the frame/expression, i.e. 2, instead got: 1")
+    msg = "When nquantiles is a list or a tuple, its length must be " \
+          "the same as the number of columns in the frame/expression, " \
+          "i.e. 2, instead got: 1"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        qcut(DT, nquantiles = [10])
+        DT[:, qcut(f[:], nquantiles = [10])]
 
 
 def test_qcut_error_groupby():
@@ -98,23 +101,29 @@ def test_qcut_error_groupby():
 
 
 def test_qcut_empty_frame():
-    DT_qcut = qcut(dt.Frame())
-    assert_equals(DT_qcut, dt.Frame())
+    DT = dt.Frame()
+    expr_qcut = qcut(DT)
+    assert(isinstance(expr_qcut, Expr))
+    assert_equals(DT[:, f[:]], DT)
 
 
 def test_qcut_zerorow_frame():
     DT = dt.Frame([[], []])
-    DT_qcut = qcut(DT)
+    DT_qcut = DT[:, qcut(f[:])]
+    expr_qcut = qcut(DT)
+    assert(isinstance(expr_qcut, Expr))
     assert_equals(DT_qcut, dt.Frame([[] / dt.int32, [] / dt.int32]))
 
 
 def test_qcut_trivial():
     DT = dt.Frame({"trivial": range(10)})
-    DT_qcut = qcut(DT)
+    DT_qcut = DT[:, qcut(f[:])]
+    expr_qcut = qcut(DT)
+    assert(isinstance(expr_qcut, Expr))
     assert_equals(DT, DT_qcut)
 
 
-def test_qcut_expr():
+def test_qcut_expr_simple():
     DT = dt.Frame([range(0, 30, 3), range(0, 20, 2)])
     DT_qcut = DT[:, qcut(f[0] - f[1])]
     assert_equals(dt.Frame(range(10)), DT_qcut)
@@ -123,7 +132,7 @@ def test_qcut_expr():
 def test_qcut_one_row():
     nquantiles = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
-    DT_qcut = qcut(DT, nquantiles = nquantiles)
+    DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
     assert(DT_qcut.to_list() == [[0], [0], [1], [None]])
 
 
@@ -162,9 +171,10 @@ def test_qcut_small():
                stypes = [stype.int32] * DT.ncols
              )
 
-
-    DT_qcut = qcut(DT, nquantiles = nquantiles)
+    DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
+    DT_qcut_frame = DT[:, qcut(DT, nquantiles = nquantiles)]
     assert_equals(DT_ref, DT_qcut)
+    assert_equals(DT_ref, DT_qcut_frame)
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
@@ -190,7 +200,8 @@ def test_qcut_random(pandas, seed):
                        if random.random() < 0.1 else None)
 
     DT = dt.Frame(data, stypes = stypes, names = names)
-    DT_qcut = qcut(DT, nquantiles = nquantiles)
+    DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
+
     DT_nunique = DT.nunique()
 
     frame_integrity_check(DT_qcut)
@@ -230,7 +241,7 @@ def test_qcut_vs_pandas_random(pandas, seed):
         data[1].append(random.random() * 2 * max_value - max_value)
 
     DT = dt.Frame(data, stypes = [stype.int32, stype.float64])
-    DT_qcut = qcut(DT, nquantiles = nquantiles)
+    DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
     PD_qcut = [pandas.qcut(data[i], nquantiles[i], labels=False) for i in range(ncols)]
 
     assert([list(PD_qcut[i]) for i in range(ncols)] == DT_qcut.to_list())

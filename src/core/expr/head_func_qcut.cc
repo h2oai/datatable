@@ -104,13 +104,11 @@ Workframe Head_Func_Qcut::evaluate_n(
   for (size_t i = 0; i < ncols; ++i) {
     Column coli = wf.retrieve_column(i);
 
-    if (coli.ltype() != dt::LType::BOOL &&
-        coli.ltype() != dt::LType::INT &&
-        coli.ltype() != dt::LType::REAL)
+    if (coli.ltype() == dt::LType::STRING || coli.ltype() == dt::LType::OBJECT)
     {
-      throw TypeError() << "qcut() can only be applied to numeric "
-        << "columns, instead column `" << i << "` has an stype: `"
-        << coli.stype() << "`";
+      throw TypeError() << "`qcut()` cannot be applied to "
+        << "string or object columns, instead column `" << i
+        << "` has an stype: `" << coli.stype() << "`";
     }
 
     coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
@@ -133,16 +131,15 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 }
 
 
-static oobj qcut_frame(oobj arg0, oobj arg1) {
+static oobj qcut_frame(oobj arg0) {
   auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
   auto f_all = make_pyexpr(dt::expr::Op::COL,
                            otuple{ slice_all },
                            otuple{ oint(0) });
   auto qcutexpr = make_pyexpr(dt::expr::Op::QCUT,
                               otuple{ f_all },
-                              otuple{ arg1 });
-  auto frame = static_cast<Frame*>(arg0.to_borrowed_ref());
-  return frame->m__getitem__(otuple{ slice_all, qcutexpr });
+                              otuple{ arg0 });
+  return qcutexpr;
 }
 
 static const char* doc_qcut =
@@ -156,7 +153,7 @@ these quantiles may not have exactly the same population.
 Parameters
 ----------
 cols: Frame | f-expression
-    Frame or f-expression consisting of numeric columns.
+    Frame or f-expression for quantile binning.
 nquantiles: int | list of ints | tuple of ints
     When a single number is specified, this number of quantiles
     will be used to bin each column in `cols`.
@@ -195,7 +192,7 @@ static oobj pyfn_qcut(const PKArgs& args)
   oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
 
   if (arg0.is_frame()) {
-    return qcut_frame(arg0, arg1);
+    return qcut_frame(arg1);
   }
   if (arg0.is_dtexpr()) {
     return make_pyexpr(
