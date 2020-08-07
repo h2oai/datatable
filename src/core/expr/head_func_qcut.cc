@@ -151,9 +151,9 @@ nquantiles: int | list of ints | tuple of ints
     the list/tuple length must be equal to the number of columns
     in `cols`.
 
-return: Frame | Expr
-    Frame/f-expression, where each column is filled with
-    the respective quantile ids.
+return: Expr
+    f-expression that converts input columns into the
+    columns filled with the respective quantile ids.
 )";
 
 static PKArgs args_qcut(
