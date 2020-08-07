@@ -131,17 +131,6 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 }
 
 
-static oobj qcut_frame(oobj arg0) {
-  auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
-  auto f_all = make_pyexpr(dt::expr::Op::COL,
-                           otuple{ slice_all },
-                           otuple{ oint(0) });
-  auto qcutexpr = make_pyexpr(dt::expr::Op::QCUT,
-                              otuple{ f_all },
-                              otuple{ arg0 });
-  return qcutexpr;
-}
-
 static const char* doc_qcut =
 R"(qcut(cols, nquantiles=10)
 --
@@ -191,18 +180,9 @@ static oobj pyfn_qcut(const PKArgs& args)
   oobj arg0 = args[0].to_oobj();
   oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
 
-  if (arg0.is_frame()) {
-    return qcut_frame(arg1);
-  }
-  if (arg0.is_dtexpr()) {
-    return make_pyexpr(
-             dt::expr::Op::QCUT,
-             otuple{ arg0 },
-             otuple{ arg1 }
-           );
-  }
-  throw TypeError() << "The first argument to `qcut()` must be a column "
-      "expression or a Frame, instead got " << arg0.typeobj();
+  return make_pyexpr(dt::expr::Op::QCUT,
+                     otuple{ arg0 },
+                     otuple{ arg1 });
 }
 
 

@@ -125,8 +125,8 @@ def test_cut_one_row():
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
     DT_cut_right = cut(DT, nbins = nbins)
     DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
-    assert(DT_cut_right.to_list() == [[0], [0], [1], [None]])
-    assert(DT_cut_left.to_list() == [[0], [1], [1], [None]])
+    assert DT_cut_right.to_list() == [[0], [0], [1], [None]]
+    assert DT_cut_left.to_list() == [[0], [1], [1], [None]]
 
 
 def test_cut_small():
@@ -204,7 +204,7 @@ def test_cut_vs_pandas_random(pandas, seed):
 
     PD_cut = [pandas.cut(data[i], nbins[i], labels=False, right=right_closed) for i in range(3)]
 
-    assert([list(PD_cut[i]) for i in range(3)] == DT_cut.to_list())
+    assert [list(PD_cut[i]) for i in range(3)] == DT_cut.to_list()
 
 
 #-------------------------------------------------------------------------------
@@ -223,10 +223,10 @@ def test_cut_pandas_issue_35126(pandas):
     DT = dt.Frame(data)
     DT_cut_right = cut(DT, nbins = nbins)
     DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
-    assert(DT_cut_right.to_list() == [[0, 20, 41]])
-    assert(DT_cut_left.to_list() == [[0, 21, 41]])
+    assert DT_cut_right.to_list() == [[0, 20, 41]]
+    assert DT_cut_left.to_list() == [[0, 21, 41]]
 
     # Testing that Pandas results are inconsistent
     PD = pandas.cut(data, nbins, labels = False)
-    assert(list(PD) == [0, 21, 41])
+    assert list(PD) == [0, 21, 41]
 

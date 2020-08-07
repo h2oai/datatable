@@ -103,7 +103,7 @@ def test_qcut_error_groupby():
 def test_qcut_empty_frame():
     DT = dt.Frame()
     expr_qcut = qcut(DT)
-    assert(isinstance(expr_qcut, Expr))
+    assert isinstance(expr_qcut, Expr)
     assert_equals(DT[:, f[:]], DT)
 
 
@@ -111,7 +111,7 @@ def test_qcut_zerorow_frame():
     DT = dt.Frame([[], []])
     DT_qcut = DT[:, qcut(f[:])]
     expr_qcut = qcut(DT)
-    assert(isinstance(expr_qcut, Expr))
+    assert isinstance(expr_qcut, Expr)
     assert_equals(DT_qcut, dt.Frame([[] / dt.int32, [] / dt.int32]))
 
 
@@ -119,7 +119,7 @@ def test_qcut_trivial():
     DT = dt.Frame({"trivial": range(10)})
     DT_qcut = DT[:, qcut(f[:])]
     expr_qcut = qcut(DT)
-    assert(isinstance(expr_qcut, Expr))
+    assert isinstance(expr_qcut, Expr)
     assert_equals(DT, DT_qcut)
 
 
@@ -133,7 +133,7 @@ def test_qcut_one_row():
     nquantiles = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
     DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
-    assert(DT_qcut.to_list() == [[0], [0], [1], [None]])
+    assert DT_qcut.to_list() == [[0], [0], [1], [None]]
 
 
 def test_qcut_small():
@@ -215,11 +215,11 @@ def test_qcut_random(pandas, seed):
                    [[None if DT[i, j] is None else c for i in range(nrows)]])
         else:
             if DT_qcut[j].countna1() == nrows:
-                assert(DT_qcut[j].min1() == None)
-                assert(DT_qcut[j].max1() == None)
+                assert DT_qcut[j].min1() == None
+                assert DT_qcut[j].max1() == None
             else:
-                assert(DT_qcut[j].min1() == 0)
-                assert(DT_qcut[j].max1() == nquantiles[j] - 1)
+                assert DT_qcut[j].min1() == 0
+                assert DT_qcut[j].max1() == nquantiles[j] - 1
 
 
 @pytest.mark.skip(reason="This test is used for dev only as we are not "
@@ -244,5 +244,5 @@ def test_qcut_vs_pandas_random(pandas, seed):
     DT_qcut = DT[:, qcut(f[:], nquantiles = nquantiles)]
     PD_qcut = [pandas.qcut(data[i], nquantiles[i], labels=False) for i in range(ncols)]
 
-    assert([list(PD_qcut[i]) for i in range(ncols)] == DT_qcut.to_list())
+    assert [list(PD_qcut[i]) for i in range(ncols)] == DT_qcut.to_list()
 
