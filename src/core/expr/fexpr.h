@@ -33,12 +33,13 @@ class FExpr {
     std::vector<std::shared_ptr<FExpr>> children_;
 
   public:
+    FExpr() : parent_(nullptr) {}
     FExpr(FExpr* parent, std::vector<std::shared_ptr<FExpr>> children);
     FExpr(FExpr&&) = default;
     FExpr& operator=(FExpr&&) = default;
     virtual ~FExpr() = default;
 
-    virtual Workframe evaluate_fn(EvalContext&) = 0;
+    virtual Workframe evaluate_fn(EvalContext&) const = 0;
 
     /**
       * Return operator precedence of this expression. This will be

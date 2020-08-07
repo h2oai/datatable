@@ -83,7 +83,7 @@ namespace expr {
   *   equal to `Bool`).
   *
   */
-class OldExpr {
+class OldExpr : public FExpr {
   private:
     ptrHead  head;
     vecExpr  inputs;
@@ -106,6 +106,11 @@ class OldExpr {
     Workframe evaluate_r(EvalContext& ctx, const sztvec&) const;
     RowIndex  evaluate_i(EvalContext& ctx) const;
     RiGb      evaluate_iby(EvalContext& ctx) const;
+
+    // FExpr API
+    Workframe evaluate_fn(EvalContext&) const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
 
     // Evaluate the internal part of the by()/sort() nodes, and return
     // the resulting Workframe, allowing the caller to perform a

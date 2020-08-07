@@ -39,7 +39,9 @@ namespace expr {
 // Expr construction
 //------------------------------------------------------------------------------
 
-OldExpr::OldExpr(py::robj src) {
+OldExpr::OldExpr(py::robj src)
+  : FExpr()
+{
   if      (src.is_dtexpr())        _init_from_dtexpr(src);
   else if (src.is_int())           _init_from_int(src);
   else if (src.is_string())        _init_from_string(src);
@@ -280,6 +282,18 @@ int64_t OldExpr::evaluate_int() const {
   return inthead->get_value();
 }
 
+
+Workframe OldExpr::evaluate_fn(EvalContext& ctx) const {
+  return evaluate_n(ctx, false);
+}
+
+int OldExpr::precedence() const noexcept {
+  return 0;
+}
+
+std::string OldExpr::repr() const {
+  return "?";
+}
 
 
 
