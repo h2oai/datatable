@@ -100,13 +100,11 @@ class OldExpr : public FExpr {
     Kind get_expr_kind() const;
     operator bool() const noexcept;  // Check whether the Expr is empty or not
 
-    Workframe evaluate_n(EvalContext& ctx) const;
-    Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const;
-    Workframe evaluate_j(EvalContext& ctx) const;
-    Workframe evaluate_r(EvalContext& ctx, const sztvec&) const;
-
     // FExpr API
-    Workframe evaluate_fn(EvalContext&) const override;
+    Workframe evaluate_n(EvalContext& ctx) const override;
+    Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const override;
+    Workframe evaluate_j(EvalContext& ctx) const override;
+    Workframe evaluate_r(EvalContext& ctx, const sztvec&) const override;
     RowIndex  evaluate_i(EvalContext&) const override;
     RiGb      evaluate_iby(EvalContext&) const override;
     int precedence() const noexcept override;

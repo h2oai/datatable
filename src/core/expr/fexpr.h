@@ -39,7 +39,10 @@ class FExpr {
     FExpr& operator=(FExpr&&) = default;
     virtual ~FExpr() = default;
 
-    virtual Workframe evaluate_fn(EvalContext&) const = 0;
+    virtual Workframe evaluate_n(EvalContext&) const = 0;
+    virtual Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const = 0;
+    virtual Workframe evaluate_j(EvalContext& ctx) const = 0;
+    virtual Workframe evaluate_r(EvalContext& ctx, const sztvec&) const = 0;
     virtual RowIndex  evaluate_i(EvalContext&) const = 0;
     virtual RiGb      evaluate_iby(EvalContext&) const = 0;
 

@@ -283,10 +283,6 @@ int64_t OldExpr::evaluate_int() const {
 }
 
 
-Workframe OldExpr::evaluate_fn(EvalContext& ctx) const {
-  return evaluate_n(ctx);
-}
-
 int OldExpr::precedence() const noexcept {
   return 0;
 }
