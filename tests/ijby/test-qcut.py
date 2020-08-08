@@ -86,7 +86,7 @@ def test_qcut_error_negative_nquantiles_list():
 
 def test_qcut_error_inconsistent_nquantiles():
     msg = "When nquantiles is a list or a tuple, its length must be " \
-          "the same as the number of columns in the frame/expression, " \
+          "the same as the number of input columns, " \
           "i.e. 2, instead got: 1"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
