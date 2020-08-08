@@ -97,7 +97,7 @@ class OldExpr : public FExpr {
     OldExpr& operator=(OldExpr&&) = default;
     OldExpr& operator=(const OldExpr&) = delete;
 
-    Kind get_expr_kind() const;
+    Kind get_expr_kind() const override;
     operator bool() const noexcept;  // Check whether the Expr is empty or not
 
     // FExpr API

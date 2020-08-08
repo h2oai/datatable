@@ -87,6 +87,13 @@ class FExpr {
       * parentheses are not needed, since "+" has lower precedence 11.
       */
     virtual std::string repr() const = 0;
+
+    /**
+      * Categorize this expression according to its "type", enabling
+      * special processing for certain kinds of expressions.
+      */
+    virtual Kind get_expr_kind() const = 0;
+
 };
 
 

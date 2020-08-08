@@ -103,7 +103,7 @@ class EvalContext
   private:
     // Inputs
     std::shared_ptr<FExpr>    iexpr_;
-    std::shared_ptr<OldExpr>  jexpr_;
+    std::shared_ptr<FExpr>    jexpr_;
     std::shared_ptr<OldExpr>  byexpr_;
     std::shared_ptr<OldExpr>  sortexpr_;
     std::shared_ptr<OldExpr>  rexpr_;
