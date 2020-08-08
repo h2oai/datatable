@@ -80,7 +80,7 @@ Kind Head_Frame::get_expr_kind() const {
 // be used.
 //
 Workframe Head_Frame::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   (void) args;
   xassert(args.size() == 0);
@@ -112,9 +112,9 @@ Workframe Head_Frame::evaluate_n(
 // DT[<i>, X] is thus equivalent to X[DT[:, <i>], :].
 //
 Workframe Head_Frame::evaluate_j(
-    const vecExpr& args, EvalContext& ctx, bool allow_new) const
+    const vecExpr& args, EvalContext& ctx) const
 {
-  return evaluate_n(args, ctx, allow_new);
+  return evaluate_n(args, ctx);
 }
 
 
@@ -133,7 +133,7 @@ Workframe Head_Frame::evaluate_r(
   if (indices.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {
     return Workframe(ctx);
   }
-  return evaluate_n(args, ctx, false);
+  return evaluate_n(args, ctx);
 }
 
 
@@ -141,7 +141,7 @@ Workframe Head_Frame::evaluate_r(
 // If X is a Frame, then the expression f[X] (as in DT[:, f[X]]) just
 // doesn't make much sense, so we disallow it.
 //
-Workframe Head_Frame::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_Frame::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 

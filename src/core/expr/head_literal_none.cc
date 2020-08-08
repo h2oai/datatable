@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ Kind Head_Literal_None::get_expr_kind() const {
 
 
 Workframe Head_Literal_None::evaluate_n(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   return _wrap_column(ctx, Const_ColumnImpl::make_na_column(1));
 }
@@ -41,7 +41,7 @@ Workframe Head_Literal_None::evaluate_n(
 
 // When used as j, `None` means select all columns
 Workframe Head_Literal_None::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   size_t n = ctx.get_datatable(0)->ncols();
   Workframe outputs(ctx);
@@ -80,7 +80,7 @@ Workframe Head_Literal_None::evaluate_r(
 
 
 // When used in f, `None` means select nothing
-Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t, bool) const {
+Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t) const {
   return Workframe(ctx);
 }
 

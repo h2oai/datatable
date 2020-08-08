@@ -82,7 +82,7 @@ static Column op_isclose(Column&& xcol, Column&& ycol,
 
 
 Workframe Head_Func_IsClose::evaluate_n(
-            const vecExpr& args, EvalContext& ctx, bool) const
+            const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 2);
   Workframe lhs = args[0]->evaluate_n(ctx);

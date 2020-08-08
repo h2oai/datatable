@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,7 +32,7 @@ Kind Head_Literal_SliceAll::get_expr_kind() const {
 
 
 Workframe Head_Literal_SliceAll::evaluate_n(
-    const vecExpr&, EvalContext&, bool) const
+    const vecExpr&, EvalContext&) const
 {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
@@ -41,7 +41,7 @@ Workframe Head_Literal_SliceAll::evaluate_n(
 // `f[:]` will return all columns from `f`
 //
 Workframe Head_Literal_SliceAll::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool) const
+    EvalContext& ctx, size_t frame_id) const
 {
   size_t ncols = ctx.get_datatable(frame_id)->ncols();
   Workframe outputs(ctx);
@@ -60,7 +60,7 @@ Workframe Head_Literal_SliceAll::evaluate_f(
 //   - key columns in naturally joined frames are skipped, to avoid duplication.
 //
 Workframe Head_Literal_SliceAll::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   Workframe outputs(ctx);
   for (size_t i = 0; i < ctx.nframes(); ++i) {

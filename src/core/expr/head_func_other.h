@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,7 +40,7 @@ class Head_Func_Re_Match : public Head_Func {
     static ptrHead make(Op, const py::otuple& params);
 
     Head_Func_Re_Match(py::robj, py::robj);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 

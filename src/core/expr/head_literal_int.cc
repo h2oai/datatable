@@ -42,7 +42,7 @@ int64_t Head_Literal_Int::get_value() const {
 
 
 Workframe Head_Literal_Int::evaluate_n(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   return _wrap_column(ctx, Const_ColumnImpl::make_int_column(1, value));
 }
@@ -50,18 +50,15 @@ Workframe Head_Literal_Int::evaluate_n(
 
 
 Workframe Head_Literal_Int::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool allow_new) const
+    EvalContext& ctx, size_t frame_id) const
 {
   auto df = ctx.get_datatable(frame_id);
   Workframe outputs(ctx);
   int64_t icols = static_cast<int64_t>(df->ncols());
   if (value < -icols || value >= icols) {
-    if (!(allow_new && value > 0)) {
       throw ValueError()
           << "Column index `" << value << "` is invalid for a Frame with "
           << icols << " column" << (icols == 1? "" : "s");
-    }
-    outputs.add_placeholder(std::string(), frame_id);
   } else {
     size_t i = static_cast<size_t>(value < 0? value + icols : value);
     outputs.add_ref_column(frame_id, i);
@@ -72,9 +69,9 @@ Workframe Head_Literal_Int::evaluate_f(
 
 
 Workframe Head_Literal_Int::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool allow_new) const
+    const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(ctx, 0, allow_new);
+  return evaluate_f(ctx, 0);
 }
 
 

@@ -83,7 +83,7 @@ ptrHead Head_Func_Shift::make(Op, const py::otuple& params) {
 
 
 Workframe Head_Func_Shift::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
   Workframe inputs = args[0]->evaluate_n(ctx);

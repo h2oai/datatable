@@ -184,9 +184,8 @@ py::oobj EvalContext::evaluate() {
 // will contain the location of these columns in the updated `dt0`.
 //
 sztvec EvalContext::evaluate_j_as_column_index() {
-  bool allow_new = (eval_mode_ == EvalMode::UPDATE);
   DataTable* dt0 = get_datatable(0);
-  auto jres = jexpr_->evaluate_j(*this, allow_new);
+  auto jres = jexpr_->evaluate_j(*this);
   size_t n = jres.ncols();
   sztvec indices(n);
 
@@ -201,8 +200,6 @@ sztvec EvalContext::evaluate_j_as_column_index() {
           "column from a joined frame and cannot be deleted";
     }
     if (jres.is_placeholder_column(i)) {
-      // If allow_new is false, no placeholder columns should be generated
-      xassert(allow_new);
       indices[i] = dt0->ncols() + newnames_.size();
       newnames_.emplace_back(jres.retrieve_name(i));
     }

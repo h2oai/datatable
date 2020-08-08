@@ -37,7 +37,7 @@ namespace expr {
 
 
 Workframe Head_Func_IfElse::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 3);
   Workframe wf_cond = args[0]->evaluate_n(ctx);

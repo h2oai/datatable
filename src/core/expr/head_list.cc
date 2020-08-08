@@ -39,11 +39,11 @@ Kind Head_List::get_expr_kind() const {
 }
 
 Workframe Head_List::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   Workframe outputs(ctx);
   for (const auto& arg : inputs) {
-    outputs.cbind( arg->evaluate_n(ctx, allow_new) );
+    outputs.cbind( arg->evaluate_n(ctx) );
   }
   return outputs;
 }
@@ -76,7 +76,7 @@ Workframe Head_List::evaluate_r(
 
 
 
-Workframe Head_List::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_List::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
       << "A list or a sequence cannot be used inside an f-selector";
 }
@@ -171,23 +171,23 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
 
 
 static Workframe _evaluate_f_list(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new)
+    const vecExpr& inputs, EvalContext& ctx)
 {
   Workframe outputs(ctx);
   for (const auto& arg : inputs) {
-    outputs.cbind( arg->evaluate_f(ctx, 0, allow_new) );
+    outputs.cbind( arg->evaluate_j(ctx) );
   }
   return outputs;
 }
 
 
 Workframe Head_List::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
-  if (kind == Kind::Func) return evaluate_n(inputs, ctx, allow_new);
-  return _evaluate_f_list(inputs, ctx, allow_new);
+  if (kind == Kind::Func) return evaluate_n(inputs, ctx);
+  return _evaluate_f_list(inputs, ctx);
 }
 
 
@@ -304,7 +304,7 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Str || kind == Kind::Int) {
     for (const auto& arg : inputs) {
-      outwf.cbind( arg->evaluate_f(ctx, 0, false) );
+      outwf.cbind( arg->evaluate_f(ctx, 0) );
       outflags.push_back(SortFlag::NONE);
     }
   }
@@ -342,12 +342,12 @@ Kind Head_NamedList::get_expr_kind() const {
 
 
 Workframe Head_NamedList::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   xassert(inputs.size() == names.size());
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    Workframe arg_out = inputs[i]->evaluate_n(ctx, allow_new);
+    Workframe arg_out = inputs[i]->evaluate_n(ctx);
     arg_out.rename(names[i]);
     outputs.cbind( std::move(arg_out) );
   }
@@ -358,19 +358,19 @@ Workframe Head_NamedList::evaluate_n(
 Workframe Head_NamedList::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const sztvec&) const
 {
-  return evaluate_n(args, ctx, false);
+  return evaluate_n(args, ctx);
 }
 
 
-Workframe Head_NamedList::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_NamedList::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A dictionary cannot be used as an f-selector";
 }
 
 
 Workframe Head_NamedList::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
-  return evaluate_n(inputs, ctx, allow_new);
+  return evaluate_n(inputs, ctx);
 }
 
 

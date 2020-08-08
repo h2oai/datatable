@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ Head_Func_Unary::Head_Func_Unary(Op op_) : op(op_) {}
 
 
 Workframe Head_Func_Unary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
   Workframe outputs = args[0]->evaluate_n(ctx);

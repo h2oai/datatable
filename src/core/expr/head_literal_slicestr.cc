@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -38,17 +38,14 @@ Kind Head_Literal_SliceStr::get_expr_kind() const {
 
 
 Workframe Head_Literal_SliceStr::evaluate_n(
-    const vecExpr&, EvalContext&, bool) const
+    const vecExpr&, EvalContext&) const
 {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
-// Ignore the `allow_new` flag (else how would we expand the slice
-// into a list?)
-//
 Workframe Head_Literal_SliceStr::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool) const
+    EvalContext& ctx, size_t frame_id) const
 {
   DataTable* df = ctx.get_datatable(frame_id);
   size_t istart = start.is_none()? 0 : df->xcolindex(start);
@@ -65,9 +62,9 @@ Workframe Head_Literal_SliceStr::evaluate_f(
 
 
 Workframe Head_Literal_SliceStr::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool allow_new) const
+    const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(ctx, 0, allow_new);
+  return evaluate_f(ctx, 0);
 }
 
 

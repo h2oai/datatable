@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -100,9 +100,9 @@ class OldExpr : public FExpr {
     Kind get_expr_kind() const;
     operator bool() const noexcept;  // Check whether the Expr is empty or not
 
-    Workframe evaluate_n(EvalContext& ctx, bool allow_new = false) const;
-    Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
-    Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
+    Workframe evaluate_n(EvalContext& ctx) const;
+    Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const;
+    Workframe evaluate_j(EvalContext& ctx) const;
     Workframe evaluate_r(EvalContext& ctx, const sztvec&) const;
 
     // FExpr API

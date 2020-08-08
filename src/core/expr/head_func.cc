@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -50,7 +50,7 @@ Kind Head_Func::get_expr_kind() const {
 
 // Forbid expressions like `f[f.A]`.
 //
-Workframe Head_Func::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_Func::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "An expression cannot be used as a column selector";
 }
 
@@ -59,9 +59,9 @@ Workframe Head_Func::evaluate_f(EvalContext&, size_t, bool) const {
 // evaluating this expression in "normal" mode.
 //
 Workframe Head_Func::evaluate_j(
-    const vecExpr& args, EvalContext& ctx, bool allow_new) const
+    const vecExpr& args, EvalContext& ctx) const
 {
-  return evaluate_n(args, ctx, allow_new);
+  return evaluate_n(args, ctx);
 }
 
 
@@ -71,13 +71,13 @@ Workframe Head_Func::evaluate_j(
 Workframe Head_Func::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const sztvec&) const
 {
-  return evaluate_n(args, ctx, false);
+  return evaluate_n(args, ctx);
 }
 
 
 
 RowIndex Head_Func::evaluate_i(const vecExpr& args, EvalContext& ctx) const {
-  Workframe wf = evaluate_n(args, ctx, false);
+  Workframe wf = evaluate_n(args, ctx);
   if (wf.ncols() != 1) {
     throw TypeError() << "i-expression evaluated into " << wf.ncols()
         << " columns";

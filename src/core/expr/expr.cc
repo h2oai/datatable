@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -210,14 +210,14 @@ OldExpr::operator bool() const noexcept {
 }
 
 
-Workframe OldExpr::evaluate_n(EvalContext& ctx, bool allow_new) const {
-  return head->evaluate_n(inputs, ctx, allow_new);
+Workframe OldExpr::evaluate_n(EvalContext& ctx) const {
+  return head->evaluate_n(inputs, ctx);
 }
 
 
-Workframe OldExpr::evaluate_j(EvalContext& ctx, bool allow_new) const
+Workframe OldExpr::evaluate_j(EvalContext& ctx) const
 {
-  return head->evaluate_j(inputs, ctx, allow_new);
+  return head->evaluate_j(inputs, ctx);
 }
 
 Workframe OldExpr::evaluate_r(EvalContext& ctx, const sztvec& indices) const
@@ -227,9 +227,9 @@ Workframe OldExpr::evaluate_r(EvalContext& ctx, const sztvec& indices) const
 
 
 Workframe OldExpr::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool allow_new) const
+    EvalContext& ctx, size_t frame_id) const
 {
-  return head->evaluate_f(ctx, frame_id, allow_new);
+  return head->evaluate_f(ctx, frame_id);
 }
 
 
@@ -284,7 +284,7 @@ int64_t OldExpr::evaluate_int() const {
 
 
 Workframe OldExpr::evaluate_fn(EvalContext& ctx) const {
-  return evaluate_n(ctx, false);
+  return evaluate_n(ctx);
 }
 
 int OldExpr::precedence() const noexcept {

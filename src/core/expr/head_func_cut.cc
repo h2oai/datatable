@@ -49,7 +49,7 @@ ptrHead Head_Func_Cut::make(Op, const py::otuple& params) {
 
 
 Workframe Head_Func_Cut::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
 
   if (ctx.has_groupby()) {
