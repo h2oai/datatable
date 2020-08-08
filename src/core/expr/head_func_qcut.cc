@@ -68,8 +68,8 @@ Workframe Head_Func_Qcut::evaluate_n(
   if (nquantiles_list_or_tuple) {
     py::oiter py_nquantiles = py_nquantiles_.to_oiter();
     if (py_nquantiles.size() != ncols) {
-      throw ValueError() << "When `nquantiles` is a list or a tuple, its length must be "
-        << "the same as the number of columns in the frame/expression, i.e. `"
+      throw ValueError() << "When `nquantiles` is a list or a tuple, its "
+        << "length must be the same as the number of input columns, i.e. `"
         << ncols << "`, instead got: `" << py_nquantiles.size() << "`";
 
     }
@@ -79,7 +79,7 @@ Workframe Head_Func_Qcut::evaluate_n(
       int32_t nquantile = py_nquantile.to_int32_strict();
       if (nquantile <= 0) {
         throw ValueError() << "All elements in `nquantiles` must be positive, "
-                              "got `nquantiles[" << i << "`]: `" << nquantile << "`";
+          << "got `nquantiles[" << i << "`]: `" << nquantile << "`";
       }
 
       nquantiles[i++] = nquantile;
@@ -91,7 +91,7 @@ Workframe Head_Func_Qcut::evaluate_n(
       nquantiles_default = py_nquantiles_.to_int32_strict();
       if (nquantiles_default <= 0) {
         throw ValueError() << "Number of quantiles must be positive, "
-                              "instead got: `" << nquantiles_default << "`";
+          "instead got: `" << nquantiles_default << "`";
       }
     }
 
@@ -135,14 +135,14 @@ static const char* doc_qcut =
 R"(qcut(cols, nquantiles=10)
 --
 
-Bin all the columns in a Frame/f-expression into equal-population
+Bin all the columns from `cols` into equal-population
 discrete intervals, i.e. quantiles. In reality, for some data
 these quantiles may not have exactly the same population.
 
 Parameters
 ----------
-cols: Frame | f-expression
-    Frame or f-expression for quantile binning.
+cols: FExproid
+    Input data for quantile binning.
 nquantiles: int | list of ints | tuple of ints
     When a single number is specified, this number of quantiles
     will be used to bin each column in `cols`.
@@ -166,16 +166,14 @@ static PKArgs args_qcut(
 
 
 /**
-  * Python-facing function that can take either a Frame or
-  * an f-expression as an argument.
+  * Python-facing function for `qcut()`.
   */
 static oobj pyfn_qcut(const PKArgs& args)
 {
   if (args[0].is_none_or_undefined()) {
     throw TypeError() << "Function `qcut()` requires one positional argument, "
-                         "but none were given";
+      << "but none were given";
   }
-
 
   oobj arg0 = args[0].to_oobj();
   oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
@@ -184,7 +182,6 @@ static oobj pyfn_qcut(const PKArgs& args)
                      otuple{ arg0 },
                      otuple{ arg1 });
 }
-
 
 
 void DatatableModule::init_methods_qcut() {

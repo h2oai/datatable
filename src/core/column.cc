@@ -273,7 +273,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case dt::SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype `"
-                           << stype() << "` into python objects";
+        << stype() << "` into python objects";
   }
 }
 
@@ -311,7 +311,7 @@ bool Column::get_element_isvalid(size_t i) const {
     }
     default:
       throw NotImplError() << "Unable to check validity of the element "
-                           << "for stype: `" << stype() << "`";
+        << "for stype: `" << stype() << "`";
   }
 }
 

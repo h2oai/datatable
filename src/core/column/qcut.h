@@ -32,7 +32,7 @@
 namespace dt {
 
 /**
-  *  Virtual column to bin numeric values into equal-population
+  *  Virtual column to bin input data into equal-population
   *  discrete intervals, i.e. quantiles. In reality, for some data
   *  these quantiles won't have exactly the same population.
   *
@@ -42,16 +42,17 @@ namespace dt {
   *  into `nquantiles` equal-width discrete intervals. As a result,
   *  all the duplicates of a value `x` will go to the same `x_q` quantile.
   *
-  *  In a simple case, when all the values are missing or constant,
-  *  `Qcut_ColumnImpl::make()` will immediately return a pointer to the
-  *  corresponding virtual column implementation: `ConstNa_ColumnImpl`
-  *  or `ConstInt_ColumnImpl`.
+  *  `Qcut_ColumnImpl` class is designed to be wrapped with
+  *  the `Latent_ColumnImpl` that will invoke `Qcut_ColumnImpl::materialize()`
+  *  on the first access to the data, because it is much more
+  *  efficient to generate all the quantiles at once in parallel.
   *
-  *  In the general case `Qcut_ColumnImpl::make()` will return a pointer
-  *  to the `Latent_ColumnImpl` that wraps a `Qcut_ColumnImpl*`.
-  *  This column implementation will be materialized on the first access
-  *  to the data, because it is much more efficient to generate
-  *  all the quantiles at once in parallel.
+  *  In the case, when all the values are missing or constant,
+  *  `materialize()` will fallback to the corresponding virtual
+  *  column implementation: `ConstNa_ColumnImpl` or `ConstInt_ColumnImpl`,
+  *  that gets materialized upon return. The last step is a temporary
+  *  workaround since `Latent_ColumnImpl` doesn't support `materialize()`
+  *  returning virtual columns.
   *
   */
 class Qcut_ColumnImpl : public Virtual_ColumnImpl {
@@ -90,7 +91,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
                       col_.nrows(), SType::INT32
                     ));
         }
-        col_tmp.materialize();
+        col_tmp.materialize(); // TODO: avoid materialization.
         col_out = std::move(col_tmp);
         return;
       }
