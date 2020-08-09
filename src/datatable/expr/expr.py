@@ -41,6 +41,7 @@ class OpCodes(enum.Enum):
     SHIFTFN = 5
     IFELSE = 6
     CUT = 7
+    QCUT = 8
 
     # Unary
     UPLUS = 101

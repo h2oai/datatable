@@ -160,6 +160,9 @@ class Column
     // column wrapped into a pyobject of the appropriate type.
     py::oobj get_element_as_pyobject(size_t i) const;
 
+    // Return validity of the i-th element.
+    bool get_element_isvalid(size_t i) const;
+
 
   //------------------------------------
   // Data buffers

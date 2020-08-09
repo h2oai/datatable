@@ -632,7 +632,7 @@ def test_aggregate_nd(ncols):
     assert d_members.shape == (nrows, 1)
     assert d_members.ltypes == (ltype.int,)
     for i in range(nrows) :
-        assert(i % div == d_exemplars[d_members[i, 0], 0])
+        assert i % div == d_exemplars[d_members[i, 0], 0]
 
     frame_integrity_check(d_exemplars)
     assert d_exemplars.shape == (div, ncols + 1)

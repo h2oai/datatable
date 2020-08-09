@@ -26,7 +26,10 @@
     can be added in Python. [#1839]
 
   -[new] Added a new function :func:`cut()` to bin numeric data
-   to equal-width discrete intervals.
+    to equal-width discrete intervals.
+
+  -[new] Added a new function :func:`qcut()` to bin data
+    to equal-population discrete intervals.
 
   -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
     f-expression as an argument.
