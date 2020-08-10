@@ -57,6 +57,7 @@ class XTypeMaker {
     static struct ReprTag {}          repr_tag;
     static struct StrTag {}           str_tag;
     static struct LengthTag {}        length_tag;
+    static struct GetattrTag {}       getattr_tag;
     static struct GetitemTag {}       getitem_tag;
     static struct SetitemTag {}       setitem_tag;
     static struct BuffersTag {}       buffers_tag;
@@ -117,6 +118,9 @@ class XTypeMaker {
 
     // lenfunc = Py_ssize_t(*)(PyObject*)
     void add(lenfunc getlen, LengthTag);
+
+    // getattrofunc = PyObject*(*)(PyObject*, PyObject*)
+    void add(getattrofunc getattr, GetattrTag);
 
     // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
     void add(binaryfunc _getitem, GetitemTag);
@@ -302,7 +306,7 @@ PyObject* _safe_repr(PyObject* self) noexcept {
 
 template <class T, oobj(T::*METH)() const>
 PyObject* _safe_getter(PyObject* obj, void* closure) noexcept {
-  auto cl = dt::CallLogger::getsetattr(obj, nullptr, closure);
+  auto cl = dt::CallLogger::getset(obj, nullptr, closure);
   try {
     T* t = static_cast<T*>(obj);
     return (t->*METH)().release();
@@ -324,6 +328,19 @@ Py_ssize_t _safe_len(PyObject* obj) noexcept {
   catch (const std::exception& e) {
     exception_to_python(e);
     return -1;
+  }
+}
+
+
+template <typename T, py::oobj(T::*METH)(py::robj)>
+PyObject* _safe_getattr(PyObject* self, PyObject* attr) noexcept {
+  auto cl = dt::CallLogger::getattr(self, attr);
+  try {
+    T* tself = static_cast<T*>(self);
+    return (tself->*METH)(py::robj(attr)).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
   }
 }
 
@@ -444,7 +461,7 @@ template <class T>
 int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
                  PyObject* obj, PyObject* value, void* closure) noexcept
 {
-  auto cl = dt::CallLogger::getsetattr(obj, value, closure);
+  auto cl = dt::CallLogger::getset(obj, value, closure);
   try {
     ARG.set(value);
     T* tobj = static_cast<T*>(obj);
@@ -525,6 +542,10 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 #define METHOD__LEN__(METH)                                                    \
     _safe_len<CLASS_OF(METH), METH>, py::XTypeMaker::length_tag
+
+
+#define METHOD__GETATTR__(METH)                                                \
+    _safe_getattr<CLASS_OF(METH), METH>, py::XTypeMaker::getattr_tag
 
 
 #define METHOD__GETITEM__(METH)                                                \

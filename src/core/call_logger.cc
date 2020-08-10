@@ -225,7 +225,8 @@ class CallLogger::Impl
     void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
     void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
     void init_dealloc   (py::robj obj) noexcept;
-    void init_getsetattr(py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getattr   (py::robj obj, py::robj attr) noexcept;
     void init_getsetitem(py::robj obj, py::robj key, py::robj val) noexcept;
     void init_getbuffer (py::robj obj, void* buf, int flags) noexcept;
     void init_delbuffer (py::robj obj, void* buf) noexcept;
@@ -290,7 +291,7 @@ void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
 }
 
 
-void CallLogger::Impl::init_getsetattr(
+void CallLogger::Impl::init_getset(
     py::robj obj, py::robj val, void* closure) noexcept
 {
   const auto gsargs = static_cast<const py::GSArgs*>(closure);
@@ -300,6 +301,13 @@ void CallLogger::Impl::init_getsetattr(
       *out_ << " =";
       if (opt_report_args) *out_ << ' ' << R(val);
     }
+  });
+}
+
+
+void CallLogger::Impl::init_getattr(py::robj obj, py::robj attr) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << '.' << R(attr);
   });
 }
 
@@ -473,10 +481,19 @@ CallLogger CallLogger::dealloc(PyObject* pyobj) noexcept {
 }
 
 
-CallLogger CallLogger::getsetattr(PyObject* pyobj, PyObject* val, void* closure) noexcept {
+CallLogger CallLogger::getset(PyObject* pyobj, PyObject* val, void* closure) noexcept {
   CallLogger cl;
   if (cl.impl_) {
-    cl.impl_->init_getsetattr(py::robj(pyobj), py::robj(val), closure);
+    cl.impl_->init_getset(py::robj(pyobj), py::robj(val), closure);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::getattr(PyObject* pyobj, PyObject* attr) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_getattr(py::robj(pyobj), py::robj(attr));
   }
   return cl;
 }
