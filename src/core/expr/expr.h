@@ -114,7 +114,7 @@ class OldExpr : public FExpr {
     // the resulting Workframe, allowing the caller to perform a
     // groupby/sort operation on this Workframe.
     //
-    void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const;
+    void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 
     bool evaluate_bool() const;
     bool is_negated_column(EvalContext&, size_t* iframe, size_t* icol) const;

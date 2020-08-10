@@ -46,6 +46,12 @@ class FExpr {
     virtual RowIndex  evaluate_i(EvalContext&) const = 0;
     virtual RiGb      evaluate_iby(EvalContext&) const = 0;
 
+    // Evaluate the internal part of the by()/sort() nodes, and return
+    // the resulting Workframe, allowing the caller to perform a
+    // groupby/sort operation on this Workframe.
+    //
+    virtual void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const = 0;
+
     /**
       * Return operator precedence of this expression. This will be
       * when generating reprs, so the precendence should roughly
