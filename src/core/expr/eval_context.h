@@ -106,7 +106,7 @@ class EvalContext
     std::shared_ptr<FExpr>  jexpr_;
     std::shared_ptr<FExpr>  byexpr_;
     std::shared_ptr<FExpr>  sortexpr_;
-    std::shared_ptr<OldExpr>  rexpr_;
+    std::shared_ptr<FExpr>  rexpr_;
 
     // Runtime
     frameVec   frames_;
