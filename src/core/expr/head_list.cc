@@ -309,10 +309,10 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
     }
   }
   else if (kind == Kind::Func) {
-    size_t iframe, icol;
     for (const auto& arg : inputs) {
-      if (arg->is_negated_column(ctx, &iframe, &icol)) {
-        outwf.add_ref_column(iframe, icol);
+      auto negcol = arg->unnegate_column();
+      if (negcol) {
+        outwf.cbind( negcol->evaluate_n(ctx) );
         outflags.push_back(SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );

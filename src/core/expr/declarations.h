@@ -32,6 +32,7 @@ namespace expr {
 
   class Head;
   class OldExpr;
+  class FExpr;
   class Workframe;
   class EvalContext;
 

@@ -257,22 +257,13 @@ bool OldExpr::evaluate_bool() const {
 }
 
 
-bool OldExpr::is_negated_column(EvalContext& ctx, size_t* iframe,
-                             size_t* icol) const
-{
+std::shared_ptr<FExpr> OldExpr::unnegate_column() const {
   auto unaryfn_head = dynamic_cast<Head_Func_Unary*>(head.get());
-  if (unaryfn_head) {
-    if (unaryfn_head->get_op() == Op::UMINUS) {
-      xassert(inputs.size() == 1);
-      auto column_head = dynamic_cast<Head_Func_Column*>(inputs[0]->head.get());
-      if (column_head) {
-        Workframe wf = inputs[0]->evaluate_n(ctx);
-        xassert(wf.ncols() == 1);
-        return wf.is_reference_column(0, iframe, icol);
-      }
-    }
+  if (unaryfn_head && unaryfn_head->get_op() == Op::UMINUS) {
+    xassert(inputs.size() == 1);
+    return inputs[0];
   }
-  return false;
+  return nullptr;
 }
 
 

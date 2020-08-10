@@ -100,6 +100,7 @@ class FExpr {
       */
     virtual Kind get_expr_kind() const = 0;
 
+    virtual std::shared_ptr<FExpr> unnegate_column() const { return nullptr; }
 };
 
 
