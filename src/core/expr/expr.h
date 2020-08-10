@@ -116,9 +116,9 @@ class OldExpr : public FExpr {
     //
     void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 
-    bool evaluate_bool() const;
     std::shared_ptr<FExpr> unnegate_column() const override;
-    int64_t evaluate_int() const;
+    bool evaluate_bool() const override;
+    int64_t evaluate_int() const override;
 
   private:
     // Construction helpers

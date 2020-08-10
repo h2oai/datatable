@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,7 @@ namespace expr {
   class EvalContext;
 
   using ptrHead = std::unique_ptr<Head>;
-  using vecExpr = std::vector<std::shared_ptr<OldExpr>>;
+  using vecExpr = std::vector<std::shared_ptr<FExpr>>;
 
 
   // Evaluation mode, this distinguishes between expressions of the

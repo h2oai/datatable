@@ -100,7 +100,29 @@ class FExpr {
       */
     virtual Kind get_expr_kind() const = 0;
 
-    virtual std::shared_ptr<FExpr> unnegate_column() const { return nullptr; }
+
+    /**
+      * If an expression represents unary negation of something, then
+      * this method should return the inner expr (without the minus).
+      * This is intended for sorting, were `sort(-x)` means "sort by
+      * x in descending order".
+      */
+    virtual std::shared_ptr<FExpr> unnegate_column() const;
+
+    /**
+      * If an expression's get_expr_kind() is Kind::Bool, then this
+      * method should return this expression converted to a regular
+      * boolean value.
+      */
+    virtual bool evaluate_bool() const;
+
+    /**
+      * If an expression's get_expr_kind() is Kind::Int, then this
+      * method should return this expression converted to a regular
+      * integer.
+      */
+    virtual int64_t evaluate_int() const;
+
 };
 
 
