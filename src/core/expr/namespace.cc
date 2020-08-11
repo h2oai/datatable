@@ -54,7 +54,7 @@ void Namespace::m__dealloc__() {}
 
 oobj Namespace::m__repr__() const {
   std::string out = "Namespace(";
-  out += static_cast<char>('0' + index_);
+  out += std::to_string(index_);
   out += ')';
   return py::ostring(out);
 }

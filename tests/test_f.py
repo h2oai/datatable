@@ -44,6 +44,20 @@ def DT():
 
 
 #-------------------------------------------------------------------------------
+# Plain `f`
+#-------------------------------------------------------------------------------
+
+def test_f():
+    assert str(f) == "Namespace(0)"
+    assert f.__class__ == type(f)
+    # Check that missing system atrtibutes raise an AttributeError
+    # instead of being converted into a column selector expression
+    with pytest.raises(AttributeError):
+        f.__name__
+
+
+
+#-------------------------------------------------------------------------------
 # Stringify
 #-------------------------------------------------------------------------------
 
@@ -89,6 +103,7 @@ def test_f_expressions():
 
 
 def test_f_columnset_str():
+    assert str(f[None]) == "Expr:col(None; 0)"
     assert str(f[:]) == "Expr:col(slice(None, None, None); 0)"
     assert str(f[:7]) == "Expr:col(slice(None, 7, None); 0)"
     assert str(f[::-1]) == "Expr:col(slice(None, None, -1); 0)"
