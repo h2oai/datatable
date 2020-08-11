@@ -32,6 +32,7 @@
 #include "datatablemodule.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
+#include "expr/namespace.h"
 #include "expr/py_by.h"              // py::oby
 #include "expr/py_join.h"            // py::ojoin
 #include "expr/py_sort.h"            // py::osort
@@ -407,6 +408,7 @@ extern "C" {
       py::Frame::init_type(m);
       py::Ftrl::init_type(m);
       py::ReadIterator::init_type(m);
+      py::Namespace::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);
