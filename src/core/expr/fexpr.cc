@@ -20,6 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/fexpr.h"
+#include "expr/expr.h"   // OldExpr
+#include "python/obj.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
@@ -40,6 +42,18 @@ bool FExpr::evaluate_bool() const {
 int64_t FExpr::evaluate_int() const {
   throw RuntimeError();
 }
+
+
+
+//------------------------------------------------------------------------------
+// as_fexpr()
+//------------------------------------------------------------------------------
+
+// TODO: subsume functionality of OldExpr::OldExpr(py::robj)
+std::shared_ptr<FExpr> as_fexpr(py::robj src) {
+  return std::make_shared<OldExpr>(src);
+}
+
 
 
 

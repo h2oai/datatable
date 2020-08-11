@@ -59,7 +59,7 @@ void EvalContext::add_groupby(py::oby obj) {
   if (byexpr_) {
     throw TypeError() << "Multiple by()'s are not allowed";
   }
-  byexpr_ = std::make_shared<OldExpr>(obj.get_arguments());
+  byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
 }
 
@@ -68,12 +68,12 @@ void EvalContext::add_sortby(py::osort obj) {
   if (sortexpr_) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
-  sortexpr_ = std::make_shared<OldExpr>(obj.get_arguments());
+  sortexpr_ = as_fexpr(obj.get_arguments());
 }
 
 
 void EvalContext::add_i(py::oobj oi) {
-  iexpr_ = std::make_shared<OldExpr>(oi);
+  iexpr_ = as_fexpr(oi);
 }
 
 
@@ -89,16 +89,16 @@ void EvalContext::add_j(py::oobj oj) {
                             "assignment expression";
     }
     eval_mode_ = EvalMode::UPDATE;
-    jexpr_ = std::make_shared<OldExpr>(arg_update.get_names());
-    rexpr_ = std::make_shared<OldExpr>(arg_update.get_exprs());
+    jexpr_ = as_fexpr(arg_update.get_names());
+    rexpr_ = as_fexpr(arg_update.get_exprs());
   } else {
-    jexpr_ = std::make_shared<OldExpr>(oj);
+    jexpr_ = as_fexpr(oj);
   }
 }
 
 
 void EvalContext::add_replace(py::oobj obj) {
-  rexpr_ = std::make_shared<OldExpr>(obj);
+  rexpr_ = as_fexpr(obj);
 }
 
 

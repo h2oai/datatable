@@ -21,11 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_DECLARATIONS_h
 #define dt_EXPR_DECLARATIONS_h
-#include <memory>
-#include <string>
-#include <utility>    // std::pair
-#include <vector>
-#include "sort.h"
+#include "_dt.h"
+#include "sort.h"   // SortFlag
 namespace dt {
 namespace expr {
 
@@ -39,6 +36,7 @@ namespace expr {
   using ptrHead = std::unique_ptr<Head>;
   using vecExpr = std::vector<std::shared_ptr<FExpr>>;
 
+  std::shared_ptr<FExpr> as_fexpr(py::robj);
 
   // Evaluation mode, this distinguishes between expressions of the
   // form
