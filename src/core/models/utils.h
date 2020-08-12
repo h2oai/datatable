@@ -79,22 +79,20 @@ inline T identity(T x) {
  *    to prevent logloss being undefined;
  *  - simplify the logloss formula to more compact branchless code.
  */
-template<typename T1, typename T2>
-inline T1 log_loss(T1 p, T2 y) {
-  constexpr T1 epsilon = std::numeric_limits<T1>::epsilon();
+template<typename T>
+inline T log_loss(T p, T y) {
+  constexpr T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
 }
 
 
 /**
- *  Squared loss, T1 is either float or double,
- *  T2 is any other numerical type.
+ *  Squared loss, T is either float or double,
  */
-template<typename T1, typename T2>
-inline T1 squared_loss(T1 p, T2 y) {
-  T1 y_T1 = static_cast<T1>(y);
-  return (p - y_T1) * (p - y_T1);
+template<typename T>
+inline T squared_loss(T p, T y) {
+  return (p - y) * (p - y);
 }
 
 

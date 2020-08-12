@@ -314,20 +314,20 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
     // the validation target column and make an appropriate call to `.fit()`.
     SType stype_y_val = dt_y_val->get_column(0).stype();
     switch (stype_y_val) {
-      case SType::BOOL:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T, int8_t>); break;
-      case SType::INT8:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T, int8_t>); break;
-      case SType::INT16:   res = fit<U, int16_t>(identity<T>, targetfn, targetfn, squared_loss<T, int16_t>); break;
-      case SType::INT32:   res = fit<U, int32_t>(identity<T>, targetfn, targetfn, squared_loss<T, int32_t>); break;
-      case SType::INT64:   res = fit<U, int64_t>(identity<T>, targetfn, targetfn, squared_loss<T, int64_t>); break;
-      case SType::FLOAT32: res = fit<U, float>(identity<T>, targetfn, targetfn, squared_loss<T, float>); break;
-      case SType::FLOAT64: res = fit<U, double>(identity<T>, targetfn, targetfn, squared_loss<T, double>); break;
+      case SType::BOOL:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::INT8:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::INT16:   res = fit<U, int16_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::INT32:   res = fit<U, int32_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::INT64:   res = fit<U, int64_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::FLOAT32: res = fit<U, float>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
+      case SType::FLOAT64: res = fit<U, double>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
       default:             throw TypeError() << "Target column type `"
                                              << stype_y_val << "` is not supported by numeric regression";
     }
   } else {
     // If no validation was requested, it doesn't matter
     // what validation type we are passing to the `fit()` method.
-    res = fit<U, U>(identity<T>, targetfn, targetfn, squared_loss<T, U>);
+    res = fit<U, U>(identity<T>, targetfn, targetfn, squared_loss<T>);
   }
 
   return res;
@@ -538,7 +538,7 @@ template <typename U, typename V> /* target column(s) data type */
 FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                            U(*targetfn)(U, size_t),
                            V(*targetfn_val)(V, size_t),
-                           T(*lossfn)(T, V))
+                           T(*lossfn)(T, T))
 {
   // Initialize helper parameters for prediction formula.
   init_helper_params();
@@ -562,10 +562,10 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // If `nepochs` is an integer number, `last_iteration_nrows == dt_X_train->nrows()`,
   // so that the last epoch becomes identical to all the others.
   size_t niterations = static_cast<size_t>(std::ceil(nepochs));
-  T last_epoch = nepochs - niterations + 1;
+  T last_epoch = nepochs - static_cast<T>(niterations) + 1;
 
   size_t iteration_nrows = dt_X_train->nrows();
-  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows);
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
   size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
@@ -582,7 +582,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                                             : target_col0_train;  // whatever
   if (validation) {
     hashers_val = create_hashers(dt_X_val);
-    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val * iteration_nrows));
+    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val * static_cast<T>(iteration_nrows)));
     niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters, 0.0);
   }
@@ -665,7 +665,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
                         x, w, k, [&](size_t, T){}
                       ));
                 V y = targetfn_val(value, label_ids_val[k]);
-                loss_local += lossfn(p, y);
+                loss_local += lossfn(p, static_cast<T>(y));
               }
             }
 
@@ -683,8 +683,8 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           // more than `val_error`, sets `loss_old` to `NaN` -> this will stop
           // all the threads after `barrier()`.
           if (dt::this_thread_index() == 0) {
-            T loss_current = loss_global.load() / (dt_X_val->nrows() * dt_y_val->ncols());
-            loss_history[iter % val_niters] = loss_current / val_niters;
+            T loss_current = loss_global.load() / static_cast<T>(dt_X_val->nrows() * dt_y_val->ncols());
+            loss_history[iter % val_niters] = loss_current / static_cast<T>(val_niters);
             loss = std::accumulate(loss_history.begin(), loss_history.end(), T(0));
             T loss_diff = (loss_old - loss) / loss_old;
             bool is_loss_bad = (iter >= val_niters) && (loss < T_EPSILON || loss_diff < val_error);
@@ -692,7 +692,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
           }
           barrier();
 
-          double epoch = static_cast<double>(iteration_end) / dt_X_train->nrows();
+          double epoch = static_cast<double>(iteration_end) / static_cast<double>(dt_X_train->nrows());
           if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Stopping at epoch " + tostr(epoch) +
@@ -725,7 +725,7 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   // in `py::Validator::has_negatives()` during unpickling.
   reset_model_stats();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_train->nrows();
+  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_train->nrows());
   FtrlFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
