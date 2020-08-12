@@ -186,7 +186,7 @@ class Head_Func_Qcut : public Head_Func {
     Head_Func_Qcut(py::oobj py_nquantiles);
     static ptrHead make(Op, const py::otuple& params);
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 

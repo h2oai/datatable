@@ -50,7 +50,7 @@ ptrHead Head_Func_Qcut::make(Op, const py::otuple& params) {
 
 
 Workframe Head_Func_Qcut::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
 
   if (ctx.has_groupby()) {
@@ -58,7 +58,7 @@ Workframe Head_Func_Qcut::evaluate_n(
   }
 
   int32_t nquantiles_default = 10;
-  Workframe wf = args[0].evaluate_n(ctx);
+  Workframe wf = args[0]->evaluate_n(ctx);
   const size_t ncols = wf.ncols();
 
   int32vec nquantiles(ncols);
