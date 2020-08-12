@@ -194,7 +194,8 @@ static void try_to_resolve_object_column(Column& col)
         PyObject *z = PyUnicode_AsEncodedString(v, "utf-8", "strict");
         size_t sz = static_cast<size_t>(PyBytes_Size(z));
         if (offset + sz > strbuf_size) {
-          strbuf_size = static_cast<size_t>(1.5 * strbuf_size + sz);
+          strbuf_size = static_cast<size_t>(
+              1.5 * static_cast<double>(strbuf_size) + static_cast<double>(sz));
           strbuf.resize(strbuf_size);
           strs = static_cast<char*>(strbuf.xptr());
         }
