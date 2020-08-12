@@ -38,6 +38,7 @@ XTypeMaker::BuffersTag       XTypeMaker::buffers_tag;
 XTypeMaker::IterTag          XTypeMaker::iter_tag;
 XTypeMaker::NextTag          XTypeMaker::next_tag;
 XTypeMaker::CallTag          XTypeMaker::call_tag;
+XTypeMaker::RichCompareTag   XTypeMaker::rich_compare_tag;
 XTypeMaker::NbAddTag         XTypeMaker::nb_add_tag;
 XTypeMaker::NbSubtractTag    XTypeMaker::nb_subtract_tag;
 XTypeMaker::NbMultiplyTag    XTypeMaker::nb_multiply_tag;
@@ -236,6 +237,12 @@ void XTypeMaker::add(iternextfunc _next, NextTag) {
 // ternaryfunc = PyObject*(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(ternaryfunc meth, CallTag) {
   type->tp_call = meth;
+}
+
+
+// richcmpfunc = PyObject*(*)(PyObject*, PyObject*, int)
+void XTypeMaker::add(richcmpfunc meth, RichCompareTag) {
+  type->tp_richcompare = meth;
 }
 
 

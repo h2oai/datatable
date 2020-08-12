@@ -113,6 +113,7 @@ class CallLogger {
     static CallLogger unaryfn   (PyObject* pyobj, int op) noexcept;
     static CallLogger binaryfn  (PyObject* pyobj, PyObject* other, int op) noexcept;
     static CallLogger ternaryfn (PyObject* x, PyObject* y, PyObject* z, int op) noexcept;
+    static CallLogger cmpfn     (PyObject* x, PyObject* y, int op) noexcept;
 
     // Called once during module initialization
     static void init_options();

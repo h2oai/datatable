@@ -71,6 +71,14 @@ void FExpr::m__dealloc__() {
   expr_ = nullptr;
 }
 
+oobj FExpr::m__repr__() const {
+  // Normally we would never create an object with an empty `expr_`,
+  // but if the user tries to instantiate it manually then the
+  // `expr_` will end up as nullptr.
+  if (!expr_) return ostring("FExpr<>");
+  return ostring("FExpr<" + expr_->repr() + '>');
+}
+
 
 
 //----- Basic arithmetics ------------------------------------------------------
@@ -144,6 +152,50 @@ oobj FExpr::nb__pos__() {
 }
 
 
+oobj FExpr::m__compare__(robj x, robj y, int op) {
+  switch (op) {
+    case Py_EQ: return make_binexpr(dt::expr::Op::EQ, x, y);
+    case Py_NE: return make_binexpr(dt::expr::Op::NE, x, y);
+    case Py_LT: return make_binexpr(dt::expr::Op::LT, x, y);
+    case Py_LE: return make_binexpr(dt::expr::Op::LE, x, y);
+    case Py_GT: return make_binexpr(dt::expr::Op::GT, x, y);
+    case Py_GE: return make_binexpr(dt::expr::Op::GE, x, y);
+    default:
+      throw RuntimeError() << "Unknown op " << op << " in __compare__";  // LCOV_EXCL_LINE
+  }
+}
+
+
+//----- Other methods ----------------------------------------------------------
+
+// TODO
+static const char* doc_extend =
+R"(extend(self, arg)
+--
+)";
+
+static PKArgs args_extend(1, 0, 0, false, false, {"arg"}, "extend", doc_extend);
+
+oobj FExpr::extend(const PKArgs& args) {
+  auto arg = args[0].to<oobj>(py::None());
+  return make_binexpr(dt::expr::Op::SETPLUS, robj(this), arg);
+}
+
+
+// TODO
+static const char* doc_remove =
+R"(remove(self, arg)
+--
+)";
+
+static PKArgs args_remove(1, 0, 0, false, false, {"arg"}, "remove", doc_remove);
+
+oobj FExpr::remove(const PKArgs& args) {
+  auto arg = args[0].to_oobj();
+  return make_binexpr(dt::expr::Op::SETMINUS, robj(this), arg);
+}
+
+
 
 static const char* doc_fexpr =
 R"()";
@@ -155,6 +207,10 @@ void FExpr::impl_init_type(XTypeMaker& xt) {
 
   xt.add(CONSTRUCTOR(&FExpr::m__init__, args__init__));
   xt.add(DESTRUCTOR(&FExpr::m__dealloc__));
+  xt.add(METHOD(&FExpr::extend, args_extend));
+  xt.add(METHOD(&FExpr::remove, args_remove));
+
+  xt.add(METHOD__REPR__(&FExpr::m__repr__));
   xt.add(METHOD__ADD__(&FExpr::nb__add__));
   xt.add(METHOD__SUB__(&FExpr::nb__sub__));
   xt.add(METHOD__MUL__(&FExpr::nb__mul__));
@@ -171,6 +227,7 @@ void FExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__INVERT__(&FExpr::nb__invert__));
   xt.add(METHOD__NEG__(&FExpr::nb__neg__));
   xt.add(METHOD__POS__(&FExpr::nb__pos__));
+  xt.add(METHOD__CMP__(&FExpr::m__compare__));
 }
 
 

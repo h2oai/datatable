@@ -64,6 +64,7 @@ class XTypeMaker {
     static struct IterTag {}          iter_tag;
     static struct NextTag {}          next_tag;
     static struct CallTag {}          call_tag;
+    static struct RichCompareTag {}   rich_compare_tag;
     static struct NbAddTag {}         nb_add_tag;
     static struct NbSubtractTag {}    nb_subtract_tag;
     static struct NbMultiplyTag {}    nb_multiply_tag;
@@ -140,6 +141,9 @@ class XTypeMaker {
 
     // ternaryfunc = PyObject*(*)(PyObject*, PyObject*, PyObject*)
     void add(ternaryfunc meth, CallTag);
+
+    // richcmpfunc = PyObject*(*)(PyObject*, PyObject*, int)
+    void add(richcmpfunc meth, RichCompareTag);
 
     // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
     void add(binaryfunc meth, NbAddTag);
@@ -527,6 +531,18 @@ int _safe_bool(PyObject* self) noexcept {
 }
 
 
+template <py::oobj(*METH)(py::robj, py::robj, int)>
+PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
+  auto cl = dt::CallLogger::cmpfn(x, y, op);
+  try {
+    return METH(py::robj(x), py::robj(y), op).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -632,6 +648,10 @@ RESTORE_CLANG_WARNING("-Wunused-template")
     [](PyObject* self, PyObject* args, PyObject* kwds) noexcept -> PyObject* { \
       return _call_method(METH, ARGS, self, args, kwds);                       \
     }, py::XTypeMaker::call_tag
+
+
+#define METHOD__CMP__(METH)                                                    \
+    _safe_cmp<METH>, py::XTypeMaker::rich_compare_tag
 
 
 /**

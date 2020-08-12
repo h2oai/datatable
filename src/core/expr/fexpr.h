@@ -146,8 +146,8 @@ class FExpr : public XObject<FExpr> {
     void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj m__repr__() const;
-    oobj m__compare__(robj other, int op);
 
+    static oobj m__compare__(robj, robj, int op);
     static oobj nb__add__(robj, robj);
     static oobj nb__sub__(robj, robj);
     static oobj nb__mul__(robj, robj);

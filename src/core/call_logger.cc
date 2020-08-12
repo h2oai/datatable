@@ -262,8 +262,9 @@ class CallLogger::Impl
     void init_delbuffer (py::robj obj, void* buf) noexcept;
     void init_len       (py::robj obj) noexcept;
     void init_unaryfn   (py::robj obj, int op) noexcept;
-    void init_binaryfn  (py::robj obj, py::robj other, int op) noexcept;
+    void init_binaryfn  (py::robj x, py::robj y, int op) noexcept;
     void init_ternaryfn (py::robj x, py::robj y, py::robj z, int op) noexcept;
+    void init_cmpfn     (py::robj x, py::robj y, int op) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
@@ -410,6 +411,19 @@ void CallLogger::Impl::init_binaryfn(py::robj obj, py::robj other, int op) noexc
 void CallLogger::Impl::init_ternaryfn(py::robj x, py::robj y, py::robj z, int op) noexcept {
   safe_init([&] {
     *out_ << R(x) << '.' << nb_names[op] << '(' << R(y) << ", " << R(z) << ')';
+  });
+}
+
+
+void CallLogger::Impl::init_cmpfn(py::robj x, py::robj y, int op) noexcept {
+  const char* name = (op == Py_LT)? "__lt__" :
+                     (op == Py_LE)? "__le__" :
+                     (op == Py_EQ)? "__eq__" :
+                     (op == Py_NE)? "__ne__" :
+                     (op == Py_GT)? "__gt__" :
+                     (op == Py_GE)? "__ge__" : "__unknown__";
+  safe_init([&] {
+    *out_ << R(x) << '.' << name << '(' << R(y) << ')';
   });
 }
 
@@ -612,6 +626,15 @@ CallLogger CallLogger::ternaryfn(PyObject* x, PyObject* y, PyObject* z, int op) 
   CallLogger cl;
   if (cl.impl_) {
     cl.impl_->init_ternaryfn(py::robj(x), py::robj(y), py::robj(z), op);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::cmpfn(PyObject* x, PyObject* y, int op) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_cmpfn(py::robj(x), py::robj(y), op);
   }
   return cl;
 }
