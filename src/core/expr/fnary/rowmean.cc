@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -58,7 +58,7 @@ static bool op_rowmean(size_t i, T* out, const colvec& columns) {
     count++;
   }
   if (count && !std::isnan(sum)) {
-    *out = sum/count;
+    *out = sum/static_cast<T>(count);
     return true;
   } else {
     return false;
