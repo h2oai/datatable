@@ -29,6 +29,7 @@ datatable API
 :func:`isna()`
 :func:`shift()`
 :func:`cut()`              Bin frame/f-expression into equal-width intervals
+:func:`qcut()`             Bin frame/f-expression into equal-population intervals
 
 :func:`init_styles()`
 
@@ -73,6 +74,7 @@ datatable API
     fread()         <dt/fread>
     ifelse()        <dt/ifelse>
     iread()         <dt/iread>
+    qcut()          <dt/qcut>
     rbind()         <dt/rbind>
     repeat()        <dt/repeat>
     shift()         <dt/shift>

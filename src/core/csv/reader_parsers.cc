@@ -659,6 +659,41 @@ ParserLibrary::ParserLibrary() {
 
 
 //------------------------------------------------------------------------------
+// PtypeIterator
+//------------------------------------------------------------------------------
+namespace dt {
+namespace read {
+
+
+PtypeIterator::PtypeIterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
+
+PT PtypeIterator::operator*() const {
+  return curr_ptype;
+}
+
+RT PtypeIterator::get_rtype() const {
+  return rtype;
+}
+
+PtypeIterator& PtypeIterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool PtypeIterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
+}
+
+
+
+
+}}
+//------------------------------------------------------------------------------
 // ParserIterator
 //------------------------------------------------------------------------------
 

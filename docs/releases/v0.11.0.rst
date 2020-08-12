@@ -26,7 +26,10 @@
     can be added in Python. [#1839]
 
   -[new] Added a new function :func:`cut()` to bin numeric data
-   to equal-width discrete intervals.
+    to equal-width discrete intervals.
+
+  -[new] Added a new function :func:`qcut()` to bin data
+    to equal-population discrete intervals.
 
   -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
     f-expression as an argument.
@@ -133,6 +136,9 @@
   -[enh] Fread now computes NA counts of all data while reading, storing
     them in per-column stats. For integer and floating point columns we also
     compute min/max value in each column. [#1097]
+
+  -[enh] When reading from a URL, fread will now escape url-unsafe characters
+    in that URL, so that the user doesn't have to.
 
   -[fix] When reading Excel files, the cells with datetime or boolean types
     are now handled correctly, in particular a datetime value is converted

@@ -122,7 +122,6 @@ class GenericReader
   public:
     static constexpr size_t WORK_PREPARE = 2;
     static constexpr size_t WORK_READ = 100;
-    static constexpr size_t WORK_REREAD = 60;
     static constexpr size_t WORK_DECODE_UTF16 = 50;
     std::shared_ptr<dt::progress::work> job;
     Buffer input_mbuf;

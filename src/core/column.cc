@@ -272,8 +272,46 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     }
     case dt::SType::VOID:    return py::None();
     default:
-      throw NotImplError() << "Unable to convert elements of stype "
-          << stype() << " into python objects";
+      throw NotImplError() << "Unable to convert elements of stype `"
+        << stype() << "` into python objects";
+  }
+}
+
+bool Column::get_element_isvalid(size_t i) const {
+  switch (stype()) {
+    case dt::SType::BOOL:
+    case dt::SType::INT8: {
+      int8_t x;
+      return get_element(i, &x);
+    }
+    case dt::SType::INT16: {
+      int16_t x;
+      return get_element(i, &x);
+    }
+    case dt::SType::INT32: {
+      int32_t x;
+      return get_element(i, &x);
+    }
+    case dt::SType::INT64: {
+      int64_t x;
+      return get_element(i, &x);
+    }
+    case dt::SType::FLOAT32: {
+      float x;
+      return get_element(i, &x);
+    }
+    case dt::SType::FLOAT64: {
+      double x;
+      return get_element(i, &x);
+    }
+    case dt::SType::STR32:
+    case dt::SType::STR64: {
+      dt::CString x;
+      return get_element(i, &x);
+    }
+    default:
+      throw NotImplError() << "Unable to check validity of the element "
+        << "for stype: `" << stype() << "`";
   }
 }
 

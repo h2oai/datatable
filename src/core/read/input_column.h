@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_INPUT_COLUMN_h
 #define dt_READ_INPUT_COLUMN_h
+#include "csv/reader_parsers.h"
 #include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj
@@ -39,16 +40,7 @@ namespace read {
   *
   * An input column usually translates into an output column in a
   * DataTable returned to the user. The exception to this are
-  * "dropped" columns. They are marked with `present_in_output_ =
-  * false` flag (and have `requested_type_ = RT::RDrop`).
-  *
-  * The `present_in_buffer_` flag tracks whether the column should be
-  * read from the csv file. Normally, this flag has the same value as
-  * `present_in_output_`; however, during a reread stage we want to
-  * reread only those columns that were type-bumped while skipping the
-  * others. Thus, during a reread only type-bumped columns will be
-  * "present in buffer", while those that were read correctly on the
-  * first try will have this flag set to false.
+  * "dropped" columns (they have `requested_type_ = RT::RDrop`).
   */
 class InputColumn
 {
@@ -56,34 +48,14 @@ class InputColumn
     std::string name_;
     PT parse_type_;
     RT requested_type_;
-
-    // [Deprecated]
-    bool type_bumped_;
-    bool present_in_output_;
-    bool present_in_buffer_;
-    int : 24;
+    size_t : 48;
 
     // TODO: make OutputColumn completely separate from InputColumn
     OutputColumn outcol_;
 
-    class ptype_iterator {
-      private:
-        int8_t* pqr;
-        RT rtype;
-        PT orig_ptype;
-        PT curr_ptype;
-        int64_t : 40;
-      public:
-        ptype_iterator(PT pt, RT rt, int8_t* qr_ptr);
-        PT operator*() const;
-        ptype_iterator& operator++();
-        bool has_incremented() const;
-        RT get_rtype() const;
-    };
-
   public:
     InputColumn();
-    InputColumn(InputColumn&&) noexcept;
+    InputColumn(InputColumn&&) noexcept = default;
     InputColumn(const InputColumn&) = delete;
 
     // Column's data
@@ -99,26 +71,19 @@ class InputColumn
     PT get_ptype() const noexcept;
     RT get_rtype() const noexcept;
     SType get_stype() const;
-    ptype_iterator get_ptype_iterator(int8_t* qr_ptr) const;
     void set_rtype(int64_t it);
     void set_ptype(PT new_ptype);
-    void force_ptype(PT new_ptype);
     const char* typeName() const;
 
     // Column info
     bool is_string() const;
     bool is_dropped() const noexcept;
-    bool is_type_bumped() const noexcept;
-    bool is_in_output() const noexcept;
-    bool is_in_buffer() const noexcept;
     size_t elemsize() const;
-    void reset_type_bumped();
 
     // Misc
     py::oobj py_descriptor() const;
     size_t memory_footprint() const;
     size_t archived_size() const;
-    void prepare_for_rereading();
 };
 
 

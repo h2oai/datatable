@@ -38,20 +38,7 @@ namespace read {
 
 InputColumn::InputColumn()
   : parse_type_(PT::Mu),
-    requested_type_(RT::RAuto),
-    type_bumped_(false),
-    present_in_output_(true),
-    present_in_buffer_(true) {}
-
-InputColumn::InputColumn(InputColumn&& o) noexcept
-  : name_(std::move(o.name_)),
-    parse_type_(o.parse_type_),
-    requested_type_(o.requested_type_),
-    type_bumped_(o.type_bumped_),
-    present_in_output_(o.present_in_output_),
-    present_in_buffer_(o.present_in_buffer_),
-    outcol_(std::move(o.outcol_)) {}
-
+    requested_type_(RT::RAuto) {}
 
 
 OutputColumn& InputColumn::outcol() {
@@ -97,33 +84,17 @@ SType InputColumn::get_stype() const {
   return ParserLibrary::info(parse_type_).stype;
 }
 
-InputColumn::ptype_iterator
-InputColumn::get_ptype_iterator(int8_t* qr_ptr) const {
-  return InputColumn::ptype_iterator(parse_type_, requested_type_, qr_ptr);
-}
 
 void InputColumn::set_ptype(PT new_ptype) {
-  type_bumped_ = true;
   parse_type_ = new_ptype;
-  outcol_.type_bumped_ = true;
-  outcol_.set_stype(get_stype());
 }
 
-// Set .parse_type_ to the provided value, disregarding the restrictions imposed
-// by the .requested_type_ field.
-void InputColumn::force_ptype(PT new_ptype) {
-  parse_type_ = new_ptype;
-  outcol_.set_stype(get_stype());
-}
 
 void InputColumn::set_rtype(int64_t it) {
   requested_type_ = static_cast<RT>(it);
   // Temporary
   switch (requested_type_) {
-    case RDrop:
-      parse_type_ = PT::Str32;
-      present_in_output_ = false;
-      break;
+    case RDrop:    parse_type_ = PT::Str32; break;
     case RAuto:    break;
     case RBool:    parse_type_ = PT::Bool01; break;
     case RInt:     parse_type_ = PT::Int32; break;
@@ -136,7 +107,6 @@ void InputColumn::set_rtype(int64_t it) {
     case RStr32:   parse_type_ = PT::Str32; break;
     case RStr64:   parse_type_ = PT::Str64; break;
   }
-  outcol_.set_stype(get_stype());
 }
 
 const char* InputColumn::typeName() const {
@@ -155,26 +125,10 @@ bool InputColumn::is_dropped() const noexcept {
   return requested_type_ == RT::RDrop;
 }
 
-bool InputColumn::is_type_bumped() const noexcept {
-  return type_bumped_;
-}
-
-bool InputColumn::is_in_output() const noexcept {
-  return present_in_output_;
-}
-
-bool InputColumn::is_in_buffer() const noexcept {
-  return present_in_buffer_;
-}
-
 size_t InputColumn::elemsize() const {
   return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
 }
 
-void InputColumn::reset_type_bumped() {
-  type_bumped_ = false;
-  outcol_.type_bumped_ = false;
-}
 
 
 
@@ -237,53 +191,6 @@ size_t InputColumn::archived_size() const {
   }
   return sz;
 }
-
-
-void InputColumn::prepare_for_rereading() {
-  if (type_bumped_ && present_in_output_) {
-    present_in_buffer_ = true;
-    type_bumped_ = false;
-    outcol_.chunks_.clear();
-    outcol_.nrows_in_chunks_ = 0;
-    outcol_.strbuf_ = nullptr;
-    outcol_.type_bumped_ = false;
-    outcol_.present_in_buffer_ = true;
-    outcol_.colinfo_.na_count = 0;
-  }
-  else {
-    present_in_buffer_ = false;
-    outcol_.present_in_buffer_ = false;
-  }
-}
-
-
-
-//---- ptype_iterator ----------------------------------------------------------
-
-InputColumn::ptype_iterator::ptype_iterator(PT pt, RT rt, int8_t* qr_ptr)
-  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
-
-PT InputColumn::ptype_iterator::operator*() const {
-  return curr_ptype;
-}
-
-RT InputColumn::ptype_iterator::get_rtype() const {
-  return rtype;
-}
-
-InputColumn::ptype_iterator& InputColumn::ptype_iterator::operator++() {
-  if (curr_ptype < PT::Str32) {
-    curr_ptype = static_cast<PT>(curr_ptype + 1);
-  } else {
-    *pqr = *pqr + 1;
-  }
-  return *this;
-}
-
-bool InputColumn::ptype_iterator::has_incremented() const {
-  return curr_ptype != orig_ptype;
-}
-
 
 
 

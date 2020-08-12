@@ -99,10 +99,9 @@ void PreFrame::preallocate(size_t nrows) {
   * returned. This number may be less than `nrows_in_chunk0` if the
   * total number of rows exceeds `max_nrows` parameter.
   *
-  * The `ordered_loop` variable allows us to retrieve information
-  * about the current state of iteration, and to wait until the
-  * currently pending data is safely written if we need to reallocate
-  * buffers.
+  * The `otask` variable allows us to retrieve information about the
+  * current state of iteration, and to wait until the currently
+  * pending data is safely written if we need to reallocate buffers.
   *
   * This function will also adjust the `nrows_written` counter, and
   * thus should be called from the ordered section only.
@@ -210,6 +209,12 @@ void PreFrame::init_tempfile() {
 }
 
 
+std::shared_ptr<TemporaryFile>& PreFrame::get_tempfile() {
+  return tempfile_;
+}
+
+
+
 
 
 //------------------------------------------------------------------------------
@@ -277,13 +282,15 @@ void PreFrame::set_ptypes(const std::vector<PT>& types) {
   xassert(types.size() == columns_.size());
   size_t i = 0;
   for (auto& col : columns_) {
-    col.force_ptype(types[i++]);
+    col.set_ptype(types[i++]);
+    col.outcol().set_stype(col.get_stype());
   }
 }
 
 void PreFrame::reset_ptypes() {
   for (auto& col : columns_) {
-    col.force_ptype(PT::Mu);
+    col.set_ptype(PT::Mu);
+    col.outcol().set_stype(col.get_stype());
   }
 }
 
@@ -320,27 +327,10 @@ const char* PreFrame::print_ptypes() const {
 size_t PreFrame::n_columns_in_output() const {
   size_t n = 0;
   for (const auto& col : columns_) {
-    n += col.is_in_output();
+    n += !col.is_dropped();
   }
   return n;
 }
-
-size_t PreFrame::n_columns_in_buffer() const {
-  size_t n = 0;
-  for (const auto& col : columns_) {
-    n += col.is_in_buffer();
-  }
-  return n;
-}
-
-size_t PreFrame::n_columns_to_reread() const {
-  size_t n = 0;
-  for (const auto& col : columns_) {
-    n += col.is_type_bumped();
-  }
-  return n;
-}
-
 
 size_t PreFrame::total_allocsize() const {
   size_t allocsize = sizeof(*this);
@@ -357,16 +347,6 @@ size_t PreFrame::total_allocsize() const {
 // Finalizing
 //------------------------------------------------------------------------------
 
-void PreFrame::prepare_for_rereading() {
-  for (auto& col : columns_) {
-    col.outcol().archive_data(nrows_written_, tempfile_);
-    col.prepare_for_rereading();
-  }
-  nrows_written_ = 0;
-  nrows_allocated_ = 0;
-}
-
-
 dtptr PreFrame::to_datatable() && {
   std::vector<::Column> ccols;
   std::vector<std::string> names;
@@ -379,7 +359,7 @@ dtptr PreFrame::to_datatable() && {
     tempfile_ = nullptr;
   }
   for (auto& col : columns_) {
-    if (!col.is_in_output()) continue;
+    if (col.is_dropped()) continue;
     auto& outcol = col.outcol();
     col.outcol().archive_data(nrows_written_, tempfile_);
     names.push_back(col.get_name());

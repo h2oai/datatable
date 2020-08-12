@@ -50,7 +50,7 @@ def test_split_into_nhot_noarg():
 
 def test_split_into_nhot_none():
     f0 = dt.split_into_nhot(None)
-    assert(f0 == None)
+    assert f0 is None
 
 
 def test_split_into_nhot_empty():

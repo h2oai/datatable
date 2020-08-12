@@ -62,7 +62,6 @@ std::unique_ptr<DataTable> FreadReader::read_all()
     int nUserBumped = 0;
     for (size_t i = 0; i < ncols; i++) {
       auto& col = preframe.column(i);
-      col.reset_type_bumped();
       if (col.is_dropped()) {
         ndropped++;
         continue;
@@ -100,37 +99,18 @@ std::unique_ptr<DataTable> FreadReader::read_all()
   //****************************************************************************
   // [6] Read the data
   //****************************************************************************
-  bool firstTime = true;
-
   auto typesPtr = preframe.get_ptypes();
   dt::read::PT* types = typesPtr.data();  // This pointer is valid until `typesPtr` goes out of scope
 
-  read:  // we'll return here to reread any columns with out-of-sample type exceptions
   {
     auto _ = logger_.section("[6] Read the data");
-    job->set_message(firstTime? "Reading data" : "Rereading data");
-    dt::progress::subtask subwork(*job, firstTime? WORK_READ : WORK_REREAD);
+    job->set_message("Reading data");
+    dt::progress::subtask subwork(*job, WORK_READ);
     dt::read::FreadParallelReader scr(*this, types);
     scr.read_all();
     subwork.done();
 
-    if (firstTime) {
-      fo.t_data_read = fo.t_data_reread = wallclock();
-    } else {
-      fo.t_data_reread = wallclock();
-    }
-    size_t ncols_to_reread = preframe.n_columns_to_reread();
-    xassert((ncols_to_reread > 0) == reread_scheduled);
-    if (ncols_to_reread) {
-      fo.n_cols_reread += ncols_to_reread;
-      D() << dt::log::plural(ncols_to_reread, "column")
-          << " need to be re-read because their types have changed";
-      preframe.prepare_for_rereading();
-      firstTime = false;
-      reread_scheduled = false;
-      goto read;
-    }
-
+    fo.t_data_read = wallclock();
     fo.n_rows_read = preframe.nrows_written();
     fo.n_cols_read = preframe.n_columns_in_output();
   }

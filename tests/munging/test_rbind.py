@@ -503,6 +503,15 @@ def test_rbind_modulefn():
     assert f3.to_list()[0] == f0.to_list()[0] + f1.to_list()[0]
 
 
+def test_rbind_save_to_jay(tempfile_jay):
+    DT0 = dt.Frame(A=range(5), B=[None]*5)
+    DT1 = dt.Frame(A=[7, 11, 95], B=["one", "TWO", "thr33"])
+    dt.rbind(DT0, DT1).to_jay(tempfile_jay)
+    RES = dt.fread(tempfile_jay)
+    assert_equals(RES, dt.Frame(A=[0, 1, 2, 3, 4, 7, 11, 95],
+                                B=[None]*5 + ["one", "TWO", "thr33"]))
+
+
 
 #-------------------------------------------------------------------------------
 # Rbind to a keyed frame

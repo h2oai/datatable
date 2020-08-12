@@ -458,8 +458,8 @@ void Aggregator<T>::aggregate_exemplars(bool was_sampled) {
 
   // Setting up a table for counts
   auto dt_counts = dtptr(new DataTable(
-      {Column::new_data_column(n_exemplars, dt::SType::INT32)},
-      {"members_count"}
+    {Column::new_data_column(n_exemplars, dt::SType::INT32)},
+    {"members_count"}
   ));
   auto d_counts = static_cast<int32_t*>(dt_counts->get_column(0).get_data_editable());
   std::memset(d_counts, 0, n_exemplars * sizeof(int32_t));

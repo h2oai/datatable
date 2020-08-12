@@ -53,7 +53,6 @@ class FreadObserver {
     double t_column_types_detected;
     double t_frame_allocated;
     double t_data_read;
-    double t_data_reread;
     dt::atomic<double> time_read_data;
     dt::atomic<double> time_push_data;
     size_t n_rows_read;
@@ -62,7 +61,6 @@ class FreadObserver {
     size_t n_lines_sampled;
     size_t n_rows_allocated;
     size_t n_cols_allocated;
-    size_t n_cols_reread;
     size_t allocation_size;
     size_t read_data_nthreads;
     std::vector<std::string> messages;

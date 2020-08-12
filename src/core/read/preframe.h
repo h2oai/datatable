@@ -67,6 +67,7 @@ class PreFrame
     void preallocate(size_t nrows);
     size_t ensure_output_nrows(size_t nrows_in_chunk, size_t ichunk, dt::OrderedTask*);
     void archive_column_chunks(size_t expected_nrows);
+    std::shared_ptr<TemporaryFile>& get_tempfile();
 
     // Column iterator / access
     const_iterator begin() const;
@@ -84,11 +85,8 @@ class PreFrame
     const char* print_ptypes() const;
 
     size_t n_columns_in_output() const;
-    size_t n_columns_in_buffer() const;
-    size_t n_columns_to_reread() const;
     size_t total_allocsize() const;
 
-    void prepare_for_rereading();
     std::unique_ptr<DataTable> to_datatable() &&;
 
   private:

@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>                 // std::memcpy
 #include "csv/reader_fread.h"      // FreadReader
 #include "read/fread/fread_thread_context.h"
 #include "read/parallel_reader.h"  // ChunkCoordinates
@@ -31,9 +32,9 @@ namespace read {
 
 
 FreadThreadContext::FreadThreadContext(
-    size_t bcols, size_t brows, FreadReader& f, PT* types_
+    size_t bcols, size_t brows, FreadReader& f, PT* types
   ) : ThreadContext(bcols, brows, f.preframe),
-      types(types_),
+      global_types_(types),
       freader(f),
       parsers(ParserLibrary::get_parser_fns())
 {
@@ -74,6 +75,8 @@ void FreadThreadContext::read_chunk(
   used_nrows = 0;
   parse_ctx_.target = tbuf.data();
   parse_ctx_.bytes_written = 0;
+  local_types_.clear();
+  PT* types = global_types_;
 
   while (tch < cc.get_end()) {
     if (used_nrows == tbuf_nrows) {
@@ -91,7 +94,7 @@ void FreadThreadContext::read_chunk(
         fieldStart = tch;
         parsers[types[j]](parse_ctx_);
         if (tch >= parse_ctx_.eof || *tch != sep) break;
-        parse_ctx_.target += preframe_.column(j).is_in_buffer();
+        parse_ctx_.target ++;
         tch++;
         j++;
       }
@@ -103,7 +106,7 @@ void FreadThreadContext::read_chunk(
         tch = tlineStart;  // in case white space at the beginning may need to be included in field
       }
       else if (parse_ctx_.skip_eol() && j < ncols) {
-        parse_ctx_.target += preframe_.column(j).is_in_buffer();
+        parse_ctx_.target ++;
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
         tch--;
@@ -114,7 +117,6 @@ void FreadThreadContext::read_chunk(
     }
     //*** END TEPID. NOW COLD.
 
-
     if (sep==' ') {
       while (tch < parse_ctx_.eof && *tch==' ') tch++;
       fieldStart = tch;
@@ -124,7 +126,9 @@ void FreadThreadContext::read_chunk(
     if (fillme || (tch == parse_ctx_.eof || (*tch!='\n' && *tch!='\r'))) {  // also includes the case when sep==' '
       while (j < ncols) {
         fieldStart = tch;
-        auto ptype_iter = preframe_.column(j).get_ptype_iterator(&parse_ctx_.quoteRule);
+        // auto ptype_iter = preframe_.column(j).get_ptype_iterator(&parse_ctx_.quoteRule);
+        PtypeIterator ptype_iter(types[j], preframe_.column(j).get_rtype(),
+                                 &parse_ctx_.quoteRule);
 
         while (true) {
           tch = fieldStart;
@@ -152,7 +156,7 @@ void FreadThreadContext::read_chunk(
             break;
           }
 
-          // Only perform bumping types / quote rules, when we are sure that the
+          // Only perform bumping type / quote rules, when we are sure that the
           // start of the chunk is valid.
           // Otherwise, we are not able to read the chunk, and therefore return.
           typebump:
@@ -176,22 +180,21 @@ void FreadThreadContext::read_chunk(
                                       // TODO: use line number instead
                                       static_cast<int64_t>(row0_ + used_nrows + freader.line));
           }
-          types[j] = *ptype_iter;
-          colj.set_ptype(types[j]);
-          if (!freader.reread_scheduled) {
-            freader.reread_scheduled = true;
-            freader.job->add_work_amount(GenericReader::WORK_REREAD);
+          if (local_types_.empty()) {
+            local_types_.resize(ncols);
+            types = local_types_.data();
+            std::memcpy(types, global_types_, sizeof(PT) * ncols);
           }
+          types[j] = *ptype_iter;
         }
-        parse_ctx_.target += colj.is_in_buffer();
+        parse_ctx_.target ++;
         j++;
         if (tch < parse_ctx_.eof && *tch==sep) { tch++; continue; }
         if (fill && (tch == parse_ctx_.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string
           // which writes "" value instead -- hence this case should be
           // corrected here.
-          if (colj.is_string() && colj.is_in_buffer() &&
-              parse_ctx_.target[-1].str32.length == 0) {
+          if (colj.is_string() && parse_ctx_.target[-1].str32.length == 0) {
             parse_ctx_.target[-1].str32.setna();
           }
           continue;
@@ -239,7 +242,9 @@ void FreadThreadContext::read_chunk(
     used_nrows++;
   }
 
-  preorder();
+  if (local_types_.empty()) {
+    preorder();
+  }
 
   // Tell the caller where we finished reading the chunk. This is why
   // the parameter `actual_cc` was passed to this function.
@@ -249,13 +254,34 @@ void FreadThreadContext::read_chunk(
 
 
 
-
-
 void FreadThreadContext::postorder() {
   double t0 = verbose? wallclock() : 0;
   ThreadContext::postorder();
   if (verbose) ttime_push += wallclock() - t0;
 }
+
+
+bool FreadThreadContext::handle_typebumps(OrderedTask* otask) {
+  if (local_types_.empty()) return false;
+  otask->super_ordered([&]{
+    auto tempfile = preframe_.get_tempfile();
+    size_t ncols = local_types_.size();
+    for (size_t i = 0; i < ncols; ++i) {
+      auto ptype = local_types_[i];
+      if (ptype != global_types_[i]) {
+        global_types_[i] = ptype;
+        auto& inpcol = preframe_.column(i);
+        inpcol.set_ptype(ptype);
+
+        auto& outcol = preframe_.column(i).outcol();
+        outcol.set_stype(inpcol.get_stype(), row0_, tempfile);
+      }
+    }
+    local_types_.clear();
+  });
+  return true;
+}
+
 
 
 

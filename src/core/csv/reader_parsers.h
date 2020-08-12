@@ -162,7 +162,31 @@ class ParserInfo {
 //------------------------------------------------------------------------------
 // Parser iterators
 //------------------------------------------------------------------------------
+namespace dt {
+namespace read {
 
+
+class PtypeIterator {
+  private:
+    int8_t* pqr;
+    RT rtype;
+    PT orig_ptype;
+    PT curr_ptype;
+    int64_t : 40;
+
+  public:
+    PtypeIterator(PT pt, RT rt, int8_t* qr_ptr);
+    PT operator*() const;
+    PtypeIterator& operator++();
+    bool has_incremented() const;
+    RT get_rtype() const;
+};
+
+
+}}
+
+
+// unused?
 class ParserIterator {
   private:
     int ipt;
@@ -184,6 +208,7 @@ class ParserIterator {
     value_type operator*() const;
 };
 
+// unused?
 class ParserIterable {
   private:
     const dt::read::PT ptype;

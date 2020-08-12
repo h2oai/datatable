@@ -177,5 +177,18 @@ class Head_Func_Cut : public Head_Func {
 };
 
 
+
+class Head_Func_Qcut : public Head_Func {
+  private:
+    py::oobj py_nquantiles_;
+
+  public:
+    Head_Func_Qcut(py::oobj py_nquantiles);
+    static ptrHead make(Op, const py::otuple& params);
+
+    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+};
+
+
 }}  // namespace dt::expr
 #endif

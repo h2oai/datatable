@@ -30,6 +30,7 @@ clean::
 	rm -rf build
 	rm -rf dist
 	rm -rf datatable.egg-info
+	rm -rf htmlcov
 	rm -f *.so
 	rm -f src/datatable/lib/_datatable*.pyd
 	rm -f src/datatable/lib/_datatable*.so
