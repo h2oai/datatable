@@ -282,7 +282,7 @@ struct deflate_state {
 /* Output a byte on the stream.
  * IN assertion: there is enough room in pending_buf.
  */
-#define put_byte(s, c) {s->pending_buf[s->pending++] = (Bytef)(c);}
+#define put_byte(s, c) do {s->pending_buf[s->pending++] = (Bytef)(c);} while(0)
 
 
 #define MIN_LOOKAHEAD (MAX_MATCH+MIN_MATCH+1)
@@ -324,14 +324,14 @@ void _tr_stored_block(deflate_state *s, charf *buf, ulg stored_len, int last);
 #endif
 
 #define _tr_tally_lit(s, c, flush) \
-  { uch cc = (c); \
+  do { uch cc = (c); \
     s->d_buf[s->last_lit] = 0; \
     s->l_buf[s->last_lit++] = cc; \
     s->dyn_ltree[cc].Freq++; \
     flush = (s->last_lit == s->lit_bufsize-1); \
-   }
+  } while(0)
 #define _tr_tally_dist(s, distance, length, flush) \
-  { uch len = (uch)(length); \
+  do { uch len = (uch)(length); \
     ush dist = (ush)(distance); \
     s->d_buf[s->last_lit] = dist; \
     s->l_buf[s->last_lit++] = len; \
@@ -339,7 +339,7 @@ void _tr_stored_block(deflate_state *s, charf *buf, ulg stored_len, int last);
     s->dyn_ltree[_length_code[len]+LITERALS+1].Freq++; \
     s->dyn_dtree[d_code(dist)].Freq++; \
     flush = (s->last_lit == s->lit_bufsize-1); \
-  }
+  } while(0)
 
 
 

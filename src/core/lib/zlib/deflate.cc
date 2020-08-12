@@ -197,7 +197,7 @@ static const config configuration_table[10] = {
  */
 #define CLEAR_HASH(s) \
   s->head[s->hash_size-1] = NIL; \
-  zmemzero((Bytef *)s->head, (unsigned)(s->hash_size-1)*sizeof(*s->head));
+  zmemzero((Bytef *)s->head, (unsigned)(s->hash_size-1)*sizeof(*s->head))
 
 /* ===========================================================================
  * Slide the hash table when sliding the window down (could be avoided with 32
@@ -1318,7 +1318,7 @@ static void fill_window(deflate_state* s)
  * Flush the current block, with given end-of-file flag.
  * IN assertion: strstart is set to the end of the current match.
  */
-#define FLUSH_BLOCK_ONLY(s, last) { \
+#define FLUSH_BLOCK_ONLY(s, last) do { \
    _tr_flush_block(s, (s->block_start >= 0L ? \
            (charf *)&s->window[(unsigned)s->block_start] : \
            (charf *)Z_NULL), \
@@ -1327,13 +1327,13 @@ static void fill_window(deflate_state* s)
    s->block_start = s->strstart; \
    flush_pending(s->strm); \
    Tracev((stderr,"[FLUSH]")); \
-}
+} while(0)
 
 /* Same but force premature exit if necessary. */
-#define FLUSH_BLOCK(s, last) { \
+#define FLUSH_BLOCK(s, last) do { \
    FLUSH_BLOCK_ONLY(s, last); \
    if (s->strm->avail_out == 0) return (last) ? finish_started : need_more; \
-}
+} while(0)
 
 /* Maximum stored block length in deflate format (not including header). */
 #define MAX_STORED 65535

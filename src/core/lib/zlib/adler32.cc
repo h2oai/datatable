@@ -10,11 +10,11 @@ namespace zlib {
 #define NMAX 5552
 /* NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1 */
 
-#define DO1(buf,i)  {adler += (buf)[i]; sum2 += adler;}
-#define DO2(buf,i)  DO1(buf,i); DO1(buf,i+1);
-#define DO4(buf,i)  DO2(buf,i); DO2(buf,i+2);
-#define DO8(buf,i)  DO4(buf,i); DO4(buf,i+4);
-#define DO16(buf)   DO8(buf,0); DO8(buf,8);
+#define DO1(buf,i)  do {adler += (buf)[i]; sum2 += adler;} while(0)
+#define DO2(buf,i)  DO1(buf,i); DO1(buf,i+1)
+#define DO4(buf,i)  DO2(buf,i); DO2(buf,i+2)
+#define DO8(buf,i)  DO4(buf,i); DO4(buf,i+4)
+#define DO16(buf)   DO8(buf,0); DO8(buf,8)
 
 #define MOD(a) a %= BASE
 #define MOD28(a) a %= BASE
