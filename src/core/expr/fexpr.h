@@ -167,7 +167,7 @@ class FExpr : public XObject<FExpr> {
 
     oobj extend(const PKArgs&);
     oobj remove(const PKArgs&);
-    oobj len(const PKArgs&);        // [DEPRECATED]
+    oobj len();                     // [DEPRECATED]
     oobj re_match(const PKArgs&);   // [DEPRECATED]
 
     static void impl_init_type(XTypeMaker& xt);

@@ -196,7 +196,27 @@ oobj FExpr::remove(const PKArgs& args) {
 }
 
 
+// DEPRECATED
+oobj FExpr::len() {
+  return make_unexpr(dt::expr::Op::LEN, this);
+}
 
+
+static PKArgs args_re_match(
+    0, 2, 0, false, false, {"pattern", "flags"}, "re_match", nullptr);
+
+oobj FExpr::re_match(const PKArgs& args) {
+  auto arg0 = args[0].to<oobj>(py::None());
+  auto arg1 = args[1].to<oobj>(py::None());
+  return robj(Expr_Type).call({
+                  oint(static_cast<int>(dt::expr::Op::RE_MATCH)),
+                  otuple{robj(this)},
+                  otuple{arg0, arg1}});
+}
+
+
+
+// TODO
 static const char* doc_fexpr =
 R"()";
 
@@ -209,6 +229,8 @@ void FExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(DESTRUCTOR(&FExpr::m__dealloc__));
   xt.add(METHOD(&FExpr::extend, args_extend));
   xt.add(METHOD(&FExpr::remove, args_remove));
+  xt.add(METHOD0(&FExpr::len, "len"));
+  xt.add(METHOD(&FExpr::re_match, args_re_match));
 
   xt.add(METHOD__REPR__(&FExpr::m__repr__));
   xt.add(METHOD__ADD__(&FExpr::nb__add__));
