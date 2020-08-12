@@ -146,7 +146,7 @@ class FExpr : public XObject<FExpr> {
     void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj m__repr__() const;
-    oobj m__compare__(robj other, int op) const;
+    oobj m__compare__(robj other, int op);
 
     static oobj nb__add__(robj, robj);
     static oobj nb__sub__(robj, robj);
@@ -160,10 +160,10 @@ class FExpr : public XObject<FExpr> {
     static oobj nb__or__(robj, robj);
     static oobj nb__lshift__(robj, robj);
     static oobj nb__rshift__(robj, robj);
-    bool nb__bool__() const;
-    oobj nb__invert__() const;
-    oobj nb__neg__() const;
-    oobj nb__pos__() const;
+    bool nb__bool__();
+    oobj nb__invert__();
+    oobj nb__neg__();
+    oobj nb__pos__();
 
     oobj extend(const PKArgs&);
     oobj remove(const PKArgs&);

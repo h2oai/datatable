@@ -107,7 +107,7 @@ oobj FExpr::nb__pow__(robj lhs, robj rhs, robj zhs) {
   return make_binexpr(dt::expr::Op::POWEROP, lhs, rhs);
 }
 
-bool FExpr::nb__bool__() const {
+bool FExpr::nb__bool__() {
   throw TypeError() <<
       "Expression " << expr_->repr() << " cannot be cast to bool.\n\n"
       "You may be seeing this error because either:\n"
@@ -131,15 +131,15 @@ bool FExpr::nb__bool__() const {
       "        f.B != 0\n";
 }
 
-oobj FExpr::nb__invert__() const {
+oobj FExpr::nb__invert__() {
   return make_unexpr(dt::expr::Op::UINVERT, this);
 }
 
-oobj FExpr::nb__neg__() const {
+oobj FExpr::nb__neg__() {
   return make_unexpr(dt::expr::Op::UMINUS, this);
 }
 
-oobj FExpr::nb__pos__() const {
+oobj FExpr::nb__pos__() {
   return make_unexpr(dt::expr::Op::UPLUS, this);
 }
 

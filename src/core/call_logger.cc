@@ -34,26 +34,30 @@ namespace dt {
 
 // These names should correspond to CallLogger::NbOp enum
 static const char* nb_names[] = {
-    "__add__",
-    "__sub__",
-    "__mul__",
-    "__mod__",
-    "__divmod__",
-    "__pow__",
-    "__lshift__",
-    "__rshift__",
-    "__and__",
-    "__or__",
-    "__xor__",
-    "__truediv__",
-    "__floordiv__",
-    "__neg__",
-    "__pos__",
-    "__abs__",
-    "__invert__",
-    "__bool__",
-    "__int__",
-    "__float__",
+    "__add__",        // 0
+    "__sub__",        // 1
+    "__mul__",        // 2
+    "__mod__",        // 3
+    "__divmod__",     // 4
+    "__pow__",        // 5
+    "__lshift__",     // 6
+    "__rshift__",     // 7
+    "__and__",        // 8
+    "__or__",         // 9
+    "__xor__",        // 10
+    "__truediv__",    // 11
+    "__floordiv__",   // 12
+    "__neg__",        // 13
+    "__pos__",        // 14
+    "__abs__",        // 15
+    "__invert__",     // 16
+    "__bool__",       // 17
+    "__int__",        // 18
+    "__float__",      // 19
+    "__repr__",       // 20
+    "__str__",        // 21
+    "__iter__",       // 22
+    "__next__",       // 23
 };
 
 

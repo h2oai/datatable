@@ -91,6 +91,10 @@ class CallLogger {
       __bool__     = 17,
       __int__      = 18,
       __float__    = 19,
+      __repr__     = 20,
+      __str__      = 21,
+      __iter__     = 22,
+      __next__     = 23,
     };
 
     CallLogger(CallLogger&&) noexcept;

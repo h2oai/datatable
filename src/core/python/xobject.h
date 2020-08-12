@@ -274,6 +274,7 @@ void _safe_dealloc(PyObject* self) noexcept {
 }
 
 
+// FIXME: this is used by METHOD0 only
 template <typename T, py::oobj(T::*METH)()>
 PyObject* _safe_repr(PyObject* self) noexcept {
   // Do not use CallLogger here, because it itself calls repr() on
@@ -294,7 +295,7 @@ PyObject* _safe_repr(PyObject* self) noexcept {
   // Do not use CallLogger here, because it itself calls repr() on
   // the arguments passed
   try {
-    T* tself = static_cast<T*>(self);
+    auto tself = static_cast<const T*>(self);
     return (tself->*METH)().release();
   }
   catch (const std::exception& e) {
@@ -475,11 +476,11 @@ int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
 }
 
 
-template <typename T, py::oobj(T::*METH)() const, int OP>
+template <typename T, py::oobj(T::*METH)(), int OP>
 PyObject* _safe_unary(PyObject* self) noexcept {
   auto cl = dt::CallLogger::unaryfn(self, OP);
   try {
-    auto tself = static_cast<const T*>(self);
+    auto tself = static_cast<T*>(self);
     return (tself->*METH)().release();
   } catch (const std::exception& e) {
     exception_to_python(e);
@@ -512,11 +513,11 @@ PyObject* _safe_ternary(PyObject* x, PyObject* y, PyObject* z) noexcept {
 }
 
 
-template <typename T, bool(T::*METH)() const>
+template <typename T, bool(T::*METH)()>
 int _safe_bool(PyObject* self) noexcept {
   auto cl = dt::CallLogger::unaryfn(self, dt::CallLogger::Op::__bool__);
   try {
-    auto tself = static_cast<const T*>(self);
+    auto tself = static_cast<T*>(self);
     bool res = (tself->*METH)();
     return static_cast<int>(res);
   } catch (const std::exception& e) {
@@ -574,6 +575,7 @@ RESTORE_CLANG_WARNING("-Wunused-template")
     }, ARGS, py::XTypeMaker::method_tag
 
 
+// FIXME: this does not report function's name to the CallLogger
 #define METHOD0(METH, NAME)                                                    \
     _safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
 
@@ -609,7 +611,8 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__ITER__(METH)                                                   \
-    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::iter_tag
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__iter__>,           \
+    py::XTypeMaker::iter_tag
 
 
 #define METHOD__REVERSED__(METH)                                               \
@@ -617,7 +620,8 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__NEXT__(METH)                                                   \
-    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::next_tag
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__next__>,           \
+    py::XTypeMaker::next_tag
 
 
 #define METHOD__LENGTH_HINT__(METH)                                            \
