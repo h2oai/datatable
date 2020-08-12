@@ -24,33 +24,6 @@
 #include "_dt.h"
 namespace dt {
 
-/*
-    void add(binaryfunc meth, NbAddTag);
-    void add(binaryfunc meth, NbSubtractTag);
-    void add(binaryfunc meth, NbMultiplyTag);
-    void add(binaryfunc meth, NbRemainderTag);
-    void add(binaryfunc meth, NbDivmodTag);
-    void add(ternaryfunc meth, NbPowerTag);
-    void add(binaryfunc meth, NbLShiftTag);
-    void add(binaryfunc meth, NbRShiftTag);
-    void add(binaryfunc meth, NbAndTag);
-    void add(binaryfunc meth, NbXorTag);
-    void add(binaryfunc meth, NbOrTag);
-    void add(binaryfunc meth, NbFloorDivideTag);
-    void add(binaryfunc meth, NbTrueDivideTag);
-
-    // unaryfunc = PyObject*(*)(PyObject*)
-    void add(unaryfunc meth, NbNegativeTag);
-    void add(unaryfunc meth, NbPositiveTag);
-    void add(unaryfunc meth, NbAbsoluteTag);
-    void add(unaryfunc meth, NbInvertTag);
-    void add(unaryfunc meth, NbIntTag);
-    void add(unaryfunc meth, NbFloatTag);
-
-    // inquiry = int(*)(void*)
-    void add(inquiry meth, NbBoolTag);
-8*/
-
 
 /**
   * This class is a guardian object that implements logging of info
