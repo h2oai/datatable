@@ -342,7 +342,7 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
                 "-Wno-weak-vtables",
-                "-Wno-implicit-int-float-conversion"
+                # "-Wno-implicit-int-float-conversion"
             )
         else:
             ext.compiler.add_compiler_flag(
