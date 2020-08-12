@@ -722,10 +722,10 @@ static Column compute_gmedian(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 
 Workframe Head_Reduce_Unary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
-  Workframe inputs = args[0].evaluate_n(ctx);
+  Workframe inputs = args[0]->evaluate_n(ctx);
   Groupby gby = ctx.get_groupby();
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 

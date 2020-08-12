@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,7 +41,7 @@ Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
 Workframe Head_Literal::evaluate_r(const vecExpr& args, EvalContext& ctx,
                                    const sztvec&) const
 {
-  return evaluate_n(args, ctx, false);
+  return evaluate_n(args, ctx);
 }
 
 

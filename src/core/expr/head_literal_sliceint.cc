@@ -37,7 +37,7 @@ Kind Head_Literal_SliceInt::get_expr_kind() const {
 
 
 Workframe Head_Literal_SliceInt::evaluate_n(
-    const vecExpr&, EvalContext&, bool) const
+    const vecExpr&, EvalContext&) const
 {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
@@ -45,7 +45,7 @@ Workframe Head_Literal_SliceInt::evaluate_n(
 
 
 Workframe Head_Literal_SliceInt::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool) const
+    EvalContext& ctx, size_t frame_id) const
 {
   size_t len = ctx.get_datatable(frame_id)->ncols();
   size_t start, count, step;
@@ -59,9 +59,9 @@ Workframe Head_Literal_SliceInt::evaluate_f(
 
 
 Workframe Head_Literal_SliceInt::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool allow_new) const
+    const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(ctx, 0, allow_new);
+  return evaluate_f(ctx, 0);
 }
 
 

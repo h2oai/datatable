@@ -39,11 +39,11 @@ Kind Head_List::get_expr_kind() const {
 }
 
 Workframe Head_List::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   Workframe outputs(ctx);
-  for (const Expr& arg : inputs) {
-    outputs.cbind( arg.evaluate_n(ctx, allow_new) );
+  for (const auto& arg : inputs) {
+    outputs.cbind( arg->evaluate_n(ctx) );
   }
   return outputs;
 }
@@ -58,12 +58,12 @@ Workframe Head_List::evaluate_r(
   Workframe outputs(ctx);
   if (inputs.size() == indices.size()) {
     for (size_t i = 0; i < inputs.size(); ++i) {
-      outputs.cbind( inputs[i].evaluate_r(ctx, {indices[i]}) );
+      outputs.cbind( inputs[i]->evaluate_r(ctx, {indices[i]}) );
     }
   }
   else if (inputs.size() == 1) {
     for (size_t i = 0; i < indices.size(); ++i) {
-      outputs.cbind( inputs[0].evaluate_r(ctx, {indices[i]}) );
+      outputs.cbind( inputs[0]->evaluate_r(ctx, {indices[i]}) );
     }
   }
   else {
@@ -76,7 +76,7 @@ Workframe Head_List::evaluate_r(
 
 
 
-Workframe Head_List::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_List::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
       << "A list or a sequence cannot be used inside an f-selector";
 }
@@ -114,7 +114,7 @@ static const char* _name_type(Kind t) {
 static Kind _resolve_list_kind(const vecExpr& inputs) {
   auto listkind = Kind::Unknown;
   for (size_t i = 0; i < inputs.size(); ++i) {
-    auto kind = inputs[i].get_expr_kind();
+    auto kind = inputs[i]->get_expr_kind();
     xassert(kind != Kind::Unknown);
     if (kind == listkind) continue;
     if (kind == Kind::Bool) {
@@ -163,7 +163,7 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
   }
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    bool x = inputs[i].evaluate_bool();
+    bool x = inputs[i]->evaluate_bool();
     if (x) outputs.add_ref_column(0, i);
   }
   return outputs;
@@ -171,23 +171,23 @@ static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
 
 
 static Workframe _evaluate_f_list(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new)
+    const vecExpr& inputs, EvalContext& ctx)
 {
   Workframe outputs(ctx);
-  for (const Expr& arg : inputs) {
-    outputs.cbind( arg.evaluate_f(ctx, 0, allow_new) );
+  for (const auto& arg : inputs) {
+    outputs.cbind( arg->evaluate_j(ctx) );
   }
   return outputs;
 }
 
 
 Workframe Head_List::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
-  if (kind == Kind::Func) return evaluate_n(inputs, ctx, allow_new);
-  return _evaluate_f_list(inputs, ctx, allow_new);
+  if (kind == Kind::Func) return evaluate_n(inputs, ctx);
+  return _evaluate_f_list(inputs, ctx);
 }
 
 
@@ -199,7 +199,7 @@ Workframe Head_List::evaluate_j(
 static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
   std::vector<RowIndex> rowindices;
   for (size_t i = 0; i < inputs.size(); ++i) {
-    auto ikind = inputs[i].get_expr_kind();
+    auto ikind = inputs[i]->get_expr_kind();
     if (ikind == Kind::None) continue;
     if (!(ikind == Kind::Int || ikind == Kind::SliceInt ||
           ikind == Kind::SliceAll || ikind == Kind::Func ||
@@ -207,7 +207,7 @@ static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
       throw TypeError() << "Invalid expression of type " << _name_type(ikind)
           << " at index " << i << " in the i-selector list";
     }
-    RowIndex ri = inputs[i].evaluate_i(ctx);
+    RowIndex ri = inputs[i]->evaluate_i(ctx);
     if (!ri) ri = RowIndex(0, ctx.nrows(), 1);
     rowindices.push_back(std::move(ri));
   }
@@ -226,12 +226,12 @@ static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
   auto data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    if (inputs[i].get_expr_kind() != Kind::Bool) {
+    if (inputs[i]->get_expr_kind() != Kind::Bool) {
       throw TypeError() << "Element " << i << " in the i-selector list is "
-          << _name_type(inputs[i].get_expr_kind()) << ", whereas the previous "
+          << _name_type(inputs[i]->get_expr_kind()) << ", whereas the previous "
           "elements were boolean";
     }
-    bool x = inputs[i].evaluate_bool();
+    bool x = inputs[i]->evaluate_bool();
     if (x) {
       data[data_index++] = static_cast<int32_t>(i);
     }
@@ -247,9 +247,9 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
   int32_t* data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
   for (size_t i = 0; i < inputs.size(); ++i) {
-    auto ikind = inputs[i].get_expr_kind();
+    auto ikind = inputs[i]->get_expr_kind();
     if (ikind == Kind::Int) {
-      int64_t x = inputs[i].evaluate_int();
+      int64_t x = inputs[i]->evaluate_int();
       if (x < -inrows || x >= inrows) {
         throw ValueError() << "Index " << x << " is invalid for a Frame with "
             << inrows << " rows";
@@ -277,7 +277,7 @@ RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
   if (inputs.empty()) {
     return RowIndex(0, 0, 1);  // Select-nothing rowindex
   }
-  auto kind0 = inputs[0].get_expr_kind();
+  auto kind0 = inputs[0]->get_expr_kind();
   if (kind0 == Kind::Bool) return _evaluate_i_bools(inputs, ctx);
   if (kind0 == Kind::Int)  return _evaluate_i_ints(inputs, ctx);
   return _evaluate_i_other(inputs, ctx);
@@ -303,19 +303,19 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
 
   auto kind = _resolve_list_kind(inputs);
   if (kind == Kind::Str || kind == Kind::Int) {
-    for (const Expr& arg : inputs) {
-      outwf.cbind( arg.evaluate_f(ctx, 0, false) );
+    for (const auto& arg : inputs) {
+      outwf.cbind( arg->evaluate_f(ctx, 0) );
       outflags.push_back(SortFlag::NONE);
     }
   }
   else if (kind == Kind::Func) {
-    size_t iframe, icol;
-    for (const Expr& arg : inputs) {
-      if (arg.is_negated_column(ctx, &iframe, &icol)) {
-        outwf.add_ref_column(iframe, icol);
+    for (const auto& arg : inputs) {
+      auto negcol = arg->unnegate_column();
+      if (negcol) {
+        outwf.cbind( negcol->evaluate_n(ctx) );
         outflags.push_back(SortFlag::DESCENDING);
       } else {
-        outwf.cbind( arg.evaluate_n(ctx) );
+        outwf.cbind( arg->evaluate_n(ctx) );
         outflags.push_back(SortFlag::NONE);
       }
     }
@@ -342,12 +342,12 @@ Kind Head_NamedList::get_expr_kind() const {
 
 
 Workframe Head_NamedList::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
   xassert(inputs.size() == names.size());
   Workframe outputs(ctx);
   for (size_t i = 0; i < inputs.size(); ++i) {
-    Workframe arg_out = inputs[i].evaluate_n(ctx, allow_new);
+    Workframe arg_out = inputs[i]->evaluate_n(ctx);
     arg_out.rename(names[i]);
     outputs.cbind( std::move(arg_out) );
   }
@@ -358,19 +358,19 @@ Workframe Head_NamedList::evaluate_n(
 Workframe Head_NamedList::evaluate_r(
     const vecExpr& args, EvalContext& ctx, const sztvec&) const
 {
-  return evaluate_n(args, ctx, false);
+  return evaluate_n(args, ctx);
 }
 
 
-Workframe Head_NamedList::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_NamedList::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A dictionary cannot be used as an f-selector";
 }
 
 
 Workframe Head_NamedList::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx, bool allow_new) const
+    const vecExpr& inputs, EvalContext& ctx) const
 {
-  return evaluate_n(inputs, ctx, allow_new);
+  return evaluate_n(inputs, ctx);
 }
 
 

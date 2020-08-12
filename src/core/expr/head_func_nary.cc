@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,11 +33,11 @@ Head_Func_Nary::Head_Func_Nary(Op op) : op_(op) {}
 
 
 Workframe Head_Func_Nary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   Workframe inputs(ctx);
   for (const auto& arg : args) {
-    inputs.cbind(arg.evaluate_n(ctx));
+    inputs.cbind(arg->evaluate_n(ctx));
   }
 
   Grouping gmode = inputs.get_grouping_mode();

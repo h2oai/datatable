@@ -228,11 +228,11 @@ static Column compute_corr(Column&& arg1, Column&& arg2, const Groupby& gby) {
 //------------------------------------------------------------------------------
 
 Workframe Head_Reduce_Binary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 2);
-  Workframe inputs1 = args[0].evaluate_n(ctx);
-  Workframe inputs2 = args[1].evaluate_n(ctx);
+  Workframe inputs1 = args[0]->evaluate_n(ctx);
+  Workframe inputs2 = args[1]->evaluate_n(ctx);
   Groupby gby = ctx.get_groupby();
   if (!gby) gby = Groupby::single_group(ctx.nrows());
 

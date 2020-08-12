@@ -44,6 +44,20 @@ def DT():
 
 
 #-------------------------------------------------------------------------------
+# Plain `f`
+#-------------------------------------------------------------------------------
+
+def test_f():
+    assert str(f) == "Namespace(0)"
+    assert f.__class__ == type(f)
+    # Check that missing system atrtibutes raise an AttributeError
+    # instead of being converted into a column selector expression
+    with pytest.raises(AttributeError):
+        f.__name__
+
+
+
+#-------------------------------------------------------------------------------
 # Stringify
 #-------------------------------------------------------------------------------
 
@@ -89,6 +103,7 @@ def test_f_expressions():
 
 
 def test_f_columnset_str():
+    assert str(f[None]) == "Expr:col(None; 0)"
     assert str(f[:]) == "Expr:col(slice(None, None, None); 0)"
     assert str(f[:7]) == "Expr:col(slice(None, 7, None); 0)"
     assert str(f[::-1]) == "Expr:col(slice(None, None, -1); 0)"
@@ -190,7 +205,5 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f[3])], DT[:, [0, 1, 2, 4, 5, 6]])
     assert_equals(DT[:, f[:].remove(f[2:-2])], DT[:, [0, 1, 5, 6]])
     assert_equals(DT[:, f[:5].remove(f[int])], DT[:, [1, 3]])
-    assert_equals(DT[:, f[:].remove(f.Z)], DT)
-    assert_equals(DT[:, f[:].remove([f.Z, f.Y])], DT)
     assert_equals(DT[:, f[:].remove(f[100:])], DT)
     assert_equals(DT[:, f[:].remove(f["F":])], DT[:, :"E"])

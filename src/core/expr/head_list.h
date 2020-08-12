@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,10 +31,10 @@ namespace expr {
 class Head_List : public Head {
   public:
     Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    Workframe evaluate_f(EvalContext&, size_t) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
     void prepare_by(const vecExpr&, EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
@@ -49,10 +49,10 @@ class Head_NamedList : public Head {
   public:
     Head_NamedList(strvec&&);
     Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    Workframe evaluate_f(EvalContext&, size_t) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };

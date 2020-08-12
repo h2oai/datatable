@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,31 +19,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/eval_context.h"
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
-namespace dt {
-namespace expr {
+#ifndef dt_EXPR_NAMESPACE_h
+#define dt_EXPR_NAMESPACE_h
+#include "python/args.h"
+#include "python/obj.h"
+#include "python/xobject.h"
+namespace py {
 
 
-Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
+class Namespace : public XObject<Namespace> {
+  private:
+    size_t index_;
+
+  public:
+    void m__init__(const PKArgs&);
+    void m__dealloc__();
+    oobj m__repr__() const;
+    oobj m__getitem__(robj item);
+    oobj m__getattr__(robj attr);
+
+    static void impl_init_type(XTypeMaker& xt);
+};
 
 
-Workframe Head_Func_Column::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  xassert(args.size() == 1);
-  if (frame_id >= ctx.nframes()) {
-    throw ValueError()
-        << "Column expression references a non-existing join frame";
-  }
-  return args[0]->evaluate_f(ctx, frame_id);
+
 }
-
-
-
-
-}}  // namespace dt::expr
+#endif

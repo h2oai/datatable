@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ namespace expr {
 
 
 /**
-  * `Head` is the part of an `Expr`. It can be thought of as a
+  * `Head` is the part of an `OldExpr`. It can be thought of as a
   * function without the arguments. For example:
   *
   *    Expr            Head            Arguments
@@ -106,20 +106,17 @@ class Head {
     virtual ~Head();
 
     virtual Workframe evaluate_n(const vecExpr& args,
-                                 EvalContext& ctx,
-                                 bool allow_new) const = 0;
+                                 EvalContext& ctx) const = 0;
 
     virtual Workframe evaluate_j(const vecExpr& args,
-                                 EvalContext& ctx,
-                                 bool allow_new) const = 0;
+                                 EvalContext& ctx) const = 0;
 
     virtual Workframe evaluate_r(const vecExpr& args,
                                  EvalContext& ctx,
                                  const sztvec& column_indices) const = 0;
 
     virtual Workframe evaluate_f(EvalContext& ctx,
-                                 size_t frame_id,
-                                 bool allow_new) const = 0;
+                                 size_t frame_id) const = 0;
 
     virtual RowIndex evaluate_i(const vecExpr& args,
                                 EvalContext& ctx) const = 0;

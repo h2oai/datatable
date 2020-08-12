@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -40,8 +40,8 @@ class Head_Func : public Head {
     static ptrHead from_op(Op op, const py::otuple& params);
 
     Kind get_expr_kind() const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
-    Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_f(EvalContext&, size_t) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 
@@ -62,7 +62,7 @@ class Head_Func_Column : public Head_Func {
 
   public:
     explicit Head_Func_Column(size_t);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -74,7 +74,7 @@ class Head_Func_Cast : public Head_Func {
 
   public:
     explicit Head_Func_Cast(SType);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -85,7 +85,7 @@ class Head_Func_Colset : public Head_Func {
 
   public:
     explicit Head_Func_Colset(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -96,7 +96,7 @@ class Head_Func_Unary : public Head_Func {
 
   public:
     explicit Head_Func_Unary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 
     Op get_op() const { return op; }
 };
@@ -109,7 +109,7 @@ class Head_Func_Binary : public Head_Func {
 
   public:
     explicit Head_Func_Binary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -120,7 +120,7 @@ class Head_Func_Nary : public Head_Func {
 
   public:
     explicit Head_Func_Nary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -134,7 +134,7 @@ class Head_Func_Shift : public Head_Func {
     static ptrHead make(Op, const py::otuple& params);
 
     explicit Head_Func_Shift(int shift);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -148,7 +148,7 @@ class Head_Func_IsClose : public Head_Func {
     static ptrHead make(Op, const py::otuple& params);
 
     Head_Func_IsClose(double rtol, double atol);
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -158,7 +158,7 @@ class Head_Func_IfElse : public Head_Func {
     Head_Func_IfElse() = default;
     static ptrHead make(Op, const py::otuple& params);
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -173,7 +173,7 @@ class Head_Func_Cut : public Head_Func {
     Head_Func_Cut(py::oobj py_nbins, py::oobj right_closed);
     static ptrHead make(Op, const py::otuple& params);
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -186,7 +186,7 @@ class Head_Func_Qcut : public Head_Func {
     Head_Func_Qcut(py::oobj py_nquantiles);
     static ptrHead make(Op, const py::otuple& params);
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 

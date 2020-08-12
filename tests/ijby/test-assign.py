@@ -317,7 +317,7 @@ def test_assign_clears_source():
     DT = dt.fread("A\n1\n2\n3\n")
     assert DT.source == "<text>"
     assert DT.stype == dt.int32
-    DT[0, 1] = 1000
+    DT[1, 0] = 1000
     assert DT.source is None
     assert DT.stype == dt.int32
 

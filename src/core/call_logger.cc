@@ -32,6 +32,36 @@
 #include "utils/logger.h"   // dt::log::Logger
 namespace dt {
 
+// These names should correspond to CallLogger::NbOp enum
+static const char* nb_names[] = {
+    "__add__",        // 0
+    "__sub__",        // 1
+    "__mul__",        // 2
+    "__mod__",        // 3
+    "__divmod__",     // 4
+    "__pow__",        // 5
+    "__lshift__",     // 6
+    "__rshift__",     // 7
+    "__and__",        // 8
+    "__or__",         // 9
+    "__xor__",        // 10
+    "__truediv__",    // 11
+    "__floordiv__",   // 12
+    "__neg__",        // 13
+    "__pos__",        // 14
+    "__abs__",        // 15
+    "__invert__",     // 16
+    "__bool__",       // 17
+    "__int__",        // 18
+    "__float__",      // 19
+    "__repr__",       // 20
+    "__str__",        // 21
+    "__iter__",       // 22
+    "__next__",       // 23
+};
+
+
+
 // LOG must be allocated dynamically, to prevent it from being
 // destroyed at program exit after python runtime has already shut
 // down (which will result in a crash, since Logger tries to DECREF
@@ -225,11 +255,16 @@ class CallLogger::Impl
     void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
     void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
     void init_dealloc   (py::robj obj) noexcept;
-    void init_getsetattr(py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
+    void init_getattr   (py::robj obj, py::robj attr) noexcept;
     void init_getsetitem(py::robj obj, py::robj key, py::robj val) noexcept;
     void init_getbuffer (py::robj obj, void* buf, int flags) noexcept;
     void init_delbuffer (py::robj obj, void* buf) noexcept;
     void init_len       (py::robj obj) noexcept;
+    void init_unaryfn   (py::robj obj, int op) noexcept;
+    void init_binaryfn  (py::robj x, py::robj y, int op) noexcept;
+    void init_ternaryfn (py::robj x, py::robj y, py::robj z, int op) noexcept;
+    void init_cmpfn     (py::robj x, py::robj y, int op) noexcept;
 
     void emit_header() noexcept;
     void finish() noexcept;
@@ -290,7 +325,7 @@ void CallLogger::Impl::init_dealloc(py::robj obj) noexcept {
 }
 
 
-void CallLogger::Impl::init_getsetattr(
+void CallLogger::Impl::init_getset(
     py::robj obj, py::robj val, void* closure) noexcept
 {
   const auto gsargs = static_cast<const py::GSArgs*>(closure);
@@ -300,6 +335,13 @@ void CallLogger::Impl::init_getsetattr(
       *out_ << " =";
       if (opt_report_args) *out_ << ' ' << R(val);
     }
+  });
+}
+
+
+void CallLogger::Impl::init_getattr(py::robj obj, py::robj attr) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << '.' << R(attr);
   });
 }
 
@@ -350,6 +392,41 @@ void CallLogger::Impl::init_len(py::robj obj) noexcept {
     *out_ << R(obj) << ".__len__()";
   });
 }
+
+
+void CallLogger::Impl::init_unaryfn(py::robj obj, int op) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << '.' << nb_names[op] << "()";
+  });
+}
+
+
+void CallLogger::Impl::init_binaryfn(py::robj obj, py::robj other, int op) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << '.' << nb_names[op] << '(' << R(other) << ')';
+  });
+}
+
+
+void CallLogger::Impl::init_ternaryfn(py::robj x, py::robj y, py::robj z, int op) noexcept {
+  safe_init([&] {
+    *out_ << R(x) << '.' << nb_names[op] << '(' << R(y) << ", " << R(z) << ')';
+  });
+}
+
+
+void CallLogger::Impl::init_cmpfn(py::robj x, py::robj y, int op) noexcept {
+  const char* name = (op == Py_LT)? "__lt__" :
+                     (op == Py_LE)? "__le__" :
+                     (op == Py_EQ)? "__eq__" :
+                     (op == Py_NE)? "__ne__" :
+                     (op == Py_GT)? "__gt__" :
+                     (op == Py_GE)? "__ge__" : "__unknown__";
+  safe_init([&] {
+    *out_ << R(x) << '.' << name << '(' << R(y) << ')';
+  });
+}
+
 
 
 
@@ -473,10 +550,19 @@ CallLogger CallLogger::dealloc(PyObject* pyobj) noexcept {
 }
 
 
-CallLogger CallLogger::getsetattr(PyObject* pyobj, PyObject* val, void* closure) noexcept {
+CallLogger CallLogger::getset(PyObject* pyobj, PyObject* val, void* closure) noexcept {
   CallLogger cl;
   if (cl.impl_) {
-    cl.impl_->init_getsetattr(py::robj(pyobj), py::robj(val), closure);
+    cl.impl_->init_getset(py::robj(pyobj), py::robj(val), closure);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::getattr(PyObject* pyobj, PyObject* attr) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_getattr(py::robj(pyobj), py::robj(attr));
   }
   return cl;
 }
@@ -516,6 +602,43 @@ CallLogger CallLogger::len(PyObject* pyobj) noexcept {
   }
   return cl;
 }
+
+
+CallLogger CallLogger::unaryfn(PyObject* pyobj, int op) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_unaryfn(py::robj(pyobj), op);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::binaryfn(PyObject* pyobj, PyObject* other, int op) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_binaryfn(py::robj(pyobj), py::robj(other), op);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::ternaryfn(PyObject* x, PyObject* y, PyObject* z, int op) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_ternaryfn(py::robj(x), py::robj(y), py::robj(z), op);
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::cmpfn(PyObject* x, PyObject* y, int op) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_cmpfn(py::robj(x), py::robj(y), op);
+  }
+  return cl;
+}
+
 
 
 CallLogger::CallLogger(CallLogger&& other) noexcept {

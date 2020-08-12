@@ -37,7 +37,7 @@ Kind Head_Literal_String::get_expr_kind() const {
 
 
 Workframe Head_Literal_String::evaluate_n(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   return _wrap_column(ctx,
             Const_ColumnImpl::make_string_column(1, pystr.to_cstring()));
@@ -45,19 +45,12 @@ Workframe Head_Literal_String::evaluate_n(
 
 
 Workframe Head_Literal_String::evaluate_f(
-    EvalContext& ctx, size_t frame_id, bool allow_new) const
+    EvalContext& ctx, size_t frame_id) const
 {
   auto df = ctx.get_datatable(frame_id);
+  size_t j = df->xcolindex(pystr);
   Workframe outputs(ctx);
-  if (allow_new) {
-    int64_t i = df->colindex(pystr);
-    if (i < 0) outputs.add_placeholder(pystr.to_string(), frame_id);
-    else       outputs.add_ref_column(frame_id, static_cast<size_t>(i));
-  }
-  else {
-    size_t j = df->xcolindex(pystr);
-    outputs.add_ref_column(frame_id, j);
-  }
+  outputs.add_ref_column(frame_id, j);
   return outputs;
 }
 
@@ -95,9 +88,20 @@ Workframe Head_Literal_String::evaluate_r(
 
 
 Workframe Head_Literal_String::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool allow_new) const
+    const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(ctx, 0, allow_new);
+  auto df = ctx.get_datatable(0);
+  Workframe outputs(ctx);
+  if (ctx.get_mode() == EvalMode::UPDATE) {
+    int64_t i = df->colindex(pystr);
+    if (i < 0) outputs.add_placeholder(pystr.to_string(), 0);
+    else       outputs.add_ref_column(0, static_cast<size_t>(i));
+  }
+  else {
+    size_t j = df->xcolindex(pystr);
+    outputs.add_ref_column(0, j);
+  }
+  return outputs;
 }
 
 

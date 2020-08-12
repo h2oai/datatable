@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ class Head_Reduce : public Head_Func {
 class Head_Reduce_Nullary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -68,7 +68,7 @@ class Head_Reduce_Nullary : public Head_Reduce {
 class Head_Reduce_Unary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 
@@ -76,7 +76,7 @@ class Head_Reduce_Unary : public Head_Reduce {
 class Head_Reduce_Binary : public Head_Reduce {
   public:
     using Head_Reduce::Head_Reduce;
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 
 

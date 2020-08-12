@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include "expr/fexpr.h"
 #include "expr/head.h"
 #include "expr/op.h"
 #include "expr/declarations.h"
@@ -82,39 +83,42 @@ namespace expr {
   *   equal to `Bool`).
   *
   */
-class Expr {
+class OldExpr : public FExpr {
   private:
     ptrHead  head;
     vecExpr  inputs;
 
   public:
-    explicit Expr(py::robj src);
-    Expr(ptrHead&&, vecExpr&&);
-    Expr() = default;
-    Expr(Expr&&) = default;
-    Expr(const Expr&) = delete;
-    Expr& operator=(Expr&&) = default;
-    Expr& operator=(const Expr&) = delete;
+    explicit OldExpr(py::robj src);
+    OldExpr(ptrHead&&, vecExpr&&);
+    OldExpr() = default;
+    OldExpr(OldExpr&&) = default;
+    OldExpr(const OldExpr&) = delete;
+    OldExpr& operator=(OldExpr&&) = default;
+    OldExpr& operator=(const OldExpr&) = delete;
 
-    Kind get_expr_kind() const;
+    Kind get_expr_kind() const override;
     operator bool() const noexcept;  // Check whether the Expr is empty or not
 
-    Workframe evaluate_n(EvalContext& ctx, bool allow_new = false) const;
-    Workframe evaluate_f(EvalContext& ctx, size_t frame_id, bool allow_new = false) const;
-    Workframe evaluate_j(EvalContext& ctx, bool allow_new = false) const;
-    Workframe evaluate_r(EvalContext& ctx, const sztvec&) const;
-    RowIndex  evaluate_i(EvalContext& ctx) const;
-    RiGb      evaluate_iby(EvalContext& ctx) const;
+    // FExpr API
+    Workframe evaluate_n(EvalContext& ctx) const override;
+    Workframe evaluate_f(EvalContext& ctx, size_t frame_id) const override;
+    Workframe evaluate_j(EvalContext& ctx) const override;
+    Workframe evaluate_r(EvalContext& ctx, const sztvec&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
 
     // Evaluate the internal part of the by()/sort() nodes, and return
     // the resulting Workframe, allowing the caller to perform a
     // groupby/sort operation on this Workframe.
     //
-    void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const;
+    void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 
-    bool evaluate_bool() const;
-    bool is_negated_column(EvalContext&, size_t* iframe, size_t* icol) const;
-    int64_t evaluate_int() const;
+    std::shared_ptr<FExpr> unnegate_column() const override;
+    bool evaluate_bool() const override;
+    int64_t evaluate_int() const override;
 
   private:
     // Construction helpers

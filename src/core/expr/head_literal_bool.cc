@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,7 +39,7 @@ bool Head_Literal_Bool::get_value() const {
 
 
 Workframe Head_Literal_Bool::evaluate_n(
-    const vecExpr&, EvalContext& ctx, bool) const
+    const vecExpr&, EvalContext& ctx) const
 {
   return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
 }
@@ -59,14 +59,13 @@ Workframe Head_Literal_Bool::evaluate_r(
 
 
 
-Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t, bool) const {
+Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
 
 
-Workframe Head_Literal_Bool::evaluate_j(
-    const vecExpr&, EvalContext&, bool) const
+Workframe Head_Literal_Bool::evaluate_j(const vecExpr&, EvalContext&) const
 {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";

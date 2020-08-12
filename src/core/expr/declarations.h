@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,24 +21,22 @@
 //------------------------------------------------------------------------------
 #ifndef dt_EXPR_DECLARATIONS_h
 #define dt_EXPR_DECLARATIONS_h
-#include <memory>
-#include <string>
-#include <utility>    // std::pair
-#include <vector>
-#include "sort.h"
-
-
+#include "_dt.h"
+#include "sort.h"   // SortFlag
 namespace dt {
 namespace expr {
 
+
   class Head;
-  class Expr;
+  class OldExpr;
+  class FExpr;
   class Workframe;
   class EvalContext;
 
   using ptrHead = std::unique_ptr<Head>;
-  using vecExpr = std::vector<Expr>;
+  using vecExpr = std::vector<std::shared_ptr<FExpr>>;
 
+  std::shared_ptr<FExpr> as_fexpr(py::robj);
 
   // Evaluation mode, this distinguishes between expressions of the
   // form

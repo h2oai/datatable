@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -88,14 +88,14 @@ Kind Head_Literal_Type::get_expr_kind() const {
 
 
 Workframe Head_Literal_Type::evaluate_n(
-    const vecExpr&, EvalContext&, bool) const
+    const vecExpr&, EvalContext&) const
 {
   throw TypeError() << value << " cannot appear in this context";
 }
 
 
 Workframe Head_Literal_Type::evaluate_f(
-    EvalContext& ctx, size_t fid, bool) const
+    EvalContext& ctx, size_t fid) const
 {
   if (value.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
@@ -125,9 +125,9 @@ Workframe Head_Literal_Type::evaluate_f(
 
 
 Workframe Head_Literal_Type::evaluate_j(
-    const vecExpr&, EvalContext& ctx, bool allow_new) const
+    const vecExpr&, EvalContext& ctx) const
 {
-  return evaluate_f(ctx, 0, allow_new);
+  return evaluate_f(ctx, 0);
 }
 
 

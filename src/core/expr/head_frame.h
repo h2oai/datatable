@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -54,10 +54,10 @@ class Head_Frame : public Head {
     Head_Frame(py::robj src, bool ignore_names = false);
     Kind get_expr_kind() const override;
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&, bool) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&, bool) const override;
+    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
     Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    Workframe evaluate_f(EvalContext&, size_t, bool) const override;
+    Workframe evaluate_f(EvalContext&, size_t) const override;
     RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
     RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
 };

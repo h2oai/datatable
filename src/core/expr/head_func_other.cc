@@ -132,10 +132,10 @@ Head_Func_Re_Match::Head_Func_Re_Match(py::robj arg_pattern, py::robj arg_flags)
 
 
 Workframe Head_Func_Re_Match::evaluate_n(
-    const vecExpr& args, EvalContext& ctx, bool) const
+    const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
-  Workframe outputs = args[0].evaluate_n(ctx);
+  Workframe outputs = args[0]->evaluate_n(ctx);
   size_t n = outputs.ncols();
   for (size_t i = 0; i < n; ++i) {
     Column col = outputs.retrieve_column(i);

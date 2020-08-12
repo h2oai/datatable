@@ -43,6 +43,32 @@ class CallLogger {
   public:
     static PyObject* GETITEM;
     static PyObject* DELITEM;
+    enum Op : int {
+      __add__      = 0,
+      __sub__      = 1,
+      __mul__      = 2,
+      __mod__      = 3,
+      __divmod__   = 4,
+      __pow__      = 5,
+      __lshift__   = 6,
+      __rshift__   = 7,
+      __and__      = 8,
+      __or__       = 9,
+      __xor__      = 10,
+      __truediv__  = 11,
+      __floordiv__ = 12,
+      __neg__      = 13,
+      __pos__      = 14,
+      __abs__      = 15,
+      __invert__   = 16,
+      __bool__     = 17,
+      __int__      = 18,
+      __float__    = 19,
+      __repr__     = 20,
+      __str__      = 21,
+      __iter__     = 22,
+      __next__     = 23,
+    };
 
     CallLogger(CallLogger&&) noexcept;
     CallLogger(const CallLogger&) = delete;
@@ -51,11 +77,16 @@ class CallLogger {
     static CallLogger function  (const py::PKArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger method    (const py::PKArgs*, PyObject* pyobj, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger dealloc   (PyObject* pyobj) noexcept;
-    static CallLogger getsetattr(PyObject* pyobj, PyObject* val, void* closure) noexcept;
+    static CallLogger getset    (PyObject* pyobj, PyObject* val, void* closure) noexcept;
+    static CallLogger getattr   (PyObject* pyobj, PyObject* key) noexcept;
     static CallLogger getsetitem(PyObject* pyobj, PyObject* key, PyObject* val) noexcept;
     static CallLogger getbuffer (PyObject* pyobj, Py_buffer* buf, int flags) noexcept;
     static CallLogger delbuffer (PyObject* pyobj, Py_buffer* buf) noexcept;
     static CallLogger len       (PyObject* pyobj) noexcept;
+    static CallLogger unaryfn   (PyObject* pyobj, int op) noexcept;
+    static CallLogger binaryfn  (PyObject* pyobj, PyObject* other, int op) noexcept;
+    static CallLogger ternaryfn (PyObject* x, PyObject* y, PyObject* z, int op) noexcept;
+    static CallLogger cmpfn     (PyObject* x, PyObject* y, int op) noexcept;
 
     // Called once during module initialization
     static void init_options();
