@@ -102,7 +102,7 @@ oobj Namespace::m__getitem__(robj item) {
     throw TypeError() << "Column selector should be an integer, string, "
                          "or slice, not " << item.typeobj();
   }
-  return oobj(Expr_Type).call({
+  return robj(Expr_Type).call({
                   oint(static_cast<int>(dt::expr::Op::COL)),
                   otuple{item},
                   otuple{oint(index_)}});

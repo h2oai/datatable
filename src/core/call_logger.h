@@ -24,6 +24,33 @@
 #include "_dt.h"
 namespace dt {
 
+/*
+    void add(binaryfunc meth, NbAddTag);
+    void add(binaryfunc meth, NbSubtractTag);
+    void add(binaryfunc meth, NbMultiplyTag);
+    void add(binaryfunc meth, NbRemainderTag);
+    void add(binaryfunc meth, NbDivmodTag);
+    void add(ternaryfunc meth, NbPowerTag);
+    void add(binaryfunc meth, NbLShiftTag);
+    void add(binaryfunc meth, NbRShiftTag);
+    void add(binaryfunc meth, NbAndTag);
+    void add(binaryfunc meth, NbXorTag);
+    void add(binaryfunc meth, NbOrTag);
+    void add(binaryfunc meth, NbFloorDivideTag);
+    void add(binaryfunc meth, NbTrueDivideTag);
+
+    // unaryfunc = PyObject*(*)(PyObject*)
+    void add(unaryfunc meth, NbNegativeTag);
+    void add(unaryfunc meth, NbPositiveTag);
+    void add(unaryfunc meth, NbAbsoluteTag);
+    void add(unaryfunc meth, NbInvertTag);
+    void add(unaryfunc meth, NbIntTag);
+    void add(unaryfunc meth, NbFloatTag);
+
+    // inquiry = int(*)(void*)
+    void add(inquiry meth, NbBoolTag);
+8*/
+
 
 /**
   * This class is a guardian object that implements logging of info
@@ -43,6 +70,28 @@ class CallLogger {
   public:
     static PyObject* GETITEM;
     static PyObject* DELITEM;
+    enum Op : int {
+      __add__      = 0,
+      __sub__      = 1,
+      __mul__      = 2,
+      __mod__      = 3,
+      __divmod__   = 4,
+      __pow__      = 5,
+      __lshift__   = 6,
+      __rshift__   = 7,
+      __and__      = 8,
+      __or__       = 9,
+      __xor__      = 10,
+      __truediv__  = 11,
+      __floordiv__ = 12,
+      __neg__      = 13,
+      __pos__      = 14,
+      __abs__      = 15,
+      __invert__   = 16,
+      __bool__     = 17,
+      __int__      = 18,
+      __float__    = 19,
+    };
 
     CallLogger(CallLogger&&) noexcept;
     CallLogger(const CallLogger&) = delete;
@@ -57,6 +106,9 @@ class CallLogger {
     static CallLogger getbuffer (PyObject* pyobj, Py_buffer* buf, int flags) noexcept;
     static CallLogger delbuffer (PyObject* pyobj, Py_buffer* buf) noexcept;
     static CallLogger len       (PyObject* pyobj) noexcept;
+    static CallLogger unaryfn   (PyObject* pyobj, int op) noexcept;
+    static CallLogger binaryfn  (PyObject* pyobj, PyObject* other, int op) noexcept;
+    static CallLogger ternaryfn (PyObject* x, PyObject* y, PyObject* z, int op) noexcept;
 
     // Called once during module initialization
     static void init_options();

@@ -292,7 +292,7 @@ void XTypeMaker::init_tp_as_mapping() {
 
 
 PyNumberMethods* XTypeMaker::tp_as_number() {
-  if (type->tp_as_number) {
+  if (!type->tp_as_number) {
     auto num = new PyNumberMethods;
     num->nb_add = nullptr;
     num->nb_subtract = nullptr;

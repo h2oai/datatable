@@ -475,6 +475,58 @@ int _call_setter(void(T::*fn)(const Arg&), Arg& ARG,
 }
 
 
+template <typename T, py::oobj(T::*METH)() const, int OP>
+PyObject* _safe_unary(PyObject* self) noexcept {
+  auto cl = dt::CallLogger::unaryfn(self, OP);
+  try {
+    auto tself = static_cast<const T*>(self);
+    return (tself->*METH)().release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+template <py::oobj(*METH)(py::robj, py::robj), int OP>
+PyObject* _safe_binary(PyObject* self, PyObject* other) noexcept {
+  auto cl = dt::CallLogger::binaryfn(self, other, OP);
+  try {
+    return METH(py::robj(self), py::robj(other)).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+template <py::oobj(*METH)(py::robj, py::robj, py::robj), int OP>
+PyObject* _safe_ternary(PyObject* x, PyObject* y, PyObject* z) noexcept {
+  auto cl = dt::CallLogger::ternaryfn(x, y, z, OP);
+  try {
+    return METH(py::robj(x), py::robj(y), py::robj(z)).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+template <typename T, bool(T::*METH)() const>
+int _safe_bool(PyObject* self) noexcept {
+  auto cl = dt::CallLogger::unaryfn(self, dt::CallLogger::Op::__bool__);
+  try {
+    auto tself = static_cast<const T*>(self);
+    bool res = (tself->*METH)();
+    return static_cast<int>(res);
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
+  }
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Helper macros
@@ -576,6 +628,120 @@ RESTORE_CLANG_WARNING("-Wunused-template")
     [](PyObject* self, PyObject* args, PyObject* kwds) noexcept -> PyObject* { \
       return _call_method(METH, ARGS, self, args, kwds);                       \
     }, py::XTypeMaker::call_tag
+
+
+/**
+  * Note: the arithmetic methods ought to be defined as
+  *
+  *           static oobj METH(robj lhs, robj rhs);
+  *
+  *       because python runtime may call this method with `this`
+  *       being either `lhs` or `rhs`.
+  */
+
+#define METHOD__ADD__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__add__>,                           \
+    py::XTypeMaker::nb_add_tag
+
+
+#define METHOD__SUB__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__sub__>,                           \
+    py::XTypeMaker::nb_subtract_tag
+
+
+#define METHOD__MUL__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__mul__>,                           \
+    py::XTypeMaker::nb_multiply_tag
+
+
+#define METHOD__MOD__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__mod__>,                           \
+    py::XTypeMaker::nb_remainder_tag
+
+
+#define METHOD__DIVMOD__(METH)                                                 \
+    _safe_binary<METH, dt::CallLogger::Op::__divmod__>,                        \
+    py::XTypeMaker::nb_divmod_tag
+
+
+#define METHOD__POW__(METH)                                                    \
+    _safe_ternary<METH, dt::CallLogger::Op::__pow__>,                          \
+    py::XTypeMaker::nb_power_tag
+
+
+#define METHOD__LSHIFT__(METH)                                                 \
+    _safe_binary<METH, dt::CallLogger::Op::__lshift__>,                        \
+    py::XTypeMaker::nb_lshift_tag
+
+
+#define METHOD__RSHIFT__(METH)                                                 \
+    _safe_binary<METH, dt::CallLogger::Op::__rshift__>,                        \
+    py::XTypeMaker::nb_rshift_tag
+
+
+#define METHOD__AND__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__and__>,                           \
+    py::XTypeMaker::nb_and_tag
+
+
+#define METHOD__XOR__(METH)                                                    \
+    _safe_binary<METH, dt::CallLogger::Op::__xor__>,                           \
+    py::XTypeMaker::nb_xor_tag
+
+
+#define METHOD__OR__(METH)                                                     \
+    _safe_binary<METH, dt::CallLogger::Op::__or__>,                            \
+    py::XTypeMaker::nb_or_tag
+
+
+#define METHOD__FLOORDIV__(METH)                                               \
+    _safe_binary<METH, dt::CallLogger::Op::__floordiv__>,                      \
+    py::XTypeMaker::nb_floordivide_tag
+
+
+#define METHOD__TRUEDIV__(METH)                                                \
+    _safe_binary<METH, dt::CallLogger::Op::__truediv__>,                       \
+    py::XTypeMaker::nb_truedivide_tag
+
+
+/**
+  * Unary arithmetic operators
+  */
+
+#define METHOD__NEG__(METH)                                                    \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__neg__>,            \
+    py::XTypeMaker::nb_negative_tag
+
+
+#define METHOD__POS__(METH)                                                    \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__pos__>,            \
+    py::XTypeMaker::nb_positive_tag
+
+
+#define METHOD__ABS__(METH)                                                    \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__abs__>,            \
+    py::XTypeMaker::nb_absolute_tag
+
+
+#define METHOD__INVERT__(METH)                                                 \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__invert__>,         \
+    py::XTypeMaker::nb_invert_tag
+
+
+#define METHOD__BOOL__(METH)                                                   \
+    _safe_bool<CLASS_OF(METH), METH>, py::XTypeMaker::nb_bool_tag
+
+
+#define METHOD__INT__(METH)                                                    \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__int__>,            \
+    py::XTypeMaker::nb_int_tag
+
+
+#define METHOD__FLOAT__(METH)                                                  \
+    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__float__>,          \
+    py::XTypeMaker::nb_float_tag
+
+
 
 
 } // namespace py

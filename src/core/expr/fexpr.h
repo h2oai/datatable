@@ -23,9 +23,14 @@
 #define dt_EXPR_FEXPR_h
 #include "_dt.h"
 #include "expr/declarations.h"
+#include "python/xobject.h"
 namespace dt {
 namespace expr {
 
+
+//------------------------------------------------------------------------------
+// core FExpr class
+//------------------------------------------------------------------------------
 
 class FExpr {
   protected:
@@ -122,10 +127,53 @@ class FExpr {
       * integer.
       */
     virtual int64_t evaluate_int() const;
-
 };
 
 
 
 }}  // namespace dt::expr
+//------------------------------------------------------------------------------
+// Python FExpr class
+//------------------------------------------------------------------------------
+namespace py {
+
+
+class FExpr : public XObject<FExpr> {
+  private:
+    std::shared_ptr<dt::expr::FExpr> expr_;
+
+  public:
+    void m__init__(const PKArgs&);
+    void m__dealloc__();
+    oobj m__repr__() const;
+    oobj m__compare__(robj other, int op) const;
+
+    static oobj nb__add__(robj, robj);
+    static oobj nb__sub__(robj, robj);
+    static oobj nb__mul__(robj, robj);
+    static oobj nb__floordiv__(robj, robj);
+    static oobj nb__truediv__(robj, robj);
+    static oobj nb__mod__(robj, robj);
+    static oobj nb__pow__(robj, robj, robj);
+    static oobj nb__and__(robj, robj);
+    static oobj nb__xor__(robj, robj);
+    static oobj nb__or__(robj, robj);
+    static oobj nb__lshift__(robj, robj);
+    static oobj nb__rshift__(robj, robj);
+    bool nb__bool__() const;
+    oobj nb__invert__() const;
+    oobj nb__neg__() const;
+    oobj nb__pos__() const;
+
+    oobj extend(const PKArgs&);
+    oobj remove(const PKArgs&);
+    oobj len(const PKArgs&);        // [DEPRECATED]
+    oobj re_match(const PKArgs&);   // [DEPRECATED]
+
+    static void impl_init_type(XTypeMaker& xt);
+};
+
+
+
+}  // namespace py
 #endif
