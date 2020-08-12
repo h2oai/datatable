@@ -55,7 +55,7 @@ class FExpr {
     // the resulting Workframe, allowing the caller to perform a
     // groupby/sort operation on this Workframe.
     //
-    virtual void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const = 0;
+    virtual void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const;
 
     /**
       * Return operator precedence of this expression. This will be

@@ -43,6 +43,11 @@ int64_t FExpr::evaluate_int() const {
   throw RuntimeError();
 }
 
+void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
+  throw RuntimeError() << "Unexpected prepare_by() call";  // LCOV_EXCL_LINE
+}                                                          // LCOV_EXCL_LINE
+
+
 
 
 //------------------------------------------------------------------------------

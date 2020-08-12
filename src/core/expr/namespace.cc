@@ -74,7 +74,7 @@ static bool is_system_attr(robj attr) {
 
 oobj Namespace::m__getattr__(robj attr) {
   // For system attributes such as `__module__`, `__class__`,
-  // `__doc__` etc, use the standard object.__getattribute__()
+  // `__doc__`, etc, use the standard object.__getattribute__()
   // method.
   if (is_system_attr(attr)) {
     return oobj::from_new_reference(
