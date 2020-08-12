@@ -19,45 +19,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_FUNC_h
-#define dt_EXPR_FEXPR_FUNC_h
-#include "expr/fexpr.h"
+#include "expr/fexpr_column_asattr.h"
+#include "expr/eval_context.h"
+#include "expr/workframe.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
-/**
-  * Base class for the largest family of `FExpr`s that are all
-  * "function-like". This includes column selectors (eg. `f.A`),
-  * functions (eg. `shift(f.A, 1)`), operators (eg. `f.B + 1`),
-  * etc.
-  *
-  * This class is abstract, though it implements many methods from
-  * the base "fexpr.h". The derived classes are expected to implement
-  * at least the following:
-  *
-  *   Workframe evaluate_n(EvalContext&) const;
-  *   int precedence() const noexcept;
-  *   std::string repr() const;
-  *
-  */
-class FExpr_Func : public FExpr {
-  public:
-    Kind get_expr_kind() const override;
+FExpr_ColumnAsAttr::FExpr_ColumnAsAttr(size_t ns, py::robj pyname)
+  : namespace_(ns),
+    pyname_(pyname)
+{
+  xassert(pyname_.is_string());
+}
 
-    // Workframe evaluate_n(EvalContext&) const = 0;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(EvalContext&) const override;
-    Workframe evaluate_r(EvalContext&, const sztvec&) const override;
-    RowIndex  evaluate_i(EvalContext&) const override;
-    RiGb      evaluate_iby(EvalContext&) const override;
 
-    // int precedence() const noexcept = 0;
-    // std::string repr() const = 0;
-};
+Workframe FExpr_ColumnAsAttr::evaluate_n(EvalContext& ctx) const {
+  auto df = ctx.get_datatable(namespace_);
+  size_t j = df->xcolindex(pyname_);
+  Workframe out(ctx);
+  out.add_ref_column(namespace_, j);
+  return out;
+}
+
+
+int FExpr_ColumnAsAttr::precedence() const noexcept {
+  return 16;
+}
+
+
+std::string FExpr_ColumnAsAttr::repr() const {
+  return (namespace_ == 0? "f." : "g.") + pyname_.to_string();
+}
 
 
 
 
 }}  // namespace dt::expr
-#endif

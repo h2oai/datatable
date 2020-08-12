@@ -19,41 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_FUNC_h
-#define dt_EXPR_FEXPR_FUNC_h
-#include "expr/fexpr.h"
+#ifndef dt_EXPR_FEXPR_COLUMN_ASATTR_h
+#define dt_EXPR_FEXPR_COLUMN_ASATTR_h
+#include "expr/fexpr_func.h"
+#include "python/obj.h"
 namespace dt {
 namespace expr {
 
 
 /**
-  * Base class for the largest family of `FExpr`s that are all
-  * "function-like". This includes column selectors (eg. `f.A`),
-  * functions (eg. `shift(f.A, 1)`), operators (eg. `f.B + 1`),
-  * etc.
-  *
-  * This class is abstract, though it implements many methods from
-  * the base "fexpr.h". The derived classes are expected to implement
-  * at least the following:
-  *
-  *   Workframe evaluate_n(EvalContext&) const;
-  *   int precedence() const noexcept;
-  *   std::string repr() const;
-  *
+  * Class for expressions like `f.A`.
   */
-class FExpr_Func : public FExpr {
+class FExpr_ColumnAsAttr : public FExpr_Func {
+  private:
+    size_t namespace_;
+    py::oobj pyname_;
+
   public:
-    Kind get_expr_kind() const override;
+    FExpr_ColumnAsAttr(size_t ns, py::robj name);
 
-    // Workframe evaluate_n(EvalContext&) const = 0;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(EvalContext&) const override;
-    Workframe evaluate_r(EvalContext&, const sztvec&) const override;
-    RowIndex  evaluate_i(EvalContext&) const override;
-    RiGb      evaluate_iby(EvalContext&) const override;
-
-    // int precedence() const noexcept = 0;
-    // std::string repr() const = 0;
+    Workframe evaluate_n(EvalContext&) const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
 };
 
 
