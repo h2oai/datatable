@@ -729,7 +729,7 @@ void NumericStats<T>::compute_moments12() {
           t_count++;
           t_sum += x;
           double delta1 = x - t_mean;
-          t_mean += delta1 / t_count;
+          t_mean += delta1 / static_cast<double>(t_count);
           double delta2 = x - t_mean;
           t_M2 += delta1 * delta2;
           if (std::is_floating_point<T>::value) {
@@ -746,8 +746,10 @@ void NumericStats<T>::compute_moments12() {
         double delta21 = t_mean - mean;
         count = n;
         sum += t_sum;
-        mean += delta21 * n2 / n;
-        M2 += t_M2 + delta21 * delta21 * n1 / n * n2;
+        mean += delta21 * static_cast<double>(n2) / static_cast<double>(n);
+        M2 += t_M2 + delta21 * delta21
+                       * static_cast<double>(n1) / static_cast<double>(n)
+                       * static_cast<double>(n2);
         has_pos_inf |= t_has_pos_inf;
         has_neg_inf |= t_has_neg_inf;
       }
@@ -757,7 +759,7 @@ void NumericStats<T>::compute_moments12() {
   bool sum_valid = true;
   bool mean_valid = (n > 0);
   bool stdev_valid = (n > 0);
-  double s = n > 1 ? std::sqrt(M2 / (n - 1)) : 0.0;
+  double s = n > 1 ? std::sqrt(M2 / static_cast<double>(n - 1)) : 0.0;
 
   // Adjustment for the case when some of the `x[i]`s where infinite.
   if (std::is_floating_point<T>::value && (has_pos_inf || has_neg_inf)) {
@@ -837,9 +839,9 @@ void NumericStats<T>::compute_moments34() {
           T value;
           bool isvalid = column->get_element(i, &value);
           if (!isvalid) return;
-          double x = static_cast<double>(value);
           ++t_count;
-          size_t n = t_count; // readability
+          double x = static_cast<double>(value);
+          double n = static_cast<double>(t_count);
           double delta = x - t_mean;                // δ
           double gamma = delta / n;                 // δ/n
           double beta = gamma * gamma;              // δ²/n²
@@ -853,21 +855,21 @@ void NumericStats<T>::compute_moments34() {
 
       if (t_count) {
         std::lock_guard<std::mutex> lock(mutex);
-        size_t n1 = count;
-        size_t n2 = t_count;
-        size_t n = n1 + n2;
-        double delta21 = t_mean - mean;
-        double gamma21 = delta21 / n;
-        double beta21  = gamma21 * gamma21;
-        double alpha21 = delta21 * delta21 * n1 * n2 / n;
-        double M2_1 = M2;
-        double M2_2 = t_M2;
-        double M3_1 = M3;
-        double M3_2 = t_M3;
-        double M4_1 = M4;
-        double M4_2 = t_M4;
+        const double n1 = static_cast<double>(count);
+        const double n2 = static_cast<double>(t_count);
+        const double n = n1 + n2;
+        const double delta21 = t_mean - mean;
+        const double gamma21 = delta21 / n;
+        const double beta21  = gamma21 * gamma21;
+        const double alpha21 = delta21 * delta21 * n1 * n2 / n;
+        const double M2_1 = M2;
+        const double M2_2 = t_M2;
+        const double M3_1 = M3;
+        const double M3_2 = t_M3;
+        const double M4_1 = M4;
+        const double M4_2 = t_M4;
 
-        count = n;
+        count += t_count;
         sum += t_sum;
         mean += gamma21 * n2;
         M2 = M2_1 + M2_2 + alpha21;
@@ -879,18 +881,18 @@ void NumericStats<T>::compute_moments34() {
       }
     });
 
-  size_t n = count;
-  double s = (n > 1) ? std::sqrt(M2 / (n - 1)) : 0.0;
-  double G = (n > 2) ? M3 / std::pow(s, 3) * n /(n-1) /(n-2) : 0.0;
-  double K = (n > 3) ? (M4 / std::pow(s, 4) * n*(n+1)
-                        - 3.0*(n-1)*(n-1)*(n-1)) /(n-1) /(n-2) /(n-3) : 0.0;
+  double n = static_cast<double>(count);
+  double s = (count > 1) ? std::sqrt(M2 / (n - 1)) : 0.0;
+  double G = (count > 2) ? M3 / std::pow(s, 3) * n /(n-1) /(n-2) : 0.0;
+  double K = (count > 3) ? (M4 / std::pow(s, 4) * n*(n+1)
+                           - 3.0*(n-1)*(n-1)*(n-1)) /(n-1) /(n-2) /(n-3) : 0.0;
 
-  set_nacount(nrows - n, true);
+  set_nacount(nrows - count, true);
   set_sum(sum, true);
-  set_mean(mean, (n > 0));
-  set_stdev(s, (n > 0));
-  set_skew(G, (n > 0));
-  set_kurt(K, (n > 0));
+  set_mean(mean, (count > 0));
+  set_stdev(s, (count > 0));
+  set_skew(G, (count > 0));
+  set_kurt(K, (count > 0));
 }
 
 
@@ -1062,18 +1064,19 @@ void BooleanStats::compute_all_stats() {
 
 
 void BooleanStats::set_all_stats(size_t n0, size_t n1) {
-  size_t n = n0 + n1;
+  double n0d = static_cast<double>(n0);
+  double n1d = static_cast<double>(n1);
+  double n = n0d + n1d;
   bool valid = (n > 0);
-  double mu = valid ? 1.0 * n1 / n : 0.0;
-  double s = (n > 1) ? std::sqrt(1.0 * n0 * n1 / n / (n-1)) : 0.0;
-  double G = (n > 2) ? 1.0 * static_cast<int64_t>(n0 - n1) / (n-2) / s : 0.0;
-  double K = (n > 3) ? (1.0 * static_cast<int64_t>(n0*n0 - n0*n1 + n1*n1)
-                            * (n+1)/n0/n1 - 3.0*(n-1))
+  double mu = valid ? n1d / n : 0.0;
+  double s = (n > 1) ? std::sqrt(n0d * n1d / n / (n-1)) : 0.0;
+  double G = (n > 2) ? (n0d - n1d) / (n-2) / s : 0.0;
+  double K = (n > 3) ? ((n0d*n0d - n0d*n1d + n1d*n1d) * (n+1)/n0d/n1d - 3.0*(n-1))
                        * (n-1) / (n-2) / (n-3) : 0.0;
 
   set_nunique((n0 > 0) + (n1 > 0), true);
   set_nmodal(std::max(n0, n1), true);
-  set_sum(static_cast<double>(n1), true);
+  set_sum(n1d, true);
   set_mean(mu, valid);
   set_stdev(s, valid);
   set_skew(G, valid);
