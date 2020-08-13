@@ -165,6 +165,7 @@ class _obj {
     bool is_dtexpr()        const noexcept;
     bool is_ellipsis()      const noexcept;
     bool is_false()         const noexcept;
+    bool is_fexpr()         const noexcept;
     bool is_float()         const noexcept;
     bool is_frame()         const noexcept;
     bool is_generator()     const noexcept;
@@ -383,6 +384,8 @@ oobj get_module(const char* name);
 
 
 extern PyObject* Expr_Type;
+extern PyTypeObject* FExpr_Type;
+
 
 }  // namespace py
 

@@ -41,6 +41,8 @@ class FExpr_ColumnAsAttr : public FExpr_Func {
     Workframe evaluate_n(EvalContext&) const override;
     int precedence() const noexcept override;
     std::string repr() const override;
+
+    py::oobj get_pyname() const;
 };
 
 

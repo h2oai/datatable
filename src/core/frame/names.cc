@@ -25,6 +25,8 @@
 #include <unordered_map>
 #include <unordered_set>
 #include "cstring.h"
+#include "expr/declarations.h"
+#include "expr/fexpr_column_asattr.h"
 #include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
@@ -203,6 +205,13 @@ oobj Frame::colindex(const PKArgs& args) {
       col = col.get_attr("_args").to_otuple()[0];
     }
     // fall-through
+  }
+  if (col.is_fexpr()) {
+    auto fexpr = dt::expr::as_fexpr(col);
+    auto fexpr_col1 = dynamic_cast<dt::expr::FExpr_ColumnAsAttr*>(fexpr.get());
+    if (fexpr_col1) {
+      col = fexpr_col1->get_pyname();
+    }
   }
   if (col.is_string()) {
     size_t index = dt->xcolindex(col);

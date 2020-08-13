@@ -199,7 +199,7 @@ static oobj pyfn_cut(const PKArgs& args)
   if (arg0.is_frame()) {
     return cut_frame(arg0, arg1, arg2);
   }
-  if (arg0.is_dtexpr()) {
+  if (arg0.is_dtexpr() || arg0.is_fexpr()) {
     return make_pyexpr(
              dt::expr::Op::CUT,
              otuple{ arg0 },

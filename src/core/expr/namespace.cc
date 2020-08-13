@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/fexpr_column_asattr.h"
 #include "expr/namespace.h"
 #include "expr/op.h"
 #include "python/string.h"
@@ -83,10 +84,7 @@ oobj Namespace::m__getattr__(robj attr) {
           attr.to_borrowed_ref()
         ));
   }
-  return oobj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::COL)),
-                  otuple{attr},
-                  otuple{oint(index_)}});
+  return FExpr::make(new dt::expr::FExpr_ColumnAsAttr(index_, attr));
 }
 
 

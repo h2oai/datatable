@@ -143,6 +143,9 @@ class FExpr : public XObject<FExpr> {
     std::shared_ptr<dt::expr::FExpr> expr_;
 
   public:
+    static oobj make(dt::expr::FExpr* expr);
+    std::shared_ptr<dt::expr::FExpr> get_expr() const;
+
     void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj m__repr__() const;

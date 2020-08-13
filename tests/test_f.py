@@ -66,9 +66,9 @@ def test_f_col_selector_unbound():
     # representation may be modified in the future; however f-expressions
     # should not raise exceptions when printed.
     # See issues #1024 and #1241
-    assert str(f.a) == "Expr:col('a'; 0)"
-    assert str(f.abcdefghijkl) == "Expr:col('abcdefghijkl'; 0)"
-    assert str(f.abcdefghijklm) == "Expr:col('abcdefghijklm'; 0)"
+    assert str(f.a) == "FExpr<f.a>"
+    assert str(f.abcdefghijkl) == "FExpr<f.abcdefghijkl>"
+    assert str(f.abcdefghijklm) == "FExpr<f.abcdefghijklm>"
     assert str(f[0]) == "Expr:col(0; 0)"
     assert str(f[1000]) == "Expr:col(1000; 0)"
     assert str(f[-1]) == "Expr:col(-1; 0)"
@@ -78,8 +78,8 @@ def test_f_col_selector_unbound():
     assert str(f["A+B"]) == "Expr:col('A+B'; 0)"
     assert str(f["_A"]) == "Expr:col('_A'; 0)"
     assert str(f["_54"]) == "Expr:col('_54'; 0)"
-    assert str(f._3_) == "Expr:col('_3_'; 0)"
-    assert str(f.a_b_c) == "Expr:col('a_b_c'; 0)"
+    assert str(f._3_) == "FExpr<f._3_>"
+    assert str(f.a_b_c) == "FExpr<f.a_b_c>"
     assert str(f[" y "]) == "Expr:col(' y '; 0)"
     assert str(f["a b c"]) == "Expr:col('a b c'; 0)"
 
@@ -99,7 +99,7 @@ def test_f_col_selector_invalid():
 
 
 def test_f_expressions():
-    assert str(f.C1 < f.C2) == "Expr:lt(Expr:col('C1'; 0), Expr:col('C2'; 0); )"
+    assert str(f.C1 < f.C2) == "Expr:lt(FExpr<f.C1>, FExpr<f.C2>; )"
 
 
 def test_f_columnset_str():
@@ -119,14 +119,14 @@ def test_f_columnset_str():
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(Expr:col(slice(None, None, None); 0), Expr:col('A'; 0); )"
+        "Expr:setplus(Expr:col(slice(None, None, None); 0), FExpr<f.A>; )"
     assert str(f[int].extend(f[str])) == \
         "Expr:setplus(Expr:col(<class 'int'>; 0), Expr:col(<class 'str'>; 0); )"
 
 
 def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == \
-        "Expr:setminus(Expr:col(slice(None, None, None); 0), Expr:col('A'; 0); )"
+        "Expr:setminus(Expr:col(slice(None, None, None); 0), FExpr<f.A>; )"
     assert str(f[int].remove(f[0])) == \
         "Expr:setminus(Expr:col(<class 'int'>; 0), Expr:col(0; 0); )"
 

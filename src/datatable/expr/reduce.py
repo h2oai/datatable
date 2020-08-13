@@ -43,7 +43,7 @@ __all__ = (
 
 
 def count(iterable=None):
-    if isinstance(iterable, Expr):
+    if isinstance(iterable, (Expr, core.FExpr)):
         return Expr(OpCodes.COUNT, (iterable,))
     elif iterable is None:
         return Expr(OpCodes.COUNT0, ())
@@ -52,7 +52,7 @@ def count(iterable=None):
 
 
 def first(iterable):
-    if isinstance(iterable, Expr):
+    if isinstance(iterable, (Expr, core.FExpr)):
         return Expr(OpCodes.FIRST, (iterable,))
     else:
         for x in iterable:
@@ -60,7 +60,7 @@ def first(iterable):
 
 
 def last(iterable):
-    if isinstance(iterable, Expr):
+    if isinstance(iterable, (Expr, core.FExpr)):
         return Expr(OpCodes.LAST, (iterable,))
     else:
         try:
@@ -99,7 +99,7 @@ def corr(col1, col2):
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
-    if isinstance(iterable, Expr):
+    if isinstance(iterable, (Expr, core.FExpr)):
         return Expr(OpCodes.SUM, (iterable,))
     else:
         return _builtin_sum(iterable, start)
@@ -107,7 +107,7 @@ def sum(iterable, start=0):
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], Expr):
+    if len(args) == 1 and isinstance(args[0], (Expr, core.FExpr)):
         return Expr(OpCodes.MIN, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
@@ -117,7 +117,7 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], Expr):
+    if len(args) == 1 and isinstance(args[0], (Expr, core.FExpr)):
         return Expr(OpCodes.MAX, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()

@@ -79,7 +79,7 @@ static py::oobj funary_pyfn(const py::PKArgs& args)
 {
   Op opcode = get_opcode_from_args(args);
   py::robj x = args[0].to_robj();
-  if (x.is_dtexpr()) {
+  if (x.is_dtexpr() || x.is_fexpr()) {
     return make_pyexpr(opcode, x);
   }
   if (x.is_frame()) {

@@ -189,7 +189,7 @@ static oobj pyfn_shift(const PKArgs& args)
   if (arg0.is_frame()) {
     return _shift_frame(arg0, n);
   }
-  if (arg0.is_dtexpr()) {
+  if (arg0.is_dtexpr() || arg0.is_fexpr()) {
     return make_pyexpr(dt::expr::Op::SHIFTFN,
                        otuple{ arg0 }, otuple{ oint(n) });
   }

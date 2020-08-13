@@ -36,6 +36,10 @@ FExpr_ColumnAsAttr::FExpr_ColumnAsAttr(size_t ns, py::robj pyname)
 
 
 Workframe FExpr_ColumnAsAttr::evaluate_n(EvalContext& ctx) const {
+  if (namespace_ >= ctx.nframes()) {
+    throw ValueError()
+        << "Column expression references a non-existing join frame";
+  }
   auto df = ctx.get_datatable(namespace_);
   size_t j = df->xcolindex(pyname_);
   Workframe out(ctx);
@@ -51,6 +55,12 @@ int FExpr_ColumnAsAttr::precedence() const noexcept {
 
 std::string FExpr_ColumnAsAttr::repr() const {
   return (namespace_ == 0? "f." : "g.") + pyname_.to_string();
+}
+
+
+
+py::oobj FExpr_ColumnAsAttr::get_pyname() const {
+  return pyname_;
 }
 
 
