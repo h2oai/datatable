@@ -338,7 +338,7 @@ More Examples
                         A    2           1       1       2
                         A    3           3       0       0""")
 
-    columns = [f[column] for column in df.names if column.lower().startswith("count")]
+    columns = [f[column] for column in df.names if column.startswith("COUNT")]
     df[:, update(total = dt.rowsum(columns))]
     df
     	USER	OBSERVATION	COUNT.1	COUNT.2	COUNT.3	total
