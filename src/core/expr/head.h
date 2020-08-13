@@ -87,9 +87,6 @@ namespace expr {
   *     |           +-- Head_Reduce_Unary
   *     +-- Head_List
   *     +-- Head_Literal
-  *     |     +-- Head_Literal_Range
-  *     |     +-- Head_Literal_SliceStr
-  *     |     +-- Head_Literal_String
   *     |     +-- Head_Literal_Type
   *     +-- Head_NamedList
   *

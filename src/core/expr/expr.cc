@@ -54,7 +54,7 @@ OldExpr::OldExpr(py::robj src)
   else if (src.is_generator())     _init_from_iterable(src);
   // else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
-  else if (src.is_range())         _init_from_range(src);
+  // else if (src.is_range())         _init_from_range(src);
   else if (src.is_pandas_frame() ||
            src.is_pandas_series()) _init_from_pandas(src);
   else if (src.is_numpy_array() ||
@@ -123,12 +123,6 @@ void OldExpr::_init_from_numpy(py::robj src) {
 
 void OldExpr::_init_from_pandas(py::robj src) {
   head = Head_Frame::from_pandas(src);
-}
-
-
-void OldExpr::_init_from_range(py::robj src) {
-  py::orange rr = src.to_orange();
-  head = ptrHead(new Head_Literal_Range(std::move(rr)));
 }
 
 

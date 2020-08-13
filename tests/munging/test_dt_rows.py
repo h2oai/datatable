@@ -256,10 +256,10 @@ def test_rows_range1(dt0, rangeobj):
 def test_rows_range2(dt0):
     assert_valueerror(
         dt.Frame(range(1)), range(5),
-        "range(5) cannot be applied to a Frame with 1 row")
+        "range(0, 5) cannot be applied to a Frame with 1 row")
     assert_valueerror(
         dt0, range(15),
-        "range(15) cannot be applied to a Frame with 10 rows")
+        "range(0, 15) cannot be applied to a Frame with 10 rows")
     assert_valueerror(
         dt0, range(-5, 5),
         "range(-5, 5) cannot be applied to a Frame with 10 rows")

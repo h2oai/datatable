@@ -54,25 +54,6 @@ class Head_Literal : public Head {
 // implementations
 //------------------------------------------------------------------------------
 
-class Head_Literal_Range : public Head_Literal {
-  private:
-    py::orange value;
-
-  public:
-    explicit Head_Literal_Range(py::orange x);
-    Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-
-  private:
-    std::string _repr_range() const;
-};
-
-
-
 class Head_Literal_Type : public Head_Literal {
   private:
     py::oobj value;

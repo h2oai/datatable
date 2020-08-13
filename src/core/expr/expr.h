@@ -127,7 +127,6 @@ class OldExpr : public FExpr {
     void _init_from_list(py::robj);
     void _init_from_numpy(py::robj);
     void _init_from_pandas(py::robj);
-    void _init_from_range(py::robj);
     void _init_from_type(py::robj);
 };
 

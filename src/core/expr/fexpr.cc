@@ -84,7 +84,7 @@ ptrExpr as_fexpr(py::robj src) {
   else if (src.is_generator())     ;
   else if (src.is_none())          return FExpr_Literal_None::make();
   else if (src.is_frame())         ;
-  else if (src.is_range())         ;
+  else if (src.is_range())         return FExpr_Literal_Range::make(src);
   else if (src.is_pandas_frame() ||
            src.is_pandas_series()) ;
   else if (src.is_numpy_array() ||
