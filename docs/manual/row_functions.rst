@@ -3,7 +3,7 @@
 Row Functions
 ==============
 
-| Functions ``rowall``, ``rowany``, ``rowcount``, ``rowfirst``, ``rowlast``, ``rowmax``, ``rowmean``, ``rowmin``, ``rowsd``, ``rowsum`` are functions that aggregate across rows instead of columns and return a single column. These functions are equivalent to `Pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`_ aggregation functions with parameter ``(axis=1)``. 
+| Functions ``rowall``, ``rowany``, ``rowcount``, ``rowfirst``, ``rowlast``, ``rowmax``, ``rowmean``, ``rowmin``, ``rowsd``, ``rowsum`` are functions that aggregate across rows instead of columns and return a single column. These functions are equivalent to `Pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`_ aggregation functions with parameter ``(axis=1)``.
 | These functions make it easy to compute rowwise aggregations - for instance, you may want the sum of columns `A`, `B`, `C` and `D`. You could say : ``f.A + f.B + f.C + f.D``. Rowsum makes it easier - ``dt.rowsum(f['A':'D'])``.
 
 Rowall, Rowany
@@ -95,19 +95,42 @@ The single boolean column that is returned can be very handy when filtering in t
     # compare the first integer column with the rest,
     # use rowall to find rows where all is True
     # and filter with the resulting boolean
-    df[dt.rowall(f[1]==f[1:]), :]  
-    
+    df[dt.rowall(f[1]==f[1:]), :]
+
         Name	A1	A2	A3	A4
     0	deff	0	0	0	0
     1	def2	0	0	0	0
     2	def4	0	0	0	0
-               
+
+- Filter for rows where the values are increasing ::
+
+    df = dt.Frame({"A": [1, 2, 6, 4],
+                   "B": [2, 4, 5, 6],
+                   "C": [3, 5, 4, 7],
+                   "D": [4, -3, 3, 8],
+                   "E": [5, 1, 2, 9]})
+
+    df
+
+    	A	B	C	D	E
+    0	1	2	3	4	5
+    1	2	4	5	−3	1
+    2	6	5	4	3	2
+    3	4	6	7	8	9
+
+    df[dt.rowall(f[1:] >= f[:-1]), :]
+
+        A	B	C	D	E
+    0	1	2	3	4	5
+    1	4	6	7	8	9
+
+
 Rowfirst, Rowlast
 ------------------
 These look for the first and last non-missing value in a row respectively. ::
 
-    df = dt.Frame({'A':[1, None, None, None], 
-                   'B':[None, 3, 4, None], 
+    df = dt.Frame({'A':[1, None, None, None],
+                   'B':[None, 3, 4, None],
                    'C':[2, None, 5, None]})
     df
 
@@ -160,7 +183,7 @@ These look for the first and last non-missing value in a row respectively. ::
 
 Rowmax, Rowmin
 ---------------
-These get the maximum and values per row, respectively. ::
+These get the maximum and minimum values per row, respectively. ::
 
     df = dt.Frame({"C": [2, 5, 30, 20, 10],
                    "D": [10, 8, 20, 20, 1]})
@@ -196,8 +219,8 @@ These get the maximum and values per row, respectively. ::
 
 - Find the difference between the maximum and minimum of each row ::
 
-    df = dt.Frame("""Value1  Value2  Value3  Value4  
-                        5       4      3        2       
+    df = dt.Frame("""Value1  Value2  Value3  Value4
+                        5       4      3        2
                         4       3      2        1
                         3       3      5        1""")
 
@@ -211,7 +234,7 @@ These get the maximum and values per row, respectively. ::
 
 Rowsum, Rowmean, Rowcount, Rowsd
 --------------------------------
-``Rowsum`` and ``Rowmean`` get the sum and mean of rows respectively; ``Rowcount`` counts the number of non-missing values in a row, while ``Rowsd`` aggregates a row to get the standard deviation
+``rowsum`` and ``rowmean`` get the sum and mean of rows respectively; ``rowcount`` counts the number of non-missing values in a row, while ``rowsd`` aggregates a row to get the standard deviation
 
 - Get the count, sum, mean and standard deviation for each row ::
 
@@ -265,7 +288,7 @@ Rowsum, Rowmean, Rowcount, Rowsd
 
 - Rowwise sum of the float columns ::
 
-    df = dt.Frame("""ID   W_1       W_2     W_3 
+    df = dt.Frame("""ID   W_1       W_2     W_3
                      1    0.1       0.2     0.3
                      1    0.2       0.4     0.5
                      2    0.3       0.3     0.2
@@ -284,3 +307,66 @@ Rowsum, Rowmean, Rowcount, Rowsd
     4	2	0.2	0	0.5	0.7
     5	1	0.5	0.3	0.2	1
     6	1	0.4	0.2	0.1	0.7
+
+
+More Examples
+--------------
+- Divide columns ``A``, ``B``, ``C``, ``D`` by the `total` column, square it and sum rowwise ::
+
+    df = dt.Frame({'A': [2, 3],
+                   'B': [1, 2],
+                   'C': [0, 1],
+                   'D': [1, 0],
+                   'total': [4, 6]})
+    df
+
+    	A	B	C	D	total
+    0	2	1	0	1	4
+    1	3	2	1	0	6
+
+    df[:, update(result = dt.rowsum((f[:-1]/f[-1])**2))]
+    df
+
+        A	B	C	D	total	result
+    0	2	1	0	1	4	0.375
+    1	3	2	1	0	6	0.388889
+
+- Get the row sum of the ``COUNT`` columns ::
+
+    df = dt.Frame("""USER OBSERVATION COUNT.1 COUNT.2 COUNT.3
+                        A    1           0       1       1
+                        A    2           1       1       2
+                        A    3           3       0       0""")
+
+    columns = [f[column] for column in df.names if column.lower().startswith("count")]
+    df[:, update(total = dt.rowsum(columns))]
+    df
+    	USER	OBSERVATION	COUNT.1	COUNT.2	COUNT.3	total
+    0	  A	    1	          0	    1	    1	  2
+    1	  A	    2	          1	    1	    2	  4
+    2	  A	    3	          3	    0	    0	  3
+
+- Sum selected columns rowwise ::
+
+    df = dt.Frame({'location' : ("a","b","c","d"),
+                   'v1' : (3,4,3,3),
+                   'v2' : (4,56,3,88),
+                   'v3' : (7,6,2,9),
+                   'v4':  (7,6,1,9),
+                   'v5' : (4,4,7,9),
+                   'v6' : (2,8,4,6)})
+
+    df
+        location	v1	v2	v3	v4	v5	v6
+    0	    a	        3	4	7	7	4	2
+    1	    b	        4	56	6	6	4	8
+    2	    c	        3	3	2	1	7	4
+    3	    d	        3	88	9	9	9	6
+
+    df[:, {"x1": dt.rowsum(f[1:4]), "x2": dt.rowsum(f[4:])}]
+
+    	x1	x2
+    0	14	13
+    1	66	18
+    2	8	12
+    3	100	24
