@@ -27,37 +27,9 @@ namespace dt {
 namespace expr {
 
 
-/**
-  * Common factory function for all 3 kinds of slices.
-  */
-ptrExpr FExpr_Literal_Slice::make(py::robj src) {
-  auto src_as_slice = src.to_oslice();
-  if (src_as_slice.is_trivial()) {
-    return ptrExpr(new FExpr_Literal_SliceAll);
-  }
-  else if (src_as_slice.is_numeric()) {
-    return ptrExpr(new OldExpr(src));
-    // head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
-  }
-  else if (src_as_slice.is_string()) {
-    return ptrExpr(new OldExpr(src));
-    // head = ptrHead(new Head_Literal_SliceStr(src_as_slice));
-  }
-  else {
-    throw TypeError() << src << " is neither integer- nor string- valued";
-  }
-}
-
-
-
 //------------------------------------------------------------------------------
 // Evaluation
 //------------------------------------------------------------------------------
-
-Workframe FExpr_Literal_SliceAll::evaluate_n(EvalContext&) const {
-  throw TypeError() << "A slice expression cannot appear in this context";
-}
-
 
 // `f[:]` will return all columns from `f`
 //
@@ -105,20 +77,9 @@ RiGb FExpr_Literal_SliceAll::evaluate_iby(EvalContext&) const {
 }
 
 
-Workframe FExpr_Literal_SliceAll::evaluate_r(EvalContext&, const sztvec&) const
-{
-  throw TypeError() << "A slice expression cannot appear in this context";
-}
-
-
 //------------------------------------------------------------------------------
 // Other methods
 //------------------------------------------------------------------------------
-
-int FExpr_Literal_SliceAll::precedence() const noexcept {
-  return 0;
-}
-
 
 std::string FExpr_Literal_SliceAll::repr() const {
   return ":";
