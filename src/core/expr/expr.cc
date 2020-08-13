@@ -46,7 +46,7 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_int())           _init_from_int(src);
   // else if (src.is_string())        _init_from_string(src);
   // else if (src.is_float())         _init_from_float(src);
-  else if (src.is_bool())          _init_from_bool(src);
+  // else if (src.is_bool())          _init_from_bool(src);
   else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
   else if (src.is_dict())          _init_from_dictionary(src);
@@ -64,12 +64,6 @@ OldExpr::OldExpr(py::robj src)
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an Expr";
   }
-}
-
-
-void OldExpr::_init_from_bool(py::robj src) {
-  int8_t t = src.to_bool_strict();
-  head = ptrHead(new Head_Literal_Bool(t));
 }
 
 
@@ -218,12 +212,6 @@ RiGb OldExpr::evaluate_iby(EvalContext& ctx) const {
   return head->evaluate_iby(inputs, ctx);
 }
 
-
-bool OldExpr::evaluate_bool() const {
-  auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
-  xassert(boolhead);
-  return boolhead->get_value();
-}
 
 
 std::shared_ptr<FExpr> OldExpr::unnegate_column() const {

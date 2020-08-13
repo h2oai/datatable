@@ -76,7 +76,7 @@ ptrExpr as_fexpr(py::robj src) {
   else if (src.is_int())           return FExpr_Literal_Int::make(src);
   else if (src.is_string())        return FExpr_Literal_String::make(src);
   else if (src.is_float())         return FExpr_Literal_Float::make(src);
-  else if (src.is_bool())          ;
+  else if (src.is_bool())          return FExpr_Literal_Bool::make(src);
   else if (src.is_slice())         ;
   else if (src.is_list_or_tuple()) ;
   else if (src.is_dict())          ;

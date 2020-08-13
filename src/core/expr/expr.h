@@ -117,11 +117,9 @@ class OldExpr : public FExpr {
     void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 
     std::shared_ptr<FExpr> unnegate_column() const override;
-    bool evaluate_bool() const override;
 
   private:
     // Construction helpers
-    void _init_from_bool(py::robj);
     void _init_from_dictionary(py::robj);
     void _init_from_dtexpr(py::robj);
     void _init_from_ellipsis();

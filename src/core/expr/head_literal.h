@@ -55,27 +55,6 @@ class Head_Literal : public Head {
 //------------------------------------------------------------------------------
 
 
-class Head_Literal_Bool : public Head_Literal {
-  private:
-    bool value;
-    size_t : 56;
-
-  public:
-    explicit Head_Literal_Bool(bool x);
-    Kind get_expr_kind() const override;
-    bool get_value() const;
-
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-};
-
-
-
-
 class Head_Literal_SliceAll : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
