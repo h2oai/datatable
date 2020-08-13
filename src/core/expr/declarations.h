@@ -34,9 +34,11 @@ namespace expr {
   class EvalContext;
 
   using ptrHead = std::unique_ptr<Head>;
-  using vecExpr = std::vector<std::shared_ptr<FExpr>>;
 
-  std::shared_ptr<FExpr> as_fexpr(py::robj);
+  using ptrExpr = std::shared_ptr<FExpr>;
+  using vecExpr = std::vector<ptrExpr>;
+
+  ptrExpr as_fexpr(py::robj);
 
   // Evaluation mode, this distinguishes between expressions of the
   // form

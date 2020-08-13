@@ -19,34 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_COLUMN_ASATTR_h
-#define dt_EXPR_FEXPR_COLUMN_ASATTR_h
-#include "expr/fexpr_func.h"
-#include "python/obj.h"
+#include "expr/fexpr_column.h"
+#include "expr/eval_context.h"
+#include "expr/workframe.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
-/**
-  * Class for expressions like `f.A`.
-  */
-class FExpr_ColumnAsAttr : public FExpr_Func {
-  private:
-    size_t namespace_;
-    py::oobj pyname_;
+FExpr_ColumnAsArg::FExpr_ColumnAsArg(size_t ns, py::robj arg) {
+  namespace_ = ns;
+  arg_ = as_fexpr(arg);
+}
 
-  public:
-    FExpr_ColumnAsAttr(size_t ns, py::robj name);
 
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
+Workframe FExpr_ColumnAsArg::evaluate_n(EvalContext& ctx) const {
+  if (namespace_ >= ctx.nframes()) {
+    throw ValueError()
+        << "Column expression references a non-existing join frame";
+  }
+  // TODO: perhaps all `evaluate_f()` functionality should be brought here?
+  return arg_->evaluate_f(ctx, namespace_);
+}
 
-    py::oobj get_pyname() const;
-};
+
+int FExpr_ColumnAsArg::precedence() const noexcept {
+  return 16;
+}
+
+
+std::string FExpr_ColumnAsArg::repr() const {
+  return (namespace_ == 0? "f[" : "g[") + arg_->repr() + ']';
+}
+
+
+
+ptrExpr FExpr_ColumnAsArg::get_arg() const {
+  return arg_;
+}
 
 
 
 
 }}  // namespace dt::expr
-#endif

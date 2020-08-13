@@ -29,7 +29,7 @@ namespace expr {
 
 
 
-std::shared_ptr<FExpr> FExpr::unnegate_column() const {
+ptrExpr FExpr::unnegate_column() const {
   return nullptr;
 }
 
@@ -43,6 +43,12 @@ int64_t FExpr::evaluate_int() const {
   throw RuntimeError();
 }
 
+
+py::oobj FExpr::evaluate_pystr() const {
+  throw RuntimeError();
+}
+
+
 void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
   throw RuntimeError() << "Unexpected prepare_by() call";  // LCOV_EXCL_LINE
 }                                                          // LCOV_EXCL_LINE
@@ -55,7 +61,7 @@ void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
 //------------------------------------------------------------------------------
 
 // TODO: subsume functionality of OldExpr::OldExpr(py::robj)
-std::shared_ptr<FExpr> as_fexpr(py::robj src) {
+ptrExpr as_fexpr(py::robj src) {
   if (src.is_fexpr()) {
     auto fexpr = reinterpret_cast<py::FExpr*>(src.to_borrowed_ref());
     return fexpr->get_expr();
@@ -75,7 +81,7 @@ namespace py {
 oobj FExpr::make(dt::expr::FExpr* expr) {
   oobj res = robj(reinterpret_cast<PyObject*>(FExpr_Type)).call();
   auto fexpr = reinterpret_cast<FExpr*>(res.to_borrowed_ref());
-  fexpr->expr_ = std::shared_ptr<dt::expr::FExpr>(expr);
+  fexpr->expr_ = dt::expr::ptrExpr(expr);
   return res;
 }
 

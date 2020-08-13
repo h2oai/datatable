@@ -26,7 +26,7 @@
 #include <unordered_set>
 #include "cstring.h"
 #include "expr/declarations.h"
-#include "expr/fexpr_column_asattr.h"
+#include "expr/fexpr_column.h"
 #include "frame/py_frame.h"
 #include "python/dict.h"
 #include "python/int.h"
@@ -138,7 +138,7 @@ lists.
 
 Parameters
 ----------
-column: str | int | Expr
+column: str | int | FExpr
     If string, then this is the name of the column whose index you
     want to find.
 
@@ -206,11 +206,22 @@ oobj Frame::colindex(const PKArgs& args) {
     }
     // fall-through
   }
-  if (col.is_fexpr()) {
+  else if (col.is_fexpr()) {
     auto fexpr = dt::expr::as_fexpr(col);
-    auto fexpr_col1 = dynamic_cast<dt::expr::FExpr_ColumnAsAttr*>(fexpr.get());
+    auto fexpr_col1 = dynamic_cast<dt::expr::FExpr_ColumnAsArg*>(fexpr.get());
     if (fexpr_col1) {
-      col = fexpr_col1->get_pyname();
+      auto arg = fexpr_col1->get_arg();
+      if (arg->get_expr_kind() == dt::expr::Kind::Int) {
+        auto i = arg->evaluate_int();
+        return py::oint(dt->xcolindex(i));
+      }
+      if (arg->get_expr_kind() == dt::expr::Kind::Str) {
+        col = arg->evaluate_pystr();
+      }
+    }
+    auto fexpr_col2 = dynamic_cast<dt::expr::FExpr_ColumnAsAttr*>(fexpr.get());
+    if (fexpr_col2) {
+      col = fexpr_col2->get_pyname();
     }
   }
   if (col.is_string()) {

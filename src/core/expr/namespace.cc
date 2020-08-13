@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/fexpr_column_asattr.h"
+#include "expr/fexpr_column.h"
 #include "expr/namespace.h"
 #include "expr/op.h"
 #include "python/string.h"
@@ -100,10 +100,7 @@ oobj Namespace::m__getitem__(robj item) {
     throw TypeError() << "Column selector should be an integer, string, "
                          "or slice, not " << item.typeobj();
   }
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::COL)),
-                  otuple{item},
-                  otuple{oint(index_)}});
+  return FExpr::make(new dt::expr::FExpr_ColumnAsArg(index_, item));
 }
 
 

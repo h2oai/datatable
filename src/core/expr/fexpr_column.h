@@ -19,51 +19,54 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/fexpr_column.h"
-#include "expr/eval_context.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
+#ifndef dt_EXPR_FEXPR_COLUMN_h
+#define dt_EXPR_FEXPR_COLUMN_h
+#include "expr/fexpr_func.h"
+#include "python/obj.h"
 namespace dt {
 namespace expr {
 
 
-FExpr_ColumnAsAttr::FExpr_ColumnAsAttr(size_t ns, py::robj pyname)
-  : namespace_(ns),
-    pyname_(pyname)
-{
-  xassert(pyname_.is_string());
-}
+/**
+  * Class for expressions such as `f.A`.
+  */
+class FExpr_ColumnAsAttr : public FExpr_Func {
+  private:
+    size_t namespace_;
+    py::oobj pyname_;
 
+  public:
+    FExpr_ColumnAsAttr(size_t ns, py::robj name);
 
-Workframe FExpr_ColumnAsAttr::evaluate_n(EvalContext& ctx) const {
-  if (namespace_ >= ctx.nframes()) {
-    throw ValueError()
-        << "Column expression references a non-existing join frame";
-  }
-  auto df = ctx.get_datatable(namespace_);
-  size_t j = df->xcolindex(pyname_);
-  Workframe out(ctx);
-  out.add_ref_column(namespace_, j);
-  return out;
-}
+    Workframe evaluate_n(EvalContext&) const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
 
-
-int FExpr_ColumnAsAttr::precedence() const noexcept {
-  return 16;
-}
-
-
-std::string FExpr_ColumnAsAttr::repr() const {
-  return (namespace_ == 0? "f." : "g.") + pyname_.to_string();
-}
+    py::oobj get_pyname() const;
+};
 
 
 
-py::oobj FExpr_ColumnAsAttr::get_pyname() const {
-  return pyname_;
-}
+/**
+  * Class for expressions such as `f[x]`.
+  */
+class FExpr_ColumnAsArg : public FExpr_Func {
+  private:
+    size_t namespace_;
+    ptrExpr arg_;
+
+  public:
+    FExpr_ColumnAsArg(size_t ns, py::robj arg);
+
+    Workframe evaluate_n(EvalContext&) const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
+
+    ptrExpr get_arg() const;
+};
 
 
 
 
 }}  // namespace dt::expr
+#endif
