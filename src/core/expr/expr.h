@@ -118,7 +118,6 @@ class OldExpr : public FExpr {
 
     std::shared_ptr<FExpr> unnegate_column() const override;
     bool evaluate_bool() const override;
-    py::oobj evaluate_pystr() const override;
 
   private:
     // Construction helpers

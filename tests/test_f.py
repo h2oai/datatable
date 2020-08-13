@@ -73,15 +73,16 @@ def test_f_col_selector_unbound():
     assert str(f[1000]) == "FExpr<f[1000]>"
     assert str(f[-1]) == "FExpr<f[-1]>"
     assert str(f[-999]) == "FExpr<f[-999]>"
-    assert str(f[""]) == "FExpr<f[?]>"
-    assert str(f["0"]) == "FExpr<f[?]>"
-    assert str(f["A+B"]) == "FExpr<f[?]>"
-    assert str(f["_A"]) == "FExpr<f[?]>"
-    assert str(f["_54"]) == "FExpr<f[?]>"
+    assert str(f[""]) == "FExpr<f['']>"
+    assert str(f["0"]) == "FExpr<f['0']>"
+    assert str(f["A+B"]) == "FExpr<f['A+B']>"
+    assert str(f["_A"]) == "FExpr<f['_A']>"
+    assert str(f["_54"]) == "FExpr<f['_54']>"
     assert str(f._3_) == "FExpr<f._3_>"
     assert str(f.a_b_c) == "FExpr<f.a_b_c>"
-    assert str(f[" y "]) == "FExpr<f[?]>"
-    assert str(f["a b c"]) == "FExpr<f[?]>"
+    assert str(f[" y "]) == "FExpr<f[' y ']>"
+    assert str(f["a b c"]) == "FExpr<f['a b c']>"
+    assert str(f['"a b c"']) == "FExpr<f['\"a b c\"']>"
 
 
 def test_f_col_selector_invalid():

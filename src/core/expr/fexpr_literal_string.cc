@@ -20,35 +20,44 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 #include "ltype.h"
 namespace dt {
 namespace expr {
 
 
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
+
+FExpr_Literal_String::FExpr_Literal_String(py::robj x)
+  : pystr_(x) {}
 
 
-Head_Literal_String::Head_Literal_String(py::robj x) : pystr(x) {}
-
-Kind Head_Literal_String::get_expr_kind() const {
-  return Kind::Str;
+ptrExpr FExpr_Literal_String::make(py::robj src) {
+  return ptrExpr(new FExpr_Literal_String(src));
 }
 
 
-Workframe Head_Literal_String::evaluate_n(
-    const vecExpr&, EvalContext& ctx) const
-{
-  return _wrap_column(ctx,
-            Const_ColumnImpl::make_string_column(1, pystr.to_cstring()));
+
+
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_String::evaluate_n(EvalContext& ctx) const {
+  return Workframe(ctx,
+            Const_ColumnImpl::make_string_column(1, pystr_.to_cstring()));
 }
 
 
-Workframe Head_Literal_String::evaluate_f(
+Workframe FExpr_Literal_String::evaluate_f(
     EvalContext& ctx, size_t frame_id) const
 {
   auto df = ctx.get_datatable(frame_id);
-  size_t j = df->xcolindex(pystr);
+  size_t j = df->xcolindex(pystr_);
   Workframe outputs(ctx);
   outputs.add_ref_column(frame_id, j);
   return outputs;
@@ -63,8 +72,8 @@ Workframe Head_Literal_String::evaluate_f(
 // The columns in `j` must be str32 or str64, and the replacement
 // columns will try to match the stypes of the LHS.
 //
-Workframe Head_Literal_String::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Literal_String::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
 
@@ -78,7 +87,7 @@ Workframe Head_Literal_String::evaluate_r(
       stype = SType::STR32;
     }
     outputs.add_column(
-        Const_ColumnImpl::make_string_column(1, pystr.to_cstring(), stype),
+        Const_ColumnImpl::make_string_column(1, pystr_.to_cstring(), stype),
         std::string(),
         Grouping::SCALAR);
   }
@@ -87,36 +96,55 @@ Workframe Head_Literal_String::evaluate_r(
 
 
 
-Workframe Head_Literal_String::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
-{
+Workframe FExpr_Literal_String::evaluate_j(EvalContext& ctx) const {
   auto df = ctx.get_datatable(0);
   Workframe outputs(ctx);
   if (ctx.get_mode() == EvalMode::UPDATE) {
-    int64_t i = df->colindex(pystr);
-    if (i < 0) outputs.add_placeholder(pystr.to_string(), 0);
+    int64_t i = df->colindex(pystr_);
+    if (i < 0) outputs.add_placeholder(pystr_.to_string(), 0);
     else       outputs.add_ref_column(0, static_cast<size_t>(i));
   }
   else {
-    size_t j = df->xcolindex(pystr);
+    size_t j = df->xcolindex(pystr_);
     outputs.add_ref_column(0, j);
   }
   return outputs;
 }
 
 
-RowIndex Head_Literal_String::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_String::evaluate_i(EvalContext&) const {
   throw TypeError() << "A string value cannot be used as a row selector";
 }
 
 
-RiGb Head_Literal_String::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Literal_String::evaluate_iby(EvalContext&) const {
   throw TypeError() << "A string value cannot be used as a row selector";
 }
 
 
-py::oobj Head_Literal_String::evaluate_pystr() const {
-  return pystr;
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_String::get_expr_kind() const {
+  return Kind::Str;
+}
+
+
+int FExpr_Literal_String::precedence() const noexcept {
+  return 18;
+}
+
+
+std::string FExpr_Literal_String::repr() const {
+  return pystr_.repr().to_string();
+}
+
+
+py::oobj FExpr_Literal_String::evaluate_pystr() const {
+  return pystr_;
 }
 
 

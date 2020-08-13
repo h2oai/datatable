@@ -88,25 +88,6 @@ class Head_Literal_Bool : public Head_Literal {
 
 
 
-
-class Head_Literal_String : public Head_Literal {
-  private:
-    py::oobj pystr;
-
-  public:
-    explicit Head_Literal_String(py::robj x);
-    Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-    py::oobj  evaluate_pystr() const;
-};
-
-
-
 class Head_Literal_SliceAll : public Head_Literal {
   public:
     Kind get_expr_kind() const override;
