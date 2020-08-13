@@ -55,18 +55,6 @@ class Head_Literal : public Head {
 //------------------------------------------------------------------------------
 
 
-class Head_Literal_SliceAll : public Head_Literal {
-  public:
-    Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-};
-
-
-
 class Head_Literal_SliceInt : public Head_Literal {
   private:
     py::oslice value;

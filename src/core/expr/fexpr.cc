@@ -77,7 +77,7 @@ ptrExpr as_fexpr(py::robj src) {
   else if (src.is_string())        return FExpr_Literal_String::make(src);
   else if (src.is_float())         return FExpr_Literal_Float::make(src);
   else if (src.is_bool())          return FExpr_Literal_Bool::make(src);
-  else if (src.is_slice())         ;
+  else if (src.is_slice())         return FExpr_Literal_Slice::make(src);
   else if (src.is_list_or_tuple()) ;
   else if (src.is_dict())          ;
   else if (src.is_anytype())       ;
@@ -89,7 +89,7 @@ ptrExpr as_fexpr(py::robj src) {
            src.is_pandas_series()) ;
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  ;
-  else if (src.is_ellipsis())      ;
+  else if (src.is_ellipsis())      return ptrExpr(new FExpr_Literal_SliceAll());
   else {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an FExpr";

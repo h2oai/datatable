@@ -20,27 +20,48 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/fexpr_literal.h"
+#include "expr/eval_context.h"
 #include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
 
-Kind Head_Literal_SliceAll::get_expr_kind() const {
-  return Kind::SliceAll;
+/**
+  * Common factory function for all 3 kinds of slices.
+  */
+ptrExpr FExpr_Literal_Slice::make(py::robj src) {
+  auto src_as_slice = src.to_oslice();
+  if (src_as_slice.is_trivial()) {
+    return ptrExpr(new FExpr_Literal_SliceAll);
+  }
+  else if (src_as_slice.is_numeric()) {
+    return ptrExpr(new OldExpr(src));
+    // head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
+  }
+  else if (src_as_slice.is_string()) {
+    return ptrExpr(new OldExpr(src));
+    // head = ptrHead(new Head_Literal_SliceStr(src_as_slice));
+  }
+  else {
+    throw TypeError() << src << " is neither integer- nor string- valued";
+  }
 }
 
 
-Workframe Head_Literal_SliceAll::evaluate_n(
-    const vecExpr&, EvalContext&) const
-{
+
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_SliceAll::evaluate_n(EvalContext&) const {
   throw TypeError() << "A slice expression cannot appear in this context";
 }
 
 
 // `f[:]` will return all columns from `f`
 //
-Workframe Head_Literal_SliceAll::evaluate_f(
+Workframe FExpr_Literal_SliceAll::evaluate_f(
     EvalContext& ctx, size_t frame_id) const
 {
   size_t ncols = ctx.get_datatable(frame_id)->ncols();
@@ -59,9 +80,7 @@ Workframe Head_Literal_SliceAll::evaluate_f(
 //     front by the groupby operation itself);
 //   - key columns in naturally joined frames are skipped, to avoid duplication.
 //
-Workframe Head_Literal_SliceAll::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
-{
+Workframe FExpr_Literal_SliceAll::evaluate_j(EvalContext& ctx) const {
   Workframe outputs(ctx);
   for (size_t i = 0; i < ctx.nframes(); ++i) {
     const DataTable* dti = ctx.get_datatable(i);
@@ -76,13 +95,38 @@ Workframe Head_Literal_SliceAll::evaluate_j(
 
 
 // When `:` is used as i-node, it means all rows are selected.
-RowIndex Head_Literal_SliceAll::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_SliceAll::evaluate_i(EvalContext&) const {
   return RowIndex();
 }
 
 
-RiGb Head_Literal_SliceAll::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Literal_SliceAll::evaluate_iby(EvalContext&) const {
   return std::make_pair(RowIndex(), Groupby());
+}
+
+
+Workframe FExpr_Literal_SliceAll::evaluate_r(EvalContext&, const sztvec&) const
+{
+  throw TypeError() << "A slice expression cannot appear in this context";
+}
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+int FExpr_Literal_SliceAll::precedence() const noexcept {
+  return 0;
+}
+
+
+std::string FExpr_Literal_SliceAll::repr() const {
+  return ":";
+}
+
+
+Kind FExpr_Literal_SliceAll::get_expr_kind() const {
+  return Kind::SliceAll;
 }
 
 

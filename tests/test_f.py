@@ -105,7 +105,7 @@ def test_f_expressions():
 
 def test_f_columnset_str():
     assert str(f[None]) == "FExpr<f[None]>"
-    assert str(f[:]) == "FExpr<f[?]>"
+    assert str(f[:]) == "FExpr<f[:]>"
     assert str(f[:7]) == "FExpr<f[?]>"
     assert str(f[::-1]) == "FExpr<f[?]>"
     assert str(f[bool]) == "FExpr<f[?]>"
@@ -120,14 +120,14 @@ def test_f_columnset_str():
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(FExpr<f[?]>, FExpr<f.A>; )"
+        "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].extend(f[str])) == \
         "Expr:setplus(FExpr<f[?]>, FExpr<f[?]>; )"
 
 
 def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == \
-        "Expr:setminus(FExpr<f[?]>, FExpr<f.A>; )"
+        "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].remove(f[0])) == \
         "Expr:setminus(FExpr<f[?]>, FExpr<f[0]>; )"
 

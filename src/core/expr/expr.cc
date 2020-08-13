@@ -59,7 +59,7 @@ OldExpr::OldExpr(py::robj src)
            src.is_pandas_series()) _init_from_pandas(src);
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  _init_from_numpy(src);
-  else if (src.is_ellipsis())      _init_from_ellipsis();
+  // else if (src.is_ellipsis())      _init_from_ellipsis();
   else {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an Expr";
@@ -91,10 +91,6 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
   head = Head_Func::from_op(static_cast<Op>(op), params);
 }
 
-
-void OldExpr::_init_from_ellipsis() {
-  head = ptrHead(new Head_Literal_SliceAll);
-}
 
 
 void OldExpr::_init_from_frame(py::robj src) {
@@ -139,7 +135,7 @@ void OldExpr::_init_from_range(py::robj src) {
 void OldExpr::_init_from_slice(py::robj src) {
   auto src_as_slice = src.to_oslice();
   if (src_as_slice.is_trivial()) {
-    head = ptrHead(new Head_Literal_SliceAll);
+    // head = ptrHead(new Head_Literal_SliceAll);
   }
   else if (src_as_slice.is_numeric()) {
     head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
