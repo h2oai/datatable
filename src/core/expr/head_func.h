@@ -56,17 +56,6 @@ class Head_Func : public Head {
 // Derived classes
 //------------------------------------------------------------------------------
 
-class Head_Func_Column : public Head_Func {
-  private:
-    size_t frame_id;
-
-  public:
-    explicit Head_Func_Column(size_t);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-};
-
-
-
 class Head_Func_Cast : public Head_Func {
   private:
     SType stype;

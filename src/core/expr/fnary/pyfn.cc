@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "expr/fexpr_column.h"
 #include "expr/fnary/fnary.h"
 #include "expr/op.h"
 #include "frame/py_frame.h"
@@ -55,13 +56,6 @@ static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple) {
   return py::robj(py::Expr_Type).call({ py::oint(op), args_tuple });
 }
 
-static py::oobj make_pyexpr(dt::expr::Op opcode, py::otuple args_tuple,
-                            py::otuple params_tuple)
-{
-  size_t op = static_cast<size_t>(opcode);
-  return py::robj(py::Expr_Type)
-            .call({ py::oint(op), args_tuple, params_tuple });
-}
 
 /**
   * This helper function will apply `opcode` to an entire frame.
@@ -70,9 +64,7 @@ static py::oobj apply_to_frame(dt::expr::Op opcode, py::robj arg) {
   xassert(arg.is_frame());
 
   auto slice_all = py::oslice(py::oslice::NA, py::oslice::NA, py::oslice::NA);
-  auto f_all = make_pyexpr(dt::expr::Op::COL,
-                           py::otuple{ slice_all },
-                           py::otuple{ py::oint(0) });
+  auto f_all = py::FExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
   auto rowfn = make_pyexpr(opcode, py::otuple{ f_all });
 
   auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());

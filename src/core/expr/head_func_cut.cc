@@ -23,6 +23,7 @@
 #include "column/cut.h"
 #include "datatablemodule.h"
 #include "expr/eval_context.h"
+#include "expr/fexpr_column.h"
 #include "expr/head_func.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -124,9 +125,7 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 
 static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
   auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
-  auto f_all = make_pyexpr(dt::expr::Op::COL,
-                           otuple{ slice_all },
-                           otuple{ oint(0) });
+  auto f_all = py::FExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
   auto cutexpr = make_pyexpr(dt::expr::Op::CUT,
                              otuple{ f_all },
                              otuple{ arg1, arg2 });

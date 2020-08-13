@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/fexpr_column.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/args_registry.h"
@@ -41,11 +42,6 @@ static py::oobj make_pyexpr(Op opcode, py::oobj arg) {
                                         py::otuple(arg) });
 }
 
-static py::oobj make_pyexpr(Op opcode, py::otuple args, py::otuple params) {
-  size_t op = static_cast<size_t>(opcode);
-  return py::robj(py::Expr_Type).call({ py::oint(op), args, params });
-}
-
 
 // This helper function will apply `opcode` to the entire frame, and
 // return the resulting frame (same shape as the original).
@@ -56,9 +52,8 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::olist columns(dt->ncols());
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    py::oobj col_selector = make_pyexpr(Op::COL,
-                                        py::otuple{py::oint(i)},
-                                        py::otuple{py::oint(0)});
+    auto col_selector = py::FExpr::make(
+        new dt::expr::FExpr_ColumnAsArg(0, py::oint(i)));
     columns.set(i, make_pyexpr(opcode, col_selector));
   }
 
