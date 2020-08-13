@@ -8,3 +8,4 @@ User Guide
 	f-expressions
 	fread_examples
 	groupby_examples
+	row_functions
