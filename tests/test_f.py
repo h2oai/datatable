@@ -108,6 +108,7 @@ def test_f_columnset_str():
     assert str(f[:]) == "FExpr<f[:]>"
     assert str(f[:7]) == "FExpr<f[:7]>"
     assert str(f[::-1]) == "FExpr<f[::-1]>"
+    assert str(f['Z':'A']) == "FExpr<f['Z':'A']>"
     assert str(f[bool]) == "FExpr<f[?]>"
     assert str(f[int]) == "FExpr<f[?]>"
     assert str(f[float]) == "FExpr<f[?]>"

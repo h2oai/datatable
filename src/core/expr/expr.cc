@@ -47,7 +47,7 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_string())        _init_from_string(src);
   // else if (src.is_float())         _init_from_float(src);
   // else if (src.is_bool())          _init_from_bool(src);
-  else if (src.is_slice())         _init_from_slice(src);
+  // else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
   else if (src.is_dict())          _init_from_dictionary(src);
   else if (src.is_anytype())       _init_from_type(src);
@@ -131,22 +131,6 @@ void OldExpr::_init_from_range(py::robj src) {
   head = ptrHead(new Head_Literal_Range(std::move(rr)));
 }
 
-
-void OldExpr::_init_from_slice(py::robj src) {
-  auto src_as_slice = src.to_oslice();
-  if (src_as_slice.is_trivial()) {
-    // head = ptrHead(new Head_Literal_SliceAll);
-  }
-  else if (src_as_slice.is_numeric()) {
-    // head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
-  }
-  else if (src_as_slice.is_string()) {
-    head = ptrHead(new Head_Literal_SliceStr(src_as_slice));
-  }
-  else {
-    throw TypeError() << src << " is neither integer- nor string- valued";
-  }
-}
 
 
 void OldExpr::_init_from_type(py::robj src) {

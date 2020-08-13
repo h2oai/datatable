@@ -179,6 +179,25 @@ class FExpr_Literal_SliceInt : public FExpr_Literal_Slice {
 
 
 
+class FExpr_Literal_SliceStr : public FExpr_Literal_Slice {
+  private:
+    py::oobj start_;
+    py::oobj end_;
+
+  public:
+    explicit FExpr_Literal_SliceStr(py::oslice src);
+
+    Workframe evaluate_f(EvalContext&, size_t) const override;
+    Workframe evaluate_j(EvalContext&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
+
+    Kind get_expr_kind() const override;
+    std::string repr() const override;
+};
+
+
+
 
 }}  // namespace dt::expr
 #endif

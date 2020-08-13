@@ -36,8 +36,7 @@ ptrExpr FExpr_Literal_Slice::make(py::robj src) {
     return ptrExpr(new FExpr_Literal_SliceInt(ss));
   }
   else if (ss.is_string()) {
-    return ptrExpr(new OldExpr(src));
-    // head = ptrHead(new Head_Literal_SliceStr(ss));
+    return ptrExpr(new FExpr_Literal_SliceStr(ss));
   }
   else {
     throw TypeError() << src << " is neither integer- nor string- valued";
