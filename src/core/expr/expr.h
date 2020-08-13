@@ -118,7 +118,6 @@ class OldExpr : public FExpr {
 
     std::shared_ptr<FExpr> unnegate_column() const override;
     bool evaluate_bool() const override;
-    int64_t evaluate_int() const override;
     py::oobj evaluate_pystr() const override;
 
   private:
@@ -129,7 +128,6 @@ class OldExpr : public FExpr {
     void _init_from_ellipsis();
     void _init_from_float(py::robj);
     void _init_from_frame(py::robj);
-    void _init_from_int(py::robj);
     void _init_from_iterable(py::robj);
     void _init_from_list(py::robj);
     void _init_from_none();

@@ -57,6 +57,12 @@ Workframe::Workframe(EvalContext& ctx)
     grouping_mode_(Grouping::SCALAR) {}
 
 
+Workframe::Workframe(EvalContext& ctx, Column&& col)
+  : Workframe(ctx)
+{
+  add_column(std::move(col), std::string(), Grouping::SCALAR);
+}
+
 
 void Workframe::add_column(Column&& col, std::string&& name, Grouping gmode) {
   sync_grouping_mode(col, gmode);

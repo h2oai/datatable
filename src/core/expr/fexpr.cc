@@ -20,14 +20,17 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/fexpr.h"
-#include "expr/expr.h"   // OldExpr
+#include "expr/fexpr_literal.h"
+#include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
 
 
-
+//------------------------------------------------------------------------------
+// dt::expr::FExpr class
+//------------------------------------------------------------------------------
 
 ptrExpr FExpr::unnegate_column() const {
   return nullptr;
@@ -35,23 +38,23 @@ ptrExpr FExpr::unnegate_column() const {
 
 
 bool FExpr::evaluate_bool() const {
-  throw RuntimeError();
-}
+  throw RuntimeError();  // LCOV_EXCL_LINE
+}                        // LCOV_EXCL_LINE
 
 
 int64_t FExpr::evaluate_int() const {
-  throw RuntimeError();
-}
+  throw RuntimeError();  // LCOV_EXCL_LINE
+}                        // LCOV_EXCL_LINE
 
 
 py::oobj FExpr::evaluate_pystr() const {
-  throw RuntimeError();
-}
+  throw RuntimeError();  // LCOV_EXCL_LINE
+}                        // LCOV_EXCL_LINE
 
 
 void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
-  throw RuntimeError() << "Unexpected prepare_by() call";  // LCOV_EXCL_LINE
-}                                                          // LCOV_EXCL_LINE
+  throw RuntimeError();  // LCOV_EXCL_LINE
+}                        // LCOV_EXCL_LINE
 
 
 
@@ -66,6 +69,8 @@ ptrExpr as_fexpr(py::robj src) {
     auto fexpr = reinterpret_cast<py::FExpr*>(src.to_borrowed_ref());
     return fexpr->get_expr();
   }
+  else if (src.is_none())   ;
+  else if (src.is_int())    return FExpr_Literal_Int::make(src);
   return std::make_shared<OldExpr>(src);
 }
 

@@ -20,56 +20,68 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 #include "ltype.h"
+#include "python/float.h"    // tmp
 namespace dt {
 namespace expr {
 
 
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
 
-Head_Literal_Int::Head_Literal_Int(int64_t x) : value(x) {}
+FExpr_Literal_Int::FExpr_Literal_Int(int64_t x)
+  : value_(x) {}
 
-Kind Head_Literal_Int::get_expr_kind() const {
-  return Kind::Int;
+
+ptrExpr FExpr_Literal_Int::make(py::robj src) {
+  py::oint src_int = src.to_pyint();
+  int overflow;
+  int64_t x = src_int.ovalue<int64_t>(&overflow);
+  if (overflow) {
+    // If overflow occurs here, the returned value will be +/-Inf,
+    // which is exactly what we need.
+    double xx = src_int.ovalue<double>(&overflow);
+    return as_fexpr(py::ofloat(xx));
+    // return ptrExpr(new FExpr_Literal_Float(xx));
+  } else {
+    return ptrExpr(new FExpr_Literal_Int(x));
+  }
 }
 
-int64_t Head_Literal_Int::get_value() const {
-  return value;
+
+
+//------------------------------------------------------------------------------
+// Evaluators
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_Int::evaluate_n(EvalContext& ctx) const {
+  return Workframe(ctx, Const_ColumnImpl::make_int_column(1, value_));
 }
 
 
-
-
-Workframe Head_Literal_Int::evaluate_n(
-    const vecExpr&, EvalContext& ctx) const
+Workframe FExpr_Literal_Int::evaluate_f(EvalContext& ctx, size_t ns) const
 {
-  return _wrap_column(ctx, Const_ColumnImpl::make_int_column(1, value));
-}
-
-
-
-Workframe Head_Literal_Int::evaluate_f(
-    EvalContext& ctx, size_t frame_id) const
-{
-  auto df = ctx.get_datatable(frame_id);
+  auto df = ctx.get_datatable(ns);
   Workframe outputs(ctx);
   int64_t icols = static_cast<int64_t>(df->ncols());
-  if (value < -icols || value >= icols) {
+  if (value_ < -icols || value_ >= icols) {
       throw ValueError()
-          << "Column index `" << value << "` is invalid for a Frame with "
+          << "Column index `" << value_ << "` is invalid for a Frame with "
           << icols << " column" << (icols == 1? "" : "s");
   } else {
-    size_t i = static_cast<size_t>(value < 0? value + icols : value);
-    outputs.add_ref_column(frame_id, i);
+    size_t i = static_cast<size_t>(value_ < 0? value_ + icols : value_);
+    outputs.add_ref_column(ns, i);
   }
   return outputs;
 }
 
 
 
-Workframe Head_Literal_Int::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
+Workframe FExpr_Literal_Int::evaluate_j(EvalContext& ctx) const
 {
   return evaluate_f(ctx, 0);
 }
@@ -83,8 +95,8 @@ Workframe Head_Literal_Int::evaluate_j(
 // This is allowed provided that the columns in `j` are either
 // integer or float.
 //
-Workframe Head_Literal_Int::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Literal_Int::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
 
@@ -99,20 +111,20 @@ Workframe Head_Literal_Int::evaluate_r(
         // if the `value` fits inside the range of that stype. If not,
         // the column will be auto-promoted to the next smallest integer
         // stype.
-        newcol = Const_ColumnImpl::make_int_column(1, value, col.stype());
+        newcol = Const_ColumnImpl::make_int_column(1, value_, col.stype());
       }
       else if (ltype == LType::REAL) {
         newcol = Const_ColumnImpl::make_float_column(
                    1,
-                   static_cast<double>(value),
+                   static_cast<double>(value_),
                    col.stype()
                  );
       }
       else {
-        newcol = Const_ColumnImpl::make_int_column(1, value);
+        newcol = Const_ColumnImpl::make_int_column(1, value_);
       }
     } else {
-      newcol = Const_ColumnImpl::make_int_column(1, value);
+      newcol = Const_ColumnImpl::make_int_column(1, value_);
     }
     outputs.add_column(std::move(newcol), std::string(), Grouping::SCALAR);
   }
@@ -121,20 +133,20 @@ Workframe Head_Literal_Int::evaluate_r(
 
 
 
-RowIndex Head_Literal_Int::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+RowIndex FExpr_Literal_Int::evaluate_i(EvalContext& ctx) const {
   int64_t inrows = static_cast<int64_t>(ctx.nrows());
-  if (value < -inrows || value >= inrows) {
-    throw ValueError() << "Row `" << value << "` is invalid for a frame with "
+  if (value_ < -inrows || value_ >= inrows) {
+    throw ValueError() << "Row `" << value_ << "` is invalid for a frame with "
         << inrows << " row" << (inrows == 1? "" : "s");
   }
-  auto irow = static_cast<size_t>((value >= 0)? value : value + inrows);
+  auto irow = static_cast<size_t>((value_ >= 0)? value_ : value_ + inrows);
   return RowIndex(irow, 1, 1);
 }
 
 
-RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
-  const int32_t ivalue = static_cast<int32_t>(value);
-  if (ivalue != value) {
+RiGb FExpr_Literal_Int::evaluate_iby(EvalContext& ctx) const {
+  const int32_t ivalue = static_cast<int32_t>(value_);
+  if (ivalue != value_) {
     return RiGb{ RowIndex(Buffer(), RowIndex::ARR32),
                  Groupby::zero_groups() };
   }
@@ -179,6 +191,32 @@ RiGb Head_Literal_Int::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
                         RowIndex::ARR32|RowIndex::SORTED),
                Groupby(zk, std::move(out_groups)) };
 }
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_Int::get_expr_kind() const {
+  return Kind::Int;
+}
+
+int64_t FExpr_Literal_Int::evaluate_int() const {
+  return value_;
+}
+
+
+int FExpr_Literal_Int::precedence() const noexcept {
+  return 18;
+}
+
+
+std::string FExpr_Literal_Int::repr() const {
+  return std::to_string(value_);
+}
+
+
 
 
 

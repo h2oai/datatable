@@ -69,10 +69,10 @@ def test_f_col_selector_unbound():
     assert str(f.a) == "FExpr<f.a>"
     assert str(f.abcdefghijkl) == "FExpr<f.abcdefghijkl>"
     assert str(f.abcdefghijklm) == "FExpr<f.abcdefghijklm>"
-    assert str(f[0]) == "FExpr<f[?]>"
-    assert str(f[1000]) == "FExpr<f[?]>"
-    assert str(f[-1]) == "FExpr<f[?]>"
-    assert str(f[-999]) == "FExpr<f[?]>"
+    assert str(f[0]) == "FExpr<f[0]>"
+    assert str(f[1000]) == "FExpr<f[1000]>"
+    assert str(f[-1]) == "FExpr<f[-1]>"
+    assert str(f[-999]) == "FExpr<f[-999]>"
     assert str(f[""]) == "FExpr<f[?]>"
     assert str(f["0"]) == "FExpr<f[?]>"
     assert str(f["A+B"]) == "FExpr<f[?]>"
@@ -128,7 +128,7 @@ def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == \
         "Expr:setminus(FExpr<f[?]>, FExpr<f.A>; )"
     assert str(f[int].remove(f[0])) == \
-        "Expr:setminus(FExpr<f[?]>, FExpr<f[?]>; )"
+        "Expr:setminus(FExpr<f[?]>, FExpr<f[0]>; )"
 
 
 

@@ -43,7 +43,7 @@ OldExpr::OldExpr(py::robj src)
   : FExpr()
 {
   if      (src.is_dtexpr())        _init_from_dtexpr(src);
-  else if (src.is_int())           _init_from_int(src);
+  // else if (src.is_int())           _init_from_int(src);
   else if (src.is_string())        _init_from_string(src);
   else if (src.is_float())         _init_from_float(src);
   else if (src.is_bool())          _init_from_bool(src);
@@ -111,21 +111,6 @@ void OldExpr::_init_from_float(py::robj src) {
 
 void OldExpr::_init_from_frame(py::robj src) {
   head = Head_Frame::from_datatable(src);
-}
-
-
-void OldExpr::_init_from_int(py::robj src) {
-  py::oint src_int = src.to_pyint();
-  int overflow;
-  int64_t x = src_int.ovalue<int64_t>(&overflow);
-  if (overflow) {
-    // If overflow occurs here, the returned value will be +/-Inf,
-    // which is exactly what we need.
-    double xx = src_int.ovalue<double>(&overflow);
-    head = ptrHead(new Head_Literal_Float(xx));
-  } else {
-    head = ptrHead(new Head_Literal_Int(x));
-  }
 }
 
 
@@ -271,13 +256,6 @@ std::shared_ptr<FExpr> OldExpr::unnegate_column() const {
     return inputs[0];
   }
   return nullptr;
-}
-
-
-int64_t OldExpr::evaluate_int() const {
-  auto inthead = dynamic_cast<Head_Literal_Int*>(head.get());
-  xassert(inthead);
-  return inthead->get_value();
 }
 
 

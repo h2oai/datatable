@@ -89,7 +89,6 @@ namespace expr {
   *     +-- Head_Literal
   *     |     +-- Head_Literal_Bool
   *     |     +-- Head_Literal_Float
-  *     |     +-- Head_Literal_Int
   *     |     +-- Head_Literal_None
   *     |     +-- Head_Literal_Range
   *     |     +-- Head_Literal_SliceAll
