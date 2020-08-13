@@ -36,10 +36,10 @@ static PyTypeObject* Py_Ltype = nullptr;
 const char* ltype_name(LType lt) {
   switch (lt) {
     case LType::MU:       return "void";
-    case LType::BOOL:     return "boolean";
-    case LType::INT:      return "integer";
+    case LType::BOOL:     return "bool";
+    case LType::INT:      return "int";
     case LType::REAL:     return "float";
-    case LType::STRING:   return "string";
+    case LType::STRING:   return "str";
     case LType::DATETIME: return "time";
     case LType::DURATION: return "duration";
     case LType::OBJECT:   return "object";

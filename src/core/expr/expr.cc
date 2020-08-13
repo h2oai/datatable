@@ -24,7 +24,6 @@
 #include "expr/head_frame.h"
 #include "expr/head_func.h"
 #include "expr/head_list.h"
-#include "expr/head_literal.h"
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "datatable.h"
@@ -50,7 +49,7 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
   else if (src.is_dict())          _init_from_dictionary(src);
-  else if (src.is_anytype())       _init_from_type(src);
+  // else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
   // else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
@@ -126,10 +125,6 @@ void OldExpr::_init_from_pandas(py::robj src) {
 }
 
 
-
-void OldExpr::_init_from_type(py::robj src) {
-  head = ptrHead(new Head_Literal_Type(src));
-}
 
 
 

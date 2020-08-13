@@ -109,28 +109,26 @@ def test_f_columnset_str():
     assert str(f[:7]) == "FExpr<f[:7]>"
     assert str(f[::-1]) == "FExpr<f[::-1]>"
     assert str(f['Z':'A']) == "FExpr<f['Z':'A']>"
-    assert str(f[bool]) == "FExpr<f[?]>"
-    assert str(f[int]) == "FExpr<f[?]>"
-    assert str(f[float]) == "FExpr<f[?]>"
-    assert str(f[str]) == "FExpr<f[?]>"
-    assert str(f[object]) == "FExpr<f[?]>"
-    assert str(f[dt.int32]) == "FExpr<f[?]>"
-    assert str(f[dt.float64]) == "FExpr<f[?]>"
-    assert str(f[dt.ltype.int]) == "FExpr<f[?]>"
+    assert str(f[bool]) == "FExpr<f[bool]>"
+    assert str(f[int]) == "FExpr<f[int]>"
+    assert str(f[float]) == "FExpr<f[float]>"
+    assert str(f[str]) == "FExpr<f[str]>"
+    assert str(f[object]) == "FExpr<f[object]>"
+    assert str(f[dt.int32]) == "FExpr<f[stype.int32]>"
+    assert str(f[dt.float64]) == "FExpr<f[stype.float64]>"
+    assert str(f[dt.ltype.int]) == "FExpr<f[ltype.int]>"
 
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
         "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(FExpr<f[?]>, FExpr<f[?]>; )"
+        "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
 
 
 def test_f_columnset_remove():
-    assert str(f[:].remove(f.A)) == \
-        "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
-    assert str(f[int].remove(f[0])) == \
-        "Expr:setminus(FExpr<f[?]>, FExpr<f[0]>; )"
+    assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
+    assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
 
 
 

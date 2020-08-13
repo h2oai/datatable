@@ -80,7 +80,7 @@ ptrExpr as_fexpr(py::robj src) {
   else if (src.is_slice())         return FExpr_Literal_Slice::make(src);
   else if (src.is_list_or_tuple()) ;
   else if (src.is_dict())          ;
-  else if (src.is_anytype())       ;
+  else if (src.is_anytype())       return FExpr_Literal_Type::make(src);
   else if (src.is_generator())     ;
   else if (src.is_none())          return FExpr_Literal_None::make();
   else if (src.is_frame())         ;

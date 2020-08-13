@@ -86,8 +86,6 @@ namespace expr {
   *     |           +-- Head_Reduce_Nullary
   *     |           +-- Head_Reduce_Unary
   *     +-- Head_List
-  *     +-- Head_Literal
-  *     |     +-- Head_Literal_Type
   *     +-- Head_NamedList
   *
   */

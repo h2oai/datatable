@@ -19,7 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 #include "ltype.h"
 #include "stype.h"
@@ -74,39 +75,41 @@ static Workframe _select_type(EvalContext& ctx, size_t frame_id, SType stype0)
 
 
 
-
-
 //------------------------------------------------------------------------------
-// Head_Literal_Type
+// Constructors
 //------------------------------------------------------------------------------
 
-Head_Literal_Type::Head_Literal_Type(py::robj x) : value(x) {}
+FExpr_Literal_Type::FExpr_Literal_Type(py::robj x)
+  : value_(x) {}
 
-Kind Head_Literal_Type::get_expr_kind() const {
-  return Kind::Type;
+
+ptrExpr FExpr_Literal_Type::make(py::robj src) {
+  return ptrExpr(new FExpr_Literal_Type(src));
 }
 
 
-Workframe Head_Literal_Type::evaluate_n(
-    const vecExpr&, EvalContext&) const
-{
-  throw TypeError() << value << " cannot appear in this context";
+
+
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_Type::evaluate_n(EvalContext&) const {
+  throw TypeError() << value_ << " cannot appear in this context";
 }
 
 
-Workframe Head_Literal_Type::evaluate_f(
-    EvalContext& ctx, size_t fid) const
-{
-  if (value.is_type()) {
-    auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
+Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
+  if (value_.is_type()) {
+    auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
     if (et == &PyLong_Type)       return _select_types(ctx, fid, stINT);
     if (et == &PyFloat_Type)      return _select_types(ctx, fid, stFLOAT);
     if (et == &PyUnicode_Type)    return _select_types(ctx, fid, stSTR);
     if (et == &PyBool_Type)       return _select_types(ctx, fid, stBOOL);
     if (et == &PyBaseObject_Type) return _select_types(ctx, fid, stOBJ);
   }
-  if (value.is_ltype()) {
-    auto lt = static_cast<LType>(value.get_attr("value").to_size_t());
+  if (value_.is_ltype()) {
+    auto lt = static_cast<LType>(value_.get_attr("value").to_size_t());
     if (lt == LType::BOOL)     return _select_types(ctx, fid, stBOOL);
     if (lt == LType::INT)      return _select_types(ctx, fid, stINT);
     if (lt == LType::REAL)     return _select_types(ctx, fid, stFLOAT);
@@ -114,39 +117,37 @@ Workframe Head_Literal_Type::evaluate_f(
     if (lt == LType::DATETIME) return _select_types(ctx, fid, stTIME);
     if (lt == LType::OBJECT)   return _select_types(ctx, fid, stOBJ);
   }
-  if (value.is_stype()) {
-    auto st = static_cast<SType>(value.get_attr("value").to_size_t());
+  if (value_.is_stype()) {
+    auto st = static_cast<SType>(value_.get_attr("value").to_size_t());
     return _select_type(ctx, fid, st);
   }
-  throw ValueError() << "Unknown type " << value
+  throw ValueError() << "Unknown type " << value_
                      << " used as a column selector";
 }
 
 
 
-Workframe Head_Literal_Type::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
-{
+Workframe FExpr_Literal_Type::evaluate_j(EvalContext& ctx) const {
   return evaluate_f(ctx, 0);
 }
 
 
-RowIndex Head_Literal_Type::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_Type::evaluate_i(EvalContext&) const {
   throw TypeError() << "A type cannot be used as a row selector";
 }
 
 
-RiGb Head_Literal_Type::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Literal_Type::evaluate_iby(EvalContext&) const {
   throw TypeError() << "A type cannot be used as a row selector";
 }
 
 
-static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
+static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
 {
   *out_stype = SType::VOID;
   *out_ltype = LType::MU;
-  if (value.is_type()) {
-    auto et = reinterpret_cast<PyTypeObject*>(value.to_borrowed_ref());
+  if (value_.is_type()) {
+    auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
     *out_ltype = (et == &PyLong_Type)?       LType::INT :
                  (et == &PyFloat_Type)?      LType::REAL :
                  (et == &PyUnicode_Type)?    LType::STRING :
@@ -154,18 +155,18 @@ static void _resolve_stype(py::robj value, SType* out_stype, LType* out_ltype)
                  (et == &PyBaseObject_Type)? LType::OBJECT :
                  LType::MU;
   }
-  else if (value.is_ltype()) {
-    auto lt = value.get_attr("value").to_size_t();
+  else if (value_.is_ltype()) {
+    auto lt = value_.get_attr("value").to_size_t();
     *out_ltype = (lt < LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
   }
-  else if (value.is_stype()) {
-    auto st = value.get_attr("value").to_size_t();
+  else if (value_.is_stype()) {
+    auto st = value_.get_attr("value").to_size_t();
     *out_stype = (st < STYPES_COUNT)? static_cast<SType>(st) : SType::VOID;
   }
 }
 
-Workframe Head_Literal_Type::evaluate_r(
-      const vecExpr&, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Literal_Type::evaluate_r(
+      EvalContext& ctx, const sztvec& indices) const
 {
   if (ctx.get_rowindex(0)) {
     throw ValueError()
@@ -173,9 +174,9 @@ Workframe Head_Literal_Type::evaluate_r(
   }
   SType target_stype;
   LType target_ltype;
-  _resolve_stype(value, &target_stype, &target_ltype);
+  _resolve_stype(value_, &target_stype, &target_ltype);
   if (target_stype == SType::VOID && target_ltype == LType::MU) {
-    throw ValueError() << "Unknown type " << value
+    throw ValueError() << "Unknown type " << value_
                        << " used in the replacement expression";
   }
   if (target_stype == SType::VOID) {
@@ -207,6 +208,43 @@ Workframe Head_Literal_Type::evaluate_r(
     res.add_column(std::move(newcol), "", Grouping::GtoALL);
   }
   return res;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_Type::get_expr_kind() const {
+  return Kind::Type;
+}
+
+
+int FExpr_Literal_Type::precedence() const noexcept {
+  return 16;
+}
+
+
+std::string FExpr_Literal_Type::repr() const {
+  if (value_.is_type()) {
+    auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
+    if (et == &PyLong_Type)       return "int";
+    if (et == &PyFloat_Type)      return "float";
+    if (et == &PyUnicode_Type)    return "str";
+    if (et == &PyBool_Type)       return "bool";
+    if (et == &PyBaseObject_Type) return "object";
+  }
+  if (value_.is_ltype()) {
+    auto lt = static_cast<LType>(value_.get_attr("value").to_size_t());
+    return std::string("ltype.") + ltype_name(lt);
+  }
+  if (value_.is_stype()) {
+    auto st = static_cast<SType>(value_.get_attr("value").to_size_t());
+    return std::string("stype.") + stype_name(st);
+  }
+  return value_.repr().to_string();
 }
 
 
