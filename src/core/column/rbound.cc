@@ -91,7 +91,7 @@ void Rbound_ColumnImpl::calculate_boolean_stats() {
     auto chunk_stats = dynamic_cast<BooleanStats*>(col.get_stats_if_exist());
     if (!chunk_stats) return;
     double sum = chunk_stats->sum(&is_valid);
-    xassert(sum == static_cast<size_t>(sum));
+    xassert(sum == static_cast<double>(static_cast<size_t>(sum)));
     count1 += static_cast<size_t>(sum);
     if (!is_valid) return;
   }

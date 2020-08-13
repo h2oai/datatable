@@ -143,7 +143,7 @@ namespace zlib {
 #define ZALLOC(strm, items, size) \
            (*((strm)->zalloc))((strm)->opaque, (items), (size))
 #define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (voidpf)(addr))
-#define TRY_FREE(s, p) {if (p) ZFREE(s, p);}
+#define TRY_FREE(s, p) do {if (p) ZFREE(s, p);} while(0)
 
 /* Reverse the bytes in a 32-bit value */
 #define ZSWAP32(q) ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \

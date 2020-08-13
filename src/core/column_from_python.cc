@@ -298,7 +298,7 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
         // Resize the strbuf if necessary
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
-                           (static_cast<double>(nrows) / (i + 1)) * 1.1;
+              (static_cast<double>(nrows) / static_cast<double>(i + 1)) * 1.1;
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }
@@ -382,7 +382,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
         }
         if (strbuf.size() < static_cast<size_t>(next_offset)) {
           double newsize = static_cast<double>(next_offset) *
-                           (static_cast<double>(nrows) / (i + 1)) * 1.1;
+              (static_cast<double>(nrows) / static_cast<double>(i + 1)) * 1.1;
           strbuf.resize(static_cast<size_t>(newsize));
           strptr = static_cast<char*>(strbuf.xptr());
         }

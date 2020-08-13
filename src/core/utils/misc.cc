@@ -148,7 +148,8 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count) {
       if (__builtin_available(macos 10.12, *))
     #endif
     ret = clock_gettime(CLOCK_REALTIME, &tp);
-    return ret == 0? 1.0 * tp.tv_sec + 1e-9 * tp.tv_nsec : 0;
+    return ret == 0? 1.0 * static_cast<double>(tp.tv_sec) +
+                     1e-9 * static_cast<double>(tp.tv_nsec) : 0.0;
   }
 #else
   #include <sys/time.h>
@@ -197,7 +198,7 @@ const char* filesize_to_str(size_t fsize)
       }
     } else {
       snprintf(output, BUFFSIZE, "%.*f%cB",
-               ndigits, static_cast<double>(fsize) / (1LL << shift),
+               ndigits, static_cast<double>(fsize) / static_cast<double>(1LL << shift),
                suffixes[i]);
       return output;
     }

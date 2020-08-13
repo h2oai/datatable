@@ -104,7 +104,7 @@ class Ftrl : public dt::FtrlBase {
     FtrlFitOutput fit_multinomial();
     template <typename U> FtrlFitOutput fit_regression();
     template <typename U, typename V>
-    FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), V(*)(V, size_t), T(*)(T, V));
+    FtrlFitOutput fit(T(*)(T), U(*)(U, size_t), V(*)(V, size_t), T(*)(T, T));
     template <typename U>
     void update(const uint64ptr&, const tptr<T>&, T, U, size_t);
 

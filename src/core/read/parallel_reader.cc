@@ -53,9 +53,9 @@ void ParallelReader::determine_chunking_strategy() {
   size_t input_size = static_cast<size_t>(input_end - input_start);
   size_t nrows_max = g.max_nrows;
 
-  double maxrows_size = nrows_max * approximate_line_length;
+  double maxrows_size = static_cast<double>(nrows_max) * approximate_line_length;
   bool input_size_reduced = false;
-  if (nrows_max < 1000000 && maxrows_size < input_size) {
+  if (nrows_max < 1000000 && maxrows_size < static_cast<double>(input_size)) {
     input_size = static_cast<size_t>(maxrows_size * 1.5) + 1;
     input_size_reduced = true;
   }

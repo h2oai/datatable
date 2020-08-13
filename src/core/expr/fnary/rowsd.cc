@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,12 +57,12 @@ static bool op_rowsd(size_t i, T* out, const colvec& columns) {
     if (!xvalid) continue;
     count++;
     T tmp1 = value - mean;
-    mean += tmp1 / count;
+    mean += tmp1 / static_cast<T>(count);
     T tmp2 = value - mean;
     m2 += tmp1 * tmp2;
   }
   if (count > 1 && !std::isnan(m2)) {
-    *out = (m2 >= 0)? std::sqrt(m2 / (count - 1)) : 0;
+    *out = (m2 >= 0)? std::sqrt(m2 / static_cast<T>(count - 1)) : 0;
     return true;
   } else {
     return false;

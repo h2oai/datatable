@@ -28,8 +28,8 @@
 #include "models/utils.h"
 #include "parallel/api.h"
 #include "sort.h"
-
 namespace dt {
+
 
 /**
   *  Virtual column to bin input data into equal-population
@@ -118,7 +118,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         a = 0;
         b = (nquantiles_ - 1) / 2;
       } else {
-        a =  nquantiles_ * (1 - epsilon) / (ngroups - 1);
+        a =  nquantiles_ * (1 - epsilon) / static_cast<double>(ngroups - 1);
         b = -a * has_na_group;
       }
 
@@ -128,7 +128,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
           size_t j0, j1;
 
           auto q = is_na_group? GETNA<int32_t>()
-                              : static_cast<int32_t>(a * i + b);
+                              : static_cast<int32_t>(a * static_cast<double>(i) + b);
 
           gb.get_group(i, &j0, &j1);
 

@@ -135,7 +135,9 @@ size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
           nrows_max,
           std::max(
               1024 + nrows_allocated_,
-              static_cast<size_t>(1.2 * nrows_new * nchunks / (ichunk + 1))
+              static_cast<size_t>(1.2 * static_cast<double>(nrows_new)
+                                      * static_cast<double>(nchunks)
+                                      / static_cast<double>(ichunk + 1))
       ));
     }
 
@@ -151,11 +153,13 @@ size_t PreFrame::ensure_output_nrows(size_t nrows_in_chunk0, size_t ichunk,
       for (const auto& col : columns_) {
         archived_size += col.archived_size();
       }
-      double avg_size_per_row = 1.0 * archived_size / nrows_written_;
-      if (nrows_extra * avg_size_per_row > memory_limit) {
+      double avg_size_per_row = static_cast<double>(archived_size)
+                                / static_cast<double>(nrows_written_);
+      if (static_cast<double>(nrows_extra) * avg_size_per_row > static_cast<double>(memory_limit)) {
         nrows_extra = std::max(
             nrows_in_chunk,
-            static_cast<size_t>(memory_limit / avg_size_per_row)
+            static_cast<size_t>(static_cast<double>(memory_limit)
+                                / avg_size_per_row)
         );
         nrows_new = nrows_written_ + nrows_extra;
       }
@@ -189,8 +193,10 @@ void PreFrame::archive_column_chunks(size_t expected_nrows) {
 
   if (!tempfile_ && memory_limit != MEMORY_UNLIMITED) {
     size_t current_memory = total_allocsize();
-    double new_memory = 1.0 * expected_nrows / nrows_allocated_ * current_memory;
-    if (new_memory > 0.95 * memory_limit) {
+    double new_memory = static_cast<double>(expected_nrows)
+        / static_cast<double>(nrows_allocated_)
+        * static_cast<double>(current_memory);
+    if (new_memory > 0.95 * static_cast<double>(memory_limit)) {
       init_tempfile();
     }
   }

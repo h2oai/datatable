@@ -126,14 +126,14 @@ static bool cov_reducer(const Column& col1, const Column& col2,
       n++;
       T delta1 = value1 - mean1;
       T delta2 = value2 - mean2;
-      mean1 += delta1 / n;
-      mean2 += delta2 / n;
+      mean1 += delta1 / static_cast<T>(n);
+      mean2 += delta2 / static_cast<T>(n);
       T tmp1 = value1 - mean1;  // effectively, this is delta1*(n-1)/n
       cov += tmp1 * delta2;
     }
   }
   if (n <= 1) return false;
-  *out = cov/(n - 1);
+  *out = cov / static_cast<T>(n - 1);
   return true;  // *out is not NA
 }
 
@@ -181,8 +181,8 @@ static bool corr_reducer(const Column& col1, const Column& col2,
       n++;
       T delta1 = value1 - mean1;
       T delta2 = value2 - mean2;
-      mean1 += delta1 / n;
-      mean2 += delta2 / n;
+      mean1 += delta1 / static_cast<T>(n);
+      mean2 += delta2 / static_cast<T>(n);
       T tmp1 = value1 - mean1;  // effectively, this is delta1*(n-1)/n
       T tmp2 = value2 - mean2;
       cov += tmp1 * delta2;

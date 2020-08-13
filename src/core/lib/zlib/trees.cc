@@ -146,10 +146,10 @@ static void bi_flush       (deflate_state *s);
  * Output a short LSB first on the stream.
  * IN assertion: there is enough room in pendingBuf.
  */
-#define put_short(s, w) { \
+#define put_short(s, w) do { \
   put_byte(s, (uch)((w) & 0xff)); \
   put_byte(s, (uch)((ush)(w) >> 8)); \
-}
+} while(0)
 
 
 
@@ -158,7 +158,7 @@ static void bi_flush       (deflate_state *s);
  * IN assertion: length <= 16 and value fits in length bits.
  */
 #define send_bits(s, value, length) \
-{ int len = length;\
+do { int len = length;\
   if (s->bi_valid > (int)Buf_size - len) {\
   int val = (int)value;\
   s->bi_buf |= (ush)val << s->bi_valid;\
@@ -169,7 +169,7 @@ static void bi_flush       (deflate_state *s);
   s->bi_buf |= (ush)(value) << s->bi_valid;\
   s->bi_valid += len;\
   }\
-}
+} while(0)
 
 
 
@@ -225,11 +225,11 @@ static void init_block(deflate_state *s)
  * one less element. Updates heap and heap_len.
  */
 #define pqremove(s, tree, top) \
-  {\
+  do {\
     top = s->heap[SMALLEST]; \
     s->heap[SMALLEST] = s->heap[s->heap_len--]; \
     pqdownheap(s, tree, SMALLEST); \
-  }
+  } while(0)
 
 
 

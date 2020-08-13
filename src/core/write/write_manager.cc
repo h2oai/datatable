@@ -215,7 +215,8 @@ void write_manager::determine_chunking_strategy()
   size_t nrows = dt->nrows();
   if (nrows == 0 || dt->ncols() == 0) return;
   xassert(estimated_output_size > 0);
-  const double bytes_per_row = 1.0 * estimated_output_size / nrows;
+  const double bytes_per_row = static_cast<double>(estimated_output_size) /
+                               static_cast<double>(nrows);
 
   static constexpr size_t max_chunk_size = 1024 * 1024;
   static constexpr size_t min_chunk_size = 1024;
@@ -229,7 +230,7 @@ void write_manager::determine_chunking_strategy()
 
   int attempts = 5;
   while (attempts--) {
-    double rows_per_chunk = 1.0 * (nrows + 1) / nchunks;
+    double rows_per_chunk = static_cast<double>(nrows + 1) / static_cast<double>(nchunks);
     auto bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
     if (rows_per_chunk < 1.0) {
       // If each row's size is too large, then parse 1 row at a time.

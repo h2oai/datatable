@@ -982,7 +982,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
   }
 
   // Use `delta_merge` for merging exemplars.
-  T delta_merge = pow(T(0.5) * total_distance / n_distances, T(2));
+  T delta_merge = pow(T(0.5) * total_distance / static_cast<T>(n_distances), T(2));
 
   // When exemplars are merged, all members will be within their `delta`,
   // not `delta_merge`. For that, update delta by taking into account size
@@ -1068,7 +1068,7 @@ T Aggregator<T>::calculate_distance(tptr<T>& e1, tptr<T>& e2,
   }
 
   if (n != 0) {
-    distance *= static_cast<T>(ndims) / n;
+    distance *= static_cast<T>(ndims) / static_cast<T>(n);
   }
 
   return distance;
@@ -1119,7 +1119,7 @@ void Aggregator<T>::project_row(tptr<T>& r, size_t row, size_t ncols, tptr<T>& p
   if (n == 0) return;
 
   for (size_t j = 0; j < max_dimensions; ++j) {
-    r[j] /= n;
+    r[j] /= static_cast<T>(n);
   }
 }
 
@@ -1163,12 +1163,12 @@ std::unique_ptr<T[]> Aggregator<T>::generate_pmatrix(size_t ncols) {
 template <typename T>
 void Aggregator<T>::set_norm_coeffs(T& norm_factor, T& norm_shift,
                                     T c_min, T c_max, size_t c_bins) {
-  if (fabs(c_max - c_min) > epsilon) {
-    norm_factor = c_bins * (1 - epsilon) / (c_max - c_min);
+  if (std::fabs(c_max - c_min) > epsilon) {
+    norm_factor = static_cast<T>(c_bins) * (1 - epsilon) / (c_max - c_min);
     norm_shift = -norm_factor * c_min;
   } else {
     norm_factor = T(0.0);
-    norm_shift =  T(0.5) * c_bins;
+    norm_shift =  T(0.5) * static_cast<T>(c_bins);
   }
 }
 

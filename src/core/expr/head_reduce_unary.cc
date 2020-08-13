@@ -271,18 +271,18 @@ static Column compute_gsum(Column&& arg, const Groupby& gby) {
 
 template <typename T, typename U>
 bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  U sum = 0;
+  double sum = 0;
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     T value;
     bool isvalid = col.get_element(i, &value);
     if (isvalid) {
-      sum += static_cast<U>(value);
+      sum += static_cast<double>(value);
       count++;
     }
   }
   if (!count) return false;
-  *out = sum / count;
+  *out = static_cast<U>(sum / static_cast<double>(count));
   return true;  // *out is not NA
 }
 
@@ -335,24 +335,25 @@ static Column compute_gmean(Column&& arg, const Groupby&) {
 
 template <typename T, typename U>
 bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  U mean = 0;
-  U m2 = 0;
+  double mean = 0;
+  double m2 = 0;
   T value;
   int64_t count = 0;
   for (size_t i = i0; i < i1; ++i) {
     bool isvalid = col.get_element(i, &value);
     if (isvalid) {
       count++;
-      U tmp1 = static_cast<U>(value) - mean;
-      mean += tmp1 / count;
-      U tmp2 = static_cast<U>(value) - mean;
+      double tmp1 = static_cast<double>(value) - mean;
+      mean += tmp1 / static_cast<double>(count);
+      double tmp2 = static_cast<double>(value) - mean;
       m2 += tmp1 * tmp2;
     }
   }
   if (count <= 1) return false;
   // In theory, m2 should always be positive, but perhaps it could
   // occasionally become negative due to round-off errors?
-  *out = (m2 >= 0)? std::sqrt(m2/(count - 1)) : U(0);
+  *out = static_cast<U>(m2 >= 0? std::sqrt(m2/static_cast<double>(count - 1))
+                               : 0.0);
   return true;  // *out is not NA
 }
 
