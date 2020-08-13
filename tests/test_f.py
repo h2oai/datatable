@@ -104,7 +104,7 @@ def test_f_expressions():
 
 
 def test_f_columnset_str():
-    assert str(f[None]) == "FExpr<f[?]>"
+    assert str(f[None]) == "FExpr<f[None]>"
     assert str(f[:]) == "FExpr<f[?]>"
     assert str(f[:7]) == "FExpr<f[?]>"
     assert str(f[::-1]) == "FExpr<f[?]>"

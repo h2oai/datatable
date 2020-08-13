@@ -52,7 +52,7 @@ OldExpr::OldExpr(py::robj src)
   else if (src.is_dict())          _init_from_dictionary(src);
   else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
-  else if (src.is_none())          _init_from_none();
+  // else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
   else if (src.is_range())         _init_from_range(src);
   else if (src.is_pandas_frame() ||
@@ -123,11 +123,6 @@ void OldExpr::_init_from_list(py::robj src) {
     inputs.emplace_back(as_fexpr(srclist[i]));
   }
   head = ptrHead(new Head_List);
-}
-
-
-void OldExpr::_init_from_none() {
-  head = ptrHead(new Head_Literal_None);
 }
 
 
