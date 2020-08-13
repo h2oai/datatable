@@ -45,7 +45,7 @@ OldExpr::OldExpr(py::robj src)
   if      (src.is_dtexpr())        _init_from_dtexpr(src);
   // else if (src.is_int())           _init_from_int(src);
   else if (src.is_string())        _init_from_string(src);
-  else if (src.is_float())         _init_from_float(src);
+  // else if (src.is_float())         _init_from_float(src);
   else if (src.is_bool())          _init_from_bool(src);
   else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
@@ -100,12 +100,6 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
 
 void OldExpr::_init_from_ellipsis() {
   head = ptrHead(new Head_Literal_SliceAll);
-}
-
-
-void OldExpr::_init_from_float(py::robj src) {
-  double x = src.to_double();
-  head = ptrHead(new Head_Literal_Float(x));
 }
 
 

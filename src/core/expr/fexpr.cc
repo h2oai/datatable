@@ -63,14 +63,38 @@ void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
 // as_fexpr()
 //------------------------------------------------------------------------------
 
-// TODO: subsume functionality of OldExpr::OldExpr(py::robj)
+static ptrExpr extract_fexpr(py::robj src) {
+  xassert(src.is_fexpr());
+  auto fexpr = reinterpret_cast<py::FExpr*>(src.to_borrowed_ref());
+  return fexpr->get_expr();
+}
+
+
 ptrExpr as_fexpr(py::robj src) {
-  if (src.is_fexpr()) {
-    auto fexpr = reinterpret_cast<py::FExpr*>(src.to_borrowed_ref());
-    return fexpr->get_expr();
+  if (src.is_fexpr())              return extract_fexpr(src);
+  else if (src.is_dtexpr())        ;
+  else if (src.is_int())           return FExpr_Literal_Int::make(src);
+  else if (src.is_string())        ;
+  else if (src.is_float())         return FExpr_Literal_Float::make(src);
+  else if (src.is_bool())          ;
+  else if (src.is_slice())         ;
+  else if (src.is_list_or_tuple()) ;
+  else if (src.is_dict())          ;
+  else if (src.is_anytype())       ;
+  else if (src.is_generator())     ;
+  else if (src.is_none())          ;
+  else if (src.is_frame())         ;
+  else if (src.is_range())         ;
+  else if (src.is_pandas_frame() ||
+           src.is_pandas_series()) ;
+  else if (src.is_numpy_array() ||
+           src.is_numpy_marray())  ;
+  else if (src.is_ellipsis())      ;
+  else {
+    throw TypeError() << "An object of type " << src.typeobj()
+                      << " cannot be used in an FExpr";
   }
-  else if (src.is_none())   ;
-  else if (src.is_int())    return FExpr_Literal_Int::make(src);
+  // TODO: remove this
   return std::make_shared<OldExpr>(src);
 }
 

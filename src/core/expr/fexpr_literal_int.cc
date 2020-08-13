@@ -45,8 +45,7 @@ ptrExpr FExpr_Literal_Int::make(py::robj src) {
     // If overflow occurs here, the returned value will be +/-Inf,
     // which is exactly what we need.
     double xx = src_int.ovalue<double>(&overflow);
-    return as_fexpr(py::ofloat(xx));
-    // return ptrExpr(new FExpr_Literal_Float(xx));
+    return ptrExpr(new FExpr_Literal_Float(xx));
   } else {
     return ptrExpr(new FExpr_Literal_Int(x));
   }

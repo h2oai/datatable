@@ -89,23 +89,6 @@ class Head_Literal_Bool : public Head_Literal {
 
 
 
-class Head_Literal_Float : public Head_Literal {
-  private:
-    double value;
-
-  public:
-    explicit Head_Literal_Float(double x);
-    Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_f(EvalContext&, size_t) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-};
-
-
-
 class Head_Literal_String : public Head_Literal {
   private:
     py::oobj pystr;
