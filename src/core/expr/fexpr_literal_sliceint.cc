@@ -20,36 +20,27 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
 
-Head_Literal_SliceInt::Head_Literal_SliceInt(py::oslice x)
-  : value(x) {}
+FExpr_Literal_SliceInt::FExpr_Literal_SliceInt(py::oslice x)
+  : value_(x) {}
 
 
-Kind Head_Literal_SliceInt::get_expr_kind() const {
-  return Kind::SliceInt;
-}
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
 
-
-
-Workframe Head_Literal_SliceInt::evaluate_n(
-    const vecExpr&, EvalContext&) const
-{
-  throw TypeError() << "A slice expression cannot appear in this context";
-}
-
-
-
-Workframe Head_Literal_SliceInt::evaluate_f(
+Workframe FExpr_Literal_SliceInt::evaluate_f(
     EvalContext& ctx, size_t frame_id) const
 {
   size_t len = ctx.get_datatable(frame_id)->ncols();
   size_t start, count, step;
-  value.normalize(len, &start, &count, &step);
+  value_.normalize(len, &start, &count, &step);
   Workframe outputs(ctx);
   for (size_t i = 0; i < count; ++i) {
     outputs.add_ref_column(frame_id, start + i * step);
@@ -58,17 +49,15 @@ Workframe Head_Literal_SliceInt::evaluate_f(
 }
 
 
-Workframe Head_Literal_SliceInt::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
-{
+Workframe FExpr_Literal_SliceInt::evaluate_j(EvalContext& ctx) const {
   return evaluate_f(ctx, 0);
 }
 
 
-RowIndex Head_Literal_SliceInt::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+RowIndex FExpr_Literal_SliceInt::evaluate_i(EvalContext& ctx) const {
   size_t len = ctx.nrows();
   size_t start, count, step;
-  value.normalize(len, &start, &count, &step);
+  value_.normalize(len, &start, &count, &step);
   return RowIndex(start, count, step);
 }
 
@@ -90,10 +79,10 @@ static size_t _estimate_iby_nrows(size_t nrows, size_t ngroups,
 }
 
 
-RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
-  int64_t istart = value.start();
-  int64_t istop = value.stop();
-  int64_t istep = value.step();
+RiGb FExpr_Literal_SliceInt::evaluate_iby(EvalContext& ctx) const {
+  int64_t istart = value_.start();
+  int64_t istop = value_.stop();
+  int64_t istep = value_.step();
   if (istep == py::oslice::NA) istep = 1;
 
   const Groupby& gb = ctx.get_groupby();
@@ -187,6 +176,37 @@ RiGb Head_Literal_SliceInt::evaluate_iby(const vecExpr&, EvalContext& ctx) const
             RowIndex(std::move(out_buffer), buf_flags),
             Groupby(k, std::move(out_groups))
           );
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_SliceInt::get_expr_kind() const {
+  return Kind::SliceInt;
+}
+
+
+std::string FExpr_Literal_SliceInt::repr() const {
+  int64_t istart = value_.start();
+  int64_t istop = value_.stop();
+  int64_t istep = value_.step();
+  std::string out;
+  if (istart != py::oslice::NA) {
+    out += std::to_string(istart);
+  }
+  out += ':';
+  if (istop != py::oslice::NA) {
+    out += std::to_string(istop);
+  }
+  if (istep != py::oslice::NA) {
+    out += ':';
+    out += std::to_string(istep);
+  }
+  return out;
 }
 
 

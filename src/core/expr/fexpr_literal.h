@@ -147,6 +147,7 @@ class FExpr_Literal_Slice : public FExpr {
 };
 
 
+
 class FExpr_Literal_SliceAll : public FExpr_Literal_Slice {
   public:
     Workframe evaluate_f(EvalContext&, size_t) const override;
@@ -156,6 +157,24 @@ class FExpr_Literal_SliceAll : public FExpr_Literal_Slice {
 
     std::string repr() const override;
     Kind get_expr_kind() const override;
+};
+
+
+
+class FExpr_Literal_SliceInt : public FExpr_Literal_Slice {
+  private:
+    py::oslice value_;
+
+  public:
+    explicit FExpr_Literal_SliceInt(py::oslice src);
+
+    Workframe evaluate_f(EvalContext&, size_t) const override;
+    Workframe evaluate_j(EvalContext&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
+
+    Kind get_expr_kind() const override;
+    std::string repr() const override;
 };
 
 

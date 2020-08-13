@@ -122,7 +122,6 @@ class OldExpr : public FExpr {
     // Construction helpers
     void _init_from_dictionary(py::robj);
     void _init_from_dtexpr(py::robj);
-    void _init_from_ellipsis();
     void _init_from_frame(py::robj);
     void _init_from_iterable(py::robj);
     void _init_from_list(py::robj);

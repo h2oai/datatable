@@ -138,7 +138,7 @@ void OldExpr::_init_from_slice(py::robj src) {
     // head = ptrHead(new Head_Literal_SliceAll);
   }
   else if (src_as_slice.is_numeric()) {
-    head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
+    // head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
   }
   else if (src_as_slice.is_string()) {
     head = ptrHead(new Head_Literal_SliceStr(src_as_slice));

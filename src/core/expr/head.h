@@ -88,8 +88,6 @@ namespace expr {
   *     +-- Head_List
   *     +-- Head_Literal
   *     |     +-- Head_Literal_Range
-  *     |     +-- Head_Literal_SliceAll
-  *     |     +-- Head_Literal_SliceInt
   *     |     +-- Head_Literal_SliceStr
   *     |     +-- Head_Literal_String
   *     |     +-- Head_Literal_Type
