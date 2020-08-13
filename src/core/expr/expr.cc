@@ -257,6 +257,13 @@ bool OldExpr::evaluate_bool() const {
 }
 
 
+py::oobj OldExpr::evaluate_pystr() const {
+  auto strhead = dynamic_cast<Head_Literal_String*>(head.get());
+  xassert(strhead);
+  return strhead->evaluate_pystr();
+}
+
+
 std::shared_ptr<FExpr> OldExpr::unnegate_column() const {
   auto unaryfn_head = dynamic_cast<Head_Func_Unary*>(head.get());
   if (unaryfn_head && unaryfn_head->get_op() == Op::UMINUS) {

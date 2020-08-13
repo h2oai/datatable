@@ -80,7 +80,6 @@ namespace expr {
   *     |     +-- Head_Func_Binary
   *     |     +-- Head_Func_Cast
   *     |     +-- Head_Func_Colset
-  *     |     +-- Head_Func_Column
   *     |     +-- Head_Func_Unary
   *     |     +-- Head_Reduce
   *     |           +-- Head_Reduce_Binary

@@ -524,11 +524,13 @@ py::oobj EvalContext::evaluate_select() {
 //------------------------------------------------------------------------------
 
 DataTable* EvalContext::get_datatable(size_t i) const {
+  xassert(i < frames_.size());
   return frames_[i].dt_;
 }
 
 
 const RowIndex& EvalContext::get_rowindex(size_t i) const {
+  xassert(i < frames_.size());
   return frames_[i].ri_;
 }
 
@@ -539,6 +541,7 @@ const Groupby& EvalContext::get_groupby() {
 
 
 bool EvalContext::is_naturally_joined(size_t i) const {
+  xassert(i < frames_.size());
   return frames_[i].natural_;
 }
 

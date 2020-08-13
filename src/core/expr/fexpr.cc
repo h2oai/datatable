@@ -29,7 +29,7 @@ namespace expr {
 
 
 
-std::shared_ptr<FExpr> FExpr::unnegate_column() const {
+ptrExpr FExpr::unnegate_column() const {
   return nullptr;
 }
 
@@ -44,13 +44,28 @@ int64_t FExpr::evaluate_int() const {
 }
 
 
+py::oobj FExpr::evaluate_pystr() const {
+  throw RuntimeError();
+}
+
+
+void FExpr::prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const {
+  throw RuntimeError() << "Unexpected prepare_by() call";  // LCOV_EXCL_LINE
+}                                                          // LCOV_EXCL_LINE
+
+
+
 
 //------------------------------------------------------------------------------
 // as_fexpr()
 //------------------------------------------------------------------------------
 
 // TODO: subsume functionality of OldExpr::OldExpr(py::robj)
-std::shared_ptr<FExpr> as_fexpr(py::robj src) {
+ptrExpr as_fexpr(py::robj src) {
+  if (src.is_fexpr()) {
+    auto fexpr = reinterpret_cast<py::FExpr*>(src.to_borrowed_ref());
+    return fexpr->get_expr();
+  }
   return std::make_shared<OldExpr>(src);
 }
 
@@ -61,6 +76,19 @@ std::shared_ptr<FExpr> as_fexpr(py::robj src) {
 // Python FExpr class
 //------------------------------------------------------------------------------
 namespace py {
+
+// static "constructor"
+oobj FExpr::make(dt::expr::FExpr* expr) {
+  oobj res = robj(reinterpret_cast<PyObject*>(FExpr_Type)).call();
+  auto fexpr = reinterpret_cast<FExpr*>(res.to_borrowed_ref());
+  fexpr->expr_ = dt::expr::ptrExpr(expr);
+  return res;
+}
+
+std::shared_ptr<dt::expr::FExpr> FExpr::get_expr() const {
+  return expr_;
+}
+
 
 
 static PKArgs args__init__(0, 0, 0, false, false, {}, "__init__", nullptr);
@@ -250,6 +278,8 @@ void FExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__NEG__(&FExpr::nb__neg__));
   xt.add(METHOD__POS__(&FExpr::nb__pos__));
   xt.add(METHOD__CMP__(&FExpr::m__compare__));
+
+  FExpr_Type = &type;
 }
 
 

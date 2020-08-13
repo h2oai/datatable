@@ -40,6 +40,7 @@ def test_colindex_f():
     DT = dt.Frame(names=list("ABCD"))
     assert DT.colindex(f.A) == 0
     assert DT.colindex(f.D) == 3
+    assert DT.colindex(f["B"]) == 1
     assert DT.colindex(f[1]) == 1
     assert DT.colindex(f[-1]) == 3
 

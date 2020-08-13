@@ -33,13 +33,8 @@ namespace expr {
 //------------------------------------------------------------------------------
 
 class FExpr {
-  protected:
-    FExpr* parent_;
-    std::vector<std::shared_ptr<FExpr>> children_;
-
   public:
-    FExpr() : parent_(nullptr) {}
-    FExpr(FExpr* parent, std::vector<std::shared_ptr<FExpr>> children);
+    FExpr() = default;
     FExpr(FExpr&&) = default;
     FExpr& operator=(FExpr&&) = default;
     virtual ~FExpr() = default;
@@ -55,7 +50,7 @@ class FExpr {
     // the resulting Workframe, allowing the caller to perform a
     // groupby/sort operation on this Workframe.
     //
-    virtual void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const = 0;
+    virtual void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const;
 
     /**
       * Return operator precedence of this expression. This will be
@@ -127,6 +122,9 @@ class FExpr {
       * integer.
       */
     virtual int64_t evaluate_int() const;
+
+
+    virtual py::oobj evaluate_pystr() const;
 };
 
 
@@ -140,9 +138,12 @@ namespace py {
 
 class FExpr : public XObject<FExpr> {
   private:
-    std::shared_ptr<dt::expr::FExpr> expr_;
+    dt::expr::ptrExpr expr_;
 
   public:
+    static oobj make(dt::expr::FExpr* expr);
+    std::shared_ptr<dt::expr::FExpr> get_expr() const;
+
     void m__init__(const PKArgs&);
     void m__dealloc__();
     oobj m__repr__() const;

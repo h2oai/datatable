@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,31 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/eval_context.h"
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#ifndef dt_EXPR_FEXPR_FUNC_h
+#define dt_EXPR_FEXPR_FUNC_h
+#include "expr/fexpr.h"
 namespace dt {
 namespace expr {
 
 
-Head_Func_Column::Head_Func_Column(size_t f) : frame_id(f) {}
+/**
+  * Base class for the largest family of `FExpr`s that are all
+  * "function-like". This includes column selectors (eg. `f.A`),
+  * functions (eg. `shift(f.A, 1)`), operators (eg. `f.B + 1`),
+  * etc.
+  *
+  * This class is abstract, though it implements many methods from
+  * the base "fexpr.h". The derived classes are expected to implement
+  * at least the following:
+  *
+  *   Workframe evaluate_n(EvalContext&) const;
+  *   int precedence() const noexcept;
+  *   std::string repr() const;
+  *
+  */
+class FExpr_Func : public FExpr {
+  public:
+    Kind get_expr_kind() const override;
 
+    // Workframe evaluate_n(EvalContext&) const = 0;
+    Workframe evaluate_f(EvalContext&, size_t) const override;
+    Workframe evaluate_j(EvalContext&) const override;
+    Workframe evaluate_r(EvalContext&, const sztvec&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
 
-Workframe Head_Func_Column::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  xassert(args.size() == 1);
-  if (frame_id >= ctx.nframes()) {
-    throw ValueError()
-        << "Column expression references a non-existing join frame";
-  }
-  return args[0]->evaluate_f(ctx, frame_id);
-}
+    // int precedence() const noexcept = 0;
+    // std::string repr() const = 0;
+};
 
 
 
 
 }}  // namespace dt::expr
+#endif

@@ -163,7 +163,7 @@ oobj Frame::_main_getset(robj item, robj value) {
       continue;
     }
     if (arg.is_none()) continue;
-    if (k == 2 && (arg.is_string() || arg.is_dtexpr())) {
+    if (k == 2 && (arg.is_string() || arg.is_dtexpr() || arg.is_fexpr())) {
       oby byexpr = oby::make(arg);
       ctx.add_groupby(byexpr);
       continue;

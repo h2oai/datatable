@@ -115,6 +115,10 @@ RiGb Head_Literal_String::evaluate_iby(const vecExpr&, EvalContext&) const {
 }
 
 
+py::oobj Head_Literal_String::evaluate_pystr() const {
+  return pystr;
+}
+
 
 
 

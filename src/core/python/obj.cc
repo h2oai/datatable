@@ -51,8 +51,12 @@ static PyObject* numpy_float64 = nullptr;
 static void init_pandas();
 static void init_numpy();
 
+// [DEPRECATED]
 // Set from datatablemodule.cc
 PyObject* Expr_Type = nullptr;
+
+// Set from expr/fexpr.cc
+PyTypeObject* FExpr_Type = nullptr;
 
 // `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
 // a designated initializer, that is not supported by the C++14 standard.
@@ -293,6 +297,10 @@ bool _obj::is_numpy_marray() const noexcept {
 bool _obj::is_dtexpr() const noexcept {
   if (!Expr_Type || !v) return false;
   return PyObject_IsInstance(v, Expr_Type);
+}
+
+bool _obj::is_fexpr() const noexcept {
+  return v && Py_TYPE(v) == FExpr_Type;
 }
 
 

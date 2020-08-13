@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "expr/fexpr_column.h"
 #include "expr/namespace.h"
 #include "expr/op.h"
 #include "python/string.h"
@@ -74,7 +75,7 @@ static bool is_system_attr(robj attr) {
 
 oobj Namespace::m__getattr__(robj attr) {
   // For system attributes such as `__module__`, `__class__`,
-  // `__doc__` etc, use the standard object.__getattribute__()
+  // `__doc__`, etc, use the standard object.__getattribute__()
   // method.
   if (is_system_attr(attr)) {
     return oobj::from_new_reference(
@@ -83,10 +84,7 @@ oobj Namespace::m__getattr__(robj attr) {
           attr.to_borrowed_ref()
         ));
   }
-  return oobj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::COL)),
-                  otuple{attr},
-                  otuple{oint(index_)}});
+  return FExpr::make(new dt::expr::FExpr_ColumnAsAttr(index_, attr));
 }
 
 
@@ -102,10 +100,7 @@ oobj Namespace::m__getitem__(robj item) {
     throw TypeError() << "Column selector should be an integer, string, "
                          "or slice, not " << item.typeobj();
   }
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::COL)),
-                  otuple{item},
-                  otuple{oint(index_)}});
+  return FExpr::make(new dt::expr::FExpr_ColumnAsArg(index_, item));
 }
 
 
