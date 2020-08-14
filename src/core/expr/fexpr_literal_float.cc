@@ -20,25 +20,35 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/fexpr_literal.h"
+#include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "ltype.h"
 namespace dt {
 namespace expr {
 
 
-Head_Literal_Float::Head_Literal_Float(double x) : value(x) {}
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
 
-Kind Head_Literal_Float::get_expr_kind() const {
-  return Kind::Float;
+FExpr_Literal_Float::FExpr_Literal_Float(double x)
+  : value_(x) {}
+
+
+ptrExpr FExpr_Literal_Float::make(py::robj src) {
+  double x = src.to_double();
+  return ptrExpr(new FExpr_Literal_Float(x));
 }
 
 
 
-Workframe Head_Literal_Float::evaluate_n(
-    const vecExpr&, EvalContext& ctx) const
-{
-  return _wrap_column(ctx, Const_ColumnImpl::make_float_column(1, value));
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_Float::evaluate_n(EvalContext& ctx) const {
+  return Workframe(ctx, Const_ColumnImpl::make_float_column(1, value_));
 }
 
 
@@ -48,8 +58,8 @@ Workframe Head_Literal_Float::evaluate_n(
 //
 // The `j` columns must be float.
 //
-Workframe Head_Literal_Float::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Literal_Float::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
 
@@ -64,34 +74,54 @@ Workframe Head_Literal_Float::evaluate_r(
     }
 
     outputs.add_column(
-        Const_ColumnImpl::make_float_column(1, value, stype),
+        Const_ColumnImpl::make_float_column(1, value_, stype),
         "", Grouping::SCALAR);
   }
   return outputs;
 }
 
 
-Workframe Head_Literal_Float::evaluate_f(EvalContext&, size_t) const {
+Workframe FExpr_Literal_Float::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A floating-point value cannot be used as a "
                        "column selector";
 }
 
 
-Workframe Head_Literal_Float::evaluate_j(const vecExpr&, EvalContext&) const {
+Workframe FExpr_Literal_Float::evaluate_j(EvalContext&) const {
   throw TypeError() << "A floating-point value cannot be used as a "
                        "column selector";
 }
 
 
-RowIndex Head_Literal_Float::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_Float::evaluate_i(EvalContext&) const {
   throw TypeError() << "A floating-point value cannot be used as a "
                        "row selector";
 }
 
 
-RiGb Head_Literal_Float::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Literal_Float::evaluate_iby(EvalContext&) const {
   throw TypeError() << "A floating-point value cannot be used as a "
                        "row selector";
+}
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_Float::get_expr_kind() const {
+  return Kind::Float;
+}
+
+
+int FExpr_Literal_Float::precedence() const noexcept {
+  return 18;
+}
+
+
+std::string FExpr_Literal_Float::repr() const {
+  return std::to_string(value_);
 }
 
 

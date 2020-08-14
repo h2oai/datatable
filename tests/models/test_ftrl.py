@@ -1203,7 +1203,7 @@ def test_ftrl_wrong_validation_target_type():
         res = ft.fit(df_X, df_y, df_X_val, df_y_val,
                      nepochs_validation = 0)
     assert ("Training and validation target columns must have the same ltype, "
-            "got: integer and string" == str(e.value))
+            "got: int and str" == str(e.value))
 
 
 def test_ftrl_wrong_validation_parameters():

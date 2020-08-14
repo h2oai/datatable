@@ -69,19 +69,20 @@ def test_f_col_selector_unbound():
     assert str(f.a) == "FExpr<f.a>"
     assert str(f.abcdefghijkl) == "FExpr<f.abcdefghijkl>"
     assert str(f.abcdefghijklm) == "FExpr<f.abcdefghijklm>"
-    assert str(f[0]) == "FExpr<f[?]>"
-    assert str(f[1000]) == "FExpr<f[?]>"
-    assert str(f[-1]) == "FExpr<f[?]>"
-    assert str(f[-999]) == "FExpr<f[?]>"
-    assert str(f[""]) == "FExpr<f[?]>"
-    assert str(f["0"]) == "FExpr<f[?]>"
-    assert str(f["A+B"]) == "FExpr<f[?]>"
-    assert str(f["_A"]) == "FExpr<f[?]>"
-    assert str(f["_54"]) == "FExpr<f[?]>"
+    assert str(f[0]) == "FExpr<f[0]>"
+    assert str(f[1000]) == "FExpr<f[1000]>"
+    assert str(f[-1]) == "FExpr<f[-1]>"
+    assert str(f[-999]) == "FExpr<f[-999]>"
+    assert str(f[""]) == "FExpr<f['']>"
+    assert str(f["0"]) == "FExpr<f['0']>"
+    assert str(f["A+B"]) == "FExpr<f['A+B']>"
+    assert str(f["_A"]) == "FExpr<f['_A']>"
+    assert str(f["_54"]) == "FExpr<f['_54']>"
     assert str(f._3_) == "FExpr<f._3_>"
     assert str(f.a_b_c) == "FExpr<f.a_b_c>"
-    assert str(f[" y "]) == "FExpr<f[?]>"
-    assert str(f["a b c"]) == "FExpr<f[?]>"
+    assert str(f[" y "]) == "FExpr<f[' y ']>"
+    assert str(f["a b c"]) == "FExpr<f['a b c']>"
+    assert str(f['"a b c"']) == "FExpr<f['\"a b c\"']>"
 
 
 def test_f_col_selector_invalid():
@@ -103,32 +104,31 @@ def test_f_expressions():
 
 
 def test_f_columnset_str():
-    assert str(f[None]) == "FExpr<f[?]>"
-    assert str(f[:]) == "FExpr<f[?]>"
-    assert str(f[:7]) == "FExpr<f[?]>"
-    assert str(f[::-1]) == "FExpr<f[?]>"
-    assert str(f[bool]) == "FExpr<f[?]>"
-    assert str(f[int]) == "FExpr<f[?]>"
-    assert str(f[float]) == "FExpr<f[?]>"
-    assert str(f[str]) == "FExpr<f[?]>"
-    assert str(f[object]) == "FExpr<f[?]>"
-    assert str(f[dt.int32]) == "FExpr<f[?]>"
-    assert str(f[dt.float64]) == "FExpr<f[?]>"
-    assert str(f[dt.ltype.int]) == "FExpr<f[?]>"
+    assert str(f[None]) == "FExpr<f[None]>"
+    assert str(f[:]) == "FExpr<f[:]>"
+    assert str(f[:7]) == "FExpr<f[:7]>"
+    assert str(f[::-1]) == "FExpr<f[::-1]>"
+    assert str(f['Z':'A']) == "FExpr<f['Z':'A']>"
+    assert str(f[bool]) == "FExpr<f[bool]>"
+    assert str(f[int]) == "FExpr<f[int]>"
+    assert str(f[float]) == "FExpr<f[float]>"
+    assert str(f[str]) == "FExpr<f[str]>"
+    assert str(f[object]) == "FExpr<f[object]>"
+    assert str(f[dt.int32]) == "FExpr<f[stype.int32]>"
+    assert str(f[dt.float64]) == "FExpr<f[stype.float64]>"
+    assert str(f[dt.ltype.int]) == "FExpr<f[ltype.int]>"
 
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(FExpr<f[?]>, FExpr<f.A>; )"
+        "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(FExpr<f[?]>, FExpr<f[?]>; )"
+        "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
 
 
 def test_f_columnset_remove():
-    assert str(f[:].remove(f.A)) == \
-        "Expr:setminus(FExpr<f[?]>, FExpr<f.A>; )"
-    assert str(f[int].remove(f[0])) == \
-        "Expr:setminus(FExpr<f[?]>, FExpr<f[?]>; )"
+    assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
+    assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
 
 
 

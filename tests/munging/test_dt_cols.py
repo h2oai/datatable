@@ -105,7 +105,7 @@ def test_j_none(dt0):
 def test_j_function(dt0):
     assert_typeerror(
         dt0, lambda r: r.A,
-        "An object of type <class 'function'> cannot be used in an Expr")
+        "An object of type <class 'function'> cannot be used in an FExpr")
 
 
 
@@ -161,7 +161,7 @@ def test_j_string_error(dt0):
 def test_j_bytes_error(dt0):
     assert_typeerror(
         dt0, b'A',
-        "An object of type <class 'bytes'> cannot be used in an Expr")
+        "An object of type <class 'bytes'> cannot be used in an FExpr")
 
 
 

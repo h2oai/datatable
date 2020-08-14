@@ -20,29 +20,30 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
 
-Kind Head_Literal_None::get_expr_kind() const {
-  return Kind::None;
-}
-
-
-Workframe Head_Literal_None::evaluate_n(
-    const vecExpr&, EvalContext& ctx) const
-{
-  return _wrap_column(ctx, Const_ColumnImpl::make_na_column(1));
+ptrExpr FExpr_Literal_None::make() {
+  return ptrExpr(new FExpr_Literal_None());
 }
 
 
 
-// When used as j, `None` means select all columns
-Workframe Head_Literal_None::evaluate_j(
-    const vecExpr&, EvalContext& ctx) const
-{
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_None::evaluate_n(EvalContext& ctx) const {
+  return Workframe(ctx, Const_ColumnImpl::make_na_column(1));
+}
+
+
+// When used as j, `None` means "select all columns"
+Workframe FExpr_Literal_None::evaluate_j(EvalContext& ctx) const {
   size_t n = ctx.get_datatable(0)->ncols();
   Workframe outputs(ctx);
   for (size_t i = 0; i < n; ++i) {
@@ -59,8 +60,8 @@ Workframe Head_Literal_None::evaluate_j(
 // In this case we replace columns in `j` with NA columns, but keep
 // their stypes.
 //
-Workframe Head_Literal_None::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Literal_None::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   auto dt0 = ctx.get_datatable(0);
   Workframe outputs(ctx);
@@ -78,21 +79,41 @@ Workframe Head_Literal_None::evaluate_r(
 }
 
 
-
 // When used in f, `None` means select nothing
-Workframe Head_Literal_None::evaluate_f(EvalContext& ctx, size_t) const {
+Workframe FExpr_Literal_None::evaluate_f(EvalContext& ctx, size_t) const {
   return Workframe(ctx);
 }
 
 
 // When used in i, `None` means select all rows
-RowIndex Head_Literal_None::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_None::evaluate_i(EvalContext&) const {
   return RowIndex();
 }
 
 
-RiGb Head_Literal_None::evaluate_iby(const vecExpr&, EvalContext& ctx) const {
+RiGb FExpr_Literal_None::evaluate_iby(EvalContext& ctx) const {
   return std::make_pair(RowIndex(), ctx.get_groupby());
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_None::get_expr_kind() const {
+  return Kind::None;
+}
+
+
+int FExpr_Literal_None::precedence() const noexcept {
+  return 18;
+}
+
+
+std::string FExpr_Literal_None::repr() const {
+  return "None";
 }
 
 

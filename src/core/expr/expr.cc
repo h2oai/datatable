@@ -24,7 +24,6 @@
 #include "expr/head_frame.h"
 #include "expr/head_func.h"
 #include "expr/head_list.h"
-#include "expr/head_literal.h"
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "datatable.h"
@@ -43,33 +42,27 @@ OldExpr::OldExpr(py::robj src)
   : FExpr()
 {
   if      (src.is_dtexpr())        _init_from_dtexpr(src);
-  else if (src.is_int())           _init_from_int(src);
-  else if (src.is_string())        _init_from_string(src);
-  else if (src.is_float())         _init_from_float(src);
-  else if (src.is_bool())          _init_from_bool(src);
-  else if (src.is_slice())         _init_from_slice(src);
+  // else if (src.is_int())           _init_from_int(src);
+  // else if (src.is_string())        _init_from_string(src);
+  // else if (src.is_float())         _init_from_float(src);
+  // else if (src.is_bool())          _init_from_bool(src);
+  // else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
   else if (src.is_dict())          _init_from_dictionary(src);
-  else if (src.is_anytype())       _init_from_type(src);
+  // else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
-  else if (src.is_none())          _init_from_none();
+  // else if (src.is_none())          _init_from_none();
   else if (src.is_frame())         _init_from_frame(src);
-  else if (src.is_range())         _init_from_range(src);
+  // else if (src.is_range())         _init_from_range(src);
   else if (src.is_pandas_frame() ||
            src.is_pandas_series()) _init_from_pandas(src);
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  _init_from_numpy(src);
-  else if (src.is_ellipsis())      _init_from_ellipsis();
+  // else if (src.is_ellipsis())      _init_from_ellipsis();
   else {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an Expr";
   }
-}
-
-
-void OldExpr::_init_from_bool(py::robj src) {
-  int8_t t = src.to_bool_strict();
-  head = ptrHead(new Head_Literal_Bool(t));
 }
 
 
@@ -98,34 +91,9 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
 }
 
 
-void OldExpr::_init_from_ellipsis() {
-  head = ptrHead(new Head_Literal_SliceAll);
-}
-
-
-void OldExpr::_init_from_float(py::robj src) {
-  double x = src.to_double();
-  head = ptrHead(new Head_Literal_Float(x));
-}
-
 
 void OldExpr::_init_from_frame(py::robj src) {
   head = Head_Frame::from_datatable(src);
-}
-
-
-void OldExpr::_init_from_int(py::robj src) {
-  py::oint src_int = src.to_pyint();
-  int overflow;
-  int64_t x = src_int.ovalue<int64_t>(&overflow);
-  if (overflow) {
-    // If overflow occurs here, the returned value will be +/-Inf,
-    // which is exactly what we need.
-    double xx = src_int.ovalue<double>(&overflow);
-    head = ptrHead(new Head_Literal_Float(xx));
-  } else {
-    head = ptrHead(new Head_Literal_Int(x));
-  }
 }
 
 
@@ -147,11 +115,6 @@ void OldExpr::_init_from_list(py::robj src) {
 }
 
 
-void OldExpr::_init_from_none() {
-  head = ptrHead(new Head_Literal_None);
-}
-
-
 void OldExpr::_init_from_numpy(py::robj src) {
   head = Head_Frame::from_numpy(src);
 }
@@ -162,37 +125,6 @@ void OldExpr::_init_from_pandas(py::robj src) {
 }
 
 
-void OldExpr::_init_from_range(py::robj src) {
-  py::orange rr = src.to_orange();
-  head = ptrHead(new Head_Literal_Range(std::move(rr)));
-}
-
-
-void OldExpr::_init_from_slice(py::robj src) {
-  auto src_as_slice = src.to_oslice();
-  if (src_as_slice.is_trivial()) {
-    head = ptrHead(new Head_Literal_SliceAll);
-  }
-  else if (src_as_slice.is_numeric()) {
-    head = ptrHead(new Head_Literal_SliceInt(src_as_slice));
-  }
-  else if (src_as_slice.is_string()) {
-    head = ptrHead(new Head_Literal_SliceStr(src_as_slice));
-  }
-  else {
-    throw TypeError() << src << " is neither integer- nor string- valued";
-  }
-}
-
-
-void OldExpr::_init_from_string(py::robj src) {
-  head = ptrHead(new Head_Literal_String(src));
-}
-
-
-void OldExpr::_init_from_type(py::robj src) {
-  head = ptrHead(new Head_Literal_Type(src));
-}
 
 
 
@@ -250,19 +182,6 @@ RiGb OldExpr::evaluate_iby(EvalContext& ctx) const {
 }
 
 
-bool OldExpr::evaluate_bool() const {
-  auto boolhead = dynamic_cast<Head_Literal_Bool*>(head.get());
-  xassert(boolhead);
-  return boolhead->get_value();
-}
-
-
-py::oobj OldExpr::evaluate_pystr() const {
-  auto strhead = dynamic_cast<Head_Literal_String*>(head.get());
-  xassert(strhead);
-  return strhead->evaluate_pystr();
-}
-
 
 std::shared_ptr<FExpr> OldExpr::unnegate_column() const {
   auto unaryfn_head = dynamic_cast<Head_Func_Unary*>(head.get());
@@ -271,13 +190,6 @@ std::shared_ptr<FExpr> OldExpr::unnegate_column() const {
     return inputs[0];
   }
   return nullptr;
-}
-
-
-int64_t OldExpr::evaluate_int() const {
-  auto inthead = dynamic_cast<Head_Literal_Int*>(head.get());
-  xassert(inthead);
-  return inthead->get_value();
 }
 
 

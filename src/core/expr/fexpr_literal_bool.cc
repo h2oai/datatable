@@ -20,65 +20,96 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "expr/head_literal.h"
+#include "expr/eval_context.h"
+#include "expr/fexpr_literal.h"
 #include "expr/workframe.h"
 namespace dt {
 namespace expr {
 
 
-Head_Literal_Bool::Head_Literal_Bool(bool x) : value(x) {}
+//------------------------------------------------------------------------------
+// Constructors
+//------------------------------------------------------------------------------
 
-Kind Head_Literal_Bool::get_expr_kind() const {
-  return Kind::Bool;
+FExpr_Literal_Bool::FExpr_Literal_Bool(bool x)
+  : value_(x) {}
+
+
+ptrExpr FExpr_Literal_Bool::make(py::robj src) {
+  int8_t t = src.to_bool_strict();
+  xassert(t == 0 || t == 1);
+  return ptrExpr(new FExpr_Literal_Bool(static_cast<bool>(t)));
 }
 
-bool Head_Literal_Bool::get_value() const {
-  return value;
+
+
+
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_Literal_Bool::evaluate_n(EvalContext& ctx) const {
+  return Workframe(ctx, Const_ColumnImpl::make_bool_column(1, value_));
 }
-
-
-
-Workframe Head_Literal_Bool::evaluate_n(
-    const vecExpr&, EvalContext& ctx) const
-{
-  return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
-}
-
 
 
 // A boolean value is used as a replacement target. This is valid
-// only if `j` column(s) have stype BOOL.:
+// only if `j` column(s) have stype BOOL.
 //
 //   DT[:, j] = True
 //
-Workframe Head_Literal_Bool::evaluate_r(
-    const vecExpr&, EvalContext& ctx, const sztvec&) const
+Workframe FExpr_Literal_Bool::evaluate_r(EvalContext& ctx, const sztvec&) const
 {
-  return _wrap_column(ctx, Const_ColumnImpl::make_bool_column(1, value));
+  return Workframe(ctx, Const_ColumnImpl::make_bool_column(1, value_));
 }
 
 
 
-Workframe Head_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
+Workframe FExpr_Literal_Bool::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
 
 
-Workframe Head_Literal_Bool::evaluate_j(const vecExpr&, EvalContext&) const
-{
+Workframe FExpr_Literal_Bool::evaluate_j(EvalContext&) const {
   throw TypeError()
     << "A boolean value cannot be used as a column selector";
 }
 
 
-RowIndex Head_Literal_Bool::evaluate_i(const vecExpr&, EvalContext&) const {
+RowIndex FExpr_Literal_Bool::evaluate_i(EvalContext&) const {
   throw TypeError() << "A boolean value cannot be used as a row selector";
 }
 
 
-RiGb Head_Literal_Bool::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Literal_Bool::evaluate_iby(EvalContext&) const {
   throw TypeError() << "A boolean value cannot be used as a row selector";
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Other methods
+//------------------------------------------------------------------------------
+
+Kind FExpr_Literal_Bool::get_expr_kind() const {
+  return Kind::Bool;
+}
+
+
+bool FExpr_Literal_Bool::evaluate_bool() const {
+  return value_;
+}
+
+
+int FExpr_Literal_Bool::precedence() const noexcept {
+  return 18;
+}
+
+
+std::string FExpr_Literal_Bool::repr() const {
+  return value_? "True" : "False";
 }
 
 

@@ -19,30 +19,47 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/head_literal.h"
+#include "column/const.h"
+#include "expr/fexpr_literal.h"
+#include "expr/eval_context.h"
 #include "expr/workframe.h"
-#include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
-
-//------------------------------------------------------------------------------
-// Head_Literal
-//------------------------------------------------------------------------------
-
-Workframe Head_Literal::_wrap_column(EvalContext& ctx, Column&& col) {
-  Workframe outputs(ctx);
-  outputs.add_column(std::move(col), std::string(), Grouping::SCALAR);
-  return outputs;
+ptrExpr FExpr_Literal_Slice::make(py::robj src) {
+  auto ss = src.to_oslice();
+  if (ss.is_trivial()) {
+    return ptrExpr(new FExpr_Literal_SliceAll);
+  }
+  else if (ss.is_numeric()) {
+    return ptrExpr(new FExpr_Literal_SliceInt(ss));
+  }
+  else if (ss.is_string()) {
+    return ptrExpr(new FExpr_Literal_SliceStr(ss));
+  }
+  else {
+    throw TypeError() << src << " is neither integer- nor string- valued";
+  }
 }
 
 
-Workframe Head_Literal::evaluate_r(const vecExpr& args, EvalContext& ctx,
-                                   const sztvec&) const
-{
-  return evaluate_n(args, ctx);
+
+Workframe FExpr_Literal_Slice::evaluate_n(EvalContext&) const {
+  throw TypeError() << "A slice expression cannot appear in this context";
 }
+
+
+Workframe FExpr_Literal_Slice::evaluate_r(EvalContext&, const sztvec&) const {
+  throw TypeError() << "A slice expression cannot appear in this context";
+}
+
+
+int FExpr_Literal_Slice::precedence() const noexcept {
+  return 0;
+}
+
+
 
 
 
