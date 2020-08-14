@@ -39,7 +39,6 @@ class OpCodes(enum.Enum):
     SETPLUS = 3
     SETMINUS = 4
     SHIFTFN = 5
-    IFELSE = 6
     CUT = 7
     QCUT = 8
 
