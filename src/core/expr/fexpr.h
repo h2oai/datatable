@@ -129,52 +129,58 @@ class FExpr {
 
 
 
-}}  // namespace dt::expr
-//------------------------------------------------------------------------------
-// Python FExpr class
-//------------------------------------------------------------------------------
-namespace py {
 
+//------------------------------------------------------------------------------
+// PyFExpr class
+//------------------------------------------------------------------------------
 
-class FExpr : public XObject<FExpr> {
+/**
+  * Python-looking "datatable.FExpr" class. Internally it contains
+  * a pointer to the underlying implementation class `FExpr`.
+  *
+  * Normally this class is not intended to be constructible from
+  * Python. Instead, we will create instances of `FExpr` in C++
+  * and convert them into `PyFExpr`s via the `make()` method.
+  */
+class PyFExpr : public py::XObject<PyFExpr> {
   private:
-    dt::expr::ptrExpr expr_;
+    ptrExpr expr_;
 
   public:
-    static oobj make(dt::expr::FExpr* expr);
-    std::shared_ptr<dt::expr::FExpr> get_expr() const;
+    static py::oobj make(FExpr* expr);
+    ptrExpr get_expr() const;
 
-    void m__init__(const PKArgs&);
+    void m__init__(const py::PKArgs&);
     void m__dealloc__();
-    oobj m__repr__() const;
+    py::oobj m__repr__() const;
 
-    static oobj m__compare__(robj, robj, int op);
-    static oobj nb__add__(robj, robj);
-    static oobj nb__sub__(robj, robj);
-    static oobj nb__mul__(robj, robj);
-    static oobj nb__floordiv__(robj, robj);
-    static oobj nb__truediv__(robj, robj);
-    static oobj nb__mod__(robj, robj);
-    static oobj nb__pow__(robj, robj, robj);
-    static oobj nb__and__(robj, robj);
-    static oobj nb__xor__(robj, robj);
-    static oobj nb__or__(robj, robj);
-    static oobj nb__lshift__(robj, robj);
-    static oobj nb__rshift__(robj, robj);
+    static py::oobj m__compare__  (py::robj, py::robj, int op);
+    static py::oobj nb__add__     (py::robj, py::robj);
+    static py::oobj nb__sub__     (py::robj, py::robj);
+    static py::oobj nb__mul__     (py::robj, py::robj);
+    static py::oobj nb__floordiv__(py::robj, py::robj);
+    static py::oobj nb__truediv__ (py::robj, py::robj);
+    static py::oobj nb__mod__     (py::robj, py::robj);
+    static py::oobj nb__pow__     (py::robj, py::robj, py::robj);
+    static py::oobj nb__and__     (py::robj, py::robj);
+    static py::oobj nb__xor__     (py::robj, py::robj);
+    static py::oobj nb__or__      (py::robj, py::robj);
+    static py::oobj nb__lshift__  (py::robj, py::robj);
+    static py::oobj nb__rshift__  (py::robj, py::robj);
     bool nb__bool__();
-    oobj nb__invert__();
-    oobj nb__neg__();
-    oobj nb__pos__();
+    py::oobj nb__invert__();
+    py::oobj nb__neg__();
+    py::oobj nb__pos__();
 
-    oobj extend(const PKArgs&);
-    oobj remove(const PKArgs&);
-    oobj len();                     // [DEPRECATED]
-    oobj re_match(const PKArgs&);   // [DEPRECATED]
+    py::oobj extend(const py::PKArgs&);
+    py::oobj remove(const py::PKArgs&);
+    py::oobj len();                     // [DEPRECATED]
+    py::oobj re_match(const py::PKArgs&);   // [DEPRECATED]
 
-    static void impl_init_type(XTypeMaker& xt);
+    static void impl_init_type(py::XTypeMaker& xt);
 };
 
 
 
-}  // namespace py
+}}  // namespace dt::expr
 #endif

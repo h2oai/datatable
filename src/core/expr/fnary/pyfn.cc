@@ -64,7 +64,7 @@ static py::oobj apply_to_frame(dt::expr::Op opcode, py::robj arg) {
   xassert(arg.is_frame());
 
   auto slice_all = py::oslice(py::oslice::NA, py::oslice::NA, py::oslice::NA);
-  auto f_all = py::FExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
+  auto f_all = dt::expr::PyFExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
   auto rowfn = make_pyexpr(opcode, py::otuple{ f_all });
 
   auto frame = static_cast<py::Frame*>(arg.to_borrowed_ref());

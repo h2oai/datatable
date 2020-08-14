@@ -157,7 +157,7 @@ static oobj ifelse(const PKArgs& args) {
   if (!arg_cond || !arg_true || !arg_false) {
     throw TypeError() << "Function `ifelse()` requires 3 arguments";
   }
-  return FExpr::make(
+  return dt::expr::PyFExpr::make(
               new dt::expr::FExpr_IfElse(arg_cond, arg_true, arg_false));
 }
 

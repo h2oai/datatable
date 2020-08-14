@@ -411,7 +411,7 @@ extern "C" {
       py::Ftrl::init_type(m);
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
-      py::FExpr::init_type(m);
+      dt::expr::PyFExpr::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);

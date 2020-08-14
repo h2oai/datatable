@@ -83,12 +83,11 @@ class FExpr_BinaryPlus : public FExpr_BinaryOp {
 
 
 
-}}  // namespace dt::expr
-
-
-
-py::oobj py::FExpr::nb__add__(py::robj lhs, py::robj rhs) {
-  return py::FExpr::make(
-            new dt::expr::FExpr_BinaryPlus(dt::expr::as_fexpr(lhs),
-                                           dt::expr::as_fexpr(rhs)));
+py::oobj PyFExpr::nb__add__(py::robj lhs, py::robj rhs) {
+  return PyFExpr::make(
+            new FExpr_BinaryPlus(as_fexpr(lhs), as_fexpr(rhs)));
 }
+
+
+
+}}  // namespace dt::expr
