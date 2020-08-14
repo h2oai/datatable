@@ -152,10 +152,10 @@ static oobj make_binexpr(dt::expr::Op op, robj lhs, robj rhs) {
 }
 
 
-// oobj FExpr::nb__add__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::PLUS,     lhs, rhs); }
-oobj PyFExpr::nb__sub__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MINUS,    lhs, rhs); }
+// oobj PyFExpr::nb__add__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::PLUS,     lhs, rhs); }
+// oobj PyFExpr::nb__sub__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MINUS,    lhs, rhs); }
 oobj PyFExpr::nb__mul__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MULTIPLY, lhs, rhs); }
-oobj PyFExpr::nb__truediv__(robj lhs, robj rhs)  { return make_binexpr(dt::expr::Op::DIVIDE,   lhs, rhs); }
+// oobj PyFExpr::nb__truediv__(robj lhs, robj rhs)  { return make_binexpr(dt::expr::Op::DIVIDE,   lhs, rhs); }
 oobj PyFExpr::nb__floordiv__(robj lhs, robj rhs) { return make_binexpr(dt::expr::Op::INTDIV,   lhs, rhs); }
 oobj PyFExpr::nb__mod__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MODULO,   lhs, rhs); }
 oobj PyFExpr::nb__and__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::AND,      lhs, rhs); }

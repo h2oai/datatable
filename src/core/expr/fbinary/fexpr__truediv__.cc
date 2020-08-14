@@ -20,21 +20,20 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/func_binary.h"
-#include "column/string_plus.h"
 #include "expr/fbinary/fexpr_binaryop.h"
 namespace dt {
 namespace expr {
 
 
-class FExpr_BinaryPlus : public FExpr_BinaryOp {
+class FExpr_BinaryDivide : public FExpr_BinaryOp {
   public:
     using FExpr_BinaryOp::FExpr_BinaryOp;
     using FExpr_BinaryOp::lhs_;
     using FExpr_BinaryOp::rhs_;
 
 
-    std::string name() const override        { return "+"; }
-    int precedence() const noexcept override { return 11; }
+    std::string name() const override        { return "/"; }
+    int precedence() const noexcept override { return 12; }
 
 
     Column evaluate1(Column&& lcol, Column&& rcol) const override {
@@ -50,18 +49,12 @@ class FExpr_BinaryPlus : public FExpr_BinaryOp {
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
-        case SType::INT32: return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
-        case SType::INT64: return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT32:
+        case SType::INT64:
+        case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), SType::FLOAT64);
         case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), stype0);
-        case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), stype0);
-        case SType::STR32:
-        case SType::STR64: {
-          lcol.cast_inplace(stype0);
-          rcol.cast_inplace(stype0);
-          return Column(new StringPlus_ColumnImpl(std::move(lcol), std::move(rcol)));
-        }
         default:
-          throw TypeError() << "Operator `+` cannot be applied to columns of "
+          throw TypeError() << "Operator `/` cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
       }
     }
@@ -69,12 +62,15 @@ class FExpr_BinaryPlus : public FExpr_BinaryOp {
   private:
     template <typename T>
     static Column make(Column&& a, Column&& b, SType stype) {
+      xassert(compatible_type<T>(stype));
       size_t nrows = a.nrows();
       a.cast_inplace(stype);
       b.cast_inplace(stype);
       return Column(new FuncBinary1_ColumnImpl<T, T, T>(
         std::move(a), std::move(b),
-        [](T x, T y){ return x + y; },
+        [](T x, T y){
+          return (y == 0)? std::numeric_limits<T>::quiet_NaN() : (x / y);
+        },
         nrows, stype
       ));
     }
@@ -83,9 +79,9 @@ class FExpr_BinaryPlus : public FExpr_BinaryOp {
 
 
 
-py::oobj PyFExpr::nb__add__(py::robj lhs, py::robj rhs) {
+py::oobj PyFExpr::nb__truediv__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
-            new FExpr_BinaryPlus(as_fexpr(lhs), as_fexpr(rhs)));
+            new FExpr_BinaryDivide(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
 
