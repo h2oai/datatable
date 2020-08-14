@@ -37,7 +37,6 @@ namespace expr {
   * at least the following:
   *
   *   Workframe evaluate_n(EvalContext&) const;
-  *   int precedence() const noexcept;
   *   std::string repr() const;
   *
   */
@@ -45,15 +44,15 @@ class FExpr_Func : public FExpr {
   public:
     Kind get_expr_kind() const override;
 
-    // Workframe evaluate_n(EvalContext&) const = 0;
     Workframe evaluate_f(EvalContext&, size_t) const override;
     Workframe evaluate_j(EvalContext&) const override;
     Workframe evaluate_r(EvalContext&, const sztvec&) const override;
     RowIndex  evaluate_i(EvalContext&) const override;
     RiGb      evaluate_iby(EvalContext&) const override;
+    int precedence() const noexcept override;
 
-    // int precedence() const noexcept = 0;
-    // std::string repr() const = 0;
+    // Workframe evaluate_n(EvalContext&) const override;
+    // std::string repr() const override;
 };
 
 
