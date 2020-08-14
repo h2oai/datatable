@@ -21,28 +21,43 @@
 //------------------------------------------------------------------------------
 #include "column/ifelse.h"        // IfElse_ColumnImpl
 #include "expr/eval_context.h"    // EvalContext
-#include "expr/expr.h"            // Expr
-#include "expr/head_func.h"       // Head_Func_IfElse
+#include "expr/fexpr_func.h"      // FExpr_Func
 #include "expr/workframe.h"       // Workframe
 #include "datatablemodule.h"      // DatatableModule
 #include "stype.h"                // SType
-
-
-
-//------------------------------------------------------------------------------
-// Head_Func_IfElse
-//------------------------------------------------------------------------------
 namespace dt {
 namespace expr {
 
 
-Workframe Head_Func_IfElse::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  xassert(args.size() == 3);
-  Workframe wf_cond = args[0]->evaluate_n(ctx);
-  Workframe wf_true = args[1]->evaluate_n(ctx);
-  Workframe wf_false = args[2]->evaluate_n(ctx);
+
+//------------------------------------------------------------------------------
+// FExpr_IfElse
+//------------------------------------------------------------------------------
+
+class FExpr_IfElse : public FExpr_Func {
+  private:
+    ptrExpr cond_;
+    ptrExpr true_;
+    ptrExpr false_;
+
+  public:
+    FExpr_IfElse(py::robj, py::robj, py::robj);
+    Workframe evaluate_n(EvalContext&) const override;
+    std::string repr() const override;
+};
+
+
+
+FExpr_IfElse::FExpr_IfElse(py::robj c, py::robj t, py::robj f)
+  : cond_(as_fexpr(c)),
+    true_(as_fexpr(t)),
+    false_(as_fexpr(f)) {}
+
+
+Workframe FExpr_IfElse::evaluate_n(EvalContext& ctx) const {
+  Workframe wf_cond = cond_->evaluate_n(ctx);
+  Workframe wf_true = true_->evaluate_n(ctx);
+  Workframe wf_false = false_->evaluate_n(ctx);
   if (wf_cond.ncols() != 1 || wf_true.ncols() != 1 || wf_false.ncols() != 1) {
     throw TypeError() << "Multi-column expressions are not supported in "
         "`ifelse()` function";
@@ -75,11 +90,17 @@ Workframe Head_Func_IfElse::evaluate_n(
 }
 
 
-
-ptrHead Head_Func_IfElse::make(Op, const py::otuple& params) {
-  xassert(params.size() == 0); (void) params;
-  return ptrHead(new Head_Func_IfElse());
+std::string FExpr_IfElse::repr() const {
+  std::string out = "ifelse(";
+  out += cond_->repr();
+  out += ", ";
+  out += true_->repr();
+  out += ", ";
+  out += false_->repr();
+  out += ')';
+  return out;
 }
+
 
 
 
@@ -106,19 +127,19 @@ This may be relevant for those cases
 
 Parameters
 ----------
-condition: Expr
+condition: FExpr
     An expression yielding a single boolean column.
 
-expr_if_true: Expr
+expr_if_true: FExpr
     Values that will be used when the condition evaluates to True.
-    This must be a single column (or equivalent).
+    This must be a single column.
 
-expr_if_false: Expr
+expr_if_false: FExpr
     Values that will be used when the condition evaluates to False.
-    This must be a single column (or equivalent).
+    This must be a single column.
 
-(return): Expr
-    The produced expression, is a single column whose stype is the
+return: FExpr
+    The resulting expression is a single column whose stype is the
     stype which is common for `expr_if_true` and `expr_if_false`,
     i.e. it is the smallest stype into which both exprs can be
     upcasted.
@@ -129,18 +150,15 @@ static PKArgs args_ifelse(
     {"condition", "expr_if_true", "expr_if_false"},
     "ifelse", doc_ifelse);
 
-static oobj ifelse(const PKArgs& args)
-{
+static oobj ifelse(const PKArgs& args) {
   robj arg_cond = args[0].to_robj();
   robj arg_true = args[1].to_robj();
   robj arg_false = args[2].to_robj();
   if (!arg_cond || !arg_true || !arg_false) {
     throw TypeError() << "Function `ifelse()` requires 3 arguments";
   }
-  return robj(Expr_Type).call({
-      oint(static_cast<size_t>(dt::expr::Op::IFELSE)),
-      otuple({arg_cond, arg_true, arg_false})
-  });
+  return FExpr::make(
+              new dt::expr::FExpr_IfElse(arg_cond, arg_true, arg_false));
 }
 
 

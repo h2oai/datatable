@@ -142,16 +142,6 @@ class Head_Func_IsClose : public Head_Func {
 
 
 
-class Head_Func_IfElse : public Head_Func {
-  public:
-    Head_Func_IfElse() = default;
-    static ptrHead make(Op, const py::otuple& params);
-
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-};
-
-
-
 class Head_Func_Cut : public Head_Func {
   private:
     py::oobj py_nbins_;

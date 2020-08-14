@@ -31,6 +31,10 @@ Kind FExpr_Func::get_expr_kind() const {
   return Kind::Func;
 }
 
+int FExpr_Func::precedence() const noexcept {
+  return 16;
+}
+
 
 // Forbid expressions like `f[f.A]`.
 Workframe FExpr_Func::evaluate_f(EvalContext&, size_t) const {
