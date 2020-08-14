@@ -119,9 +119,15 @@ ptrExpr PyFExpr::get_expr() const {
 
 
 
-static PKArgs args__init__(0, 0, 0, false, false, {}, "__init__", nullptr);
+static PKArgs args__init__(1, 0, 0, false, false, {"e"}, "__init__", nullptr);
 
-void PyFExpr::m__init__(const PKArgs&) {}
+void PyFExpr::m__init__(const PKArgs& args) {
+  auto arg = args[0].to_oobj();
+  if (arg) {
+    expr_ = as_fexpr(arg);
+  }
+}
+
 
 void PyFExpr::m__dealloc__() {
   expr_ = nullptr;

@@ -138,9 +138,12 @@ class FExpr {
   * Python-looking "datatable.FExpr" class. Internally it contains
   * a pointer to the underlying implementation class `FExpr`.
   *
-  * Normally this class is not intended to be constructible from
-  * Python. Instead, we will create instances of `FExpr` in C++
-  * and convert them into `PyFExpr`s via the `make()` method.
+  * The constructor of this class takes a single argument, which can
+  * be any object that will get wrapped into an `FExpr`.
+  *
+  * There is also a no-argument form of the constructor, but it is
+  * not intended for public use. Instead, it is used when creating
+  * `FExpr`s from C++ via the static `make()` method.
   */
 class PyFExpr : public py::XObject<PyFExpr> {
   private:
