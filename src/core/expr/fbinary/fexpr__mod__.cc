@@ -26,11 +26,11 @@ namespace expr {
 
 
 template <typename T>
-inline static bool op_intdiv(T x, bool xvalid, T y, bool yvalid, T* out) {
+inline static bool op_modulo(T x, bool xvalid, T y, bool yvalid, T* out) {
   if (!xvalid || !yvalid || y == 0) return false;
-  T res = x / y;
-  if ((x < 0) != (y < 0) && x != res * y) {
-    res -= 1;
+  T res = x % y;
+  if ((x < 0) != (y < 0) && res != 0) {
+    res += y;
   }
   *out = res;
   return true;
@@ -38,14 +38,14 @@ inline static bool op_intdiv(T x, bool xvalid, T y, bool yvalid, T* out) {
 
 
 
-class FExpr__floordiv__ : public FExpr_BinaryOp {
+class FExpr__mod__ : public FExpr_BinaryOp {
   public:
     using FExpr_BinaryOp::FExpr_BinaryOp;
     using FExpr_BinaryOp::lhs_;
     using FExpr_BinaryOp::rhs_;
 
 
-    std::string name() const override        { return "//"; }
+    std::string name() const override        { return "%"; }
     int precedence() const noexcept override { return 12; }
 
 
@@ -65,7 +65,7 @@ class FExpr__floordiv__ : public FExpr_BinaryOp {
         case SType::INT32: return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
         case SType::INT64: return make<int64_t>(std::move(lcol), std::move(rcol), SType::INT64);
         default:
-          throw TypeError() << "Operator `//` cannot be applied to columns of "
+          throw TypeError() << "Operator `%` cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
       }
     }
@@ -78,7 +78,7 @@ class FExpr__floordiv__ : public FExpr_BinaryOp {
       a.cast_inplace(stype);
       b.cast_inplace(stype);
       return Column(new FuncBinary2_ColumnImpl<T, T, T>(
-                          std::move(a), std::move(b), op_intdiv, nrows, stype)
+                          std::move(a), std::move(b), op_modulo, nrows, stype)
                     );
     }
 };
@@ -86,9 +86,9 @@ class FExpr__floordiv__ : public FExpr_BinaryOp {
 
 
 
-py::oobj PyFExpr::nb__floordiv__(py::robj lhs, py::robj rhs) {
+py::oobj PyFExpr::nb__mod__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
-            new FExpr__floordiv__(as_fexpr(lhs), as_fexpr(rhs)));
+            new FExpr__mod__(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
 
