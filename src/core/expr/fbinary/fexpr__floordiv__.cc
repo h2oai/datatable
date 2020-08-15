@@ -20,21 +20,33 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/func_binary.h"
-#include "column/string_plus.h"
 #include "expr/fbinary/fexpr_binaryop.h"
 namespace dt {
 namespace expr {
 
 
-class FExpr__add__ : public FExpr_BinaryOp {
+template <typename T>
+inline static bool op_intdiv(T x, bool xvalid, T y, bool yvalid, T* out) {
+  if (!xvalid || !yvalid || y == 0) return false;
+  T res = x / y;
+  if ((x < 0) != (y < 0) && x != res * y) {
+    res -= 1;
+  }
+  *out = res;
+  return true;
+}
+
+
+
+class FExpr__floordiv__ : public FExpr_BinaryOp {
   public:
     using FExpr_BinaryOp::FExpr_BinaryOp;
     using FExpr_BinaryOp::lhs_;
     using FExpr_BinaryOp::rhs_;
 
 
-    std::string name() const override        { return "+"; }
-    int precedence() const noexcept override { return 11; }
+    std::string name() const override        { return "//"; }
+    int precedence() const noexcept override { return 12; }
 
 
     Column evaluate1(Column&& lcol, Column&& rcol) const override {
@@ -50,18 +62,10 @@ class FExpr__add__ : public FExpr_BinaryOp {
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
-        case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
-        case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
-        case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), stype0);
-        case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), stype0);
-        case SType::STR32:
-        case SType::STR64: {
-          lcol.cast_inplace(stype0);
-          rcol.cast_inplace(stype0);
-          return Column(new StringPlus_ColumnImpl(std::move(lcol), std::move(rcol)));
-        }
+        case SType::INT32: return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
+        case SType::INT64: return make<int64_t>(std::move(lcol), std::move(rcol), SType::INT64);
         default:
-          throw TypeError() << "Operator `+` cannot be applied to columns of "
+          throw TypeError() << "Operator `/` cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
       }
     }
@@ -73,53 +77,18 @@ class FExpr__add__ : public FExpr_BinaryOp {
       size_t nrows = a.nrows();
       a.cast_inplace(stype);
       b.cast_inplace(stype);
-      return Column(new FuncBinary1_ColumnImpl<T, T, T>(
-        std::move(a), std::move(b),
-        [](T x, T y){ return x + y; },
-        nrows, stype
-      ));
+      return Column(new FuncBinary2_ColumnImpl<T, T, T>(
+                          std::move(a), std::move(b), op_intdiv, nrows, stype)
+                    );
     }
 };
 
 
 
-#if 0
-static const char* doc__add__ =
-R"(__add__(x, y)
---
 
-Add two FExprs together, which corresponds to python operator `+`.
-
-If `x` or `y` are multi-column expressions, then they must have the
-same number of columns, and the `+` operator will be applied to each
-corresponding pair of columns. If either `x` or `y` are single-column
-while the other is multi-column, then the single-column expression
-will be repeated to the same number of columns as its opponent.
-
-The result of adding two columns with different stypes will have the
-following stype:
-
-  - `max(x.stype, y.stype, int32)` if both columns are numeric (i.e.
-    bool, int or float);
-
-  - `str32`/`str64` if at least one of the columns is a string. In
-    this case the `+` operator implements string concatenation, same
-    as in Python.
-
-Parameters
-----------
-x, y: FExpr
-    The arguments must be either `FExpr`s, or expressions that can be
-    converted into `FExpr`s.
-
-return: FExpr
-    An expression that evaluates `x + y`.
-)";
-#endif
-
-py::oobj PyFExpr::nb__add__(py::robj lhs, py::robj rhs) {
+py::oobj PyFExpr::nb__floordiv__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
-            new FExpr__add__(as_fexpr(lhs), as_fexpr(rhs)));
+            new FExpr__floordiv__(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
 

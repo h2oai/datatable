@@ -25,7 +25,7 @@ namespace dt {
 namespace expr {
 
 
-class FExpr_BinaryMultiply : public FExpr_BinaryOp {
+class FExpr__mul__ : public FExpr_BinaryOp {
   public:
     using FExpr_BinaryOp::FExpr_BinaryOp;
     using FExpr_BinaryOp::lhs_;
@@ -79,7 +79,7 @@ class FExpr_BinaryMultiply : public FExpr_BinaryOp {
 
 py::oobj PyFExpr::nb__mul__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
-            new FExpr_BinaryMultiply(as_fexpr(lhs), as_fexpr(rhs)));
+            new FExpr__mul__(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
 

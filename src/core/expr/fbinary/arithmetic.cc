@@ -29,62 +29,6 @@ namespace dt {
 namespace expr {
 
 
-//------------------------------------------------------------------------------
-// Op::INTDIV (//)
-//------------------------------------------------------------------------------
-
-template <typename T>
-inline static bool op_intdiv(T x, bool xvalid, T y, bool yvalid, T* out) {
-  if (!xvalid || !yvalid || y == 0) return false;
-  T res = x / y;
-  if ((x < 0) != (y < 0) && x != res * y) {
-    res -= 1;
-  }
-  *out = res;
-  return true;
-}
-
-
-template <typename T>
-static inline bimaker_ptr _intdiv(SType uptype1, SType uptype2, SType outtype) {
-  xassert(compatible_type<T>(outtype));
-  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
-  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
-  return bimaker2<T, T, T>::make(op_intdiv<T>, uptype1, uptype2, outtype);
-}
-
-
-/**
-  * Operator `//` implements the following rules:
-  *
-  *   VOID // {*} -> VOID
-  *   {BOOL, INT8, INT16, INT32} // {BOOL, IN8, INT16, INT32} -> INT32
-  *   INT64 // {BOOL, INT*} -> INT64
-  *
-  */
-// TODO: add floating-point types
-bimaker_ptr resolve_op_intdiv(SType stype1, SType stype2)
-{
-  if (stype1 == SType::VOID || stype2 == SType::VOID) {
-    return bimaker_nacol::make();
-  }
-  SType stype0 = common_stype(stype1, stype2);
-  if (stype0 == SType::BOOL || stype0 == SType::INT8 || stype0 == SType::INT16) {
-    stype0 = SType::INT32;
-  }
-  SType uptype1 = (stype1 == stype0)? SType::VOID : stype0;
-  SType uptype2 = (stype2 == stype0)? SType::VOID : stype0;
-  switch (stype0) {
-    case SType::INT32:   return _intdiv<int32_t>(uptype1, uptype2, stype0);
-    case SType::INT64:   return _intdiv<int64_t>(uptype1, uptype2, stype0);
-    default:
-      throw TypeError() << "Operator `//` cannot be applied to columns of "
-        "types `" << stype1 << "` and `" << stype2 << "`";
-  }
-}
-
-
-
 
 
 //------------------------------------------------------------------------------
