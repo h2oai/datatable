@@ -158,24 +158,11 @@ static oobj make_binexpr(dt::expr::Op op, robj lhs, robj rhs) {
 }
 
 
-// oobj PyFExpr::nb__add__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::PLUS,     lhs, rhs); }
-// oobj PyFExpr::nb__sub__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MINUS,    lhs, rhs); }
-// oobj PyFExpr::nb__mul__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MULTIPLY, lhs, rhs); }
-// oobj PyFExpr::nb__truediv__(robj lhs, robj rhs)  { return make_binexpr(dt::expr::Op::DIVIDE,   lhs, rhs); }
-// oobj PyFExpr::nb__floordiv__(robj lhs, robj rhs) { return make_binexpr(dt::expr::Op::INTDIV,   lhs, rhs); }
-// oobj PyFExpr::nb__mod__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::MODULO,   lhs, rhs); }
 oobj PyFExpr::nb__and__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::AND,      lhs, rhs); }
 oobj PyFExpr::nb__xor__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::XOR,      lhs, rhs); }
 oobj PyFExpr::nb__or__(robj lhs, robj rhs)       { return make_binexpr(dt::expr::Op::OR,       lhs, rhs); }
 oobj PyFExpr::nb__lshift__(robj lhs, robj rhs)   { return make_binexpr(dt::expr::Op::LSHIFT,   lhs, rhs); }
 oobj PyFExpr::nb__rshift__(robj lhs, robj rhs)   { return make_binexpr(dt::expr::Op::RSHIFT,   lhs, rhs); }
-
-oobj PyFExpr::nb__pow__(robj lhs, robj rhs, robj zhs) {
-  if (zhs && !zhs.is_none()) {
-    throw NotImplError() << "2-argument form of pow() is not supported";
-  }
-  return make_binexpr(dt::expr::Op::POWEROP, lhs, rhs);
-}
 
 bool PyFExpr::nb__bool__() {
   throw TypeError() <<
