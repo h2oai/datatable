@@ -45,10 +45,10 @@ static std::unordered_map<size_t, bimaker_ptr> bimakers_library;
 
 bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
   switch (opcode) {
-    case Op::PLUS:       return resolve_op_plus(stype1, stype2);
-    case Op::MINUS:      return resolve_op_minus(stype1, stype2);
-    case Op::MULTIPLY:   return resolve_op_multiply(stype1, stype2);
-    case Op::DIVIDE:     return resolve_op_divide(stype1, stype2);
+    // case Op::PLUS:       return resolve_op_plus(stype1, stype2);
+    // case Op::MINUS:      return resolve_op_minus(stype1, stype2);
+    // case Op::MULTIPLY:   return resolve_op_multiply(stype1, stype2);
+    // case Op::DIVIDE:     return resolve_op_divide(stype1, stype2);
     case Op::INTDIV:     return resolve_op_intdiv(stype1, stype2);
     case Op::MODULO:     return resolve_op_modulo(stype1, stype2);
     case Op::POWEROP:    return resolve_op_power(stype1, stype2);
