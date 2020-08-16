@@ -45,7 +45,7 @@ def test_xfunction_paths():
     assert API_PATH.is_dir()
     re_path = re.compile(r"\s+:(?:src|docs?|tests?): (\S*)")
     for filepath in API_PATH.glob("**/*.rst"):
-        text = filepath.read_text()
+        text = filepath.read_text(encoding="utf-8")
         outside = False
         for i, line in enumerate(text.split("\n")):
             if outside:
