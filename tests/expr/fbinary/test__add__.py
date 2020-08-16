@@ -25,6 +25,16 @@ from datatable import dt, f
 from tests import assert_equals
 
 
+def test_add_stringify():
+  assert str(f.A + 1) == "FExpr<f.A + 1>"
+  assert str(3 + f.A) == "FExpr<3 + f.A>"
+  assert str(f.A + f.B) == "FExpr<f.A + f.B>"
+  assert str(f.A + f.B + f.C) == "FExpr<f.A + f.B + f.C>"
+  assert str((f.A + f.B) + f.C) == "FExpr<f.A + f.B + f.C>"
+  assert str(f.A + (f.B + f.C)) == "FExpr<f.A + (f.B + f.C)>"
+  assert str(f.A + f[1]*f[2] + f.Z) == "FExpr<f.A + f[1] * f[2] + f.Z>"
+
+
 def test_add_booleans():
     DT = dt.Frame(A=[True, True, True, False, False, False, None, None, None],
                   B=[True, False, None] * 3)
