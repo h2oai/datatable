@@ -1,4 +1,5 @@
 .. py:currentmodule:: datatable
 
 .. xfunction:: datatable.ifelse
-    :src: src/core/expr/head_func_ifelse.cc ifelse
+    :src: src/core/expr/fexpr_ifelse.cc FExpr_IfElse::evaluate_n
+    :doc: src/core/expr/fexpr_ifelse.cc doc_ifelse

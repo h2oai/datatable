@@ -338,9 +338,11 @@ class XobjectDirective(SphinxDirective):
         """
         rx_cc_function = re.compile(r"(\s*)"
                                     r"(?:static\s+|inline\s+)*"
-                                    r"(?:void|oobj|py::oobj)\s+" +
+                                    r"(?:[\w:*&<> ]+)\s+" +
                                     fnname +
-                                    r"\s*\(.*\)\s*(?:const\s*)?\{\s*")
+                                    r"\s*\(.*\)\s*" +
+                                    r"(?:const\s*|noexcept\s*|override\s*)*" +
+                                    r"\{\s*")
         expect_closing = None
         start_line = None
         finish_line = None

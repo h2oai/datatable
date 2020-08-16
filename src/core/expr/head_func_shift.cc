@@ -161,9 +161,10 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 }
 
 static oobj _shift_frame(oobj arg, int n) {
+  using namespace dt::expr;
   auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
-  auto f_all = py::FExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
-  auto shiftexpr = make_pyexpr(dt::expr::Op::SHIFTFN,
+  auto f_all = PyFExpr::make(new FExpr_ColumnAsArg(0, slice_all));
+  auto shiftexpr = make_pyexpr(Op::SHIFTFN,
                                otuple{ f_all },
                                otuple{ oint(n) });
   auto frame = static_cast<Frame*>(arg.to_borrowed_ref());

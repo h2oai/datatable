@@ -205,107 +205,107 @@ class Expr:
                                     ", ".join(repr(x) for x in self._params))
 
     def extend(self, other):
-        return Expr(OpCodes.SETPLUS, (self, other))
+        return core.FExpr(self).extend(other)
 
     def remove(self, other):
-        return Expr(OpCodes.SETMINUS, (self, other))
+        return core.FExpr(self).remove(other)
 
 
     #----- Binary operators ----------------------------------------------------
 
     def __add__(self, other):
-        return Expr(OpCodes.PLUS, (self, other))
+        return core.FExpr(self) + core.FExpr(other)
 
     def __sub__(self, other):
-        return Expr(OpCodes.MINUS, (self, other))
+        return core.FExpr(self) - core.FExpr(other)
 
     def __mul__(self, other):
-        return Expr(OpCodes.MULTIPLY, (self, other))
+        return core.FExpr(self) * core.FExpr(other)
 
     def __truediv__(self, other):
-        return Expr(OpCodes.DIVIDE, (self, other))
+        return core.FExpr(self) / core.FExpr(other)
 
     def __floordiv__(self, other):
-        return Expr(OpCodes.INTDIV, (self, other))
+        return core.FExpr(self) // core.FExpr(other)
 
     def __mod__(self, other):
-        return Expr(OpCodes.MODULO, (self, other))
+        return core.FExpr(self) % core.FExpr(other)
 
     def __pow__(self, other):
-        return Expr(OpCodes.POWEROP, (self, other))
+        return core.FExpr(self) ** core.FExpr(other)
 
     def __and__(self, other):
-        return Expr(OpCodes.AND, (self, other))
+        return core.FExpr(self) & core.FExpr(other)
 
     def __xor__(self, other):
-        return Expr(OpCodes.XOR, (self, other))
+        return core.FExpr(self) ^ core.FExpr(other)
 
     def __or__(self, other):
-        return Expr(OpCodes.OR, (self, other))
+        return core.FExpr(self) | core.FExpr(other)
 
     def __lshift__(self, other):
-        return Expr(OpCodes.LSHIFT, (self, other))
+        return core.FExpr(self) << core.FExpr(other)
 
     def __rshift__(self, other):
-        return Expr(OpCodes.RSHIFT, (self, other))
+        return core.FExpr(self) >> core.FExpr(other)
 
 
     def __radd__(self, other):
-        return Expr(OpCodes.PLUS, (other, self))
+        return core.FExpr(other) + core.FExpr(self)
 
     def __rsub__(self, other):
-        return Expr(OpCodes.MINUS, (other, self))
+        return core.FExpr(other) - core.FExpr(self)
 
     def __rmul__(self, other):
-        return Expr(OpCodes.MULTIPLY, (other, self))
+        return core.FExpr(other) * core.FExpr(self)
 
     def __rtruediv__(self, other):
-        return Expr(OpCodes.DIVIDE, (other, self))
+        return core.FExpr(other) / core.FExpr(self)
 
     def __rfloordiv__(self, other):
-        return Expr(OpCodes.INTDIV, (other, self))
+        return core.FExpr(other) // core.FExpr(self)
 
     def __rmod__(self, other):
-        return Expr(OpCodes.MODULO, (other, self))
+        return core.FExpr(other) % core.FExpr(self)
 
     def __rpow__(self, other):
-        return Expr(OpCodes.POWEROP, (other, self))
+        return core.FExpr(other) ** core.FExpr(self)
 
     def __rand__(self, other):
-        return Expr(OpCodes.AND, (other, self))
+        return core.FExpr(other) & core.FExpr(self)
 
     def __rxor__(self, other):
-        return Expr(OpCodes.XOR, (other, self))
+        return core.FExpr(other) ^ core.FExpr(self)
 
     def __ror__(self, other):
-        return Expr(OpCodes.OR, (other, self))
+        return core.FExpr(other) | core.FExpr(self)
 
     def __rlshift__(self, other):
-        return Expr(OpCodes.LSHIFT, (other, self))
+        return core.FExpr(other) << core.FExpr(self)
 
     def __rrshift__(self, other):
-        return Expr(OpCodes.RSHIFT, (other, self))
+        return core.FExpr(other) >> core.FExpr(self)
 
 
     #----- Relational operators ------------------------------------------------
 
     def __eq__(self, other):
-        return Expr(OpCodes.EQ, (self, other))
+        return core.FExpr(self) == core.FExpr(other)
 
     def __ne__(self, other):
-        return Expr(OpCodes.NE, (self, other))
+        return core.FExpr(self) != core.FExpr(other)
 
     def __lt__(self, other):
-        return Expr(OpCodes.LT, (self, other))
+        return core.FExpr(self) < core.FExpr(other)
 
     def __gt__(self, other):
-        return Expr(OpCodes.GT, (self, other))
+        return core.FExpr(self) > core.FExpr(other)
 
     def __le__(self, other):
-        return Expr(OpCodes.LE, (self, other))
+        return core.FExpr(self) <= core.FExpr(other)
 
     def __ge__(self, other):
-        return Expr(OpCodes.GE, (self, other))
+        return core.FExpr(self) >= core.FExpr(other)
 
 
     #----- Unary operators -----------------------------------------------------
@@ -338,24 +338,24 @@ class Expr:
 
     def __invert__(self):
         """Unary inversion: ~expr."""
-        return Expr(OpCodes.UINVERT, (self,))
+        return ~core.FExpr(self)
 
     def __neg__(self):
         """Unary minus: -expr."""
-        return Expr(OpCodes.UMINUS, (self,))
+        return -core.FExpr(self)
 
     def __pos__(self):
         """Unary plus (no-op)."""
-        return Expr(OpCodes.UPLUS, (self,))
+        return +core.FExpr(self)
 
 
     #----- String functions ----------------------------------------------------
 
     def len(self):
-        return Expr(OpCodes.LEN, (self,))
+        return core.FExpr(self).len()
 
     def re_match(self, pattern, flags=None):
-        return Expr(OpCodes.RE_MATCH, (self,), (pattern, flags))
+        return core.FExpr(self).re_match(pattern, flags=flags)
 
 
 

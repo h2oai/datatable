@@ -84,7 +84,8 @@ oobj Namespace::m__getattr__(robj attr) {
           attr.to_borrowed_ref()
         ));
   }
-  return FExpr::make(new dt::expr::FExpr_ColumnAsAttr(index_, attr));
+  return dt::expr::PyFExpr::make(
+              new dt::expr::FExpr_ColumnAsAttr(index_, attr));
 }
 
 
@@ -100,7 +101,8 @@ oobj Namespace::m__getitem__(robj item) {
     throw TypeError() << "Column selector should be an integer, string, "
                          "or slice, not " << item.typeobj();
   }
-  return FExpr::make(new dt::expr::FExpr_ColumnAsArg(index_, item));
+  return dt::expr::PyFExpr::make(
+              new dt::expr::FExpr_ColumnAsArg(index_, item));
 }
 
 

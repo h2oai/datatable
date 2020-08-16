@@ -124,9 +124,10 @@ static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
 
 
 static oobj cut_frame(oobj arg0, oobj arg1, oobj arg2) {
+  using namespace dt::expr;
   auto slice_all = oslice(oslice::NA, oslice::NA, oslice::NA);
-  auto f_all = py::FExpr::make(new dt::expr::FExpr_ColumnAsArg(0, slice_all));
-  auto cutexpr = make_pyexpr(dt::expr::Op::CUT,
+  auto f_all = PyFExpr::make(new FExpr_ColumnAsArg(0, slice_all));
+  auto cutexpr = make_pyexpr(Op::CUT,
                              otuple{ f_all },
                              otuple{ arg1, arg2 });
   auto frame = static_cast<Frame*>(arg0.to_borrowed_ref());

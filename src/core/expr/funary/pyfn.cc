@@ -52,8 +52,7 @@ static py::oobj process_frame(Op opcode, py::robj arg) {
 
   py::olist columns(dt->ncols());
   for (size_t i = 0; i < dt->ncols(); ++i) {
-    auto col_selector = py::FExpr::make(
-        new dt::expr::FExpr_ColumnAsArg(0, py::oint(i)));
+    auto col_selector = PyFExpr::make(new FExpr_ColumnAsArg(0, py::oint(i)));
     columns.set(i, make_pyexpr(opcode, col_selector));
   }
 

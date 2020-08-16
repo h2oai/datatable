@@ -77,13 +77,6 @@ using bimaker_ptr = std::unique_ptr<bimaker>;
 // Main resolver, calls individual-op resolvers below
 bimaker_ptr resolve_op(Op, SType, SType);
 
-bimaker_ptr resolve_op_plus(SType, SType);
-bimaker_ptr resolve_op_minus(SType, SType);
-bimaker_ptr resolve_op_multiply(SType, SType);
-bimaker_ptr resolve_op_divide(SType, SType);
-bimaker_ptr resolve_op_intdiv(SType, SType);
-bimaker_ptr resolve_op_modulo(SType, SType);
-bimaker_ptr resolve_op_power(SType, SType);
 bimaker_ptr resolve_op_and(SType, SType);
 bimaker_ptr resolve_op_or(SType, SType);
 bimaker_ptr resolve_op_xor(SType, SType);

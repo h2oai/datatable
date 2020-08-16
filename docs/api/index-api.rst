@@ -66,6 +66,7 @@ datatable API
     :hidden:
 
     Frame           <frame>
+    FExpr           <fexpr>
     FTRL            <ftrl>
     math.           <math>
     by()            <dt/by>
