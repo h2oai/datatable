@@ -20,17 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/fbinary/fexpr__compare__.h"
-#include "expr/op.h"  // tmp
 namespace dt {
 namespace expr {
 
-
-// tmp
-static py::oobj make_binexpr(Op op, py::robj lhs, py::robj rhs) {
-  return py::robj(py::Expr_Type).call({
-                  py::oint(static_cast<int>(op)),
-                  py::otuple{lhs, rhs}});
-}
 
 
 py::oobj PyFExpr::m__compare__(py::robj x, py::robj y, int op) {
@@ -38,9 +30,9 @@ py::oobj PyFExpr::m__compare__(py::robj x, py::robj y, int op) {
     case Py_EQ: return PyFExpr::make(new FExpr__eq__(as_fexpr(x), as_fexpr(y)));
     case Py_NE: return PyFExpr::make(new FExpr__ne__(as_fexpr(x), as_fexpr(y)));
     case Py_LT: return PyFExpr::make(new FExpr__lt__(as_fexpr(x), as_fexpr(y)));
-    case Py_LE: return make_binexpr(dt::expr::Op::LE, x, y);
+    case Py_LE: return PyFExpr::make(new FExpr__le__(as_fexpr(x), as_fexpr(y)));
     case Py_GT: return PyFExpr::make(new FExpr__gt__(as_fexpr(x), as_fexpr(y)));
-    case Py_GE: return make_binexpr(dt::expr::Op::GE, x, y);
+    case Py_GE: return PyFExpr::make(new FExpr__ge__(as_fexpr(x), as_fexpr(y)));
     default:
       throw RuntimeError() << "Unknown op " << op << " in __compare__";  // LCOV_EXCL_LINE
   }
