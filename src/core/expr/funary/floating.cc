@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/isna.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
@@ -170,42 +171,10 @@ py::PKArgs args_isna(1, 0, 0, false, false, {"x"}, "isna", doc_isna);
 
 
 template <typename T>
-class Isna_ColumnImpl : public Virtual_ColumnImpl {
-  protected:
-    Column arg_;
-
-  public:
-    Isna_ColumnImpl(Column&& col, size_t nrows)
-      : Virtual_ColumnImpl(nrows, SType::BOOL),
-        arg_(std::move(col)) { xassert(compatible_type<T>(arg_.stype())); }
-
-    ColumnImpl* clone() const override {
-      return new Isna_ColumnImpl<T>(Column(arg_), nrows_);
-    }
-
-    size_t n_children() const noexcept override {
-      return 1;
-    }
-
-    const Column& child(size_t i) const override {
-      xassert(i == 0);  (void)i;
-      return arg_;
-    }
-
-
-    bool get_element(size_t i, int8_t* out) const override {
-      T tmp;
-      *out = ! arg_.get_element(i, &tmp);
-      return true;
-    }
-};
-
-template <typename T>
 class isna_umaker : public umaker {
   public:
     Column compute(Column&& col) const override {
-      size_t nrows = col.nrows();
-      return Column(new Isna_ColumnImpl<T>(std::move(col), nrows));
+      return Column(new Isna_ColumnImpl<T>(std::move(col)));
     }
 };
 
