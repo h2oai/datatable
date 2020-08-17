@@ -36,7 +36,7 @@ static py::oobj make_binexpr(Op op, py::robj lhs, py::robj rhs) {
 py::oobj PyFExpr::m__compare__(py::robj x, py::robj y, int op) {
   switch (op) {
     case Py_EQ: return PyFExpr::make(new FExpr__eq__(as_fexpr(x), as_fexpr(y)));
-    case Py_NE: return make_binexpr(dt::expr::Op::NE, x, y);
+    case Py_NE: return PyFExpr::make(new FExpr__ne__(as_fexpr(x), as_fexpr(y)));
     case Py_LT: return make_binexpr(dt::expr::Op::LT, x, y);
     case Py_LE: return make_binexpr(dt::expr::Op::LE, x, y);
     case Py_GT: return make_binexpr(dt::expr::Op::GT, x, y);

@@ -38,6 +38,17 @@ class FExpr__eq__ : public FExpr_BinaryOp {
 
 
 
+class FExpr__ne__ : public FExpr_BinaryOp {
+  public:
+    using FExpr_BinaryOp::FExpr_BinaryOp;
+
+    std::string name() const override;
+    int precedence() const noexcept override;
+    Column evaluate1(Column&& lcol, Column&& rcol) const override;
+};
+
+
+
 
 
 }}  // namespace dt::expr
