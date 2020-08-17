@@ -60,7 +60,10 @@ static void test_atomic_impl() {
 
   T x_exp = static_cast<T>(n * (n - 3) / 2);
   T y_exp = static_cast<T>(std::pow(2.0, n));
-  T z_exp = static_cast<T>(1.3e20 / std::pow(1.5, n));
+  T z_exp = static_cast<T>(1.3e20);
+  for (int i = 0; i < n; ++i) {
+    z_exp /= static_cast<T>(1.5);
+  }
   T x_act = x.load();
   T y_act = y.load();
   T z_act = z.load();
@@ -71,14 +74,7 @@ static void test_atomic_impl() {
 
   ASSERT_FLOAT_EQ(x_act, x_exp);
   ASSERT_FLOAT_EQ(y_act, y_exp);
-  if (n <= 12) {
-    ASSERT_FLOAT_EQ(z_act, z_exp);
-  } else {
-    // With too many threads, the numeric error in division may
-    // exceed 4 ulps
-    ASSERT_TRUE((z_act == z_exp) ||
-                std::abs(z_act / z_exp - 1) < 1e-8);
-  }
+  ASSERT_FLOAT_EQ(z_act, z_exp);
   ASSERT_EQ(q_act, q_exp);
   ASSERT_EQ(r_act, r_exp);
 }
