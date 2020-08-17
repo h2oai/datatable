@@ -1180,8 +1180,8 @@ def test_export_names(dt0):
     all_names = [A, B, C, D, E, F, G]
     assert_equals(dt0[:, all_names], dt0)
     assert_equals(dt0[A > 0, :], dt0[:2, :])
-    assert str(A + B <= C + D) == "Expr:le(FExpr<f['A'] + f['B']>, FExpr<f['C'] + f['D']>; )"
-    assert str(dt.f.A + dt.f.B <= dt.f.C + dt.f.D) == "Expr:le(FExpr<f.A + f.B>, FExpr<f.C + f.D>; )"
+    assert str(A + B <= C + D) == "FExpr<f['A'] + f['B'] <= f['C'] + f['D']>"
+    assert str(dt.f.A + dt.f.B <= dt.f.C + dt.f.D) == "FExpr<f.A + f.B <= f.C + f.D>"
     assert "A" not in globals()
 
 

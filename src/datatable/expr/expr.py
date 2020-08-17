@@ -34,7 +34,6 @@ class OpCodes(enum.Enum):
 
     # Misc
     NOOP = 0
-    COL = 1
     CAST = 2
     SETPLUS = 3
     SETMINUS = 4
@@ -48,24 +47,11 @@ class OpCodes(enum.Enum):
     UINVERT = 103
 
     # Binary
-    PLUS = 201
-    MINUS = 202
-    MULTIPLY = 203
-    DIVIDE = 204
-    INTDIV = 205
-    MODULO = 206
-    POWEROP = 207
     AND = 208
     XOR = 209
     OR = 210
     LSHIFT = 211
     RSHIFT = 212
-    EQ = 213
-    NE = 214
-    LT = 215
-    GT = 216
-    LE = 217
-    GE = 218
 
     # String
     RE_MATCH = 301

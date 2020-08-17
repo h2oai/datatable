@@ -48,7 +48,6 @@ static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
 enum class Op : size_t {
   // Misc
   NOOP = 0,
-  COL = 1,
   CAST = 2,
   SETPLUS = 3,
   SETMINUS = 4,
@@ -62,24 +61,11 @@ enum class Op : size_t {
   UINVERT = UNOP_LAST,      // funary/basic.cc
 
   // Binary
-  PLUS = BINOP_FIRST,       // fbinary/arithmetic.cc
-  MINUS,                    // fbinary/arithmetic.cc
-  MULTIPLY,                 // fbinary/arithmetic.cc
-  DIVIDE,                   // fbinary/arithmetic.cc
-  INTDIV,                   // fbinary/arithmetic.cc
-  MODULO,                   // fbinary/arithmetic.cc
-  POWEROP,                  // fbinary/arithmetic.cc
-  AND,                      // fbinary/bitwise.cc
-  XOR,                      // fbinary/bitwise.cc
-  OR,                       // fbinary/bitwise.cc
-  LSHIFT,                   // fbinary/bitwise.cc
-  RSHIFT,                   // fbinary/bitwise.cc
-  EQ,                       // fbinary/relational.cc
-  NE,                       // fbinary/relational.cc
-  LT,                       // fbinary/relational.cc
-  GT,                       // fbinary/relational.cc
-  LE,                       // fbinary/relational.cc
-  GE = BINOP_LAST,          // fbinary/relational.cc
+  AND = 208,                // fbinary/bitwise.cc
+  XOR = 209,                // fbinary/bitwise.cc
+  OR = 210,                 // fbinary/bitwise.cc
+  LSHIFT = 211,             // fbinary/bitwise.cc
+  RSHIFT = 212,             // fbinary/bitwise.cc
 
   // String
   RE_MATCH = STRING_FIRST,  // head_func_other.cc
