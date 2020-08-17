@@ -52,7 +52,7 @@ static void test_atomic_impl() {
 
       x += static_cast<T>(i);
       y *= static_cast<T>(2.0);
-      z /= static_cast<T>(7.0);
+      z /= static_cast<T>(1.5);
       x -= static_cast<T>(1.0);
       dt::atomic_fetch_max(&q, static_cast<int>(i));
       dt::atomic_fetch_min(&r, static_cast<int>(i));
@@ -60,7 +60,10 @@ static void test_atomic_impl() {
 
   T x_exp = static_cast<T>(n * (n - 3) / 2);
   T y_exp = static_cast<T>(std::pow(2.0, n));
-  T z_exp = static_cast<T>(1.3e20 / std::pow(7.0, n));
+  T z_exp = static_cast<T>(1.3e20);
+  for (int i = 0; i < n; ++i) {
+    z_exp /= static_cast<T>(1.5);
+  }
   T x_act = x.load();
   T y_act = y.load();
   T z_act = z.load();
