@@ -82,12 +82,6 @@ bimaker_ptr resolve_op_or(SType, SType);
 bimaker_ptr resolve_op_xor(SType, SType);
 bimaker_ptr resolve_op_lshift(SType, SType);
 bimaker_ptr resolve_op_rshift(SType, SType);
-bimaker_ptr resolve_op_eq(SType, SType);
-bimaker_ptr resolve_op_ne(SType, SType);
-bimaker_ptr resolve_op_lt(SType, SType);
-bimaker_ptr resolve_op_gt(SType, SType);
-bimaker_ptr resolve_op_le(SType, SType);
-bimaker_ptr resolve_op_ge(SType, SType);
 
 bimaker_ptr resolve_fn_atan2(SType, SType);
 bimaker_ptr resolve_fn_hypot(SType, SType);

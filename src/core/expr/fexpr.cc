@@ -201,18 +201,6 @@ oobj PyFExpr::nb__pos__() {
 }
 
 
-oobj PyFExpr::m__compare__(robj x, robj y, int op) {
-  switch (op) {
-    case Py_EQ: return make_binexpr(dt::expr::Op::EQ, x, y);
-    case Py_NE: return make_binexpr(dt::expr::Op::NE, x, y);
-    case Py_LT: return make_binexpr(dt::expr::Op::LT, x, y);
-    case Py_LE: return make_binexpr(dt::expr::Op::LE, x, y);
-    case Py_GT: return make_binexpr(dt::expr::Op::GT, x, y);
-    case Py_GE: return make_binexpr(dt::expr::Op::GE, x, y);
-    default:
-      throw RuntimeError() << "Unknown op " << op << " in __compare__";  // LCOV_EXCL_LINE
-  }
-}
 
 
 //----- Other methods ----------------------------------------------------------
