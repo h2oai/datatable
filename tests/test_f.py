@@ -100,7 +100,10 @@ def test_f_col_selector_invalid():
 
 
 def test_f_expressions():
-    assert str(f.C1 < f.C2) == "Expr:lt(FExpr<f.C1>, FExpr<f.C2>; )"
+    assert str(f.C1 < f.C2) == "FExpr<f.C1 < f.C2>"
+    assert str(f.C1 > f.C2) == "FExpr<f.C1 > f.C2>"
+    assert str(f.C1 <= f.C2) == "FExpr<f.C1 <= f.C2>"
+    assert str(f.C1 >= f.C2) == "FExpr<f.C1 >= f.C2>"
 
 
 def test_f_columnset_str():

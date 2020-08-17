@@ -19,18 +19,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/const.h"
 #include "column/func_binary.h"
-#include "column/isna.h"
 #include "expr/fbinary/fexpr__compare__.h"
 namespace dt {
 namespace expr {
 
 
 template <typename T>
-static bool op_eq(ref_t<T> x, bool xvalid, ref_t<T> y, bool yvalid, int8_t* out)
+static bool op_lt(ref_t<T> x, bool xvalid, ref_t<T> y, bool yvalid, int8_t* out)
 {
-  *out = (xvalid == yvalid) && (x == y || !xvalid);
+  *out = (xvalid && yvalid && x < y);
   return true;
 }
 
@@ -41,53 +39,33 @@ static Column make(Column&& a, Column&& b, SType stype) {
   a.cast_inplace(stype);
   b.cast_inplace(stype);
   return Column(new FuncBinary2_ColumnImpl<T, T, int8_t>(
-    std::move(a), std::move(b), op_eq<T>, nrows, SType::BOOL
+    std::move(a), std::move(b), op_lt<T>, nrows, SType::BOOL
   ));
 }
 
 
 
-std::string FExpr__eq__::name() const {
-  return "==";
+std::string FExpr__lt__::name() const {
+  return "<";
 }
 
-int FExpr__eq__::precedence() const noexcept {
+int FExpr__lt__::precedence() const noexcept {
   return 6;
 }
 
 
-Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
+Column FExpr__lt__::evaluate1(Column&& lcol, Column&& rcol) const {
   xassert(lcol.nrows() == rcol.nrows());
   auto stype1 = lcol.stype();
   auto stype2 = rcol.stype();
   auto stype0 = common_stype(stype1, stype2);
 
-  // `expr == None` should be treated as `isna(expr)`
-  if (stype1 == SType::VOID) {
-    std::swap(stype1, stype2);
-    std::swap(lcol, rcol);
-  }
-  if (stype2 == SType::VOID) {
-    switch (stype1) {
-      case SType::VOID:    return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);
-      case SType::BOOL:
-      case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(lcol)));
-      case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(lcol)));
-      case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(lcol)));
-      case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(lcol)));
-      case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(lcol)));
-      case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(lcol)));
-      case SType::STR32:
-      case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(lcol)));
-      default: break;
-    }
-  }
-
   switch (stype0) {
+    case SType::VOID:
     case SType::BOOL:
-    case SType::INT8:    return make<int8_t>(std::move(lcol), std::move(rcol), stype0);
-    case SType::INT16:   return make<int16_t>(std::move(lcol), std::move(rcol), stype0);
-    case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), stype0);
+    case SType::INT8:
+    case SType::INT16:
+    case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
     case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
     case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), stype0);
     case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), stype0);

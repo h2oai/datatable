@@ -72,7 +72,7 @@ Column FExpr__ne__::evaluate1(Column&& lcol, Column&& rcol) const {
     case SType::STR32:
     case SType::STR64:   return make<CString>(std::move(lcol), std::move(rcol), stype0);
     default:
-        throw TypeError() << "Operator `!=` cannot be applied to "
+        throw TypeError() << "Operator `" << name() << "` cannot be applied to "
             "columns with types `" << stype1 << "` and `" << stype2 << "`";
   }
 }
