@@ -20,17 +20,17 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
+#-------------------------------------------------------------------------------
 import math
 import pytest
 import random
-from datatable import dt, stype, f, qcut
-from datatable.expr import Expr
+from datatable import dt, stype, f, qcut, FExpr
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
-# qcut()
+# Errors
 #-------------------------------------------------------------------------------
 
 def test_qcut_error_noargs():
@@ -100,10 +100,25 @@ def test_qcut_error_groupby():
         DT[:, qcut(f[0]), f[0]]
 
 
+
+
+#-------------------------------------------------------------------------------
+# Normal
+#-------------------------------------------------------------------------------
+
+def test_qcut_str():
+  assert str(qcut(f.A)) == "FExpr<qcut(f.A)>"
+  assert str(qcut(f.A) + 1) == "FExpr<qcut(f.A) + 1>"
+  assert str(qcut(f.A + f.B)) == "FExpr<qcut(f.A + f.B)>"
+  assert str(qcut(f.B, nquantiles=3)) == "FExpr<qcut(f.B, nquantiles=3)>"
+  assert str(qcut(f[:2], nquantiles=[3, 4])) == \
+          "FExpr<qcut(f[:2], nquantiles=[3, 4])>"
+
+
 def test_qcut_empty_frame():
     DT = dt.Frame()
     expr_qcut = qcut(DT)
-    assert isinstance(expr_qcut, Expr)
+    assert isinstance(expr_qcut, FExpr)
     assert_equals(DT[:, f[:]], DT)
 
 
@@ -111,7 +126,7 @@ def test_qcut_zerorow_frame():
     DT = dt.Frame([[], []])
     DT_qcut = DT[:, qcut(f[:])]
     expr_qcut = qcut(DT)
-    assert isinstance(expr_qcut, Expr)
+    assert isinstance(expr_qcut, FExpr)
     assert_equals(DT_qcut, dt.Frame([[] / dt.int32, [] / dt.int32]))
 
 
@@ -119,7 +134,7 @@ def test_qcut_trivial():
     DT = dt.Frame({"trivial": range(10)})
     DT_qcut = DT[:, qcut(f[:])]
     expr_qcut = qcut(DT)
-    assert isinstance(expr_qcut, Expr)
+    assert isinstance(expr_qcut, FExpr)
     assert_equals(DT, DT_qcut)
 
 

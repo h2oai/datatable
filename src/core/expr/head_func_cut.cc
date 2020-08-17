@@ -27,8 +27,6 @@
 #include "expr/head_func.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
-
-
 namespace dt {
 namespace expr {
 
