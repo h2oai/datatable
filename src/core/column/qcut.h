@@ -32,9 +32,10 @@ namespace dt {
 
 
 /**
-  *  Virtual column to bin input data into equal-population
-  *  discrete intervals, i.e. quantiles. In reality, for some data
-  *  these quantiles won't have exactly the same population.
+  *  Virtual column to bin input data into intervals with approximately
+  *  equal populations. If there are duplicate values in the
+  *  data, they will all be placed into the same bin. In extreme cases
+  *  this may cause the bins to be highly unbalanced.
   *
   *  Quantiles are generated based on the element/group information
   *  obtained from the groupby operation, i.e. rowindex and offsets.
