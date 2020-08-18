@@ -21,15 +21,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-from datatable import dt, stype, f, cut
-from tests import assert_equals
+import math
 import pytest
 import random
-import math
+from datatable import dt, stype, f, cut, FExpr
+from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
-# cut()
+# Errors
 #-------------------------------------------------------------------------------
 
 def test_cut_error_noargs():
@@ -43,7 +43,7 @@ def test_cut_error_wrong_column_type():
     msg = r"cut\(\) can only be applied to numeric columns, instead column 1 " \
           "has an stype: str32"
     with pytest.raises(TypeError, match=msg):
-        cut(DT)
+        DT[:, cut(DT)]
 
 
 def test_cut_error_wrong_column_type_zero_rows():
@@ -51,35 +51,35 @@ def test_cut_error_wrong_column_type_zero_rows():
     msg = r"cut\(\) can only be applied to numeric columns, instead column 0 " \
           "has an stype: str32"
     with pytest.raises(TypeError, match=msg):
-        cut(DT)
+        DT[:, cut(DT)]
 
 
 def test_cut_error_float_nbins():
     msg = "Expected an integer, instead got <class 'float'>"
     DT = dt.Frame(range(10))
     with pytest.raises(TypeError, match=msg):
-        cut(DT, nbins = 1.5)
+        DT[:, cut(DT, nbins = 1.5)]
 
 
 def test_cut_error_zero_nbins():
     msg = "Number of bins must be positive, instead got: 0"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        cut(DT, nbins = 0)
+        DT[:, cut(DT, nbins = 0)]
 
 
 def test_cut_error_negative_nbins():
     msg = "Number of bins must be positive, instead got: -10"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        cut(DT, nbins = -10)
+        DT[:, cut(DT, nbins = -10)]
 
 
 def test_cut_error_negative_nbins_list():
     msg = r"All elements in nbins must be positive, got nbins\[0\]: 0"
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        cut(DT, nbins = [0, -1])
+        DT[:, cut(DT, nbins = [0, -1])]
 
 
 def test_cut_error_inconsistent_nbins():
@@ -87,14 +87,15 @@ def test_cut_error_inconsistent_nbins():
            "the number of columns in the frame/expression, i.e. 2, instead got: 1")
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        cut(DT, nbins = [10])
+        DT[:, cut(DT, nbins = [10])]
 
 
 def test_cut_error_wrong_right():
-    msg = "Expected a boolean, instead got <class 'int'>"
+    msg = r"Argument right_closed in cut\(\) should be a boolean, instead got " \
+          "<class 'int'>"
     DT = dt.Frame(range(10))
     with pytest.raises(TypeError, match=msg):
-        cut(DT, right_closed = 1492)
+        DT[:, cut(DT, right_closed = 1492)]
 
 
 def test_cut_error_groupby():
@@ -104,14 +105,23 @@ def test_cut_error_groupby():
         DT[:, cut(f[0]), f[0]]
 
 
+
+#-------------------------------------------------------------------------------
+# Normal
+#-------------------------------------------------------------------------------
+
 def test_cut_empty_frame():
-    DT_cut = cut(dt.Frame())
-    assert_equals(DT_cut, dt.Frame())
+    DT = dt.Frame()
+    expr_cut = cut(DT)
+    assert isinstance(expr_cut, FExpr)
+    assert_equals(DT[:, f[:]], DT)
 
 
 def test_cut_trivial():
     DT = dt.Frame({"trivial": range(10)})
-    DT_cut = cut(DT)
+    DT_cut = DT[:, cut(f[:])]
+    expr_cut = cut(DT)
+    assert isinstance(expr_cut, FExpr)
     assert_equals(DT, DT_cut)
 
 
@@ -124,8 +134,8 @@ def test_cut_expr():
 def test_cut_one_row():
     nbins = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
-    DT_cut_right = cut(DT, nbins = nbins)
-    DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
+    DT_cut_right = DT[:, cut(DT, nbins = nbins)]
+    DT_cut_left = DT[:, cut(DT, nbins = nbins, right_closed = False)]
     assert DT_cut_right.to_list() == [[0], [0], [1], [None]]
     assert DT_cut_left.to_list() == [[0], [1], [1], [None]]
 
@@ -172,9 +182,9 @@ def test_cut_small():
                     stypes = [stype.int32] * DT.ncols
                   )
 
-    DT_cut_list = cut(DT, nbins = nbins)
-    DT_cut_tuple = cut(DT, nbins = tuple(nbins))
-    DT_cut_list_left = cut(DT, nbins = nbins, right_closed = False)
+    DT_cut_list = DT[:, cut(DT, nbins = nbins)]
+    DT_cut_tuple = DT[:, cut(DT, nbins = tuple(nbins))]
+    DT_cut_list_left = DT[:, cut(DT, nbins = nbins, right_closed = False)]
     assert_equals(DT_ref_right, DT_cut_list)
     assert_equals(DT_ref_right, DT_cut_tuple)
     assert_equals(DT_ref_left, DT_cut_list_left)
@@ -192,7 +202,7 @@ def test_cut_vs_pandas_random(pandas, seed):
     n = random.randint(1, max_size)
 
     nbins = [random.randint(1, max_size) for _ in range(3)]
-    right_closed = random.randint(0, 1)
+    right_closed = bool(random.getrandbits(1))
     data = [[] for _ in range(3)]
 
     for _ in range(n):
@@ -201,7 +211,7 @@ def test_cut_vs_pandas_random(pandas, seed):
         data[2].append(random.random() * 2 * max_value - max_value)
 
     DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
-    DT_cut = cut(DT, nbins = nbins, right_closed = right_closed)
+    DT_cut = DT[:, cut(DT, nbins = nbins, right_closed = right_closed)]
 
     PD_cut = [pandas.cut(data[i], nbins[i], labels=False, right=right_closed) for i in range(3)]
 
@@ -222,8 +232,8 @@ def test_cut_pandas_issue_35126(pandas):
     nbins = 42
     data = [-97, 0, 97]
     DT = dt.Frame(data)
-    DT_cut_right = cut(DT, nbins = nbins)
-    DT_cut_left = cut(DT, nbins = nbins, right_closed = False)
+    DT_cut_right = DT[:, cut(DT, nbins = nbins)]
+    DT_cut_left = DT[:, cut(DT, nbins = nbins, right_closed = False)]
     assert DT_cut_right.to_list() == [[0, 20, 41]]
     assert DT_cut_left.to_list() == [[0, 21, 41]]
 
