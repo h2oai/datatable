@@ -134,13 +134,13 @@ static const char* doc_cut =
 R"(cut(cols, nbins=10, right_closed=True)
 --
 
-Cut all the columns in a Frame/f-expression by binning
-their values into equal-width discrete intervals.
+Cut all the columns from `cols` by binning their values into
+equal-width discrete intervals.
 
 Parameters
 ----------
 cols: FExpr
-    Frame or f-expression consisting of numeric columns.
+    Input data for equal-width interval binning.
 nbins: int | List[int]
     When a single number is specified, this number of bins
     will be used to bin each column of `cols`.
@@ -153,11 +153,8 @@ right_closed: bool
     side of the interval is closed.
 
 return: FExpr
-    The return type matches the type of the `cols` argument.
-    If the function is applied to a frame, then the result is a frame where
-    each column from the original frame has been cut into the specified bins.
-    If the `cols` argument is an f-expression, then the result is a new
-    f-expression that transforms every column into its cut version.
+    f-expression that converts input columns into the columns filled
+    with the respective bin ids.
 
 See also
 --------
