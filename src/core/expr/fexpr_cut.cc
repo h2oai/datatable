@@ -20,9 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "_dt.h"
-#include "column/latent.h"
-#include "column/cut.h"
 #include "datatablemodule.h"
+#include "column/cut.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
