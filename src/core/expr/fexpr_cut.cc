@@ -55,7 +55,7 @@ class FExpr_Cut : public FExpr_Func {
         out += ", nbins=";
         out += py_nbins_.repr().to_string();
         out += ", right_closed=";
-        out += right_closed_? "true" : "false";
+        out += right_closed_? "True" : "False";
       }
       out += ")";
       return out;
