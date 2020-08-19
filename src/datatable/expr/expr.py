@@ -38,7 +38,6 @@ class OpCodes(enum.Enum):
     SETPLUS = 3
     SETMINUS = 4
     SHIFTFN = 5
-    CUT = 7
 
     # Unary
     UPLUS = 101

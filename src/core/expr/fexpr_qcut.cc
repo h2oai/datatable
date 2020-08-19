@@ -145,7 +145,7 @@ equal populations. Thus, the intervals are chosen according to
 the sample quantiles of the data.
 
 If there are duplicate values in the data, they will all be placed
-into the same been. In extreme cases this may cause the bins to be
+into the same bin. In extreme cases this may cause the bins to be
 highly unbalanced.
 
 Parameters
