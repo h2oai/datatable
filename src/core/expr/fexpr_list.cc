@@ -19,30 +19,51 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/head_list.h"
-#include "expr/expr.h"
-#include "expr/workframe.h"
 #include "expr/eval_context.h"
+#include "expr/fexpr_list.h"
+#include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include "sort.h"
 namespace dt {
 namespace expr {
 
 
 //------------------------------------------------------------------------------
-// Head_List
+// Constructors
 //------------------------------------------------------------------------------
 
-Kind Head_List::get_expr_kind() const {
-  return Kind::List;
+FExpr_List::FExpr_List(vecExpr&& args)
+  : args_(std::move(args))
+{}
+
+
+ptrExpr FExpr_List::make(py::robj src) {
+  vecExpr args;
+  if (src.is_list_or_tuple()) {
+    auto srclist = src.to_pylist();
+    args.reserve(srclist.size());
+    for (size_t i = 0; i < srclist.size(); ++i) {
+      args.emplace_back(as_fexpr(srclist[i]));
+    }
+  }
+  else {
+    for (auto elem : src.to_oiter()) {
+      args.emplace_back(as_fexpr(elem));
+    }
+  }
+  return ptrExpr(new FExpr_List(std::move(args)));
 }
 
-Workframe Head_List::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx) const
-{
+
+
+
+//------------------------------------------------------------------------------
+// Evaluation
+//------------------------------------------------------------------------------
+
+Workframe FExpr_List::evaluate_n(EvalContext& ctx) const {
   Workframe outputs(ctx);
-  for (const auto& arg : inputs) {
+  for (const auto& arg : args_) {
     outputs.cbind( arg->evaluate_n(ctx) );
   }
   return outputs;
@@ -52,23 +73,23 @@ Workframe Head_List::evaluate_n(
 // Evaluate list as a replacement target when replacing columns at
 // `indices` within the "root" Frame.
 //
-Workframe Head_List::evaluate_r(
-    const vecExpr& inputs, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_List::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   Workframe outputs(ctx);
-  if (inputs.size() == indices.size()) {
-    for (size_t i = 0; i < inputs.size(); ++i) {
-      outputs.cbind( inputs[i]->evaluate_r(ctx, {indices[i]}) );
+  if (args_.size() == indices.size()) {
+    for (size_t i = 0; i < args_.size(); ++i) {
+      outputs.cbind( args_[i]->evaluate_r(ctx, {indices[i]}) );
     }
   }
-  else if (inputs.size() == 1) {
+  else if (args_.size() == 1) {
     for (size_t i = 0; i < indices.size(); ++i) {
-      outputs.cbind( inputs[0]->evaluate_r(ctx, {indices[i]}) );
+      outputs.cbind( args_[0]->evaluate_r(ctx, {indices[i]}) );
     }
   }
   else {
     throw ValueError() << "The LHS of the replacement has " << indices.size()
-        << " columns, while the RHS has " << inputs.size()
+        << " columns, while the RHS has " << args_.size()
         << " replacement expressions";
   }
   return outputs;
@@ -76,7 +97,7 @@ Workframe Head_List::evaluate_r(
 
 
 
-Workframe Head_List::evaluate_f(EvalContext&, size_t) const {
+Workframe FExpr_List::evaluate_f(EvalContext&, size_t) const {
   throw TypeError()
       << "A list or a sequence cannot be used inside an f-selector";
 }
@@ -111,10 +132,10 @@ static const char* _name_type(Kind t) {
 // element kinds, an error must be thrown.
 // A list containing only `None` or `slice_all` should resolve as Kind::Int.
 //
-static Kind _resolve_list_kind(const vecExpr& inputs) {
+static Kind _resolve_list_kind(const vecExpr& args) {
   auto listkind = Kind::Unknown;
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    auto kind = inputs[i]->get_expr_kind();
+  for (size_t i = 0; i < args.size(); ++i) {
+    auto kind = args[i]->get_expr_kind();
     xassert(kind != Kind::Unknown);
     if (kind == listkind) continue;
     if (kind == Kind::Bool) {
@@ -153,41 +174,37 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
 }
 
 
-static Workframe _evaluate_bool_list(const vecExpr& inputs, EvalContext& ctx) {
+static Workframe _evaluate_bool_list(const vecExpr& args, EvalContext& ctx) {
   DataTable* df = ctx.get_datatable(0);
-  if (inputs.size() != df->ncols()) {
+  if (args.size() != df->ncols()) {
     throw ValueError()
         << "The length of boolean list in `j` selector does not match the "
            "number of columns in the Frame: "
-        << inputs.size() << " vs " << df->ncols();
+        << args.size() << " vs " << df->ncols();
   }
   Workframe outputs(ctx);
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    bool x = inputs[i]->evaluate_bool();
+  for (size_t i = 0; i < args.size(); ++i) {
+    bool x = args[i]->evaluate_bool();
     if (x) outputs.add_ref_column(0, i);
   }
   return outputs;
 }
 
 
-static Workframe _evaluate_f_list(
-    const vecExpr& inputs, EvalContext& ctx)
-{
+static Workframe _evaluate_f_list(const vecExpr& args, EvalContext& ctx) {
   Workframe outputs(ctx);
-  for (const auto& arg : inputs) {
+  for (const auto& arg : args) {
     outputs.cbind( arg->evaluate_j(ctx) );
   }
   return outputs;
 }
 
 
-Workframe Head_List::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx) const
-{
-  auto kind = _resolve_list_kind(inputs);
-  if (kind == Kind::Bool) return _evaluate_bool_list(inputs, ctx);
-  if (kind == Kind::Func) return evaluate_n(inputs, ctx);
-  return _evaluate_f_list(inputs, ctx);
+Workframe FExpr_List::evaluate_j(EvalContext& ctx) const {
+  auto kind = _resolve_list_kind(args_);
+  if (kind == Kind::Bool) return _evaluate_bool_list(args_, ctx);
+  if (kind == Kind::Func) return evaluate_n(ctx);
+  return _evaluate_f_list(args_, ctx);
 }
 
 
@@ -196,10 +213,10 @@ Workframe Head_List::evaluate_j(
 // i-evaluation
 //------------------------------------------------------------------------------
 
-static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
+static RowIndex _evaluate_i_other(const vecExpr& args, EvalContext& ctx) {
   std::vector<RowIndex> rowindices;
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    auto ikind = inputs[i]->get_expr_kind();
+  for (size_t i = 0; i < args.size(); ++i) {
+    auto ikind = args[i]->get_expr_kind();
     if (ikind == Kind::None) continue;
     if (!(ikind == Kind::Int || ikind == Kind::SliceInt ||
           ikind == Kind::SliceAll || ikind == Kind::Func ||
@@ -207,7 +224,7 @@ static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
       throw TypeError() << "Invalid expression of type " << _name_type(ikind)
           << " at index " << i << " in the i-selector list";
     }
-    RowIndex ri = inputs[i]->evaluate_i(ctx);
+    RowIndex ri = args[i]->evaluate_i(ctx);
     if (!ri) ri = RowIndex(0, ctx.nrows(), 1);
     rowindices.push_back(std::move(ri));
   }
@@ -215,23 +232,23 @@ static RowIndex _evaluate_i_other(const vecExpr& inputs, EvalContext& ctx) {
 }
 
 
-static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
+static RowIndex _evaluate_i_bools(const vecExpr& args, EvalContext& ctx) {
   size_t nrows = ctx.nrows();
-  if (inputs.size() != nrows) {
+  if (args.size() != nrows) {
     throw ValueError()
         << "The length of boolean list in i selector does not match the "
-           "number of rows in the Frame: " << inputs.size() << " vs " << nrows;
+           "number of rows in the Frame: " << args.size() << " vs " << nrows;
   }
   Buffer databuf = Buffer::mem(nrows * sizeof(int32_t));
   auto data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
   for (size_t i = 0; i < nrows; ++i) {
-    if (inputs[i]->get_expr_kind() != Kind::Bool) {
+    if (args[i]->get_expr_kind() != Kind::Bool) {
       throw TypeError() << "Element " << i << " in the i-selector list is "
-          << _name_type(inputs[i]->get_expr_kind()) << ", whereas the previous "
+          << _name_type(args[i]->get_expr_kind()) << ", whereas the previous "
           "elements were boolean";
     }
-    bool x = inputs[i]->evaluate_bool();
+    bool x = args[i]->evaluate_bool();
     if (x) {
       data[data_index++] = static_cast<int32_t>(i);
     }
@@ -241,15 +258,15 @@ static RowIndex _evaluate_i_bools(const vecExpr& inputs, EvalContext& ctx) {
 }
 
 
-static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
+static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
   auto inrows = static_cast<int64_t>(ctx.nrows());
-  Buffer databuf = Buffer::mem(inputs.size() * sizeof(int32_t));
+  Buffer databuf = Buffer::mem(args.size() * sizeof(int32_t));
   int32_t* data = static_cast<int32_t*>(databuf.xptr());
   size_t data_index = 0;
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    auto ikind = inputs[i]->get_expr_kind();
+  for (size_t i = 0; i < args.size(); ++i) {
+    auto ikind = args[i]->get_expr_kind();
     if (ikind == Kind::Int) {
-      int64_t x = inputs[i]->evaluate_int();
+      int64_t x = args[i]->evaluate_int();
       if (x < -inrows || x >= inrows) {
         throw ValueError() << "Index " << x << " is invalid for a Frame with "
             << inrows << " rows";
@@ -258,7 +275,7 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
     }
     else if (ikind == Kind::None) {}  // skip
     else if (ikind == Kind::SliceAll || ikind == Kind::SliceInt) {
-      return _evaluate_i_other(inputs, ctx);
+      return _evaluate_i_other(args, ctx);
     }
     else {
       throw TypeError() << "Invalid item of type " << _name_type(ikind)
@@ -272,44 +289,37 @@ static RowIndex _evaluate_i_ints(const vecExpr& inputs, EvalContext& ctx) {
 
 
 
-RowIndex Head_List::evaluate_i(const vecExpr& inputs, EvalContext& ctx) const
-{
-  if (inputs.empty()) {
+RowIndex FExpr_List::evaluate_i(EvalContext& ctx) const {
+  if (args_.empty()) {
     return RowIndex(0, 0, 1);  // Select-nothing rowindex
   }
-  auto kind0 = inputs[0]->get_expr_kind();
-  if (kind0 == Kind::Bool) return _evaluate_i_bools(inputs, ctx);
-  if (kind0 == Kind::Int)  return _evaluate_i_ints(inputs, ctx);
-  return _evaluate_i_other(inputs, ctx);
+  auto kind0 = args_[0]->get_expr_kind();
+  if (kind0 == Kind::Bool) return _evaluate_i_bools(args_, ctx);
+  if (kind0 == Kind::Int)  return _evaluate_i_ints(args_, ctx);
+  return _evaluate_i_other(args_, ctx);
 }
 
 
-RiGb Head_List::evaluate_iby(const vecExpr&, EvalContext&) const {
-  throw NotImplError() << "Head_List::evaluate_iby() not implemented yet";
+RiGb FExpr_List::evaluate_iby(EvalContext&) const {
+  throw NotImplError() << "FExpr_List::evaluate_iby() not implemented yet";
 }
 
 
 
-
-//------------------------------------------------------------------------------
-// prepare_by
-//------------------------------------------------------------------------------
-
-void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
-                           Workframe& outwf, std::vector<SortFlag>& outflags)
-                          const
+void FExpr_List::prepare_by(
+    EvalContext& ctx, Workframe& outwf, std::vector<SortFlag>& outflags) const
 {
-  if (inputs.empty()) return;
+  if (args_.empty()) return;
 
-  auto kind = _resolve_list_kind(inputs);
+  auto kind = _resolve_list_kind(args_);
   if (kind == Kind::Str || kind == Kind::Int) {
-    for (const auto& arg : inputs) {
+    for (const auto& arg : args_) {
       outwf.cbind( arg->evaluate_f(ctx, 0) );
       outflags.push_back(SortFlag::NONE);
     }
   }
   else if (kind == Kind::Func) {
-    for (const auto& arg : inputs) {
+    for (const auto& arg : args_) {
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
@@ -326,6 +336,32 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
   }
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Miscellaneous
+//------------------------------------------------------------------------------
+
+Kind FExpr_List::get_expr_kind() const {
+  return Kind::List;
+}
+
+
+int FExpr_List::precedence() const noexcept {
+  return 17;
+}
+
+
+std::string FExpr_List::repr() const {
+  std::string out = "[";
+  for (size_t i = 0; i < args_.size(); ++i) {
+    if (i) out += ", ";
+    out += args_[i]->repr();
+  }
+  out += ']';
+  return out;
+}
 
 
 

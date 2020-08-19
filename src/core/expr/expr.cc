@@ -22,7 +22,6 @@
 #include "expr/expr.h"
 #include "expr/head.h"
 #include "expr/head_func.h"
-#include "expr/head_list.h"
 #include "expr/workframe.h"
 #include "expr/eval_context.h"
 #include "datatable.h"
@@ -46,10 +45,10 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_float())         _init_from_float(src);
   // else if (src.is_bool())          _init_from_bool(src);
   // else if (src.is_slice())         _init_from_slice(src);
-  else if (src.is_list_or_tuple()) _init_from_list(src);
+  // else if (src.is_list_or_tuple()) _init_from_list(src);
   // else if (src.is_dict())          _init_from_dictionary(src);
   // else if (src.is_anytype())       _init_from_type(src);
-  else if (src.is_generator())     _init_from_iterable(src);
+  // else if (src.is_generator())     _init_from_iterable(src);
   // else if (src.is_none())          _init_from_none();
   // else if (src.is_frame())         _init_from_frame(src);
   // else if (src.is_range())         _init_from_range(src);
@@ -74,25 +73,6 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
     inputs.emplace_back(as_fexpr(args[i]));
   }
   head = Head_Func::from_op(static_cast<Op>(op), params);
-}
-
-
-
-void OldExpr::_init_from_iterable(py::robj src) {
-  for (auto elem : src.to_oiter()) {
-    inputs.emplace_back(as_fexpr(elem));
-  }
-  head = ptrHead(new Head_List);
-}
-
-
-void OldExpr::_init_from_list(py::robj src) {
-  auto srclist = src.to_pylist();
-  size_t nelems = srclist.size();
-  for (size_t i = 0; i < nelems; ++i) {
-    inputs.emplace_back(as_fexpr(srclist[i]));
-  }
-  head = ptrHead(new Head_List);
 }
 
 
