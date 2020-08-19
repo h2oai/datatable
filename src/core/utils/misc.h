@@ -63,7 +63,7 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count);
 #elif DT_OS_WINDOWS
   #include <malloc.h>  // size_t _msize(void *)
   #define malloc_size  _msize
-#elif DT_OS_LINUX
+#elif (DT_OS_LINUX || DT_OS_FREEBSD)
   #include <malloc.h>  // size_t malloc_usable_size(void *) __THROW
   #define malloc_size  malloc_usable_size
 #else

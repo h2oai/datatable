@@ -29,9 +29,10 @@
 // Operating system
 //------------------------------------------------------------------------------
 
-#define DT_OS_MACOS  0
+#define DT_OS_MACOS   0
 #define DT_OS_LINUX   0
 #define DT_OS_WINDOWS 0
+#define DT_OS_FREEBSD 0
 
 
 #if defined(__APPLE__) && defined(__MACH__)
@@ -44,18 +45,23 @@
   #define DT_OS_LINUX 1
 #endif
 
+#if defined(__FreeBSD__)
+  #undef  DT_OS_FREEBSD
+  #define DT_OS_FREEBSD 1
+#endif
+
 #ifdef _WIN32
   #undef  DT_OS_WINDOWS
   #define DT_OS_WINDOWS 1
 #endif
 
-#if (DT_OS_LINUX || DT_OS_MACOS)
+#if (DT_OS_LINUX || DT_OS_MACOS || DT_OS_FREEBSD)
   #define DT_UNIX 1
 #else
   #define DT_UNIX 0
 #endif
 
-#if DT_OS_WINDOWS + DT_OS_MACOS + DT_OS_LINUX != 1
+#if DT_OS_WINDOWS + DT_UNIX != 1
   #error Unknown operating system
 #endif
 

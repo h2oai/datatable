@@ -40,7 +40,9 @@
   #include <sys/mman.h>        // mmap, munmap
 #endif
 
-
+#ifndef MAP_NORESERVE
+#define MAP_NORESERVE 0 // does not exist in FreeBSD 11.x
+#endif
 
 //------------------------------------------------------------------------------
 // BufferImpl
