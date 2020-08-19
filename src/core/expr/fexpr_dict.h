@@ -19,25 +19,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_LIST_h
-#define dt_EXPR_HEAD_LIST_h
+#ifndef dt_EXPR_FEXPR_DICT_h
+#define dt_EXPR_FEXPR_DICT_h
 #include <string>
 #include <vector>
-#include "expr/head.h"
+#include "expr/declarations.h"
+#include "expr/fexpr.h"
 namespace dt {
 namespace expr {
 
 
-class Head_List : public Head {
+class FExpr_Dict : public FExpr {
+  private:
+    strvec names_;
+    vecExpr args_;
+
   public:
-    Kind get_expr_kind() const override;
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
+    FExpr_Dict(strvec&&, vecExpr&&);
+    static ptrExpr make(py::robj);
+
+    Workframe evaluate_n(EvalContext&) const override;
+    Workframe evaluate_j(EvalContext&) const override;
+    Workframe evaluate_r(EvalContext&, const sztvec&) const override;
     Workframe evaluate_f(EvalContext&, size_t) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
-    void prepare_by(const vecExpr&, EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
+
+    Kind get_expr_kind() const override;
+    int precedence() const noexcept override;
+    std::string repr() const override;
 };
 
 

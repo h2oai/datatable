@@ -75,7 +75,6 @@ namespace expr {
   * The hierarchy of Head subclasses is the following:
   *
   *   Head
-  *     +-- Head_Frame
   *     +-- Head_Func
   *     |     +-- Head_Func_Binary
   *     |     +-- Head_Func_Cast
@@ -86,7 +85,6 @@ namespace expr {
   *     |           +-- Head_Reduce_Nullary
   *     |           +-- Head_Reduce_Unary
   *     +-- Head_List
-  *     +-- Head_NamedList
   *
   */
 class Head {

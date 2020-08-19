@@ -133,7 +133,7 @@ static Kind _resolve_list_kind(const vecExpr& inputs) {
       throw TypeError()
         << "A floating value cannot be used as a column selector";
     }
-    if (kind == Kind::List || kind == Kind::NamedList) {
+    if (kind == Kind::List || kind == Kind::Dict) {
       throw TypeError()
         << "Nested lists are not supported as a column selector";
     }
@@ -327,61 +327,6 @@ void Head_List::prepare_by(const vecExpr& inputs, EvalContext& ctx,
 }
 
 
-
-
-//------------------------------------------------------------------------------
-// Head_NamedList
-//------------------------------------------------------------------------------
-
-Head_NamedList::Head_NamedList(strvec&& names_)
-  : names(std::move(names_)) {}
-
-Kind Head_NamedList::get_expr_kind() const {
-  return Kind::NamedList;
-}
-
-
-Workframe Head_NamedList::evaluate_n(
-    const vecExpr& inputs, EvalContext& ctx) const
-{
-  xassert(inputs.size() == names.size());
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < inputs.size(); ++i) {
-    Workframe arg_out = inputs[i]->evaluate_n(ctx);
-    arg_out.rename(names[i]);
-    outputs.cbind( std::move(arg_out) );
-  }
-  return outputs;
-}
-
-
-Workframe Head_NamedList::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const sztvec&) const
-{
-  return evaluate_n(args, ctx);
-}
-
-
-Workframe Head_NamedList::evaluate_f(EvalContext&, size_t) const {
-  throw TypeError() << "A dictionary cannot be used as an f-selector";
-}
-
-
-Workframe Head_NamedList::evaluate_j(
-    const vecExpr& inputs, EvalContext& ctx) const
-{
-  return evaluate_n(inputs, ctx);
-}
-
-
-RowIndex Head_NamedList::evaluate_i(const vecExpr&, EvalContext&) const {
-  throw TypeError() << "A dictionary cannot be used as an i-selector";
-}
-
-
-RiGb Head_NamedList::evaluate_iby(const vecExpr&, EvalContext&) const {
-  throw TypeError() << "A dictionary cannot be used as an i-selector";
-}
 
 
 

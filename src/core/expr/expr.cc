@@ -47,7 +47,7 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_bool())          _init_from_bool(src);
   // else if (src.is_slice())         _init_from_slice(src);
   else if (src.is_list_or_tuple()) _init_from_list(src);
-  else if (src.is_dict())          _init_from_dictionary(src);
+  // else if (src.is_dict())          _init_from_dictionary(src);
   // else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
   // else if (src.is_none())          _init_from_none();
@@ -62,19 +62,6 @@ OldExpr::OldExpr(py::robj src)
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an Expr";
   }
-}
-
-
-void OldExpr::_init_from_dictionary(py::robj src) {
-  strvec names;
-  for (auto kv : src.to_pydict()) {
-    if (!kv.first.is_string()) {
-      throw TypeError() << "Keys in the dictionary must be strings";
-    }
-    names.push_back(kv.first.to_string());
-    inputs.emplace_back(as_fexpr(kv.second));
-  }
-  head = ptrHead(new Head_NamedList(std::move(names)));
 }
 
 
