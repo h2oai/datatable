@@ -75,7 +75,7 @@ static ptrExpr extract_fexpr(py::robj src) {
 
 ptrExpr as_fexpr(py::robj src) {
   if (src.is_fexpr())              return extract_fexpr(src);
-  else if (src.is_dtexpr())        ;
+  else if (src.is_dtexpr())        return std::make_shared<OldExpr>(src);
   else if (src.is_int())           return FExpr_Literal_Int::make(src);
   else if (src.is_string())        return FExpr_Literal_String::make(src);
   else if (src.is_float())         return FExpr_Literal_Float::make(src);
@@ -97,8 +97,6 @@ ptrExpr as_fexpr(py::robj src) {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an FExpr";
   }
-  // TODO: remove this
-  return std::make_shared<OldExpr>(src);
 }
 
 
