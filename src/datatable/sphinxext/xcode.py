@@ -136,8 +136,7 @@ class XcodeDirective(SphinxDirective):
             lexer = pygments.lexers.get_lexer_by_name("doscon")
             lang = "console"
         else:
-            raise self.error("Unknown lex language %r in ..xcode:: directive"
-                             % (lang,))
+            lexer = pygments.lexers.get_lexer_by_name(lang)
 
         if lang == "console":
             formatter = SphinxFormatter("console")
