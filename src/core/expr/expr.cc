@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "expr/expr.h"
 #include "expr/head.h"
-#include "expr/head_frame.h"
 #include "expr/head_func.h"
 #include "expr/head_list.h"
 #include "expr/workframe.h"
@@ -52,12 +51,12 @@ OldExpr::OldExpr(py::robj src)
   // else if (src.is_anytype())       _init_from_type(src);
   else if (src.is_generator())     _init_from_iterable(src);
   // else if (src.is_none())          _init_from_none();
-  else if (src.is_frame())         _init_from_frame(src);
+  // else if (src.is_frame())         _init_from_frame(src);
   // else if (src.is_range())         _init_from_range(src);
-  else if (src.is_pandas_frame() ||
-           src.is_pandas_series()) _init_from_pandas(src);
-  else if (src.is_numpy_array() ||
-           src.is_numpy_marray())  _init_from_numpy(src);
+  // else if (src.is_pandas_frame() ||
+  //          src.is_pandas_series()) _init_from_pandas(src);
+  // else if (src.is_numpy_array() ||
+  //          src.is_numpy_marray())  _init_from_numpy(src);
   // else if (src.is_ellipsis())      _init_from_ellipsis();
   else {
     throw TypeError() << "An object of type " << src.typeobj()
@@ -92,11 +91,6 @@ void OldExpr::_init_from_dtexpr(py::robj src) {
 
 
 
-void OldExpr::_init_from_frame(py::robj src) {
-  head = Head_Frame::from_datatable(src);
-}
-
-
 void OldExpr::_init_from_iterable(py::robj src) {
   for (auto elem : src.to_oiter()) {
     inputs.emplace_back(as_fexpr(elem));
@@ -113,17 +107,6 @@ void OldExpr::_init_from_list(py::robj src) {
   }
   head = ptrHead(new Head_List);
 }
-
-
-void OldExpr::_init_from_numpy(py::robj src) {
-  head = Head_Frame::from_numpy(src);
-}
-
-
-void OldExpr::_init_from_pandas(py::robj src) {
-  head = Head_Frame::from_pandas(src);
-}
-
 
 
 

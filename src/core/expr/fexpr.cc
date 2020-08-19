@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/fexpr.h"
+#include "expr/fexpr_frame.h"
 #include "expr/fexpr_literal.h"
 #include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
@@ -83,12 +84,12 @@ ptrExpr as_fexpr(py::robj src) {
   else if (src.is_anytype())       return FExpr_Literal_Type::make(src);
   else if (src.is_generator())     ;
   else if (src.is_none())          return FExpr_Literal_None::make();
-  else if (src.is_frame())         ;
+  else if (src.is_frame())         return FExpr_Frame::from_datatable(src);
   else if (src.is_range())         return FExpr_Literal_Range::make(src);
   else if (src.is_pandas_frame() ||
-           src.is_pandas_series()) ;
+           src.is_pandas_series()) return FExpr_Frame::from_pandas(src);
   else if (src.is_numpy_array() ||
-           src.is_numpy_marray())  ;
+           src.is_numpy_marray())  return FExpr_Frame::from_numpy(src);
   else if (src.is_ellipsis())      return ptrExpr(new FExpr_Literal_SliceAll());
   else {
     throw TypeError() << "An object of type " << src.typeobj()

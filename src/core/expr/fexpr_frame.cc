@@ -20,8 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/eval_context.h"
-#include "expr/expr.h"
-#include "expr/head_frame.h"
+#include "expr/fexpr_frame.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
@@ -36,30 +35,26 @@ namespace expr {
 // Constructors
 //------------------------------------------------------------------------------
 
-ptrHead Head_Frame::from_datatable(py::robj src) {
-  return ptrHead(new Head_Frame(src));
+ptrExpr FExpr_Frame::from_datatable(py::robj src) {
+  return ptrExpr(new FExpr_Frame(src));
 }
 
-ptrHead Head_Frame::from_numpy(py::robj src) {
+ptrExpr FExpr_Frame::from_numpy(py::robj src) {
   py::oobj src_frame = py::Frame::oframe(src);
-  return ptrHead(new Head_Frame(src_frame, /* ignore_names_= */ true));
+  return ptrExpr(new FExpr_Frame(src_frame, /* ignore_names_= */ true));
 }
 
-ptrHead Head_Frame::from_pandas(py::robj src) {
+ptrExpr FExpr_Frame::from_pandas(py::robj src) {
   py::oobj src_frame = py::Frame::oframe(src);
-  return ptrHead(new Head_Frame(src_frame));
+  return ptrExpr(new FExpr_Frame(src_frame));
 }
 
 
-Head_Frame::Head_Frame(py::robj src, bool ignore_names)
+FExpr_Frame::FExpr_Frame(py::robj src, bool ignore_names)
   : container_(src),
     dt_(src.to_datatable()),
     ignore_names_(ignore_names) {}
 
-
-Kind Head_Frame::get_expr_kind() const {
-  return Kind::Frame;
-}
 
 
 
@@ -79,12 +74,8 @@ Kind Head_Frame::get_expr_kind() const {
 // more advanced types of joins, an explicit `join()` clause has to
 // be used.
 //
-Workframe Head_Frame::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
+Workframe FExpr_Frame::evaluate_n(EvalContext& ctx) const
 {
-  (void) args;
-  xassert(args.size() == 0);
-
   size_t nrows = dt_->nrows();
   if (!(nrows == ctx.nrows() || nrows == 1)) {
     throw ValueError() << "Frame has " << nrows << " rows, and "
@@ -111,10 +102,8 @@ Workframe Head_Frame::evaluate_n(
 // In addition, standalone X in j can be used to with an i-filter:
 // DT[<i>, X] is thus equivalent to X[DT[:, <i>], :].
 //
-Workframe Head_Frame::evaluate_j(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  return evaluate_n(args, ctx);
+Workframe FExpr_Frame::evaluate_j(EvalContext& ctx) const {
+  return evaluate_n(ctx);
 }
 
 
@@ -126,14 +115,14 @@ Workframe Head_Frame::evaluate_j(
 // mode. The stypes of the RHS can be ignored, since the stypes of X
 // take precedence in this case.
 //
-Workframe Head_Frame::evaluate_r(
-    const vecExpr& args, EvalContext& ctx, const sztvec& indices) const
+Workframe FExpr_Frame::evaluate_r(
+    EvalContext& ctx, const sztvec& indices) const
 {
   // Allow to assign an empty frame to an empty column set (see issue #1544)
   if (indices.size() == 0 && dt_->nrows() == 0 && dt_->ncols() == 0) {
     return Workframe(ctx);
   }
-  return evaluate_n(args, ctx);
+  return evaluate_n(ctx);
 }
 
 
@@ -141,7 +130,7 @@ Workframe Head_Frame::evaluate_r(
 // If X is a Frame, then the expression f[X] (as in DT[:, f[X]]) just
 // doesn't make much sense, so we disallow it.
 //
-Workframe Head_Frame::evaluate_f(EvalContext&, size_t) const {
+Workframe FExpr_Frame::evaluate_f(EvalContext&, size_t) const {
   throw TypeError() << "A Frame cannot be used inside an f-expression";
 }
 
@@ -167,7 +156,7 @@ Workframe Head_Frame::evaluate_f(EvalContext&, size_t) const {
 // to mean the same as DT[X == f[X.name], :]. For now, however, the
 // use of keyed frames in i node is disallowed.
 //
-RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
+RowIndex FExpr_Frame::evaluate_i(EvalContext& ctx) const {
   if (dt_->ncols() != 1) {
     throw ValueError() << "Only a single-column Frame may be used as `i` "
         "selector, instead got a Frame with " << dt_->ncols() << " columns";
@@ -216,9 +205,29 @@ RowIndex Head_Frame::evaluate_i(const vecExpr&, EvalContext& ctx) const {
 //
 // I cannot think of a good interpretation of such notation.
 //
-RiGb Head_Frame::evaluate_iby(const vecExpr&, EvalContext&) const {
+RiGb FExpr_Frame::evaluate_iby(EvalContext&) const {
   throw TypeError() << "A Frame cannot be used as an i-selector "
                        "in the presence of a groupby";
+}
+
+
+
+//------------------------------------------------------------------------------
+// Miscellaneous
+//------------------------------------------------------------------------------
+
+Kind FExpr_Frame::get_expr_kind() const {
+  return Kind::Frame;
+}
+
+
+int FExpr_Frame::precedence() const noexcept {
+  return 16;
+}
+
+
+std::string FExpr_Frame::repr() const {
+  return container_.repr().to_string();
 }
 
 

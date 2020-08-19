@@ -19,11 +19,11 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_FRAME_h
-#define dt_EXPR_HEAD_FRAME_h
+#ifndef dt_EXPR_FEXPR_FRAME_h
+#define dt_EXPR_FEXPR_FRAME_h
 #include <string>
 #include <vector>
-#include "expr/head.h"
+#include "expr/fexpr.h"
 namespace dt {
 namespace expr {
 
@@ -39,7 +39,7 @@ namespace expr {
   * The flag `ignore_names_` is set when the class is create from a
   * numpy array, since the numpy array has no column names.
   */
-class Head_Frame : public Head {
+class FExpr_Frame : public FExpr {
   private:
     py::oobj container_;
     DataTable* dt_;
@@ -47,19 +47,22 @@ class Head_Frame : public Head {
     size_t : 56;
 
   public:
-    static ptrHead from_datatable(py::robj src);
-    static ptrHead from_numpy(py::robj src);
-    static ptrHead from_pandas(py::robj src);
+    static ptrExpr from_datatable(py::robj src);
+    static ptrExpr from_numpy(py::robj src);
+    static ptrExpr from_pandas(py::robj src);
 
-    Head_Frame(py::robj src, bool ignore_names = false);
+    FExpr_Frame(py::robj src, bool ignore_names = false);
     Kind get_expr_kind() const override;
 
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_j(const vecExpr&, EvalContext&) const override;
-    Workframe evaluate_r(const vecExpr&, EvalContext&, const sztvec&) const override;
+    Workframe evaluate_n(EvalContext&) const override;
+    Workframe evaluate_j(EvalContext&) const override;
+    Workframe evaluate_r(EvalContext&, const sztvec&) const override;
     Workframe evaluate_f(EvalContext&, size_t) const override;
-    RowIndex  evaluate_i(const vecExpr&, EvalContext&) const override;
-    RiGb      evaluate_iby(const vecExpr&, EvalContext&) const override;
+    RowIndex  evaluate_i(EvalContext&) const override;
+    RiGb      evaluate_iby(EvalContext&) const override;
+
+    int precedence() const noexcept override;
+    std::string repr() const override;
 };
 
 
