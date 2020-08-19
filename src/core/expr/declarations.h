@@ -104,7 +104,7 @@ namespace expr {
     Type,
     Func,
     List,
-    NamedList,
+    Dict,
     Frame,
     SliceAll,
     SliceInt,

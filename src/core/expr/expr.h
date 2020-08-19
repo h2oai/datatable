@@ -117,17 +117,6 @@ class OldExpr : public FExpr {
     void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
 
     std::shared_ptr<FExpr> unnegate_column() const override;
-
-  private:
-    // Construction helpers
-    void _init_from_dictionary(py::robj);
-    void _init_from_dtexpr(py::robj);
-    void _init_from_frame(py::robj);
-    void _init_from_iterable(py::robj);
-    void _init_from_list(py::robj);
-    void _init_from_numpy(py::robj);
-    void _init_from_pandas(py::robj);
-    void _init_from_type(py::robj);
 };
 
 

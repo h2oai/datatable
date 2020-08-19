@@ -20,6 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/fexpr.h"
+#include "expr/fexpr_dict.h"
+#include "expr/fexpr_frame.h"
+#include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
 #include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
@@ -72,30 +75,28 @@ static ptrExpr extract_fexpr(py::robj src) {
 
 ptrExpr as_fexpr(py::robj src) {
   if (src.is_fexpr())              return extract_fexpr(src);
-  else if (src.is_dtexpr())        ;
+  else if (src.is_dtexpr())        return std::make_shared<OldExpr>(src);
   else if (src.is_int())           return FExpr_Literal_Int::make(src);
   else if (src.is_string())        return FExpr_Literal_String::make(src);
   else if (src.is_float())         return FExpr_Literal_Float::make(src);
   else if (src.is_bool())          return FExpr_Literal_Bool::make(src);
   else if (src.is_slice())         return FExpr_Literal_Slice::make(src);
-  else if (src.is_list_or_tuple()) ;
-  else if (src.is_dict())          ;
+  else if (src.is_list_or_tuple()) return FExpr_List::make(src);
+  else if (src.is_dict())          return FExpr_Dict::make(src);
   else if (src.is_anytype())       return FExpr_Literal_Type::make(src);
-  else if (src.is_generator())     ;
+  else if (src.is_generator())     return FExpr_List::make(src);
   else if (src.is_none())          return FExpr_Literal_None::make();
-  else if (src.is_frame())         ;
+  else if (src.is_frame())         return FExpr_Frame::from_datatable(src);
   else if (src.is_range())         return FExpr_Literal_Range::make(src);
   else if (src.is_pandas_frame() ||
-           src.is_pandas_series()) ;
+           src.is_pandas_series()) return FExpr_Frame::from_pandas(src);
   else if (src.is_numpy_array() ||
-           src.is_numpy_marray())  ;
+           src.is_numpy_marray())  return FExpr_Frame::from_numpy(src);
   else if (src.is_ellipsis())      return ptrExpr(new FExpr_Literal_SliceAll());
   else {
     throw TypeError() << "An object of type " << src.typeobj()
                       << " cannot be used in an FExpr";
   }
-  // TODO: remove this
-  return std::make_shared<OldExpr>(src);
 }
 
 

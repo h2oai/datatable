@@ -286,7 +286,7 @@ py::oobj EvalContext::evaluate_delete() {
   Kind jkind = jexpr_->get_expr_kind();
   if (jkind == Kind::SliceAll) {
     evaluate_delete_rows();
-  } else if (jkind == Kind::NamedList) {
+  } else if (jkind == Kind::Dict) {
     throw TypeError() << "When del operator is applied, `j` selector cannot "
                          "be a dictionary";
   }

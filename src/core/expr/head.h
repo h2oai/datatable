@@ -75,18 +75,15 @@ namespace expr {
   * The hierarchy of Head subclasses is the following:
   *
   *   Head
-  *     +-- Head_Frame
   *     +-- Head_Func
-  *     |     +-- Head_Func_Binary
-  *     |     +-- Head_Func_Cast
-  *     |     +-- Head_Func_Colset
-  *     |     +-- Head_Func_Unary
-  *     |     +-- Head_Reduce
-  *     |           +-- Head_Reduce_Binary
-  *     |           +-- Head_Reduce_Nullary
-  *     |           +-- Head_Reduce_Unary
-  *     +-- Head_List
-  *     +-- Head_NamedList
+  *           +-- Head_Func_Binary
+  *           +-- Head_Func_Cast
+  *           +-- Head_Func_Colset
+  *           +-- Head_Func_Unary
+  *           +-- Head_Reduce
+  *                 +-- Head_Reduce_Binary
+  *                 +-- Head_Reduce_Nullary
+  *                 +-- Head_Reduce_Unary
   *
   */
 class Head {
