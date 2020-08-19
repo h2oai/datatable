@@ -131,7 +131,7 @@ class Semaphore {
 //------------------------------------------------------------------------------
 // Semaphore (POSIX, Linux)
 //------------------------------------------------------------------------------
-#elif DT_OS_LINUX
+#elif (DT_OS_LINUX || DT_OS_FREEBSD)
 #include <semaphore.h>
 
 class Semaphore {
