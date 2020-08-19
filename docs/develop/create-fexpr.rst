@@ -325,7 +325,7 @@ Documentation
 The final piece of the puzzle is the documentation. We've already written the
 documentation for our function: the ``doc_gcd`` variable declared earlier.
 However, for now this is only visible from python when you run ``help(gcd)``.
-We also want the documentation to be visible in our official readthedocs
+We also want the documentation to be visible on our official readthedocs
 website, which requires a few more steps. So:
 
 First, create file ``docs/api/dt/gcd.rst``. The content of the file should
@@ -363,9 +363,9 @@ a brief paragraph about the new function:
     ...
 
     -[new] Added new function :func:`gcd()` to compute the greatest common
-      divisor of two columns. [#1234]
+      divisor of two columns. [#NNNN]
 
-The ``[#1234]`` is a link to the GitHub issue where the ``gcd()`` function
+The ``[#NNNN]`` is a link to the GitHub issue where the ``gcd()`` function
 was requested.
 
 
