@@ -104,14 +104,9 @@ std::string FExpr_IfElse::repr() const {
 
 
 
-}}  // dt::expr
-
-
 //------------------------------------------------------------------------------
 // Python interface
 //------------------------------------------------------------------------------
-namespace py {
-
 
 static const char* doc_ifelse =
 R"(ifelse(condition, expr_if_true, expr_if_false)
@@ -145,7 +140,7 @@ return: FExpr
     upcasted.
 )";
 
-static oobj ifelse(const XArgs& args) {
+static py::oobj ifelse(const py::XArgs& args) {
   return dt::expr::PyFExpr::make(
               new dt::expr::FExpr_IfElse(args[0].to_robj(),
                                          args[1].to_robj(),
@@ -162,4 +157,4 @@ DECLARE_PYFN(&ifelse)
 
 
 
-}
+}}  // dt::expr

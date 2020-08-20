@@ -20,11 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "_dt.h"
-#include "datatablemodule.h"
 #include "column/cut.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
@@ -42,7 +42,7 @@ class FExpr_Cut : public FExpr_Func {
     size_t: 56;
 
   public:
-    FExpr_Cut(py::oobj arg, py::robj py_nbins, bool right_closed)
+    FExpr_Cut(py::robj arg, py::robj py_nbins, bool right_closed)
       : arg_(as_fexpr(arg)),
         py_nbins_(py_nbins),
         right_closed_(right_closed)
@@ -164,19 +164,7 @@ See also
 
 )";
 
-static py::PKArgs args_cut(
-  1, 0, 2, false, false,
-  {
-    "cols", "nbins", "right_closed"
-  },
-  "cut", doc_cut
-);
-
-static py::oobj pyfn_cut(const py::PKArgs& args) {
-  if (args[0].is_none_or_undefined()) {
-    throw TypeError() << "Function `cut()` requires one positional argument, "
-                         "but none were given";
-  }
+static py::oobj pyfn_cut(const py::XArgs& args) {
   py::oobj arg0 = args[0].to_oobj();
   py::oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
   bool arg2 = args[2].is_none_or_undefined()? true : args[2].to_bool_strict();
@@ -184,11 +172,14 @@ static py::oobj pyfn_cut(const py::PKArgs& args) {
   return PyFExpr::make(new FExpr_Cut(arg0, arg1, arg2));
 }
 
+DECLARE_PYFN(&pyfn_cut)
+    ->name("cut")
+    ->docs(doc_cut)
+    ->arg_names({"cols", "nbins", "right_closed"})
+    ->n_positional_args(1)
+    ->n_keyword_args(2)
+    ->n_required_args(1);
+
 
 
 }}  // dt::expr
-
-
-void py::DatatableModule::init_methods_cut() {
-  ADD_FN(&dt::expr::pyfn_cut, dt::expr::args_cut);
-}

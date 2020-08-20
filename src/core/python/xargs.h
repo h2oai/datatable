@@ -74,7 +74,7 @@ class XArgs : public ArgParent {
     XArgs* n_required_args(size_t n);
     XArgs* n_positional_args(size_t n);
     XArgs* n_positional_or_keyword_args(size_t n);
-    XArgs* n_keyword_only_args(size_t n);
+    XArgs* n_keyword_args(size_t n);
     XArgs* docs(const char*);
 
     // Return the name of the method/function:

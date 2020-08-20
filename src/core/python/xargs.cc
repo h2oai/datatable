@@ -116,7 +116,7 @@ XArgs* XArgs::n_positional_or_keyword_args(size_t n) {
   return this;
 }
 
-XArgs* XArgs::n_keyword_only_args(size_t n) {
+XArgs* XArgs::n_keyword_args(size_t n) {
   nargs_kwdonly_ = n;
   return this;
 }
@@ -192,7 +192,7 @@ Error XArgs::error_too_few_args(size_t i) const {
     err << descriptive_name() << " requires "
         << (exact? "exactly " : "at least ")
         << nreq << " positional argument" << (nreq==1? "" : "s")
-        << " but ";
+        << ", but ";
     if (i == 0) err << "none were given";
     else if (i == 1) err << "only 1 was given";
     else {
