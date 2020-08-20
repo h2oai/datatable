@@ -44,7 +44,8 @@ static PKArgs args_aggregate(
   "aggregate",
 
 R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False)
+nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False,
+fixed_radius=None)
 --
 
 Aggregate frame into a set of clusters. Each cluster is represented by
@@ -77,7 +78,8 @@ fixed_radius: float
     If set, `nd_max_bins` will have no effect and in the worst
     case number of exemplars may be equal to the number of rows
     in the data. For big data this may result in extremly large
-    execution times.
+    execution times. Since all the columns are normalized to [0, 1),
+    the `fixed_radius` value should be choosen accordingly.
 
 Returns
 -------
