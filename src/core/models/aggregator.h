@@ -53,7 +53,7 @@ class Aggregator : public AggregatorBase {
     };
     using exptr = std::unique_ptr<exemplar>;
     Aggregator(size_t, size_t, size_t, size_t, size_t, size_t,
-               unsigned int, size_t);
+               unsigned int, size_t, double);
     void aggregate(DataTable*, dtptr&, dtptr&) override;
     static constexpr T epsilon = std::numeric_limits<T>::epsilon();
     static void set_norm_coeffs(T&, T&, T, T, size_t);
@@ -72,6 +72,7 @@ class Aggregator : public AggregatorBase {
     size_t ny_bins;
     size_t nd_max_bins;
     size_t max_dimensions;
+    double fixed_delta;
     unsigned int seed;
     size_t: 32;
 
