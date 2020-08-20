@@ -50,6 +50,7 @@
 #include "py_encodings.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "read/py_read_iterator.h"
 #include "sort.h"
 #include "utils/assert.h"
@@ -361,6 +362,10 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
+
+  for (py::XArgs* xarg : py::XArgs::store()) {
+    add(xarg->get_method_def());
+  }
 
   init_methods_aggregate();
   init_methods_buffers();

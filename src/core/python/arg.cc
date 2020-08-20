@@ -22,7 +22,7 @@
 #include <cstdio>
 #include "cstring.h"
 #include "python/arg.h"
-#include "python/args.h"        // py::PKArgs
+#include "python/args.h"        // py::ArgParent
 #include "python/dict.h"
 #include "python/int.h"
 #include "python/list.h"
@@ -55,7 +55,7 @@ Arg::Arg(const std::string& cached_name_)
 Arg::~Arg() {}
 
 
-void Arg::init(size_t i, PKArgs* args) {
+void Arg::init(size_t i, ArgParent* args) {
   pos = i;
   parent = args;
 }

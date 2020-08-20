@@ -27,6 +27,7 @@
 #include "python/list.h"
 namespace py {
 
+class ArgParent;
 
 /**
  * The argument may be in "undefined" state, meaning the user did not provide
@@ -36,7 +37,7 @@ namespace py {
 class Arg : public _obj::error_manager {
   private:
     size_t pos;
-    PKArgs* parent;
+    ArgParent* parent;
     py::robj pyobj;
     mutable std::string cached_name;
 
@@ -46,7 +47,7 @@ class Arg : public _obj::error_manager {
     Arg(py::_obj, const std::string&);
     Arg(const Arg&) = default;
     virtual ~Arg() override;
-    void init(size_t i, PKArgs* args);
+    void init(size_t i, ArgParent* args);
     void set(PyObject* value);
 
     //---- Type checks -----------------

@@ -20,10 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/ifelse.h"        // IfElse_ColumnImpl
+#include "datatablemodule.h"      // DatatableModule
 #include "expr/eval_context.h"    // EvalContext
 #include "expr/fexpr_func.h"      // FExpr_Func
 #include "expr/workframe.h"       // Workframe
-#include "datatablemodule.h"      // DatatableModule
+#include "python/xargs.h"         // DECLARE_PYFN
 #include "stype.h"                // SType
 namespace dt {
 namespace expr {
@@ -145,26 +146,40 @@ return: FExpr
     upcasted.
 )";
 
-static PKArgs args_ifelse(
-    3, 0, 0, false, false,
-    {"condition", "expr_if_true", "expr_if_false"},
-    "ifelse", doc_ifelse);
+// static PKArgs args_ifelse(
+//     3, 0, 0, false, false,
+//     {"condition", "expr_if_true", "expr_if_false"},
+//     "ifelse", doc_ifelse);
 
-static oobj ifelse(const PKArgs& args) {
-  robj arg_cond = args[0].to_robj();
-  robj arg_true = args[1].to_robj();
-  robj arg_false = args[2].to_robj();
-  if (!arg_cond || !arg_true || !arg_false) {
-    throw TypeError() << "Function `ifelse()` requires 3 arguments";
-  }
+// static oobj ifelse(const PKArgs& args) {
+//   robj arg_cond = args[0].to_robj();
+//   robj arg_true = args[1].to_robj();
+//   robj arg_false = args[2].to_robj();
+//   if (!arg_cond || !arg_true || !arg_false) {
+//     throw TypeError() << "Function `ifelse()` requires 3 arguments";
+//   }
+//   return dt::expr::PyFExpr::make(
+//               new dt::expr::FExpr_IfElse(arg_cond, arg_true, arg_false));
+// }
+
+static oobj ifelse(const XArgs& args) {
   return dt::expr::PyFExpr::make(
-              new dt::expr::FExpr_IfElse(arg_cond, arg_true, arg_false));
+              new dt::expr::FExpr_IfElse(args[0].to_robj(),
+                                         args[1].to_robj(),
+                                         args[2].to_robj())
+         );
 }
+
+DECLARE_PYFN(ifelse, &ifelse)
+    ->n_positional_args(3)
+    ->n_required_args(3)
+    ->arg_names({"condition", "expr_if_true", "expr_if_false"})
+    ->documentation(doc_ifelse);
 
 
 
 void DatatableModule::init_methods_ifelse() {
-  ADD_FN(&ifelse, args_ifelse);
+  // ADD_FN(&ifelse, args_ifelse);
 }
 
 
