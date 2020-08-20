@@ -141,6 +141,7 @@ Parameters
 ----------
 cols: FExpr
     Input data for equal-width interval binning.
+
 nbins: int | List[int]
     When a single number is specified, this number of bins
     will be used to bin each column of `cols`.
@@ -148,6 +149,7 @@ nbins: int | List[int]
     by using its own number of bins. In the latter case,
     the list/tuple length must be equal to the number of columns
     in `cols`.
+
 right_closed: bool
     Each binning interval is `half-open`_. This flag indicates which
     side of the interval is closed.
@@ -165,11 +167,10 @@ See also
 )";
 
 static py::oobj pyfn_cut(const py::XArgs& args) {
-  py::oobj arg0 = args[0].to_oobj();
-  py::oobj arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
-  bool arg2 = args[2].is_none_or_undefined()? true : args[2].to_bool_strict();
-
-  return PyFExpr::make(new FExpr_Cut(arg0, arg1, arg2));
+  auto arg0         = args[0].to_oobj();
+  auto nbins        = args[1].to<py::oobj>(py::None());
+  auto right_closed = args[2].to<bool>(true);
+  return PyFExpr::make(new FExpr_Cut(arg0, nbins, right_closed));
 }
 
 DECLARE_PYFN(&pyfn_cut)
