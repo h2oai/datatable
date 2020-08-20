@@ -207,12 +207,9 @@ python's ``PyObject*``.
 
 .. code-block:: C++
 
-    static py::oobj py_gcd(const py::PKArgs& args) {
+    static py::oobj py_gcd(const py::XArgs& args) {
       auto a = args[0].to_oobj();
       auto b = args[1].to_oobj();
-      if (!b) {
-        throw TypeError() << "Function `gcd()` requires 2 positional arguments";
-      }
       return PyFExpr::make(new FExpr_Gcd(as_fexpr(a), as_fexpr(b)));
     }
 
@@ -242,25 +239,12 @@ python function:
         of type int64, or otherwise it will be int32.
     )";
 
-    static py::PKArgs args_gcd(
-        2, 0, 0, false, false, {"a", "b"}, "gcd", doc_gcd);
-
-The next step is to "tell" python runtime about this function, by attaching
-it to the module object. We do this by creating a method ``init_gcd()`` in
-``DatatableModule`` class (see ``src/core/datatablemodule.h``), then calling
-that method from within ``py::DatatableModule::init_methods()`` (see
-``src/core/datatablemodule.cc``), and the ``init_gcd()`` method itself should
-simply say
-
-.. code-block:: C++
-
-    void py::DatatableModule::init_gcd() {
-      ADD_FN(&py_gcd, args_gcd);
-    }
-
-That is, we declare here that our ``py_gcd()`` function has arguments that are
-described by the ``args_gcd`` object, and that this function should be added to
-the ``_datatable`` module.
+    DECLARE_PYFN(&py_gcd)
+        ->name("gcd")
+        ->docs(doc_gcd)
+        ->arg_names({"a", "b"})
+        ->n_positional_args(2)
+        ->n_required_args(2);
 
 At this point the method will be visible from python in the ``_datatable``
 module. So the next step is to import it into the main ``datatable`` module.
