@@ -381,7 +381,6 @@ void py::DatatableModule::init_methods() {
   init_methods_shift();
   init_methods_str();
   init_methods_styles();
-  init_methods_qcut();
 
   init_fbinary();
   init_fnary();

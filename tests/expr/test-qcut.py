@@ -34,8 +34,8 @@ from tests import assert_equals
 #-------------------------------------------------------------------------------
 
 def test_qcut_error_noargs():
-    msg = r"Function qcut\(\) requires one positional argument, " \
-           "but none were given"
+    msg = r"Function datatable\.qcut\(\) requires exactly 1 positional " \
+           "argument, but none were given"
     with pytest.raises(TypeError, match=msg):
         qcut()
 
