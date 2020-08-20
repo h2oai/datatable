@@ -43,14 +43,14 @@ PKArgs::PKArgs(
     n_posonly_args(npo),
     n_pos_kwd_args(npk),
     n_all_args(npo + npk + nko),
-    has_varargs(vargs),
-    has_varkwds(vkwds),
+    has_varargs_(vargs),
+    has_varkwds_(vkwds),
     has_renamed_args(false),
     arg_names(_names),
     n_varkwds(0)
 {
   wassert(n_all_args == arg_names.size());
-  wassert(has_varargs? n_pos_kwd_args == 0 : true);
+  wassert(has_varargs_? n_pos_kwd_args == 0 : true);
 
   bound_args.resize(n_all_args);
   for (size_t i = 0; i < n_all_args; ++i) {
@@ -144,7 +144,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
   size_t max_pos_args = n_posonly_args + n_pos_kwd_args;
   size_t n_bound_args = std::min(nargs, max_pos_args);
   n_varargs = nargs - n_bound_args;
-  if (n_varargs && !has_varargs) {
+  if (n_varargs && !has_varargs_) {
     auto err = TypeError() << get_long_name();
     if (max_pos_args == 0) {
       err << " takes no positional arguments";
@@ -173,7 +173,7 @@ void PKArgs::bind(PyObject* _args, PyObject* _kwds)
       size_t ikey = _find_kwd(key);
       if (ikey == size_t(-1)) {
         n_varkwds++;
-        if (has_varkwds) continue;
+        if (has_varkwds_) continue;
         throw TypeError() << get_long_name() << " got an unexpected keyword "
           "argument `" << PyUnicode_AsUTF8(key) << "`";
       }
@@ -229,28 +229,35 @@ PyObject* PKArgs::exec_function(
 }
 
 
-
-std::string PKArgs::make_arg_name(size_t i) const {
-  std::string res;
-  if (i == 0 && n_posonly_args == 1 && n_all_args == 1 &&
-      !has_varargs && !has_varkwds) {
-    res = "The argument";
-  } else
-  if (i < n_posonly_args) {
-    res = (i == 0)? "First" :
-          (i == 1)? "Second" :
-          (i == 2)? "Third" :
-          std::to_string(i + 1) + "th";
-    res += " argument";
-  } else {
-    res = std::string("Argument `") + arg_names[i] + '`';
-  }
-  res += std::string(" in ") + get_long_name();
-  return res;
+std::string PKArgs::descriptive_name(bool) const {
+  return get_long_name();
 }
 
-const char* PKArgs::get_arg_short_name(size_t i) const {
+
+
+const char* PKArgs::arg_name(size_t i) const {
+  xassert(i < arg_names.size());
   return arg_names[i];
+}
+
+size_t PKArgs::n_positional_args() const {
+  return n_posonly_args;
+}
+
+size_t PKArgs::n_positional_or_keyword_args() const {
+  return n_pos_kwd_args;
+}
+
+size_t PKArgs::n_keyword_args() const {
+  return n_all_args - n_posonly_args - n_pos_kwd_args;
+}
+
+bool PKArgs::has_varargs() const {
+  return has_varargs_;
+}
+
+bool PKArgs::has_varkwds() const {
+  return has_varkwds_;
 }
 
 

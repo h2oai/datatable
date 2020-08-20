@@ -121,9 +121,45 @@ XArgs* XArgs::n_keyword_args(size_t n) {
   return this;
 }
 
+XArgs* XArgs::allow_varargs() {
+  has_varargs_ = true;
+  return this;
+}
+
+XArgs* XArgs::allow_varkwds() {
+  has_varkwds_ = true;
+  return this;
+}
+
 XArgs* XArgs::docs(const char* str) {
   docstring_ = str;
   return this;
+}
+
+
+size_t XArgs::n_positional_args() const {
+  return nargs_posonly_;
+}
+
+size_t XArgs::n_positional_or_keyword_args() const {
+  return nargs_pos_kwd_;
+}
+
+size_t XArgs::n_keyword_args() const {
+  return nargs_kwdonly_;
+}
+
+bool XArgs::has_varargs() const {
+  return has_varargs_;
+}
+
+bool XArgs::has_varkwds() const {
+  return has_varkwds_;
+}
+
+const char* XArgs::arg_name(size_t i) const {
+  xassert(i < arg_names_.size());
+  return arg_names_[i];
 }
 
 
@@ -159,16 +195,6 @@ std::string XArgs::descriptive_name(bool lowercase) const {
   return out;
 }
 
-
-std::string XArgs::make_arg_name(size_t i) const {
-  (void) i;
-  return "";
-}
-
-const char* XArgs::get_arg_short_name(size_t i) const {
-  xassert(i < arg_names_.size());
-  return arg_names_[i];
-}
 
 
 

@@ -92,8 +92,8 @@ def test_cut_error_inconsistent_nbins():
 
 
 def test_cut_error_wrong_right():
-    msg = r"Argument right_closed in cut\(\) should be a boolean, instead got " \
-          "<class 'int'>"
+    msg = r"Argument right_closed in function datatable\.cut\(\) should " \
+          r"be a boolean, instead got <class 'int'>"
     DT = dt.Frame(range(10))
     with pytest.raises(TypeError, match=msg):
         DT[:, cut(DT, right_closed = 1492)]

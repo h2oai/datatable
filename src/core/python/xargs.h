@@ -67,15 +67,24 @@ class XArgs : public ArgParent {
     XArgs(implfn_t fn);
     XArgs(const XArgs&) = delete;
     XArgs(XArgs&&) = delete;
+    XArgs* pyfunction(PyCFunctionWithKeywords f);  // "private"
 
-    XArgs* pyfunction(PyCFunctionWithKeywords f);
     XArgs* name(const char* name);
     XArgs* arg_names(std::initializer_list<const char*> names);
     XArgs* n_required_args(size_t n);
     XArgs* n_positional_args(size_t n);
     XArgs* n_positional_or_keyword_args(size_t n);
     XArgs* n_keyword_args(size_t n);
+    XArgs* allow_varargs();
+    XArgs* allow_varkwds();
     XArgs* docs(const char*);
+
+    size_t n_positional_args() const override;
+    size_t n_positional_or_keyword_args() const override;
+    size_t n_keyword_args() const override;
+    bool has_varargs() const override;
+    bool has_varkwds() const override;
+    const char* arg_name(size_t i) const override;
 
     // Return the name of the method/function:
     //   proper_name()
@@ -93,9 +102,7 @@ class XArgs : public ArgParent {
     //
     std::string proper_name() const;
     std::string qualified_name() const;
-    std::string descriptive_name(bool lowercase = false) const;
-    std::string make_arg_name(size_t i) const override;
-    const char* get_arg_short_name(size_t i) const override;
+    std::string descriptive_name(bool lowercase = false) const override;
 
     static std::vector<XArgs*>& store();
     PyMethodDef get_method_def();
@@ -117,7 +124,6 @@ class XArgs : public ArgParent {
     // const char* get_short_name() const;
     // const char* get_docstring() const;
 
-    // std::string make_arg_name(size_t i) const;
     // const char* get_arg_short_name(size_t i) const;
 
     // //---- User API --------------------
