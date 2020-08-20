@@ -64,24 +64,32 @@ class XArgs : public ArgParent {
     PyObject* kwds_dict_;   // for var-kwds iteration
 
   public:
-    XArgs(const char* fnname, implfn_t fn);
+    XArgs(implfn_t fn);
     XArgs(const XArgs&) = delete;
     XArgs(XArgs&&) = delete;
 
     XArgs* pyfunction(PyCFunctionWithKeywords f);
+    XArgs* name(const char* name);
     XArgs* arg_names(std::initializer_list<const char*> names);
     XArgs* n_required_args(size_t n);
     XArgs* n_positional_args(size_t n);
     XArgs* n_positional_or_keyword_args(size_t n);
     XArgs* n_keyword_only_args(size_t n);
-    XArgs* documentation(const char*);
+    XArgs* docs(const char*);
 
     // Return the name of the method/function:
-    //   proper_name() returns the simple name like "sin"
-    //   qualified_name() returns module+[class]+name, like "datatable.math.sin"
-    //   descriptive_name() returns qualified name with a description:
+    //   proper_name()
+    //       Simple name like "sin" or "cbind"
+    //
+    //   qualified_name()
+    //       Produces module+[class]+name, like "datatable.math.sin" or
+    //       "datatable.Frame.cbind".
+    //
+    //   descriptive_name()
+    //       Returns qualified name with a description:
     //       "Function `datatable.math.sin()`" or
-    //       "Method `datatable.Frame.cbind()`"
+    //       "Method `datatable.Frame.cbind()`". For constructor, it
+    //       returns "`datatable.Frame()` constructor".
     //
     std::string proper_name() const;
     std::string qualified_name() const;
@@ -114,8 +122,8 @@ class XArgs : public ArgParent {
 
     // //---- User API --------------------
     const Arg& operator[](size_t i) const;
-    size_t num_vararg_args() const noexcept;
-    size_t num_varkwd_args() const noexcept;
+    size_t num_varargs() const noexcept;
+    size_t num_varkwds() const noexcept;
     // VarKwdsIterable varkwds() const noexcept;
     // VarArgsIterable varargs() const noexcept;
 
@@ -137,12 +145,11 @@ class XArgs : public ArgParent {
 };
 
 
-#define ARGS(name)   args_ ## name
-#define DECLARE_PYFN(name, fn)                                                 \
-    static py::XArgs* ARGS(name) = (new py::XArgs(#name, fn))                  \
+#define DECLARE_PYFN(fn)                                                       \
+    static py::XArgs* args_ ## __LINE__ = (new py::XArgs(fn))                  \
       ->pyfunction(                                                            \
           [](PyObject*, PyObject* args, PyObject* kwds) -> PyObject* {         \
-            return ARGS(name)->exec_function(args, kwds);                      \
+            return (args_ ## __LINE__)->exec_function(args, kwds);             \
           })
 
 

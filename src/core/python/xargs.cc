@@ -30,10 +30,9 @@ namespace py {
 // Construction
 //------------------------------------------------------------------------------
 
-XArgs::XArgs(const char* fnname, implfn_t fn)
+XArgs::XArgs(implfn_t fn)
   : ccfn_(fn),
     pyfn_(nullptr),
-    function_name_(fnname),
     docstring_(nullptr),
     nargs_required_(0),
     nargs_posonly_(0),
@@ -92,6 +91,11 @@ XArgs* XArgs::pyfunction(PyCFunctionWithKeywords f) {
   return this;
 }
 
+XArgs* XArgs::name(const char* name) {
+  function_name_ = name;
+  return this;
+}
+
 XArgs* XArgs::arg_names(std::initializer_list<const char*> names) {
   arg_names_ = std::vector<const char*>(names);
   return this;
@@ -117,7 +121,7 @@ XArgs* XArgs::n_keyword_only_args(size_t n) {
   return this;
 }
 
-XArgs* XArgs::documentation(const char* str) {
+XArgs* XArgs::docs(const char* str) {
   docstring_ = str;
   return this;
 }
@@ -324,12 +328,12 @@ const Arg& XArgs::operator[](size_t i) const {
   return bound_args_[i];
 }
 
-size_t XArgs::num_vararg_args() const noexcept {
-  return static_cast<size_t>(n_varargs_);
+size_t XArgs::num_varargs() const noexcept {
+  return n_varargs_;
 }
 
-size_t XArgs::num_varkwd_args() const noexcept {
-  return static_cast<size_t>(n_varkwds_);
+size_t XArgs::num_varkwds() const noexcept {
+  return n_varkwds_;
 }
 
 
