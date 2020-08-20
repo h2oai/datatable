@@ -26,6 +26,7 @@
 #include "ltype.h"
 #include "models/aggregator.h"
 #include "models/utils.h"
+#include "models/py_validator.h"
 #include "options.h"
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
@@ -35,15 +36,16 @@ namespace py {
 
 
 static PKArgs args_aggregate(
-  1, 0, 8, false, false,
+  1, 0, 9, false, false,
   {
     "frame", "min_rows", "n_bins", "nx_bins", "ny_bins", "nd_max_bins",
-    "max_dimensions", "seed", "double_precision"
+    "max_dimensions", "seed", "double_precision", "fixed_radius"
   },
   "aggregate",
 
 R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False)
+nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False,
+fixed_radius=None)
 --
 
 Aggregate frame into a set of clusters. Each cluster is represented by
@@ -71,6 +73,13 @@ seed: int
     Seed to be used for the projection method.
 double_precision: bool
     Whether to use double precision arithmetic or not.
+fixed_radius: float
+    Fixed radius for ND aggregation, use it with caution.
+    If set, `nd_max_bins` will have no effect and in the worst
+    case number of exemplars may be equal to the number of rows
+    in the data. For big data this may result in extremly large
+    execution times. Since all the columns are normalized to [0, 1),
+    the `fixed_radius` value should be choosen accordingly.
 
 Returns
 -------
@@ -106,6 +115,7 @@ static oobj aggregate(const PKArgs& args) {
   size_t max_dimensions = 50;
   unsigned int seed = 0;
   bool double_precision = false;
+  double fixed_delta = std::numeric_limits<double>::quiet_NaN();
 
   bool defined_min_rows = !args[1].is_none_or_undefined();
   bool defined_n_bins = !args[2].is_none_or_undefined();
@@ -115,6 +125,7 @@ static oobj aggregate(const PKArgs& args) {
   bool defined_max_dimensions = !args[6].is_none_or_undefined();
   bool defined_seed = !args[7].is_none_or_undefined();
   bool defined_double_precision = !args[8].is_none_or_undefined();
+  bool defined_fixed_radius = !args[9].is_none_or_undefined();
 
   if (defined_min_rows) {
     min_rows = args[1].to_size_t();
@@ -148,17 +159,23 @@ static oobj aggregate(const PKArgs& args) {
     double_precision = args[8].to_bool_strict();
   }
 
+  if (defined_fixed_radius) {
+    double fixed_radius = args[9].to_double();
+    py::Validator::check_positive(fixed_radius, args[9]);
+    fixed_delta = fixed_radius * fixed_radius;
+  }
+
   dtptr dt_members, dt_exemplars;
   std::unique_ptr<AggregatorBase> agg;
   size_t nrows = dt->nrows();
   if (double_precision) {
     agg = std::make_unique<Aggregator<double>>(min_rows, n_bins, nx_bins, ny_bins,
                                                nd_max_bins, max_dimensions, seed,
-                                               nrows);
+                                               nrows, fixed_delta);
   } else {
     agg = std::make_unique<Aggregator<float>>(min_rows, n_bins, nx_bins, ny_bins,
                                               nd_max_bins, max_dimensions, seed,
-                                              nrows);
+                                              nrows, fixed_delta);
   }
 
   agg->aggregate(dt, dt_exemplars, dt_members);
@@ -195,7 +212,8 @@ template <typename T>
 Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
                           size_t nx_bins_in, size_t ny_bins_in,
                           size_t nd_max_bins_in, size_t max_dimensions_in,
-                          unsigned int seed_in, size_t nrows_in) :
+                          unsigned int seed_in, size_t nrows_in,
+                          double fixed_delta_in) :
   dt(nullptr),
   min_rows(min_rows_in),
   n_bins(n_bins_in),
@@ -203,9 +221,11 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
   ny_bins(ny_bins_in),
   nd_max_bins(nd_max_bins_in),
   max_dimensions(max_dimensions_in),
+  fixed_delta(fixed_delta_in),
   seed(seed_in),
   nthreads(dt::nthreads_from_niters(nrows_in, MIN_ROWS_PER_THREAD))
 {
+
 }
 
 
@@ -856,8 +876,19 @@ bool Aggregator<T>::group_nd() {
   // Figuring out how many rows a thread will get.
   size_t nrows_per_thread = nrows / nthreads.get();
 
-  // Start with a very small `delta`, that is Euclidean distance squared.
-  T delta = epsilon;
+  T delta;
+  size_t max_bins;
+
+  if (_notnan(fixed_delta)) {
+    delta = static_cast<T>(fixed_delta);
+    // This will allow to use a fixed `delta` disabling `delta` adjustments
+    max_bins = size_t(-1);
+  } else {
+    // Start with a very small `delta` if `fixed_delta` is not specified
+    delta = epsilon;
+    max_bins = nd_max_bins;
+  }
+
   // Exemplar counter, if doesn't match thread local value, it means
   // some new exemplars were added (and may be even `delta` was adjusted)
   // meanwhile, so restart is needed for the `test_member` procedure.
@@ -927,7 +958,7 @@ bool Aggregator<T>::group_nd() {
             ids.push_back(e->id);
             d_members[i] = static_cast<int32_t>(e->id);
             exemplars.push_back(std::move(e));
-            if (exemplars.size() > nd_max_bins) {
+            if (exemplars.size() > max_bins) {
               adjust_delta(delta, exemplars, ids, ndims);
             }
             calculate_coprimes(exemplars.size(), coprimes);

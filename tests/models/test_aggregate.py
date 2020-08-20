@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 #
 #-------------------------------------------------------------------------------
 import datatable as dt
-from datatable import ltype
+from datatable import ltype, cbind
 from datatable.models import aggregate
 from tests import assert_equals
 from datatable.internal import frame_columns_virtual, frame_integrity_check
@@ -561,6 +561,26 @@ def test_aggregate_3d_categorical():
     assert d_exemplars.ltypes == (ltype.str, ltype.str, ltype.str, ltype.int)
     assert d_exemplars.to_list() == a_in + members_count
     assert_equals(d_in, d_in_copy)
+
+
+def test_aggregate_3d_fixed_small_radius():
+    DT = dt.Frame([range(10)] * 3)
+    [DTE, DTM] = aggregate(DT, min_rows=0, nd_max_bins=1, fixed_radius = 0.1)
+    DTE_ref = cbind(DT, dt.Frame([1] * 10 / dt.stype.int32, names = ["members_count"]))
+    DTM_ref = dt.Frame(range(10), names = ["exemplar_id"])
+    assert_equals(DTE, DTE_ref)
+    assert_equals(DTM, DTM_ref)
+
+
+def test_aggregate_3d_fixed_big_radius():
+    DT = dt.Frame([range(10)] * 3)
+    [DTE, DTM] = aggregate(DT, min_rows=0, nd_max_bins=10, fixed_radius = 10)
+    DTE_ref = dt.Frame([[0], [0] , [0], [10]],
+                       stypes = [dt.stype.int32] * 4,
+                       names = ["C0", "C1", "C2", "members_count"])
+    DTM_ref = dt.Frame([0] * 10 / dt.stype.int32, names = ["exemplar_id"])
+    assert_equals(DTE, DTE_ref)
+    assert_equals(DTM, DTM_ref)
 
 
 # Single thread test, due to small number of rows
