@@ -288,7 +288,7 @@ documented is declared as follows::
     .. xfunction:: datatable.rbind
         :src: src/core/frame/rbind.cc py_rbind
         :doc: src/core/frame/rbind.cc doc_py_rbind
-        :tests: tests/munging/test_rbind.py
+        :tests: tests/munging/test-rbind.py
 
 Here we declare the function :func:`datatable.rbind`, whose source code is
 located in file ``src/core/frame/rbind.cc`` in function ``py_rbind()``. The
