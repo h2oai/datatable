@@ -63,6 +63,7 @@ namespace py {
   class Frame;
   class GSArgs;
   class PKArgs;
+  class XArgs;
   class obool;
   class oby;
   class odict;

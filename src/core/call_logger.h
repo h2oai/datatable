@@ -75,6 +75,7 @@ class CallLogger {
     ~CallLogger();
 
     static CallLogger function  (const py::PKArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
+    static CallLogger function  (const py::XArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger method    (const py::PKArgs*, PyObject* pyobj, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger dealloc   (PyObject* pyobj) noexcept;
     static CallLogger getset    (PyObject* pyobj, PyObject* val, void* closure) noexcept;

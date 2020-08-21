@@ -22,7 +22,7 @@
 #include <cstdio>
 #include "cstring.h"
 #include "python/arg.h"
-#include "python/args.h"        // py::PKArgs
+#include "python/args.h"        // py::ArgParent
 #include "python/dict.h"
 #include "python/int.h"
 #include "python/list.h"
@@ -55,7 +55,7 @@ Arg::Arg(const std::string& cached_name_)
 Arg::~Arg() {}
 
 
-void Arg::init(size_t i, PKArgs* args) {
+void Arg::init(size_t i, ArgParent* args) {
   pos = i;
   parent = args;
 }
@@ -68,13 +68,31 @@ void Arg::set(PyObject* value) {
 
 const std::string& Arg::name() const {
   if (cached_name.empty()) {
-    cached_name = parent->make_arg_name(pos);
+    bool single_arg = (pos == 0) &&
+                      parent->n_positional_args() == 1 &&
+                      parent->n_keyword_args() == 0 &&
+                      parent->n_positional_or_keyword_args() == 0 &&
+                      !parent->has_varargs() &&
+                      !parent->has_varkwds();
+    if (single_arg) {
+      cached_name = "The argument";
+    }
+    else if (pos < parent->n_positional_args()) {
+      cached_name = (pos == 0)? "First" :
+            (pos == 1)? "Second" :
+            (pos == 2)? "Third" :
+            std::to_string(pos + 1) + "th";
+      cached_name += " argument";
+    } else {
+      cached_name = std::string("Argument `") + parent->arg_name(pos) + '`';
+    }
+    cached_name += std::string(" in ") + parent->descriptive_name(true);
   }
   return cached_name;
 }
 
 const char* Arg::short_name() const {
-  return parent->get_arg_short_name(pos);
+  return parent->arg_name(pos);
 }
 
 

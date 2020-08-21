@@ -23,7 +23,7 @@
 #include "expr/eval_context.h"    // EvalContext
 #include "expr/fexpr_func.h"      // FExpr_Func
 #include "expr/workframe.h"       // Workframe
-#include "datatablemodule.h"      // DatatableModule
+#include "python/xargs.h"         // DECLARE_PYFN
 #include "stype.h"                // SType
 namespace dt {
 namespace expr {
@@ -104,14 +104,9 @@ std::string FExpr_IfElse::repr() const {
 
 
 
-}}  // dt::expr
-
-
 //------------------------------------------------------------------------------
 // Python interface
 //------------------------------------------------------------------------------
-namespace py {
-
 
 static const char* doc_ifelse =
 R"(ifelse(condition, expr_if_true, expr_if_false)
@@ -145,28 +140,21 @@ return: FExpr
     upcasted.
 )";
 
-static PKArgs args_ifelse(
-    3, 0, 0, false, false,
-    {"condition", "expr_if_true", "expr_if_false"},
-    "ifelse", doc_ifelse);
-
-static oobj ifelse(const PKArgs& args) {
-  robj arg_cond = args[0].to_robj();
-  robj arg_true = args[1].to_robj();
-  robj arg_false = args[2].to_robj();
-  if (!arg_cond || !arg_true || !arg_false) {
-    throw TypeError() << "Function `ifelse()` requires 3 arguments";
-  }
+static py::oobj ifelse(const py::XArgs& args) {
   return dt::expr::PyFExpr::make(
-              new dt::expr::FExpr_IfElse(arg_cond, arg_true, arg_false));
+              new dt::expr::FExpr_IfElse(args[0].to_robj(),
+                                         args[1].to_robj(),
+                                         args[2].to_robj())
+         );
 }
 
+DECLARE_PYFN(&ifelse)
+    ->name("ifelse")
+    ->docs(doc_ifelse)
+    ->arg_names({"condition", "expr_if_true", "expr_if_false"})
+    ->n_positional_args(3)
+    ->n_required_args(3);
 
 
-void DatatableModule::init_methods_ifelse() {
-  ADD_FN(&ifelse, args_ifelse);
-}
 
-
-
-}
+}}  // dt::expr

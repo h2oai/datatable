@@ -31,6 +31,19 @@
 namespace py {
 
 
+class ArgParent {
+  public:
+    virtual ~ArgParent() = default;
+    virtual std::string descriptive_name(bool lowercase = false) const = 0;
+    virtual const char* arg_name(size_t i) const = 0;
+    virtual size_t n_positional_args() const = 0;
+    virtual size_t n_positional_or_keyword_args() const = 0;
+    virtual size_t n_keyword_args() const = 0;
+    virtual bool has_varargs() const = 0;
+    virtual bool has_varkwds() const = 0;
+};
+
+
 
 //------------------------------------------------------------------------------
 // GSArgs
@@ -71,7 +84,7 @@ class VarKwdsIterable;
  * args-related functions, each designed to handle different calling
  * convention.
  */
-class PKArgs {
+class PKArgs : public ArgParent {
   private:
     const char* cls_name;
     const char* fun_name;
@@ -81,8 +94,8 @@ class PKArgs {
     const size_t n_posonly_args;
     const size_t n_pos_kwd_args;
     const size_t n_all_args;
-    const bool   has_varargs;
-    const bool   has_varkwds;
+    const bool   has_varargs_;
+    const bool   has_varkwds_;
     bool         has_renamed_args;
     size_t : 40;
     const std::vector<const char*> arg_names;
@@ -111,7 +124,7 @@ class PKArgs {
            const char* name = nullptr, const char* doc = nullptr);
     PKArgs(const PKArgs&) = delete;
     PKArgs(PKArgs&&) = delete;
-    ~PKArgs();
+    ~PKArgs() override;
     void add_synonym_arg(const char* new_name, const char* old_name);
 
     void bind(PyObject* _args, PyObject* _kws);
@@ -147,8 +160,13 @@ class PKArgs {
      * This name can also be obtained as
      *    args[i].name()
      */
-    std::string make_arg_name(size_t i) const;
-    const char* get_arg_short_name(size_t i) const;
+    const char* arg_name(size_t i) const override;
+    std::string descriptive_name(bool lowercase = false) const override;
+    size_t n_positional_args() const override;
+    size_t n_positional_or_keyword_args() const override;
+    size_t n_keyword_args() const override;
+    bool has_varargs() const override;
+    bool has_varkwds() const override;
 
     //---- User API --------------------
     void check_posonly_args() const;

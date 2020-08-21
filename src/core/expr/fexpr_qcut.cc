@@ -23,11 +23,11 @@
 #include "column/latent.h"
 #include "column/sentinel_fw.h"
 #include "column/qcut.h"
-#include "datatablemodule.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
@@ -167,32 +167,21 @@ return: FExpr
     with the respective quantile ids.
 )";
 
-static py::PKArgs args_qcut(
-  1, 0, 1, false, false,
-  {
-    "cols", "nquantiles"
-  },
-  "qcut", doc_qcut
-);
-
-static py::oobj pyfn_qcut(const py::PKArgs& args) {
-  if (args[0].is_none_or_undefined()) {
-    throw TypeError() << "Function `qcut()` requires one positional argument, "
-      << "but none were given";
-  }
-
-  auto arg0 = args[0].to_oobj();
-  auto arg1 = args[1].is_none_or_undefined()? py::None() : args[1].to_oobj();
-
-  return PyFExpr::make(new FExpr_Qcut(arg0, arg1));
+static py::oobj pyfn_qcut(const py::XArgs& args) {
+  auto cols       = args[0].to_oobj();
+  auto nquantiles = args[1].to<py::oobj>(py::None());
+  return PyFExpr::make(new FExpr_Qcut(cols, nquantiles));
 }
+
+DECLARE_PYFN(&pyfn_qcut)
+    ->name("qcut")
+    ->docs(doc_qcut)
+    ->arg_names({"cols", "nquantiles"})
+    ->n_positional_args(1)
+    ->n_keyword_args(1)
+    ->n_required_args(1);
 
 
 
 
 }}  // dt::expr
-
-
-void py::DatatableModule::init_methods_qcut() {
-  ADD_FN(&dt::expr::pyfn_qcut, dt::expr::args_qcut);
-}

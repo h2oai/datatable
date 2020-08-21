@@ -28,6 +28,7 @@
 #include "python/args.h"
 #include "python/bool.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "utils/function.h"
 #include "utils/logger.h"   // dt::log::Logger
 namespace dt {
@@ -253,6 +254,7 @@ class CallLogger::Impl
   public:
     Impl(size_t i);
     void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
+    void init_function  (const py::XArgs* xargs, py::robj args, py::robj kwds) noexcept;
     void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
     void init_dealloc   (py::robj obj) noexcept;
     void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
@@ -300,6 +302,17 @@ void CallLogger::Impl::init_function(
 {
   safe_init([&] {
     *out_ << "dt." << pkargs->get_short_name() << '(';
+    print_arguments(args, kwds);
+    *out_ << ')';
+  });
+}
+
+
+void CallLogger::Impl::init_function(
+    const py::XArgs* xargs, py::robj args, py::robj kwds) noexcept
+{
+  safe_init([&] {
+    *out_ << xargs->qualified_name() << '(';
     print_arguments(args, kwds);
     *out_ << ')';
   });
@@ -526,6 +539,17 @@ CallLogger CallLogger::function(
   CallLogger cl;
   if (cl.impl_) {
     cl.impl_->init_function(pkargs, py::robj(pyargs), py::robj(pykwds));
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::function(
+    const py::XArgs* xargs, PyObject* pyargs, PyObject* pykwds) noexcept
+{
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_function(xargs, py::robj(pyargs), py::robj(pykwds));
   }
   return cl;
 }

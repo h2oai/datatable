@@ -28,7 +28,8 @@ from tests import assert_equals
 
 def test_ifelse_bad_signature():
     DT = dt.Frame(A=range(10))
-    msg = r"Function ifelse\(\) requires 3 arguments"
+    msg = r"Function datatable\.ifelse\(\) requires exactly 3 positional " \
+          r"arguments"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse()]
     with pytest.raises(TypeError, match=msg):
