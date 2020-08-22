@@ -182,6 +182,29 @@ div.small-links div {
 
 
 
+/* ------- Api-table -------------------------------------------------------- */
+
+.rst-content table.docutils.api-table {
+  border: none;
+}
+
+.rst-content table.docutils.api-table tr td {
+  background: none !important;
+  border-style: none;
+  padding: 0 16px 10px 0;
+}
+
+.rst-content table.docutils.api-table td:first-child code.xref.literal {
+  background: transparent;
+  padding: 0;
+}
+
+.rst-content table.docutils.api-table td:first-child a:hover code.literal {
+  text-decoration: underline;
+}
+
+
+
 /* ------- All code highlighting -------------------------------------------- */
 
 div.document div.notranslate {
