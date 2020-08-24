@@ -143,49 +143,34 @@ class FExpr_Round : public FExpr_FuncUnary {
 
 
     Column evaluate1(Column&& col) const override {
-      size_t nrows = col.nrows();
-      switch (col.stype()) {
-        case SType::BOOL: {
+      auto nrows = col.nrows();
+      auto stype = col.stype();
+
+      switch (stype) {
+        case SType::VOID: return std::move(col);
+        case SType::BOOL:
+        case SType::INT8:
+        case SType::INT16:
+        case SType::INT32:
+        case SType::INT64: {
           if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
             return std::move(col);
           }
-          return Const_ColumnImpl::make_bool_column(nrows, false);
-        }
-        case SType::INT8: {
-          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
-            return std::move(col);
-          }
-          if (ndigits_ >= -2) {
+          int maxdigits = (stype == SType::INT64)? 19 :
+                          (stype == SType::INT32)? 9 :
+                          (stype == SType::INT16)? 4 :
+                          (stype == SType::INT8)?  2 : 0;
+          if (-ndigits_ <= maxdigits) {
             return Column(new RoundNeg_ColumnImpl<int8_t>(
                                 std::move(col),
                                 std::pow(10.0, -ndigits_)
                           ));
           }
-          return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT8);
-        }
-        case SType::INT32: {
-          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
-            return std::move(col);
+          if (stype == SType::BOOL) {
+            return Const_ColumnImpl::make_bool_column(nrows, false);
+          } else {
+            return Const_ColumnImpl::make_int_column(nrows, 0, stype);
           }
-          if (ndigits_ >= -9) {
-            return Column(new RoundNeg_ColumnImpl<int32_t>(
-                                std::move(col),
-                                std::pow(10.0, -ndigits_)
-                          ));
-          }
-          return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT32);
-        }
-        case SType::INT64: {
-          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
-            return std::move(col);
-          }
-          if (ndigits_ >= -19) {
-            return Column(new RoundNeg_ColumnImpl<int64_t>(
-                                std::move(col),
-                                std::pow(10.0, -ndigits_)
-                          ));
-          }
-          return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT64);
         }
         case SType::FLOAT64: {
           if (ndigits_ >= 19) return std::move(col);
