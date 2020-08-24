@@ -30,32 +30,7 @@
 namespace dt {
 namespace expr {
 
-
 static constexpr int NODIGITS = std::numeric_limits<int>::min();
-
-static const int64_t pow10s[] = {
-  1,
-  10,
-  100,
-  1000,
-  10000,
-  100000,
-  1000000,
-  10000000,
-  100000000,
-  1000000000,
-  10000000000,
-  100000000000,
-  1000000000000,
-  10000000000000,
-  100000000000000,
-  1000000000000000,
-  10000000000000000,
-  100000000000000000,
-  1000000000000000000,
-  9223372036854775807,
-};
-
 
 
 //------------------------------------------------------------------------------
@@ -66,10 +41,10 @@ template <typename T>
 class RoundNeg_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg_;
-    int64_t scale_;
+    double scale_;
 
   public:
-    RoundNeg_ColumnImpl(Column&& arg, int64_t scale)
+    RoundNeg_ColumnImpl(Column&& arg, double scale)
       : Virtual_ColumnImpl(arg.nrows(), arg.stype()),
         arg_(std::move(arg)),
         scale_(scale)
@@ -88,7 +63,8 @@ class RoundNeg_ColumnImpl : public Virtual_ColumnImpl {
       T value;
       bool isvalid = arg_.get_element(i, &value);
       if (isvalid) {
-        *out = static_cast<T>((value + scale_/2) / scale_ * scale_);
+        *out = static_cast<T>(
+                std::rint(static_cast<double>(value) / scale_) * scale_);
       }
       return isvalid;
     }
@@ -102,14 +78,12 @@ class RoundNeg_ColumnImpl : public Virtual_ColumnImpl {
 
 template <typename T>
 class RoundPos_ColumnImpl : public Virtual_ColumnImpl {
-  using S = std::conditional_t<std::is_same<T, int64_t>::value, T, int32_t>;
   private:
     Column arg_;
-    S scale_;
-    size_t : 64 - 8*sizeof(S);
+    double scale_;
 
   public:
-    RoundPos_ColumnImpl(Column&& arg, S scale)
+    RoundPos_ColumnImpl(Column&& arg, double scale)
       : Virtual_ColumnImpl(arg.nrows(), arg.stype()),
         arg_(std::move(arg)),
         scale_(scale)
@@ -128,7 +102,8 @@ class RoundPos_ColumnImpl : public Virtual_ColumnImpl {
       T value;
       bool isvalid = arg_.get_element(i, &value);
       if (isvalid) {
-        *out = static_cast<T>((value * scale_ + scale_/2) / scale_);
+        *out = static_cast<T>(
+                std::rint(static_cast<double>(value) * scale_) / scale_);
       }
       return isvalid;
     }
@@ -171,35 +146,43 @@ class FExpr_Round : public FExpr_FuncUnary {
       size_t nrows = col.nrows();
       switch (col.stype()) {
         case SType::BOOL: {
-          if (ndigits_ >= 0) return std::move(col);
+          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
+            return std::move(col);
+          }
           return Const_ColumnImpl::make_bool_column(nrows, false);
         }
         case SType::INT8: {
-          if (ndigits_ >= 0) return std::move(col);
+          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
+            return std::move(col);
+          }
           if (ndigits_ >= -2) {
             return Column(new RoundNeg_ColumnImpl<int8_t>(
                                 std::move(col),
-                                pow10s[-ndigits_]
+                                std::pow(10.0, -ndigits_)
                           ));
           }
           return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT8);
         }
         case SType::INT32: {
-          if (ndigits_ >= 0) return std::move(col);
+          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
+            return std::move(col);
+          }
           if (ndigits_ >= -9) {
             return Column(new RoundNeg_ColumnImpl<int32_t>(
                                 std::move(col),
-                                pow10s[-ndigits_]
+                                std::pow(10.0, -ndigits_)
                           ));
           }
           return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT32);
         }
         case SType::INT64: {
-          if (ndigits_ >= 0) return std::move(col);
+          if (ndigits_ >= 0 || ndigits_ == NODIGITS) {
+            return std::move(col);
+          }
           if (ndigits_ >= -19) {
             return Column(new RoundNeg_ColumnImpl<int64_t>(
                                 std::move(col),
-                                pow10s[-ndigits_]
+                                std::pow(10.0, -ndigits_)
                           ));
           }
           return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT64);
@@ -209,20 +192,21 @@ class FExpr_Round : public FExpr_FuncUnary {
           if (ndigits_ >= 0) {
             return Column(new RoundPos_ColumnImpl<double>(
                                 std::move(col),
-                                static_cast<double>(pow10s[ndigits_])
+                                std::pow(10.0, ndigits_)
                           ));
           }
           if (ndigits_ >= -19) {
             return Column(new RoundNeg_ColumnImpl<double>(
                                 std::move(col),
-                                pow10s[-ndigits_]
+                                std::pow(10.0, -ndigits_)
                           ));
           }
           return Const_ColumnImpl::make_float_column(nrows, 0);  // ???
         }
-        default: {
-          return std::move(col);
-        }
+        default:
+          throw TypeError()
+            << "Function datatable.math.round() cannot be applied to a column "
+               "of type `" << col.stype() << "`";
       }
     }
 };
