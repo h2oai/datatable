@@ -12,11 +12,18 @@ Classes
    :class: api-table
 
    * - :class:`Frame`
-     - Main "table of data" class
-   * - :class:`ltype`
-     -
+     - Main "table of data" class. This is the equivalent of pandas' or Julia's
+       ``DataFrame``, R's ``data.table`` or ``tibble``, SQL's ``TABLE``, etc.
+
+   * - :class:`FExpr`
+     - Helper class for computing formulas over a frame.
+
    * - :class:`stype`
-     -
+     - Enum of column "storage" types, analogous to numpy's ``dtype``.
+
+   * - :class:`ltype`
+     - Enum of column "logical" types, similar to standard Python notion
+       of a ``type``.
 
 
 Functions
@@ -46,8 +53,10 @@ Functions
       -
     * - :func:`cbind()`
       - Combine frames by columns
+
     * - :func:`rbind()`
       - Combine frames by rows
+
     * - :func:`repeat()`
       -
     * -
@@ -59,9 +68,11 @@ Functions
     * - :func:`shift()`
       -
     * - :func:`cut()`
-      - Bin frame/f-expression into equal-width intervals
+      - Bin a column into equal-width intervals
+
     * - :func:`qcut()`
-      - Bin frame/f-expression into equal-population intervals
+      - Bin a column into equal-population intervals
+
     * -
       -
     * - :func:`init_styles()`
@@ -125,7 +136,7 @@ Functions
 
     Frame           <frame>
     FExpr           <fexpr>
-    FTRL            <ftrl>
+    models.         <models>
     math.           <math>
     by()            <dt/by>
     cbind()         <dt/cbind>
