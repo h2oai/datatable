@@ -103,9 +103,128 @@ def test_round_int8_positive_ndigits():
 
 
 @pytest.mark.parametrize('nd', [-1, -2])
-def test_round_int8_negative1(nd):
+def test_round_int8_negative_ndigits_small(nd):
     DT = dt.Frame(A=[None] + list(range(-127, 128)), stype=dt.int8)
     RES = DT[:, dtround(f.A, ndigits=nd)]
     EXP = dt.Frame(A=[None] + [round(x, nd) for x in range(-127, 128)],
                    stype=dt.int8)
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize('nd', [-3, -5, -17])
+def test_round_int8_negative_ndigits_large(nd):
+    DT = dt.Frame(A=[None] + list(range(-127, 128)), stype=dt.int8)
+    RES = DT[:, dtround(f.A, ndigits=nd)]
+    assert_equals(RES, dt.Frame(A=[0] * 256 / dt.int8))
+
+
+
+#-------------------------------------------------------------------------------
+# SType::INT16
+#-------------------------------------------------------------------------------
+
+def test_round_int16_positive_ndigits():
+    DT = dt.Frame(A=[None, 12, 0, 34, -999, 32767, 10001, -32767] / dt.int16)
+    assert_equals(DT[:, dtround(f.A)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=0)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=1)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=2)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=3)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=5)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=9)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=17)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=314)], DT)
+
+
+@pytest.mark.parametrize('nd', [-1, -2, -3, -4])
+def test_round_int16_negative_ndigits_small(nd):
+    src = [1, 3, 5, 6, 9, 12, 15, 20, 25, 35, 34, 45, 95, 1115, 11115, 0,
+           -5, -15, -25, -24, -26, -999, -9999, -1005, -1015, -10005, -32767,
+           32767, 32760, 32765, 10001, 10003]
+    DT = dt.Frame(src / dt.int16)
+    RES = DT[:, dtround(f[0], ndigits=nd)]
+    EXP = dt.Frame([round(x, nd) for x in src] / dt.int16)
+    assert_equals(RES, EXP)
+
+
+
+#-------------------------------------------------------------------------------
+# SType::INT32
+#-------------------------------------------------------------------------------
+
+def test_round_int32_positive_ndigits():
+    m = 2**31 - 1
+    DT = dt.Frame(A=[None, 12, 0, 34, -999, m, 15, 1001, 123456, -m])
+    assert DT.stype == dt.int32
+    assert_equals(DT[:, dtround(f.A)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=0)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=1)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=2)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=3)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=5)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=9)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=17)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=314)], DT)
+
+
+@pytest.mark.parametrize('nd', [-1, -2, -3, -4, -5, -6, -7, -8, -9])
+def test_round_int32_negative_ndigits_small(nd):
+    src = [1, 3, 5, 6, 9, 12, 15, 20, 25, 35, 34, 45, 95, 1115, 11115, 0,
+           -5, -15, -25, -24, -26, -999, -9999, -1005, -1015, -10005, -32767,
+           32767, 32760, 32765, 10001, 10003, 1000005, 3017097, 3198734,
+           34982340, 34982345, 34982355, 34982365, 34982375, 34982385]
+    DT = dt.Frame(src / dt.int32)
+    RES = DT[:, dtround(f[0], ndigits=nd)]
+    EXP = dt.Frame([round(x, nd) for x in src] / dt.int32)
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize('nd', [-10, -11, -13, -997])
+def test_round_int32_negative_ndigits_large(nd):
+    src = [None, 0, 1, 12, 34083, 1082745, 59845702, 2**31-1, 1-2**31]
+    DT = dt.Frame(src / dt.int32)
+    RES = DT[:, dtround(f[0], ndigits=nd)]
+    EXP = dt.Frame([0] * len(src) / dt.int32)
+    assert_equals(RES, EXP)
+
+
+
+#-------------------------------------------------------------------------------
+# SType::INT64
+#-------------------------------------------------------------------------------
+
+def test_round_int64_positive_ndigits():
+    m = 2**63 - 1
+    DT = dt.Frame(A=[None, 12, 0, 34, -999, m, 15, 1001, 123456, -m])
+    assert DT.stype == dt.int64
+    assert_equals(DT[:, dtround(f.A)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=0)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=1)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=2)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=3)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=5)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=9)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=17)], DT)
+    assert_equals(DT[:, dtround(f.A, ndigits=314)], DT)
+
+
+@pytest.mark.parametrize('nd', [-1, -2, -3, -4, -7, -9, -12, -16, -17, -19])
+def test_round_int32_negative_ndigits_small(nd):
+    src = [1, 3, 5, 6, 9, 12, 15, 20, 25, 35, 34, 45, 95, 1115, 11115, 0,
+           -5, -15, -25, -24, -26, -999, -9999, -1005, -1015, -10005, -32767,
+           32767, 32760, 32765, 10001, 10003, 1000005, 3017097, 3198734,
+           349823445870, 34982341365, 3498223675355, 3493497682365,
+           349346782375, 33464982385]
+    DT = dt.Frame(src / dt.int64)
+    RES = DT[:, dtround(f[0], ndigits=nd)]
+    EXP = dt.Frame([round(x, nd) for x in src] / dt.int64)
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize('nd', [-20, -21, -1337])
+def test_round_int32_negative_ndigits_large(nd):
+    src = [None, 1, -1, 12, 34083, 123082745, 5123659845702, 2**63-1, 1-2**63]
+    DT = dt.Frame(src / dt.int64)
+    RES = DT[:, dtround(f[0], ndigits=nd)]
+    EXP = dt.Frame([0] * len(src) / dt.int64)
     assert_equals(RES, EXP)
