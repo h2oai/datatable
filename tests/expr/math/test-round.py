@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
+import random
 from datatable import dt, f
 from datatable.math import round as dtround
 from tests import assert_equals
@@ -228,3 +229,66 @@ def test_round_int32_negative_ndigits_large(nd):
     RES = DT[:, dtround(f[0], ndigits=nd)]
     EXP = dt.Frame([0] * len(src) / dt.int64)
     assert_equals(RES, EXP)
+
+
+
+#-------------------------------------------------------------------------------
+# SType::FLOAT32
+#-------------------------------------------------------------------------------
+
+def test_round_float32_no_ndigits():
+    DT = dt.Frame(A=[1.5, 12.3, 2.5, 7.7, 4.5, 6.5, None] / dt.float32)
+    RES = DT[:, dtround(f.A)]
+    EXP = dt.Frame(A=[2, 12, 2, 8, 4, 6, None] / dt.int64)
+    assert_equals(RES, EXP)
+
+
+def test_round_float32_0_ndigits():
+    DT = dt.Frame(A=[1.5, 12.3, 2.5, 7.7, 4.5, 6.5, None] / dt.float32)
+    RES = DT[:, dtround(f.A, ndigits=0)]
+    EXP = dt.Frame(A=[2, 12, 2, 8, 4, 6, None] / dt.float32)
+    assert_equals(RES, EXP)
+
+
+
+#-------------------------------------------------------------------------------
+# SType::FLOAT64
+#-------------------------------------------------------------------------------
+
+def test_round_float64_no_ndigits():
+    DT = dt.Frame(A=[1.5, 12.3, 2.5, 7.7, 4.5, 6.5, None])
+    RES = DT[:, dtround(f.A)]
+    EXP = dt.Frame(A=[2, 12, 2, 8, 4, 6, None] / dt.int64)
+    assert_equals(RES, EXP)
+
+
+def test_round_float64_0_ndigits():
+    DT = dt.Frame(A=[1.5, 12.3, 2.5, 7.7, 4.5, 6.5, None])
+    RES = DT[:, dtround(f.A, ndigits=0)]
+    EXP = dt.Frame(A=[2, 12, 2, 8, 4, 6, None] / dt.float64)
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_round_float64_random(seed):
+    random.seed(seed)
+    n = 1000
+    src = [random.random() * 1000 for i in range(n)]
+    ndigits = random.randint(-3, 10)
+    DT = dt.Frame(src)
+    RES = DT[:, dtround(f[0], ndigits=ndigits)]
+    EXP = dt.Frame([round(x, ndigits) for x in src])
+    assert_equals(RES, EXP)
+
+
+
+#-------------------------------------------------------------------------------
+# other
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("st", [dt.str32, dt.str64, dt.obj64])
+def test_round_string(st):
+    msg = r"Function datatable.math.round\(\) cannot be applied to a column " \
+          r"of type " + st.name
+    with pytest.raises(TypeError, match=msg):
+        assert dt.Frame(['a', 'b', 'c'] / st)[:, dtround(f[0])]
