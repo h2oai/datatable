@@ -307,8 +307,6 @@ Round the values in `cols` up to the specified number of the digits
 of precision `ndigits`. If the number of digits is omitted, rounds
 to the nearest integer.
 
-The parameter `ndigits` can be either
-
 Generally, this operation is equivalent to::
 
     rint(col * 10**ndigits) / 10**ndigits
@@ -323,7 +321,7 @@ cols: FExpr
     apply to each column independently and produce as many columns
     in the output as there were in the input.
 
-    Only numeric columns are allowed: boolean, integer or floating.
+    Only numeric columns are allowed: boolean, integer or float.
     An exception will be raised if `cols` contains a non-numeric
     column.
 
@@ -353,9 +351,9 @@ are converted towards their nearest even value. For example, both
 
 Rounding integer columns may produce unexpected results for values
 that are close to the min/max value of that column's storage type.
-For example, when an `int8` value `127` is rounded to nearest 10, it
+For example, when an `int8` value `127` is rounded to nearest `10`, it
 becomes `130`. However, since `130` cannot be represented as `int8` a
-warp-around occurs and the result becomes `-126`.
+wrap-around occurs and the result becomes `-126`.
 
 Rounding an integer column to a positive `ndigits` is a noop: the
 column will be returned unchanged.
