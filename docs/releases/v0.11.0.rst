@@ -26,10 +26,13 @@
     can be added in Python. [#1839]
 
   -[new] Added a new function :func:`cut()` to bin numeric data
-    to equal-width discrete intervals.
+    to equal-width discrete intervals. [#2483]
 
   -[new] Added a new function :func:`qcut()` to bin data
-    to equal-population discrete intervals.
+    to equal-population discrete intervals. [#1680]
+
+  -[new] Added function :func:`round() <datatable.math.round>` which is the
+    equivalent of Python's built-in ``round()``. [#2285]
 
   -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
     f-expression as an argument.

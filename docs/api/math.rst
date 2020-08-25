@@ -73,6 +73,7 @@ math                numpy                 datatable
 ``modf(x)``         ``modf(x)``
 \                   ``nextafter(x, y)``
 \                   ``rint(x)``           :func:`rint(x) <rint>`
+``round(x)``        ``round(x)``          :func:`round(x) <datatable.math.round>`
 \                   ``sign(x)``           :func:`sign(x) <sign>`
 \                   ``signbit(x)``        :func:`signbit(x) <signbit>`
 \                   ``spacing(x)``
@@ -555,3 +556,9 @@ Mathematical constants
 .. _`math module`: https://docs.python.org/3/library/math.html
 .. _`numpy math functions`: https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.math.html
 .. _`true circle constant`: https://hexnet.org/files/documents/tau-manifesto.pdf
+
+
+.. toctree::
+    :hidden:
+
+    round    <math/round>

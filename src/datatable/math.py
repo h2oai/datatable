@@ -62,6 +62,7 @@ from .lib._datatable import (
     pow,
     rad2deg,
     rint,
+    round,
     sign,
     signbit,
     sin,
