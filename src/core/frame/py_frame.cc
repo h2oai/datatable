@@ -990,17 +990,23 @@ static PKArgs args___init__(1, 0, 3, false, true,
                             {"_data", "names", "stypes", "stype"},
                             "__init__", doc___init__);
 
+
+static const char* doc_Frame =
+R"(
+Two-dimensional column-oriented table of data. Each column has its own
+name and type. Types may vary across columns but cannot vary within
+each column.
+
+Internally the data is stored as C primitives, and processed using
+multithreaded native C++ code.
+
+This is a primary data structure for the `datatable` module.
+)";
+
+
 void Frame::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.Frame");
   xt.set_class_doc(
-    "Two-dimensional column-oriented table of data. Each column has its own\n"
-    "name and type. Types may vary across columns but cannot vary within\n"
-    "each column.\n"
-    "\n"
-    "Internally the data is stored as C primitives, and processed using\n"
-    "multithreaded native C++ code.\n"
-    "\n"
-    "This is a primary data structure for the `datatable` module.\n"
   );
   xt.set_subclassable(true);
   xt.add(CONSTRUCTOR(&Frame::m__init__, args___init__));
