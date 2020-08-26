@@ -1,17 +1,10 @@
+datatable.Frame
+---------------
 
-Frame
-=====
-
-.. autoclass:: datatable.Frame
-    :members:
-    :inherited-members:
-    :undoc-members:
-    :exclude-members: cbind, colindex, copy, countna, countna1, export_names,
-                      head, key, ltypes, names, replace, source, stype, stypes,
-                      tail, to_csv, materialize, ncols, ndims, nrows, shape,
-                      keys, to_tuples, to_list, to_dict, to_pandas, to_numpy,
-                      to_jay
-
+.. xclass:: Frame
+    :src: src/core/frame/py_frame.h Frame
+    :doc: src/core/frame/py_frame.cc doc_Frame
+    :notitle:
 
 
 .. toctree::

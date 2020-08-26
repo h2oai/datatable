@@ -43,8 +43,10 @@ This makes several directives available for use in the .rst files:
         :doc: c/frame/cbind.cc doc_cbind
         :tests: tests/frame/test-cbind.py
 
+    .. xclass: datatable.Frame
+
 """
-import os
+import pathlib
 import re
 from docutils import nodes
 from docutils.parsers.rst import directives
@@ -74,6 +76,8 @@ rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 #
 
 # Store title overrides for individual pages.
+# This controls the HTML titles only, i.e. the <title/> element
+# inside the <head/> section.
 title_overrides = {}
 
 
@@ -86,7 +90,38 @@ class XobjectDirective(SphinxDirective):
     """
     Fields used by this class:
 
-    ==[ Derived from config/arguments/options ]==
+    Inherited from base class
+    -------------------------
+        self.arguments : List[str]
+            List of (whitespace-separated) tokens that come after the
+            directive name, for example if the source has ".. xmethod:: A B",
+            then this variable will contain ['A', 'B']
+
+        self.block_text : str
+            Full text of the directive and its contents, as a single string.
+
+        self.config : sphinx.config.Config
+            Global configuration options.
+
+        self.content : StringList
+            The content of the directive, i.e. after the directive itself and
+            all its options. This is a list of lines.
+
+        self.content_offset : int
+            Index of the first line of `self.content` within the source file.
+
+        self.env : sphinx.environment.BuildEnvironment
+            Stuff.
+
+        self.name : str
+            The name of the directive, such as "xfunction" or "xdata".
+
+        self.options : Dict[str, str]
+            Key-value store of all options passed to the directive.
+
+
+    Derived from config/arguments/options
+    -------------------------------------
         self.module_name -- config variable xf_module_name
         self.project_root -- config variable xf_project_root
         self.permalink_fn -- config variable xf_permalink_fn
@@ -102,7 +137,9 @@ class XobjectDirective(SphinxDirective):
         self.test_file -- name of the file where tests are located
         self.setter -- name of the setter variable (for :xdata: directives)
 
-    ==[ Parsed from the source files(s) ]==
+
+    Parsed from the source files(s)
+    -------------------------------
         self.src_line_first -- starting line of the function in self.src_file
         self.src_line_last -- final line of the function in self.src_file
         self.src_github_url -- URL of the function's code on GitHub
@@ -111,12 +148,14 @@ class XobjectDirective(SphinxDirective):
         self.doc_github_url -- URL of the docstring on GitHub
         self.tests_github_url -- URL of the test file on GitHub
 
-    ==[ Parsed from the docstring ]==
+    Parsed from the docstring
+    -------------------------
         self.parsed_params -- list of parameters of this function; each entry
                               is either the parameter itself (str), or a tuple
                               of strings (parameter, default_value).
 
-    See also:
+    See also
+    --------
         sphinx/directives/__init__.py::ObjectDescription
         sphinx/domains/python.py::PyObject
     """
@@ -130,9 +169,13 @@ class XobjectDirective(SphinxDirective):
         "tests": directives.unchanged,
         "settable": directives.unchanged,
         "deletable": directives.unchanged,
+        "notitle": directives.unchanged,   # FIXME
     }
 
     def run(self):
+        """
+        Main function invoked by the Sphinx runtime.
+        """
         self._parse_config()
         self._parse_arguments()
         self._parse_option_src()
@@ -140,7 +183,14 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_tests()
         self._parse_option_settable()
         self._parse_option_deletable()
-        title_overrides[self.env.docname] = ".%s()" % self.obj_name
+
+        if self.name == "xclass":
+            oname = self.obj_name
+        elif self.name == "xdata":
+            oname = "." + self.obj_name
+        else:
+            oname = "." + self.obj_name + "()"
+        title_overrides[self.env.docname] = oname
 
         if self.doc_file == self.src_file:
             self._locate_sources(self.src_file, self.src_fnname,
@@ -166,6 +216,8 @@ class XobjectDirective(SphinxDirective):
         assert isinstance(self.project_root, str)
         assert isinstance(self.permalink_url0, str)
         assert isinstance(self.permalink_url2, str)
+        self.project_root = pathlib.Path(self.project_root)
+        assert self.project_root.is_dir()
 
 
     def _parse_arguments(self):
@@ -176,7 +228,7 @@ class XobjectDirective(SphinxDirective):
         assert len(self.arguments) == 1  # checked from required_arguments field
         fullname = self.arguments[0].strip()
         if not re.fullmatch(rx_py_id, fullname):
-            raise self.error("Invalid argument to %s directive: must be a "
+            raise self.error("Invalid argument to ..%s directive: must be a "
                              "valid python indentifier, instead got `%s`"
                              % (self.name, fullname))
         parts = fullname.rsplit('.', maxsplit=1)
@@ -196,26 +248,36 @@ class XobjectDirective(SphinxDirective):
         Process the required option `:src:`, and extract fields
         `self.src_file` and `self.src_fnname`.
         """
+        if "src" not in self.options:
+            raise self.error("Option :src: is required for ..%s directive"
+                             % self.name)
         src = self.options["src"].strip()
         parts = src.split()
-        if len(parts) == 2 or (len(parts) == 3 and self.name == "xdata"):
-            src = parts[0]
-            if not os.path.isfile(os.path.join(self.project_root, src)):
-                raise self.error("Invalid :src: option: file `%s` does not "
-                                 "exist" % src)
-            self.src_file = src
-            for p in parts[1:]:
-                if not re.fullmatch(rx_cc_id, p):
-                    raise self.error("Invalid :src: option: `%s` is not a "
-                                     "valid C++ identifier" % p)
-            self.src_fnname = parts[1]
-            if len(parts) == 3:
-                self.src_fnname2 = parts[2]
-            else:
-                self.src_fnname2 = None
+        if self.name == "xdata":
+            if len(parts) not in [2, 3]:
+                raise self.error("Invalid :src: option for ..%s directive: "
+                                 "it must have form ':src: filename "
+                                 "getter_name [setter_name]'" % self.name)
         else:
-            raise self.error("Invalid :src: option: it must have form "
-                             "'filename fnname [fnname]'")
+            if len(parts) != 2:
+                raise self.error("Invalid :src: option for ..%s directive: "
+                                 "it must have form ':src: filename %s_name'"
+                                 % (self.name, self.name[1:]))
+
+        src = parts[0]
+        if not (self.project_root / src).is_file():
+            raise self.error("Invalid :src: option in ..%s directive: file "
+                             "`%s` does not exist" % (self.name, src))
+        self.src_file = src
+        for p in parts[1:]:
+            if not re.fullmatch(rx_cc_id, p):
+                raise self.error("Invalid :src: option in ..%s directive: "
+                                 "`%s` is not a valid C++ identifier"
+                                 % (self.name, p))
+        self.src_fnname = parts[1]
+        self.src_fnname2 = None
+        if len(parts) == 3:
+            self.src_fnname2 = parts[2]
 
 
     def _parse_option_doc(self):
@@ -226,26 +288,27 @@ class XobjectDirective(SphinxDirective):
         """
         doc = self.options.get("doc", "").strip()
         parts = doc.split()
+        if len(parts) > 2:
+            raise self.error("Invalid :doc: option in ..%s directive: it must "
+                             "have form ':doc: filename [docname]'"
+                             % self.name)
 
         if len(parts) == 0:
             self.doc_file = self.src_file
-        elif os.path.isfile(os.path.join(self.project_root, parts[0])):
+        elif (self.project_root / parts[0]).is_file():
             self.doc_file = parts[0]
         else:
-            raise self.error("Invalid :doc: option: file `%s` does not exist"
-                             % parts[0])
+            raise self.error("Invalid :doc: option in ..%s directive: file "
+                             "`%s` does not exist" % (self.name, parts[0]))
 
         if len(parts) <= 1:
             self.doc_var = "doc_" + self.obj_name
         elif re.fullmatch(rx_cc_id, parts[1]):
             self.doc_var = parts[1]
         else:
-            raise self.error("Invalid :doc: option: `%s` is not a valid C++ "
-                             "identifier" % parts[1])
-
-        if len(parts) > 2:
-            raise self.error("Invalid :doc: option: it must have form "
-                             "'filename [docname]'")
+            raise self.error("Invalid :doc: option in ..%s directive: `%s` "
+                             "is not a valid C++ identifier"
+                             % (self.name, parts[1]))
 
 
     def _parse_option_tests(self):
@@ -259,12 +322,12 @@ class XobjectDirective(SphinxDirective):
 
         if not testfile:
             return
-        elif os.path.isfile(os.path.join(self.project_root, testfile)):
+        elif (self.project_root / testfile).is_file():
             self.test_file = testfile
             self.tests_github_url = self.permalink(testfile)
         else:
-            raise self.error("Invalid :tests: option: file `%s` does not exist"
-                             % testfile)
+            raise self.error("Invalid :tests: option in ..%s directive: file "
+                             "`%s` does not exist" % (self.name, testfile))
 
 
     def _parse_option_settable(self):
@@ -277,7 +340,7 @@ class XobjectDirective(SphinxDirective):
 
         if setter:
             if self.name != "xdata":
-                raise self.error("Option :settable: is not valid for a :%s: "
+                raise self.error("Option :settable: is not valid for a ..%s "
                                  "directive" % self.name)
             self.setter = setter
         else:
@@ -288,7 +351,7 @@ class XobjectDirective(SphinxDirective):
         self.deletable = "deletable" in self.options
 
         if self.deletable and self.name != "xdata":
-            raise self.error("Option :deletable: is not valid for a :%s: "
+            raise self.error("Option :deletable: is not valid for a ..%s "
                              "directive" % self.name)
 
 
@@ -311,9 +374,8 @@ class XobjectDirective(SphinxDirective):
         See :meth:`_locate_fn_source` and :meth:`_locate_doc_source`
         for details.
         """
-        full_filename = os.path.join(self.project_root, filename)
-        with open(full_filename, "r", encoding="utf-8") as inp:
-            lines = list(inp)
+        txt = (self.project_root / filename).read_text(encoding="utf-8")
+        lines = txt.splitlines(keepends=True)
         if funcname1:
             line1, line2 = self._locate_fn_source(filename, funcname1, lines)
             self.src_line_first = line1
@@ -336,13 +398,16 @@ class XobjectDirective(SphinxDirective):
         If successful, this function returns a tuple of the line
         numbers of the start the end of the function.
         """
-        rx_cc_function = re.compile(r"(\s*)"
-                                    r"(?:static\s+|inline\s+)*"
-                                    r"(?:[\w:*&<> ]+)\s+" +
-                                    fnname +
-                                    r"\s*\(.*\)\s*" +
-                                    r"(?:const\s*|noexcept\s*|override\s*)*" +
-                                    r"\{\s*")
+        if self.name == "xclass":
+            rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
+        else:
+            rx_cc_function = re.compile(r"(\s*)"
+                                        r"(?:static\s+|inline\s+)*"
+                                        r"(?:[\w:*&<> ]+)\s+" +
+                                        fnname +
+                                        r"\s*\(.*\)\s*" +
+                                        r"(?:const\s*|noexcept\s*|override\s*)*" +
+                                        r"\{\s*")
         expect_closing = None
         start_line = None
         finish_line = None
@@ -448,7 +513,7 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
-        if self.name == "xdata":
+        if self.name in ["xdata", "xclass"]:
             self.parsed_params = []
             self._parse_body(self.doc_text, self.doc_line_start)
             return
@@ -720,18 +785,21 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_nodes(self):
         title_text = self.qualifier + self.obj_name
-        h1_text = title_text + ("" if self.name == "xdata" else "()")
-        sect = nodes.section(ids=[title_text], classes=["x-function"])
-        sect += nodes.title("", h1_text)
-        sect += self._index_node(title_text)
-        sect += self._generate_signature(title_text)
-        sect += self._generate_signature_setter()
-        sect += self._generate_signature_deleter()
+        sect = nodes.section(ids=[title_text],
+                             classes=["x-function", self.name])
+        if "notitle" not in self.options:
+            h1_text = title_text
+            if self.name not in ["xdata", "xclass"]:
+                h1_text += "()"
+            sect += nodes.title("", h1_text)
+        sect += self._index_node()
+        sect += self._generate_signature()
         sect += self._generate_body()
         return [sect]
 
 
-    def _index_node(self, targetname):
+    def _index_node(self):
+        targetname = self.qualifier + self.obj_name
         text = self.obj_name
         if self.name == "xmethod":
             text += " (%s method)" % self.qualifier[:-1]
@@ -743,10 +811,14 @@ class XobjectDirective(SphinxDirective):
         return [inode]
 
 
-    def _generate_signature(self, targetname):
+    def _generate_signature(self):
+        targetname = self.qualifier + self.obj_name
         sig_node = xnodes.div(classes=["sig-container"], ids=[targetname])
         sig_nodeL = xnodes.div(classes=["sig-body"])
-        self._generate_sigbody(sig_nodeL, "normal")
+        if self.name == "xclass":
+            sig_nodeL += self._generate_signature_class()
+        else:
+            self._generate_sigbody(sig_nodeL, "normal")
         sig_node += sig_nodeL
         sig_nodeR = xnodes.div(classes=["code-links"])
         self._generate_siglinks(sig_nodeR)
@@ -758,12 +830,17 @@ class XobjectDirective(SphinxDirective):
         domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
                            objtype=self.name[1:],  # remove initial 'x'
                            node_id=targetname)
-        return [sig_node]
+        out = [sig_node]
+        if self.name == "xdata":
+            if self.setter:
+                out += self._generate_signature_setter()
+            if self.deletable:
+                out += self._generate_signature_deleter()
+        return out
 
 
     def _generate_signature_setter(self):
-        if not self.setter:
-            return []
+        assert self.setter
         sig_node = xnodes.div(classes=["sig-container"])
         sig_nodeL = xnodes.div(classes=["sig-body"])
         self._generate_sigbody(sig_nodeL, "setter")
@@ -776,15 +853,23 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_signature_deleter(self):
-        if not self.deletable:
-            return []
+        assert self.deletable
         sig_node = xnodes.div(classes=["sig-container"])
         body = xnodes.div(classes=["sig-body", "sig-main"])
-        body += xnodes.div(nodes.Text("del "), classes=["del-keyword"])
-        body += xnodes.div(nodes.Text(self.qualifier), classes=["sig-qualifier"])
+        body += xnodes.div(nodes.Text("del "), classes=["keyword"])
+        body += self._generate_qualifier()
         body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
         sig_node += body
-        return sig_node
+        return [sig_node]
+
+
+    def _generate_signature_class(self):
+        assert self.name == "xclass"
+        body = xnodes.div(classes=["sig-main"])
+        body += xnodes.div(nodes.Text("class "), classes=["keyword"])
+        body += self._generate_qualifier()
+        body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
+        return body
 
 
     def _generate_sigbody(self, node, kind):
@@ -806,19 +891,21 @@ class XobjectDirective(SphinxDirective):
             assert self.parsed_params[0] == "self"
             del self.parsed_params[0]
 
-        row1 = xnodes.div(classes=["sig-qualifier"])
+        node += self._generate_qualifier()
+        row2 = xnodes.div(classes=["sig-main"])
+        self._generate_sigmain(row2, kind)
+        node += row2
+
+
+    def _generate_qualifier(self):
+        node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
                                     reftype="class", refdomain="py")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
-        row1 += nodes.generated("", "", ref)
-        node += row1
-
-        row2 = xnodes.div(classes=["sig-main"])
-        self._generate_sigmain(row2, kind)
-        node += row2
-
+        node += nodes.generated("", "", ref)
+        return node
 
     def _generate_siglinks(self, node):
         node += a_node(href=self.src_github_url, text="source", new=True)
@@ -1036,6 +1123,7 @@ def setup(app):
     app.add_directive("xdata", XobjectDirective)
     app.add_directive("xfunction", XobjectDirective)
     app.add_directive("xmethod", XobjectDirective)
+    app.add_directive("xclass", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
     app.add_directive("xversionadded", XversionaddedDirective)
     app.add_node(a_node, html=(visit_a, depart_a))
