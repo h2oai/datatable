@@ -856,7 +856,7 @@ class XobjectDirective(SphinxDirective):
         assert self.deletable
         sig_node = xnodes.div(classes=["sig-container"])
         body = xnodes.div(classes=["sig-body", "sig-main"])
-        body += xnodes.div(nodes.Text("del "), classes=["del-keyword"])
+        body += xnodes.div(nodes.Text("del "), classes=["keyword"])
         body += self._generate_qualifier()
         body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
         sig_node += body
@@ -866,7 +866,7 @@ class XobjectDirective(SphinxDirective):
     def _generate_signature_class(self):
         assert self.name == "xclass"
         body = xnodes.div(classes=["sig-main"])
-        body += xnodes.div(nodes.Text("class "), classes=["del-keyword"])
+        body += xnodes.div(nodes.Text("class "), classes=["keyword"])
         body += self._generate_qualifier()
         body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
         return body
