@@ -179,11 +179,11 @@ class XobjectDirective(SphinxDirective):
     self.src2_github_url : str
         GitHub URL for the function's code.
 
-    self.doc_text : str
-        The text of the object's docstring.
+    self.doc_lines : StringList
+        List of lines comprising the object's docstring.
 
-    self.doc_line_start -- starting line of the docstring in self.doc_file
-    self.doc_github_url -- URL of the docstring on GitHub
+    self.doc_github_url : str | None
+        URL of the docstring on GitHub
 
     self.tests_github_url : str
         URL of the test file on GitHub
@@ -202,7 +202,7 @@ class XobjectDirective(SphinxDirective):
     - sphinx/domains/python.py::PyObject
 
     """
-    has_content = False
+    has_content = True
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = False
@@ -234,10 +234,11 @@ class XobjectDirective(SphinxDirective):
         if self.src_fnname2:
             self.src2_github_url = self._locate_fn_source(
                                     self.src_file, self.src_fnname2)
-        self.doc_text = ""
-        if self.doc_file:
-            self._locate_doc_source(self.doc_file, self.doc_var)
+        self._extract_docs_from_source()
+        if self.content:
+            self.doc_lines.extend(self.content)
         self._parse_docstring()
+
         return self._generate_nodes()
 
 
@@ -483,69 +484,69 @@ class XobjectDirective(SphinxDirective):
         return self.permalink(filename, start_line, finish_line)
 
 
-    def _locate_doc_source(self, filename, docname):
+    def _extract_docs_from_source(self):
         """
-        Find the body of the function's docstring within the `lines`
-        of file `filename`. The docstring is expected to be in the
-        `const char* {docname}` variable. An error will be raised if
+        Find the body of the function's docstring inside the file
+        `self.doc_file`. The docstring is expected to be in the
+        `const char* {self.doc_var}` variable. An error will be raised if
         the docstring cannot be found.
-
-        Upon success, this function creates variables `self.doc_text`
-        containing the text of the docstring, `self.doc_line_start`
-        the line number of the doc string in the source file, and
-        lastly the property `self.doc_github_url`.
         """
-        txt = (self.project_root / filename).read_text(encoding="utf-8")
-        lines = txt.splitlines(keepends=True)
+        if not self.doc_file:
+            self.doc_github_url = None
+            self.doc_lines = StringList()
+            return
+
+        txt = (self.project_root / self.doc_file).read_text(encoding="utf-8")
+        lines = txt.splitlines()
         rx_cc_docstring = re.compile(r"\s*(?:static\s+)?const\s+char\s*\*\s*" +
-                                     docname +
+                                     self.doc_var +
                                      r"\s*=\s*(.*?)\s*")
-        doc_text = None
-        start_line = None
-        finish_line = None
-        line_added = False
+        doc_lines = None
+        line1 = None
+        line2 = None
+        skip_next_line = False
         for i, line in enumerate(lines):
-            if line_added:
-                line_added = False
-            elif doc_text:
+            if skip_next_line:
+                skip_next_line = False
+            elif doc_lines:
                 end_index = line.find(')";')
                 if end_index == -1:
-                    doc_text += line
+                    doc_lines.append(line)
                 else:
-                    doc_text += line[:end_index]
-                    finish_line = i + 1
+                    doc_lines.append(line[:end_index])
+                    line2 = i + 1
                     break
-            elif docname in line:
-                start_line = i + 1
+            elif self.doc_var in line:
+                line1 = i + 1
                 mm = re.fullmatch(rx_cc_docstring, line)
                 if mm:
                     doc_start = mm.group(1)
                     if not doc_start:
                         doc_start = lines[i + 1].strip()
-                        line_added = True
+                        skip_next_line = True
+                        line1 += 1
                     if doc_start.startswith('"'):
-                        if doc_start.endswith('";'):
-                            doc_text = doc_start[1:-2]
-                            finish_line = start_line + line_added
-                            break
-                        else:
+                        if not doc_start.endswith('";'):
                             raise self.error("Unexpected document string: `%s` "
                                              "in file %s line %d"
-                                             % (doc_start, filename, i + 1))
+                                             % (doc_start, self.doc_file, line1))
+                        doc_lines = [doc_start[1:-2]]
+                        line2 = line1
+                        break
                     elif doc_start.startswith('R"('):
-                        doc_text = doc_start[3:] + "\n"
-        if doc_text is None:
+                        doc_lines = [doc_start[3:]]
+        if doc_lines is None:
             raise self.error("Could not find docstring `%s` in file `%s`"
-                             % (docname, filename))
-        if not finish_line:
+                             % (self.doc_var, self.doc_file))
+        if not line2:
             raise self.error("Docstring `%s` in file `%s` started on line %d "
                              "but did not finish"
-                             % (docname, filename, start_line))
+                             % (self.doc_var, self.doc_file, line1))
 
-        self.doc_text = doc_text.strip()
-        self.doc_line_start = start_line
-        self.doc_github_url = self.permalink(filename, start_line, finish_line)
-
+        self.doc_github_url = self.permalink(self.doc_file, line1, line2)
+        self.doc_lines = StringList(doc_lines,
+                                    items=[(self.doc_file, line1 + i)
+                                           for i in range(len(doc_lines))])
 
 
     #---------------------------------------------------------------------------
@@ -559,19 +560,13 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
-        if self.name in ["xdata", "xclass"]:
+        if self.name in ["xdata", "xclass"] or "--" not in self.doc_lines:
             self.parsed_params = []
-            self._parse_body(self.doc_text, self.doc_line_start)
+            self._parse_body(self.doc_lines)
             return
 
-        tmp = self.doc_text.split("--\n", 1)
-        if len(tmp) == 1 and self.doc_text.endswith("--"):
-            tmp = [self.doc_text[:-2], ""]
-        if len(tmp) == 1:
-            raise self.error("Docstring for `%s` does not contain '--\\n'"
-                             % self.obj_name)
-        signature_num_newlines = tmp[0].count("\n")
-        signature = tmp[0].strip()
+        iddash = self.doc_lines.index("--")
+        signature = "\n".join(self.doc_lines.data[:iddash])
         if not (signature.startswith(self.obj_name + "(") and
                 signature.endswith(")")):
             raise self.error("Unexpected docstring: should have started with "
@@ -580,7 +575,7 @@ class XobjectDirective(SphinxDirective):
         # strip objname and the parentheses
         signature = signature[(len(self.obj_name) + 1):-1]
         self._parse_parameters(signature)
-        self._parse_body(tmp[1], self.doc_line_start + signature_num_newlines)
+        self._parse_body(self.doc_lines[iddash + 1:])
 
 
     def _parse_parameters(self, sig):
@@ -625,10 +620,12 @@ class XobjectDirective(SphinxDirective):
         self.parsed_params = parsed
 
 
-    def _parse_body(self, body, line0):
+    def _parse_body(self, lines):
         """
         Parse/transform the body of the function's docstring.
         """
+        body = "\n".join(lines.data)
+        line0 = lines.offset(0) if body else 0  # offset of the first line
         self.parsed_body = self._split_into_sections(body, line0)
         for header, section, linenos in self.parsed_body:
             self._transform_codeblocks(section)
@@ -955,7 +952,7 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_siglinks(self, node):
         node += a_node(href=self.src_github_url, text="source", new=True)
-        if self.doc_file != self.src_file:
+        if self.doc_github_url and self.doc_file != self.src_file:
             node += a_node(href=self.doc_github_url, text="doc", new=True)
         if self.tests_github_url:
             node += a_node(href=self.tests_github_url, text="tests", new=True)
