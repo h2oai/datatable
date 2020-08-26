@@ -1,7 +1,10 @@
+datatable.Frame
+---------------
 
 .. xclass:: Frame
     :src: src/core/frame/py_frame.h Frame
     :doc: src/core/frame/py_frame.cc doc_Frame
+    :notitle:
 
 
 .. toctree::

@@ -43,8 +43,9 @@ This makes several directives available for use in the .rst files:
         :doc: c/frame/cbind.cc doc_cbind
         :tests: tests/frame/test-cbind.py
 
+    .. xclass: datatable.Frame
+
 """
-import os
 import pathlib
 import re
 from docutils import nodes
@@ -75,6 +76,8 @@ rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 #
 
 # Store title overrides for individual pages.
+# This controls the HTML titles only, i.e. the <title/> element
+# inside the <head/> section.
 title_overrides = {}
 
 
@@ -166,6 +169,7 @@ class XobjectDirective(SphinxDirective):
         "tests": directives.unchanged,
         "settable": directives.unchanged,
         "deletable": directives.unchanged,
+        "notitle": directives.unchanged,   # FIXME
     }
 
     def run(self):
@@ -179,7 +183,14 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_tests()
         self._parse_option_settable()
         self._parse_option_deletable()
-        title_overrides[self.env.docname] = ".%s()" % self.obj_name
+
+        if self.name == "xclass":
+            oname = self.obj_name
+        elif self.name == "xdata":
+            oname = "." + self.obj_name
+        else:
+            oname = "." + self.obj_name + "()"
+        title_overrides[self.env.docname] = oname
 
         if self.doc_file == self.src_file:
             self._locate_sources(self.src_file, self.src_fnname,
@@ -329,7 +340,7 @@ class XobjectDirective(SphinxDirective):
 
         if setter:
             if self.name != "xdata":
-                raise self.error("Option :settable: is not valid for a :%s: "
+                raise self.error("Option :settable: is not valid for a ..%s "
                                  "directive" % self.name)
             self.setter = setter
         else:
@@ -340,7 +351,7 @@ class XobjectDirective(SphinxDirective):
         self.deletable = "deletable" in self.options
 
         if self.deletable and self.name != "xdata":
-            raise self.error("Option :deletable: is not valid for a :%s: "
+            raise self.error("Option :deletable: is not valid for a ..%s "
                              "directive" % self.name)
 
 
@@ -363,9 +374,8 @@ class XobjectDirective(SphinxDirective):
         See :meth:`_locate_fn_source` and :meth:`_locate_doc_source`
         for details.
         """
-        full_filename = os.path.join(self.project_root, filename)
-        with open(full_filename, "r", encoding="utf-8") as inp:
-            lines = list(inp)
+        txt = (self.project_root / filename).read_text(encoding="utf-8")
+        lines = txt.splitlines(keepends=True)
         if funcname1:
             line1, line2 = self._locate_fn_source(filename, funcname1, lines)
             self.src_line_first = line1
@@ -775,18 +785,21 @@ class XobjectDirective(SphinxDirective):
 
     def _generate_nodes(self):
         title_text = self.qualifier + self.obj_name
-        h1_text = title_text + ("" if self.name == "xdata" else "()")
-        sect = nodes.section(ids=[title_text], classes=["x-function"])
-        sect += nodes.title("", h1_text)
-        sect += self._index_node(title_text)
-        sect += self._generate_signature(title_text)
-        sect += self._generate_signature_setter()
-        sect += self._generate_signature_deleter()
+        sect = nodes.section(ids=[title_text],
+                             classes=["x-function", self.name])
+        if "notitle" not in self.options:
+            h1_text = title_text
+            if self.name not in ["xdata", "xclass"]:
+                h1_text += "()"
+            sect += nodes.title("", h1_text)
+        sect += self._index_node()
+        sect += self._generate_signature()
         sect += self._generate_body()
         return [sect]
 
 
-    def _index_node(self, targetname):
+    def _index_node(self):
+        targetname = self.qualifier + self.obj_name
         text = self.obj_name
         if self.name == "xmethod":
             text += " (%s method)" % self.qualifier[:-1]
@@ -798,10 +811,14 @@ class XobjectDirective(SphinxDirective):
         return [inode]
 
 
-    def _generate_signature(self, targetname):
+    def _generate_signature(self):
+        targetname = self.qualifier + self.obj_name
         sig_node = xnodes.div(classes=["sig-container"], ids=[targetname])
         sig_nodeL = xnodes.div(classes=["sig-body"])
-        self._generate_sigbody(sig_nodeL, "normal")
+        if self.name == "xclass":
+            sig_nodeL += self._generate_signature_class()
+        else:
+            self._generate_sigbody(sig_nodeL, "normal")
         sig_node += sig_nodeL
         sig_nodeR = xnodes.div(classes=["code-links"])
         self._generate_siglinks(sig_nodeR)
@@ -813,12 +830,17 @@ class XobjectDirective(SphinxDirective):
         domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
                            objtype=self.name[1:],  # remove initial 'x'
                            node_id=targetname)
-        return [sig_node]
+        out = [sig_node]
+        if self.name == "xdata":
+            if self.setter:
+                out += self._generate_signature_setter()
+            if self.deletable:
+                out += self._generate_signature_deleter()
+        return out
 
 
     def _generate_signature_setter(self):
-        if not self.setter:
-            return []
+        assert self.setter
         sig_node = xnodes.div(classes=["sig-container"])
         sig_nodeL = xnodes.div(classes=["sig-body"])
         self._generate_sigbody(sig_nodeL, "setter")
@@ -831,15 +853,23 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_signature_deleter(self):
-        if not self.deletable:
-            return []
+        assert self.deletable
         sig_node = xnodes.div(classes=["sig-container"])
         body = xnodes.div(classes=["sig-body", "sig-main"])
         body += xnodes.div(nodes.Text("del "), classes=["del-keyword"])
-        body += xnodes.div(nodes.Text(self.qualifier), classes=["sig-qualifier"])
+        body += self._generate_qualifier()
         body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
         sig_node += body
-        return sig_node
+        return [sig_node]
+
+
+    def _generate_signature_class(self):
+        assert self.name == "xclass"
+        body = xnodes.div(classes=["sig-main"])
+        body += xnodes.div(nodes.Text("class "), classes=["del-keyword"])
+        body += self._generate_qualifier()
+        body += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
+        return body
 
 
     def _generate_sigbody(self, node, kind):
@@ -861,19 +891,21 @@ class XobjectDirective(SphinxDirective):
             assert self.parsed_params[0] == "self"
             del self.parsed_params[0]
 
-        row1 = xnodes.div(classes=["sig-qualifier"])
+        node += self._generate_qualifier()
+        row2 = xnodes.div(classes=["sig-main"])
+        self._generate_sigmain(row2, kind)
+        node += row2
+
+
+    def _generate_qualifier(self):
+        node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
                                     reftype="class", refdomain="py")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
-        row1 += nodes.generated("", "", ref)
-        node += row1
-
-        row2 = xnodes.div(classes=["sig-main"])
-        self._generate_sigmain(row2, kind)
-        node += row2
-
+        node += nodes.generated("", "", ref)
+        return node
 
     def _generate_siglinks(self, node):
         node += a_node(href=self.src_github_url, text="source", new=True)

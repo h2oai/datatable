@@ -19,6 +19,10 @@
     white-space: pre-wrap;
 }
 
+.x-function.xclass .sig-container {
+    background-color: #300c75;
+}
+
 .x-function .sig-container .sig-qualifier a,
 .x-function .sig-container .sig-qualifier a:visited,
 .x-function .sig-container .code-links a,
