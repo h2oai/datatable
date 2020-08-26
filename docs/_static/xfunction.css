@@ -95,6 +95,10 @@
     font-size: inherit;
     padding: 0;
 }
+.x-function .sig-parameters .param.self,
+.x-function .sig-parameters .param.self+.punct {
+    display: none;
+}
 
 .x-function .keyword {
     color: white;
