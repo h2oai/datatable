@@ -11,6 +11,7 @@ datatable.Frame
     :hidden:
 
     .__init__()      <frame/__init__>
+    .__copy__()      <frame/__copy__>
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>

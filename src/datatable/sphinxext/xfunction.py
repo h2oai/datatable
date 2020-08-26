@@ -88,76 +88,119 @@ title_overrides = {}
 
 class XobjectDirective(SphinxDirective):
     """
-    Fields used by this class:
+    Fields inherited from base class
+    --------------------------------
+    self.arguments : List[str]
+        List of (whitespace-separated) tokens that come after the
+        directive name, for example if the source has ".. xmethod:: A B",
+        then this variable will contain ['A', 'B']
 
-    Inherited from base class
-    -------------------------
-        self.arguments : List[str]
-            List of (whitespace-separated) tokens that come after the
-            directive name, for example if the source has ".. xmethod:: A B",
-            then this variable will contain ['A', 'B']
+    self.block_text : str
+        Full text of the directive and its contents, as a single string.
 
-        self.block_text : str
-            Full text of the directive and its contents, as a single string.
+    self.config : sphinx.config.Config
+        Global configuration options.
 
-        self.config : sphinx.config.Config
-            Global configuration options.
+    self.content : StringList
+        The content of the directive, i.e. after the directive itself and
+        all its options. This is a list of lines.
 
-        self.content : StringList
-            The content of the directive, i.e. after the directive itself and
-            all its options. This is a list of lines.
+    self.content_offset : int
+        Index of the first line of `self.content` within the source file.
 
-        self.content_offset : int
-            Index of the first line of `self.content` within the source file.
+    self.env : sphinx.environment.BuildEnvironment
+        Stuff.
 
-        self.env : sphinx.environment.BuildEnvironment
-            Stuff.
+    self.name : str
+        The name of the directive, such as "xfunction" or "xdata".
 
-        self.name : str
-            The name of the directive, such as "xfunction" or "xdata".
-
-        self.options : Dict[str, str]
-            Key-value store of all options passed to the directive.
+    self.options : Dict[str, str]
+        Key-value store of all options passed to the directive.
 
 
-    Derived from config/arguments/options
-    -------------------------------------
-        self.module_name -- config variable xf_module_name
-        self.project_root -- config variable xf_project_root
-        self.permalink_fn -- config variable xf_permalink_fn
-        self.obj_name -- python name of the object being documented
-        self.qualifier -- object's qualifier, this string + obj_name give a
-                          fully-qualified object name.
-        self.src_file -- name of the file where the code is located
-        self.src_fnname -- name of the C++ function (possibly with a namespace)
-                           which corresponds to the object being documented
-        self.src_fnname2 -- name of the second C++ function (for setters)
-        self.doc_file -- name of the file where the docstring is located
-        self.doc_var -- name of the C++ variable containing the docstring
-        self.test_file -- name of the file where tests are located
-        self.setter -- name of the setter variable (for :xdata: directives)
+    Fields derived from config/arguments/options
+    --------------------------------------------
+    self.module_name : str
+        The name of the module being documented, in our case it's
+        "datatable" (from config variable `xf_module_name`).
+
+    self.project_root : pathlib.Path
+        Location of the project's root folder, relative to the folder
+        where the documentation is built. The paths specified by the
+        `:src:` and `:doc:` options must be relative to this root
+        directory (from config variable `xf_project_root`).
+
+    self.permalink_url0 : str
+        Pattern to be used for constructing URLs to a file. This string
+        should contain a "{filename}" pattern inside. (from config variable
+        `xf_permalink_url0`).
+
+    self.permalink_url2 : str
+        Pattern to be used for constructing URLs to a file. It is similar
+        to `self.permalink_url0`, but also allows selecting a particular
+        range of lines within the file. Should contain patterns "{line1}"
+        and "{line2}" inside (from config variable `xf_permalink_url2`).
+
+    self.obj_name : str
+        Python name (short) of the object being documented.
+
+    self.qualifier : str
+        The object's qualifier, such that `qualifier + obj_name` would
+        produce a fully-qualified object name.
+
+    self.src_file : str
+        Name of the file where the code is located.
+
+    self.src_fnname : str
+        Name of the C++ function (possibly with a namespace) which
+        corresponds to the object being documented.
+
+    self.src_fnname2 : str | None
+        Name of the second C++ function (for setters).
+
+    self.doc_file : str | None
+        Name of the file where the docstring is located.
+
+    self.doc_var : str | None
+        Name of the C++ variable containing the docstring.
+
+    self.test_file : str | None
+        Name of the file where tests are located.
+
+    self.setter : str | None
+        Name of the setter variable (for :xdata: directives).
 
 
     Parsed from the source files(s)
     -------------------------------
-        self.src_line_first -- starting line of the function in self.src_file
-        self.src_line_last -- final line of the function in self.src_file
-        self.src_github_url -- URL of the function's code on GitHub
-        self.doc_text -- text of the object's docstring
-        self.doc_line_start -- starting line of the docstring in self.doc_file
-        self.doc_github_url -- URL of the docstring on GitHub
-        self.tests_github_url -- URL of the test file on GitHub
+    self.src_github_url : str
+        GitHub URL for the function's code.
 
-    Parsed from the docstring
-    -------------------------
-        self.parsed_params -- list of parameters of this function; each entry
-                              is either the parameter itself (str), or a tuple
-                              of strings (parameter, default_value).
+    self.src2_github_url : str
+        GitHub URL for the function's code.
+
+    self.doc_text : str
+        The text of the object's docstring.
+
+    self.doc_line_start -- starting line of the docstring in self.doc_file
+    self.doc_github_url -- URL of the docstring on GitHub
+
+    self.tests_github_url : str
+        URL of the test file on GitHub
+
+
+    Fields parsed from the docstring
+    --------------------------------
+    self.parsed_params : List[str | Tuple[str, str]]
+        List of parameters of this function; each entry is either the
+        parameter itself (str), or a tuple `(parameter, default_value)`.
+
 
     See also
     --------
-        sphinx/directives/__init__.py::ObjectDescription
-        sphinx/domains/python.py::PyObject
+    - sphinx/directives/__init__.py::ObjectDescription
+    - sphinx/domains/python.py::PyObject
+
     """
     has_content = False
     required_arguments = 1
@@ -183,24 +226,40 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_tests()
         self._parse_option_settable()
         self._parse_option_deletable()
+        self._register_title_override()
 
-        if self.name == "xclass":
-            oname = self.obj_name
-        elif self.name == "xdata":
-            oname = "." + self.obj_name
-        else:
-            oname = "." + self.obj_name + "()"
-        title_overrides[self.env.docname] = oname
-
-        if self.doc_file == self.src_file:
-            self._locate_sources(self.src_file, self.src_fnname,
-                                 self.src_fnname2, self.doc_var)
-        else:
-            self._locate_sources(self.src_file, self.src_fnname,
-                                 self.src_fnname2, None)
-            self._locate_sources(self.doc_file, None, None, self.doc_var)
+        if self.src_fnname:
+            self.src_github_url = self._locate_fn_source(
+                                    self.src_file, self.src_fnname)
+        if self.src_fnname2:
+            self.src2_github_url = self._locate_fn_source(
+                                    self.src_file, self.src_fnname2)
+        self.doc_text = ""
+        if self.doc_file:
+            self._locate_doc_source(self.doc_file, self.doc_var)
         self._parse_docstring()
         return self._generate_nodes()
+
+
+    def _register_title_override(self):
+        """
+        Normally HTML page's <title/> will be the same as the title
+        displayed on the page in an <h1/> element.
+
+        However, due to the fact that the amount of screen space
+        available for a title is very small, we want to make the
+        title "reversed": first the object name and then the
+        qualifier. This way the most important information will
+        remain visible longer.
+        """
+        if self.name == "xclass":
+            title = self.obj_name
+        elif self.name == "xdata":
+            title = "." + self.obj_name
+        else:
+            title = "." + self.obj_name + "()"
+        title += " &ndash; " + self.qualifier
+        title_overrides[self.env.docname] = title
 
 
     #---------------------------------------------------------------------------
@@ -216,6 +275,10 @@ class XobjectDirective(SphinxDirective):
         assert isinstance(self.project_root, str)
         assert isinstance(self.permalink_url0, str)
         assert isinstance(self.permalink_url2, str)
+        assert "{filename}" in self.permalink_url0
+        assert "{filename}" in self.permalink_url2
+        assert "{line1}" in self.permalink_url2
+        assert "{line2}" in self.permalink_url2
         self.project_root = pathlib.Path(self.project_root)
         assert self.project_root.is_dir()
 
@@ -284,9 +347,13 @@ class XobjectDirective(SphinxDirective):
         """
         Process the nonmandatory option `:doc:`, and extract fields
         `self.doc_file` and `self.doc_var`. If the option is not
-        provided, the fields are set to their default values.
+        provided, the fields are set to None.
         """
-        doc = self.options.get("doc", "").strip()
+        if "doc" not in self.options:
+            self.doc_file = None
+            self.doc_var = None
+            return
+        doc = self.options["doc"].strip()
         parts = doc.split()
         if len(parts) > 2:
             raise self.error("Invalid :doc: option in ..%s directive: it must "
@@ -318,16 +385,15 @@ class XobjectDirective(SphinxDirective):
         """
         self.test_file = None
         self.tests_github_url = None
-        testfile = self.options.get("tests", "").strip()
-
-        if not testfile:
+        if "tests" not in self.options:
             return
-        elif (self.project_root / testfile).is_file():
-            self.test_file = testfile
-            self.tests_github_url = self.permalink(testfile)
-        else:
+
+        testfile = self.options["tests"].strip()
+        if not (self.project_root / testfile).is_file():
             raise self.error("Invalid :tests: option in ..%s directive: file "
                              "`%s` does not exist" % (self.name, testfile))
+        self.test_file = testfile
+        self.tests_github_url = self.permalink(testfile)
 
 
     def _parse_option_settable(self):
@@ -366,31 +432,7 @@ class XobjectDirective(SphinxDirective):
         return pattern.format(filename=filename, line1=line1, line2=line2)
 
 
-    def _locate_sources(self, filename, funcname1, funcname2, docname):
-        """
-        Locate either the function body or the documentation string or
-        both in the source file `filename`.
-
-        See :meth:`_locate_fn_source` and :meth:`_locate_doc_source`
-        for details.
-        """
-        txt = (self.project_root / filename).read_text(encoding="utf-8")
-        lines = txt.splitlines(keepends=True)
-        if funcname1:
-            line1, line2 = self._locate_fn_source(filename, funcname1, lines)
-            self.src_line_first = line1
-            self.src_line_last = line2
-            self.src_github_url = self.permalink(filename, line1, line2)
-        if funcname2:
-            line1, line2 = self._locate_fn_source(filename, funcname2, lines)
-            self.src2_line_first = line1
-            self.src2_line_last = line2
-            self.src2_github_url = self.permalink(filename, line1, line2)
-        if docname:
-            self._locate_doc_source(filename, docname, lines)
-
-
-    def _locate_fn_source(self, filename, fnname, lines):
+    def _locate_fn_source(self, filename, fnname):
         """
         Find the body of the function `fnname` within the `lines` that
         were read from the file `filename`.
@@ -398,6 +440,8 @@ class XobjectDirective(SphinxDirective):
         If successful, this function returns a tuple of the line
         numbers of the start the end of the function.
         """
+        txt = (self.project_root / filename).read_text(encoding="utf-8")
+        lines = txt.splitlines()
         if self.name == "xclass":
             rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
         else:
@@ -436,10 +480,10 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Could not locate the end of function `%s` "
                              "in file `%s` line %d"
                              % (fnname, filename, start_line))
-        return (start_line, finish_line)
+        return self.permalink(filename, start_line, finish_line)
 
 
-    def _locate_doc_source(self, filename, docname, lines):
+    def _locate_doc_source(self, filename, docname):
         """
         Find the body of the function's docstring within the `lines`
         of file `filename`. The docstring is expected to be in the
@@ -451,6 +495,8 @@ class XobjectDirective(SphinxDirective):
         the line number of the doc string in the source file, and
         lastly the property `self.doc_github_url`.
         """
+        txt = (self.project_root / filename).read_text(encoding="utf-8")
+        lines = txt.splitlines(keepends=True)
         rx_cc_docstring = re.compile(r"\s*(?:static\s+)?const\s+char\s*\*\s*" +
                                      docname +
                                      r"\s*=\s*(.*?)\s*")

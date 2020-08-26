@@ -246,11 +246,6 @@ oobj Frame::copy(const PKArgs& args) {
 }
 
 
-oobj Frame::m__copy__() {
-  args_copy.bind(nullptr, nullptr);
-  return copy(args_copy);
-}
-
 
 static PKArgs args___deepcopy__(
   0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
@@ -259,6 +254,11 @@ oobj Frame::m__deepcopy__(const PKArgs&) {
   py::odict dict_arg;
   dict_arg.set(py::ostring("deep"), py::True());
   args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
+  return copy(args_copy);
+}
+
+oobj Frame::m__copy__() {
+  args_copy.bind(nullptr, nullptr);
   return copy(args_copy);
 }
 
@@ -533,16 +533,20 @@ void Frame::set_nrows(const Arg& nr) {
 
 static const char* doc_shape =
 R"(
-Tuple with (nrows, ncols) dimensions of the Frame.
+Tuple with ``(nrows, ncols)`` dimensions of the frame.
+
+This property is read-only.
 
 Parameters
 ----------
 return: Tuple[int, int]
+    Tuple with two integers: the first is the number of rows, the
+    second is the number of columns.
 
 See also
 --------
-- :data:`.nrows`: getter for the number of rows of the frame;
-- :data:`.ncols`: getter for the number of columns of the frame.
+- :data:`.nrows` -- getter for the number of rows;
+- :data:`.ncols` -- getter for the number of columns.
 )";
 
 static GSArgs args_shape("shape", doc_shape);
