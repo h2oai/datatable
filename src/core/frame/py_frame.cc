@@ -993,21 +993,46 @@ static PKArgs args___init__(1, 0, 3, false, true,
 
 static const char* doc_Frame =
 R"(
-Two-dimensional column-oriented table of data. Each column has its own
-name and type. Types may vary across columns but cannot vary within
-each column.
+Two-dimensional column-oriented container of data. This the primary
+data structure in the :mod:`datatable` module.
 
-Internally the data is stored as C primitives, and processed using
-multithreaded native C++ code.
+A Frame is *two-dimensional* in the sense that it is comprised of
+rows and columns of data. Each data cell can be located via a pair
+of its coordinates: ``(irow, icol)``. We do not support frames with
+more or less than two dimensions.
 
-This is a primary data structure for the `datatable` module.
+A Frame is *column-oriented* in the sense that internally the data is
+stored separately for each column. Each column has its own name and
+type. Types may be different for different columns but cannot vary
+within each column.
+
+Thus, the dimensions of a Frame are not symmetrical: a Frame is not
+a matrix. Internally the class is optimized for the use case when the
+number of rows significantly exceeds the number of columns.
+
+A Frame can be viewed as a ``list`` of columns: standard Python
+function ``len()`` will return the number of columns in the Frame,
+and ``frame[j]`` will return the column at index ``j`` (each "column"
+will be a Ffame with ``ncols == 1``). Similarly, you can iterate over
+the columns of a Frame in a loop, or use it in a ``*``-expansion::
+
+    for column in frame:
+        ...
+
+    list_of_columns = [*frame]
+
+A Frame can also be viewed as a ``dict`` of columns, where the key
+associated with each column is its name. Thus, ``frame[name]`` will
+return the column with the requested name. A Frame can also work with
+standard python ``**``-expansion::
+
+    dict_of_columns = {**frame}
 )";
 
 
 void Frame::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.Frame");
-  xt.set_class_doc(
-  );
+  xt.set_class_doc(doc_Frame);
   xt.set_subclassable(true);
   xt.add(CONSTRUCTOR(&Frame::m__init__, args___init__));
   xt.add(DESTRUCTOR(&Frame::m__dealloc__));
