@@ -13,3 +13,7 @@
     where ``{ID}`` is the value of ``id(frame)`` in hex format. Thus,
     each frame has its own unique id, though after one frame is
     deleted it's id may be reused for another frame.
+
+    See Also
+    --------
+    - :meth:`.__str__()`

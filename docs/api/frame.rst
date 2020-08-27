@@ -15,6 +15,8 @@ datatable.Frame
     .__getstate__()  <frame/__getstate__>
     .__len__()       <frame/__len__>
     .__repr__()      <frame/__repr__>
+    .__sizeof__()    <frame/__sizeof__>
+    .__str__()       <frame/__str__>
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
