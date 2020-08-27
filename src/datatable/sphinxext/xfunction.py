@@ -348,7 +348,7 @@ class XobjectDirective(SphinxDirective):
         """
         Process the nonmandatory option `:doc:`, and extract fields
         `self.doc_file` and `self.doc_var`. If the option is not
-        provided, the fields are set to None.
+        provided, the fields are set to `None`.
         """
         if "doc" not in self.options:
             self.doc_file = None

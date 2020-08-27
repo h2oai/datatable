@@ -4,8 +4,8 @@
     :src: src/core/frame/__repr__.cc Frame::m__str__
 
     Returns a string with the Frame's data formatted as a table, i.e.
-    the same representation as displayed when you are trying to
-    inspect the frame from Python console.
+    the same representation as displayed when trying to inspect the
+    frame from Python console.
 
     Different aspects of the stringification process can be controlled
     via ``dt.options.display`` options; but under the default settings
