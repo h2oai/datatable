@@ -27,7 +27,36 @@ from datatable import dt, f
 from tests import assert_equals
 
 
-def test_idiv_stringify():
+#-------------------------------------------------------------------------------
+# Errors
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("type", [dt.float32, dt.float64, dt.str32, dt.str64, dt.obj64])
+def test_floordiv_error_wrong_one_type(type):
+    DT = dt.Frame(A=[]/type, B=[]/dt.int32)
+    type_str = str(type)[6:]
+    msg = "Operator // cannot be applied to columns of types %s and int32" % \
+          (type_str,)
+    with pytest.raises(TypeError, match=msg):
+        DT[:, f.A // f.B]
+
+
+@pytest.mark.parametrize("type", [dt.float32, dt.float64, dt.str32, dt.str64, dt.obj64])
+def test_floordiv_error_wrong_both_types(type):
+    DT = dt.Frame(A=[]/type, B=[]/type)
+    type_str = str(type)[6:]
+    msg = "Operator // cannot be applied to columns of types %s and %s" % \
+          (type_str, type_str)
+    with pytest.raises(TypeError, match=msg):
+        DT[:, f.A // f.B]
+
+
+
+#-------------------------------------------------------------------------------
+# Normal
+#-------------------------------------------------------------------------------
+
+def test_floordiv_stringify():
     assert str(f.A // 10) == "FExpr<f.A // 10>"
     assert str(f.A // f.B) == "FExpr<f.A // f.B>"
     assert str(f.A // f.B // f.C) == "FExpr<f.A // f.B // f.C>"
@@ -38,15 +67,50 @@ def test_idiv_stringify():
     assert str(f.A // (f[1]*3) // f.Z) == "FExpr<f.A // (f[1] * 3) // f.Z>"
 
 
+def test_floordiv_boolean_columns():
+    DT = dt.Frame(x=[True, True, True, False, False, False, None, None, None],
+                  y=[True, False, None] * 3)
+    RES = DT[:, f.x // f.y]
+    EXP = dt.Frame([1, None, None, 0, None, None, None, None, None]/dt.int32)
+    assert_equals(RES, EXP)
+
+
+def test_floordiv_boolean_column_scalar():
+    DT = dt.Frame(x=[True, False, None])
+    RES = DT[:, [f.x // True, f.x // False, f.x // None]]
+    EXP = dt.Frame([[1, 0, None]/dt.int32,
+                   [None, None, None]/dt.int32,
+                   [None, None, None]/dt.bool8])
+    assert_equals(RES, EXP)
+
+
 @pytest.mark.parametrize("seed", [random.getrandbits(63)])
-def test_idiv_integers(seed):
+def test_floordiv_integers(seed):
     random.seed(seed)
     n = 1000
     src1 = [random.randint(-100, 100) for _ in range(n)]
     src2 = [random.randint(-10, 10) for _ in range(n)]
 
     DT = dt.Frame(x=src1, y=src2)
-    RES = DT[:, f.x // f.y]
-    EXP = dt.Frame([None if src2[i] == 0 else src1[i] // src2[i]
-                    for i in range(n)])
+    RES = DT[:, [f.x // f.y, f.x // 100]]
+    EXP = dt.Frame([
+            [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
+            [src1[i] // 100 for i in range(n)]
+          ])
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_floordiv_integers_booleans(seed):
+    random.seed(seed)
+    n = 1000
+    src1 = [random.randint(0, 1) for _ in range(n)]
+    src2 = [random.randint(-10, 10) for _ in range(n)]
+
+    DT = dt.Frame(x=src1/dt.bool8, y=src2)
+    RES = DT[:, [f.x // f.y, f.y // f.x]]
+    EXP = dt.Frame([
+            [None if src2[i] == 0 else src1[i] // src2[i] for i in range(n)],
+            [None if src1[i] == False else src2[i] // src1[i] for i in range(n)]
+          ])
     assert_equals(RES, EXP)

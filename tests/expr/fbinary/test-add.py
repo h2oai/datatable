@@ -21,9 +21,38 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import pytest
 from datatable import dt, f
 from tests import assert_equals
 
+
+#-------------------------------------------------------------------------------
+# Errors
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("type", [dt.obj64])
+def test_add_error_wrong_one_type(type):
+    DT = dt.Frame(A=[]/type, B=[]/dt.int32)
+    type_str = str(type)[6:]
+    msg = r"Operator \+ cannot be applied to columns of types %s and int32" % \
+          (type_str,)
+    with pytest.raises(TypeError, match=msg):
+        DT[:, f.A + f.B]
+
+
+@pytest.mark.parametrize("type", [dt.obj64])
+def test_add_error_wrong_both_types(type):
+    DT = dt.Frame(A=[]/type, B=[]/type)
+    type_str = str(type)[6:]
+    msg = r"Operator \+ cannot be applied to columns of types %s and %s" % \
+          (type_str, type_str)
+    with pytest.raises(TypeError, match=msg):
+        DT[:, f.A + f.B]
+
+
+#-------------------------------------------------------------------------------
+# Normal
+#-------------------------------------------------------------------------------
 
 def test_add_stringify():
   assert str(f.A + 1) == "FExpr<f.A + 1>"
