@@ -77,8 +77,15 @@ oobj Frame::_repr_pretty_(const PKArgs&) {
 }
 
 
+static const char* doc_view =
+R"(view(self, interactive=None, plain=False)
+--
+
+**This function is currently not working properly**
+)";
+
 static PKArgs args_view(
-  0, 2, 0, false, false, {"interactive", "plain"}, "view", nullptr);
+  0, 2, 0, false, false, {"interactive", "plain"}, "view", doc_view);
 
 void Frame::view(const PKArgs& args) {
   bool interactive = true;  // default when `interactive` is omitted entirely

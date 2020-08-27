@@ -25,6 +25,7 @@ datatable.Frame
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
+    .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
     .names           <frame/names>
@@ -43,3 +44,4 @@ datatable.Frame
     .to_numpy()      <frame/to_numpy>
     .to_pandas()     <frame/to_pandas>
     .to_tuples()     <frame/to_tuples>
+    .view()          <frame/view>
