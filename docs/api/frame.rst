@@ -11,6 +11,12 @@ datatable.Frame
     :hidden:
 
     .__init__()      <frame/__init__>
+    .__copy__()      <frame/__copy__>
+    .__getstate__()  <frame/__getstate__>
+    .__len__()       <frame/__len__>
+    .__repr__()      <frame/__repr__>
+    .__sizeof__()    <frame/__sizeof__>
+    .__str__()       <frame/__str__>
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
@@ -19,6 +25,7 @@ datatable.Frame
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
+    .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
     .names           <frame/names>
@@ -37,3 +44,4 @@ datatable.Frame
     .to_numpy()      <frame/to_numpy>
     .to_pandas()     <frame/to_pandas>
     .to_tuples()     <frame/to_tuples>
+    .view()          <frame/view>

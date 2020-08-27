@@ -3,6 +3,9 @@
     margin-bottom: 32pt;
 }
 
+.x-function + .x-function {
+    margin-top: -28pt;
+}
 
 
 /*------------------------------------------------------------------------------
@@ -94,6 +97,10 @@
     color: #8da4d2;
     font-size: inherit;
     padding: 0;
+}
+.x-function .sig-parameters .param.self,
+.x-function .sig-parameters .param.self+.punct {
+    display: none;
 }
 
 .x-function .keyword {
