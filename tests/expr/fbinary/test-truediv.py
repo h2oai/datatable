@@ -33,7 +33,7 @@ from tests import assert_equals
 
 @pytest.mark.parametrize("type", [dt.str32, dt.str64, dt.obj64])
 def test_div_error_wrong_one_type(type):
-    DT = dt.Frame(A=[[None]*100]/type, B=[range(100)]/dt.int32)
+    DT = dt.Frame(A=[]/type, B=[]/dt.int32)
     type_str = str(type)[6:]
     msg = "Operator / cannot be applied to columns of types %s and int32" % \
           (type_str,)
@@ -43,7 +43,7 @@ def test_div_error_wrong_one_type(type):
 
 @pytest.mark.parametrize("type", [dt.str32, dt.str64, dt.obj64])
 def test_div_error_wrong_both_types(type):
-    DT = dt.Frame(A=[range(100)]/type, B=[[None]*100]/type)
+    DT = dt.Frame(A=[]/type, B=[]/type)
     type_str = str(type)[6:]
     msg = "Operator / cannot be applied to columns of types %s and %s" % \
           (type_str, type_str)
