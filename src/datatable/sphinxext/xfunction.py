@@ -48,6 +48,7 @@ This makes several directives available for use in the .rst files:
 """
 import pathlib
 import re
+import time
 from docutils import nodes
 from docutils.parsers.rst import directives
 from docutils.statemachine import StringList
@@ -88,6 +89,15 @@ title_overrides = {}
 
 class XobjectDirective(SphinxDirective):
     """
+    The following data is stored by this directive in the environment:
+
+        env.xobject = {
+            <docname>: {
+                "timestamp": <time of last build of the page>,
+                "sources": List[<name of a source file>],
+            }
+        }
+
     Fields inherited from base class
     --------------------------------
     self.arguments : List[str]
@@ -219,6 +229,7 @@ class XobjectDirective(SphinxDirective):
         """
         Main function invoked by the Sphinx runtime.
         """
+        self._init_env()
         self._parse_config()
         self._parse_arguments()
         self._parse_option_src()
@@ -240,6 +251,18 @@ class XobjectDirective(SphinxDirective):
         self._parse_docstring()
 
         return self._generate_nodes()
+
+
+    def _init_env(self):
+        if not hasattr(self.env, "xobject"):
+            self.env.xobject = {}
+        self.env.xobject[self.env.docname] = dict(
+            timestamp = time.time(),
+            sources = []
+        )
+
+    def _register_source_file(self, filename):
+        self.env.xobject[self.env.docname]['sources'].append(filename)
 
 
     def _register_title_override(self):
@@ -333,6 +356,7 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Invalid :src: option in ..%s directive: file "
                              "`%s` does not exist" % (self.name, src))
         self.src_file = src
+        self._register_source_file(self.src_file)
         for p in parts[1:]:
             if not re.fullmatch(rx_cc_id, p):
                 raise self.error("Invalid :src: option in ..%s directive: "
@@ -365,6 +389,7 @@ class XobjectDirective(SphinxDirective):
             self.doc_file = self.src_file
         elif (self.project_root / parts[0]).is_file():
             self.doc_file = parts[0]
+            self._register_source_file(self.doc_file)
         else:
             raise self.error("Invalid :doc: option in ..%s directive: file "
                              "`%s` does not exist" % (self.name, parts[0]))
@@ -395,6 +420,7 @@ class XobjectDirective(SphinxDirective):
                              "`%s` does not exist" % (self.name, testfile))
         self.test_file = testfile
         self.tests_github_url = self.permalink(testfile)
+        self._register_source_file(self.test_file)
 
 
     def _parse_option_settable(self):
@@ -1148,6 +1174,50 @@ def depart_a(self, node):
 
 
 #-------------------------------------------------------------------------------
+# Event handlers
+#-------------------------------------------------------------------------------
+
+def get_file_timestamp(root, filename):
+    filepath = pathlib.Path(root) / filename
+    if filepath.is_file():
+        return filepath.stat().st_mtime
+    else:
+        return 1.0e+300
+
+
+# https://www.sphinx-doc.org/en/master/extdev/appapi.html#event-env-get-outdated
+def on_env_get_outdated(app, env, added, changed, removed):
+    if not hasattr(env, "xobject"):
+        return []
+    root = env.config.xf_project_root
+    docs_to_update = []
+    for docname, record in env.xobject.items():
+        for filename in record['sources']:
+            file_time = get_file_timestamp(root, filename)
+            if file_time > record['timestamp']:
+                docs_to_update.append(docname)
+                break
+    return docs_to_update
+
+
+# https://www.sphinx-doc.org/en/master/extdev/appapi.html#event-env-purge-doc
+def on_env_purge_doc(app, env, docname):
+    if hasattr(env, "xobject"):
+        env.xobject.pop(docname, None)
+
+
+# https://www.sphinx-doc.org/en/master/extdev/appapi.html#event-env-merge-info
+def on_env_merge_info(app, env, docnames, other):
+    if not hasattr(other, "xobject"):
+        return
+    if hasattr(env, "xobject"):
+        env.xobject.update(other.xobject)
+    else:
+        env.xobject = other.xobject
+
+
+
+#-------------------------------------------------------------------------------
 # Setup
 #-------------------------------------------------------------------------------
 def fix_html_titles(app, pagename, templatename, context, doctree):
@@ -1169,7 +1239,15 @@ def setup(app):
     app.add_directive("xclass", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
     app.add_directive("xversionadded", XversionaddedDirective)
+
+    app.connect("env-get-outdated", on_env_get_outdated)
+    app.connect("env-purge-doc", on_env_purge_doc)
+    app.connect("env-merge-info", on_env_merge_info)
+
     app.add_node(a_node, html=(visit_a, depart_a))
     app.add_role("xparam-ref", xparamref)
     app.connect("html-page-context", fix_html_titles)
-    return {"parallel_read_safe": True, "parallel_write_safe": True}
+    return {"parallel_read_safe": True,
+            "parallel_write_safe": True,
+            "env_version": 1,
+            }
