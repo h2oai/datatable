@@ -28,6 +28,10 @@ datatable.Frame
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .max()           <frame/max>
+    .max1()          <frame/max1>
+    .min()           <frame/min>
+    .min1()          <frame/min1>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>

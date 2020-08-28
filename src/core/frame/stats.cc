@@ -116,6 +116,115 @@ See Also
   in a column; can also be applied per-group.
 )";
 
+
+static const char* doc_max =
+R"(max(self)
+--
+
+Report the largest (maximum) value in each column of the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have 1 row and the same number, names and stypes
+    of columns as in the current frame. For string/object columns
+    this function returns NA values.
+
+See Also
+--------
+- :meth:`.max1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+- :func:`dt.max()` -- function for counting max values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_max1 =
+R"(max1(self)
+--
+
+Return the largest value in a single-column Frame. The frame's
+stype must be numeric.
+
+This function is a shortcut for::
+
+    DT.max()[0, 0]
+
+Parameters
+----------
+return: bool | int | float
+    The returned value corresponds to the stype of the frame.
+
+except: ValueError
+    If called on a Frame that has more or less than 1 column.
+
+See Also
+--------
+- :meth:`.max()` -- similar to this method, but can be applied to
+  a Frame with any number of columns.
+
+- :func:`dt.max()` -- function for counting max values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_min =
+R"(min(self)
+--
+
+Report the smallest (minimum) value in each column of the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have 1 row and the same number, names and stypes
+    of columns as in the current frame. For string/object columns
+    this function returns NA values.
+
+See Also
+--------
+- :meth:`.min1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+- :func:`dt.min()` -- function for counting min values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_min1 =
+R"(min1(self)
+--
+
+Return the smallest value in a single-column Frame. The frame's
+stype must be numeric.
+
+This function is a shortcut for::
+
+    DT.min()[0, 0]
+
+Parameters
+----------
+return: bool | int | float
+    The returned value corresponds to the stype of the frame.
+
+except: ValueError
+    If called on a Frame that has more or less than 1 column.
+
+See Also
+--------
+- :meth:`.min()` -- similar to this method, but can be applied to
+  a Frame with any number of columns.
+
+- :func:`dt.min()` -- function for counting min values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+
+
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
 static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
