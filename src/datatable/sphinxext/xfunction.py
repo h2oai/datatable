@@ -229,8 +229,8 @@ class XobjectDirective(SphinxDirective):
         """
         Main function invoked by the Sphinx runtime.
         """
-        self._init_env()
         self._parse_config()
+        self._init_env()
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
@@ -260,6 +260,9 @@ class XobjectDirective(SphinxDirective):
             timestamp = time.time(),
             sources = []
         )
+        # equivalent of `.. py::currentmodule::` directive
+        self.env.ref_context['py:module'] = self.module_name
+
 
     def _register_source_file(self, filename):
         self.env.xobject[self.env.docname]['sources'].append(filename)
