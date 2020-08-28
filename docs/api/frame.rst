@@ -20,18 +20,12 @@ datatable.Frame
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
-    .countna()       <frame/countna>
-    .countna1()      <frame/countna1>
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
-    .max()           <frame/max>
-    .max1()          <frame/max1>
-    .min()           <frame/min>
-    .min1()          <frame/min1>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>
