@@ -200,8 +200,10 @@ datatable.Frame
     .__init__()      <frame/__init__>
     .__copy__()      <frame/__copy__>
     .__getstate__()  <frame/__getstate__>
+    .__iter__()      <frame/__iter__>
     .__len__()       <frame/__len__>
     .__repr__()      <frame/__repr__>
+    .__reversed__()  <frame/__reversed__>
     .__sizeof__()    <frame/__sizeof__>
     .__str__()       <frame/__str__>
     .cbind()         <frame/cbind>
