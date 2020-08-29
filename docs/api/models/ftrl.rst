@@ -1,6 +1,7 @@
+datatable.models.Ftrl
+---------------------
 
-Ftrl
-====
-
-.. autoclass:: datatable.models.Ftrl
-    :members:
+.. xclass:: Ftrl
+    :src: src/core/models/py_ftrl.h Ftrl
+    :doc: src/core/models/py_ftrl.cc doc_Ftrl
+    :notitle:

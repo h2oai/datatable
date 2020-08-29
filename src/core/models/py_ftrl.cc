@@ -1169,9 +1169,8 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 // py::Ftrl::Type
 //------------------------------------------------------------------------------
 
-void Ftrl::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("datatable.models.Ftrl");
-  xt.set_class_doc(R"(Follow the Regularized Leader (FTRL) model.
+static const char* doc_Ftrl =
+R"(Follow the Regularized Leader (FTRL) model.
 
 FTRL model is a datatable implementation of the FTRL-Proximal online
 learning algorithm for binomial logistic regression. It uses a hashing
@@ -1228,7 +1227,11 @@ model_type : str
     'regression' for numeric regression. Defaults to 'auto', meaning
     that the model type will be automatically selected based on
     the target column `stype`.
-)");
+)";
+
+void Ftrl::impl_init_type(XTypeMaker& xt) {
+  xt.set_class_name("datatable.models.Ftrl");
+  xt.set_class_doc(doc_Ftrl);
 
   xt.add(CONSTRUCTOR(&Ftrl::m__init__, args___init__));
   xt.add(DESTRUCTOR(&Ftrl::m__dealloc__));
