@@ -98,6 +98,8 @@ bynames: bool
     column names will be ignored, and the columns will be matched
     according to their order, i.e. i-th column in the current frame
     to the i-th column in each appended frame.
+
+return: None
 )";
 
 static PKArgs args_rbind(

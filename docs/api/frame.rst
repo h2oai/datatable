@@ -216,6 +216,7 @@ datatable.Frame
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>
+    .rbind()         <frame/rbind>
     .replace()       <frame/replace>
     .shape           <frame/shape>
     .sort()          <frame/sort>
