@@ -19,6 +19,42 @@ datatable.Frame
         * - :func:`dt.fread(src) <datatable.fread>`
           - Read an external file and convert into a Frame.
 
+        * - :meth:`.copy() <Frame.copy>`
+          - Create a copy of the frame.
+
+
+    Frame manipulation
+    ------------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`frame[i, j, ...] <datatable.Frame.__getitem__>`
+          - Primary method for extracting data from a frame, and to
+            perform calculations.
+
+        * - :meth:`frame[i, j, ...] = values <datatable.Frame.__setitem__>`
+          - Update data within the frame.
+
+        * - :meth:`del frame[i, j, ...] <datatable.Frame.__delitem__>`
+          - Remove rows/columns/values from the frame.
+
+        * -
+          -
+
+        * - :meth:`.cbind(*frames) <Frame.cbind>`
+          - Append columns of other frames to this frame.
+
+        * - :meth:`.rbind(*frames) <Frame.rbind>`
+          - Append other frames at the bottom of the current.
+
+        * - :meth:`.replace(what, with) <Frame.replace>`
+          - Search and replace values in the frame.
+
+        * - :meth:`.sort(cols) <Frame.sort>`
+          - Sort the frame by the specified columns.
+
 
     Convert into other formats
     --------------------------
@@ -84,21 +120,15 @@ datatable.Frame
           - Storage types (:class:`stype`s) of all columns.
 
 
-    Methods
-    -------
+    Other methods
+    -------------
 
     .. list-table::
         :widths: auto
         :class: api-table
 
-        * - :meth:`.cbind(*frames) <Frame.cbind>`
-          - Append columns of other frames to this frame.
-
         * - :meth:`.colindex(name) <Frame.colindex>`
           - Find the position of a column in the frame by its name.
-
-        * - :meth:`.copy() <Frame.copy>`
-          - Create a copy of the frame.
 
         * - :meth:`.export_names() <Frame.export_names>`
           - Create python variables for each column of the frame.
@@ -108,15 +138,6 @@ datatable.Frame
 
         * - :meth:`.materialize() <Frame.materialize>`
           - Make sure all frame's data is physically written to memory.
-
-        * - :meth:`.rbind(*frames) <Frame.rbind>`
-          - Append other frames at the bottom of the current.
-
-        * - :meth:`.replace(what, with) <Frame.replace>`
-          - Search and replace values in the frame.
-
-        * - :meth:`.sort(cols) <Frame.sort>`
-          - Sort the frame by the specified columns.
 
         * - :meth:`.tail() <Frame.tail>`
           - Return the last few rows of the frame.
