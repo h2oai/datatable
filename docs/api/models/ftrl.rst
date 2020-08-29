@@ -1,11 +1,11 @@
 datatable.models.Ftrl
 ---------------------
 
-.. xclass:: Ftrl
+.. xclass:: models.Ftrl
     :src: src/core/models/py_ftrl.h Ftrl
     :doc: src/core/models/py_ftrl.cc doc_Ftrl
     :tests: tests/models/test-ftrl.py
-
+    :notitle:
 
 .. toctree::
     :hidden:
