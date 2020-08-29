@@ -218,6 +218,7 @@ datatable.Frame
     .nrows           <frame/nrows>
     .replace()       <frame/replace>
     .shape           <frame/shape>
+    .sort()          <frame/sort>
     .source          <frame/source>
     .stype           <frame/stype>
     .stypes          <frame/stypes>
