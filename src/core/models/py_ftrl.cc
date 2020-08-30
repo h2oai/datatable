@@ -243,11 +243,17 @@ validation_average_niterations: int
     Number of iterations that is used to calculate average loss. Here, each
     iteration corresponds to `nepochs_validation` epochs.
 
-return: Tuple[float, float]
-    A tuple consisting of two elements: `epoch` and `loss`, where
-    `epoch` is the epoch at which model fitting stopped, and `loss` is the final
-    loss. When validation dataset is not provided, `epoch` returned is equal to
-    `nepochs`, and `loss` is `float('nan')`.
+return: FtrlFitOutput
+    `FtrlFitOutput` is a `Tuple[float, float]` with two fields: `epoch` and `loss`,
+    representing the final fitting epoch and the final loss, respectively.
+    If validation dataset is not provided, the returned `epoch` equals to
+    `nepochs` and the `loss` is just `float('nan')`.
+
+See also
+--------
+- :meth:`.predict`: predict on a dataset
+- :meth:`.reset`: reset the model
+
 )";
 
 static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
@@ -422,6 +428,12 @@ X: Frame
 return: Frame
     A new frame of shape `(nrows, nlabels)` with the predicted probabilities
     for each row of frame `X` and each label the model was trained for.
+
+See also
+--------
+- :meth:`.fit`: train model on a dataset
+- :meth:`.reset`: reset the model
+
 )";
 
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
@@ -483,12 +495,18 @@ static const char* doc_reset =
 R"(reset(self)
 --
 
-Reset FTRL model by resetting all the model weights, labels and
+Reset FTRL model by resetting all the model coefficients, labels and
 feature importance information.
 
 Parameters
 ----------
 return: None
+
+See also
+--------
+- :meth:`.fit`: train model on a dataset
+- :meth:`.predict`: predict on a dataset
+
 )";
 
 static PKArgs args_reset(0, 0, 0, false, false, {}, "reset", doc_reset);
@@ -1227,7 +1245,9 @@ oobj Ftrl::get_model_type_trained() const {
 
 static const char* doc_params =
 R"(
-`Ftrl` model parameters. This option is read-only for a trained model.
+`Ftrl` model parameters as a named tuple `FtrlParams`,
+see :class:`datatable.models.Ftrl()` for more details.
+This option is read-only for a trained model.
 
 Parameters
 ----------
