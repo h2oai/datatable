@@ -115,7 +115,7 @@ void Ftrl::m__init__(const PKArgs& args) {
         << "`params` or any of the individual parameters with `alpha`, "
         << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
         << "`double_precision`, `negative_class`, `interactions` or `model_type` "
-        << "to Ftrl constructor, but not both at the same time";
+        << "to `Ftrl` constructor, but not both at the same time";
     }
 
     py::otuple py_params_in = arg_params.to_otuple();
@@ -1481,11 +1481,16 @@ interactions : list or tuple
     name is a column name from the training frame.
 
 model_type : str
-    Model type can be one of the following: 'binomial' for binomial
-    classification, 'multinomial' for multinomial classification, and
-    'regression' for numeric regression. Defaults to 'auto', meaning
+    Model type can be one of the following: `binomial` for binomial
+    classification, `multinomial` for multinomial classification, and
+    `regression` for numeric regression. Defaults to `auto`, meaning
     that the model type will be automatically selected based on
     the target column `stype`.
+
+params: FtrlParams
+    Named tuple of the above parameters. One can pass either this tuple,
+    or any combination of the individual parameters to the constructor,
+    but not both at the same time.
 )";
 
 void Ftrl::impl_init_type(XTypeMaker& xt) {
