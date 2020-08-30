@@ -1442,45 +1442,45 @@ https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
 
 Parameters
 ----------
-alpha : float
+alpha: float
     `alpha` in per-coordinate learning rate formula, defaults to `0.005`.
 
-beta : float
+beta: float
     `beta` in per-coordinate learning rate formula, defaults to `1`.
 
-lambda1 : float
+lambda1: float
     L1 regularization parameter, defaults to `0`.
 
-lambda2 : float
+lambda2: float
     L2 regularization parameter, defaults to `0`.
 
-nbins : int
+nbins: int
     Number of bins to be used for the hashing trick, defaults to `10**6`.
 
-mantissa_nbits : int
+mantissa_nbits: int
     Number of bits from mantissa to be used for hashing floats,
     defaults to `10`.
 
-nepochs : float
+nepochs: float
     Number of training epochs, defaults to `1`. When `nepochs` is
     an integer number, the model will train on all the data provided
     to `.fit()` method `nepochs` times. If `nepochs` has
     a fractional component, the model's last iteration will only
     be done on the fraction of data.
 
-double_precision : bool
+double_precision: bool
     Whether to use double precision arithmetic or not, defaults to `False`.
 
-negative_class : bool
+negative_class: bool
     Whether to create and train on a 'negative' class in the case of
     multinomial classification.
 
-interactions : list or tuple
+interactions: list or tuple
     A list or a tuple of interactions. In turn, each interaction
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame.
 
-model_type : str
+model_type: str
     Model type can be one of the following: `binomial` for binomial
     classification, `multinomial` for multinomial classification, and
     `regression` for numeric regression. Defaults to `auto`, meaning
