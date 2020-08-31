@@ -24,14 +24,47 @@
 
     Parameters
     ----------
-    i : int | slice | FExpr
+    i : int | slice | Frame | FExpr | List[bool] | List[Any]
         The row selector.
 
-        The trivial slice ``:`` selects all rows. All other slices work the
-        same way as in Python, when slicing a list with :attr:`.nrows`
-        elements.
+        If this is an integer or a slice, then the behavior is the same as in
+        Python when working on a list with :attr:`nrows` elements. In
+        particular, the integer value must be within the range
+        ``[-nrows; nrows)``. On the other hand when `i` is a slice, then either
+        its start or end or both may be safely outside the row-range of the
+        frame. The trivial slice ``:`` always selects all rows.
 
-    j : int | str | slice | list | FExpr | update
+        `i` may also be a single-column boolean Frame. It must have the
+        same number of rows as the current frame, and it serves as a mask for
+        which rows are to be selected: ``True`` indicates that the row should
+        be included in the result, while ``False`` and ``None`` skips the row.
+
+        `i` may also be a single-column integer Frame. Such column specifies
+        directly which row indices are to be selected. This is more flexible
+        compared to a boolean column: the rows may be repeated, reordered,
+        omitted, etc. All values in the column `i` must be in the range
+        ``[0; nrows)`` or an error will be thrown. In particular, negative
+        indices are not allowed. Also, if the column contains NA values, then
+        it would produce an "invalid row", i.e. a row filled with NAs.
+
+        `i` may also be an expression, which must evaluate into a single
+        column, either boolean or integer. In this case the result is the
+        same as described above for a single-column frame.
+
+        When `i` is a list of booleans, then it is equivalent to a single-column
+        boolean frame. In particular, the length of the list must be equal to
+        :attr:`nrows`.
+
+        Finally, `i` can be a list of any of the above (integers, slices, frames,
+        expressions, etc), in which case each element of the list is evaluated
+        separately and then all selected rows are put together. The list may
+        contain ``None``s, which will be simply skipped.
+
+    j : int | str | slice | list | type | FExpr | update
+        This argument may either select columns, or perform computations with
+        the columns.
+
+
 
     by : by
 

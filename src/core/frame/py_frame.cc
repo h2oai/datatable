@@ -283,7 +283,6 @@ size_t Frame::m__len__() const {
 static const char* doc_export_names =
 R"(export_names(self)
 --
-
 .. xversionadded:: v0.10.0
 
 Return a tuple of :ref:`f-expressions` for all columns of the frame.
@@ -468,7 +467,7 @@ frame `DT`. Such usage, however, is not recommended.
 
 See also
 --------
-- :data:`.nrows`: getter for the number of rows of the frame.
+- :attr:`nrows`: getter for the number of rows of the frame.
 )";
 
 static GSArgs args_ncols("ncols", doc_ncols);
@@ -504,7 +503,7 @@ n: int
 
 See also
 --------
-- :data:`.ncols`: getter for the number of columns of the frame.
+- :attr:`ncols`: getter for the number of columns of the frame.
 )";
 
 static GSArgs args_nrows("nrows", doc_nrows);
@@ -545,8 +544,8 @@ return: Tuple[int, int]
 
 See also
 --------
-- :data:`.nrows` -- getter for the number of rows;
-- :data:`.ncols` -- getter for the number of columns.
+- :attr:`nrows` -- getter for the number of rows;
+- :attr:`ncols` -- getter for the number of columns.
 )";
 
 static GSArgs args_shape("shape", doc_shape);
@@ -627,8 +626,8 @@ return: Tuple[stype, ...]
 
 See also
 --------
-- :data:`.stype` -- common stype for all columns
-- :data:`.ltypes` -- tuple of columns' logical types
+- :attr:`stype` -- common stype for all columns
+- :attr:`ltypes` -- tuple of columns' logical types
 )";
 
 static GSArgs args_stypes("stypes", doc_stypes);
@@ -673,7 +672,7 @@ except: InvalidOperationError
 
 See also
 --------
-- :data:`.stypes` -- tuple of stypes for all columns.
+- :attr:`stypes` -- tuple of stypes for all columns.
 )";
 
 static GSArgs args_stype("stype", doc_stype);
@@ -711,7 +710,7 @@ return: Tuple[ltype, ...]
 
 See also
 --------
-- :data:`.stypes` -- tuple of columns' storage types
+- :attr:`stypes` -- tuple of columns' storage types
 )";
 
 static GSArgs args_ltypes("ltypes", doc_ltypes);

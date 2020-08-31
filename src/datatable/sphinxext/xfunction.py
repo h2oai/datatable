@@ -58,8 +58,6 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_refnode
 from . import xnodes
 
-logger = logging.getLogger(__name__)
-
 rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
 rx_param = re.compile(r"(?:"
@@ -280,12 +278,14 @@ class XobjectDirective(SphinxDirective):
         qualifier. This way the most important information will
         remain visible longer.
         """
-        if self.name == "xclass":
+        if self.name in ["xclass", "xdata", "xfunction"]:
             title = self.obj_name
-        elif self.name in ["xdata", "xattr"]:
+        elif self.name == "xattr":
             title = "." + self.obj_name
-        else:
+        elif self.name == "xmethod":
             title = "." + self.obj_name + "()"
+        else:
+            self.error("Unknown directive " + self.name)
         title += " &ndash; " + self.qualifier
         title_overrides[self.env.docname] = title
 
@@ -1156,10 +1156,9 @@ class XversionaddedDirective(SphinxDirective):
     def run(self):
         version = self.arguments[0].strip()
         target = "/releases/"
-        if target.startswith("v"):
-            target += version
-        else:
-            target += "v" + version
+        if not target.startswith("v"):
+            target += "v"
+        target += version
         if len(version.split('.')) <= 2:
             target += ".0"
 
@@ -1258,11 +1257,13 @@ def on_source_read(app, docname, source):
     mm = re.search(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
     if mm:
         kind = mm.group(1)
-        title = re.sub(r"_", "\\_", mm.group(2))
+        name = mm.group(2)
+        qualifier = name[:name.rfind('.')]
+        title = re.sub(r"_", "\\_", name)
         if kind in ["xfunction", "xmethod"]:
             title += "()"
         txt = title + "\n" + ("=" * len(title)) + "\n\n" + \
-              ".. py:currentmodule:: datatable\n\n" + txt
+              ".. ref-context:: " + qualifier + "\n\n" + txt
         source[0] = txt
 
 

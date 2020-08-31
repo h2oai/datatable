@@ -72,7 +72,7 @@ def on_doctree_read(app, doctree):
     for ctx_node in doctree.traverse(ref_context_node):
         context = ctx_node.context
         for ref_node in ctx_node.traverse(addnodes.pending_xref, siblings=True):
-            if ref_node['refexplicit']:
+            if ref_node.get('refexplicit') or ref_node['reftype'] == 'ref':
                 continue
             target = ref_node['reftarget']
             if "(" in target:
