@@ -1364,7 +1364,7 @@ oobj Ftrl::get_model_type_trained() const {
 static const char* doc_params =
 R"(
 `Ftrl` model parameters as a named tuple `FtrlParams`,
-see :class:`datatable.models.Ftrl()` for more details.
+see :meth:`.Ftrl.__init__` for more details.
 This option is read-only for a trained model.
 
 Parameters
