@@ -124,7 +124,7 @@ params: FtrlParams
     or any combination of the individual parameters to the constructor,
     but not both at the same time.
 
-except: TypeError
+except: ValueError
     The exception is raised if both the `params` and one of the
     individual model parameters are passed at the same time.
 
@@ -180,7 +180,7 @@ void Ftrl::m__init__(const PKArgs& args) {
 
   if (defined_params) {
     if (defined_individual_param) {
-      throw TypeError() << "You can either pass all the parameters with "
+      throw ValueError() << "You can either pass all the parameters with "
         << "`params` or any of the individual parameters with `alpha`, "
         << "`beta`, `lambda1`, `lambda2`, `nbins`, `mantissa_nbits`, `nepochs`, "
         << "`double_precision`, `negative_class`, `interactions` or `model_type` "
