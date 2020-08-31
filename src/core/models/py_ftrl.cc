@@ -251,8 +251,8 @@ return: FtrlFitOutput
 
 See also
 --------
-- :meth:`.predict`: predict on a dataset
-- :meth:`.reset`: reset the model
+- :meth:`.predict` -- predict on a dataset.
+- :meth:`.reset` -- reset the model.
 
 )";
 
@@ -431,8 +431,8 @@ return: Frame
 
 See also
 --------
-- :meth:`.fit`: train model on a dataset
-- :meth:`.reset`: reset the model
+- :meth:`.fit` -- train model on a dataset.
+- :meth:`.reset` -- reset the model.
 
 )";
 
@@ -504,8 +504,8 @@ return: None
 
 See also
 --------
-- :meth:`.fit`: train model on a dataset
-- :meth:`.predict`: predict on a dataset
+- :meth:`.fit` -- train model on a dataset.
+- :meth:`.predict` -- predict on a dataset.
 
 )";
 
@@ -1182,6 +1182,11 @@ return: str
 newmodel_type: str
     New `model_type` value, should be one of the following:
     `binomial`, `multinomial`, `regression` or `auto`.
+
+See also
+--------
+- :data:`.model_type_trained` -- the model type `Ftrl` has build.
+
 )";
 
 static GSArgs args_model_type(
@@ -1217,13 +1222,18 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
 
 static const char* doc_model_type_trained =
 R"(
-The model type `Ftrl` has already built.
+The model type `Ftrl` has built.
 
 Parameters
 ----------
 return: str
     Could be one of the following: `regression`, `binomial`,
     `multinomial` or `none` for untrained model.
+
+See also
+--------
+- :data:`.model_type` -- the model type `Ftrl` should build.
+
 )";
 
 static GSArgs args_model_type_trained(
@@ -1484,7 +1494,7 @@ mantissa_nbits: int
 nepochs: float
     Number of training epochs, defaults to `1`. When `nepochs` is
     an integer number, the model will train on all the data provided
-    to `.fit()` method `nepochs` times. If `nepochs` has
+    to :meth:`.fit` method `nepochs` times. If `nepochs` has
     a fractional component, the model's last iteration will only
     be done on the fraction of data.
 
