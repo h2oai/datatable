@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xfunction:: datatable.qcut
     :src: src/core/expr/fexpr_qcut.cc pyfn_qcut

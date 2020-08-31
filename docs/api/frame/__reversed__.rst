@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xmethod:: datatable.Frame.__reversed__
     :src: src/core/frame/__iter__.cc Frame::m__reversed__

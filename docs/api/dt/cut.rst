@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xfunction:: datatable.cut
     :src: src/core/expr/fexpr_cut.cc pyfn_cut

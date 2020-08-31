@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xmethod:: datatable.Frame.keys
     :src: src/core/frame/names.cc Frame::get_names

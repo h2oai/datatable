@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xfunction:: datatable.rbind
     :src: src/core/frame/rbind.cc py_rbind

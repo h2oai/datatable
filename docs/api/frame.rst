@@ -1,10 +1,7 @@
-datatable.Frame
----------------
 
 .. xclass:: datatable.Frame
     :src: src/core/frame/py_frame.h Frame
     :doc: src/core/frame/py_frame.cc doc_Frame
-    :notitle:
 
     Construction
     ------------
@@ -220,6 +217,7 @@ datatable.Frame
 
     .__init__()      <frame/__init__>
     .__copy__()      <frame/__copy__>
+    .__getitem__()   <frame/__getitem__>
     .__getstate__()  <frame/__getstate__>
     .__iter__()      <frame/__iter__>
     .__len__()       <frame/__len__>

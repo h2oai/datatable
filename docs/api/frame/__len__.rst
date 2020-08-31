@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xmethod:: datatable.Frame.__len__
     :src: src/core/frame/py_frame.cc Frame::m__len__

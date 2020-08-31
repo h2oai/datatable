@@ -572,6 +572,8 @@ oobj Frame::get_ndims() const {
 
 static const char* doc_source =
 R"(
+.. xversionadded:: 0.11
+
 The name of the file where this frame was loaded from.
 
 This is a read-only property that describes the origin of the frame.

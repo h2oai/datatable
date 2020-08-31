@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xfunction:: datatable.cbind
     :src: src/core/frame/cbind.cc py_cbind
