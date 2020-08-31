@@ -58,19 +58,88 @@ std::map<dt::FtrlModelType, std::string> Ftrl::create_model_type_name() {
 }
 
 
+/**
+ *  Ftrl(...)
+ *  Initialize Ftrl object with the provided parameters.
+ */
+
+static const char* doc___init__ =
+R"(__init__(self, alpha=0.005, beta=1, lambda1=0, lambda2=0, nbins=10**6,
+mantissa_nbits=10, nepochs=1, double_precision=False, negative_class=False,
+interactions=None, model_type='auto', params=None)
+--
+
+Create a new :class:`datatable.models.Ftrl()` model.
+
+Parameters
+----------
+alpha: float
+    `alpha` in per-coordinate learning rate formula, should be positive.
+
+beta: float
+    `beta` in per-coordinate learning rate formula, should be non-negative.
+
+lambda1: float
+    L1 regularization parameter, should be non-negative.
+
+lambda2: float
+    L2 regularization parameter, should be non-negative.
+
+nbins: int
+    Number of bins to be used for the hashing trick, should be positive.
+
+mantissa_nbits: int
+    Number of bits from mantissa to be used for hashing floats.
+    It should be non-negative and less than or equal to `52`, that
+    is a number of mantissa bits in a C++ 64-bit `double`.
+
+nepochs: float
+    Number of training epochs, should be non-negative. When `nepochs` is
+    an integer number, the model will train on all the data provided
+    to :meth:`.fit` method `nepochs` times. If `nepochs` has
+    a fractional component, the model's last iteration will only
+    be done on the fraction of data.
+
+double_precision: bool
+    An option to indicate whether double precision arithmetic
+    should be used or not.
+
+negative_class: bool
+    An option to indicate if a 'negative’ class should be created
+    in the case of multinomial classification.
+
+interactions: List[List | Tuple] | Tuple[List | Tuple]
+    A list or a tuple of interactions. In turn, each interaction
+    should be a list or a tuple of feature names, where each feature
+    name is a column name from the training frame.
+
+model_type: str
+    Model type can be one of the following: `binomial` for binomial
+    classification, `multinomial` for multinomial classification,
+    `regression` for numeric regression, and `auto` for automatic
+    model type selection based on the target column `stype`.
+
+params: FtrlParams
+    Named tuple of the above parameters. One can pass either this tuple,
+    or any combination of the individual parameters to the constructor,
+    but not both at the same time.
+
+except: TypeError
+    The exception is raised if both the `params` and one of the
+    individual model parameters are passed at the same time.
+
+)";
+
 static PKArgs args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "mantissa_nbits",
                                  "nepochs", "double_precision",
                                  "negative_class", "interactions",
                                  "model_type"},
-                                 "__init__", nullptr);
+                                 "__init__", doc___init__);
 
 
-/**
- *  Ftrl(...)
- *  Initialize Ftrl object with the provided parameters.
- */
+
 void Ftrl::m__init__(const PKArgs& args) {
   m__dealloc__();
   double_precision = dt::FtrlParams().double_precision;
@@ -642,12 +711,17 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
 
 static const char* doc_colnames =
 R"(
-Column names of the training frame.
+Column names of the training frame that are used as feature names.
 
 Parameters
 ----------
 return: List
     A list of the column names.
+
+See also
+--------
+- :data:`.colname_hashes` -- the hashed column names.
+
 )";
 
 static GSArgs args_colnames(
@@ -697,6 +771,11 @@ Parameters
 ----------
 return: List
     A list of the column name hashes.
+
+See also
+--------
+- :data:`.colnames` -- the column names of the training frame, i.e. the feature names.
+
 )";
 
 static GSArgs args_colname_hashes(
@@ -735,7 +814,7 @@ return: float
     Current `alpha` value.
 
 newalpha: float
-    New `alpha` value, should be positive and finite.
+    New `alpha` value, should be positive.
 )";
 
 static GSArgs args_alpha(
@@ -772,7 +851,7 @@ return: float
     Current `beta` value.
 
 newbeta: float
-    New `beta` value, should be non-negative and finite.
+    New `beta` value, should be non-negative.
 )";
 
 static GSArgs args_beta(
@@ -809,7 +888,7 @@ return: float
     Current `lambda1` value.
 
 newlambda1: float
-    New `lambda1` value, should be non-negative and finite.
+    New `lambda1` value, should be non-negative.
 )";
 
 static GSArgs args_lambda1(
@@ -846,7 +925,7 @@ return: float
     Current `lambda2` value.
 
 newlambda2: float
-    New `lambda2` value, should be non-negative and finite.
+    New `lambda2` value, should be non-negative.
 )";
 
 static GSArgs args_lambda2(
@@ -885,6 +964,11 @@ return: int
 
 newnbins: int
     New `nbins` value, should be positive.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 )";
 
 static GSArgs args_nbins(
@@ -930,6 +1014,11 @@ newmantissa_nbits: int
     New `mantissa_nbits` value, should be non-negative and
     less than or equal to `52`, that is a number of
     mantissa bits in a C++ 64-bit `double`.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 )";
 
 static GSArgs args_mantissa_nbits(
@@ -976,7 +1065,7 @@ return: float
     Current `nepochs` value.
 
 newnepochs: float
-    New `nepochs` value, should be non-negative and finite.
+    New `nepochs` value, should be non-negative.
 )";
 
 static GSArgs args_nepochs(
@@ -1014,6 +1103,11 @@ return: bool
 
 newdouble_precision: bool
     New `double_precision` value.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 )";
 
 static GSArgs args_double_precision(
@@ -1054,6 +1148,11 @@ return: bool
 
 newnegative_class: bool
     New `negative_class` value.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 )";
 
 static GSArgs args_negative_class(
@@ -1097,6 +1196,11 @@ newinteractions: Tuple | List
     New `interactions` value. Each particular interaction
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 )";
 
 static GSArgs args_interactions(
@@ -1183,6 +1287,10 @@ newmodel_type: str
     New `model_type` value, should be one of the following:
     `binomial`, `multinomial`, `regression` or `auto`.
 
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
+
 See also
 --------
 - :data:`.model_type_trained` -- the model type `Ftrl` has build.
@@ -1266,6 +1374,11 @@ return: FtrlParams
 
 newparams: FtrlParams
     New `params` value.
+
+except: ValueError
+    The exception is raised when trying to change this option
+    for a model that has alerady been trained.
+
 )";
 
 static GSArgs args_params(
@@ -1469,58 +1582,6 @@ continuous targets are implemented experimentally.
 
 See this reference for more details:
 https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
-
-Parameters
-----------
-alpha: float
-    `alpha` in per-coordinate learning rate formula, defaults to `0.005`.
-
-beta: float
-    `beta` in per-coordinate learning rate formula, defaults to `1`.
-
-lambda1: float
-    L1 regularization parameter, defaults to `0`.
-
-lambda2: float
-    L2 regularization parameter, defaults to `0`.
-
-nbins: int
-    Number of bins to be used for the hashing trick, defaults to `10**6`.
-
-mantissa_nbits: int
-    Number of bits from mantissa to be used for hashing floats,
-    defaults to `10`.
-
-nepochs: float
-    Number of training epochs, defaults to `1`. When `nepochs` is
-    an integer number, the model will train on all the data provided
-    to :meth:`.fit` method `nepochs` times. If `nepochs` has
-    a fractional component, the model's last iteration will only
-    be done on the fraction of data.
-
-double_precision: bool
-    Whether to use double precision arithmetic or not, defaults to `False`.
-
-negative_class: bool
-    Whether to create and train on a 'negative' class in the case of
-    multinomial classification.
-
-interactions: list or tuple
-    A list or a tuple of interactions. In turn, each interaction
-    should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame.
-
-model_type: str
-    Model type can be one of the following: `binomial` for binomial
-    classification, `multinomial` for multinomial classification, and
-    `regression` for numeric regression. Defaults to `auto`, meaning
-    that the model type will be automatically selected based on
-    the target column `stype`.
-
-params: FtrlParams
-    Named tuple of the above parameters. One can pass either this tuple,
-    or any combination of the individual parameters to the constructor,
-    but not both at the same time.
 )";
 
 void Ftrl::impl_init_type(XTypeMaker& xt) {

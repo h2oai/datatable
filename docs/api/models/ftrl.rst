@@ -10,6 +10,7 @@ datatable.models.Ftrl
 .. toctree::
     :hidden:
 
+    .__init__()               <Ftrl/__init__>
     .alpha                    <Ftrl/alpha>
     .beta                     <Ftrl/beta>
     .colnames                 <Ftrl/colnames>
