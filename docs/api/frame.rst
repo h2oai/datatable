@@ -217,6 +217,7 @@
 
     .__init__()      <frame/__init__>
     .__copy__()      <frame/__copy__>
+    .__delitem__()   <frame/__delitem__>
     .__getitem__()   <frame/__getitem__>
     .__getstate__()  <frame/__getstate__>
     .__iter__()      <frame/__iter__>

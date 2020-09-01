@@ -964,8 +964,6 @@ class XobjectDirective(SphinxDirective):
             self.qualifier = ".".join(qual_parts[:-2]) + "."
             assert self.parsed_params[0] == "self"
             del self.parsed_params[0]
-        if self.obj_name == "__getitem__":
-            self.obj_name = '['
 
         node += self._generate_qualifier()
         row2 = xnodes.div(classes=["sig-main"])
@@ -992,9 +990,12 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_sigmain(self, node, kind):
-        if self.obj_name == "[":
+        square_bracket_functions = ['__getitem__', '__setitem__', '__delitem__']
+
+        if self.obj_name in square_bracket_functions:
+            if self.obj_name == "__delitem__":
+                node += xnodes.div(nodes.Text("del "), classes=["keyword"])
             node += xnodes.div(nodes.Text("self"), classes=["self", "param"])
-            node += xnodes.div(nodes.Text("["), classes=["sig-name"])
         else:
             node += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
 
@@ -1009,7 +1010,9 @@ class XobjectDirective(SphinxDirective):
                                     children=[equal_sign_node, param_node])
                 node += params
         else:
-            if self.obj_name != '[':
+            if self.obj_name in square_bracket_functions:
+                node += xnodes.div(nodes.Text("["), classes=["sig-name"])
+            else:
                 node += nodes.inline("", nodes.Text("("),
                                      classes=["sig-open-paren"])
             params = xnodes.div(classes=["sig-parameters"])
@@ -1054,7 +1057,7 @@ class XobjectDirective(SphinxDirective):
                         params += nodes.inline("", nodes.Text("]"), classes=["punct"])
                 printed = True
 
-            if self.obj_name == '[':
+            if self.obj_name in square_bracket_functions:
                 params += nodes.inline("", nodes.Text(']'), classes=["sig-name"])
             else:
                 params += nodes.inline("", nodes.Text(")"),

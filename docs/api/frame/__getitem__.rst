@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.Frame.__getitem__
-    :src: src/core/frame/__getitem__.cc Frame::m__getitem__
+    :src: src/core/frame/__getitem__.cc Frame::_main_getset
 
     __getitem__(self, i, j[, by][, sort][, join])
     --
