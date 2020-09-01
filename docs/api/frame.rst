@@ -28,8 +28,7 @@
         :class: api-table
 
         * - :meth:`frame[i, j, ...] <datatable.Frame.__getitem__>`
-          - Primary method for extracting data from a frame, and to
-            perform calculations.
+          - Primary method for extracting data from a frame.
 
         * - :meth:`frame[i, j, ...] = values <datatable.Frame.__setitem__>`
           - Update data within the frame.
@@ -224,6 +223,7 @@
     .__len__()       <frame/__len__>
     .__repr__()      <frame/__repr__>
     .__reversed__()  <frame/__reversed__>
+    .__setitem__()   <frame/__setitem__>
     .__sizeof__()    <frame/__sizeof__>
     .__str__()       <frame/__str__>
     .cbind()         <frame/cbind>

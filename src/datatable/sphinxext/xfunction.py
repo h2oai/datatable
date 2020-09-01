@@ -436,7 +436,7 @@ class XobjectDirective(SphinxDirective):
         setter = self.options.get("settable", "").strip()
 
         if setter:
-            if self.name != "xattr":
+            if not(self.name == "xattr" or self.obj_name == "__setitem__"):
                 raise self.error("Option :settable: is not valid for a ..%s "
                                  "directive" % self.name)
             self.setter = setter
@@ -1062,6 +1062,14 @@ class XobjectDirective(SphinxDirective):
             else:
                 params += nodes.inline("", nodes.Text(")"),
                                        classes=["sig-close-paren"])
+            if self.obj_name == "__setitem__":
+                if not getattr(self, "setter"):
+                    self.setter = "values"
+                params += nodes.inline("", nodes.Text(" = "), classes=["punct"])
+                params += xnodes.div(
+                            a_node(text=self.setter, href="#" + self.setter),
+                            classes=["param"])
+
             node += params
 
 
@@ -1261,12 +1269,12 @@ def on_source_read(app, docname, source):
     if mm:
         kind = mm.group(1)
         name = mm.group(2)
-        qualifier = name[:name.rfind('.')]
+        # qualifier = name[:name.rfind('.')]
         title = re.sub(r"_", "\\_", name)
         if kind in ["xfunction", "xmethod"]:
             title += "()"
         txt = title + "\n" + ("=" * len(title)) + "\n\n" + \
-              ".. ref-context:: " + qualifier + "\n\n" + txt
+              ".. py:currentmodule:: datatable\n\n" + txt
         source[0] = txt
 
 
