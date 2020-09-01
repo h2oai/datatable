@@ -167,8 +167,8 @@ column: str | int | FExpr
     actually exist in the Frame.
 
     If the `column` argument is an integer that is either greater
-    than or equal to :attr:`.ncols` or less than `-ncols`, then an
-    :exc:`IndexError` is raised.
+    than or equal to :attr:`ncols <Frame.ncols>` or less than
+    `-ncols`, then an :exc:`IndexError` is raised.
 
 
 Examples
@@ -267,10 +267,10 @@ and the names will be automatically :ref:`mangled <name-mangling>`.
 
 Parameters
 ----------
-(return): Tuple[str, ...]
+return: Tuple[str, ...]
     When used in getter form, this property returns the names of all
     frame's columns, as a tuple. The length of the tuple is equal to
-    the number of columns in the frame, :data:`.ncols`.
+    the number of columns in the frame, :attr:`ncols <Frame.ncols>`.
 
 newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     The most common form is to assign the list or tuple of new
@@ -288,11 +288,11 @@ newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     ``del`` keyword: the names will be set to their default values,
     which are usually ``C0, C1, ...``.
 
-(except): ValueError
+except: ValueError
     If the length of the list/tuple `newnames` does not match the
     number of columns in the frame.
 
-(except): KeyError
+except: KeyError
     If `newnames` is a dictionary containing entries that do not
     match any of the existing columns in the frame.
 

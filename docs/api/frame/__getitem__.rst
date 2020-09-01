@@ -28,8 +28,8 @@
         The row selector.
 
         If this is an integer or a slice, then the behavior is the same as in
-        Python when working on a list with :attr:`nrows` elements. In
-        particular, the integer value must be within the range
+        Python when working on a list with :attr:`nrows <Frame.nrows>`
+        elements. In particular, the integer value must be within the range
         ``[-nrows; nrows)``. On the other hand when `i` is a slice, then either
         its start or end or both may be safely outside the row-range of the
         frame. The trivial slice ``:`` always selects all rows.
@@ -53,7 +53,7 @@
 
         When `i` is a list of booleans, then it is equivalent to a single-column
         boolean frame. In particular, the length of the list must be equal to
-        :attr:`nrows`.
+        :attr:`nrows <Frame.nrows>`.
 
         Finally, `i` can be a list of any of the above (integers, slices, frames,
         expressions, etc), in which case each element of the list is evaluated
@@ -106,8 +106,8 @@
 
         ``List[bool]``
             If ``j`` is a list of boolean values, then it must have the length
-            of :attr:`ncols`, and it describes which columns are to be selected
-            into the result.
+            of :attr:`ncols <Frame.ncols>`, and it describes which columns are
+            to be selected into the result.
 
         ``List[Any]``
             The ``j`` can also be a list of elements of any other type listed

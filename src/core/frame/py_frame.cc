@@ -467,7 +467,7 @@ frame `DT`. Such usage, however, is not recommended.
 
 See also
 --------
-- :attr:`nrows`: getter for the number of rows of the frame.
+- :attr:`nrows <Frame.nrows>`: getter for the number of rows of the frame.
 )";
 
 static GSArgs args_ncols("ncols", doc_ncols);
@@ -503,7 +503,7 @@ n: int
 
 See also
 --------
-- :attr:`ncols`: getter for the number of columns of the frame.
+- :attr:`ncols <Frame.ncols>`: getter for the number of columns of the frame.
 )";
 
 static GSArgs args_nrows("nrows", doc_nrows);
@@ -544,8 +544,8 @@ return: Tuple[int, int]
 
 See also
 --------
-- :attr:`nrows` -- getter for the number of rows;
-- :attr:`ncols` -- getter for the number of columns.
+- :attr:`nrows <Frame.nrows>` -- getter for the number of rows;
+- :attr:`ncols <Frame.ncols>` -- getter for the number of columns.
 )";
 
 static GSArgs args_shape("shape", doc_shape);
@@ -626,8 +626,8 @@ return: Tuple[stype, ...]
 
 See also
 --------
-- :attr:`stype` -- common stype for all columns
-- :attr:`ltypes` -- tuple of columns' logical types
+- :attr:`stype <Frame.stype>` -- common stype for all columns
+- :attr:`ltypes <Frame.ltypes>` -- tuple of columns' logical types
 )";
 
 static GSArgs args_stypes("stypes", doc_stypes);
@@ -672,7 +672,7 @@ except: InvalidOperationError
 
 See also
 --------
-- :attr:`stypes` -- tuple of stypes for all columns.
+- :attr:`stypes <Frame.stypes>` -- tuple of stypes for all columns.
 )";
 
 static GSArgs args_stype("stype", doc_stype);
@@ -710,7 +710,7 @@ return: Tuple[ltype, ...]
 
 See also
 --------
-- :attr:`stypes` -- tuple of columns' storage types
+- :attr:`stypes <Frame.stypes>` -- tuple of columns' storage types
 )";
 
 static GSArgs args_ltypes("ltypes", doc_ltypes);
