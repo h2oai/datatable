@@ -145,7 +145,7 @@ def test_ftrl_construct_wrong_interactions_from_itertools():
 
 
 def test_ftrl_construct_wrong_combination():
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(ValueError) as e:
         noop(Ftrl(params=tparams, alpha = tparams.alpha))
     assert ("You can either pass all the parameters with params or any of "
             "the individual parameters with alpha, beta, lambda1, "
