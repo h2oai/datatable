@@ -208,6 +208,14 @@
     groups. If, on the other hand, the column set is "full-size", then the
     resulting frame will have as many rows as the original frame.
 
+    See Also
+    --------
+    - :func:`DT[i, j, ...] = R <datatable.Frame.__setitem__>` -- update
+      values in the frame.
+
+    - :func:`del DT[i, j, ...] <datatable.Frame.__delitem__>` -- delete
+      rows/columns of the frame.
+
 
 
 .. xmethod:: datatable.Frame.__getitem__
