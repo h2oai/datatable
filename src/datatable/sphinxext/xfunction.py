@@ -473,6 +473,8 @@ class XobjectDirective(SphinxDirective):
         """
         txt = (self.project_root / filename).read_text(encoding="utf-8")
         lines = txt.splitlines()
+        if self.name == "xdata":
+            return self._locate_constant(filename, fnname, lines)
         if self.name == "xclass":
             rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
         else:
@@ -512,6 +514,15 @@ class XobjectDirective(SphinxDirective):
                              "in file `%s` line %d"
                              % (fnname, filename, start_line))
         return self.permalink(filename, start_line, finish_line)
+
+
+    def _locate_constant(self, filename, varname, lines):
+        rx = re.compile(r"\b" + varname + r"\b")
+        for i, line in enumerate(lines):
+            if re.match(rx, line):
+                return self.permalink(filename, i + 1, i + 1)
+        raise self.error("Could not find variable `%s` in file `%s`"
+                         % (varname, filename))
 
 
     def _extract_docs_from_source(self):

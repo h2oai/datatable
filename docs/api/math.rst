@@ -511,55 +511,45 @@ Miscellaneous functions
 
 
 
-Mathematical constants
-----------------------
-
-.. attribute:: e
-
-    The base of the natural logarithm, also known as the Euler's number.
-    Its value is ``2.718281828459045``.
-
-
-.. attribute:: golden
-
-    The golden ratio :math:`\varphi = (1 + \sqrt{5})/2`. The value is
-    ``1.618033988749895``.
-
-
-.. attribute:: inf
-
-    Positive infinity.
-
-
-.. attribute:: nan
-
-    Not-a-number, a special floating-point constant that denotes a missing
-    number. In most ``datatable`` functions you can use ``None`` instead
-    of ``nan``.
-
-
-.. attribute:: pi
-
-    Mathematical constant :math:`\pi = \frac12\tau`, the area of a circle with
-    unit radius. The constant is stored with float64 precision, and its value is
-    ``3.141592653589793``.
-
-
-.. attribute:: tau
-
-    Mathematical constant :math:`\tau = 2\pi`, the circumference of a circle
-    with unit radius. Some mathematicians believe that :math:`\tau` is the
-    `true circle constant`_, and :math:`\pi` is an impostor. The value
-    of :math:`\tau` is ``6.283185307179586``.
-
-
 
 .. _`math module`: https://docs.python.org/3/library/math.html
 .. _`numpy math functions`: https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.math.html
-.. _`true circle constant`: https://hexnet.org/files/documents/tau-manifesto.pdf
+
+
+Mathematical constants
+----------------------
+
+.. list-table::
+   :widths: auto
+   :class: api-table
+
+   * - :data:`e <datatable.math.e>`
+     - Euler's constant :math:`e`.
+
+   * - :data:`golden <datatable.math.golden>`
+     - Golden ratio :math:`\varphi`.
+
+   * - :data:`inf <datatable.math.inf>`
+     - Positive infinity.
+
+   * - :data:`nan <datatable.math.nan>`
+     - Not-a-number.
+
+   * - :data:`pi <datatable.math.pi>`
+     - Mathematical constant :math:`\pi`.
+
+   * - :data:`tau <datatable.math.tau>`
+     - Mathematical constant :math:`\tau`.
+
 
 
 .. toctree::
     :hidden:
 
-    round    <math/round>
+    e          <math/e>
+    golden     <math/golden>
+    inf        <math/inf>
+    nan        <math/nan>
+    pi         <math/pi>
+    round()    <math/round>
+    tau        <math/tau>
