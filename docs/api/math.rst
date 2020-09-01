@@ -1,7 +1,8 @@
-.. _`math`:
 
-math module
-===========
+.. py:module:: datatable.math
+
+datatable.math
+==============
 
 :mod:`datatable` provides the similar set of mathematical functions, as Python's
 standard `math module`_, or `numpy math functions`_. Below is the comparison

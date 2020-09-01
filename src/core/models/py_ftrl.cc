@@ -69,15 +69,16 @@ mantissa_nbits=10, nepochs=1, double_precision=False, negative_class=False,
 interactions=None, model_type='auto', params=None)
 --
 
-Create a new :class:`datatable.models.Ftrl()` model.
+Create a new :class:`FTRL <datatable.models.Ftrl>` model object.
 
 Parameters
 ----------
 alpha: float
-    `alpha` in per-coordinate learning rate formula, should be positive.
+    :math:`\alpha` in per-coordinate learning rate formula, should be
+    positive. See :attr:`.alpha <models.Ftrl.alpha>` for details.
 
 beta: float
-    `beta` in per-coordinate learning rate formula, should be non-negative.
+    :math:`\beta` in per-coordinate learning rate formula, should be non-negative.
 
 lambda1: float
     L1 regularization parameter, should be non-negative.
@@ -720,7 +721,7 @@ return: List
 
 See also
 --------
-- :data:`.colname_hashes` -- the hashed column names.
+- :attr:`colname_hashes <models.Ftrl.colname_hashes>` -- the hashed column names.
 
 )";
 
@@ -774,7 +775,8 @@ return: List
 
 See also
 --------
-- :data:`.colnames` -- the column names of the training frame, i.e. the feature names.
+- :attr:`colnames <models.Ftrl.colnames>` -- the column names of the
+  training frame, i.e. the feature names.
 
 )";
 
@@ -1293,7 +1295,8 @@ except: ValueError
 
 See also
 --------
-- :data:`.model_type_trained` -- the model type `Ftrl` has build.
+- :attr:`.model_type_trained <models.Ftrl.model_type_trained>` -- the model
+  type `Ftrl` has build.
 
 )";
 
@@ -1340,7 +1343,8 @@ return: str
 
 See also
 --------
-- :data:`.model_type` -- the model type `Ftrl` should build.
+- :attr:`.model_type <models.Ftrl.model_type>` -- the model type `Ftrl` should
+  build.
 
 )";
 
