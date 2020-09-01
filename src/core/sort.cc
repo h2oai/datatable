@@ -1445,9 +1445,7 @@ template class dt::ArrayView_ColumnImpl<int64_t>;
 // py::Frame.sort
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_sort(
-  0, 0, 0, true, false, {}, "sort",
-
+static const char* doc_sort =
 R"(sort(self, *cols)
 --
 
@@ -1459,11 +1457,13 @@ cols: List[str | int]
     Names or indices of the columns to sort by. If no columns are
     given, the Frame will be sorted on all columns.
 
-Returns
--------
-New Frame sorted by the provided column(s). The current frame
-remains unmodified.
-)");
+return: Frame
+    New Frame sorted by the provided column(s). The current frame
+    remains unmodified.
+)";
+
+static py::PKArgs args_sort(
+  0, 0, 0, true, false, {}, "sort", doc_sort);
 
 py::oobj py::Frame::sort(const PKArgs& args) {
   dt::expr::EvalContext ctx(dt);

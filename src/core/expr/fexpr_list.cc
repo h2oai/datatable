@@ -191,20 +191,17 @@ static Workframe _evaluate_bool_list(const vecExpr& args, EvalContext& ctx) {
 }
 
 
-static Workframe _evaluate_f_list(const vecExpr& args, EvalContext& ctx) {
+Workframe FExpr_List::evaluate_j(EvalContext& ctx) const {
+  auto kind = _resolve_list_kind(args_);
+  if (kind == Kind::Bool) {
+    return _evaluate_bool_list(args_, ctx);
+  }
+
   Workframe outputs(ctx);
-  for (const auto& arg : args) {
+  for (const auto& arg : args_) {
     outputs.cbind( arg->evaluate_j(ctx) );
   }
   return outputs;
-}
-
-
-Workframe FExpr_List::evaluate_j(EvalContext& ctx) const {
-  auto kind = _resolve_list_kind(args_);
-  if (kind == Kind::Bool) return _evaluate_bool_list(args_, ctx);
-  if (kind == Kind::Func) return evaluate_n(ctx);
-  return _evaluate_f_list(args_, ctx);
 }
 
 

@@ -58,8 +58,6 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_refnode
 from . import xnodes
 
-logger = logging.getLogger(__name__)
-
 rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
 rx_param = re.compile(r"(?:"
@@ -67,7 +65,8 @@ rx_param = re.compile(r"(?:"
                       r"\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|\[[^\[\]]*\]|[^,\[\(\"]*"
                       r"))?"
                       r"|([\*/]|\*\*?\w+)"
-                      r")\s*(?:,\s*|$)")
+                      r")\s*(?:,\s*)?|"
+                      r"\[,?\s*(\w+),?\s*\]\s*")
 rx_header = re.compile(r"(\-{3,})\s*")
 rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 
@@ -222,15 +221,15 @@ class XobjectDirective(SphinxDirective):
         "tests": directives.unchanged,
         "settable": directives.unchanged,
         "deletable": directives.unchanged,
-        "notitle": directives.unchanged,   # FIXME
+        "noindex": directives.unchanged,
     }
 
     def run(self):
         """
         Main function invoked by the Sphinx runtime.
         """
-        self._init_env()
         self._parse_config()
+        self._init_env()
         self._parse_arguments()
         self._parse_option_src()
         self._parse_option_doc()
@@ -260,6 +259,9 @@ class XobjectDirective(SphinxDirective):
             timestamp = time.time(),
             sources = []
         )
+        # equivalent of `.. py::currentmodule::` directive
+        self.env.ref_context['py:module'] = self.module_name
+
 
     def _register_source_file(self, filename):
         self.env.xobject[self.env.docname]['sources'].append(filename)
@@ -276,12 +278,14 @@ class XobjectDirective(SphinxDirective):
         qualifier. This way the most important information will
         remain visible longer.
         """
-        if self.name == "xclass":
+        if self.name in ["xclass", "xdata", "xfunction"]:
             title = self.obj_name
-        elif self.name == "xdata":
+        elif self.name == "xattr":
             title = "." + self.obj_name
-        else:
+        elif self.name == "xmethod":
             title = "." + self.obj_name + "()"
+        else:
+            self.error("Unknown directive " + self.name)
         title += " &ndash; " + self.qualifier
         title_overrides[self.env.docname] = title
 
@@ -340,7 +344,7 @@ class XobjectDirective(SphinxDirective):
                              % self.name)
         src = self.options["src"].strip()
         parts = src.split()
-        if self.name == "xdata":
+        if self.name in ["xdata", "xattr"]:
             if len(parts) not in [2, 3]:
                 raise self.error("Invalid :src: option for ..%s directive: "
                                  "it must have form ':src: filename "
@@ -426,13 +430,13 @@ class XobjectDirective(SphinxDirective):
     def _parse_option_settable(self):
         """
         Process the option `:settable:`, which is available for
-        `:xdata:` directives only, and indicates that the property
+        `:xattr:` directives only, and indicates that the property
         being documented also supports a setter interface.
         """
         setter = self.options.get("settable", "").strip()
 
         if setter:
-            if self.name != "xdata":
+            if not(self.name == "xattr" or self.obj_name == "__setitem__"):
                 raise self.error("Option :settable: is not valid for a ..%s "
                                  "directive" % self.name)
             self.setter = setter
@@ -443,7 +447,7 @@ class XobjectDirective(SphinxDirective):
     def _parse_option_deletable(self):
         self.deletable = "deletable" in self.options
 
-        if self.deletable and self.name != "xdata":
+        if self.deletable and self.name != "xattr":
             raise self.error("Option :deletable: is not valid for a ..%s "
                              "directive" % self.name)
 
@@ -586,7 +590,8 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
-        if self.name in ["xdata", "xclass"] or "--" not in self.doc_lines:
+        if (self.name in ["xdata", "xattr", "xclass"] or
+                "--" not in self.doc_lines):
             self.parsed_params = []
             self._parse_body(self.doc_lines)
             return
@@ -615,6 +620,7 @@ class XobjectDirective(SphinxDirective):
         the following:
           - varname             # regular parameter
           - (varname, default)  # parameter with default
+          - (varname,)          # optional parameter (in square brackets)
           - "/"                 # separator for pos-only arguments
           - "*"                 # separator for kw-only arguments
           - "*" + varname       # positional varargs
@@ -628,15 +634,16 @@ class XobjectDirective(SphinxDirective):
         while i < len(sig):
             mm = re.match(rx_param, sig[i:])
             if mm:
-                if mm.group(1) is None:  # "special" variable
-                    assert mm.group(3)
+                if mm.group(3) is not None:   # "special" variable
                     parsed.append(mm.group(3))
-                elif mm.group(2) is None:  # without default
-                    assert mm.group(1)
-                    parsed.append(mm.group(1))
+                elif mm.group(4) is not None:
+                    parsed.append((mm.group(4),))
                 else:
-                    assert mm.group(1) and mm.group(2)
-                    parsed.append( (mm.group(1), mm.group(2)) )
+                    assert mm.group(1) is not None
+                    if mm.group(2) is None:  # without default
+                        parsed.append(mm.group(1))
+                    else:
+                        parsed.append( (mm.group(1), mm.group(2)) )
                 assert mm.pos == 0
                 i += mm.end()
             else:
@@ -856,11 +863,6 @@ class XobjectDirective(SphinxDirective):
         title_text = self.qualifier + self.obj_name
         sect = nodes.section(ids=[title_text],
                              classes=["x-function", self.name])
-        if "notitle" not in self.options:
-            h1_text = title_text
-            if self.name not in ["xdata", "xclass"]:
-                h1_text += "()"
-            sect += nodes.title("", h1_text)
         sect += self._index_node()
         sect += self._generate_signature()
         sect += self._generate_body()
@@ -868,13 +870,15 @@ class XobjectDirective(SphinxDirective):
 
 
     def _index_node(self):
+        if "noindex" in self.options:
+            return []
         targetname = self.qualifier + self.obj_name
         text = self.obj_name
         if self.name == "xmethod":
             text += " (%s method)" % self.qualifier[:-1]
         if self.name == "xfunction":
             text += " (%s function)" % self.qualifier[:-1]
-        if self.name == "xdata":
+        if self.name == "xattr":
             text += " (%s attribute)" % self.qualifier[:-1]
         inode = addnodes.index(entries=[("single", text, targetname, "", None)])
         return [inode]
@@ -894,13 +898,14 @@ class XobjectDirective(SphinxDirective):
         sig_node += sig_nodeR
 
         # Tell Sphinx that this is a target for `:py:obj:` references
-        self.state.document.note_explicit_target(sig_node)
-        domain = self.env.get_domain("py")
-        domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
-                           objtype=self.name[1:],  # remove initial 'x'
-                           node_id=targetname)
+        if "noindex" not in self.options:
+            self.state.document.note_explicit_target(sig_node)
+            domain = self.env.get_domain("py")
+            domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
+                               objtype=self.name[1:],  # remove initial 'x'
+                               node_id=targetname)
         out = [sig_node]
-        if self.name == "xdata":
+        if self.name == "xattr":
             if self.setter:
                 out += self._generate_signature_setter()
             if self.deletable:
@@ -985,10 +990,16 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_sigmain(self, node, kind):
-        div1 = xnodes.div(classes=["sig-name"])
-        div1 += nodes.Text(self.obj_name)
-        node += div1
-        if self.name == "xdata":
+        square_bracket_functions = ['__getitem__', '__setitem__', '__delitem__']
+
+        if self.obj_name in square_bracket_functions:
+            if self.obj_name == "__delitem__":
+                node += xnodes.div(nodes.Text("del "), classes=["keyword"])
+            node += xnodes.div(nodes.Text("self"), classes=["self", "param"])
+        else:
+            node += xnodes.div(nodes.Text(self.obj_name), classes=["sig-name"])
+
+        if self.name in ["xdata", "xattr"]:
             if kind == "setter":
                 equal_sign_node = nodes.inline("", nodes.Text(" = "), classes=["punct"])
                 param_node = xnodes.div(
@@ -999,16 +1010,22 @@ class XobjectDirective(SphinxDirective):
                                     children=[equal_sign_node, param_node])
                 node += params
         else:
-            node += nodes.inline("", nodes.Text("("),
-                                 classes=["sig-open-paren"])
+            if self.obj_name in square_bracket_functions:
+                node += xnodes.div(nodes.Text("["), classes=["sig-name"])
+            else:
+                node += nodes.inline("", nodes.Text("("),
+                                     classes=["sig-open-paren"])
             params = xnodes.div(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
+            printed = False
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
-                if param == "self": classes += ["self"]
+                if param == "self": continue
                 if param == "*" or param == "/": classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
+                    if printed:
+                        params += nodes.inline("", nodes.Text(", "), classes=["punct"])
                     if param in ["self", "*", "/"]:
                         ref = nodes.Text(param)
                     else:
@@ -1016,21 +1033,43 @@ class XobjectDirective(SphinxDirective):
                     params += xnodes.div(ref, classes=classes)
                 else:
                     assert isinstance(param, tuple)
-                    param_node = a_node(text=param[0], href="#" + param[0])
-                    equal_sign_node = nodes.inline("", nodes.Text("="), classes=["punct"])
-                    # Add as nodes.literal, so that Sphinx wouldn't try to
-                    # "improve" quotation marks and ...s
-                    default_value_node = nodes.literal("", nodes.Text(param[1]),
-                                                      classes=["default"])
-                    params += xnodes.div(classes=classes, children=[
-                                            param_node,
-                                            equal_sign_node,
-                                            default_value_node
-                                         ])
-                if i < len(self.parsed_params) - 1:
-                    params += nodes.inline("", nodes.Text(", "), classes=["punct"])
-            params += nodes.inline("", nodes.Text(")"),
-                                   classes=["sig-close-paren"])
+                    if len(param) == 2:
+                        if printed:
+                            params += nodes.inline("", nodes.Text(", "), classes=["punct"])
+                        param_node = a_node(text=param[0], href="#" + param[0])
+                        equal_sign_node = nodes.inline("", nodes.Text("="), classes=["punct"])
+                        # Add as nodes.literal, so that Sphinx wouldn't try to
+                        # "improve" quotation marks and ...s
+                        default_value_node = nodes.literal("", nodes.Text(param[1]),
+                                                          classes=["default"])
+                        params += xnodes.div(classes=classes, children=[
+                                                param_node,
+                                                equal_sign_node,
+                                                default_value_node
+                                             ])
+                    else:
+                        assert len(param) == 1
+                        params += nodes.inline("", nodes.Text("["), classes=["punct"])
+                        if printed:
+                            params += nodes.inline("", nodes.Text(", "), classes=["punct"])
+                        param_node = a_node(text=param[0], href="#" + param[0])
+                        params += xnodes.div(param_node, classes=classes)
+                        params += nodes.inline("", nodes.Text("]"), classes=["punct"])
+                printed = True
+
+            if self.obj_name in square_bracket_functions:
+                params += nodes.inline("", nodes.Text(']'), classes=["sig-name"])
+            else:
+                params += nodes.inline("", nodes.Text(")"),
+                                       classes=["sig-close-paren"])
+            if self.obj_name == "__setitem__":
+                if not getattr(self, "setter"):
+                    self.setter = "values"
+                params += nodes.inline("", nodes.Text(" = "), classes=["punct"])
+                params += xnodes.div(
+                            a_node(text=self.setter, href="#" + self.setter),
+                            classes=["param"])
+
             node += params
 
 
@@ -1038,7 +1077,7 @@ class XobjectDirective(SphinxDirective):
         out = xnodes.div(classes=["x-function-body"])
         for head, lines, linenos in self.parsed_body:
             if head:
-                lines = [head, "="*len(head), ""] + lines
+                lines = [head, "-"*len(head), ""] + lines
                 i0 = linenos[0]
                 linenos = [i0-3, i0-2, i0-1] + linenos
             assert len(lines) == len(linenos)
@@ -1127,13 +1166,19 @@ class XversionaddedDirective(SphinxDirective):
 
     def run(self):
         version = self.arguments[0].strip()
+        target = "/releases/"
+        if not target.startswith("v"):
+            target += "v"
+        target += version
+        if len(version.split('.')) <= 2:
+            target += ".0"
 
         node = xnodes.div(classes=["x-version-added"])
         node += nodes.Text("New in version ")
         node += nodes.inline("", "",
             addnodes.pending_xref("", nodes.Text(version),
                 refdomain="std", reftype="doc", refexplicit=True,
-                reftarget="/releases/"+version))
+                reftarget=target))
         return [node]
 
 
@@ -1216,14 +1261,32 @@ def on_env_merge_info(app, env, docnames, other):
         env.xobject = other.xobject
 
 
+# https://www.sphinx-doc.org/en/master/extdev/appapi.html#event-source-read
+def on_source_read(app, docname, source):
+    assert isinstance(source, list) and len(source) == 1
+    txt = source[0]
+    mm = re.search(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
+    if mm:
+        kind = mm.group(1)
+        name = mm.group(2)
+        # qualifier = name[:name.rfind('.')]
+        title = re.sub(r"_", "\\_", name)
+        if kind in ["xfunction", "xmethod"]:
+            title += "()"
+        txt = title + "\n" + ("=" * len(title)) + "\n\n" + \
+              ".. py:currentmodule:: datatable\n\n" + txt
+        source[0] = txt
+
+
+def on_html_page_context(app, pagename, templatename, context, doctree):
+    if pagename in title_overrides:
+        context["title"] = title_overrides[pagename]
+
+
 
 #-------------------------------------------------------------------------------
 # Setup
 #-------------------------------------------------------------------------------
-def fix_html_titles(app, pagename, templatename, context, doctree):
-    if pagename in title_overrides:
-        context["title"] = title_overrides[pagename]
-
 
 def setup(app):
     app.setup_extension("sphinxext.xnodes")
@@ -1237,16 +1300,18 @@ def setup(app):
     app.add_directive("xfunction", XobjectDirective)
     app.add_directive("xmethod", XobjectDirective)
     app.add_directive("xclass", XobjectDirective)
+    app.add_directive("xattr", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
     app.add_directive("xversionadded", XversionaddedDirective)
 
     app.connect("env-get-outdated", on_env_get_outdated)
     app.connect("env-purge-doc", on_env_purge_doc)
     app.connect("env-merge-info", on_env_merge_info)
+    app.connect("source-read", on_source_read)
+    app.connect("html-page-context", on_html_page_context)
 
     app.add_node(a_node, html=(visit_a, depart_a))
     app.add_role("xparam-ref", xparamref)
-    app.connect("html-page-context", fix_html_titles)
     return {"parallel_read_safe": True,
             "parallel_write_safe": True,
             "env_version": 1,

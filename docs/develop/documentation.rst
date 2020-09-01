@@ -201,7 +201,7 @@ a link::
 In order to note that some functionality was added or changed in a specific
 version, use::
 
-    .. versionadded:: 0.10.0
+    .. xversionadded:: 0.10.0
 
     .. versionchanged:: 0.11.0
 

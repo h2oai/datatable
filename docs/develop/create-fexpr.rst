@@ -317,8 +317,6 @@ contain just few lines:
 
 .. code-block:: rst
 
-    .. py:currentmodule:: datatable
-
     .. xfunction:: datatable.gcd
         :doc: src/core/fexpr/fexpr_gcd.cc doc_gcd
         :src: src/core/fexpr/fexpr_gcd.cc py_gcd

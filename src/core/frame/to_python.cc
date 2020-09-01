@@ -41,9 +41,9 @@ Convert the frame into a list of tuples, by rows.
 Parameters
 ----------
 return: List[Tuple]
-  Returns a list having :data:`.nrows` tuples, where each tuple has
-  length :data:`.ncols` and contains data from each respective row
-  of the frame.
+  Returns a list having :attr:`nrows <Frame.nrows>` tuples, where
+  each tuple has length :attr:`ncols <Frame.ncols>` and contains data
+  from each respective row of the frame.
 
 Examples
 --------
@@ -90,8 +90,8 @@ Convert the frame into a list of lists, by columns.
 Parameters
 ----------
 return: List[List]
-    A list of :data:`.ncols` lists, each inner list representing one
-    column of the frame.
+    A list of :attr:`ncols <Frame.ncols>` lists, each inner list
+    representing one column of the frame.
 
 
 Examples
@@ -138,9 +138,9 @@ same as the order of columns in the frame.
 Parameters
 ----------
 return: Dict[str, List]
-    Dictionary with :data:`.ncols` records. Each record represents a
-    single column: the key is the column's name, and the value is the
-    list with the column's data.
+    Dictionary with :attr:`ncols <Frame.ncols>` records. Each record
+    represents a single column: the key is the column's name, and the
+    value is the list with the column's data.
 
 Examples
 --------

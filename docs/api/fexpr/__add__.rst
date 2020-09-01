@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xmethod:: datatable.FExpr.__add__
     :src: src/core/expr/fbinary/fexpr__add__.cc evaluate1

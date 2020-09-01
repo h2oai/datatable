@@ -4,7 +4,7 @@
 }
 
 .x-function + .x-function {
-    margin-top: -28pt;
+    /*margin-top: -28pt;*/
 }
 
 
@@ -100,7 +100,7 @@
 }
 .x-function .sig-parameters .param.self,
 .x-function .sig-parameters .param.self+.punct {
-    display: none;
+    /*display: none;*/
 }
 
 .x-function .keyword {

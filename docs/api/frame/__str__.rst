@@ -1,4 +1,3 @@
-.. py:currentmodule:: datatable
 
 .. xmethod:: datatable.Frame.__str__
     :src: src/core/frame/__repr__.cc Frame::m__str__
