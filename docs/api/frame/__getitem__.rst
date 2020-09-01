@@ -60,19 +60,153 @@
         separately and then all selected rows are put together. The list may
         contain ``None``s, which will be simply skipped.
 
-    j : int | str | slice | list | type | FExpr | update
+    j : int | str | slice | list | dict | type | FExpr | update
         This argument may either select columns, or perform computations with
         the columns.
 
+        ``int``
+            Select a single column at the specified index. An :exc:`IndexError`
+            is raised if `j` is not in the range ``[-ncols; ncols)``.
 
+        ``str``
+            Select a single column by name. A :exc:`KeyError` is raised if
+            the column with such a name does not exist.
+
+        ``:``
+            This is a trivial slice, and it means "select everything", and is
+            roughly equivalent to SQL's ``*``. In the simple case of
+            ``DT[i, j]`` call "selecting everything" means all columns from
+            frame ``DT``. However, when the ``by()`` clause is added, then
+            ``:`` will now select all columns except those used in the groupby.
+            And if the expression has a ``join()``, then "selecting everything"
+            will produce all columns from all frames, excluding those that were
+            duplicate during a natural join.
+
+        ``slice[int]``
+            An integer slice can be used to select a subset of columns. The
+            behavior of a slice is exactly the same as in base Python.
+
+        ``slice[str]``
+            A string slice is an expression like ``"colA":"colZ"``. In this
+            case all columns from ``"colA"`` to ``"colZ"`` inclusive are
+            selected. And if ``"colZ"`` appears before ``"colA``" in the frame,
+            then the returned columns will be in the reverse order.
+
+            Both endpoints of the slice must be valid columns (or omitted), or
+            otherwise a :exc:`KeyError` will be raised.
+
+        ``type`` | ``stype`` | ``ltype``
+            Select only columns of the matching type.
+
+        ``FExpr``
+            An expression formula is computed within the current evaluation
+            context (i.e. it takes into account the current frame, the filter
+            ``i``, the presence of groupby/join parameters, etc). The result
+            of this evaluation is used as-if that colum existed in the frame.
+
+        ``List[bool]``
+            If ``j`` is a list of boolean values, then it must have the length
+            of :attr:`ncols`, and it describes which columns are to be selected
+            into the result.
+
+        ``List[Any]``
+            The ``j`` can also be a list of elements of any other type listed
+            above, with the only restriction that the items must be homogeneous.
+            For example, you can mix ``int``s and ``slice[int]``s, but not
+            ``int``s and ``FExpr``s, or ``int``s and ``str``s.
+
+            Each item in the list will be evaluated separately (as if each was
+            the sole element in ``j``), and then all the results will be put
+            together.
+
+        ``Dict[str, FExpr]``
+            A dictionary can be used to select columns/expressions similarly
+            to a list, but assigning them explicit names.
+
+        ``update``
+            As a special case, the ``j`` argument may be the
+            :func:`update() <datatable.update>` function, which turns the
+            selection operation into an update. That is, instead of returning
+            the chosen rows/columns, they will be updated instead with the
+            user-supplied values.
 
     by : by
+        When ``by()`` clause is present in the square brackets, the rest of the
+        computations are carried out within the "context of a groupby". This
+        should generally be equivalent to (a) splitting the frame into separate
+        sub-frames corresponding to each group, (b) applying ``DT[i, j]``
+        separately within each group, (c) row-binding the results for each
+        group. In practice the following operations are affected:
+
+        - all reduction operators such as :func:`dt.min() <datatable.min>` or
+          :func:`dt.sum() <datatable.sum>` now work separately within each
+          group. Thus, instead of computing sum over the entire column, it is
+          computed separately within each group in ``by()``, and the resulting
+          column will have as many rows as the number of groups.
+
+        - certain ``i`` expressions are re-interpreted as being applied within
+          each group. For example, if ``i`` is an integer or a slice, then it
+          will now be selecting row(s) within each group.
+
+        - certain functions (such as :func:`dt.shift() <datatable.shift>`) are
+          also "group-aware", and produce results that take into account the
+          groupby context. Check documentation for each individual function
+          to find out whether it has special treatment for groupby contexts.
+
+        In addition, ``by()`` also affects the order pf columns in the output
+        frame. Specifically, all columns listed as the groupby keys will be
+        automatically placed at the front of the resulting frame, and also
+        excluded from ``:`` or ``f[:]`` within ``j``.
 
     sort : sort
+        This argument can be used to rearrange rows in the resulting frame.
+        See :func:`sort() <datatable.sort>` for details.
 
     join : join
+        Performs a JOIN operation with another frame. The
+        :func:`join() <datatable.join>` clause will calculate how the rows
+        of the current frame match against the rows of the joined frame, and
+        allow you to refer to the columns of the joined frame within `i`, `j`
+        or `by`. In order to access columns of the joined frame use
+        namespace ``g.``.
 
-    return : Frame
+        This parameter may be listed multiple times if you need to join with
+        several frames.
+
+    return : Frame | None
+        If `j` is an :func:`update() <datatable.update>` clause then current
+        frame is modified in-place and nothing is returned.
+
+        In all other cases, the returned value is a
+        :class:`Frame <datatable.Frame>` object constructed from the selected
+        rows and columns (including the computed columns) of the current frame.
+
+
+    Details
+    -------
+
+    The order of evaluation of expressions is that first the `join` clause(s)
+    are computed, creating a mapping between the rows of the current frame and
+    the joined frame(s). After that we evaluate `by`+`sort`. Next, the `i`
+    filter is applied creating the final index of rows that will be selected.
+    Lastly, we evaluate the `j` part, taking into account the current groupby
+    and row index(es).
+
+    When evaluating `j`, it is essentially converted into a tree (DAG) of
+    expressions, where each expression is evaluated from the bottom up. That
+    is, we start evaluating from the leaf nodes (which are usually column
+    selectors such as ``f[0]``), and then at each convert the set of columns
+    into a new set. Importantly, each subexpression node may produce columns
+    of 3 types: "scalar", "grouped", and "full-size". Whenever subexpressions
+    of different levels are mixed together, they are upgraded to the highest
+    level. Thus, a scalar may be reused for each group, and a grouped column
+    can interoperate with a regular column by auto-expanding in such a way
+    that it becomes constant within each group.
+
+    If, after the `j` is fully evaluated, it produces a column set of type
+    "grouped", then the resulting frame will have as many rows as there are
+    groups. If, on the other hand, the column set is "full-size", then the
+    resulting frame will have as many rows as the original frame.
 
 
 
