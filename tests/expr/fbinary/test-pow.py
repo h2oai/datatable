@@ -129,13 +129,13 @@ def test_pow_booleans_integers_floats_random(seed):
     DT = dt.Frame(x=src1, y=src2/dt.bool8, z=src3)
     RES = DT[:, [f.x ** f.y, f.y ** math.abs(f.x),
                  f.y ** math.abs(f.z), f.z ** f.y,
-                 f.z ** f.x, math.abs(f.x) ** math.abs(f.z)]]
+                 f.z ** math.abs(f.x), math.abs(f.x) ** math.abs(f.z)]]
     EXP = dt.Frame([
             [src1[i] ** src2[i] for i in range(n)],
             [src2[i] ** abs(src1[i]) for i in range(n)]/dt.int32,
             [src2[i] ** abs(src3[i]) for i in range(n)],
             [src3[i] ** src2[i] for i in range(n)],
-            [src3[i] ** src1[i] for i in range(n)],
+            [src3[i] ** abs(src1[i]) for i in range(n)],
             [abs(src1[i]) ** abs(src3[i]) for i in range(n)],
           ])
     assert_equals(RES, EXP)
