@@ -1,9 +1,10 @@
 
-Models
-======
+.. py:module:: datatable.models
+
+datatable.models
+================
 
 
 .. toctree::
-	:hidden:
 
-	FTRL  <models/ftrl>
+    FTRL  <models/ftrl>
