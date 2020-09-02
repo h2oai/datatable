@@ -310,46 +310,21 @@ Exponential/logarithmic functions
 Special mathemetical functions
 ------------------------------
 
-.. function:: erf(x)
+.. list-table::
+   :widths: auto
+   :class: api-table
 
-    The error function :math:`\operatorname{erf}(x)`.
+   * - :func:`erf(x) <datatable.math.erf>`
+     - The error function :math:`\operatorname{erf}(x)`.
 
-    This function is defined as the integral
-    :math:`\operatorname{erf}(x) = \frac{2}{\sqrt{\pi}} \int^x_0 e^{-t^2}dt`.
-    This function is used in computing probabilities arising from the normal
-    distribution.
+   * - :func:`erfc(x) <datatable.math.erfc>`
+     - The complimentary error function :math:`1 - \operatorname{erf}(x)`.
 
+   * - :func:`gamma(x) <datatable.math.gamma>`
+     - Euler gamma function of ``x``.
 
-.. function:: erfc(x)
-
-    The complementary error function
-    :math:`\operatorname{erfc}(x) = 1 - \operatorname{erf}(x)`.
-
-    This function is defined as the integral
-    :math:`\operatorname{erfc}(x) = \frac{2}{\sqrt{\pi}} \int^{\infty}_x e^{-t^2}dt`.
-
-    For large values of ``x`` this function computes the result much more
-    precisely than ``1 - erf(x)``.
-
-
-.. function:: gamma(x)
-
-    Euler gamma function of ``x``.
-
-    The gamma function is defined for all ``x`` except for the negative
-    integers. For positive ``x`` it can be computed via the integral
-    :math:`\Gamma(x) = \int_0^\infty t^{x-1}e^{-t}dt`. For negative ``x`` it
-    can be computed as
-    :math:`\Gamma(x) = \frac{\Gamma(x + k)}{x(x+1)\cdot...\cdot(x+k-1)}`,
-    where :math:`k` is any integer such that :math:`x+k` is positive.
-
-    If `x` is a positive integer, then :math:`\Gamma(x) = (x - 1)!`.
-
-
-.. function:: lgamma(x)
-
-    Natural logarithm of the absolute value of gamma function of ``x``.
-
+   * - :func:`lgamma(x) <datatable.math.lgamma>`
+     - Natual logarithm of the Euler gamma function of.
 
 
 Floating-point functions
@@ -443,9 +418,12 @@ Mathematical constants
     ceil()       <math/ceil>
     copysign()   <math/copysign>
     e            <math/e>
+    erf(x)       <math/erf>
+    erfc(x)      <math/erfc>
     fabs()       <math/fabs>
     fmod()       <math/fmod>
     floor()      <math/floor>
+    gamma()      <math/gamma>
     golden       <math/golden>
     inf          <math/inf>
     isclose()    <math/isclose>
@@ -453,6 +431,7 @@ Mathematical constants
     isinf()      <math/isinf>
     isna()       <math/isna>
     ldexp()      <math/ldexp>
+    lgamma()     <math/lgamma>
     nan          <math/nan>
     pi           <math/pi>
     rint()       <math/rint>
