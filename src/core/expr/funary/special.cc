@@ -69,10 +69,18 @@ static const char* doc_erf =
 R"(erf(x)
 --
 
-Error function erf(x), which is defined as the integral
+Error function ``erf(x)``, which is defined as the integral
 
-  erf(x) = sqrt(8/tau) * Integrate[exp(-t**2), {t, 0, x}]
+.. math::
 
+    \operatorname{erf}(x) = \sqrt{\frac{8}{\tau}} \int^x_0 e^{-t^2}dt
+
+This function is used in computing probabilities arising from the normal
+distribution.
+
+See also
+--------
+- :func:`erfc(x) <datatable.math.erfc>` -- complimentary error function.
 )";
 
 py::PKArgs args_erf(1, 0, 0, false, false, {"x"}, "erf", doc_erf);
@@ -92,14 +100,21 @@ static const char* doc_erfc =
 R"(erfc(x)
 --
 
-Complementary error function `erfc(x) = 1 - erf(x)`.
+Complementary error function ``erfc(x) = 1 - erf(x)``.
 
 The complementary error function is defined as the integral
-  erfc(x) = sqrt(8/tau) * Integrate[exp(-t**2), {t, x, +inf}]
+
+.. math::
+
+    \operatorname{erfc}(x) = \sqrt{\frac{8}{\tau}} \int^{\infty}_x e^{-t^2}dt
 
 Although mathematically `erfc(x) = 1-erf(x)`, in practice the RHS
 suffers catastrophic loss of precision at large values of `x`. This
-function, however, does not have such drawback.
+function, however, does not have such a drawback.
+
+See also
+--------
+- :func:`erf(x) <datatable.math.erf>` -- the error function.
 )";
 
 py::PKArgs args_erfc(1, 0, 0, false, false, {"x"}, "erfc", doc_erfc);
@@ -121,15 +136,24 @@ R"(gamma(x)
 
 Euler Gamma function of x.
 
-The gamma function is defined for all positive `x` as the integral
-  gamma(x) = Integrate[t**(x-1) * exp(-t), {t, 0, +inf}]
+The gamma function is defined for all ``x`` except for the negative
+integers. For positive ``x`` it can be computed via the integral
 
-In addition, for non-integer negative `x` the function is defined
-via the relationship
-  gamma(x) = gamma(x + k)/[x*(x+1)*...*(x+k-1)]
-  where k = ceil(|x|)
+.. math::
+    \Gamma(x) = \int_0^\infty t^{x-1}e^{-t}dt
 
-If `x` is a positive integer, then `gamma(x) = (x - 1)!`.
+For negative ``x`` it can be computed as
+
+.. math::
+    \Gamma(x) = \frac{\Gamma(x + k)}{x(x+1)\cdot...\cdot(x+k-1)}
+
+where :math:`k` is any integer such that :math:`x+k` is positive.
+
+If `x` is a positive integer, then :math:`\Gamma(x) = (x - 1)!`.
+
+See also
+--------
+- :func:`lgamma(x) <datatable.math.lgamma>` -- log-gamma function.
 )";
 
 py::PKArgs args_gamma(1, 0, 0, false, false, {"x"}, "gamma", doc_gamma);
@@ -149,7 +173,8 @@ static const char* doc_lgamma =
 R"(lgamma(x)
 --
 
-Natural logarithm of the absolute value of gamma function of x.
+Natural logarithm of the absolute value of the Euler Gamma
+function of `x`.
 )";
 
 py::PKArgs args_lgamma(1, 0, 0, false, false, {"x"}, "lgamma", doc_lgamma);

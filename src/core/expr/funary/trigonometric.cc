@@ -69,7 +69,16 @@ static const char* doc_sin =
 R"(sin(x)
 --
 
-Trigonometric sine of x.
+Compute the trigonometric sine of angle ``x`` measured in radians.
+
+This function can only be applied to numeric columns (real, integer, or
+boolean), and produces a float64 result, except when the argument ``x`` is
+float32, in which case the result is float32 as well.
+
+See also
+--------
+- :func:`cos(x) <math.cos>` -- the trigonometric cosine function;
+- :func:`arcsin(x) <math.arcsin>` -- the inverse sine function.
 )";
 
 py::PKArgs args_sin(1, 0, 0, false, false, {"x"}, "sin", doc_sin);
@@ -90,7 +99,16 @@ static const char* doc_cos =
 R"(cos(x)
 --
 
-Trigonometric cosine of x.
+Compute the trigonometric cosine of angle ``x`` measured in radians.
+
+This function can only be applied to numeric columns (real, integer, or
+boolean), and produces a float64 result, except when the argument ``x`` is
+float32, in which case the result is float32 as well.
+
+See also
+--------
+- :func:`sin(x) <math.sin>` -- the trigonometric sine function;
+- :func:`arccos(x) <math.arccos>` -- the inverse cosine function.
 )";
 
 py::PKArgs args_cos(1, 0, 0, false, false, {"x"}, "cos", doc_cos);
@@ -111,7 +129,16 @@ static const char* doc_tan =
 R"(tan(x)
 --
 
-Trigonometric tangent of x.
+Compute the trigonometric tangent of ``x``, which is the ratio
+``sin(x)/cos(x)``.
+
+This function can only be applied to numeric columns (real, integer, or
+boolean), and produces a float64 result, except when the argument ``x`` is
+float32, in which case the result is float32 as well.
+
+See also
+--------
+- :func:`arctan(x) <math.arctan>` -- the inverse tangent function.
 )";
 
 py::PKArgs args_tan(1, 0, 0, false, false, {"x"}, "tan", doc_tan);
@@ -132,11 +159,20 @@ static const char* doc_arcsin =
 R"(arcsin(x)
 --
 
-Inverse trigonometric sine of x.
+Inverse trigonometric sine of `x`.
 
-The returned value is in the interval [-tau/4, tau/4], or NA for
-those values of x that lie outside the interval [-1, 1]. This function
-is the inverse of sin() in the sense that `sin(arcsin(x)) == x`.
+In mathematics, this may be written as :math:`\arcsin x` or
+:math:`\sin^{-1}x`.
+
+The returned value is in the interval :math:`[-\frac14 \tau, \frac14\tau]`,
+and NA for the values of ``x`` that lie outside the interval ``[-1, 1]``.
+This function is the inverse of :func:`sin() <math.sin>` in the sense
+that `sin(arcsin(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
+
+See also
+--------
+- :func:`sin(x) <math.sin>` -- the trigonometric sine function;
+- :func:`arccos(x) <math.arccos>` -- the inverse cosine function.
 )";
 
 py::PKArgs args_arcsin(1, 0, 0, false, false, {"x"}, "arcsin", doc_arcsin);
@@ -157,11 +193,21 @@ static const char* doc_arccos =
 R"(arccos(x)
 --
 
-Inverse trigonometric cosine of x.
+Inverse trigonometric cosine of `x`.
 
-The returned value is in the interval [0, tau/2], or NA for those
-values of x that lie outside the interval [-1, 1]. This function
-is the inverse of cos() in the sense that ``cos(arccos(x)) == x``.
+In mathematics, this may be written as :math:`\arccos x` or
+:math:`\cos^{-1}x`.
+
+The returned value is in the interval :math:`[0, \frac12\tau]`,
+and NA for the values of ``x`` that lie outside the interval
+``[-1, 1]``. This function is the inverse of
+:func:`cos() <math.cos>` in the sense that
+`cos(arccos(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
+
+See also
+--------
+- :func:`cos(x) <math.cos>` -- the trigonometric cosine function;
+- :func:`arcsin(x) <math.arcsin>` -- the inverse sine function.
 )";
 
 py::PKArgs args_arccos(1, 0, 0, false, false, {"x"}, "arccos", doc_arccos);
@@ -182,7 +228,14 @@ static const char* doc_arctan =
 R"(arctan(x)
 --
 
-Inverse trigonometric tangent of x.
+Inverse trigonometric tangent of `x`.
+
+This function satisfies the property that ``tan(arctan(x)) == x``.
+
+See also
+--------
+- :func:`atan2(x, y) <math.atan2>` -- two-argument inverse tangent function;
+- :func:`tan(x) <math.tan>` -- the trigonometric tangent function.
 )";
 
 py::PKArgs args_arctan(1, 0, 0, false, false, {"x"}, "arctan", doc_arctan);
@@ -203,7 +256,12 @@ static const char* doc_deg2rad =
 R"(deg2rad(x)
 --
 
-Convert angle measured in degrees into radians.
+Convert angle measured in degrees into radians:
+:math:`\operatorname{deg2rad}(x) = x\cdot\frac{\tau}{360}`.
+
+See also
+--------
+- :func:`rad2deg(x) <math.rad2deg>` -- convert radians into degrees.
 )";
 
 py::PKArgs args_deg2rad(1, 0, 0, false, false, {"x"}, "deg2rad", doc_deg2rad);
@@ -235,7 +293,12 @@ static const char* doc_rad2deg =
 R"(rad2deg(x)
 --
 
-Convert angle measured in radians into degrees.
+Convert angle measured in radians into degrees:
+:math:`\operatorname{rad2deg}(x) = x\cdot\frac{360}{\tau}`.
+
+See also
+--------
+- :func:`deg2rad(x) <math.deg2rad>` -- convert degrees into radians.
 )";
 
 py::PKArgs args_rad2deg(1, 0, 0, false, false, {"x"}, "rad2deg", doc_rad2deg);

@@ -37,12 +37,44 @@ static const char* doc_abs =
 R"(abs(x)
 --
 
-The absolute value of x.
+Return the absolute value of ``x``. This function can only be applied
+to numeric arguments (i.e. boolean, integer, or real).
 
-The argument x must have one of the numeric types: boolean, integer
-or float. If x has stype bool, int8 or int16 then the return value
-is promoted to int32, otherwise the stype of the result is the same
-as the stype of the argument.
+This function upcasts columns of types `bool8`, `int8` and `int16` into
+`int32`; for columns of other types the stype is kept.
+
+Parameters
+----------
+x: FExpr
+    Column expression producing one or more numeric columns.
+
+return: FExpr
+    The resulting FExpr evaluates absolute values in all elements
+    in all columns of `x`.
+
+Examples
+--------
+
+.. code-block::
+
+    DT = dt.Frame(A=[-3, 2, 4, -17, 0])
+    DT[:, abs(f.A)]
+
+.. dtframe::
+    :names: C0
+    :types: int8
+    :shape: 5, 1
+
+    0,   3
+    1,   2
+    2,   4
+    3,  17
+    4,   0
+
+See also
+--------
+
+- :func:`fabs() <datatable.math.fabs>`
 )";
 
 py::PKArgs args_abs(1, 0, 0, false, false, {"x"}, "abs", doc_abs);
@@ -84,7 +116,7 @@ static const char* doc_fabs =
 R"(fabs(x)
 --
 
-The absolute value of x, returned as float.
+The absolute value of `x`, returned as float.
 )";
 
 py::PKArgs args_fabs(1, 0, 0, false, false, {"x"}, "fabs", doc_fabs);
@@ -119,9 +151,9 @@ R"(sign(x)
 
 The sign of x, returned as float.
 
-This function returns 1.0 if x is positive (including positive
-infinity), -1.0 if x is negative, 0.0 if x is zero, and NA if
-x is NA.
+This function returns `1.0` if `x` is positive (including positive
+infinity), `-1.0` if `x` is negative, `0.0` if `x` is zero, and NA if
+`x` is NA.
 )";
 
 py::PKArgs args_sign(1, 0, 0, false, false, {"x"}, "sign", doc_sign);
@@ -259,8 +291,13 @@ static const char* doc_isfinite =
 R"(isfinite(x)
 --
 
-Returns True if x has a finite value, and False if x is infinity
+Returns True if `x` has a finite value, and False if `x` is infinity
 or NaN. This function is equivalent to ``!(isna(x) or isinf(x))``.
+
+See also
+--------
+- :func:`isna() <math.isna>`
+- :func:`isinf() <math.isinf>`
 )";
 
 py::PKArgs args_isfinite(1, 0, 0, false, false, {"x"}, "isfinite", doc_isfinite);
@@ -321,6 +358,19 @@ R"(ceil(x)
 --
 
 The smallest integer value not less than `x`, returned as float.
+
+This function produces a ``float32`` column if the input is of type
+``float32``, or ``float64`` columns for inputs of all other numeric
+stypes.
+
+Parameters
+----------
+x: FExpr
+    One or more numeric columns.
+
+return: FExpr
+    Expression that computes the ``ceil()`` function for each row and
+    column in `x`.
 )";
 
 py::PKArgs args_ceil(1, 0, 0, false, false, {"x"}, "ceil", doc_ceil);
@@ -359,6 +409,19 @@ R"(floor(x)
 --
 
 The largest integer value not greater than `x`, returned as float.
+
+This function produces a ``float32`` column if the input is of type
+``float32``, or ``float64`` columns for inputs of all other numeric
+stypes.
+
+Parameters
+----------
+x: FExpr
+    One or more numeric columns.
+
+return: FExpr
+    Expression that computes the ``floor()`` function for each row and
+    column in `x`.
 )";
 
 py::PKArgs args_floor(1, 0, 0, false, false, {"x"}, "floor", doc_floor);
@@ -477,9 +540,9 @@ static const char* doc_signbit =
 R"(signbit(x)
 --
 
-Returns True if x is negative (its sign bit is set), and False if
-x is positive. This function is able to distinguish between -0.0 and
-+0.0, returning True/False respectively. If x is an NA value, this
+Returns `True` if `x` is negative (its sign bit is set), and `False` if
+`x` is positive. This function is able to distinguish between `-0.0` and
+`+0.0`, returning `True`/`False` respectively. If `x` is an NA value, this
 function will also return NA.
 )";
 
