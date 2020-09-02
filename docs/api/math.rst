@@ -233,78 +233,48 @@ Trigonometric/hyperbolic functions
 Exponential/logarithmic functions
 ---------------------------------
 
-.. function:: exp(x)
+.. list-table::
+   :widths: auto
+   :class: api-table
 
-    The exponent of ``x``, i.e. Euler's number :const:`e` raised to the power
-    ``x``.
+   * - :func:`exp(x) <datatable.math.exp>`
+     - Compute :math:`e^x` (the exponent of ``x``).
 
+   * - :func:`exp2(x) <datatable.math.exp2>`
+     - Compute :math:`2^x`.
 
-.. function:: exp2(x)
+   * - :func:`expm1(x) <datatable.math.expm1>`
+     - Compute :math:`e^x - 1`.
 
-    Two raised to the power ``x``.
+   * - :func:`log(x) <datatable.math.log>`
+     - Compute :math:`\ln x` (the natural logarithm of ``x``).
 
+   * - :func:`log10(x) <datatable.math.log10>`
+     - Compute :math:`\log_{10} x` (the decimal logarithm of ``x``).
 
-.. function:: expm1(x)
+   * - :func:`log1p(x) <datatable.math.log1p>`
+     - Compute :math:`\ln(1 + x)`.
 
-    Computes :math:`e^x - 1`, however offering a better precision than
-    ``exp(x) - 1`` for small values of ``x``.
+   * - :func:`log2(x) <datatable.math.log2>`
+     - Compute :math:`\log_{2} x` (the binary logarithm of ``x``).
 
+   * - :func:`logaddexp(x) <datatable.math.logaddexp>`
+     - Compute :math:`\ln(e^x + e^y)`.
 
-.. function:: log(x)
+   * - :func:`logaddexp2(x) <datatable.math.logaddexp2>`
+     - Compute :math:`\log_2(2^x + 2^y)`.
 
-    The natural logarithm of ``x``. This function is the inverse of ``exp(x)``:
-    ``exp(log(x)) == x``.
+   * - :func:`cbrt(x) <datatable.math.cbrt>`
+     - Compute :math:`\sqrt[3]{x}` (the cubic root of ``x``).
 
+   * - :func:`pow(x, a) <datatable.math.pow>`
+     - Compute :math:`x^a`.
 
-.. function:: log10(x)
+   * - :func:`sqrt(x) <datatable.math.sqrt>`
+     - Compute :math:`\sqrt{x}` (the square root of ``x``).
 
-    The base-10 logarithm of ``x``, also denoted as :math:`\lg(x)` in
-    mathematics. This function is the inverse of ``power(10, x)``.
-
-
-.. function:: log1p(x)
-
-    The natural logarithm of 1 plus ``x``, i.e. :math:`\ln(1 + x)`.
-
-
-.. function:: log2(x)
-
-    The base-2 logarithm of ``x``, this function is the inverse of ``exp2(x)``.
-
-
-.. function:: logaddexp(x, y)
-
-    Logarithm of the sum of exponents of ``x`` and ``y``:
-    :math:`\ln(e^x + e^y)`. The result avoids loss of precision from
-    exponentiating small numbers.
-
-
-.. function:: logaddexp2(x, y)
-
-    Binary logarithm of the sum of binary exponents of ``x`` and ``y``:
-    :math:`\log_2(2^x + 2^y)`. The result avoids loss of precision from
-    exponentiating small numbers.
-
-
-.. function:: cbrt(x)
-
-    Compute the cubic root of ``x``, i.e. :math:`\sqrt[3]{x}`.
-
-
-.. function:: pow(x, a)
-
-    Raise ``x`` to the power ``a``, i.e. calculate :math:`x^a`.
-
-
-.. function:: sqrt(x)
-
-    The square root of ``x``, i.e. :math:`\sqrt{x}`.
-
-
-.. function:: square(x)
-
-    The square of ``x``, i.e. :math:`x^2`.
-
+   * - :func:`square(x) <datatable.math.square>`
+     - Compute :math:`x^2` (the square of ``x``).
 
 
 Special mathemetical functions
@@ -415,11 +385,15 @@ Mathematical constants
     :hidden:
 
     abs()        <math/abs>
+    cbrt()       <math/cbrt>
     ceil()       <math/ceil>
     copysign()   <math/copysign>
     e            <math/e>
     erf(x)       <math/erf>
     erfc(x)      <math/erfc>
+    exp(x)       <math/exp>
+    exp2(x)      <math/exp2>
+    expm1(x)     <math/expm1>
     fabs()       <math/fabs>
     fmod()       <math/fmod>
     floor()      <math/floor>
@@ -430,13 +404,22 @@ Mathematical constants
     isfinite()   <math/isfinite>
     isinf()      <math/isinf>
     isna()       <math/isna>
+    log()        <math/log>
+    log10()      <math/log10>
+    log1p()      <math/log1p>
+    log2()       <math/log2>
+    logaddexp()  <math/logaddexp>
+    logaddexp2() <math/logaddexp2>
     ldexp()      <math/ldexp>
     lgamma()     <math/lgamma>
     nan          <math/nan>
     pi           <math/pi>
+    pow()        <math/pow>
     rint()       <math/rint>
     round()      <math/round>
     sign()       <math/sign>
     signbit()    <math/signbit>
+    sqrt()       <math/sqrt>
+    square()     <math/square>
     tau          <math/tau>
     trunc()      <math/trunc>
