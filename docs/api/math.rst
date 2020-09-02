@@ -355,165 +355,54 @@ Special mathemetical functions
 Floating-point functions
 ------------------------
 
-.. function:: abs(x)
+.. list-table::
+   :widths: auto
+   :class: api-table
 
-    Return the absolute value of ``x``. This function can only be applied
-    to numeric arguments (i.e. boolean, integer, or real).
+   * - :func:`abs(x) <datatable.math.abs>`
+     - Absolute value of ``x``.
 
-    The argument ``x`` can be one of the following:
+   * - :func:`ceil(x) <datatable.math.ceil>`
+     - The smallest integer not less than ``x``.
 
-    - a :class:`Frame`, in which case the function is applied to all elements
-      of the frame, and returns a new frame with the same shape and stypes as
-      ``x``. An error will be raised if any columns in ``x`` are not numeric.
+   * - :func:`copysign(x, y) <datatable.math.copysign>`
+     - Number with the magnitude of ``x`` and the sign of ``y``.
 
-    - a column-expression, in which case ``abs(x)`` is also a column-expression
-      that, when applied to some frame ``DT``, will evaluate to a column with
-      the absolute values of ``x``. The stype of the resulting column will be
-      the same as the stype of ``x``.
+   * - :func:`fabs(x) <datatable.math.fabs>`
+     - The absolute value of ``x``, returned as a float.
 
-    - an ``int``, or a ``float``, in which case ``abs(x)`` returns the absolute
-      value of that number, similar to the python built-in function ``abs()``.
+   * - :func:`floor(x) <datatable.math.floor>`
+     - The largest integer not greater than ``x``.
 
-    **Examples**::
+   * - :func:`fmod(x, y) <datatable.math.fmod>`
+     - Remainder of a floating-point division ``x/y``.
 
-        DT = dt.Frame(A=[-3, 2, 4, -17, 0])
-        DT[:, abs(f.A)]
+   * - :func:`isclose(x, y) <datatable.math.isclose>`
+     - Check whether ``x ≈ y`` (up to some tolerance level).
 
-    .. dtframe::
-        :names: C0
-        :types: int8
-        :shape: 5, 1
+   * - :func:`isfinite(x) <datatable.math.isfinite>`
+     - Check if ``x`` is finite.
 
-        0,   3
-        1,   2
-        2,   4
-        3,  17
-        4,   0
+   * - :func:`isinf(x) <datatable.math.isfinite>`
+     - Check if ``x`` is a positive or negative infinity.
 
-    **See also**
+   * - :func:`isna(x) <datatable.math.isfinite>`
+     - Check if ``x`` is a valid (not-NaN) value.
 
-    - :func:`fabs`
+   * - :func:`ldexp(x, y) <datatable.math.ldexp>`
+     - Compute :math:`x\cdot 2^y`.
 
+   * - :func:`rint(x) <datatable.math.rint>`
+     - Round ``x`` to the nearest integer.
 
-.. function:: ceil(x)
+   * - :func:`sign(x) <datatable.math.sign>`
+     - The sign of ``x``, as a floating-point value.
 
-    The smallest integer not less than ``x``.
+   * - :func:`signbit(x) <datatable.math.signbit>`
+     - The sign of ``x``, as a boolean value.
 
-
-.. function:: copysign(x, y)
-
-    Return a float with the magnitude of ``x`` and the sign of ``y``.
-
-
-.. function:: fabs(x)
-
-    The absolute value of ``x``, returned as a float.
-
-
-.. function:: floor(x)
-
-    The largest integer not greater than ``x``.
-
-
-.. function:: fmod(x, y)
-
-    Return the remainder of a floating-point division ``x/y``.
-
-
-.. function:: isclose(x, y, *, rtol=1e-5, atol=1e-8)
-
-    Return True if ``x ≈ y``, and False otherwise.
-
-    The comparison is done using the relative tolerance ``rtol`` and the
-    absolute tolerance ``atol`` parameters. The numbers ``x`` and ``y`` are
-    considered close if :math:`|x-y| \le atol + rtol|y|`. Note that this
-    relationship is not symmetric: it is possible to have ``x`` "close" to
-    ``y``, while ``y`` not "close" to ``x``.
-
-
-.. function:: isfinite(x)
-
-    Returns True if ``x`` is a finite value, and False if ``x`` is a
-    positive/negative infinity of NA.
-
-
-.. function:: isinf(x)
-
-    Returns True if ``x`` is a positive or negative infinity, and False
-    otherwise.
-
-
-.. function:: isna(x)
-
-    Returns True if ``x`` is an NA value, and False otherwise.
-
-    - If ``x`` is a :class:`Frame`, the function is applied separately to each
-      element in the frame. The result is a new Frame where all columns are
-      boolean, and with the same shape as ``x``. Each element in this new frame
-      is a boolean indicator of whether the corresponding element in ``x`` is
-      an NA value or not.
-
-    - If ``x`` is a column-expression, then ``isna(x)`` is also an expression.
-      The argument column ``x`` can be of any stype, and the result is a column
-      with stype `bool8`. When evaluated within ``DT[i, j, ...]``, the expression
-      ``isna(x)`` produces a column where each element is an indicator of whether
-      the corresponding value in ``x`` is NA or not.
-
-    - When ``x`` is a python integer, ``isna(x)`` returns False.
-
-    - When ``x`` is a python float, ``isna(x)`` returns False for all values of
-      ``x`` except for the float ``nan`` value.
-
-    - ``isna(None)`` produces True.
-
-
-.. function:: ldexp(x, n)
-
-    Multiply ``x`` by 2 raised to the power ``y``, i.e. compute
-    :math:`x \cdot 2^y`. Column ``x`` is expected to be float, and ``y`` integer.
-
-
-.. function:: rint(x)
-
-    Round ``x`` to the nearest integer.
-
-
-.. function:: sign(x)
-
-    The sign of ``x``, returned as float.
-
-    This function returns 1.0 if ``x`` is positive (including positive
-    infinity), -1.0 if ``x`` is negative, 0.0 if ``x`` is zero, and NA if
-    ``x`` is NA.
-
-
-.. function:: signbit(x)
-
-    Returns True if ``x`` is negative (its sign bit is set), and False if
-    ``x`` is positive. This function is able to distinguish between -0.0 and
-    +0.0, returning True/False respectively. If ``x`` is an NA value, this
-    function will also return NA.
-
-
-.. function:: trunc(x)
-
-    The nearest integer value not greater than ``x`` in magnitude.
-
-    If ``x`` is integer or boolean, then ``trunc()`` will return this value
-    converted to float64. If ``x`` is floating-point, then ``trunc(x)`` acts as
-    ``floor(x)`` for positive values of ``x``, and as ``ceil(x)`` for negative
-    values of ``x``. This rounding mode is also called rounding towards zero.
-
-
-
-Miscellaneous functions
------------------------
-
-
-
-
-.. _`math module`: https://docs.python.org/3/library/math.html
-.. _`numpy math functions`: https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.math.html
+   * - :func:`trunc(x) <datatable.math.trunc>`
+     - The value of ``x`` truncated towards zero.
 
 
 Mathematical constants
@@ -542,14 +431,33 @@ Mathematical constants
      - Mathematical constant :math:`\tau`.
 
 
+.. _`math module`: https://docs.python.org/3/library/math.html
+.. _`numpy math functions`: https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.math.html
+
+
 
 .. toctree::
     :hidden:
 
-    e          <math/e>
-    golden     <math/golden>
-    inf        <math/inf>
-    nan        <math/nan>
-    pi         <math/pi>
-    round()    <math/round>
-    tau        <math/tau>
+    abs()        <math/abs>
+    ceil()       <math/ceil>
+    copysign()   <math/copysign>
+    e            <math/e>
+    fabs()       <math/fabs>
+    fmod()       <math/fmod>
+    floor()      <math/floor>
+    golden       <math/golden>
+    inf          <math/inf>
+    isclose()    <math/isclose>
+    isfinite()   <math/isfinite>
+    isinf()      <math/isinf>
+    isna()       <math/isna>
+    ldexp()      <math/ldexp>
+    nan          <math/nan>
+    pi           <math/pi>
+    rint()       <math/rint>
+    round()      <math/round>
+    sign()       <math/sign>
+    signbit()    <math/signbit>
+    tau          <math/tau>
+    trunc()      <math/trunc>

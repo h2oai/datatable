@@ -127,8 +127,9 @@ only returns True/False, never NA.
 
 More specifically, isclose(x, y) is True if either of the following
 are true:
-  - ``x == y`` (including the case when x and y are NAs),
-  - ``abs(x - y) <= atol + rtol * abs(y)`` and neither x nor y are NA
+
+- ``x == y`` (including the case when x and y are NAs),
+- ``abs(x - y) <= atol + rtol * abs(y)`` and neither x nor y are NA
 
 The tolerance parameters ``rtol``, ``atol`` must be positive floats,
 and cannot be expressions.

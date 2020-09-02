@@ -168,7 +168,7 @@ static const char* doc_copysign =
 R"(copysign(x, y)
 --
 
-Return a float with the magnitude of x and the sign of y.
+Return a float with the magnitude of `x` and the sign of `y`.
 )";
 
 py::PKArgs args_copysign(2, 0, 0, false, false, {"x", "y"}, "copysign",
