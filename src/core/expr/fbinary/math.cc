@@ -54,11 +54,22 @@ static const char* doc_atan2 =
 R"(atan2(x, y)
 --
 
-Arc-tangent of y/x, taking into account the signs of x and y.
+The inverse trigonometric tangent of ``y/x``, taking into account the signs
+of `x` and `y` to produce the correct result.
 
-This function returns the angle between the ray O(x,y) and the
-horizontal abscissa Ox. When both x and y are zero, the return value
-is zero.
+
+If ``(x,y)`` is a point in a Cartesian plane, then ``arctan2(y, x)`` returns
+the radian measure of an angle formed by two rays: one starting at the origin
+and passing through point ``(0,1)``, and the other starting at the origin
+and passing through point ``(x,y)``. The angle is assumed positive if the
+rotation from the first ray to the second occurs counter-clockwise, and
+negative otherwise.
+
+As a special case, ``arctan2(0, 0) == 0``, and ``arctan2(0, -1) == tau/2``.
+
+See also
+--------
+- :func:`arctan(x) <math.arctan>` -- inverse tangent function.
 )";
 
 py::PKArgs args_atan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_atan2);
@@ -94,8 +105,8 @@ static const char* doc_hypot =
 R"(hypot(x, y)
 --
 
-The length of the hypotenuse of a right triangle with sides x and y.
-Equivalent to ``sqrt(x*x + y*y)``.
+The length of the hypotenuse of a right triangle with sides `x` and `y`,
+or in math notation :math:`\operatorname{hypot}(x, y) = \sqrt{x^2 + y^2}`.
 )";
 
 py::PKArgs args_hypot(2, 0, 0, false, false, {"x", "y"}, "hypot", doc_hypot);

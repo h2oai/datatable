@@ -69,7 +69,13 @@ static const char* doc_sinh =
 R"(sinh(x)
 --
 
-Hyperbolic sine of x.
+Hyperbolic sine of `x`, defined as
+:math:`\sinh x = \frac12(e^x - e^{-x})`.
+
+See also
+--------
+- :func:`cosh <math.cosh>` -- hyperbolic cosine;
+- :func:`arsinh <math.arsinh>` -- inverse hyperbolic sine.
 )";
 
 py::PKArgs args_sinh(1, 0, 0, false, false, {"x"}, "sinh", doc_sinh);
@@ -90,7 +96,13 @@ static const char* doc_cosh =
 R"(cosh(x)
 --
 
-Hyperbolic cosine of x.
+The hyperbolic cosine of `x`, defined as
+:math:`\cosh x = \frac12(e^x + e^{-x})`.
+
+See also
+--------
+- :func:`sinh <math.sinh>` -- hyperbolic sine;
+- :func:`arcosh <math.arcosh>` -- inverse hyperbolic cosine.
 )";
 
 py::PKArgs args_cosh(1, 0, 0, false, false, {"x"}, "cosh", doc_cosh);
@@ -111,7 +123,12 @@ static const char* doc_tanh =
 R"(tanh(x)
 --
 
-Hyperbolic tangent of x.
+Hyperbolic tangent of `x`, defined as
+:math:`\tanh x = \frac{\sinh x}{\cosh x} = \frac{e^x-e^{-x}}{e^x+e^{-x}}`.
+
+See also
+--------
+- :func:`artanh <math.artanh>` -- inverse hyperbolic tangent.
 )";
 
 py::PKArgs args_tanh(1, 0, 0, false, false, {"x"}, "tanh", doc_tanh);
@@ -132,7 +149,16 @@ static const char* doc_arsinh =
 R"(arsinh(x)
 --
 
-Inverse hyperbolic sine of x.
+The inverse hyperbolic sine of `x`.
+
+This function satisfies the property that ``sinh(arcsinh(x)) == x``.
+Alternatively, this function can also be computed as
+:math:`\sinh^{-1}(x) = \ln(x + \sqrt{x^2 + 1})`.
+
+See also
+--------
+- :func:`sinh <math.sinh>` -- hyperbolic sine;
+- :func:`arcosh <math.arcosh>` -- inverse hyperbolic cosine.
 )";
 
 py::PKArgs args_arsinh(1, 0, 0, false, false, {"x"}, "arsinh", doc_arsinh);
@@ -153,7 +179,16 @@ static const char* doc_arcosh =
 R"(arcosh(x)
 --
 
-Inverse hyperbolic cosine of x.
+The inverse hyperbolic cosine of `x`.
+
+This function satisfies the property that ``cosh(arccosh(x)) == x``.
+Alternatively, this function can also be computed as
+:math:`\cosh^{-1}(x) = \ln(x + \sqrt{x^2 - 1})`.
+
+See also
+--------
+- :func:`cosh <math.cosh>` -- hyperbolic cosine;
+- :func:`arsinh <math.arsinh>` -- inverse hyperbolic sine.
 )";
 
 py::PKArgs args_arcosh(1, 0, 0, false, false, {"x"}, "arcosh", doc_arcosh);
@@ -174,7 +209,15 @@ static const char* doc_artanh =
 R"(artanh(x)
 --
 
-Inverse hyperbolic tangent of x.
+The inverse hyperbolic tangent of `x`.
+
+This function satisfies the property that ``sinh(arcsinh(x)) == x``.
+Alternatively, this function can also be computed as
+:math:`\tanh^{-1}(x) = \frac12\ln\frac{1+x}{1-x}`.
+
+See also
+--------
+- :func:`tanh <math.tanh>` -- hyperbolic tangent;
 )";
 
 py::PKArgs args_artanh(1, 0, 0, false, false, {"x"}, "artanh", doc_artanh);

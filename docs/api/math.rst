@@ -100,134 +100,68 @@ math                numpy                 datatable
 ==================  ====================  =====================================
 
 
-Trigonometric/hyperbolic functions
-----------------------------------
+Trigonometric functions
+-----------------------
 
-.. function:: sin(x)
+.. list-table::
+   :widths: auto
+   :class: api-table
 
-    Compute the trigonometric sine of angle ``x`` measured in radians.
+   * - :func:`sin(x) <datatable.math.sin>`
+     - Compute :math:`\sin x` (the trigonometric sine of ``x``).
 
-    This function can only be applied to numeric columns (real, integer, or
-    boolean), and produces a float64 result, except when the argument ``x`` is
-    float32, in which case the result is float32 as well.
+   * - :func:`cos(x) <datatable.math.cos>`
+     - Compute :math:`\cos x` (the trigonometric cosine of ``x``).
 
-.. function:: cos(x)
+   * - :func:`tan(x) <datatable.math.tan>`
+     - Compute :math:`\tan x` (the trigonometric tangent of ``x``).
 
-    Compute the trigonometric cosine of angle ``x`` measured in radians.
+   * - :func:`arcsin(x) <datatable.math.arcsin>`
+     - Compute :math:`\sin^{-1} x` (the inverse sine of ``x``).
 
-    This function can only be applied to numeric columns (real, integer, or
-    boolean), and produces a float64 result, except when the argument ``x`` is
-    float32, in which case the result is float32 as well.
+   * - :func:`arccos(x) <datatable.math.arccos>`
+     - Compute :math:`\cos^{-1} x` (the inverse cosine of ``x``).
 
+   * - :func:`arctan(x) <datatable.math.arctan>`
+     - Compute :math:`\tan^{-1} x` (the inverse tangent of ``x``).
 
-.. function:: tan(x)
+   * - :func:`atan2(x, y) <datatable.math.atan2>`
+     - Compute :math:`\tan^{-1} (x/y)`.
 
-    Compute the trigonometric tangent of ``x``, which is the ratio
-    ``sin(x)/cos(x)``.
+   * - :func:`hypot(x, y) <datatable.math.hypot>`
+     - Compute :math:`\sqrt{x^2 + y^2}`.
 
-    This function can only be applied to numeric columns (real, integer, or
-    boolean), and produces a float64 result, except when the argument ``x`` is
-    float32, in which case the result is float32 as well.
+   * - :func:`deg2rad(x) <datatable.math.deg2rad>`
+     - Convert an angle measured in degrees into radians.
 
-
-.. function:: arcsin(x)
-
-    The inverse trigonometric sine of ``x``. In mathematics, this may also be
-    written as :math:`\sin^{-1}x`. This function satisfies the property that
-    ``sin(arcsin(x)) == x`` for all ``x`` in the interval ``[-1, 1]``.
-
-    For the values of ``x`` that are greater than 1 in magnitude, the function
-    arc-sine produces NA values.
+   * - :func:`rad2deg(x) <datatable.math.rad2deg>`
+     - Convert an angle measured in radians into degrees.
 
 
-.. function:: arccos(x)
+Hyperbolic functions
+--------------------
 
-    The inverse trigonometric cosine of ``x``. In mathematics, this may also be
-    written as :math:`\cos^{-1}x`. This function satisfies the property that
-    ``cos(arccos(x)) == x`` for all ``x`` in the interval ``[-1, 1]``.
+.. list-table::
+   :widths: auto
+   :class: api-table
 
-    For the values of ``x`` that are greater than 1 in magnitude, the function
-    arc-sine produces NA values.
+   * - :func:`sinh(x) <datatable.math.sinh>`
+     - Compute :math:`\sinh x` (the hyperbolic sine of ``x``).
 
+   * - :func:`cosh(x) <datatable.math.cosh>`
+     - Compute :math:`\cosh x` (the hyperbolic cosine of ``x``).
 
-.. function:: arctan(x)
+   * - :func:`tanh(x) <datatable.math.tanh>`
+     - Compute :math:`\tanh x` (the hyperbolic tangent of ``x``).
 
-    The inverse trigonometric tangent of ``x``. This function satisfies the
-    property that ``tan(arctan(x)) == x``.
+   * - :func:`arsinh(x) <datatable.math.arsinh>`
+     - Compute :math:`\sinh^{-1} x` (the inverse hyperbolic sine of ``x``).
 
+   * - :func:`arcosh(x) <datatable.math.arcosh>`
+     - Compute :math:`\cosh^{-1} x` (the inverse hyperbolic cosine of ``x``).
 
-.. function:: atan2(y, x)
-
-    The inverse trigonometric tangent of ``y/x``, taking into account the signs
-    of ``x`` and ``y`` to produce the correct result.
-
-    If ``(x,y)`` is a point in a Cartesian plane, then ``arctan2(y, x)`` returns
-    the radian measure of an angle formed by 2 rays: one starting at the origin
-    and passing through point ``(0,1)``, and the other starting at the origin
-    and passing through point ``(x,y)``. The angle is assumed positive if the
-    rotation from the first ray to the second occurs counter-clockwise, and
-    negative otherwise.
-
-    As a special case, ``arctan2(0, 0) == 0``, and ``arctan2(0, -1) == tau/2``..
-
-
-.. function:: sinh(x)
-
-    The hyperbolic sine of ``x``, defined as
-    :math:`\sinh(x) = \frac12(e^x - e^{-x})`.
-
-
-.. function:: cosh(x)
-
-    The hyperbolic cosine of ``x``, defined as
-    :math:`\cosh(x) = \frac12(e^x + e^{-x})`.
-
-
-.. function:: tanh(x)
-
-    The hyperbolic tangent of ``x``, defines as
-    :math:`\tanh(x) = \frac{\sinh x}{\cosh x} = \frac{e^x-e^{-x}}{e^x+e^{-x}}`.
-
-
-.. function:: arsinh(x)
-
-    The inverse hyperbolic sine of ``x``. This function satisfies the property
-    that ``sinh(arcsinh(x)) == x``. Alternatively, this function can also be
-    computed as :math:`\sinh^{-1}(x) = \ln(x + \sqrt{x^2 + 1})`.
-
-
-.. function:: arcosh(x)
-
-    The inverse hyperbolic cosine of ``x``. This function satisfies the property
-    that ``cosh(arccosh(x)) == x``. Alternatively, this function can also be
-    computed as :math:`\cosh^{-1}(x) = \ln(x + \sqrt{x^2 - 1})`.
-
-
-.. function:: artanh(x)
-
-    The inverse hyperbolic tangent of ``x``. This function satisfies the property
-    that ``sinh(arcsinh(x)) == x``. Alternatively, this function can also be
-    computed as :math:`\tanh^{-1}(x) = \frac12\ln\frac{1+x}{1-x}`.
-
-
-.. function:: hypot(x, y)
-
-    The length of a hypotenuse in a right triangle with sides ``x`` and ``y``,
-    i.e. :math:`\operatorname{hypot}(x, y) = \sqrt{x^2 + y^2}`.
-
-
-.. function:: deg2rad(x)
-
-    Convert an angle measured in degrees into radians:
-    :math:`\operatorname{deg2rad}(x) = x\cdot\frac{\tau}{360}`.
-
-
-.. function:: rad2deg(x)
-
-    Convert an angle measured in radians into degrees:
-    :math:`\operatorname{rad2deg}(x) = x\cdot\frac{360}{\tau}`.
-
-
+   * - :func:`artanh(x) <datatable.math.artanh>`
+     - Compute :math:`\tanh^{-1} x` (the inverse hyperbolic tangent of ``x``).
 
 
 Exponential/logarithmic functions
@@ -385,9 +319,19 @@ Mathematical constants
     :hidden:
 
     abs()        <math/abs>
+    arccos()     <math/arccos>
+    arcosh()     <math/arcosh>
+    arcsin()     <math/arcsin>
+    arctan()     <math/arctan>
+    arsinh()     <math/arsinh>
+    artanh()     <math/artanh>
+    atan2()      <math/atan2>
     cbrt()       <math/cbrt>
     ceil()       <math/ceil>
     copysign()   <math/copysign>
+    cos()        <math/cos>
+    cosh()       <math/cosh>
+    deg2rad()    <math/deg2rad>
     e            <math/e>
     erf(x)       <math/erf>
     erfc(x)      <math/erfc>
@@ -395,31 +339,37 @@ Mathematical constants
     exp2(x)      <math/exp2>
     expm1(x)     <math/expm1>
     fabs()       <math/fabs>
-    fmod()       <math/fmod>
     floor()      <math/floor>
+    fmod()       <math/fmod>
     gamma()      <math/gamma>
     golden       <math/golden>
+    hypot()      <math/hypot>
     inf          <math/inf>
     isclose()    <math/isclose>
     isfinite()   <math/isfinite>
     isinf()      <math/isinf>
     isna()       <math/isna>
+    ldexp()      <math/ldexp>
+    lgamma()     <math/lgamma>
     log()        <math/log>
     log10()      <math/log10>
     log1p()      <math/log1p>
     log2()       <math/log2>
     logaddexp()  <math/logaddexp>
     logaddexp2() <math/logaddexp2>
-    ldexp()      <math/ldexp>
-    lgamma()     <math/lgamma>
     nan          <math/nan>
     pi           <math/pi>
     pow()        <math/pow>
+    rad2deg()    <math/rad2deg>
     rint()       <math/rint>
     round()      <math/round>
     sign()       <math/sign>
     signbit()    <math/signbit>
+    sin()        <math/sin>
+    sinh()       <math/sinh>
     sqrt()       <math/sqrt>
     square()     <math/square>
+    tan()        <math/tan>
+    tanh()       <math/tanh>
     tau          <math/tau>
     trunc()      <math/trunc>
