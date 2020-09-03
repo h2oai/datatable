@@ -254,7 +254,6 @@ oobj PyFExpr::re_match(const PKArgs& args) {
 
 
 
-// TODO
 static const char* doc_fexpr =
 R"(
 FExpr is an object that encapsulates computations to be done on a frame.
