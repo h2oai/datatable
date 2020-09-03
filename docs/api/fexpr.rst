@@ -85,13 +85,13 @@
           - Less than ``x < y``.
 
         * - :meth:`__le__(x, y) <FExpr.__le__>`
-          - Less than or equal ``x < y``.
+          - Less than or equal ``x <= y``.
 
         * - :meth:`__gt__(x, y) <FExpr.__gt__>`
-          - Greater than ``x < y``.
+          - Greater than ``x > y``.
 
         * - :meth:`__ge__(x, y) <FExpr.__ge__>`
-          - Greater than or equal ``x < y``.
+          - Greater than or equal ``x >= y``.
 
 
     Miscellaneous
@@ -114,18 +114,23 @@
     .__add__()      <fexpr/__add__>
     .__and__()      <fexpr/__and__>
     .__bool__()     <fexpr/__bool__>
+    .__eq__()       <fexpr/__eq__>
     .__floordiv__() <fexpr/__floordiv__>
+    .__ge__()       <fexpr/__ge__>
+    .__gt__()       <fexpr/__gt__>
     .__invert__()   <fexpr/__invert__>
+    .__le__()       <fexpr/__le__>
     .__lshift__()   <fexpr/__lshift__>
-    .__rshift__()   <fexpr/__rshift__>
+    .__lt__()       <fexpr/__lt__>
     .__mod__()      <fexpr/__mod__>
     .__mul__()      <fexpr/__mul__>
-    .__eq__()       <fexpr/__eq__>
+    .__ne__()       <fexpr/__ne__>
     .__neg__()      <fexpr/__neg__>
     .__or__()       <fexpr/__or__>
     .__pos__()      <fexpr/__pos__>
     .__pow__()      <fexpr/__pow__>
-    .__sub__()      <fexpr/__sub__>
     .__repr__()     <fexpr/__repr__>
+    .__rshift__()   <fexpr/__rshift__>
+    .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
