@@ -7,6 +7,17 @@
     or ``y``, or both are ``FExpr``s.
 
 
+    Construction
+    ------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`__init__(x, y) <FExpr.__init__>`
+          - Create an ``FExpr``.
+
+
     Arithmeritc operators
     ---------------------
 
@@ -118,6 +129,7 @@
     .__floordiv__() <fexpr/__floordiv__>
     .__ge__()       <fexpr/__ge__>
     .__gt__()       <fexpr/__gt__>
+    .__init__()     <fexpr/__init__>
     .__invert__()   <fexpr/__invert__>
     .__le__()       <fexpr/__le__>
     .__lshift__()   <fexpr/__lshift__>

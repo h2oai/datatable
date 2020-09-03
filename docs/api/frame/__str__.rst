@@ -15,4 +15,4 @@
 
     See Also
     --------
-    - :meth:`.__repr__()`
+    - :meth:`.__repr__() <Frame.__repr__>`
