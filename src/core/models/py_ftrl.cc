@@ -75,7 +75,7 @@ Parameters
 ----------
 alpha: float
     :math:`\alpha` in per-coordinate learning rate formula, should be
-    positive. See :attr:`.alpha <models.Ftrl.alpha>` for details.
+    positive.
 
 beta: float
     :math:`\beta` in per-coordinate learning rate formula, should be non-negative.
@@ -102,8 +102,12 @@ nepochs: float
     be done on the fraction of data.
 
 double_precision: bool
-    An option to indicate whether double precision arithmetic
-    should be used or not.
+    An option to indicate whether double precision, i.e. `float64`,
+    or single precision, i.e. `float32`, arithmetic should be used
+    for computations. It is not guaranteed, that setting
+    `double_precision` to `True` will automatically improve
+    the model accuracy. It will, however, roughly double the memory
+    footprint of the `Ftrl` object.
 
 negative_class: bool
     An option to indicate if a 'negative’ class should be created
@@ -716,7 +720,7 @@ Column names of the training frame that are used as feature names.
 
 Parameters
 ----------
-return: List
+return: List[str]
     A list of the column names.
 
 See also
@@ -770,7 +774,7 @@ Hashes of the column names used for the hashing trick.
 
 Parameters
 ----------
-return: List
+return: List[int]
     A list of the column name hashes.
 
 See also
@@ -1095,8 +1099,9 @@ void Ftrl::set_nepochs(const Arg& arg_nepochs) {
 
 static const char* doc_double_precision =
 R"(
-An option to indicate whether double precision arithmetic should be
-used or not. This option is read-only for a trained model.
+An option to indicate whether double precision, i.e. `float64`,
+or single precision, i.e. `float32`, arithmetic should be
+used for computations. This option is read-only for a trained model.
 
 Parameters
 ----------
