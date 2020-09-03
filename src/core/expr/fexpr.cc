@@ -206,10 +206,29 @@ oobj PyFExpr::nb__pos__() {
 
 //----- Other methods ----------------------------------------------------------
 
-// TODO
 static const char* doc_extend =
 R"(extend(self, arg)
 --
+
+Append ``FExpr`` `arg` to the current FExpr.
+
+Each ``FExpr`` represents a collection of columns, or a columnset. This
+method takes two such columnsets and combines them into a single one,
+similar to :func:`cbind() <datatable.cbind>`.
+
+
+Parameters
+----------
+arg: FExpr
+    The expression to append.
+
+return: FExpr
+    New FExpr which is a combination of the current FExpr and `arg`.
+
+
+See also
+--------
+- :meth:`remove() <FExpr.remove>` -- remove columns from a columnset.
 )";
 
 static PKArgs args_extend(1, 0, 0, false, false, {"arg"}, "extend", doc_extend);
@@ -220,10 +239,32 @@ oobj PyFExpr::extend(const PKArgs& args) {
 }
 
 
-// TODO
 static const char* doc_remove =
 R"(remove(self, arg)
 --
+
+Remove columns `arg` from the current FExpr.
+
+Each ``FExpr`` represents a collection of columns, or a columnset. Some
+of those columns are computed while others are specified "by reference",
+for example ``f.A``, ``f[:3]`` or ``f[int]``. This method allows you to
+remove by-reference columns from an existing FExpr.
+
+
+Parameters
+----------
+arg: FExpr
+    The columns to remove. These must be "columns-by-reference", i.e.
+    they cannot be computed columns.
+
+return: FExpr
+    New FExpr which is a obtained from the current FExpr by removing
+    the columns in `arg`.
+
+
+See also
+--------
+- :meth:`extend() <FExpr.extend>` -- append a columnset.
 )";
 
 static PKArgs args_remove(1, 0, 0, false, false, {"arg"}, "remove", doc_remove);

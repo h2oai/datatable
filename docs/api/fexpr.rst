@@ -14,8 +14,14 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`__init__(x, y) <FExpr.__init__>`
+        * - :meth:`.__init__(e) <FExpr.__init__>`
           - Create an ``FExpr``.
+
+        * - :meth:`.extend() <FExpr.extend>`
+          - Append another FExpr.
+
+        * - :meth:`.remove() <FExpr.remove>`
+          - Remove columns from the FExpr.
 
 
     Arithmeritc operators
@@ -146,3 +152,5 @@
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
+    .extend()       <fexpr/extend>
+    .remove()       <fexpr/remove>
