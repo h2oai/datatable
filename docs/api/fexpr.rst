@@ -58,7 +58,7 @@
         * - :meth:`__xor__(x, y) <FExpr.__xor__>`
           - Bitwise XOR ``x ^ y``.
 
-        * - :meth:`__inverse__(x) <FExpr.__inverse__>`
+        * - :meth:`__invert__(x) <FExpr.__invert__>`
           - Bitwise NOT ``~x``.
 
         * - :meth:`__lshift__(x, y) <FExpr.__lshift__>`
@@ -74,6 +74,7 @@
     .__add__()      <fexpr/__add__>
     .__and__()      <fexpr/__and__>
     .__floordiv__() <fexpr/__floordiv__>
+    .__invert__()   <fexpr/__invert__>
     .__mod__()      <fexpr/__mod__>
     .__mul__()      <fexpr/__mul__>
     .__neg__()      <fexpr/__neg__>

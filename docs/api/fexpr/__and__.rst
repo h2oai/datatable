@@ -33,3 +33,13 @@
 
     return: FExpr
         An expression that evaluates ``x & y``.
+
+
+    Notes
+    -----
+
+    .. warning::
+
+        Use ``x & y`` in order to AND two boolean `FExpr`s. Using standard
+        Python keyword ``and`` will result in an error.
+
