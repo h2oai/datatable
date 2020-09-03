@@ -137,7 +137,7 @@ void PyFExpr::m__dealloc__() {
 oobj PyFExpr::m__repr__() const {
   // Normally we would never create an object with an empty `expr_`,
   // but if the user tries to instantiate it manually then the
-  // `expr_` will end up as nullptr.
+  // `expr_` may end up as nullptr.
   if (!expr_) return ostring("FExpr<>");
   return ostring("FExpr<" + expr_->repr() + '>');
 }

@@ -68,21 +68,64 @@
           - Right shift ``x >> y``.
 
 
+    Relational operators
+    --------------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`__eq__(x, y) <FExpr.__eq__>`
+          - Equal ``x == y``.
+
+        * - :meth:`__ne__(x, y) <FExpr.__ne__>`
+          - Not equal ``x != y``.
+
+        * - :meth:`__lt__(x, y) <FExpr.__lt__>`
+          - Less than ``x < y``.
+
+        * - :meth:`__le__(x, y) <FExpr.__le__>`
+          - Less than or equal ``x < y``.
+
+        * - :meth:`__gt__(x, y) <FExpr.__gt__>`
+          - Greater than ``x < y``.
+
+        * - :meth:`__ge__(x, y) <FExpr.__ge__>`
+          - Greater than or equal ``x < y``.
+
+
+    Miscellaneous
+    -------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`.__bool__() <FExpr.__bool__>`
+          - Implicitly convert FExpr into a boolean value.
+
+        * - :meth:`.__repr__() <FExpr.__repr__>`
+          - Used by Python function :func:`repr`.
+
+
 .. toctree::
     :hidden:
 
     .__add__()      <fexpr/__add__>
     .__and__()      <fexpr/__and__>
+    .__bool__()     <fexpr/__bool__>
     .__floordiv__() <fexpr/__floordiv__>
     .__invert__()   <fexpr/__invert__>
     .__lshift__()   <fexpr/__lshift__>
     .__rshift__()   <fexpr/__rshift__>
     .__mod__()      <fexpr/__mod__>
     .__mul__()      <fexpr/__mul__>
+    .__eq__()       <fexpr/__eq__>
     .__neg__()      <fexpr/__neg__>
     .__or__()       <fexpr/__or__>
     .__pos__()      <fexpr/__pos__>
     .__pow__()      <fexpr/__pow__>
     .__sub__()      <fexpr/__sub__>
+    .__repr__()     <fexpr/__repr__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
