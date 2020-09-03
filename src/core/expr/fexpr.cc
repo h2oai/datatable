@@ -256,7 +256,8 @@ oobj PyFExpr::re_match(const PKArgs& args) {
 
 // TODO
 static const char* doc_fexpr =
-R"()";
+R"(
+)";
 
 void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.FExpr");

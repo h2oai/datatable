@@ -1,8 +1,8 @@
 
-FExpr
-=====
+.. xclass:: datatable.FExpr
+    :src: src/core/expr/fexpr.h FExpr
+    :doc: src/core/expr/fexpr.cc doc_fexpr
 
-.. autoclass:: datatable.FExpr
 
 .. toctree::
     :hidden:
