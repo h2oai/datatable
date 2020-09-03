@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import random
+import math
 from datatable import dt, f
 from tests import assert_equals
 
@@ -70,7 +71,7 @@ def test_div_boolean_columns():
     DT = dt.Frame(x=[True, True, True, False, False, False, None, None, None],
                   y=[True, False, None] * 3)
     RES = DT[:, f.x / f.y]
-    EXP = dt.Frame([1, None, None, 0, None, None, None, None, None]/dt.float64)
+    EXP = dt.Frame([1, math.inf, None, 0, None, None, None, None, None]/dt.float64)
     assert_equals(RES, EXP)
 
 
@@ -78,7 +79,7 @@ def test_div_boolean_column_scalar():
     DT = dt.Frame(x=[True, False, None])
     RES = DT[:, [f.x / True, f.x / False, f.x / None]]
     EXP = dt.Frame([[1, 0, None]/dt.float64,
-                   [None, None, None]/dt.float64,
+                   [math.inf, None, None]/dt.float64,
                    [None, None, None]/dt.bool8])
     assert_equals(RES, EXP)
 
@@ -92,8 +93,17 @@ def test_div_integers(seed):
 
     DT = dt.Frame(x=src1, y=src2)
     RES = DT[:, f.x / f.y]
-    EXP = dt.Frame([None if src2[i] == 0 else src1[i] / src2[i]
-                   for i in range(n)])
+    EXP_list = []
+    for i in range(n):
+        if src1[i] == 0 and src2[i] == 0:
+    	    EXP_list.append(None)
+        elif src1[i] > 0 and src2[i] == 0:
+            EXP_list.append(math.inf)
+        elif src1[i] < 0 and src2[i] == 0:
+            EXP_list.append(-math.inf)
+        else:
+            EXP_list.append(src1[i] / src2[i])
+    EXP = dt.Frame(EXP_list)	
     assert_equals(RES, EXP)
 
 
@@ -116,21 +126,21 @@ def test_div_floats_random(seed):
 def test_mul_booleans_integers_floats_random(seed):
     random.seed(seed)
     n = 1000
-    src1 = [random.randint(-100, 100) for _ in range(n)]
+    src1 = [random.randint(1, 100) for _ in range(n)]
     src2 = [random.randint(0, 1) for _ in range(n)]
-    src3 = [random.random() * 1000 - 500 for _ in range(n)]
+    src3 = [random.random() * 1000 + 1 for _ in range(n)]
 
     DT = dt.Frame(x=src1, y=src2/dt.bool8, z=src3)
     RES = DT[:, [f.x / f.y, f.y / f.x,
                  f.y / f.z, f.z / f.y,
                  f.z / f.x, f.x / f.z]]
     EXP = dt.Frame([
-            [None if src2[i]==0 else src1[i]/src2[i] for i in range(n)],
-            [None if src1[i]==0 else src2[i]/src1[i] for i in range(n)],
-            [None if src3[i]==0 else src2[i]/src3[i] for i in range(n)],
-            [None if src2[i]==0 else src3[i]/src2[i] for i in range(n)],
-            [None if src1[i]==0 else src3[i]/src1[i] for i in range(n)],
-            [None if src3[i]==0 else src1[i]/src3[i] for i in range(n)]
+            [math.inf if src2[i]==0 else src1[i]/src2[i] for i in range(n)],
+            [math.inf if src1[i]==0 else src2[i]/src1[i] for i in range(n)],
+            [math.inf if src3[i]==0 else src2[i]/src3[i] for i in range(n)],
+            [math.inf if src2[i]==0 else src3[i]/src2[i] for i in range(n)],
+            [math.inf if src1[i]==0 else src3[i]/src1[i] for i in range(n)],
+            [math.inf if src3[i]==0 else src1[i]/src3[i] for i in range(n)]
           ])
     assert_equals(RES, EXP)
 
