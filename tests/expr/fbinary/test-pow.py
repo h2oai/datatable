@@ -70,7 +70,7 @@ def test_pow_boolean_columns():
     DT = dt.Frame(x=[True, True, True, False, False, False, None, None, None],
                   y=[True, False, None] * 3)
     RES = DT[:, f.x ** f.y]
-    EXP = dt.Frame([1, 1, None, 0, 1, None, None, None, None]/dt.int32)
+    EXP = dt.Frame([1, 1, None, 0, 1, None, None, None, None]/dt.float64)
     assert_equals(RES, EXP)
 
 
@@ -84,14 +84,14 @@ def test_pow_boolean_column_scalar():
 def test_pow_integers():
     DT = dt.Frame(range(10))
     R1 = DT[:, f[0]**2]
-    assert_equals(R1, dt.Frame([i**2 for i in range(10)]/dt.int32))
+    assert_equals(R1, dt.Frame([i**2 for i in range(10)]/dt.float64))
 
 
 def test_pow_integers2():
     # Note: large integers may overflow producing an undefined result
     DT = dt.Frame(range(10))
     R2 = DT[:, f[0]**f[0]]
-    assert_equals(R2, dt.Frame([i**i for i in range(10)]/dt.int32))
+    assert_equals(R2, dt.Frame([i**i for i in range(10)]/dt.float64))
 
 
 def test_pow_integer_negative():

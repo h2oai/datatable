@@ -80,7 +80,7 @@ class FExpr__pow__ : public FExpr_BinaryOp {
       xassert(lcol.nrows() == rcol.nrows());
       auto stype1 = lcol.stype();
       auto stype2 = rcol.stype();
-      auto stype0 = common_stype(stype1, stype2);
+      auto stype0 = SType::FLOAT64;
 
       if (stype1 == SType::VOID || stype2 == SType::VOID) {
         return Column::new_na_column(lcol.nrows(), stype0);
