@@ -76,7 +76,9 @@
     .__floordiv__() <fexpr/__floordiv__>
     .__mod__()      <fexpr/__mod__>
     .__mul__()      <fexpr/__mul__>
+    .__neg__()      <fexpr/__neg__>
     .__or__()       <fexpr/__or__>
+    .__pos__()      <fexpr/__pos__>
     .__pow__()      <fexpr/__pow__>
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
