@@ -75,6 +75,8 @@
     .__and__()      <fexpr/__and__>
     .__floordiv__() <fexpr/__floordiv__>
     .__invert__()   <fexpr/__invert__>
+    .__lshift__()   <fexpr/__lshift__>
+    .__rshift__()   <fexpr/__rshift__>
     .__mod__()      <fexpr/__mod__>
     .__mul__()      <fexpr/__mul__>
     .__neg__()      <fexpr/__neg__>
