@@ -292,6 +292,22 @@ certain other python types as an input, essentially converting them into
 ``FExpr``s. Thus, we will sometimes say that a function accepts **FExpr-like**
 objects as arguments.
 
+Operators
+---------
+
+.. list-table::
+    :widths: auto
+    :class: api-table
+
+    * - :meth:`x + y <FExpr.__add__>`
+      - Addition.
+
+    * - :meth:`x - y <FExpr.__sub__>`
+      - Subtraction.
+
+    * - :meth:`x * y <FExpr.__mul__>`
+      - Multiplication.
+
 )";
 
 void PyFExpr::impl_init_type(XTypeMaker& xt) {

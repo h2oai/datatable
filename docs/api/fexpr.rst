@@ -8,3 +8,5 @@
     :hidden:
 
     .__add__()     <fexpr/__add__>
+    .__sub__()     <fexpr/__sub__>
+    .__mul__()     <fexpr/__mul__>
