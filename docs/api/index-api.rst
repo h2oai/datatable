@@ -4,6 +4,23 @@
 datatable API
 =============
 
+Symbols listed here are available for import from the ``datatable`` module.
+
+
+Submodules
+----------
+
+.. list-table::
+   :widths: auto
+   :class: api-table
+
+   * - :mod:`.math <datatable.math>`
+     - Mathematical functions, similar to python's ``math`` module.
+
+   * - :mod:`.models <datatable.models>`
+     - A small set of data analysis tools.
+
+
 Classes
 -------
 
@@ -141,6 +158,9 @@ Other
     * - :data:`build_info`
       - Information about the build of the datatable module.
 
+    * - :data:`dt`
+      - The datatable module.
+
 
 .. toctree::
     :hidden:
@@ -153,6 +173,7 @@ Other
     by()            <dt/by>
     cbind()         <dt/cbind>
     cut()           <dt/cut>
+    dt              <dt/dt>
     fread()         <dt/fread>
     ifelse()        <dt/ifelse>
     iread()         <dt/iread>
