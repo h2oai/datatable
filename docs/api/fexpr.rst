@@ -124,6 +124,12 @@
         * - :meth:`.__repr__() <FExpr.__repr__>`
           - Used by Python function :func:`repr`.
 
+        * - :meth:`.len() <FExpr.len>`
+          - String length.
+
+        * - :meth:`.re_match(pattern) <FExpr.re_match>`
+          - Check whether the string column matches a pattern.
+
 
 .. toctree::
     :hidden:
@@ -153,4 +159,6 @@
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
     .extend()       <fexpr/extend>
+    .len()          <fexpr/len>
+    .re_match()     <fexpr/re_match>
     .remove()       <fexpr/remove>

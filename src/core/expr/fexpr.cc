@@ -281,8 +281,34 @@ oobj PyFExpr::len() {
 }
 
 
+static const char* doc_re_match =
+R"(re_match(self, pattern, flags=None)
+--
+
+.. deprecated:: 0.11
+
+Test whether values in a string column match a regular expression.
+
+Since version 1.0 this function will be available in the ``re.``
+submodule.
+
+Parameters
+----------
+pattern: str
+    The regular expression that will be tested against each value
+    in the current column.
+
+flags: int
+    [unused]
+
+return: FExpr
+    Return an expression that produces boolean column that tells
+    whether the value in each row of the current column matches
+    the `pattern` or not.
+)";
+
 static PKArgs args_re_match(
-    0, 2, 0, false, false, {"pattern", "flags"}, "re_match", nullptr);
+    0, 2, 0, false, false, {"pattern", "flags"}, "re_match", doc_re_match);
 
 oobj PyFExpr::re_match(const PKArgs& args) {
   auto arg0 = args[0].to<oobj>(py::None());
