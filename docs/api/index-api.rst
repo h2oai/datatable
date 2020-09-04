@@ -131,6 +131,17 @@ Functions
       - Sum of values in a column
 
 
+Other
+-----
+
+.. list-table::
+    :widths: auto
+    :class: api-table
+
+    * - :data:`build_info`
+      - Information about the build of the datatable module.
+
+
 .. toctree::
     :hidden:
 
@@ -138,6 +149,7 @@ Functions
     FExpr           <fexpr>
     models.         <models>
     math.           <math>
+    build_info      <dt/build_info>
     by()            <dt/by>
     cbind()         <dt/cbind>
     cut()           <dt/cut>
