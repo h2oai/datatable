@@ -283,7 +283,7 @@ size_t Frame::m__len__() const {
 static const char* doc_export_names =
 R"(export_names(self)
 --
-.. xversionadded:: v0.10.0
+.. xversionadded:: 0.10
 
 Return a tuple of :ref:`f-expressions` for all columns of the frame.
 

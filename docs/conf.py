@@ -55,8 +55,6 @@ extensions = [
     'sphinxext.xfunction',
     'sphinxext.dt_changelog',
     'sphinxext.ref_context',
-    # 'nbsphinx',
-    'sphinx.ext.autodoc',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',  # links to external documentation
@@ -159,10 +157,6 @@ html_static_path = ['_static']
 # 'searchbox.html']``.
 #
 # html_sidebars = {}
-
-
-
-# -- Extension configuration -------------------------------------------------
 
 
 

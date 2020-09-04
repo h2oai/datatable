@@ -746,6 +746,10 @@ class XobjectDirective(SphinxDirective):
             line = lines[i]
             if line and line[0] != " ":
                 lines[i] = ".. xparam:: " + line
+                while lines[i].endswith("\\"):
+                    lines[i] = lines[i][:-1] + lines[i + 1]
+                    del lines[i + 1]
+                    del linenos[i + 1]
                 lines.insert(i + 1, "")
                 linenos.insert(i + 1, None)
             i += 1
