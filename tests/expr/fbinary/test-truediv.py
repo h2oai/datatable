@@ -84,6 +84,14 @@ def test_div_boolean_column_scalar():
     assert_equals(RES, EXP)
 
 
+def dt_div(num, denom):
+    if num == 0 and denom == 0:
+        return None
+    elif denom == 0:
+        return math.copysign(math.inf, num)
+    else:
+        return num / denom
+
 @pytest.mark.parametrize("seed", [random.getrandbits(63)])
 def test_div_integers(seed):
     random.seed(seed)
@@ -93,17 +101,7 @@ def test_div_integers(seed):
 
     DT = dt.Frame(x=src1, y=src2)
     RES = DT[:, f.x / f.y]
-    EXP_list = []
-    for i in range(n):
-        if src1[i] == 0 and src2[i] == 0:
-    	    EXP_list.append(None)
-        elif src1[i] > 0 and src2[i] == 0:
-            EXP_list.append(math.inf)
-        elif src1[i] < 0 and src2[i] == 0:
-            EXP_list.append(-math.inf)
-        else:
-            EXP_list.append(src1[i] / src2[i])
-    EXP = dt.Frame(EXP_list)	
+    EXP = dt.Frame([dt_div(src1[i], src2[i]) for i in range(n)])
     assert_equals(RES, EXP)
 
 
@@ -123,24 +121,24 @@ def test_div_floats_random(seed):
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(63)])
-def test_mul_booleans_integers_floats_random(seed):
+def test_div_booleans_integers_floats_random(seed):
     random.seed(seed)
     n = 1000
-    src1 = [random.randint(1, 100) for _ in range(n)]
+    src1 = [random.randint(-100, 100) for _ in range(n)]
     src2 = [random.randint(0, 1) for _ in range(n)]
-    src3 = [random.random() * 1000 + 1 for _ in range(n)]
+    src3 = [random.random() * 1000 - 500 for _ in range(n)]
 
     DT = dt.Frame(x=src1, y=src2/dt.bool8, z=src3)
     RES = DT[:, [f.x / f.y, f.y / f.x,
                  f.y / f.z, f.z / f.y,
                  f.z / f.x, f.x / f.z]]
     EXP = dt.Frame([
-            [math.inf if src2[i]==0 else src1[i]/src2[i] for i in range(n)],
-            [math.inf if src1[i]==0 else src2[i]/src1[i] for i in range(n)],
-            [math.inf if src3[i]==0 else src2[i]/src3[i] for i in range(n)],
-            [math.inf if src2[i]==0 else src3[i]/src2[i] for i in range(n)],
-            [math.inf if src1[i]==0 else src3[i]/src1[i] for i in range(n)],
-            [math.inf if src3[i]==0 else src1[i]/src3[i] for i in range(n)]
+            [dt_div(src1[i], src2[i]) for i in range(n)],
+            [dt_div(src2[i], src1[i]) for i in range(n)],
+            [dt_div(src2[i], src3[i]) for i in range(n)],
+            [dt_div(src3[i], src2[i]) for i in range(n)],
+            [dt_div(src3[i], src1[i]) for i in range(n)],
+            [dt_div(src1[i], src3[i]) for i in range(n)]
           ])
     assert_equals(RES, EXP)
 
