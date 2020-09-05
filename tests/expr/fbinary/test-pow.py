@@ -77,7 +77,7 @@ def test_pow_boolean_columns():
 def test_pow_boolean_column_scalar():
     DT = dt.Frame(x=[True, False, None]/dt.bool8)
     RES = DT[:, f.x ** 2]
-    EXP = dt.Frame([1, 0, None]/dt.int32)
+    EXP = dt.Frame([1, 0, None]/dt.float64)
     assert_equals(RES, EXP)
 
 
@@ -131,8 +131,8 @@ def test_pow_booleans_integers_floats_random(seed):
                  f.y ** math.abs(f.z), f.z ** f.y,
                  f.z ** math.abs(f.x), math.abs(f.x) ** math.abs(f.z)]]
     EXP = dt.Frame([
-            [src1[i] ** src2[i] for i in range(n)],
-            [src2[i] ** abs(src1[i]) for i in range(n)]/dt.int32,
+            [src1[i] ** src2[i] for i in range(n)]/dt.float64,
+            [src2[i] ** abs(src1[i]) for i in range(n)]/dt.float64,
             [src2[i] ** abs(src3[i]) for i in range(n)],
             [src3[i] ** src2[i] for i in range(n)],
             [src3[i] ** abs(src1[i]) for i in range(n)],

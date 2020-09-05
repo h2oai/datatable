@@ -80,7 +80,7 @@ class FExpr__pow__ : public FExpr_BinaryOp {
       xassert(lcol.nrows() == rcol.nrows());
       auto stype1 = lcol.stype();
       auto stype2 = rcol.stype();
-      auto stype0 = SType::FLOAT64;
+      auto stype0 = common_stype(stype1, stype2);
 
       if (stype1 == SType::VOID || stype2 == SType::VOID) {
         return Column::new_na_column(lcol.nrows(), stype0);
@@ -89,10 +89,10 @@ class FExpr__pow__ : public FExpr_BinaryOp {
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
-        case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
-        case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT32:
+        case SType::INT64:
+        case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), SType::FLOAT64);
         case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), stype0);
-        case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), stype0);
         default:
           throw TypeError() << "Operator `**` cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
