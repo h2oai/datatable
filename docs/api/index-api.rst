@@ -63,8 +63,6 @@ Functions
       -
     * - :func:`ifelse()`
       - Ternary if operator
-    * - :func:`isna()`
-      -
     * - :func:`shift()`
       -
     * - :func:`cut()`
@@ -140,7 +138,9 @@ Functions
     math.           <math>
     by()            <dt/by>
     cbind()         <dt/cbind>
+    corr()          <dt/corr>
     count()         <dt/count>
+    cov()           <dt/cov>
     cut()           <dt/cut>
     first()         <dt/first>
     fread()         <dt/fread>
@@ -149,6 +149,7 @@ Functions
     last()          <dt/last>
     max()           <dt/max>
     mean()          <dt/mean>
+    median()        <dt/median>
     min()           <dt/min>
     qcut()          <dt/qcut>
     rbind()         <dt/rbind>

@@ -247,7 +247,7 @@ except: TypeError
 See Also
 --------
 
-- :func:`count()` -- function to calculate a number of valid values.
+- :func:`count()` -- function to calculate a number of non-missing values.
 
 )";
 
@@ -356,9 +356,11 @@ except: TypeError
 See Also
 --------
 
+- :func:`median()` -- function to calculate median values.
 - :func:`sd()` -- function to calculate standard deviation.
 
 )";
+
 
 template <typename T, typename U>
 bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -445,6 +447,7 @@ See Also
 --------
 
 - :func:`mean()` -- function to calculate mean values.
+- :func:`median()` -- function to calculate median values.
 
 )";
 
@@ -570,7 +573,7 @@ static const char* doc_count =
 R"(count(cols)
 --
 
-Calculate the number of valid values for each column from `cols`.
+Calculate the number of non-missing values for each column from `cols`.
 
 Parameters
 ----------
@@ -799,6 +802,31 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // Median
 //------------------------------------------------------------------------------
+
+static const char* doc_median =
+R"(median(cols)
+--
+
+Calculate the median value for each column from `cols`.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`mean()` -- function to calculate mean values.
+- :func:`sd()` -- function to calculate standard deviation.
+
+)";
+
 
 template <typename T, typename U>
 class Median_ColumnImpl : public Virtual_ColumnImpl {

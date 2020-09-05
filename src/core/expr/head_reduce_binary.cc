@@ -111,6 +111,27 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
 // cov(X, Y)
 //------------------------------------------------------------------------------
 
+static const char* doc_cov =
+R"(cov(col1, col2)
+--
+
+Calculate covariance between `col1` and `col2`. If one of the columns is
+non-numeric, `NA` is returned.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, one column and the default name. The column
+    stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
+    otherwise.
+
+See Also
+--------
+
+- :func:`corr()` -- function to calculate correlation between two columns.
+
+)";
+
 template <typename T>
 static bool cov_reducer(const Column& col1, const Column& col2,
                         size_t i0, size_t i1, T* out)
@@ -164,6 +185,28 @@ static Column compute_cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // corr(X, Y)
 //------------------------------------------------------------------------------
+
+static const char* doc_corr =
+R"(corr(col1, col2)
+--
+
+Calculate correlation between `col1` and `col2`. If one of the columns is
+non-numeric, `NA` is returned.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, one column and the default name. The column
+    stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
+    otherwise.
+
+See Also
+--------
+
+- :func:`cov()` -- function to calculate covariance between two columns.
+
+)";
+
 
 template <typename T>
 static bool corr_reducer(const Column& col1, const Column& col2,
