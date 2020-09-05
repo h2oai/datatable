@@ -108,8 +108,48 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// first(A)
+// first(A), last(A)
 //------------------------------------------------------------------------------
+
+static const char* doc_first =
+R"(first(cols)
+--
+
+Return the first row for each column from `cols`.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+See Also
+--------
+
+- :func:`last()` -- function that returns the last row.
+
+)";
+
+
+static const char* doc_last =
+R"(last(cols)
+--
+
+Return the last row for each column from `cols`.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+See Also
+--------
+
+- :func:`first()` -- function that returns the first row.
+
+)";
+
 
 template <bool FIRST>
 class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
@@ -185,6 +225,31 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sum(A)
 //------------------------------------------------------------------------------
+
+static const char* doc_sum =
+R"(sum(cols)
+--
+
+Calculate the sum of values for each column from `cols`.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `int64` for
+    boolean and integer columns, `float32` for `float32` columns
+    and `float64` for `float64` columns.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`count()` -- function to calculate a number of valid values.
+
+)";
 
 template <typename T, typename U>
 bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -279,11 +344,10 @@ Calculate the mean value for each column from `cols`.
 
 Parameters
 ----------
-return: f-expression
-    f-expression having one row and the same names number of columns
-    as there is in `cols`. The column stypes are `float32` for
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `float32` for
     `float32` columns, and `float64` for all the other numeric types.
-    This function preserves column names.
 
 except: TypeError
     The exception is raised when one of the columns from `cols`
@@ -368,11 +432,10 @@ Calculate the standard deviation for each column from `cols`.
 
 Parameters
 ----------
-return: f-expression
-    f-expression having one row and the same names number of columns
-    as there is in `cols`. The column stypes are `float32` for
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `float32` for
     `float32` columns, and `float64` for all the other numeric types.
-    This function preserves column names.
 
 except: TypeError
     The exception is raised when one of the columns from `cols`
@@ -503,6 +566,29 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
 // count(A)
 //------------------------------------------------------------------------------
 
+static const char* doc_count =
+R"(count(cols)
+--
+
+Calculate the number of valid values for each column from `cols`.
+
+Parameters
+----------
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. All the returned column stypes are `int64`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric and non-string type.
+
+See Also
+--------
+
+- :func:`sum()` -- function to calculate the sum of values.
+
+)";
+
 template <typename T>
 bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
   int64_t count = 0;
@@ -628,9 +714,9 @@ to use it as `dt.min()` to prevent conflict with the Python built-in
 
 Parameters
 ----------
-return: f-expression
-    f-expression having one row and the same number, names and stypes
-    of columns as there are in `cols`.
+return: Expr
+    f-expression having one row and the same names, stypes and number
+    of columns as in `cols`.
 
 except: TypeError
     The exception is raised when one of the columns from `cols`
@@ -652,9 +738,9 @@ to use it as `dt.max()` to prevent conflict with the Python built-in
 
 Parameters
 ----------
-return: f-expression
-    f-expression having one row and the same number, names and stypes
-    of columns as there are in `cols`.
+return: Expr
+    f-expression having one row and the same names, stypes and number
+    of columns as in `cols`.
 
 except: TypeError
     The exception is raised when one of the columns from `cols`

@@ -140,10 +140,13 @@ Functions
     math.           <math>
     by()            <dt/by>
     cbind()         <dt/cbind>
+    count()         <dt/count>
     cut()           <dt/cut>
+    first()         <dt/first>
     fread()         <dt/fread>
     ifelse()        <dt/ifelse>
     iread()         <dt/iread>
+    last()          <dt/last>
     max()           <dt/max>
     mean()          <dt/mean>
     min()           <dt/min>
@@ -153,4 +156,5 @@ Functions
     sd()            <dt/sd>
     shift()         <dt/shift>
     sort()          <dt/sort>
+    sum()           <dt/sum>
     update()        <dt/update>
