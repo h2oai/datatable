@@ -144,9 +144,13 @@ Functions
     fread()         <dt/fread>
     ifelse()        <dt/ifelse>
     iread()         <dt/iread>
+    max()           <dt/max>
+    mean()          <dt/mean>
+    min()           <dt/min>
     qcut()          <dt/qcut>
     rbind()         <dt/rbind>
     repeat()        <dt/repeat>
+    sd()            <dt/sd>
     shift()         <dt/shift>
     sort()          <dt/sort>
     update()        <dt/update>

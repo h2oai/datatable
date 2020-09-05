@@ -156,7 +156,7 @@ cols: FExpr
 
 nquantiles: int | List[int]
     When a single number is specified, this number of quantiles
-    will be used to bin each column in `cols`.
+    will be used to bin each column from `cols`.
 
     When a list or a tuple is provided, each column will be binned
     by using its own number of quantiles. In the latter case,
