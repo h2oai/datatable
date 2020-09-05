@@ -19,6 +19,11 @@ div.rst-content dl dd {
   margin-bottom: 24px;
 }
 
+div.rst-content .admonition-title {
+  margin: -9pt -9pt 10pt -9pt;
+}
+
+
 #first-section { display: flex; }
 
 #first-section .part1 { padding-right: 32pt; }
