@@ -120,10 +120,13 @@ non-numeric, `NA` is returned.
 
 Parameters
 ----------
+col1, col2: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, one column and the default name. The column
     stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
-    otherwise.
+    in all the other cases.
 
 See Also
 --------
@@ -195,10 +198,13 @@ non-numeric, `NA` is returned.
 
 Parameters
 ----------
+col1, col2: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, one column and the default name. The column
     stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
-    otherwise.
+    in all the other cases.
 
 See Also
 --------

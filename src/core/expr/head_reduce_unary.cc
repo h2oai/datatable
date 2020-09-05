@@ -119,6 +119,9 @@ Return the first row for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
@@ -139,6 +142,9 @@ Return the last row for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
@@ -234,6 +240,9 @@ Calculate the sum of values for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names and number of columns
     as in `cols`. The column stypes are `int64` for
@@ -344,6 +353,9 @@ Calculate the mean value for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names and number of columns
     as in `cols`. The column stypes are `float32` for
@@ -434,6 +446,9 @@ Calculate the standard deviation for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names and number of columns
     as in `cols`. The column stypes are `float32` for
@@ -577,6 +592,9 @@ Calculate the number of non-missing values for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names and number of columns
     as in `cols`. All the returned column stypes are `int64`.
@@ -717,6 +735,9 @@ to use it as `dt.min()` to prevent conflict with the Python built-in
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row and the same names, stypes and number
     of columns as in `cols`.
@@ -741,6 +762,9 @@ to use it as `dt.max()` to prevent conflict with the Python built-in
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row and the same names, stypes and number
     of columns as in `cols`.
@@ -811,6 +835,9 @@ Calculate the median value for each column from `cols`.
 
 Parameters
 ----------
+cols: Expr
+    Input columns.
+
 return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.

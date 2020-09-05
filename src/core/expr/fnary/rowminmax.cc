@@ -27,31 +27,58 @@ namespace dt {
 namespace expr {
 
 
-
 static const char* doc_rowmin =
-R"(rowmin(x1, x2, ...)
+R"(rowmin(cols)
 --
 
-For each row, find the smallest value among the columns x1, x2, ...,
-excluding NAs. The columns must be all numeric (boolean, integer or
-float). The result will be a single column with the same number of
-rows as the input columns.
+For each row, find the smallest value among the columns from `cols`,
+excluding missing values.
 
-The input columns may have different types, and they will be
-converted into the largest common stype, but no less than int32.
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number of rows
+    as in `cols`. The column stype is the smallest common stype
+    for `cols`, but not less than `int32`.
+
+except: TypeError
+    The exception is raised when `cols` has non-numeric columns.
+
+See Also
+--------
+
+- :func:`rowmax()` -- find the largest element row-wise.
+
 )";
 
+
 static const char* doc_rowmax =
-R"(rowmax(x1, x2, ...)
+R"(rowmax(cols)
 --
 
-For each row, find the largest value among the columns x1, x2, ...,
-excluding NAs. The columns must be all numeric (boolean, integer or
-float). The result will be a single column with the same number of
-rows as the input columns.
+For each row, find the largest value among the columns from `cols`.
 
-The input columns may have different types, and they will be
-converted into the largest common stype, but no less than int32.
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number of rows
+    as in `cols`. The column stype is the smallest common stype
+    for `cols`, but not less than `int32`.
+
+except: TypeError
+    The exception is raised when `cols` has non-numeric columns.
+
+See Also
+--------
+
+- :func:`rowmin()` -- find the smallest element row-wise.
+
 )";
 
 py::PKArgs args_rowmin(0, 0, 0, true, false, {}, "rowmin", doc_rowmin);

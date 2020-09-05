@@ -29,17 +29,31 @@ namespace expr {
 
 
 static const char* doc_rowmean =
-R"(rowmean(x1, x2, ...)
+R"(rowmean(cols)
 --
 
-For each row, find the mean of values in columns x1, x2, ... The
-columns must be all numeric (boolean, integer or float). The result
-will be a single column with the same number of rows as the input
-columns.
+For each row, find the mean values among the columns from `cols`
+skipping missing values. If a row contains only the missing values,
+this function will produce a missing value too.
 
-If any column contains an NA value, it will be skipped during the
-calculation. Thus, NAs are treated as if they were zeros. If a row
-contains only NA values, this function will produce an NA too.
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number of rows
+    as in `cols`. The column stype is `float32` when all the `cols`
+    are `float32`, and `float64` in all the other cases.
+
+except: TypeError
+    The exception is raised when `cols` has non-numeric columns.
+
+See Also
+--------
+
+- :func:`rowsd()` -- calculate the standard deviation row-wise.
+
 )";
 
 py::PKArgs args_rowmean(0, 0, 0, true, false, {}, "rowmean", doc_rowmean);

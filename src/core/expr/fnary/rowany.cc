@@ -29,18 +29,31 @@ namespace expr {
 
 
 static const char* doc_rowany =
-R"(rowany(x1, x2, ...)
+R"(rowany(cols)
 --
 
-For each row in a frame formed by concatenating columns x1, x2, ...
-return True if any of the values in that row are True, or otherwise
-return False.
+For each row in `cols` return `True` if any of the values in that row
+are `True`, or otherwise return `False`. The function uses shortcut
+evaluation: if the `True` value is found in one of the columns,
+then the subsequent columns are skipped.
 
-This is a row-wise function: it applies to a sequence of 0 or more
-boolean columns and produces a single boolean column of the same
-shape. The function uses shortcut evaluation: if the True value is
-found in one of the columns, then subsequent columns are not
-evaluated.
+Parameters
+----------
+cols: Expr
+    Input boolean columns.
+
+return: Expr
+    f-expression consisting of one boolean column and the same number
+    of rows as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-boolean type.
+
+See Also
+--------
+
+- :func:`rowall()` -- row-wise `all() <https://docs.python.org/3/library/functions.html#all>`_ function.
 
 )";
 

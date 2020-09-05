@@ -76,25 +76,25 @@ Functions
     * - :func:`init_styles()`
       -
     * - :func:`rowall()`
-      -
+      - Row-wise `all() <https://docs.python.org/3/library/functions.html#all>`_ function
     * - :func:`rowany()`
-      -
+      - Row-wise `any() <https://docs.python.org/3/library/functions.html#any>`_ function
     * - :func:`rowcount()`
-      -
+      - Calculate the number of non-missing values per row
     * - :func:`rowfirst()`
-      -
+      - Find the first non-missing value row-wise
     * - :func:`rowlast()`
-      -
+      - Find the last non-missing value row-wise
     * - :func:`rowmax()`
-      -
+      - Find the largest element row-wise
     * - :func:`rowmean()`
-      -
+      - Calculate the mean value row-wise
     * - :func:`rowmin()`
-      -
+      - Find the smallest element row-wise
     * - :func:`rowsd()`
-      -
+      - Calculate the standard deviation row-wise
     * - :func:`rowsum()`
-      -
+      - Calculate the sum of all values row-wise
     * -
       -
     * - :func:`intersect()`
@@ -110,23 +110,23 @@ Functions
     * -
       -
     * - :func:`corr()`
-      - Coefficient of correlation between two columns
+      - Calculate correlation between two columns
     * - :func:`count()`
-      - Count non-missing values in a column
+      - Count non-missing values per a column
     * - :func:`cov()`
-      - The covariance between two columns
+      - Calculate covariance between two columns
     * - :func:`max()`
-      - The largest element in a column
+      - Find the largest element per a column
     * - :func:`mean()`
-      - Arithmetic mean of all values in a column
+      - Calculate mean value per a column
     * - :func:`median()`
-      - The median element in a column
+      - Find the median element per a column
     * - :func:`min()`
-      - The smallest element in a column
+      - Find the smallest element per a column
     * - :func:`sd()`
-      - The standard deviation of values in a column
+      - Calculate the standard deviation per a column
     * - :func:`sum()`
-      - Sum of values in a column
+      - Calculate the sum of all values per a column
 
 
 .. toctree::
@@ -152,6 +152,16 @@ Functions
     median()        <dt/median>
     min()           <dt/min>
     qcut()          <dt/qcut>
+    rowall()        <dt/rowall>
+    rowany()        <dt/rowany>
+    rowcount()      <dt/rowcount>
+    rowfirst()      <dt/rowfirst>
+    rowlast()       <dt/rowlast>
+    rowmax()        <dt/rowmax>
+    rowmean()       <dt/rowmean>
+    rowmin()        <dt/rowmin>
+    rowsd()         <dt/rowsd>
+    rowsum()        <dt/rowsum>
     rbind()         <dt/rbind>
     repeat()        <dt/repeat>
     sd()            <dt/sd>
