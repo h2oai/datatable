@@ -1280,7 +1280,7 @@ def on_env_merge_info(app, env, docnames, other):
 def on_source_read(app, docname, source):
     assert isinstance(source, list) and len(source) == 1
     txt = source[0]
-    mm = re.search(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
+    mm = re.match(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
     if mm:
         kind = mm.group(1)
         name = mm.group(2)

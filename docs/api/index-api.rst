@@ -165,7 +165,10 @@ Other
       - The datatable module.
 
     * - :data:`f`
-      - The primary namespace used during :meth:`DT[i,j,...] <Frame.__getitem__>` call.
+      - The primary namespace used during :meth:`DT[...] <Frame.__getitem__>` call.
+
+    * - :data:`g`
+      - Secondary namespace used during :meth:`DT[..., join()] <Frame.__getitem__>` call.
 
 
 .. toctree::
@@ -182,6 +185,7 @@ Other
     cut()           <dt/cut>
     dt              <dt/dt>
     f               <dt/f>
+    g               <dt/g>
     fread()         <dt/fread>
     ifelse()        <dt/ifelse>
     iread()         <dt/iread>
