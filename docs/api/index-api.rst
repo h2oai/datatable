@@ -74,7 +74,7 @@ Functions
     * -
       -
     * - :func:`init_styles()`
-      -
+      - Inject datatable's stylesheets into the Jupyter notebook
     * - :func:`rowall()`
       - Row-wise `all() <https://docs.python.org/3/library/functions.html#all>`_ function
     * - :func:`rowany()`
@@ -98,15 +98,15 @@ Functions
     * -
       -
     * - :func:`intersect()`
-      -
+      - Calculate the set intersection of values in the frames
     * - :func:`setdiff()`
-      -
+      - Calculate the set difference between the frames
     * - :func:`symdiff()`
-      -
+      - Calculate the symmetric difference between the sets of values in the frames
     * - :func:`union()`
-      -
+      - Calculate the union of values in the frames
     * - :func:`unique()`
-      -
+      - Find unique values in a frame
     * -
       -
     * - :func:`corr()`
@@ -144,7 +144,9 @@ Functions
     cut()           <dt/cut>
     first()         <dt/first>
     fread()         <dt/fread>
+    init_styles()   <dt/init_styles>
     ifelse()        <dt/ifelse>
+    intersect()     <dt/intersect>
     iread()         <dt/iread>
     last()          <dt/last>
     max()           <dt/max>
@@ -165,7 +167,11 @@ Functions
     rbind()         <dt/rbind>
     repeat()        <dt/repeat>
     sd()            <dt/sd>
+    setdiff()       <dt/setdiff>
     shift()         <dt/shift>
     sort()          <dt/sort>
+    symdiff()       <dt/symdiff>
     sum()           <dt/sum>
+    union()         <dt/union>
+    unique()        <dt/unique>
     update()        <dt/update>
