@@ -27,9 +27,83 @@
 namespace py {
 
 
+static const char* doc_split_into_nhot =
+R"(split_into_nhot(frame, sep=",", sort=False)
+--
+
+Split and nhot-encode a single-column frame.
+
+Each value in the frame, having a single string column, is split according
+to the provided separator `sep`, the whitespace is trimmed, and
+the resulting pieces, i.e. labels, are converted into the individual columns
+of the output frame.
+
+
+Parameters
+----------
+frame: Frame
+    An input frame. It must have only one string column.
+
+sep: str
+    Single-character separator to be used for splitting.
+
+sort: bool
+    An option to control whether the resulting column names, i.e. labels,
+    should be sorted. If set to `True`, the column names are returned in
+    alphabetical order, otherwise their order is not guaranteed
+    due to the algorithm parallelization.
+
+return: Frame
+    The output frame. It will have as many rows as the input frame,
+    and as many boolean columns as there were unique labels found.
+    The labels will also become the output column names.
+
+except: ValueError
+    The exception is raised if the input frame is missing.
+
+except: ValueError
+    The exception is raised if `frame` has more than one column.
+
+except: TypeError
+    The exception is raised if the single column of `frame` has a type
+    different from string.
+
+except: ValueError
+    The exception is raised if `sep` is not a single-character string.
+
+
+Examples
+--------
+
+>>> DT = dt.Frame(["cat,dog","mouse","cat,mouse","dog,rooster","mouse,dog,cat"])
+>>> DT
+   | C0
+-- + -------------
+ 0 | cat,dog
+ 1 | mouse
+ 2 | cat,mouse
+ 3 | dog,rooster
+ 4 | mouse,dog,cat
+
+[5 rows x 1 column]
+
+>>> split_into_nhot(DT)
+   | cat  dog  mouse  rooster
+-- + ---  ---  -----  -------
+ 0 |   1    1      0        0
+ 1 |   0    0      1        0
+ 2 |   1    0      1        0
+ 3 |   0    1      0        1
+ 4 |   1    1      1        0
+
+[5 rows x 4 columns]
+
+
+)";
+
 static PKArgs args_split_into_nhot(
     1, 0, 2, false, false,
-    {"frame", "sep", "sort"}, "split_into_nhot", nullptr
+    {"frame", "sep", "sort"}, "split_into_nhot", doc_split_into_nhot
 );
 
 

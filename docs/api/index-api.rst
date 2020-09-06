@@ -67,9 +67,10 @@ Functions
       - Shift column by a given number of rows
     * - :func:`cut()`
       - Bin a column into equal-width intervals
-
     * - :func:`qcut()`
       - Bin a column into equal-population intervals
+    * - :func:`split_into_nhot()`
+      - Split and nhot-encode a single-column frame
 
     * -
       -
@@ -132,47 +133,48 @@ Functions
 .. toctree::
     :hidden:
 
-    Frame           <frame>
-    FExpr           <fexpr>
-    models.         <models>
-    math.           <math>
-    by()            <dt/by>
-    cbind()         <dt/cbind>
-    corr()          <dt/corr>
-    count()         <dt/count>
-    cov()           <dt/cov>
-    cut()           <dt/cut>
-    first()         <dt/first>
-    fread()         <dt/fread>
-    init_styles()   <dt/init_styles>
-    ifelse()        <dt/ifelse>
-    intersect()     <dt/intersect>
-    iread()         <dt/iread>
-    join()          <dt/join>
-    last()          <dt/last>
-    max()           <dt/max>
-    mean()          <dt/mean>
-    median()        <dt/median>
-    min()           <dt/min>
-    qcut()          <dt/qcut>
-    rowall()        <dt/rowall>
-    rowany()        <dt/rowany>
-    rowcount()      <dt/rowcount>
-    rowfirst()      <dt/rowfirst>
-    rowlast()       <dt/rowlast>
-    rowmax()        <dt/rowmax>
-    rowmean()       <dt/rowmean>
-    rowmin()        <dt/rowmin>
-    rowsd()         <dt/rowsd>
-    rowsum()        <dt/rowsum>
-    rbind()         <dt/rbind>
-    repeat()        <dt/repeat>
-    sd()            <dt/sd>
-    setdiff()       <dt/setdiff>
-    shift()         <dt/shift>
-    sort()          <dt/sort>
-    symdiff()       <dt/symdiff>
-    sum()           <dt/sum>
-    union()         <dt/union>
-    unique()        <dt/unique>
-    update()        <dt/update>
+    Frame             <frame>
+    FExpr             <fexpr>
+    models.           <models>
+    math.             <math>
+    by()              <dt/by>
+    cbind()           <dt/cbind>
+    corr()            <dt/corr>
+    count()           <dt/count>
+    cov()             <dt/cov>
+    cut()             <dt/cut>
+    first()           <dt/first>
+    fread()           <dt/fread>
+    init_styles()     <dt/init_styles>
+    ifelse()          <dt/ifelse>
+    intersect()       <dt/intersect>
+    iread()           <dt/iread>
+    join()            <dt/join>
+    last()            <dt/last>
+    max()             <dt/max>
+    mean()            <dt/mean>
+    median()          <dt/median>
+    min()             <dt/min>
+    qcut()            <dt/qcut>
+    rowall()          <dt/rowall>
+    rowany()          <dt/rowany>
+    rowcount()        <dt/rowcount>
+    rowfirst()        <dt/rowfirst>
+    rowlast()         <dt/rowlast>
+    rowmax()          <dt/rowmax>
+    rowmean()         <dt/rowmean>
+    rowmin()          <dt/rowmin>
+    rowsd()           <dt/rowsd>
+    rowsum()          <dt/rowsum>
+    rbind()           <dt/rbind>
+    repeat()          <dt/repeat>
+    sd()              <dt/sd>
+    setdiff()         <dt/setdiff>
+    shift()           <dt/shift>
+    sort()            <dt/sort>
+    split_into_nhot() <dt/split_into_nhot>
+    symdiff()         <dt/symdiff>
+    sum()             <dt/sum>
+    union()           <dt/union>
+    unique()          <dt/unique>
+    update()          <dt/update>
