@@ -42,13 +42,13 @@ Functions
     * -
       -
     * - :func:`by()`
-      -
+      - Group-by clause for use in Frame’s square-bracket selector
     * - :func:`join()`
-      -
+      - Join clause for use in Frame’s square-bracket selector
     * - :func:`sort()`
-      -
+      - Sort clause for use in Frame’s square-bracket selector
     * - :func:`update()`
-      -
+      - Create new or update existing columns within a frame
     * -
       -
     * - :func:`cbind()`
@@ -58,13 +58,13 @@ Functions
       - Combine frames by rows
 
     * - :func:`repeat()`
-      -
+      - Concatenate frame by rows
     * -
       -
     * - :func:`ifelse()`
       - Ternary if operator
     * - :func:`shift()`
-      -
+      - Shift column by a given number of rows
     * - :func:`cut()`
       - Bin a column into equal-width intervals
 
@@ -148,6 +148,7 @@ Functions
     ifelse()        <dt/ifelse>
     intersect()     <dt/intersect>
     iread()         <dt/iread>
+    join()          <dt/join>
     last()          <dt/last>
     max()           <dt/max>
     mean()          <dt/mean>

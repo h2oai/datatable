@@ -30,8 +30,37 @@ namespace py {
 // ojoin::pyobj
 //------------------------------------------------------------------------------
 
+static const char* doc_join =
+R"(join(frame)
+--
+
+Join `frame` to the current one. For the moment, only left outer joins
+are supported.
+
+Parameters
+----------
+frame: Frame
+    An input keyed frame to be joined to the current one.
+
+return: Join Object
+    A join object.
+
+except: TypeError
+    The exception is raised if `join()` is missing an input frame.
+
+except: ValueError
+    The exception is raised if `frame` is not keyed.
+
+See Also
+--------
+
+- `Join Tutorial <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+
+
+)";
+
 static PKArgs args___init__(
-    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
+    1, 0, 0, false, false, {"frame"}, "__init__", doc_join);
 
 void ojoin::pyobj::m__init__(const PKArgs& args) {
   if (!args[0]) {
