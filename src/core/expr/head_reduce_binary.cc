@@ -115,8 +115,9 @@ static const char* doc_cov =
 R"(cov(col1, col2)
 --
 
-Calculate covariance between `col1` and `col2`. If one of the columns is
-non-numeric, `NA` is returned.
+Calculate
+`covariance <https://en.wikipedia.org/wiki/Covariance>`_
+between `col1` and `col2`.
 
 Parameters
 ----------
@@ -124,9 +125,10 @@ col1, col2: Expr
     Input columns.
 
 return: Expr
-    f-expression having one row, one column and the default name. The column
-    stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
-    in all the other cases.
+    f-expression having one row, one column and the covariance between
+    `col1` and `col2` as the value. If one of the input columns is non-numeric,
+    the value is `NA`. The output column stype is `float32` if both `col1`
+    and `col2` are `float32`, and `float64` in all the other cases.
 
 See Also
 --------
@@ -193,8 +195,9 @@ static const char* doc_corr =
 R"(corr(col1, col2)
 --
 
-Calculate correlation between `col1` and `col2`. If one of the columns is
-non-numeric, `NA` is returned.
+Calculate the
+`Pearson correlation <https://en.wikipedia.org/wiki/Pearson_correlation_coefficient>`_
+between `col1` and `col2`.
 
 Parameters
 ----------
@@ -202,9 +205,10 @@ col1, col2: Expr
     Input columns.
 
 return: Expr
-    f-expression having one row, one column and the default name. The column
-    stype is `float32` if both `col1` and `col2` are `float32`, and `float64`
-    in all the other cases.
+    f-expression having one row, one column and the correlation coefficient
+    as the value. If one of the columns is non-numeric, the value is `NA`.
+    The column stype is `float32` if both `col1` and `col2` are `float32`,
+    and `float64` in all the other cases.
 
 See Also
 --------
