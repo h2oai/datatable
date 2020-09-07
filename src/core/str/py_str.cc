@@ -35,7 +35,7 @@ Split and nhot-encode a single-column frame.
 
 Each value in the frame, having a single string column, is split according
 to the provided separator `sep`, the whitespace is trimmed, and
-the resulting pieces, i.e. labels, are converted into the individual columns
+the resulting pieces (labels) are converted into the individual columns
 of the output frame.
 
 
@@ -59,17 +59,13 @@ return: Frame
     The labels will also become the output column names.
 
 except: ValueError
-    The exception is raised if the input frame is missing.
-
-except: ValueError
-    The exception is raised if `frame` has more than one column.
+    The exception is raised if the input frame is missing or it has more
+    than one column. It is also raised if `sep` is not a single-character
+    string.
 
 except: TypeError
     The exception is raised if the single column of `frame` has a type
     different from string.
-
-except: ValueError
-    The exception is raised if `sep` is not a single-character string.
 
 
 Examples
