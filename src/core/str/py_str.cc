@@ -72,7 +72,7 @@ except: TypeError
 Examples
 --------
 
-.. code-block::
+.. code-block:: python
 
     DT = dt.Frame(["cat,dog", "mouse", "cat,mouse", "dog,rooster", "mouse,dog,cat"])
 
@@ -87,7 +87,7 @@ Examples
     3,   "dog,rooster"
     4,   "mouse,dog,cat"
 
-.. code-block::
+.. code-block:: python
 
     split_into_nhot(DT)
 
