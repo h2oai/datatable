@@ -166,6 +166,11 @@ nquantiles: int | List[int]
 return: FExpr
     f-expression that converts input columns into the columns filled
     with the respective quantile ids.
+
+See also
+--------
+:func:`cut()` -- function for equal-width interval binning.
+
 )";
 
 static py::oobj pyfn_qcut(const py::XArgs& args) {

@@ -161,7 +161,7 @@ return: FExpr
 
 See also
 --------
-:func:`qcut()` -- function for quantile binning.
+:func:`qcut()` -- function for equal-population binning.
 
 .. _`half-open`: https://en.wikipedia.org/wiki/Interval_(mathematics)#Terminology
 
