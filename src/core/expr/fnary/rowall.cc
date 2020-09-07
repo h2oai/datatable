@@ -41,7 +41,7 @@ cols: Expr
     Input boolean columns.
 
 return: Expr
-    f-expression consisting of one boolean column and the same number
+    f-expression consisting of one boolean column that has the same number
     of rows as in `cols`.
 
 except: TypeError

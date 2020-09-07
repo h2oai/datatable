@@ -42,7 +42,7 @@ cols: Expr
     Input columns.
 
 return: Expr
-    f-expression consisting of one column and the same number of rows
+    f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is `float32` when all the `cols`
     are `float32`, and `float64` in all the other cases.
 

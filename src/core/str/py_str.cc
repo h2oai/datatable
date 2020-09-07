@@ -42,7 +42,8 @@ of the output frame.
 Parameters
 ----------
 frame: Frame
-    An input frame. It must have only one string column.
+    An input single-column frame. The column stype must be either `str32`
+    or `str64`.
 
 sep: str
     Single-character separator to be used for splitting.
@@ -71,31 +72,39 @@ except: TypeError
 Examples
 --------
 
->>> DT = dt.Frame(["cat,dog","mouse","cat,mouse","dog,rooster","mouse,dog,cat"])
->>> DT
-   | C0
--- + -------------
- 0 | cat,dog
- 1 | mouse
- 2 | cat,mouse
- 3 | dog,rooster
- 4 | mouse,dog,cat
+.. code-block::
 
-[5 rows x 1 column]
+    DT = dt.Frame(["cat,dog", "mouse", "cat,mouse", "dog,rooster", "mouse,dog,cat"])
 
->>> split_into_nhot(DT)
-   | cat  dog  mouse  rooster
--- + ---  ---  -----  -------
- 0 |   1    1      0        0
- 1 |   0    0      1        0
- 2 |   1    0      1        0
- 3 |   0    1      0        1
- 4 |   1    1      1        0
+.. dtframe::
+    :names: C0
+    :types: str32
+    :shape: 5, 1
 
-[5 rows x 4 columns]
+    0,   "cat,dog"
+    1,   "mouse"
+    2,   "cat,mouse"
+    3,   "dog,rooster"
+    4,   "mouse,dog,cat"
 
+.. code-block::
+
+    split_into_nhot(DT)
+
+.. dtframe::
+    :names: cat, dog, mouse, rooster
+    :types: bool8, bool8, bool8, bool8
+    :shape: 5, 4
+
+    0,   1, 1, 0, 0
+    1,   0, 0, 1, 0
+    2,   1, 0, 1, 0
+    3,   0, 1, 0, 1
+    4,   1, 1, 1, 0
 
 )";
+
+
 
 static PKArgs args_split_into_nhot(
     1, 0, 2, false, false,

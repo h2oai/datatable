@@ -40,7 +40,7 @@ cols: Expr
     Input columns.
 
 return: Expr
-    f-expression consisting of one column and the same number of rows
+    f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
 
@@ -67,7 +67,7 @@ cols: Expr
     Input columns.
 
 return: Expr
-    f-expression consisting of one column and the same number of rows
+    f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
 
