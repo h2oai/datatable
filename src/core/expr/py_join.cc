@@ -34,8 +34,18 @@ static const char* doc_join =
 R"(join(frame)
 --
 
-Join `frame` to the current one. For the moment, only left outer joins
-are supported.
+Join `frame` to the current one. This operator is equivalent to the
+SQL `JOIN`, though for the moment datatable only supports left outer joins.
+
+In order to join, the `frame` must be keyed first, and then
+joined to another frame `DT` as
+
+.. code-block:: python
+
+    DT[:, :, join(X)]
+
+provided that `DT` has the column(s) with the same name(s) as
+the key in `frame`.
 
 Parameters
 ----------
@@ -43,10 +53,11 @@ frame: Frame
     An input keyed frame to be joined to the current one.
 
 return: Join Object
-    A join object.
+    In most of the cases the returned object is directly used in the
+    datatable square brackets.
 
 except: TypeError
-    The exception is raised if `join()` is missing an input frame.
+    The exception is raised if the input frame is missing.
 
 except: ValueError
     The exception is raised if `frame` is not keyed.
@@ -54,7 +65,7 @@ except: ValueError
 See Also
 --------
 
-- `Join Tutorial <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+- `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
 
 
 )";
