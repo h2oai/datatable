@@ -34,11 +34,12 @@ static const char* doc_join =
 R"(join(frame)
 --
 
-Join `frame` to the current one. This operator is equivalent to the
-SQL `JOIN`, though for the moment datatable only supports left outer joins.
+Join clause for use in Frame’s square-bracket selector.
 
-In order to join, the `frame` must be keyed first, and then
-joined to another frame `DT` as
+This clause is equivalent to the SQL `JOIN`, though for the moment
+datatable only supports left outer joins. In order to join,
+the `frame` must be :meth:`keyed <Frame.key>` first, and then joined
+to another frame `DT` as
 
 .. code-block:: python
 
@@ -54,7 +55,7 @@ frame: Frame
 
 return: Join Object
     In most of the cases the returned object is directly used in the
-    datatable square brackets.
+    Frame’s square-bracket selector.
 
 except: TypeError
     The exception is raised if the input frame is missing.
