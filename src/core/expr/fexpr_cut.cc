@@ -145,7 +145,7 @@ cols: FExpr
 
 nbins: int | List[int]
     When a single number is specified, this number of bins
-    will be used to bin each column of `cols`.
+    will be used to bin each column from `cols`.
     When a list or a tuple is provided, each column will be binned
     by using its own number of bins. In the latter case,
     the list/tuple length must be equal to the number of columns
@@ -161,7 +161,7 @@ return: FExpr
 
 See also
 --------
-:func:`qcut()` -- function for quantile binning.
+:func:`qcut()` -- function for equal-population binning.
 
 .. _`half-open`: https://en.wikipedia.org/wiki/Interval_(mathematics)#Terminology
 

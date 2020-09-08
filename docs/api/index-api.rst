@@ -62,13 +62,13 @@ Functions
     * -
       -
     * - :func:`by()`
-      -
+      - Group-by clause for use in Frame’s square-bracket selector
     * - :func:`join()`
-      -
+      - Join clause for use in Frame’s square-bracket selector
     * - :func:`sort()`
-      -
+      - Sort clause for use in Frame’s square-bracket selector
     * - :func:`update()`
-      -
+      - Create new or update existing columns within a frame
     * -
       -
     * - :func:`cbind()`
@@ -78,77 +78,76 @@ Functions
       - Combine frames by rows
 
     * - :func:`repeat()`
-      -
+      - Concatenate frame by rows
     * -
       -
     * - :func:`ifelse()`
       - Ternary if operator
-    * - :func:`isna()`
-      -
     * - :func:`shift()`
-      -
+      - Shift column by a given number of rows
     * - :func:`cut()`
       - Bin a column into equal-width intervals
-
     * - :func:`qcut()`
       - Bin a column into equal-population intervals
+    * - :func:`split_into_nhot()`
+      - Split and nhot-encode a single-column frame
 
     * -
       -
     * - :func:`init_styles()`
-      -
+      - Inject datatable's stylesheets into the Jupyter notebook
     * - :func:`rowall()`
-      -
+      - Row-wise `all() <https://docs.python.org/3/library/functions.html#all>`_ function
     * - :func:`rowany()`
-      -
+      - Row-wise `any() <https://docs.python.org/3/library/functions.html#any>`_ function
     * - :func:`rowcount()`
-      -
+      - Calculate the number of non-missing values per row
     * - :func:`rowfirst()`
-      -
+      - Find the first non-missing value row-wise
     * - :func:`rowlast()`
-      -
+      - Find the last non-missing value row-wise
     * - :func:`rowmax()`
-      -
+      - Find the largest element row-wise
     * - :func:`rowmean()`
-      -
+      - Calculate the mean value row-wise
     * - :func:`rowmin()`
-      -
+      - Find the smallest element row-wise
     * - :func:`rowsd()`
-      -
+      - Calculate the standard deviation row-wise
     * - :func:`rowsum()`
-      -
+      - Calculate the sum of all values row-wise
     * -
       -
     * - :func:`intersect()`
-      -
+      - Calculate the set intersection of values in the frames
     * - :func:`setdiff()`
-      -
+      - Calculate the set difference between the frames
     * - :func:`symdiff()`
-      -
+      - Calculate the symmetric difference between the sets of values in the frames
     * - :func:`union()`
-      -
+      - Calculate the union of values in the frames
     * - :func:`unique()`
-      -
+      - Find unique values in a frame
     * -
       -
     * - :func:`corr()`
-      - Coefficient of correlation between two columns
+      - Calculate correlation between two columns
     * - :func:`count()`
-      - Count non-missing values in a column
+      - Count non-missing values per a column
     * - :func:`cov()`
-      - The covariance between two columns
+      - Calculate covariance between two columns
     * - :func:`max()`
-      - The largest element in a column
+      - Find the largest element per a column
     * - :func:`mean()`
-      - Arithmetic mean of all values in a column
+      - Calculate mean value per a column
     * - :func:`median()`
-      - The median element in a column
+      - Find the median element per a column
     * - :func:`min()`
-      - The smallest element in a column
+      - Find the smallest element per a column
     * - :func:`sd()`
-      - The standard deviation of values in a column
+      - Calculate the standard deviation per a column
     * - :func:`sum()`
-      - Sum of values in a column
+      - Calculate the sum of all values per a column
 
 
 Other
@@ -174,24 +173,53 @@ Other
 .. toctree::
     :hidden:
 
-    math.           <math>
-    models.         <models>
-    Frame           <frame>
-    FExpr           <fexpr>
-    Namespace       <namespace>
-    build_info      <dt/build_info>
-    by()            <dt/by>
-    cbind()         <dt/cbind>
-    cut()           <dt/cut>
-    dt              <dt/dt>
-    f               <dt/f>
-    g               <dt/g>
-    fread()         <dt/fread>
-    ifelse()        <dt/ifelse>
-    iread()         <dt/iread>
-    qcut()          <dt/qcut>
-    rbind()         <dt/rbind>
-    repeat()        <dt/repeat>
-    shift()         <dt/shift>
-    sort()          <dt/sort>
-    update()        <dt/update>
+    models.           <models>
+    math.             <math>
+    Frame             <frame>
+    FExpr             <fexpr>
+    Namespace         <namespace>
+    build_info        <dt/build_info>
+    by()              <dt/by>
+    cbind()           <dt/cbind>
+    corr()            <dt/corr>
+    count()           <dt/count>
+    cov()             <dt/cov>
+    cut()             <dt/cut>
+    dt                <dt/dt>
+    f                 <dt/f>
+    first()           <dt/first>
+    fread()           <dt/fread>
+    g                 <dt/g>
+    init_styles()     <dt/init_styles>
+    ifelse()          <dt/ifelse>
+    intersect()       <dt/intersect>
+    iread()           <dt/iread>
+    join()            <dt/join>
+    last()            <dt/last>
+    max()             <dt/max>
+    mean()            <dt/mean>
+    median()          <dt/median>
+    min()             <dt/min>
+    qcut()            <dt/qcut>
+    rowall()          <dt/rowall>
+    rowany()          <dt/rowany>
+    rowcount()        <dt/rowcount>
+    rowfirst()        <dt/rowfirst>
+    rowlast()         <dt/rowlast>
+    rowmax()          <dt/rowmax>
+    rowmean()         <dt/rowmean>
+    rowmin()          <dt/rowmin>
+    rowsd()           <dt/rowsd>
+    rowsum()          <dt/rowsum>
+    rbind()           <dt/rbind>
+    repeat()          <dt/repeat>
+    sd()              <dt/sd>
+    setdiff()         <dt/setdiff>
+    shift()           <dt/shift>
+    sort()            <dt/sort>
+    split_into_nhot() <dt/split_into_nhot>
+    symdiff()         <dt/symdiff>
+    sum()             <dt/sum>
+    union()           <dt/union>
+    unique()          <dt/unique>
+    update()          <dt/update>

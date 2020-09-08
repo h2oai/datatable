@@ -29,6 +29,7 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "stype.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -107,8 +108,54 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// first(A)
+// first(A), last(A)
 //------------------------------------------------------------------------------
+
+static const char* doc_first =
+R"(first(cols)
+--
+
+Return the first row for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+See Also
+--------
+
+- :func:`last()` -- function that returns the last row.
+
+)";
+
+
+static const char* doc_last =
+R"(last(cols)
+--
+
+Return the last row for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+See Also
+--------
+
+- :func:`first()` -- function that returns the first row.
+
+)";
+
 
 template <bool FIRST>
 class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
@@ -184,6 +231,34 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sum(A)
 //------------------------------------------------------------------------------
+
+static const char* doc_sum =
+R"(sum(cols)
+--
+
+Calculate the sum of values for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `int64` for
+    boolean and integer columns, `float32` for `float32` columns
+    and `float64` for `float64` columns.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`count()` -- function to calculate a number of non-missing values.
+
+)";
 
 template <typename T, typename U>
 bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -269,6 +344,36 @@ static Column compute_gsum(Column&& arg, const Groupby& gby) {
 // mean(A)
 //------------------------------------------------------------------------------
 
+
+static const char* doc_mean =
+R"(mean(cols)
+--
+
+Calculate the mean value for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `float32` for
+    `float32` columns, and `float64` for all the other numeric types.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`median()` -- function to calculate median values.
+- :func:`sd()` -- function to calculate standard deviation.
+
+)";
+
+
 template <typename T, typename U>
 bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
   double sum = 0;
@@ -332,6 +437,34 @@ static Column compute_gmean(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sd(A)
 //------------------------------------------------------------------------------
+
+static const char* doc_sd =
+R"(sd(cols)
+--
+
+Calculate the standard deviation for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. The column stypes are `float32` for
+    `float32` columns, and `float64` for all the other numeric types.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`mean()` -- function to calculate mean values.
+- :func:`median()` -- function to calculate median values.
+
+)";
 
 template <typename T, typename U>
 bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -451,6 +584,32 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
 // count(A)
 //------------------------------------------------------------------------------
 
+static const char* doc_count =
+R"(count(cols)
+--
+
+Calculate the number of non-missing values for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. All the returned column stypes are `int64`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric and non-string type.
+
+See Also
+--------
+
+- :func:`sum()` -- function to calculate the sum of values.
+
+)";
+
 template <typename T>
 bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
   int64_t count = 0;
@@ -566,6 +725,59 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 // min(A), max(A)
 //------------------------------------------------------------------------------
 
+static const char* doc_min =
+R"(min(cols)
+--
+
+Calculate the minimum value for each column from `cols`. It is recommended
+to use it as `dt.min()` to prevent conflict with the Python built-in
+`min()` function.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row and the same names, stypes and number
+    of columns as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+- :func:`max()` -- function to calculate maxium values.
+)";
+
+
+static const char* doc_max =
+R"(max(cols)
+--
+
+Calculate the maximum value for each column from `cols`. It is recommended
+to use it as `dt.max()` to prevent conflict with the Python built-in
+`max()` function.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row and the same names, stypes and number
+    of columns as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+- :func:`min()` -- function to calculate minimum values.
+)";
+
 template <typename T, bool MIN>
 bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
   T minmax = 0;
@@ -614,6 +826,34 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // Median
 //------------------------------------------------------------------------------
+
+static const char* doc_median =
+R"(median(cols)
+--
+
+Calculate the median value for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names, stypes and
+    number of columns as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`mean()` -- function to calculate mean values.
+- :func:`sd()` -- function to calculate standard deviation.
+
+)";
+
 
 template <typename T, typename U>
 class Median_ColumnImpl : public Virtual_ColumnImpl {

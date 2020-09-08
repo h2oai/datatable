@@ -30,8 +30,49 @@ namespace py {
 // ojoin::pyobj
 //------------------------------------------------------------------------------
 
+static const char* doc_join =
+R"(join(frame)
+--
+
+Join clause for use in Frame’s square-bracket selector.
+
+This clause is equivalent to the SQL `JOIN`, though for the moment
+datatable only supports left outer joins. In order to join,
+the `frame` must be :meth:`keyed <Frame.key>` first, and then joined
+to another frame `DT` as
+
+.. code-block:: python
+
+    DT[:, :, join(X)]
+
+provided that `DT` has the column(s) with the same name(s) as
+the key in `frame`.
+
+Parameters
+----------
+frame: Frame
+    An input keyed frame to be joined to the current one.
+
+return: Join Object
+    In most of the cases the returned object is directly used in the
+    Frame’s square-bracket selector.
+
+except: TypeError
+    The exception is raised if the input frame is missing.
+
+except: ValueError
+    The exception is raised if `frame` is not keyed.
+
+See Also
+--------
+
+- `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+
+
+)";
+
 static PKArgs args___init__(
-    1, 0, 0, false, false, {"frame"}, "__init__", nullptr);
+    1, 0, 0, false, false, {"frame"}, "__init__", doc_join);
 
 void ojoin::pyobj::m__init__(const PKArgs& args) {
   if (!args[0]) {
