@@ -323,7 +323,7 @@ void FExpr_List::prepare_by(
         outflags.push_back(SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
-        outflags.push_back(SortFlag::NONE);
+        outflags.push_back(ctx.get_sort_direction());
       }
     }
   }
