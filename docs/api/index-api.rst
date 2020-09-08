@@ -4,26 +4,46 @@
 datatable API
 =============
 
+Symbols listed here are available for import from the ``datatable`` module.
+
+
+Submodules
+----------
+
+.. list-table::
+    :widths: auto
+    :class: api-table
+
+    * - :mod:`.math <datatable.math>`
+      - Mathematical functions, similar to python's ``math`` module.
+
+    * - :mod:`.models <datatable.models>`
+      - A small set of data analysis tools.
+
+
 Classes
 -------
 
 .. list-table::
-   :widths: auto
-   :class: api-table
+    :widths: auto
+    :class: api-table
 
-   * - :class:`Frame`
-     - Main "table of data" class. This is the equivalent of pandas' or Julia's
-       ``DataFrame``, R's ``data.table`` or ``tibble``, SQL's ``TABLE``, etc.
+    * - :class:`Frame`
+      - Main "table of data" class. This is the equivalent of pandas' or Julia's
+        ``DataFrame``, R's ``data.table`` or ``tibble``, SQL's ``TABLE``, etc.
 
-   * - :class:`FExpr`
-     - Helper class for computing formulas over a frame.
+    * - :class:`FExpr`
+      - Helper class for computing formulas over a frame.
 
-   * - :class:`stype`
-     - Enum of column "storage" types, analogous to numpy's ``dtype``.
+    * - :class:`Namespace`
+      - Helper class for addressing columns in a frame.
 
-   * - :class:`ltype`
-     - Enum of column "logical" types, similar to standard Python notion
-       of a ``type``.
+    * - :class:`stype`
+      - Enum of column "storage" types, analogous to numpy's ``dtype``.
+
+    * - :class:`ltype`
+      - Enum of column "logical" types, similar to standard Python notion
+        of a ``type``.
 
 
 Functions
@@ -130,21 +150,46 @@ Functions
       - Calculate the sum of all values per a column
 
 
+Other
+-----
+
+.. list-table::
+    :widths: auto
+    :class: api-table
+
+    * - :data:`build_info`
+      - Information about the build of the datatable module.
+
+    * - :data:`dt`
+      - The datatable module.
+
+    * - :data:`f`
+      - The primary namespace used during :meth:`DT[...] <Frame.__getitem__>` call.
+
+    * - :data:`g`
+      - Secondary namespace used during :meth:`DT[..., join()] <Frame.__getitem__>` call.
+
+
 .. toctree::
     :hidden:
 
-    Frame             <frame>
-    FExpr             <fexpr>
     models.           <models>
     math.             <math>
+    Frame             <frame>
+    FExpr             <fexpr>
+    Namespace         <namespace>
+    build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>
     corr()            <dt/corr>
     count()           <dt/count>
     cov()             <dt/cov>
     cut()             <dt/cut>
+    dt                <dt/dt>
+    f                 <dt/f>
     first()           <dt/first>
     fread()           <dt/fread>
+    g                 <dt/g>
     init_styles()     <dt/init_styles>
     ifelse()          <dt/ifelse>
     intersect()       <dt/intersect>

@@ -114,9 +114,12 @@ oobj Namespace::m__getitem__(robj item) {
 static const char* doc_Namespace =
 R"(
 A namespace is an environment that provides lazy access to columns of
-a frame when performing computations within `DT[...]`.
+a frame when performing computations within
+:meth:`DT[i,j,...] <Frame.__getitem__>`.
 
-(to be continued)...
+This class should not be instantiated directly, instead use the
+singleton instances :data:`f <datatable.f>` and :data:`g <datatable.g>`
+exported from the :mod:`datatable` module.
 )";
 
 void Namespace::impl_init_type(XTypeMaker& xt) {
