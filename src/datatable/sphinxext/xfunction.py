@@ -465,16 +465,18 @@ class XobjectDirective(SphinxDirective):
 
     def _locate_fn_source(self, filename, fnname):
         """
-        Find the body of the function `fnname` within the `lines` that
-        were read from the file `filename`.
+        Find the body of the function `fnname` within the file `filename`.
 
-        If successful, this function returns a tuple of the line
-        numbers of the start the end of the function.
+        If successful, this function returns the URL for the located
+        function.
         """
         txt = (self.project_root / filename).read_text(encoding="utf-8")
         lines = txt.splitlines()
         if self.name == "xdata":
             return self._locate_constant(filename, fnname, lines)
+        if filename.endswith(".py"):
+            return self._locate_python_fn(filename, fnname, lines)
+
         if self.name == "xclass":
             rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
         else:
@@ -523,6 +525,10 @@ class XobjectDirective(SphinxDirective):
                 return self.permalink(filename, i + 1, i + 1)
         raise self.error("Could not find variable `%s` in file `%s`"
                          % (varname, filename))
+
+
+    def _locate_python_fn(self, filename, fnname, lines):
+        rx = re.compile(r"")
 
 
     def _extract_docs_from_source(self):
@@ -1280,7 +1286,7 @@ def on_env_merge_info(app, env, docnames, other):
 def on_source_read(app, docname, source):
     assert isinstance(source, list) and len(source) == 1
     txt = source[0]
-    mm = re.search(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
+    mm = re.match(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
     if mm:
         kind = mm.group(1)
         name = mm.group(2)
