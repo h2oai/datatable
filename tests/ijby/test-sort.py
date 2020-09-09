@@ -994,7 +994,7 @@ def test_sort_strings_reverse_large():
     src *= 25
     src += ['shoo!', 'zzZzzZ' * 5]
     DT = dt.Frame(A=src)
-    RES = dt.Frame(A=sorted(src, reverse=True))
+    RES = DT[:, :, dt.sort(f.A, reverse=True)]
     assert_equals(DT[:, :, sort(-f.A)], RES)
 
 
