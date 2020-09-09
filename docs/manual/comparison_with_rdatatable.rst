@@ -141,7 +141,7 @@ RDatatable                                           Datatable                  
 Note that the :func:`update` function, as well as the ``del`` function operates in-place; there is no need for reassignment. Another advantage of the :func:`update` method is that the row order of the dataframe is not changed, even in a groupby; this comes in handy in a lot of transformation operations.
 
 
-Joins
+Joins :func:`join()`
 -------
 
-At the moment, the only :func:`join` implemented in `datatable` is a left outer join
+At the moment, only left outer join is implemented in `datatable`.
