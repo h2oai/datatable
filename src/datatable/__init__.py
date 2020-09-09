@@ -34,6 +34,7 @@ from .lib._datatable import (
     intersect,
     iread,
     join,
+    Namespace,
     qcut,
     rbind,
     repeat,
@@ -141,13 +142,14 @@ str32 = stype.str32
 str64 = stype.str64
 obj64 = stype.obj64
 dt = datatable
+del datatable
 
 # This will run only in Jupyter notebook
 init_styles()
 
-options = datatable.options.Config(options={}, prefix="")
-datatable.lib._datatable.initialize_options(options)
-datatable.lib._datatable.initialize_final()
+options = dt.options.Config(options={}, prefix="")
+dt.lib._datatable.initialize_options(options)
+dt.lib._datatable.initialize_final()
 
 def open(path):
     """

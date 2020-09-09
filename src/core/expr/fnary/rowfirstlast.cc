@@ -29,22 +29,58 @@ namespace expr {
 
 
 static const char* doc_rowfirst =
-R"(rowfirst(x1, x2, ...)
+R"(rowfirst(cols)
 --
 
-For each row, find the first non-NA value in columns x1, x2, ...
-The columns must have compatible types. If all values in a row are
-NAs, then this function will also produce an NA.
+For each row, find the first non-missing value in `cols`. If all values
+in a row are missing, then this function will also produce a missing value.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number
+    of rows as in `cols`.
+
+except: TypeError
+    The exception is raised when input columns have incompatible types.
+
+See Also
+--------
+
+- :func:`rowlast()` -- find the last non-missing value row-wise.
+
 )";
+
 
 static const char* doc_rowlast =
-R"(rowlast(x1, x2, ...)
+R"(rowlast(cols)
 --
 
-For each row, find the last non-NA value in columns x1, x2, ...
-The columns must have compatible types. If all values in a row are
-NAs, then this function will also produce an NA.
+For each row, find the last non-missing value in `cols`. If all values
+in a row are missing, then this function will also produce a missing value.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number
+    of rows as in `cols`.
+
+except: TypeError
+    The exception is raised when input columns have incompatible types.
+
+See Also
+--------
+
+- :func:`rowfirst()` -- find the first non-missing value row-wise.
+
 )";
+
 
 py::PKArgs args_rowfirst(0, 0, 0, true, false, {}, "rowfirst", doc_rowfirst);
 py::PKArgs args_rowlast(0, 0, 0, true, false, {}, "rowlast", doc_rowlast);

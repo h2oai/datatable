@@ -29,16 +29,32 @@ namespace expr {
 
 
 static const char* doc_rowsum =
-R"(rowsum(x1, x2, ...)
+R"(rowsum(cols)
 --
 
-For each row, find the sum of values in columns x1, x2, ... The
-columns must be all numeric (boolean, integer or float). The result
-will be a single column with the same number of rows as all input
-columns.
+For each row, calculate the sum of all values in `cols`. Missing values
+are treated as if they are zeros and skipped during the calcultion.
 
-If any column contains an NA value, it will be skipped during the
-calculation. Thus, NAs are treated as if they were zeros.
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one column and the same number
+    of rows as in `cols`. The stype of the resulting column
+    will be the smallest common stype calculated for `cols`,
+    but not less than `int32`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+See Also
+--------
+
+- :func:`rowcount()` -- count non-missing values row-wise.
+
 )";
 
 py::PKArgs args_rowsum(0, 0, 0, true, false, {}, "rowsum", doc_rowsum);
