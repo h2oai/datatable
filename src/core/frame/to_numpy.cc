@@ -109,7 +109,7 @@ static PKArgs args_to_numpy(
 
 oobj Frame::to_numpy(const PKArgs& args) {
   oobj numpy = oobj::import("numpy");
-  oobj nparray = numpy.get_attr("array");
+  oobj nparray = numpy.get_attr("asfortranarray");
   dt::SType stype      = args.get<dt::SType>(0, dt::SType::VOID);
   size_t force_col = args.get<size_t>(1, size_t(-1));
 

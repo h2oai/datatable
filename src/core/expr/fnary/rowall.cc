@@ -29,16 +29,30 @@ namespace expr {
 
 
 static const char* doc_rowall =
-R"(rowall(x1, x2, ...)
+R"(rowall(cols)
 --
 
-For each row in a frame formed by concatenating columns x1, x2, ...
-return True if all values in that row are True, or otherwise return
-False.
+For each row in `cols` return `True` if all values in that row are `True`,
+or otherwise return `False`.
 
-This is a row-wise function: it applies to a sequence of 0 or more
-boolean columns and produces a single boolean column of the same
-shape.
+Parameters
+----------
+cols: Expr
+    Input boolean columns.
+
+return: Expr
+    f-expression consisting of one boolean column that has the same number
+    of rows as in `cols`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-boolean type.
+
+See Also
+--------
+
+- :func:`rowany()` -- row-wise `any() <https://docs.python.org/3/library/functions.html#any>`_ function.
+
 )";
 
 py::PKArgs args_rowall(0, 0, 0, true, false, {}, "rowall", doc_rowall);

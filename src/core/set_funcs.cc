@@ -149,24 +149,48 @@ static py::oobj _union(named_colvec&& ncv) {
 // unique()
 //------------------------------------------------------------------------------
 
+static const char* doc_unique =
+R"(unique(frame)
+--
+
+Find the unique values in all the columns of the `frame`.
+
+This function sorts the values in order to find the uniques, so the return
+values will be ordered. However, this should be considered an implementation
+detail: in the future datatable may switch to a different algorithm,
+such as hash-based, which may return the results in a different order.
+
+
+Parameters
+----------
+frame: Frame
+    Input frame.
+
+return: Frame
+    A single-column frame consisting of unique values found in `frame`.
+    The column stype is the smallest common stype for all the
+    `frame` columns.
+
+except: NotImplementedError
+    The exception is raised when one of the frame columns has stype `obj64`.
+
+See Also
+--------
+
+- :func:`intersect()` -- calculate the set intersection of values in the frames.
+- :func:`setdiff()` -- calculate the set difference between the frames.
+- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
+- :func:`union()` -- calculate the union of values in the frames.
+
+)";
+
 static py::PKArgs args_unique(
     1, 0, 0,        // Number of pos-only, pos/kw, and kw-only args
     false, false,   // varargs/varkws allowed?
     {"frame"},      // arg names
     "unique",       // function name
-R"(unique(frame)
---
-
-Find the unique values in the ``frame``.
-
-The ``frame`` can have multiple columns, in which case the unique values from
-all columns taken together will be returned.
-
-This methods sorts the values in order to find the uniques. Thus, the return
-values will be ordered. However, this should be considered an implementation
-detail: in the future we may use a different algorithm (such as hash-based),
-which may return the results in a different order.
-)");
+    doc_unique      // documentation
+);
 
 
 static py::oobj unique(const py::PKArgs& args) {
@@ -191,25 +215,54 @@ static py::oobj unique(const py::PKArgs& args) {
 // union()
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_union(
-    0, 0, 0,
-    true, false,
-    {},
-    "union",
+static const char* doc_union =
 R"(union(*frames)
 --
 
 Find the union of values in all `frames`.
 
-Each frame should have only a single column (however, empty frames are allowed
-too). The values in each frame will be treated as a set, and this function will
-perform the Union operation on these sets. The result will be returned as a
-single-column Frame. Input `frames` are allowed to have different stypes, in
-which case they will be upcasted to the smallest common stype, similar to the
-functionality of ``rbind()``.
+Each frame should have only a single column or be empty. The values in each
+frame will be treated as a set, and this function will perform the
+`union operation <https://en.wikipedia.org/wiki/Union_(set_theory)>`_
+on these sets.
 
-This operation is equivalent to ``dt.unique(dt.rbind(*frames))``.
-)");
+The `dt.union(*frames)` operation is equivalent to
+`dt.unique(dt.rbind(*frames))`.
+
+Parameters
+----------
+*frames: Frame, Frame, ...
+    Input single-column frames.
+
+return: Frame
+    A single-column frame. The column stype is the smallest common
+    stype of columns in the `frames`.
+
+except: ValueError
+    The exception is raised when one of the input frames has more than
+    one column.
+
+except: NotImplementedError
+    The exception is raised when one of the frame columns has stype `obj64`.
+
+See Also
+--------
+
+- :func:`intersect()` -- calculate the set intersection of values in the frames.
+- :func:`setdiff()` -- calculate the set difference between the frames.
+- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
+- :func:`unique()` -- find unique values in a frame.
+
+)";
+
+
+static py::PKArgs args_union(
+    0, 0, 0,
+    true, false,
+    {},
+    "union",
+    doc_union
+);
 
 
 static py::oobj union_(const py::PKArgs& args) {
@@ -282,26 +335,53 @@ static py::oobj _intersect(named_colvec&& cv) {
 }
 
 
+static const char* doc_intersect =
+R"(intersect(*frames)
+--
+
+Find the intersection of sets of values in the `frames`.
+
+Each frame should have only a single column or be empty.
+The values in each frame will be treated as a set, and this function will
+perform the
+`intersection operation <https://en.wikipedia.org/wiki/Intersection_(set_theory)>`_
+on these sets, returning those values that are present in each
+of the provided `frames`.
+
+Parameters
+----------
+*frames: Frame, Frame, ...
+    Input single-column frames.
+
+return: Frame
+    A single-column frame. The column stype is the smallest common
+    stype of columns in the `frames`.
+
+except: ValueError
+    The exception is raised when one of the input frames has more than
+    one column.
+
+except: NotImplementedError
+    The exception is raised when one of the frame columns has stype
+    `obj64`.
+
+See Also
+--------
+
+- :func:`setdiff()` -- calculate the set difference between the frames.
+- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
+- :func:`union()` -- calculate the union of values in the frames.
+- :func:`unique()` -- find unique values in a frame.
+
+)";
+
 static py::PKArgs args_intersect(
     0, 0, 0,
     true, false,
     {},
     "intersect",
-R"(intersect(*frames)
---
-
-Find the intersection of sets of values in all `frames`.
-
-Each frame should have only a single column (however, empty frames are allowed
-too). The values in each frame will be treated as a set, and this function will
-perform the Intersection operation on these sets. The result will be returned
-as a single-column Frame. Input `frames` are allowed to have different stypes,
-in which case they will be upcasted to the smallest common stype, similar to the
-functionality of ``rbind()``.
-
-The intersection operation returns those values that are present in each of
-the provided ``frames``.
-)");
+    doc_intersect
+);
 
 
 static py::oobj intersect(const py::PKArgs& args) {
@@ -347,26 +427,57 @@ static py::oobj _setdiff(named_colvec&& cv) {
 }
 
 
+static const char* doc_setdiff =
+R"(setdiff(frame0, *frames)
+--
+
+Find the set difference between `frame0` and the other `frames`.
+
+Each frame should have only a single column or be empty.
+The values in each frame will be treated as a set, and this function will
+compute the
+`set difference  <https://en.wikipedia.org/wiki/Complement_(set_theory)#Relative_complement>`_
+between the `frame0` and the union of the other
+frames, returning those values that are present in the `frame0`,
+but not present in any of the `frames`.
+
+Parameters
+----------
+frame0: Frame
+    Input single-column frame.
+
+*frames: Frame, Frame, ...
+    Input single-column frames.
+
+return: Frame
+    A single-column frame. The column stype is the smallest common
+    stype of columns from the `frames`.
+
+except: ValueError
+    The exception is raised when one of the input frames, i.e. `frame0`
+    or any from the `frames`, has more than one column.
+
+except: NotImplementedError
+    The exception is raised when one frame columns has stype `obj64`.
+
+
+See Also
+--------
+
+- :func:`intersect()` -- calculate the set intersection of values in the frames.
+- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
+- :func:`union()` -- calculate the union of values in the frames.
+- :func:`unique()` -- find unique values in a frame.
+
+)";
+
 static py::PKArgs args_setdiff(
     0, 0, 0,
     true, false,
     {},
     "setdiff",
-R"(setdiff(frame0, *frames)
---
-
-Find the set-difference between `frame0` and the other `frames`.
-
-Each frame should have only a single column (however, empty frames are allowed
-too). The values in each frame will be treated as a set, and this function will
-compute the set difference between the first frame and the union of the other
-frames. The result will be returned as a single-column Frame. Input frames
-are allowed to have different stypes, in which case they will be upcasted to
-the smallest common stype, similar to the functionality of ``rbind()``.
-
-The "set difference" operation returns those values that are present in the
-first frame ``frame0``, but not present in any of the ``frames``.
-)");
+    doc_setdiff
+);
 
 static py::oobj setdiff(const py::PKArgs& args) {
   named_colvec cv = columns_from_args(args);
@@ -436,27 +547,56 @@ static py::oobj _symdiff(named_colvec&& cv) {
 }
 
 
-static py::PKArgs args_symdiff(
-    0, 0, 0,
-    true, false,
-    {},
-    "symdiff",
+static const char* doc_symdiff =
 R"(symdiff(*frames)
 --
 
 Find the symmetric difference between the sets of values in all `frames`.
 
-Each frame should have only a single column (however, empty frames are allowed
-too). The values in each frame will be treated as a set, and this function will
-perform the Symmetric Difference operation on these sets. The result will be
-returned as a single-column Frame. Input `frames` are allowed to have different
-stypes, in which case they will be upcasted to the smallest common stype,
-similar to the functionality of ``rbind()``.
+Each frame should have only a single column or be empty.
+The values in each frame will be treated as a set, and this function will
+perform the
+`symmetric difference <https://en.wikipedia.org/wiki/Symmetric_difference>`_
+operation on these sets.
 
 The symmetric difference of two frames are those values that are present in
-either of the frames, but not in both. The symmetric difference of more than
+either of the frames, but not in the both. The symmetric difference of more than
 two frames are those values that are present in an odd number of frames.
-)");
+
+Parameters
+----------
+*frames: Frame, Frame, ...
+    Input single-column frames.
+
+return: Frame
+    A single-column frame. The column stype is the smallest common
+    stype of columns from the `frames`.
+
+except: ValueError
+    The exception is raised when one of the input frames has more
+    than one column.
+
+except: NotImplementedError
+    The exception is raised when one of the frame columns has stype `obj64`.
+
+
+See Also
+--------
+
+- :func:`intersect()` -- calculate the set intersection of values in the frames.
+- :func:`setdiff()` -- calculate the set difference between the frames.
+- :func:`union()` -- calculate the union of values in the frames.
+- :func:`unique()` -- find unique values in a frame.
+
+)";
+
+static py::PKArgs args_symdiff(
+    0, 0, 0,
+    true, false,
+    {},
+    "symdiff",
+    doc_symdiff
+);
 
 
 static py::oobj symdiff(const py::PKArgs& args) {

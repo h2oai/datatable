@@ -30,13 +30,25 @@ namespace expr {
 
 
 static const char* doc_rowcount =
-R"(rowcount(x1, x2, ...)
+R"(rowcount(cols)
 --
 
-For each row, count the number of non-NA values in columns x1, x2, ...
+For each row, count the number of non-missing values in `cols`.
 
-The input columns can have any types, and the resulting column will
-always be int32.
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression consisting of one `int32` column and the same number
+    of rows as in `cols`.
+
+See Also
+--------
+
+- :func:`rowsum()` -- sum of all values row-wise.
+
 )";
 
 py::PKArgs args_rowcount(0, 0, 0, true, false, {}, "rowcount", doc_rowcount);

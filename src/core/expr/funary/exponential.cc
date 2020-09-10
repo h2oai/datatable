@@ -90,8 +90,13 @@ static const char* doc_exp =
 R"(exp(x)
 --
 
-The exponent of x, that is e raised to the power of x. Here "e" is
-the Euler's constant (e = 2.71828...).
+The exponent of `x`, that is :math:`e^x`.
+
+See also
+--------
+- :data:`e <math.e>` -- the Euler's number;
+- :func:`expm1(x) <math.expm1>` -- exponent function minus one;
+- :func:`exp2(x) <math.exp2>` -- binary exponent;
 )";
 
 py::PKArgs args_exp(1, 0, 0, false, false, {"x"}, "exp", doc_exp);
@@ -111,7 +116,11 @@ static const char* doc_exp2 =
 R"(exp2(x)
 --
 
-Binary exponent of x, same as 2**x.
+Binary exponent of x, same as :math:`2^x`.
+
+See also
+--------
+- :func:`exp(x) <math.exp>` -- base-:math:`e` exponent.
 )";
 
 py::PKArgs args_exp2(1, 0, 0, false, false, {"x"}, "exp2", doc_exp2);
@@ -131,9 +140,8 @@ static const char* doc_expm1 =
 R"(expm1(x)
 --
 
-The exponent of x minus 1. This function is equivalent to
-`exp(x) - 1`, but it is more accurate for arguments `x` close to
-zero.
+The exponent of `x` minus 1, that is :math:`e^x - 1`. This function is
+more accurate for arguments `x` close to zero.
 )";
 
 py::PKArgs args_expm1(1, 0, 0, false, false, {"x"}, "expm1", doc_expm1);
@@ -153,7 +161,13 @@ static const char* doc_log =
 R"(log(x)
 --
 
-Natural logarithm of x.
+Natural logarithm of `x`, aka :math:`\ln x`. This function is the
+inverse of :func:`exp() <math.exp>`.
+
+See also
+--------
+- :func:`log10() <math.log10>` -- decimal logarithm;
+- :func:`log2() <math.log2>` -- binary logarithm.
 )";
 
 py::PKArgs args_log(1, 0, 0, false, false, {"x"}, "log", doc_log);
@@ -173,7 +187,14 @@ static const char* doc_log10 =
 R"(log10(x)
 --
 
-Decimal (base-10) logarithm of x.
+Decimal (base-10) logarithm of x, which is :math:`\lg(x)` or
+:math:`\log_{10} x`. This function is the inverse of
+:func:`pow(10, x) <math.pow>`.
+
+See also
+--------
+- :func:`log() <math.log>` -- natural logarithm;
+- :func:`log2() <math.log2>` -- binary logarithm.
 )";
 
 py::PKArgs args_log10(1, 0, 0, false, false, {"x"}, "log10", doc_log10);
@@ -193,8 +214,8 @@ static const char* doc_log1p =
 R"(log1p(x)
 --
 
-Natural logarithm of (1 + x). This function has improved numeric
-precision for small values of x.
+Natural logarithm of 1 plus `x`, or :math:`\ln(1 + x)`. This function
+has improved numeric precision for small values of `x`.
 )";
 
 py::PKArgs args_log1p(1, 0, 0, false, false, {"x"}, "log1p", doc_log1p);
@@ -214,7 +235,12 @@ static const char* doc_log2 =
 R"(log2(x)
 --
 
-Binary (base-2) logarithm of x.
+Binary (base-2) logarithm of x, which in mathematics is :math:`\log_2 x`.
+
+See also
+--------
+- :func:`log() <math.log>` -- natural logarithm;
+- :func:`log10() <math.log2>` -- decimal logarithm.
 )";
 
 py::PKArgs args_log2(1, 0, 0, false, false, {"x"}, "log2", doc_log2);

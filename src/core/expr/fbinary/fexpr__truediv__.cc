@@ -69,7 +69,7 @@ class FExpr__truediv__ : public FExpr_BinaryOp {
       return Column(new FuncBinary1_ColumnImpl<T, T, T>(
         std::move(a), std::move(b),
         [](T x, T y){
-          return (y == 0)? std::numeric_limits<T>::quiet_NaN() : (x / y);
+          return (x / y);
         },
         nrows, stype
       ));
