@@ -3,7 +3,7 @@
 Comparison with Rdatatable
 ==========================
 
-``Datatable`` strives to mimic `Rdatatable's <https://rdatatable.gitlab.io/data.table/index.html>`_ API as closely as possible; however, there are differences due to language constraints. 
+``Datatable`` strives to mimic `Rdatatable's <https://rdatatable.gitlab.io/data.table/index.html>`_ API as closely as possible; however, there are differences due to language constraints.
 
 This page shows how to perform similar basic operations in `Rdatatable <https://rdatatable.gitlab.io/data.table/index.html>`_  in ``datatable``.
 
@@ -13,6 +13,8 @@ Sample data::
 
     from datatable import dt, f, g, by, update, ifelse, join, sort
     import numpy as np
+
+    # data is from the example data in Rdatatable
 
     df = dt.Frame({"x":np.repeat(["b","a","c"],3),
                    "y": [1,3,6]*3,
@@ -79,8 +81,8 @@ RDatatable                                           Datatable                  
 
 In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, only the first item is included.
 
-Grouping Operations - j and by
--------------------------------
+Grouping Operations - j and :func:`by()`
+----------------------------------------
 
 ========================================         ============================================     ============================================================
 RDatatable                                           Datatable                                              Action
@@ -102,20 +104,20 @@ RDatatable                                           Datatable                  
 
 In `Rdatatable <https://rdatatable.gitlab.io/data.table/index.html>`_, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in Rdatatable returns a dataframe ordered by column ``x``.
 
-Also, in ``datatable``, f-expressions in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
+Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
 
 Multiple aggregations within a group can be executed in `Rdatatable <https://rdatatable.gitlab.io/data.table/index.html>`_ with the syntax below ::
 
     DT[, list(MySum=sum(v),
               MyMin=min(v),
               MyMax=max(v)),
-       by=.(x, y%%2)]     
+       by=.(x, y%%2)]
 
 The same can be replicated in ``datatable`` by using a dictionary ::
 
-    df[:, {MySum : dt.sum(f.v),
-           MyMin : dt.min(f.v),
-           MyMax : dt.max(f.v)},
+    df[:, {MySum: dt.sum(f.v),
+           MyMin: dt.min(f.v),
+           MyMax: dt.max(f.v)},
        by(f.x, f.y%2)]
 
 
@@ -125,8 +127,9 @@ Add/Update/Delete Column
 ========================================         ============================================     ============================================================
 RDatatable                                           Datatable                                              Action
 ========================================         ============================================     ============================================================
-``DT[, z:=42L]``                                 | ``df[f.x=="a", update(z=42)]`` or                Add new column
-                                                 | ``df[f.x=="a", 'z'] = 42`` or
+``DT[, z:=42L]``                                 | ``df[:, update(z=42)]`` or                       Add new column
+                                                 | ``df['z'] = 42`` or
+                                                 | ``df[:, 'z'] = 42`` or
                                                  | ``df = df[:, f[:].extend({"z":42})]``
 ``DT[, z:=NULL]``                                | ``del df['z']`` or                               Remove column
                                                  | ``del df[:, 'z']`` or
@@ -141,7 +144,187 @@ RDatatable                                           Datatable                  
 Note that the :func:`update` function, as well as the ``del`` function operates in-place; there is no need for reassignment. Another advantage of the :func:`update` method is that the row order of the dataframe is not changed, even in a groupby; this comes in handy in a lot of transformation operations.
 
 
-Joins :func:`join()`
--------
+:func:`join()`
+--------------
 
-At the moment, only left outer join is implemented in `datatable`.
+At the moment, only the left outer join is implemented in ``datatable``. Another aspect is that the dataframe being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both dataframes.
+
+Left join in `Rdatatable <https://rdatatable.gitlab.io/data.table/index.html>`_::
+
+    DT = data.table(x=rep(c("b","a","c"),each=3), y=c(1,3,6), v=1:9)
+    X = data.table(x=c("c","b"), v=8:7, foo=c(4,2))
+
+    X[DT, on="x"]
+
+       x  v foo y i.v
+    1: b  7   2 1   1
+    2: b  7   2 3   2
+    3: b  7   2 6   3
+    4: a NA  NA 1   4
+    5: a NA  NA 3   5
+    6: a NA  NA 6   6
+    7: c  8   4 1   7
+    8: c  8   4 3   8
+    9: c  8   4 6   9
+
+Join in ``Datatable``::
+
+    df = dt.Frame({"x":np.repeat(["b","a","c"],3),
+                   "y": [1,3,6]*3,
+                   "v": range(1,10)})
+
+    X = dt.Frame({"x":('c','b'),
+                  "v":(8,7),
+                  "foo":(4,2)})
+
+    X.key="x" # key the ``x`` column
+
+    df[:, :, join(X)]
+
+        x	y	v	v.0	foo
+    0	b	1	1	7	2
+    1	b	3	2	7	2
+    2	b	6	3	7	2
+    3	a	1	4	NA	NA
+    4	a	3	5	NA	NA
+    5	a	6	6	NA	NA
+    6	c	1	7	8	4
+    7	c	3	8	8	4
+    8	c	6	9	8	4
+
+- An inner join could be simulated by removing the nulls. Again, this only works if the keyed column has unique values.
+
+``Rdatatable``::
+
+    DT[X, on="x", nomatch=NULL]
+
+       x y v i.v foo
+    1: c 1 7   8   4
+    2: c 3 8   8   4
+    3: c 6 9   8   4
+    4: b 1 1   7   2
+    5: b 3 2   7   2
+    6: b 6 3   7   2
+
+``Datatable``::
+
+    df[g[-1]!=None, :, join(X)] # g refers to the joining dataframe X
+
+        x	y	v	v.0	foo
+    0	b	1	1	7	2
+    1	b	3	2	7	2
+    2	b	6	3	7	2
+    3	c	1	7	8	4
+    4	c	3	8	8	4
+    5	c	6	9	8	4
+
+- A `not join` can be simulated as well.
+
+``Rdatatable``::
+
+    DT[!X, on="x"]
+
+       x y v
+    1: a 1 4
+    2: a 3 5
+    3: a 6 6
+
+``Datatable``::
+
+    df[g[-1]==None, f[:], join(X)]
+
+        x	y	v
+    0	a	1	4
+    1	a	3	5
+    2	a	6	6
+
+- Select the first row for each group
+
+``Rdatatable``::
+
+    DT[X, on="x", mult="first"]
+
+       x y v i.v foo
+    1: c 1 7   8   4
+    2: b 1 1   7   2
+
+``Datatable``::
+
+    df[g[-1]!=None, :, join(X)][0, :, by('x')] #chaining comes in handy here
+
+        x	y	v	v.0	foo
+    0	b	1	1	7	2
+    1	c	1	7	8	4
+
+
+- Select the last row for each group
+
+``Rdatatable``::
+
+       x y v i.v foo
+    1: c 6 9   8   4
+    2: b 6 3   7   2
+
+``Datatable``::
+
+    df[g[-1]!=None, :, join(X)][-1, :, by('x')]
+
+        x	y	v	v.0	foo
+    0	b	6	3	7	2
+    1	c	6	9	8	4
+
+- Join and evaluate ``j`` for each row in ``i``
+
+``Rdatatable``::
+
+    DT[X, sum(v), by=.EACHI, on="x"]
+
+       x V1
+    1: c 24
+    2: b  6
+
+``Datatable``::
+
+    df[g[-1]!=None, :, join(X)][:, dt.sum(f.v), by("x")]
+
+        x	v
+    0	b	6
+    1	c	24
+
+- Compute on columns from both dataframes in ``j``
+
+``Rdatatable``::
+
+     DT[X, sum(v)*foo, by=.EACHI, on="x"]
+
+       x V1
+    1: c 96
+    2: b 12
+
+``Datatable``::
+
+    df[:, dt.sum(f.v*g.foo), join(X), by(f.x)][f[-1]!=0, :]
+
+        x	C0
+    0	b	12
+    1	c	96
+
+- Compute on columns with same name from both dataframes in ``j``
+
+``Rdatatable``::
+
+    DT[X, sum(v)*i.v, by=.EACHI, on="x"]
+
+       x  V1
+    1: c 192
+    2: b  42
+
+``Datatable``::
+
+    df[:, dt.sum(f.v*g.v), join(X), by(f.x)][f[-1]!=0, :]
+
+        x	C0
+    0	b	42
+    1	c	192
+
+Expect significant improvement in join functionality, with more concise syntax as ``datatable`` matures.
