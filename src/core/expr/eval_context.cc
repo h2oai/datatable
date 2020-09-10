@@ -61,6 +61,7 @@ void EvalContext::add_groupby(py::oby obj) {
   }
   byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
+  sortdirection_ = SortFlag::NONE;
 }
 
 
