@@ -69,7 +69,7 @@ mantissa_nbits=10, nepochs=1, double_precision=False, negative_class=False,
 interactions=None, model_type='auto', params=None)
 --
 
-Create a new :class:`FTRL <datatable.models.Ftrl>` model object.
+Create a new :class:`Ftrl <datatable.models.Ftrl>` object.
 
 Parameters
 ----------
@@ -1589,8 +1589,10 @@ trick for feature vectorization and the Hogwild approach
 for parallelization. Multinomial classification and regression for
 continuous targets are implemented experimentally.
 
-See this reference for more details:
-https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf
+See Also
+--------
+
+- `A core paper on FTRL-Proximal algorithm <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
 )";
 
 void Ftrl::impl_init_type(XTypeMaker& xt) {
