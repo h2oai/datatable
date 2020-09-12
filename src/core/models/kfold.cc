@@ -121,7 +121,7 @@ i.e. folds, and then each `i`-th split will use the `i`-th fold as a
 test part, and all the remaining rows as the train part. Thus, `i`-th split is
 comprised of:
 
-  - train rows: `[0; i*nrows/nsplits)` :math:`\cup` `[(i+1)*nrows/nsplits; nrows)`;
+  - train rows: `[0; i*nrows/nsplits) + [(i+1)*nrows/nsplits; nrows)`;
   - test rows: `[i*nrows/nsplits; (i+1)*nrows/nsplits)`.
 
 where integer division is assumed.
@@ -143,7 +143,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`models.kfold_random()` -- Perform randomized k-fold split.
+:func:`.kfold_random()` -- Perform randomized k-fold split.
 
 )";
 
@@ -248,7 +248,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`models.kfold()` -- Perform k-fold split.
+:func:`.kfold()` -- Perform k-fold split.
 
 )";
 

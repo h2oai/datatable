@@ -385,7 +385,7 @@ def test_ftrl_set_wrong_interactions_type():
 
 def test_ftrl_set_wrong_interactions_empty():
     ft = Ftrl()
-    with pytest.raises(TypeError) as e:
+    with pytest.raises(ValueError) as e:
         ft.interactions = [["C0"], []]
     assert ("Interaction cannot have zero features, encountered: []" == str(e.value))
 
@@ -1256,7 +1256,22 @@ def test_ftrl_no_early_stopping():
     assert math.isnan(res.loss) == False
 
 
-def test_ftrl_early_stopping_different_stypes():
+def test_ftrl_wrong_validation_stypes():
+    nbins = 10
+    ft = Ftrl(alpha = 0.5, nbins = nbins)
+    r = range(ft.nbins)
+    df_X = dt.Frame(r)
+    df_y = dt.Frame(r) # int32 stype
+    df_X_val = dt.Frame(["1"] * ft.nbins)
+    df_y_val = dt.Frame(list(r)) # int8 stype
+
+    msg = r"Training and validation frames must have identical column ltypes, " \
+           "instead for a column C0, got ltypes: int and str"
+    with pytest.raises(TypeError, match=msg):
+        res = ft.fit(df_X, df_y, df_X_val, df_y_val)
+
+
+def test_ftrl_early_stopping_compatible_stypes():
     nepochs = 10000
     nepochs_validation = 5
     nbins = 10
@@ -1264,7 +1279,7 @@ def test_ftrl_early_stopping_different_stypes():
     r = range(ft.nbins)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r) # int32 stype
-    df_y_val = dt.Frame(list(r)) # int8 stype
+    df_y_val = dt.Frame(list(r)/dt.int8) # int8 stype
 
     res = ft.fit(df_X, df_y, df_X, df_y_val,
                  nepochs_validation = nepochs_validation

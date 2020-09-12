@@ -73,35 +73,36 @@ Create a new :class:`Ftrl <datatable.models.Ftrl>` object.
 
 Parameters
 ----------
-alpha: float
+alpha: float (optional)
     :math:`\alpha` in per-coordinate learning rate formula, should be
     positive.
 
-beta: float
+beta: float (optional)
     :math:`\beta` in per-coordinate learning rate formula, should be non-negative.
 
-lambda1: float
+lambda1: float (optional)
     L1 regularization parameter, should be non-negative.
 
-lambda2: float
+lambda2: float (optional)
     L2 regularization parameter, should be non-negative.
 
-nbins: int
+nbins: int (optional)
     Number of bins to be used for the hashing trick, should be positive.
 
-mantissa_nbits: int
+mantissa_nbits: int (optional)
     Number of bits from mantissa to be used for hashing floats.
     It should be non-negative and less than or equal to `52`, that
     is a number of mantissa bits in a C++ 64-bit `double`.
 
-nepochs: float
-    Number of training epochs, should be non-negative. When `nepochs` is
-    an integer number, the model will train on all the data provided
-    to :meth:`.fit` method `nepochs` times. If `nepochs` has
-    a fractional component, the model's last iteration will only
-    be done on the fraction of data.
+nepochs: float (optional)
+    Number of training epochs, should be non-negative. When `nepochs`
+    is an integer number, the model will train on all the data
+    provided to :meth:`.fit` method `nepochs` times. If `nepochs`
+    has a fractional part `{nepochs}`, the model will train on all
+    the data `[nepochs]` (the integer part) times and the last
+    iteration will only be done on the `{nepochs}` fraction of data.
 
-double_precision: bool
+double_precision: bool (optional)
     An option to indicate whether double precision, i.e. `float64`,
     or single precision, i.e. `float32`, arithmetic should be used
     for computations. It is not guaranteed, that setting
@@ -109,22 +110,27 @@ double_precision: bool
     the model accuracy. It will, however, roughly double the memory
     footprint of the `Ftrl` object.
 
-negative_class: bool
-    An option to indicate if a 'negative’ class should be created
-    in the case of multinomial classification.
+negative_class: bool (optional)
+    An option to indicate if a "negative" class should be created
+    in the case of multinomial classification. For the "negative"
+    class the model will train on all the negatives, and if
+    a new label is encountered in the target column, its
+    weights are initialized to the current "negative" class weights.
+    If `negative_class` is set to `False`, the initial weights
+    become zeros.
 
-interactions: List[List | Tuple] | Tuple[List | Tuple]
+interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]] (optional)
     A list or a tuple of interactions. In turn, each interaction
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame.
 
-model_type: str
+model_type: str (optional)
     Model type can be one of the following: `binomial` for binomial
     classification, `multinomial` for multinomial classification,
     `regression` for numeric regression, and `auto` for automatic
     model type selection based on the target column `stype`.
 
-params: FtrlParams
+params: FtrlParams (optional)
     Named tuple of the above parameters. One can pass either this tuple,
     or any combination of the individual parameters to the constructor,
     but not both at the same time.
@@ -294,16 +300,16 @@ Train FTRL model on a dataset.
 Parameters
 ----------
 X_train: Frame
-    Training frame of shape (nrows, ncols).
+    Training frame.
 
 y_train: Frame
-    Target frame of shape (nrows, 1).
+    Target frame having as many rows as `X_train` and one column.
 
-X_validation: Frame
-    Validation frame of shape (nrows, ncols).
+X_validation: Frame (optional)
+    Validation frame having the same number of columns as `X_train`.
 
 y_validation: Frame
-    Validation target frame of shape (nrows, 1).
+    Validation target frame of shape `(nrows, 1)`.
 
 nepochs_validation: float
     Parameter that specifies how often, in epoch units, validation
@@ -414,6 +420,20 @@ oobj Ftrl::fit(const PKArgs& args) {
                          << "names as the training frame";
     }
 
+    dt::LType ltype, ltype_val;
+
+    for (size_t i = 0; i < dt_X_train->ncols(); i++) {
+      ltype = dt_X_train->get_column(i).ltype();
+      ltype_val = dt_X_val->get_column(i).ltype();
+
+      if (ltype != ltype_val) {
+        throw TypeError() << "Training and validation frames must have "
+                          << "identical column ltypes, instead for a column `"
+                          << (*colnames)[i] << "`, got ltypes: `" << ltype << "` and `"
+                          << ltype_val << "`";
+      }
+    }
+
     if (dt_X_val->nrows() == 0) {
       throw ValueError() << "Validation frame cannot be empty";
     }
@@ -424,8 +444,8 @@ oobj Ftrl::fit(const PKArgs& args) {
     }
 
 
-    auto ltype = dt_y->get_column(0).ltype();
-    auto ltype_val = dt_y_val->get_column(0).ltype();
+    ltype = dt_y->get_column(0).ltype();
+    ltype_val = dt_y_val->get_column(0).ltype();
 
     if (ltype != ltype_val) {
       throw TypeError() << "Training and validation target columns must have "
@@ -686,13 +706,18 @@ void Ftrl::set_model(robj model) {
 
 static const char* doc_fi =
 R"(
-Feature importances as calculated during the model training.
+Feature importances as calculated during the model training and
+normalized to `[0; 1]`. The normalization is done by dividing
+the accumulated feature importances over the maximum value.
 
 Parameters
 ----------
 return: Frame
-    Two-column frame with feature names and the corresponding
-    feature importances normalized to `[0; 1]`.)";
+    A frame with two columns: `feature_name` that has stype `str32`,
+    and `feature_importance` that has stype `float32` or `float64`
+    depending on whether the :attr:`double_precision <models.Ftrl.double_precision>`
+    option is `False` or `True`.
+)";
 
 static GSArgs args_fi(
   "feature_importances",
@@ -812,7 +837,7 @@ oobj Ftrl::get_colname_hashes() const {
 
 static const char* doc_alpha =
 R"(
-`alpha` in per-coordinate learning rate formula.
+:math:`\alpha` in per-coordinate learning rate formula.
 
 Parameters
 ----------
@@ -821,6 +846,9 @@ return: float
 
 newalpha: float
     New `alpha` value, should be positive.
+
+except: ValueError
+    The exception is raised when `newalpha` is not positive.
 )";
 
 static GSArgs args_alpha(
@@ -858,6 +886,10 @@ return: float
 
 newbeta: float
     New `beta` value, should be non-negative.
+
+except: ValueError
+    The exception is raised when `newbeta` is negative.
+
 )";
 
 static GSArgs args_beta(
@@ -895,6 +927,10 @@ return: float
 
 newlambda1: float
     New `lambda1` value, should be non-negative.
+
+except: ValueError
+    The exception is raised when `newlambda1` is negative.
+
 )";
 
 static GSArgs args_lambda1(
@@ -932,6 +968,10 @@ return: float
 
 newlambda2: float
     New `lambda2` value, should be non-negative.
+
+except: ValueError
+    The exception is raised when `newlambda2` is negative.
+
 )";
 
 static GSArgs args_lambda2(
@@ -972,8 +1012,10 @@ newnbins: int
     New `nbins` value, should be positive.
 
 except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
+    The exception is raised when
+
+    - trying to change this option for a model that has already been trained;
+    - `newnbins` value is not positive.
 
 )";
 
@@ -1022,8 +1064,10 @@ newmantissa_nbits: int
     mantissa bits in a C++ 64-bit `double`.
 
 except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
+    The exception is raised when
+
+    - trying to change this option for a model that has already been trained;
+    - `newmantissa_nbits` value is negative or larger than 52.
 
 )";
 
@@ -1063,7 +1107,11 @@ void Ftrl::set_mantissa_nbits(const Arg& arg_mantissa_nbits) {
 
 static const char* doc_nepochs =
 R"(
-Number of training epochs.
+Number of training epochs. When `nepochs` is an integer number,
+the model will train on all the data provided to :meth:`.fit` method
+`nepochs` times. If `nepochs` has a fractional part `{nepochs}`,
+the model will train on all the data `[nepochs]` (the integer part) times
+and the last iteration will only be done on the `{nepochs}` fraction of data.
 
 Parameters
 ----------
@@ -1072,6 +1120,10 @@ return: float
 
 newnepochs: float
     New `nepochs` value, should be non-negative.
+
+except: ValueError
+    The exception is raised when `newnepochs` value is negative.
+
 )";
 
 static GSArgs args_nepochs(
@@ -1101,19 +1153,13 @@ static const char* doc_double_precision =
 R"(
 An option to indicate whether double precision, i.e. `float64`,
 or single precision, i.e. `float32`, arithmetic should be
-used for computations. This option is read-only for a trained model.
+used for computations. This option is read-only and can only be set
+during the `Ftrl` object :meth:`construction <datatable.models.Ftrl.__init__>`.
 
 Parameters
 ----------
 return: bool
     Current `double_precision` value.
-
-newdouble_precision: bool
-    New `double_precision` value.
-
-except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
 
 )";
 
@@ -1144,9 +1190,15 @@ void Ftrl::set_double_precision(const Arg& arg_double_precision) {
 
 static const char* doc_negative_class =
 R"(
-An option to indicate if a 'negative' class should be created
-in the case of multinomial classification. This option is
-read-only for a trained model.
+An option to indicate if a "negative" class should be created
+in the case of multinomial classification. For the "negative"
+class the model will train on all the negatives, and if
+a new label is encountered in the target column, its
+weights are initialized to the current "negative" class weights.
+If `negative_class` is set to `False`, the initial weights
+become zeros.
+
+This option is read-only for a trained model.
 
 Parameters
 ----------
@@ -1159,6 +1211,9 @@ newnegative_class: bool
 except: ValueError
     The exception is raised when trying to change this option
     for a model that has already been trained.
+
+except: TypeError
+    The exception is raised when `newnegative_class` is not `bool`.
 
 )";
 
@@ -1199,14 +1254,20 @@ Parameters
 return: Tuple
     Current `interactions` value.
 
-newinteractions: Tuple | List
+newinteractions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
     New `interactions` value. Each particular interaction
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame.
 
 except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
+    The exception is raised when
+
+    - trying to change this option for a model that has already been trained;
+    - one of the interactions has zero features.
+
+except: TypeError
+    The exception is raised when `newinteractions` has a wrong type.
+
 
 )";
 
@@ -1250,7 +1311,7 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
 
     auto py_interaction = py_interaction_robj.to_oiter();
     if (!py_interaction.size())
-      throw TypeError() << "Interaction cannot have zero features, encountered: "
+      throw ValueError() << "Interaction cannot have zero features, encountered: "
                         << py_interaction_robj;
 
     py::otuple params_interaction(py_interaction.size());
@@ -1278,10 +1339,13 @@ static const char* doc_model_type =
 R"(
 A type of the model `Ftrl` should build:
 
-- `binomial` for binomial classification;
-- `multinomial` for multinomial classification;
-- `regression` for numeric regression;
-- `auto` for automatic model type detection based on the target column `stype`.
+- `"binomial"` for binomial classification;
+
+- `"multinomial"` for multinomial classification;
+
+- `"regression"` for numeric regression;
+
+- `"auto"` for automatic model type detection based on the target column `stype`.
 
 This option is read-only for a trained model.
 
@@ -1290,13 +1354,15 @@ Parameters
 return: str
     Current `model_type` value.
 
-newmodel_type: str
-    New `model_type` value, should be one of the following:
-    `binomial`, `multinomial`, `regression` or `auto`.
+newmodel_type: "binomial" | "multinomial" | "regression" | "auto"
+    New `model_type` value.
 
 except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
+    The exception is raised when
+
+    - trying to change this option for a model that has already been trained;
+    - `newmodel_type` value is not one of the following: `"binomial"`,
+      `"multinomial"`, `"regression"` or `"auto"`.
 
 See also
 --------
@@ -1385,8 +1451,11 @@ newparams: FtrlParams
     New `params` value.
 
 except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has alerady been trained.
+    The exception is raised when
+
+    - trying to change this option for a model that has alerady been trained;
+
+    - individual parameter values are incompatible with the corresponding setters.
 
 )";
 
@@ -1589,10 +1658,6 @@ trick for feature vectorization and the Hogwild approach
 for parallelization. Multinomial classification and regression for
 continuous targets are implemented experimentally.
 
-See Also
---------
-
-- `A core paper on FTRL-Proximal algorithm <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
 )";
 
 void Ftrl::impl_init_type(XTypeMaker& xt) {
