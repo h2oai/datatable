@@ -1455,7 +1455,7 @@ Parameters
 ----------
 cols: List[str | int]
     Names or indices of the columns to sort by. If no columns are
-    given, the Frame will be sorted on all columns.
+    given, the Frame will not sort any columns.
 
 return: Frame
     New Frame sorted by the provided column(s). The current frame
@@ -1469,9 +1469,8 @@ py::oobj py::Frame::sort(const PKArgs& args) {
   dt::expr::EvalContext ctx(dt);
 
   if (args.num_vararg_args() == 0) {
-    size_t n_cols = 0;
-    py::otuple all_cols(n_cols);
-    ctx.add_sortby(py::osort(all_cols));
+    py::otuple no_cols(0);
+    ctx.add_sortby(py::osort(no_cols));
   }
   else {
     std::vector<py::robj> cols;

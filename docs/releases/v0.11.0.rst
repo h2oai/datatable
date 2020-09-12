@@ -157,6 +157,8 @@
     previously it could return a dict of Frames if multiple sources were
     detected. Use :func:`iread()` if you need to read multi-source input.
 
+  -[api] Function: The behaviour of DT.sort() is made consistent with
+    DT[:, :, sort()] when the list of columns to sort is empty.
 
   General
   -------
@@ -253,3 +255,4 @@
     1   @mmalohlava
     1   @Viktor-Demin
     1   @chrinide            <Chrinide>
+    1   @pradkrish           <Pradeep Krishnamurthy>
