@@ -48,7 +48,6 @@
         * - :attr:`beta <datatable.models.Ftrl.beta>`
           - :math:`\beta` in per-coordinate FTRL-Proximal algorithm.
 
-
         * - :attr:`colnames <datatable.models.Ftrl.colnames>`
           - Column names of the training frame, i.e. features.
 
