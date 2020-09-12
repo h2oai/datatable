@@ -43,10 +43,10 @@
         :class: api-table
 
         * - :attr:`alpha <datatable.models.Ftrl.alpha>`
-          - :math:`\alpha` in per-coordinate learning rate formula.
+          - :math:`\alpha` in per-coordinate FTRL-Proximal algorithm.
 
         * - :attr:`beta <datatable.models.Ftrl.beta>`
-          - :math:`\beta` in per-coordinate learning rate formula.
+          - :math:`\beta` in per-coordinate FTRL-Proximal algorithm.
 
 
         * - :attr:`colnames <datatable.models.Ftrl.colnames>`
@@ -73,11 +73,8 @@
         * - :attr:`lambda2 <datatable.models.Ftrl.lambda2>`
           - L2 regularization parameter.
 
-        * - :attr:`nbins <datatable.models.Ftrl.nbins>`
-          - Number of bins for the hashing trick.
-
-        * - :attr:`nepochs <datatable.models.Ftrl.nepochs>`
-          - Number of training epochs.
+        * - :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`
+          - Number of mantissa bits for hashing floats.
 
         * - :attr:`model <datatable.models.Ftrl.model>`
           - The built model coefficients.
@@ -88,24 +85,18 @@
         * - :attr:`model_type_trained <datatable.models.Ftrl.model_type_trained>`
           - A model type `Ftrl` has built.
 
-        * - :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`
-          - Number of mantissa bits for hashing floats.
+        * - :attr:`nbins <datatable.models.Ftrl.nbins>`
+          - Number of bins for the hashing trick.
 
         * - :attr:`negative_class <datatable.models.Ftrl.negative_class>`
           - An option to indicate if the "negative" class should be a created
             for multinomial classification.
 
+        * - :attr:`nepochs <datatable.models.Ftrl.nepochs>`
+          - Number of training epochs.
+
         * - :attr:`params <datatable.models.Ftrl.params>`
           - All the input model parameters as a named tuple.
-
-
-
-    See Also
-    --------
-
-    - `A core paper on FTRL-Proximal algorithm <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
-
-
 
 
 .. toctree::

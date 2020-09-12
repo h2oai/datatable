@@ -795,7 +795,8 @@ void Ftrl::set_colnames(robj py_colnames) {
 
 static const char* doc_colname_hashes =
 R"(
-Hashes of the column names used for the hashing trick.
+Hashes of the column names used for the hashing trick as
+described in the :class:`Ftrl <models.Ftrl>` class description.
 
 Parameters
 ----------
@@ -837,7 +838,7 @@ oobj Ftrl::get_colname_hashes() const {
 
 static const char* doc_alpha =
 R"(
-:math:`\alpha` in per-coordinate learning rate formula.
+:math:`\alpha` in per-coordinate FTRL-Proximal algorithm.
 
 Parameters
 ----------
@@ -877,7 +878,7 @@ void Ftrl::set_alpha(const Arg& py_alpha) {
 
 static const char* doc_beta =
 R"(
-`beta` in per-coordinate learning rate formula.
+`beta` in per-coordinate FTRL-Proximal algorithm.
 
 Parameters
 ----------
@@ -1652,11 +1653,40 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 static const char* doc_Ftrl =
 R"(Follow the Regularized Leader (FTRL) model.
 
-FTRL model is a datatable implementation of the FTRL-Proximal online
-learning algorithm for binomial logistic regression. It uses a hashing
-trick for feature vectorization and the Hogwild approach
+FTRL model is a datatable implementation of the
+`FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
+online learning algorithm for binomial logistic regression. It uses a hashing
+trick for feature vectorization and the
+`Hogwild approach <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`_
 for parallelization. Multinomial classification and regression for
 continuous targets are implemented experimentally.
+
+This model can be used for datasets with the both numerical (boolean, integer
+and float types) and categorical (string types) features. All values are
+hashed with the 64-bit hashing function that is implemented as follows:
+
+- for booleans and integers the hashing function is essentially an identity
+  function;
+
+- for floats the hashing function trims mantissa, taking into account
+  :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`,
+  and interprets the resulting bit representation as 64-bit unsigned integer;
+
+- for strings the 64-bit `Murmur2 <https://github.com/aappleby/smhasher>`_
+  hashing function is used.
+
+To compute the final hash `x` the Murmur2 hashed feature name is added
+and the result is modulo divided by the number of requested bins, i.e.
+:attr:`nbins <datatable.models.Ftrl.nbins>`.
+
+For each hashed row of data, according to
+`Ad Click Prediction: a View from the Trenches <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_,
+the following FTRL-Proximal algorithm is employed:
+
+.. figure:: ftrl/ftrl_algorithm.png
+  :width: 400
+  :alt: Per-coordinate FTRL-Proximal online learning algorithm
+
 
 )";
 
