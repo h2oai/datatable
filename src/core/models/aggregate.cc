@@ -98,18 +98,19 @@ fixed_radius: float
 
 return: List[Frame, Frame]
     The first element in the list is the aggregated frame, i.e.
-    the frame that contains all the exemplar's rows from the input frame,
-    and the `int32` column called `members_count` with the number of members
-    per exemplar. Hence, the number of columns in this frame is
-    `frame.ncols + 1` and the number of rows is the number of
-    gathered exemplars.
+    the frame containing exemplars, with the shape of
+    `(nexemplars, frame.ncols + 1)`, where `nexemplars` is
+    the number of gathered exemplars. The first `frame.ncols` columns
+    are the columns from the input frame, and the last column
+    is the `members_count` that has stype `int32` containing
+    number of members per exemplar.
 
-    The second element is a members frame, that has one `int32` column
-    called `exemplar_id` with the exemplar ids the member belongs to.
-    These ids are effectively the ids of the exemplar's rows
-    from the input frame. The number of rows in the members frame
-    equals to `frame.nrows`, so that there is one to one correspondence
-    between the members and the original observations.
+    The second element in the list is the members frame with the shape of
+    `(frame.nrows, 1)`, each row in this frame corresponds to the
+    row with the same id in the input `frame`. The only column `exemplar_id`
+    has an stype of `int32` and contains the exemplar ids a particular
+    member belongs to. These ids are effectively the ids of
+    the exemplar's rows from the input frame.
 
 )";
 
