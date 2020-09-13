@@ -24,7 +24,7 @@
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
-#include "models/aggregator.h"
+#include "models/aggregate.h"
 #include "models/utils.h"
 #include "models/py_validator.h"
 #include "options.h"
@@ -35,6 +35,85 @@
 namespace py {
 
 
+static const char* doc_aggregate =
+R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
+nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False,
+fixed_radius=None)
+--
+
+Aggregate a frame into clusters. Each cluster consists of
+a set of members, i.e. a subset of the input frame, and is represented by
+an exemplar, i.e. one of the members.
+
+For one- and two-column frames this functions does a standard
+equal-interval binning. When the input frame has more columns than two,
+a parallel one-pass Ad-Hoc algorithm is employed, see description of
+`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/master/src/core/models/aggregator.cc>`_
+method for more details.
+
+
+Parameters
+----------
+frame: Frame
+    The input frame.
+
+min_rows: int
+    Minimum number of rows the input frame should have to be aggregated.
+    If `frame` has less rows than `min_rows`, aggregation
+    is bypassed, in the sence that all the input rows become exemplars.
+
+n_bins: int
+    Number of bins for 1D aggregation.
+
+nx_bins: int
+    Number of bins for the first column for 2D aggregation.
+
+ny_bins: int
+    Number of bins for the second column for 2D aggregation.
+
+nd_max_bins: int
+    Maximum number of exemplars for ND aggregation. It is guaranteed
+    that the ND algorithm will return less than `nd_max_bins` exemplars,
+    but the exact number may vary from run to run due to parallelization.
+
+max_dimensions: int
+    Number of columns at which the projection method is used for
+    ND aggregation.
+
+seed: int
+    Seed to be used for the projection method.
+
+double_precision: bool
+    An option to indicate whether double precision, i.e. `float64`,
+    or single precision, i.e. `float32`, arithmetic should be used
+    for computations.
+
+fixed_radius: float
+    Fixed radius for ND aggregation, use it with caution.
+    If set, `nd_max_bins` will have no effect and in the worst
+    case number of exemplars may be equal to the number of rows
+    in the data. For big data this may result in extremly large
+    execution times. Since all the columns are normalized to `[0, 1)`,
+    the `fixed_radius` value should be choosen accordingly.
+
+return: List[Frame, Frame]
+    The first element in the list is the aggregated frame, i.e.
+    the frame that contains all the exemplar's rows from the input frame,
+    and the `int32` column called `members_count` with the number of members
+    per exemplar. Hence, the number of columns in this frame is
+    `frame.ncols + 1` and the number of rows is the number of
+    gathered exemplars.
+
+    The second element is a members frame, that has one `int32` column
+    called `exemplar_id` with the exemplar ids the member belongs to.
+    These ids are effectively the ids of the exemplar's rows
+    from the input frame. The number of rows in the members frame
+    equals to `frame.nrows`, so that there is one to one correspondence
+    between the members and the original observations.
+
+)";
+
+
 static PKArgs args_aggregate(
   1, 0, 9, false, false,
   {
@@ -42,53 +121,7 @@ static PKArgs args_aggregate(
     "max_dimensions", "seed", "double_precision", "fixed_radius"
   },
   "aggregate",
-
-R"(aggregate(frame, min_rows=500, n_bins=500, nx_bins=50, ny_bins=50,
-nd_max_bins=500, max_dimensions=50, seed=0, double_precision=False,
-fixed_radius=None)
---
-
-Aggregate frame into a set of clusters. Each cluster is represented by
-an exemplar, and mapping information for the corresponding members.
-
-Parameters
-----------
-frame: Frame
-    Frame to be aggregated.
-min_rows: int
-    Minimum number of rows a datatable should have to be aggregated.
-    If datatable has `nrows` that is less than `min_rows`, aggregation
-    is bypassed, and all rows become exemplars.
-n_bins: int
-    Number of bins for 1D aggregation.
-nx_bins: int
-    Number of x bins for 2D aggregation.
-ny_bins: int
-    Number of y bins for 2D aggregation.
-nd_max_bins: int
-    Maximum number of exemplars for ND aggregation, not a hard limit.
-max_dimensions: int
-    Number of columns at which start using the projection method.
-seed: int
-    Seed to be used for the projection method.
-double_precision: bool
-    Whether to use double precision arithmetic or not.
-fixed_radius: float
-    Fixed radius for ND aggregation, use it with caution.
-    If set, `nd_max_bins` will have no effect and in the worst
-    case number of exemplars may be equal to the number of rows
-    in the data. For big data this may result in extremly large
-    execution times. Since all the columns are normalized to [0, 1),
-    the `fixed_radius` value should be choosen accordingly.
-
-Returns
--------
-A list `[frame_exemplars, frame_members]`, where
-- `frame_exemplars` is the aggregated `frame` with an additional
-  `members_count` column, that specifies number of members for each exemplar.
-- `frame_members` is a one-column datatable that contains `exemplar_id` for
-  each row from the original `frame`.
-)"
+  doc_aggregate
 );
 
 
@@ -830,29 +863,27 @@ size_t Aggregator<T>::n_merged_nas(const sztvec& n_nas) {
 
 
 /**
- *  Do ND grouping in the general case. The initial `delta` (`delta = radius^2`)
- *  is set to machine precision, so that we are gathering some initial exemplars.
- *  When this `delta` starts getting us more exemplars than is set by `nd_max_bins`
- *  do the following:
+ *  Do ND grouping in the general case.
+ *
+ *  We start with an empty exemplar list and do one pass through the data.
+ *  If a partucular observation falls into a bubble with radius `r` and
+ *  the center being one of the exemplars, we mark this observation
+ *  as a member of that exemplar's cluster. If there is no exemplar found,
+ *  the considered observation becomes a new exemplar.
+ *
+ *  First, the initial `delta`, i.e. `r^2`, is set to the machine precision,
+ *  so that we can gather some initial exemplars. When the number
+ *  of exemplars becomes larger than `nd_max_bins`, we do the `delta`
+ *  adjustment as follows
+ *
  *  - find the mean distance between all the gathered exemplars;
- *  - merge all the exemplars that are within half of this distance;
- *  - adjust `delta` taking into account initial size of bubbles;
- *  - store the merging info and use it in `adjust_members(...)`.
+ *  - merge all the exemplars that are within the half of this distance;
+ *  - adjust `delta` by taking into account the initial bubble radius;
+ *  - store the exemplar's merging information to update member's
+ *    in `adjust_members()`.
  *
- *  Another approach is to have a constant `delta` see `Develop` branch
- *  https://github.com/h2oai/vis-data-server/blob/master/library/src/main/java/com/
- *  h2o/data/Aggregator.java based on the estimates given at
- *  https://mathoverflow.net/questions/308018/coverage-of-balls-on-random-points-in-
- *  euclidean-space?answertab=active#tab-top i.e.
- *
- *  T radius2 = (d / 6.0) - 1.744 * sqrt(7.0 * d / 180.0);
- *  T radius = (d > 4)? .5 * sqrt(radius2) : .5 / pow(100.0, 1.0 / d);
- *  if (d > max_dimensions) {
- *    radius /= 7.0;
- *  }
- *  T delta = radius * radius;
- *
- *  However, for some datasets this `delta` results in too many (e.g. thousands) or
+ *  Another approach is to stick to the constant `delta`, however,
+ *  for some datasets it may result in too many (e.g. thousands) or
  *  too few (e.g. just one) exemplars.
  */
 template <typename T>
@@ -862,8 +893,8 @@ bool Aggregator<T>::group_nd() {
   size_t nrows = contcols[0].nrows();
   size_t ndims = std::min(max_dimensions, ncols);
 
-  std::vector<exptr> exemplars;
-  std::vector<size_t> ids;
+  std::vector<exptr> exemplars; // Current exemplars
+  std::vector<size_t> ids; // All the exemplar's ids, including the merged ones
   std::vector<size_t> coprimes;
   size_t nexemplars = 0;
   size_t ncoprimes = 0;
@@ -1026,6 +1057,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
   for (size_t i = 0; i < n - 1; ++i) {
     for (size_t j = i + 1; j < n; ++j) {
       if (deltas[k] < delta_merge && exemplars[i] != nullptr && exemplars[j] != nullptr) {
+        // Store merging information
         ids[exemplars[j]->id] = exemplars[i]->id;
         exemplars[j] = nullptr;
       }

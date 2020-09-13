@@ -22,6 +22,9 @@ Functions
     :widths: auto
     :class: api-table
 
+    * - :func:`aggregate()`
+      - Aggregate a frame
+
     * - :func:`kfold()`
       - Perform k-fold split
 
@@ -32,6 +35,7 @@ Functions
 .. toctree::
     :hidden:
 
+    aggregate()     <models/aggregate>
     Ftrl            <models/ftrl>
     kfold()         <models/kfold>
     kfold_random()  <models/kfold_random>
