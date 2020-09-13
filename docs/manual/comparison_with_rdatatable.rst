@@ -9,7 +9,7 @@ This page shows how to perform similar basic operations in R's `data.table <http
 
 Subsetting Rows
 ---------------
-The sample data is from the example data in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__.
+The sample data is from the `examples <https://rdatatable.gitlab.io/data.table/reference/data.table.html#examples>`__ data in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__.
 
 ``data.table``::
 
@@ -21,7 +21,7 @@ The sample data is from the example data in R's `data.table <https://data.table.
 
 ``datatable``::
 
-    from datatable import dt, f, g, by, update, ifelse, join, sort
+    from datatable import dt, f, g, by, update, join, sort
     import numpy as np
 
     DT = dt.Frame({"x":np.repeat(["b","a","c"],3),
@@ -202,8 +202,9 @@ Join in ``datatable``::
 
 - An inner join could be simulated by removing the nulls. Again, a :func:`join` only works if the joining dataframe is keyed.
 
-``data.table``::
+.. code-block:: R
 
+    # data.table
     DT[X, on="x", nomatch=NULL]
 
        x y v i.v foo
@@ -214,8 +215,9 @@ Join in ``datatable``::
     5: b 3 2   7   2
     6: b 6 3   7   2
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[g[-1]!=None, :, join(X)] # g refers to the joining dataframe X
 
         x	y	v	v.0	foo
@@ -228,8 +230,9 @@ Join in ``datatable``::
 
 - A `not join` can be simulated as well.
 
-``data.table``::
+.. code-block:: R
 
+    # data.table
     DT[!X, on="x"]
 
        x y v
@@ -237,8 +240,9 @@ Join in ``datatable``::
     2: a 3 5
     3: a 6 6
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[g[-1]==None, f[:], join(X)]
 
         x	y	v
@@ -248,17 +252,19 @@ Join in ``datatable``::
 
 - Select the first row for each group
 
-``data.table``::
+.. code-block:: R
 
+    # data.table
     DT[X, on="x", mult="first"]
 
        x y v i.v foo
     1: c 1 7   8   4
     2: b 1 1   7   2
 
-``datatable``::
+.. code-block:: python
 
-    DT[g[-1]!=None, :, join(X)][0, :, by('x')] #chaining comes in handy here
+    # datatable
+    DT[g[-1]!=None, :, join(X)][0, :, by('x')] # chaining comes in handy here
 
         x	y	v	v.0	foo
     0	b	1	1	7	2
@@ -267,14 +273,18 @@ Join in ``datatable``::
 
 - Select the last row for each group
 
-``data.table``::
+.. code-block:: R
+
+    # data.table
+    DT[X, on="x", mult="last"]
 
        x y v i.v foo
     1: c 6 9   8   4
     2: b 6 3   7   2
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[g[-1]!=None, :, join(X)][-1, :, by('x')]
 
         x	y	v	v.0	foo
@@ -283,16 +293,18 @@ Join in ``datatable``::
 
 - Join and evaluate ``j`` for each row in ``i``
 
-``data.table``::
+.. code-block:: R
 
+    # data.table
     DT[X, sum(v), by=.EACHI, on="x"]
 
        x V1
     1: c 24
     2: b  6
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[g[-1]!=None, :, join(X)][:, dt.sum(f.v), by("x")]
 
         x	v
@@ -301,34 +313,38 @@ Join in ``datatable``::
 
 - Aggregate on columns from both dataframes in ``j``
 
-``data.table``::
+.. code-block:: R
 
-     DT[X, sum(v)*foo, by=.EACHI, on="x"]
+    # data.table
+    DT[X, sum(v)*foo, by=.EACHI, on="x"]
 
        x V1
     1: c 96
     2: b 12
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[:, dt.sum(f.v*g.foo), join(X), by(f.x)][f[-1]!=0, :]
 
         x	C0
     0	b	12
     1	c	96
 
-- Compute on columns with same name from both dataframes in ``j``
+- Aggregate on columns with same name from both dataframes in ``j``
 
-``data.table``::
+.. code-block:: R
 
+    # data.table
     DT[X, sum(v)*i.v, by=.EACHI, on="x"]
 
        x  V1
     1: c 192
     2: b  42
 
-``datatable``::
+.. code-block:: python
 
+    # datatable
     DT[:, dt.sum(f.v*g.v), join(X), by(f.x)][f[-1]!=0, :]
 
         x	C0
