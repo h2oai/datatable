@@ -1469,9 +1469,8 @@ py::oobj py::Frame::sort(const PKArgs& args) {
   dt::expr::EvalContext ctx(dt);
 
   if (args.num_vararg_args() == 0) {
-    size_t no_cols = 0;
-    py::otuple all_cols(no_cols);
-    ctx.add_sortby(py::osort(all_cols));
+    py::otuple no_cols(0);
+    ctx.add_sortby(py::osort(no_cols));
   }
   else {
     std::vector<py::robj> cols;
