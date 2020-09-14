@@ -12,7 +12,7 @@ Classes
     :class: api-table
 
     * - :class:`Ftrl`
-      - FTRL-Proximal online learning model
+      - FTRL-Proximal online learning model.
 
 
 Functions
@@ -23,13 +23,13 @@ Functions
     :class: api-table
 
     * - :func:`aggregate()`
-      - Aggregate a frame
+      - Aggregate a frame.
 
     * - :func:`kfold()`
-      - Perform k-fold split
+      - Perform k-fold split.
 
     * - :func:`kfold_random()`
-      - Perform randomized k-fold split
+      - Perform randomized k-fold split.
 
 
 .. toctree::

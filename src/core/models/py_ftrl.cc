@@ -74,33 +74,36 @@ Create a new :class:`Ftrl <datatable.models.Ftrl>` object.
 Parameters
 ----------
 alpha: float (optional)
-    :math:`\alpha` in per-coordinate learning rate formula, should be
+    :math:`\alpha` in per-coordinate FTRL-Proximal algorithm, should be
     positive.
 
 beta: float (optional)
-    :math:`\beta` in per-coordinate learning rate formula, should be non-negative.
+    :math:`\beta` in per-coordinate FTRL-Proximal algorithm, should be non-negative.
 
 lambda1: float (optional)
-    L1 regularization parameter, should be non-negative.
+    L1 regularization parameter, :math:`\lambda_1` in per-coordinate
+    FTRL-Proximal algorithm. It should be non-negative.
 
 lambda2: float (optional)
-    L2 regularization parameter, should be non-negative.
+    L2 regularization parameter, :math:`\lambda_2` in per-coordinate
+    FTRL-Proximal algorithm. It should be non-negative.
 
 nbins: int (optional)
     Number of bins to be used for the hashing trick, should be positive.
 
 mantissa_nbits: int (optional)
-    Number of bits from mantissa to be used for hashing floats.
+    Number of mantissa bits to take into account when hashing floats.
     It should be non-negative and less than or equal to `52`, that
-    is a number of mantissa bits in a C++ 64-bit `double`.
+    is a number of mantissa bits allocated for a C++ 64-bit `double`.
 
 nepochs: float (optional)
     Number of training epochs, should be non-negative. When `nepochs`
     is an integer number, the model will train on all the data
     provided to :meth:`.fit` method `nepochs` times. If `nepochs`
     has a fractional part `{nepochs}`, the model will train on all
-    the data `[nepochs]` (the integer part) times and the last
-    iteration will only be done on the `{nepochs}` fraction of data.
+    the data `[nepochs]` times, i.e. the integer part of `nepochs`.
+    Plus, it will also perform an additional training iteration
+    on the `{nepochs}` fraction of data.
 
 double_precision: bool (optional)
     An option to indicate whether double precision, i.e. `float64`,
@@ -115,20 +118,20 @@ negative_class: bool (optional)
     in the case of multinomial classification. For the "negative"
     class the model will train on all the negatives, and if
     a new label is encountered in the target column, its
-    weights are initialized to the current "negative" class weights.
+    weights will be initialized to the current "negative" class weights.
     If `negative_class` is set to `False`, the initial weights
     become zeros.
 
 interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]] (optional)
     A list or a tuple of interactions. In turn, each interaction
     should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame.
+    name is a column name from the training frame. Each interaction
+    should have at least one feature.
 
-model_type: str (optional)
-    Model type can be one of the following: `binomial` for binomial
-    classification, `multinomial` for multinomial classification,
-    `regression` for numeric regression, and `auto` for automatic
-    model type selection based on the target column `stype`.
+model_type: "binomial" | "multinomial" | "regression" | "auto" (optional)
+    The model type to be built. When this option is `"auto"`
+    then the model type will be automatically choosen based on
+    the target column `stype`.
 
 params: FtrlParams (optional)
     Named tuple of the above parameters. One can pass either this tuple,
@@ -316,12 +319,13 @@ nepochs_validation: float
     error should be checked.
 
 validation_error: float
-    If within `nepochs_validation` relative validation error does not improve
-    by at least `validation_error`, training stops.
+    The improvement of the relative validation error that should be
+    demonstrated by the model within `nepochs_validation` epochs,
+    otherwise the training will stop.
 
 validation_average_niterations: int
-    Number of iterations that is used to calculate average loss. Here, each
-    iteration corresponds to `nepochs_validation` epochs.
+    Number of iterations that is used to average the validation error.
+    Each iteration corresponds to `nepochs_validation` epochs.
 
 return: FtrlFitOutput
     `FtrlFitOutput` is a `Tuple[float, float]` with two fields: `epoch` and `loss`,
@@ -516,12 +520,13 @@ Make predictions for a dataset.
 Parameters
 ----------
 X: Frame
-    Frame of shape (nrows, ncols) to make predictions for.
-    It should have the same number of columns as the training frame.
+    A frame to make predictions for. It should have the same number
+    of columns as the training frame.
 
 return: Frame
-    A new frame of shape `(nrows, nlabels)` with the predicted probabilities
-    for each row of frame `X` and each label the model was trained for.
+    A new frame of shape `(X.nrows, nlabels)` with the predicted probabilities
+    for each row of frame `X` and each of `nlabels` labels
+    the model was trained for.
 
 See also
 --------
@@ -589,7 +594,7 @@ static const char* doc_reset =
 R"(reset(self)
 --
 
-Reset FTRL model by resetting all the model coefficients, labels and
+Reset `Ftrl` model by resetting all the model weights, labels and
 feature importance information.
 
 Parameters
@@ -643,15 +648,17 @@ oobj Ftrl::get_labels() const {
 
 static const char* doc_model =
 R"(
-Trained model coefficients.
+Trained models weights, i.e. `z` and `n` coefficients
+in per-coordinate FTRL-Proximal algorithm.
 
 Parameters
 ----------
 return: Frame
     A frame of shape `(nbins, 2 * nlabels)`, where `nlabels` is
-    the total number of labels the model was trained on, and `nbins`
-    is the number of bins used for the hashing trick. Odd and even
-    columns represent the `z` and `n` model coefficients, respectively.
+    the total number of labels the model was trained on, and
+    :attr:`nbins <datatable.models.Ftrl.nbins>` is the number of bins
+    used for the hashing trick. Odd and even columns represent
+    the `z` and `n` model coefficients, respectively.
 )";
 
 static GSArgs args_model("model", doc_model);
@@ -741,7 +748,7 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
 
 static const char* doc_colnames =
 R"(
-Column names of the training frame that are used as feature names.
+Column names of the training frame, i.e. the feature names.
 
 Parameters
 ----------
@@ -878,7 +885,7 @@ void Ftrl::set_alpha(const Arg& py_alpha) {
 
 static const char* doc_beta =
 R"(
-`beta` in per-coordinate FTRL-Proximal algorithm.
+:math:`\beta` in per-coordinate FTRL-Proximal algorithm.
 
 Parameters
 ----------
@@ -919,7 +926,8 @@ void Ftrl::set_beta(const Arg& py_beta) {
 
 static const char* doc_lambda1 =
 R"(
-L1 regularization parameter.
+L1 regularization parameter, :math:`\lambda_1` in per-coordinate
+FTRL-Proximal algorithm.
 
 Parameters
 ----------
@@ -960,7 +968,8 @@ void Ftrl::set_lambda1(const Arg& py_lambda1) {
 
 static const char* doc_lambda2 =
 R"(
-L2 regularization parameter.
+L2 regularization parameter, :math:`\lambda_2` in per-coordinate
+FTRL-Proximal algorithm.
 
 Parameters
 ----------
@@ -1051,7 +1060,7 @@ void Ftrl::set_nbins(const Arg& arg_nbins) {
 
 static const char* doc_mantissa_nbits =
 R"(
-Number of mantissa bits to be used for hashing floats.
+Number of mantissa bits to take into account for hashing floats.
 This option is read-only for a trained model.
 
 Parameters
@@ -1068,7 +1077,7 @@ except: ValueError
     The exception is raised when
 
     - trying to change this option for a model that has already been trained;
-    - `newmantissa_nbits` value is negative or larger than 52.
+    - `newmantissa_nbits` value is negative or larger than `52`.
 
 )";
 
@@ -1111,8 +1120,9 @@ R"(
 Number of training epochs. When `nepochs` is an integer number,
 the model will train on all the data provided to :meth:`.fit` method
 `nepochs` times. If `nepochs` has a fractional part `{nepochs}`,
-the model will train on all the data `[nepochs]` (the integer part) times
-and the last iteration will only be done on the `{nepochs}` fraction of data.
+the model will train on all the data `[nepochs]` times,
+i.e. the integer part of `nepochs`. Plus, it will also perform an additional
+training iteration on the `{nepochs}` fraction of data.
 
 Parameters
 ----------
@@ -1247,7 +1257,7 @@ void Ftrl::set_negative_class(const Arg& arg_negative_class) {
 
 static const char* doc_interactions =
 R"(
-A set of feature interactions to be used for model training. This option is
+The feature interactions to be used for model training. This option is
 read-only for a trained model.
 
 Parameters
@@ -1410,8 +1420,8 @@ The model type `Ftrl` has built.
 Parameters
 ----------
 return: str
-    Could be one of the following: `regression`, `binomial`,
-    `multinomial` or `none` for untrained model.
+    Could be one of the following: `"regression"`, `"binomial"`,
+    `"multinomial"` or `"none"` for untrained model.
 
 See also
 --------
@@ -1655,29 +1665,31 @@ R"(Follow the Regularized Leader (FTRL) model.
 
 FTRL model is a datatable implementation of the
 `FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
-online learning algorithm for binomial logistic regression. It uses a hashing
-trick for feature vectorization and the
+online learning algorithm for binomial logistic regression. Multinomial
+classification and regression for continuous targets are also implemented,
+though these implementations are experimental. This model is fully parallel
+and is based on the
 `Hogwild approach <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`_
-for parallelization. Multinomial classification and regression for
-continuous targets are implemented experimentally.
+for parallelization.
 
-This model can be used for datasets with the both numerical (boolean, integer
-and float types) and categorical (string types) features. All values are
-hashed with the 64-bit hashing function that is implemented as follows:
+The model supports datasets with the both numerical (boolean, integer
+and float types) and string features. To vectorize features a hashing trick
+is employed, such that all the values are hashed with the 64-bit hashing function.
+This function is implemented as follows:
 
 - for booleans and integers the hashing function is essentially an identity
   function;
 
 - for floats the hashing function trims mantissa, taking into account
   :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`,
-  and interprets the resulting bit representation as 64-bit unsigned integer;
+  and interprets the resulting bit representation as a 64-bit unsigned integer;
 
 - for strings the 64-bit `Murmur2 <https://github.com/aappleby/smhasher>`_
   hashing function is used.
 
 To compute the final hash `x` the Murmur2 hashed feature name is added
-and the result is modulo divided by the number of requested bins, i.e.
-:attr:`nbins <datatable.models.Ftrl.nbins>`.
+to the hashed feature and the result is modulo divided by the number of
+requested bins, i.e. by :attr:`nbins <datatable.models.Ftrl.nbins>`.
 
 For each hashed row of data, according to
 `Ad Click Prediction: a View from the Trenches <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_,
@@ -1687,6 +1699,9 @@ the following FTRL-Proximal algorithm is employed:
   :width: 400
   :alt: Per-coordinate FTRL-Proximal online learning algorithm
 
+When trained, the model can be used to make predictions, or it can be
+re-trained on new datasets as many times as needed improving
+model weights from run to run.
 
 )";
 

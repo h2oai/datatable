@@ -66,17 +66,17 @@
         * - :attr:`labels <datatable.models.Ftrl.labels>`
           - Classification labels.
 
-        * - :attr:`lambda1 <datatable.models.Ftrl.lambda1>`
-          - L1 regularization parameter.
+        * - :attr:`lambda1 <datatable.models.Ftrl.lambda2>`
+          -  L1 regularization parameter, :math:`\lambda_1` in per-coordinate FTRL-Proximal algorithm.
 
         * - :attr:`lambda2 <datatable.models.Ftrl.lambda2>`
-          - L2 regularization parameter.
+          -  L2 regularization parameter, :math:`\lambda_2` in per-coordinate FTRL-Proximal algorithm.
 
         * - :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`
           - Number of mantissa bits for hashing floats.
 
         * - :attr:`model <datatable.models.Ftrl.model>`
-          - The built model coefficients.
+          - The model's `z` and `n` coefficients.
 
         * - :attr:`model_type <datatable.models.Ftrl.model_type>`
           - A model type `Ftrl` should build.
