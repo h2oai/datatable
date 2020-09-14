@@ -132,7 +132,7 @@ nrows: int
     The number of rows in the frame that is going to be split.
 
 nsplits: int
-    Number of folds, must be at least 2, but not larger than `nrows`.
+    Number of folds, must be at least `2`, but not larger than `nrows`.
 
 return: List[Tuple]
     This function returns a list of `nsplits` tuples `(train_rows, test_rows)`,
@@ -143,7 +143,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`.kfold_random()` -- Perform randomized k-fold split.
+:func:`kfold_random() <models.kfold_random>` -- Perform randomized k-fold split.
 
 )";
 
@@ -233,7 +233,7 @@ nrows: int
     The number of rows in the frame that you want to split.
 
 nsplits: int
-    Number of folds, must be at least 2, but not larger than `nrows`.
+    Number of folds, must be at least `2`, but not larger than `nrows`.
 
 seed: int
     Seed value for the random number generator used by this function.
@@ -248,7 +248,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`.kfold()` -- Perform k-fold split.
+:func:`kfold() <models.kfold>` -- Perform k-fold split.
 
 )";
 
