@@ -45,17 +45,21 @@ Aggregate a frame into clusters. Each cluster consists of
 a set of members, i.e. a subset of the input frame, and is represented by
 an exemplar, i.e. one of the members.
 
-For one- and two-column frames this functions does a standard
-equal-interval binning. When the input frame has more columns than two,
+For one- and two-column frames the aggregation is based on
+the standard equal-interval binning for numeric columns, and
+grouping for string columns.
+
+When the input frame has more columns than two,
 a parallel one-pass Ad-Hoc algorithm is employed, see description of
 `Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/master/src/core/models/aggregator.cc>`_
-method for more details.
+method for more details. This algorithm takes into account
+the numeric columns only, and all the string columns are ignored.
 
 
 Parameters
 ----------
 frame: Frame
-    The input frame.
+    The input frame containing numeric or string columns.
 
 min_rows: int
     Minimum number of rows the input frame should have to be aggregated.
@@ -111,6 +115,14 @@ return: List[Frame, Frame]
     has an stype of `int32` and contains the exemplar ids a particular
     member belongs to. These ids are effectively the ids of
     the exemplar's rows from the input frame.
+
+
+except: ValueError
+    The exception is raised if the input frame is missing.
+
+except: TypeError
+    This exception is raised when one of the `frame`'s columns has an
+    unsupported stype, i.e. the column is both non-numeric and non-string.
 
 )";
 
@@ -340,7 +352,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
                                catcols.push_back(dt->get_column(i));
                              }
                              break;
-        default:             throw ValueError() << "Columns with stype `"
+        default:             throw TypeError() << "Columns with stype `"
                                << col_stype << "` are not supported";
       }
       if (is_continuous) {

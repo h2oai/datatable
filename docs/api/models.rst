@@ -35,7 +35,7 @@ Functions
 .. toctree::
     :hidden:
 
-    aggregate()     <models/aggregate>
     Ftrl            <models/ftrl>
+    aggregate()     <models/aggregate>
     kfold()         <models/kfold>
     kfold_random()  <models/kfold_random>

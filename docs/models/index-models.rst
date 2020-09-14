@@ -3,7 +3,5 @@ Models
 ======
 
 
-
-
 .. toctree::
     FTRL        <ftrl>
