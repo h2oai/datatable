@@ -73,30 +73,30 @@ Create a new :class:`Ftrl <datatable.models.Ftrl>` object.
 
 Parameters
 ----------
-alpha: float (optional)
+alpha: float
     :math:`\alpha` in per-coordinate FTRL-Proximal algorithm, should be
     positive.
 
-beta: float (optional)
+beta: float
     :math:`\beta` in per-coordinate FTRL-Proximal algorithm, should be non-negative.
 
-lambda1: float (optional)
+lambda1: float
     L1 regularization parameter, :math:`\lambda_1` in per-coordinate
     FTRL-Proximal algorithm. It should be non-negative.
 
-lambda2: float (optional)
+lambda2: float
     L2 regularization parameter, :math:`\lambda_2` in per-coordinate
     FTRL-Proximal algorithm. It should be non-negative.
 
-nbins: int (optional)
+nbins: int
     Number of bins to be used for the hashing trick, should be positive.
 
-mantissa_nbits: int (optional)
+mantissa_nbits: int
     Number of mantissa bits to take into account when hashing floats.
     It should be non-negative and less than or equal to `52`, that
     is a number of mantissa bits allocated for a C++ 64-bit `double`.
 
-nepochs: float (optional)
+nepochs: float
     Number of training epochs, should be non-negative. When `nepochs`
     is an integer number, the model will train on all the data
     provided to :meth:`.fit` method `nepochs` times. If `nepochs`
@@ -105,7 +105,7 @@ nepochs: float (optional)
     Plus, it will also perform an additional training iteration
     on the `{nepochs}` fraction of data.
 
-double_precision: bool (optional)
+double_precision: bool
     An option to indicate whether double precision, i.e. `float64`,
     or single precision, i.e. `float32`, arithmetic should be used
     for computations. It is not guaranteed, that setting
@@ -113,7 +113,7 @@ double_precision: bool (optional)
     the model accuracy. It will, however, roughly double the memory
     footprint of the `Ftrl` object.
 
-negative_class: bool (optional)
+negative_class: bool
     An option to indicate if a "negative" class should be created
     in the case of multinomial classification. For the "negative"
     class the model will train on all the negatives, and if
@@ -122,18 +122,18 @@ negative_class: bool (optional)
     If `negative_class` is set to `False`, the initial weights
     become zeros.
 
-interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]] (optional)
+interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
     A list or a tuple of interactions. In turn, each interaction
     should be a list or a tuple of feature names, where each feature
     name is a column name from the training frame. Each interaction
     should have at least one feature.
 
-model_type: "binomial" | "multinomial" | "regression" | "auto" (optional)
+model_type: "binomial" | "multinomial" | "regression" | "auto"
     The model type to be built. When this option is `"auto"`
     then the model type will be automatically choosen based on
     the target column `stype`.
 
-params: FtrlParams (optional)
+params: FtrlParams
     Named tuple of the above parameters. One can pass either this tuple,
     or any combination of the individual parameters to the constructor,
     but not both at the same time.
@@ -308,7 +308,7 @@ X_train: Frame
 y_train: Frame
     Target frame having as many rows as `X_train` and one column.
 
-X_validation: Frame (optional)
+X_validation: Frame
     Validation frame having the same number of columns as `X_train`.
 
 y_validation: Frame

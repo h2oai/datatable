@@ -235,7 +235,7 @@ nrows: int
 nsplits: int
     Number of folds, must be at least 2, but not larger than `nrows`.
 
-seed: int (optional)
+seed: int
     Seed value for the random number generator used by this function.
     Calling the function several times with the same seed values
     will produce same results each time.
