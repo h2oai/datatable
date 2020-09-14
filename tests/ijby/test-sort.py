@@ -997,8 +997,21 @@ def test_sort_strings_reverse_large():
     RES = DT[:, :, dt.sort(f.A, reverse=True)]
     assert_equals(DT[:, :, sort(-f.A)], RES)
 
-
-
+def test_sort_double_negation():
+    src = ['klein', 'nim', 'toapr', 'f', '', 'zleu', '?34', '.............']
+    src *= 10
+    src += ['adferg', 'reneeas', 'ldodls', 'qu', 'zleuss', 'ni'] * 7
+    src *= 25
+    src += ['shoo!', 'zzZzzZ' * 5]
+    DT = dt.Frame(A=src)
+    RES1 = DT[:, :, dt.sort(-f.A, reverse=True)]
+    RES2 = DT[:, :, dt.sort(-f.A, reverse=False)]
+    RES3 = DT[:, :, dt.sort(0, reverse=True)]
+    RES4 = DT[:, :, dt.sort(0, reverse=False)]
+    assert_equals(DT[:, :, sort(f.A)], RES1)
+    assert_equals(DT[:, :, sort(-f.A)], RES2)
+    assert_equals(DT[:, :, sort(-f.A)], RES3)
+    assert_equals(DT[:, :, sort(f.A)], RES4)
 
 #-------------------------------------------------------------------------------
 # Misc issues

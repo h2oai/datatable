@@ -107,8 +107,8 @@ class EvalContext
     std::shared_ptr<FExpr>  byexpr_;
     std::shared_ptr<FExpr>  sortexpr_;
     std::shared_ptr<FExpr>  rexpr_;
-    SortFlag sortdirection_;
-    
+    bool reverse_;
+
     // Runtime
     frameVec   frames_;
     Groupby    groupby_;
@@ -151,7 +151,7 @@ class EvalContext
     void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
-    SortFlag get_sort_direction();
+    bool reverse_sort();
   private:
     void compute_groupby_and_sort();
 

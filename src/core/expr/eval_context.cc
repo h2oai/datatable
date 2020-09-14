@@ -61,7 +61,7 @@ void EvalContext::add_groupby(py::oby obj) {
   }
   byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
-  sortdirection_ = SortFlag::NONE;
+  reverse_ = false;
 }
 
 
@@ -71,9 +71,9 @@ void EvalContext::add_sortby(py::osort obj) {
   }
   sortexpr_ = as_fexpr(obj.get_arguments());
   if (!obj.get_reverse().empty() && obj.get_reverse().at(0)) {
-    sortdirection_ = SortFlag::DESCENDING;
+    reverse_ = true;
   } else {
-    sortdirection_ = SortFlag::NONE;
+    reverse_ = false;
   }
 }
 
@@ -237,8 +237,8 @@ void EvalContext::create_placeholder_columns() {
 // single group might be empty if the frame has 0 rows.
 //
 
-SortFlag EvalContext::get_sort_direction() {
-  return sortdirection_;
+bool EvalContext::reverse_sort() {
+  return reverse_;
 }
 
 void EvalContext::compute_groupby_and_sort() {
