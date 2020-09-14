@@ -3,7 +3,7 @@
 Grouping with ``by``
 ====================
 
-The :func:`by()` modifier splits a dataframe into groups, either via the provided column(s) or an :ref:`f-expressions`, and then applies ``i`` and ``j`` within each group.  This `split-apply-combine <https://www.jstatsoft.org/article/view/v040i01#:~:text=Abstract%3A,all%20the%20pieces%20back%20together.>`_ strategy allows for a number of operations:
+The :func:`by()` modifier splits a dataframe into groups, either via the provided column(s) or :ref:`f-expressions`, and then applies ``i`` and ``j`` within each group.  This `split-apply-combine <https://www.jstatsoft.org/article/view/v040i01#:~:text=Abstract%3A,all%20the%20pieces%20back%20together.>`_ strategy allows for a number of operations:
 
 - Aggregations per group,
 - Transformation of a column or columns, where the shape of the dataframe is maintained,
@@ -14,9 +14,12 @@ Aggregation
 
 The aggregate function is applied in the ``j`` section.
 
-- Group by one column::
+- Group by one column
 
-    from datatable import dt, f, by, ifelse, update, sort, count, min, max, mean, sum, rowsum, count
+.. code-block:: python
+
+    from datatable import (dt, f, by, ifelse, update, sort,
+                          count, min, max, mean, sum, rowsum)
 
 
     df =  dt.Frame("""Fruit   Date       Name  Number
@@ -43,7 +46,9 @@ The aggregate function is applied in the ``j`` section.
     1	Grapes	137
     2	Oranges	140
 
-- Group by multiple columns::
+- Group by multiple columns
+
+.. code-block:: python
 
     df[:, sum(f.Number), by('Fruit', 'Name')]
 
@@ -59,7 +64,9 @@ The aggregate function is applied in the ``j`` section.
     8	Oranges	Tom	15
     9	Oranges	Tony	1
 
-- By column position::
+- By column position
+
+.. code-block:: python
 
     df[:, sum(f.Number), by(f[0])]
 
@@ -68,7 +75,9 @@ The aggregate function is applied in the ``j`` section.
     1	Grapes	137
     2	Oranges	140
 
-- By boolean expression::
+- By boolean expression
+
+.. code-block:: python
 
     df[:, sum(f.Number), by(f.Fruit == "Apples")]
 
@@ -76,7 +85,9 @@ The aggregate function is applied in the ``j`` section.
     0	0	277
     	1	35
 
-- Combination of column and boolean expression::
+- Combination of column and boolean expression
+
+.. code-block:: python
 
     df[:, sum(f.Number), by(f.Name, f.Fruit == "Apples")]
 
@@ -89,16 +100,30 @@ The aggregate function is applied in the ``j`` section.
     5	Tom	0	102
     6	Tony	0	16
 
+- The grouping column can be excluded from the final output
+
+.. code-block:: python
+
+    df[:, sum(f.Number), by('Fruit', add_columns=False)]
+
+        Number
+    0	35
+    1	137
+    2	140
+
 
 **Note:**
     - The resulting dataframe has the grouping column(s) as the first column(s).
     - The grouping columns are excluded from ``j``, unless explicitly included.
+    - The grouping columns are sorted in ascending order.
 
-- Apply multiple aggregate functions to a column in the ``j`` section::
+- Apply multiple aggregate functions to a column in the ``j`` section
 
-    aggs = {"min": dt.min(f.Number), "max": dt.max(f.Number)}
+.. code-block:: python
 
-    df[:, aggs, by('Fruit','Date')]
+    df[:, {"min": min(f.Number),
+           "max": max(f.Number)},
+      by('Fruit','Date')]
 
         Fruit	Date	       min	max
     0	Apples	10/6/2016	7	9
@@ -107,9 +132,11 @@ The aggregate function is applied in the ``j`` section.
     3	Oranges	10/6/2016	15	65
     4	Oranges	10/7/2016	1	2
 
-* Function can be applied across a columnset
+* Functions can be applied across a columnset
 
-   - Task : Get sum of ``col3`` and ``col4``, grouped by ``col1`` and ``col2``::
+  - Task : Get sum of ``col3`` and ``col4``, grouped by ``col1`` and ``col2``
+
+.. code-block:: python
 
       df = dt.Frame(""" col1   col2   col3   col4   col5
                         a      c      1      2      f
@@ -127,9 +154,11 @@ The aggregate function is applied in the ``j`` section.
       2  	b	d	1	2
       3	        b	e	2	4
 
-- Apply different aggregate functions to different columns::
+- Apply different aggregate functions to different columns
 
-    df[:,[max(f.col3), min(f.col4)], by('col1', 'col2')]
+.. code-block:: python
+
+    df[:, [max(f.col3), min(f.col4)], by('col1', 'col2')]
 
         col1	col2	col3	col4
     0	a	c	1	2
@@ -139,7 +168,9 @@ The aggregate function is applied in the ``j`` section.
 
 * Nested aggregations in ``j``
 
-   - Task : Group by column ``idx`` and get the row sum of ``A`` and ``B``, ``C`` and ``D``::
+  - Task : Group by column ``idx`` and get the row sum of ``A`` and ``B``, ``C`` and ``D``
+
+.. code-block:: python
 
       df = dt.Frame(""" idx  A   B   C   D   cat
                          J   1   2   3   1   x
@@ -162,7 +193,9 @@ The aggregate function is applied in the ``j`` section.
 
 * Computation between aggregated columns
 
-   - Task : Get the difference between the largest and smallest value within each group::
+  - Task : Get the difference between the largest and smallest value within each group
+
+.. code-block:: python
 
       df = dt.Frame("""GROUP VALUE
                         1     5
@@ -177,7 +210,9 @@ The aggregate function is applied in the ``j`` section.
       0	   1	 5
       1	   2	 18
 
-- Null values are not excluded from the grouping column::
+- Null values are not excluded from the grouping column
+
+.. code-block:: python
 
     df = dt.Frame("""  a    b    c
                        1    2.0  3
@@ -192,7 +227,9 @@ The aggregate function is applied in the ``j`` section.
         1	1	2	3
         2	2	2	5
 
-If you wish to ignore null values, first filter them out::
+If you wish to ignore null values, first filter them out
+
+.. code-block:: python
 
     df[f.b != None, :][:, sum(f[:]), by('b')]
 
@@ -209,7 +246,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
     - ``i`` is applied after the grouping, not before.
     - :ref:`f-expressions` in the ``i`` section is not yet implemented for groupby.
 
-- Select the first row per group::
+- Select the first row per group
+
+.. code-block:: python
 
     df = dt.Frame("""A   B
                      1  10
@@ -228,7 +267,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
     1	2	30
     2	3	10
 
-- Select the last row per group::
+- Select the last row per group
+
+.. code-block:: python
 
     df[-1, :, by('A')]
 
@@ -239,7 +280,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
 - Select the nth row per group
 
-   - Task : select the second row per group::
+  - Task : select the second row per group
+
+.. code-block:: python
 
       df[1, :, by('A')]
 
@@ -250,7 +293,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 **Note:**
     - Filtering this way can be used to drop duplicates; you can decide to keep the first or last non-duplicate.
 
-- Select the latest entry per group::
+- Select the latest entry per group
+
+.. code-block:: python
 
     df   =  dt.Frame("""id    product   date
                         220    6647     2014-09-01
@@ -275,7 +320,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
 * Replicate ``SQL``'s ``HAVING`` clause
 
-   - Task: Filter for groups where the length/count is greater than 1::
+  - Task: Filter for groups where the length/count is greater than 1
+
+.. code-block:: python
 
       df = dt.Frame([[1, 1, 5], [2, 3, 6]], names=['A', 'B'])
 
@@ -302,7 +349,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
       0	  1	  2
       1   1	  3
 
-- Keep only rows per group where ``diff`` is the minimum::
+- Keep only rows per group where ``diff`` is the minimum
+
+.. code-block:: python
 
     df = dt.Frame(""" item    diff   otherstuff
                         1       2            1
@@ -328,7 +377,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
     2	 3	 0	    0
 
 
-- Keep only entries where ``make`` has both 0 and 1 in ``sales``::
+- Keep only entries where ``make`` has both 0 and 1 in ``sales``
+
+.. code-block:: python
 
     df  =  dt.Frame(""" make    country  other_columns   sale
                         honda    tokyo       data          1
@@ -363,7 +414,9 @@ Transformation
 
 This is when a function is applied to a column after a groupby and the resulting column is appended back to the dataframe.  The number of rows of the dataframe is unchanged. The :func:`update` method makes this possible and easy. Let's look at a couple of examples:
 
-- Get the minimum and maximum of column ``c`` per group, and append to dataframe::
+- Get the minimum and maximum of column ``c`` per group, and append to dataframe
+
+.. code-block:: python
 
     df  =  dt.Frame(""" c     y
                         9     0
@@ -397,7 +450,9 @@ This is when a function is applied to a column after a groupby and the resulting
         8	0	4	0	7
         9	7	4	0	7
 
-- Fill missing values by group mean::
+- Fill missing values by group mean
+
+.. code-block:: python
 
     df = dt.Frame({'value' : [1, np.nan, np.nan, 2, 3, 1, 3, np.nan, 3],
                    'name' : ['A','A', 'B','B','B','B', 'C','C','C']})
@@ -436,9 +491,9 @@ This is when a function is applied to a column after a groupby and the resulting
 
 - Transform and Aggregate on Multiple Columns
 
-   - Task: Get the sum of the aggregate of column ``a`` and ``b``,
-     grouped by ``c`` and ``d``,
-     and append to dataframe::
+  - Task: Get the sum of the aggregate of column ``a`` and ``b``, grouped by ``c`` and ``d`` and append to dataframe.
+
+.. code-block:: python
 
       df = dt.Frame({'a' : [1,2,3,4,5,6],
                      'b' : [1,2,3,4,5,6],
@@ -471,7 +526,10 @@ This is when a function is applied to a column after a groupby and the resulting
       5	    6	6	w	o	22
 
 - Replicate R's groupby `mutate <https://dplyr.tidyverse.org/reference/mutate.html>`_
-   - Task : Get ratio by dividing column ``c`` by the product of column ``c` and ``d``, grouped by ``a`` and ``b``::
+
+  - Task : Get ratio by dividing column ``c`` by the product of column ``c`` and ``d``, grouped by ``a`` and ``b``
+
+.. code-block:: python
 
       df = dt.Frame(dict(a = (1,1,0,1,0),
                          b = (1,0,0,1,0),
@@ -508,7 +566,9 @@ Groupby on Boolean Expressions
 
 - Conditional Sum with groupby
 
-   - Task : Sum ``data1`` column, grouped by ``key1`` and rows where ``key2== "one"``::
+  - Task : Sum ``data1`` column, grouped by ``key1`` and rows where ``key2== "one"``
+
+.. code-block:: python
 
       df = dt.Frame("""data1        data2     key1  key2
                        0.361601    0.375297     a    one
@@ -526,7 +586,9 @@ Groupby on Boolean Expressions
       0	   a	0.093391
       1	   b	1.46819
 
-- Conditional Sums based on various Criteria::
+- Conditional Sums based on various Criteria
+
+.. code-block:: python
 
     df = dt.Frame(""" A_id       B       C
                         a1      "up"     100
@@ -556,7 +618,9 @@ More Examples
 
 - Aggregation on Values in a Column
 
-   - Task : group by ``Day`` and find minimum ``Data_Value`` for ``TMIN`` and maximum ``Data_Value`` for ``TMAX``::
+  - Task : group by ``Day`` and find minimum ``Data_Value`` for ``TMIN`` and maximum ``Data_Value`` for ``TMAX``
+
+.. code-block:: python
 
       df = dt.Frame("""  Day    Element  Data_Value
                         01-01   TMAX    112
@@ -594,7 +658,9 @@ More Examples
 
 - Filter row based on aggregate value
 
-   - Task : find, for every ``word``, the ``tag`` that has the most ``count``::
+  - Task : Find, for every ``word``, the ``tag`` that has the most ``count``
+
+.. code-block:: python
 
       df = dt.Frame("""  word  tag count
                           a     S    30
@@ -618,10 +684,9 @@ More Examples
 
 - Group By and Conditional Sum and add Back to Data Frame
 
-   - Task: Sum the ``Count`` value for each ``ID``,
-     when ``Num`` is (17 or 12) and ``Letter`` is 'D',
-     and also add the calculation back to the original data frame as 'Total'::
+  - Task: Sum the ``Count`` value for each ``ID``, when ``Num`` is (17 or 12) and ``Letter`` is 'D' and also add the calculation back to the original data frame as 'Total'
 
+.. code-block:: python
 
       df =   dt.Frame(""" ID  Num  Letter  Count
                            1   17   D       1
@@ -652,9 +717,9 @@ More Examples
 
 - Multiple indexing with multiple min and max in one aggregate
 
-   - Task : find ``col1`` where ``col2`` is max,
-     ``col2`` where ``col3`` is min,
-     and ``col1`` where ``col3`` is max::
+  - Task : find ``col1`` where ``col2`` is max, ``col2`` where ``col3`` is min and ``col1`` where ``col3`` is max
+
+.. code-block:: python
 
       df = dt.Frame({
                      "id" : [1, 1, 1, 2, 2, 2, 2, 3, 3, 3],
@@ -678,13 +743,13 @@ More Examples
       9 	3	7	7	67
 
       df[:,
-         {'col1' : sum(ifelse(f.col2 == max(f.col2),
+         {'col1' : max(ifelse(f.col2 == max(f.col2),
                               f.col1, None)),
 
-          'col2' : sum(ifelse(f.col3 == min(f.col3),
+          'col2' : max(ifelse(f.col3 == min(f.col3),
                               f.col2, None)),
 
-          'col3' : sum(ifelse(f.col3 == max(f.col3),
+          'col3' : max(ifelse(f.col3 == max(f.col3),
                               f.col1, None))
           },
          by('id')]
