@@ -100,8 +100,8 @@ fixed_radius: float
     execution times. Since all the columns are normalized to `[0, 1)`,
     the `fixed_radius` value should be choosen accordingly.
 
-return: List[Frame, Frame]
-    The first element in the list is the aggregated frame, i.e.
+return: Tuple[Frame, Frame]
+    The first element in the tuple is the aggregated frame, i.e.
     the frame containing exemplars, with the shape of
     `(nexemplars, frame.ncols + 1)`, where `nexemplars` is
     the number of gathered exemplars. The first `frame.ncols` columns
@@ -109,7 +109,7 @@ return: List[Frame, Frame]
     is the `members_count` that has stype `int32` containing
     number of members per exemplar.
 
-    The second element in the list is the members frame with the shape of
+    The second element in the tuple is the members frame with the shape of
     `(frame.nrows, 1)`, each row in this frame corresponds to the
     row with the same id in the input `frame`. The only column `exemplar_id`
     has an stype of `int32` and contains the exemplar ids a particular
@@ -229,10 +229,10 @@ static oobj aggregate(const PKArgs& args) {
   py::oobj df_members = py::Frame::oframe(dt_members.release());
 
   // Return exemplars and members frames
-  py::olist list(2);
-  list.set(0, df_exemplars);
-  list.set(1, df_members);
-  return std::move(list);
+  py::otuple tpl_out(2);
+  tpl_out.set(0, df_exemplars);
+  tpl_out.set(1, df_members);
+  return std::move(tpl_out);
 }
 
 }  // namespace py

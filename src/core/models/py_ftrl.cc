@@ -1351,11 +1351,8 @@ R"(
 A type of the model `Ftrl` should build:
 
 - `"binomial"` for binomial classification;
-
 - `"multinomial"` for multinomial classification;
-
 - `"regression"` for numeric regression;
-
 - `"auto"` for automatic model type detection based on the target column `stype`.
 
 This option is read-only for a trained model.
