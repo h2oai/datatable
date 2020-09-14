@@ -1011,10 +1011,13 @@ def test_sort_api():
     df3 = df.sort("A", "B")
     df4 = df.sort(["A", "B"])
     df5 = df.sort()  # issue 1354
+    df6 = df[:, :, dt.sort()]
+    df7 = df[:, :, dt.sort(["A", "B"])]
     assert df1.to_list() == [[1, 1, 2, 2], [3.3, 0.1, 2.7, 4.5]]
     assert df2.to_list() == [[1, 2, 1, 2], [0.1, 2.7, 3.3, 4.5]]
     assert df3.to_list() == [[1, 1, 2, 2], [0.1, 3.3, 2.7, 4.5]]
-    assert df4.to_list() == df5.to_list() == df3.to_list()
+    assert df4.to_list() == df7.to_list()
+    assert df5.to_list() == df6.to_list()
 
 
 def test_issue1401():
