@@ -66,7 +66,7 @@ except: ValueError
 See Also
 --------
 
-- `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+- `Tutorial on joins <start/quick-start.html#join>`_
 
 
 )";

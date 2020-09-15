@@ -11,7 +11,7 @@
         :class: api-table
 
         * - :meth:`Frame(*args, **kws) <datatable.Frame.__init__>`
-          - Construct the frame from various Python sources
+          - Construct the frame from various Python sources.
 
         * - :func:`dt.fread(src) <datatable.fread>`
           - Read an external file and convert into a Frame.

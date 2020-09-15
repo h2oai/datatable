@@ -231,8 +231,15 @@
   ----------
   .. ref-context:: datatable.models.Ftrl
 
-  -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
+  -[enh] :attr:`models.Ftrl.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
+
+  -[enh] :meth:`models.Ftrl.fit()` now throws :exc:`TypeError` when ltypes in the
+   training and validation frames are not consistent.
+
+  -[api] :attr:`models.Ftrl.interactions` now throws an :exc:`ValueError`
+    instead of a :exc:`TypeError` when assigning interactions
+    having zero features.
 
   -[fix] Fixed inconsistency in progress reporting. [#2520]
 

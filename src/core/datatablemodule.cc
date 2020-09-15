@@ -41,7 +41,7 @@
 #include "frame/py_frame.h"
 #include "frame/repr/html_widget.h"
 #include "ltype.h"
-#include "models/aggregator.h"
+#include "models/aggregate.h"
 #include "models/py_ftrl.h"
 #include "options.h"
 #include "parallel/api.h"
