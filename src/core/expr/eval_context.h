@@ -107,7 +107,6 @@ class EvalContext
     std::shared_ptr<FExpr>  byexpr_;
     std::shared_ptr<FExpr>  sortexpr_;
     std::shared_ptr<FExpr>  rexpr_;
-    bool reverse_;
 
     // Runtime
     frameVec   frames_;
@@ -118,7 +117,8 @@ class EvalContext
     strvec     newnames_;
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
-    size_t : 48;
+    bool       reverse_;
+    size_t : 40;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
