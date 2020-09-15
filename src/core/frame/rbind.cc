@@ -113,6 +113,10 @@ void Frame::rbind(const PKArgs& args) {
 
   std::vector<DataTable*> dts;
   std::vector<sztvec> cols;
+  // This is needed in case python objs that are owning the DataTables `dts`
+  // would go out of scope and be DECREFed after the process_arg. This can
+  // happen for example if the frames are produced from a generator.
+  std::vector<oobj> dtobjs;
 
   // First, find all frames that will be rbound. We will process both the
   // vararg sequence, and the case when a list (or tuple) passed. In fact,
@@ -124,7 +128,10 @@ void Frame::rbind(const PKArgs& args) {
     FN process_arg = [&](const py::robj arg, size_t level) {
       if (arg.is_frame()) {
         DataTable* df = arg.to_datatable();
-        if (df->nrows()) dts.push_back(df);
+        if (df->nrows()) {
+          dts.push_back(df);
+          dtobjs.push_back(arg);
+        }
         ++j;
       }
       else if (arg.is_iterable() && !arg.is_string() && level < 2) {

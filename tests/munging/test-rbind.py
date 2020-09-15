@@ -587,3 +587,17 @@ def test_issue2030():
     DT.rbind(DT, DT)
     frame_integrity_check(DT)
     assert DT.to_list()[0] == [None, 'tzgu', 'dsedpz'] * 3
+
+
+def test_issue2621_a():
+    # Rbinding an iterator of frames should produce correct result
+    RES = dt.rbind(dt.Frame(A=[i], B=['hey'])
+                   for i in range(10))
+    assert_equals(RES, dt.Frame(A=range(10), B=['hey']*10))
+
+
+def test_issue2621_b():
+    src = """c1, c2, c3
+             11, 2, 3"""
+    RES = dt.rbind(dt.iread([src, src]))
+    assert_equals(RES, dt.Frame(c1=[11, 11], c2=[2, 2], c3=[3, 3]))
