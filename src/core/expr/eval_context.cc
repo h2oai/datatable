@@ -61,6 +61,7 @@ void EvalContext::add_groupby(py::oby obj) {
   }
   byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
+  reverse_ = false;
 }
 
 
@@ -69,6 +70,11 @@ void EvalContext::add_sortby(py::osort obj) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
   sortexpr_ = as_fexpr(obj.get_arguments());
+  if (!obj.get_reverse().empty() && obj.get_reverse().at(0)) {
+    reverse_ = true;
+  } else {
+    reverse_ = false;
+  }
 }
 
 
@@ -230,6 +236,11 @@ void EvalContext::create_placeholder_columns() {
 // single group that encompasses the entire frame. Note that this
 // single group might be empty if the frame has 0 rows.
 //
+
+bool EvalContext::reverse_sort() {
+  return reverse_;
+}
+
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
   if (byexpr_ || sortexpr_) {

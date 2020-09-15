@@ -117,7 +117,8 @@ class EvalContext
     strvec     newnames_;
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
-    size_t : 48;
+    bool       reverse_;
+    size_t : 40;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
@@ -150,6 +151,7 @@ class EvalContext
     void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
+    bool reverse_sort();
   private:
     void compute_groupby_and_sort();
 
