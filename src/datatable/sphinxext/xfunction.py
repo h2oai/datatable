@@ -60,13 +60,15 @@ from . import xnodes
 
 rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
-rx_param = re.compile(r"(?:"
-                      r"(\w+)(?:\s*=\s*("
-                      r"\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|\[[^\[\]]*\]|[^,\[\(\"]*"
-                      r"))?"
-                      r"|([\*/]|\*\*?\w+)"
-                      r")\s*(?:,\s*)?|"
-                      r"\[,?\s*(\w+),?\s*\]\s*")
+rx_param = re.compile(r"""
+    (?:(\w+)                                        # parameter name
+       (?:\s*=\s*(\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|
+                  \[[^\[\]]*\]|[^,\[\(\"]*))?       # default value
+       |(\*\*?\w*|/)                                # varags/varkwds
+    )\s*(?:,\s*)?                                   # followed by a comma
+    |                                               # - or -
+    \[,?\s*(\w+),?\s*\]\s*                          # a parameter in square brackets
+    """, re.VERBOSE)
 rx_header = re.compile(r"(\-{3,})\s*")
 rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 
