@@ -1117,51 +1117,62 @@ class XobjectDirective(SphinxDirective):
 
 class XparamDirective(SphinxDirective):
     has_content = True
-    required_arguments = 2
+    required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
 
     def run(self):
         self._parse_arguments()
-        id0 = self.param.strip("*/()[]")
-        root = xnodes.div(classes=["xparam-box"], ids=[id0])
         head = xnodes.div(classes=["xparam-head"])
-        if id0 in ["return", "except"]:
-            param_node = xnodes.div(classes=["param", id0])
-            param_node += nodes.Text(id0)
-        else:
-            param_node = xnodes.div(classes=["param"])
-            param_node += nodes.Text(self.param)
-        head += param_node
         types_node = xnodes.div(classes=["types"])
+        desc_node = xnodes.div(classes=["xparam-body"])
+        root = xnodes.div(head, desc_node)
+        for i, param in enumerate(self.params):
+            id0 = param.strip("*/()[]")
+            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
+            if i > 0:
+                head += nodes.Text(", ")
+            if id0 in ["return", "except"]:
+                head += xnodes.div(id0, classes=["param", id0])
+            else:
+                head += xnodes.div(param, classes=["param"])
         types_str = " | ".join("``%s``" % p for p in self.types)
         self.state.nested_parse(StringList([types_str]), self.content_offset,
                                 types_node)
         assert isinstance(types_node[0], nodes.paragraph)
         types_node.children = types_node[0].children
         head += types_node
-        root += head
-        desc_node = xnodes.div(classes=["xparam-body"])
         self.state.nested_parse(self.content, self.content_offset, desc_node)
-        root += desc_node
         return [root]
 
 
     def _parse_arguments(self):
-        self.param = self.arguments[0].rstrip(":")
+        params, args = self.arguments[0].split(":", 1)
+        self.params = [p.strip() for p in params.split(",")]
         self.types = []
 
         rx_separator = re.compile(r"(?:,?\s+or\s+|\s*[,\|]\s*)")
-        args = self.arguments[1]
+        opening_brackets = "[({'\""
+        closing_brackets = "])}'\""
+        args = args.strip()
         i0 = 0
-        bracket_level = 0
+        brackets = []
         i = 0
         while i < len(args):  # iterate by characters
-            if args[i] in "[({'\"":
-                bracket_level += 1
-            elif args[i] in "\"'})]":
-                bracket_level -= 1
-            elif bracket_level == 0:
+            if brackets:
+                closing_bracket = brackets[-1]
+                if args[i] == closing_bracket:
+                    brackets.pop()
+                elif closing_bracket in ['"', "'"]:
+                    pass
+                elif args[i] in opening_brackets:
+                    j = opening_brackets.find(args[i])
+                    brackets.append(closing_brackets[j])
+
+            elif args[i] in opening_brackets:
+                j = opening_brackets.find(args[i])
+                brackets.append(closing_brackets[j])
+            else:
                 mm = re.match(rx_separator, args[i:])
                 if mm:
                     self.types.append(args[i0:i])
@@ -1170,6 +1181,7 @@ class XparamDirective(SphinxDirective):
                     continue
             i += 1
         assert i == len(args)
+        assert not brackets
         self.types.append(args[i0:])
 
 
