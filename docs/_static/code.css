@@ -16,7 +16,7 @@ div.rst-content dl dt {
 }
 
 div.rst-content dl dd {
-  margin-bottom: 24px;
+  margin-bottom: 18px;
 }
 
 div.rst-content .admonition-title {
@@ -398,5 +398,5 @@ p + ol.simple {
 
 ul.simple li,
 ol.simple li {
-  margin-bottom: 6pt;
+  margin-bottom: 3pt;
 }
