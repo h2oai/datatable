@@ -1,15 +1,21 @@
 .. py:currentmodule:: datatable
 
+.. raw:: html
+
+    <style>
+    .wy-nav-content { max-width: 100%; }
+    </style>
+
 Comparison with R's data.table
 ==============================
 
 ``datatable`` is closely related to R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ attempts to mimic its core algorithms and API; however, there are differences due to language constraints.
 
-This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``.
+This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``. 
 
 Subsetting Rows
 ---------------
-The sample data is from the `examples <https://rdatatable.gitlab.io/data.table/reference/data.table.html#examples>`__ data in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__.
+The examples used here are from the `examples <https://rdatatable.gitlab.io/data.table/reference/data.table.html#examples>`__ data in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__.
 
 ``data.table``::
 
@@ -22,94 +28,129 @@ The sample data is from the `examples <https://rdatatable.gitlab.io/data.table/r
 ``datatable``::
 
     from datatable import dt, f, g, by, update, join, sort
-    import numpy as np
 
-    DT = dt.Frame({"x":np.repeat(["b","a","c"],3),
-                   "y": [1,3,6]*3,
-                   "v": range(1,10)}) # datatable
+    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+              y = [1, 3, 6] * 3,
+              v = range(1, 10))
 
-
-
-
-===============================   ============================================ ==================================================
-data.table                           datatable                                   Action
-===============================   ============================================ ==================================================
-``DT[2]``                            ``DT[1, :]``                               Select 2nd row
-``DT[2:3]``                          ``DT[1:3, :]``                             Select 2nd and 3rd row
-``DT[3:2]``                         ``DT[[2,1], :]``                            Select 3rd and 2nd row
-``DT[.N]``                          ``DT[-1, :]``                               Select the last row
-``DT[y>2]``                         ``DT[f.y>2, :]``                            All rows where ``y > 2``
-``DT[y>2 & v>5]``                   ``DT[(f.y>2) & (f.v>5), :]``                Compound logical expressions
-``DT[!2:4]`` or ``DT[-(2:4)]``      ``DT[[0, slice(4, None)], :]``              All rows other than rows 2,3,4
-``DT[order(x), ]``                  | ``DT.sort("x")`` or                       Sort by column ``x``, ascending
-                                    | ``DT[:, :, sort("x")]``
-``DT[order(-x)]``                   | ``DT.sort(-f.x)`` or                      Sort by column ``x``, descending
-                                    | ``DT[:, :, sort(-f.x)]``
-``DT[order(x, -y)]``                | ``DT.sort(x, -f.y)`` or                   Sort by column ``x`` ascending, ``y`` descending
-                                    | ``DT[:, :, sort(x, -f.y)]``
-===============================   ============================================ ==================================================
+=================================================  ============================================ =====================================
+Action                                                data.table                                   datatable
+=================================================  ============================================ =====================================
+Select 2nd row                                       ``DT[2]``                                    ``DT[1, :]``
+Select 2nd and 3rd row                               ``DT[2:3]``                                  ``DT[1:3, :]``
+Select 3rd and 2nd row                               ``DT[3:2]``                                  ``DT[[2,1], :]``
+Select 2nd and 5th rows                              ``DT[c(2,5)]``                               ``DT[[1,4], :]``
+Select all rows from 2nd to 5th                      ``DT[2:5]``                                  ``DT[[1:5, :]``
+Select rows in reverse from 5th to the 1st           ``DT[5:1]``                                  ``DT[4::-1, :]``
+Select the last row                                  ``DT[.N]``                                   ``DT[-1, :]``
+All rows where ``y > 2``                             ``DT[y>2]``                                  ``DT[f.y>2, :]``
+Compound logical expressions                         ``DT[y>2 & v>5]``                            ``DT[(f.y>2) & (f.v>5), :]``
+All rows other than rows 2,3,4                       ``DT[!2:4]`` or ``DT[-(2:4)]``               ``DT[[0, slice(4, None)], :]``
+Sort by column ``x``, ascending                      ``DT[order(x), ]``                           | ``DT.sort("x")`` or
+                                                                                                  | ``DT[:, :, sort("x")]``
+Sort by column ``x``, descending                     ``DT[order(-x)]``                            | ``DT.sort(-f.x)`` or
+                                                                                                  | ``DT[:, :, sort(-f.x)]``
+Sort by column ``x`` ascending, ``y`` descending     ``DT[order(x, -y)]``                         | ``DT.sort(x, -f.y)`` or
+                                                                                                  | ``DT[:, :, sort(f.x, -f.y)]``
+=================================================  ============================================ =====================================
 
 Note the use of the ``f`` symbol when performing computations or sorting in descending order. You can read more about :ref:`f-expressions`.
+
+Note: In ``data.table``, ``DT[2]`` would mean ``2nd row``, whereas in ``datatable``, ``DT[2]`` would select the 3rd column.
 
 Selecting Columns
 -----------------
 
-=========================================== ============================================ ==============================================
-data.table                                           datatable                                                  Action
-=========================================== ============================================ ==============================================
-``DT[, .(v)]``                               ``DT[:, 'v']``                              Select column ``v``
-``DT[, .(x,v)]``                             ``DT[:, ['x', 'v']]``                       Select multiple columns
-``DT[, .(m = x)]``                           ``DT[:. {"m" : f.x}]``                      Rename and select column
-``DT[, .(sv=sum(v))]``                       ``DT[:, {"sv": dt.sum(f.v)}]``              Sum column ``v`` and rename as ``sv``
-``DT[, .(v, v*2)]``                          ``DT[:, [f.v, f.v*2]]``                     Return two columns, ``v`` and ``v`` doubled
-``DT[, 2]``                                  ``DT[:, 1]``                                Select the second column
-``DT[, ncol(DT), with=FALSE]``               ``DT[:, -1]``                               Select last column
-``DT[, .SD, .SDcols=x:y]``                   ``DT[:, f["x":"y"]]``                       Select columns ``x`` through ``y``
-``DT[ , .SD, .SDcols = !x:y]``               | ``DT[:, [name not in ("x","y")``          Exclude columns ``x`` and ``y``
-                                             |          ``for name in DT.names]]`` or
-                                             | ``DT[:, f[:].remove(f['x':'y'])]``
-``DT[ , .SD, .SDcols = patterns('^[xv]')]``  | ``DT[:, [name.startswith(("x","v"))``     Select columns that start with ``x`` or ``v``
-                                             |          ``for name in DT.names]]``
-=========================================== ============================================ ==============================================
+============================================= =============================================== ==============================================
+Action                                                data.table                                   datatable
+============================================= =============================================== ==============================================
+Select column ``v``                             ``DT[, .(v)]``                                 ``DT[:, 'v']`` or ``DT['v']``
+Select multiple columns                         ``DT[, .(x,v)]``                               ``DT[:, ['x', 'v']]``
+Rename and select column                        ``DT[, .(m = x)]``                             ``DT[:, {"m" : f.x}]``
+Sum column ``v`` and rename as ``sv``           ``DT[, .(sv=sum(v))]``                         ``DT[:, {"sv": dt.sum(f.v)}]``
+Return two columns, ``v`` and ``v`` doubled     ``DT[, .(v, v*2)]``                            ``DT[:, [f.v, f.v*2]]``
+Select the second column                        ``DT[, 2]``                                    ``DT[:, 1]`` or ``DT[1]``
+Select last column                              ``DT[, ncol(DT), with=FALSE]``                 ``DT[:, -1]``
+Select columns ``x`` through ``y``              ``DT[, .SD, .SDcols=x:y]``                     ``DT[:, f["x":"y"]]``  or ``DT[:, 'x':'y']``
+Exclude columns ``x`` and ``y``                 ``DT[ , .SD, .SDcols = !x:y]``                 | ``DT[:, [name not in ("x","y")``
+                                                                                               |          ``for name in DT.names]]`` or
+                                                                                               | ``DT[:, f[:].remove(f['x':'y'])]``
+Select columns that start with ``x`` or ``v``   ``DT[ , .SD, .SDcols = patterns('^[xv]')]``    | ``DT[:, [name.startswith(("x", "v"))``
+                                                                                               |          ``for name in DT.names]]``
+============================================= =============================================== ==============================================
 
-In ``datatable``, a single column can also be selected as ``DT['v']``.
+In ``data.table``, you can select a column by using a variable name with the double dots prefix
+
+.. code-block:: R
+
+    cols = 'v'
+    DT[, ..cols]
+
+In ``datatable``, you do not need the prefix
+
+.. code-block:: python
+
+    cols = 'v'
+    DT[cols] # or  DT[:, cols]
+
+If the column names are stored in a character vector, the double dots prefix also works
+
+.. code-block:: R
+
+    cols = c('v', 'y')
+    DT[, ..cols]
+
+In ``datatable``, you can store the list/tuple of column names in a variable
+
+.. code-block:: python
+
+    cols = ('v', 'y')
+    DT[:, cols]
+
+
 
 Subset rows and Select/Aggregate
 --------------------------------
 
-====================================             ==========================================          ==============================================
-data.table                                           datatable                                              Action
-====================================             ==========================================          ==============================================
-``DT[2:3, .(sum(v))]``                            ``DT[1:3, dt.sum(f.v)]``                             Sum column ``v`` over rows 2 and 3
-``DT[2:3, .(sv=sum(v))]``                         ``DT[1:3, {"sv": dt.sum(f.v)}]``                     Same as above, new column name
-``DT[x=="b", .(sum(v*y))]``                       ``DT[f.x=="b", dt.sum(f.v * f.y)]``                  Filter in ``i`` and aggregate in ``j``
-``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``             Same as above, return as scalar
-====================================             ==========================================          ==============================================
+======================================           ==========================================          ==============================================
+Action                                                data.table                                         datatable
+======================================           ==========================================          ==============================================
+Sum column ``v`` over rows 2 and 3                  ``DT[2:3, .(sum(v))]``                            ``DT[1:3, dt.sum(f.v)]``
+Same as above, new column name                      ``DT[2:3, .(sv=sum(v))]``                         ``DT[1:3, {"sv": dt.sum(f.v)}]``
+Filter in ``i`` and aggregate in ``j``              ``DT[x=="b", .(sum(v*y))]``                       ``DT[f.x=="b", dt.sum(f.v * f.y)]``
+Same as above, return as scalar                     ``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``
+======================================           ==========================================          ==============================================
 
-In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, only the first item is included.
+In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, all items except the last are included.
 
 Grouping with :func:`by()`
-----------------------------------------
+--------------------------
 
-========================================         =============================================    ============================================================
-data.table                                           datatable                                              Action
-========================================         =============================================    ============================================================
-``DT[, sum(v), by=x]``                            ``DT[:, dt.sum(f.v), by('x')]``                  | Get the sum of column ``v``,
-                                                                                                   | grouped by column ``x``
-``DT[x!="a", sum(v), by=x]``                      ``DT[f.x!="a", :][:, dt.sum(f.v), by("x")]``     Get sum of ``v`` where ``x != a``
-``DT[, .N, by=x]``                                ``DT[:, dt.count(), by("x")]``                   Number of rows per group
-``DT[, .SD[1], by=x]``                            ``DT[0, :, by('x')]``                            | Select first row of ``y`` and ``v``
-                                                                                                   | for each group in ``x``
-``DT[, c(.N, lapply(.SD, sum)), by=x]``           ``DT[:, dt.sum(f[:]), by("x")]``                 | Get rows and sum columns ``v`` and ``y``
-                                                                                                   | by group
-``DT[, sum(v), by=.(y%%2)]``                      ``DT[:, dt.sum(f.v), by(f.y%2)]``                Expressions in :func:`by`
+===========================================================   ==============================================   ============================================================
+Action                                                            data.table                                         datatable
+===========================================================   ==============================================   ============================================================
+Get the sum of column ``v`` grouped by column ``x``               ``DT[, sum(v), by=x]``                            ``DT[:, dt.sum(f.v), by('x')]``
 
-``DT[, .SD[which.min(v)], by=x]``                 ``DT[0, f[:], by("x"), dt.sort(f.v)]``           Get row per group where column ``v`` is minimum
+Get sum of ``v`` where ``x != a``                                 ``DT[x!="a", sum(v), by=x]``                      ``DT[f.x!="a", :][:, dt.sum(f.v), by("x")]``
 
-``DT[, tail(.SD,2), by=x]``                       ``DT[-2:, :, by("x")]``                          Last 2 rows of each group
-========================================         =============================================    ============================================================
+Number of rows per group                                          ``DT[, .N, by=x]``                                ``DT[:, dt.count(), by("x")]``
+
+Select first row of ``y`` and ``v`` for each group in ``x``       ``DT[, .SD[1], by=x]``                            ``DT[0, :, by('x')]``
+
+Get row count and sum columns ``v`` and ``y`` by group            ``DT[, c(.N, lapply(.SD, sum)), by=x]``           ``DT[:, [dt.count(), dt.sum(f[:])], by("x")]``
+
+Expressions in :func:`by`                                        ``DT[, sum(v), by=.(y%%2)]``                       ``DT[:, dt.sum(f.v), by(f.y%2)]``
+
+Get row per group where column ``v`` is minimum                  ``DT[, .SD[which.min(v)], by=x]``                  ``DT[0, f[:], by("x"), dt.sort(f.v)]``
+
+First 2 rows of each group                                      ``DT[, head(.SD,2), by=x]``                         ``DT[:2, :, by("x")]``
+
+Last 2 rows of each group                                       ``DT[, tail(.SD,2), by=x]``                         ``DT[-2:, :, by("x")]``
+===========================================================   ==============================================   ============================================================
 
 In R's `data'table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
+
+In ``data.table``, ``i`` is executed before the grouping, while in ``datatable``, ``i`` is executed after the grouping.
 
 Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
 
@@ -122,34 +163,50 @@ Multiple aggregations within a group can be executed in R's `data'table <https:/
 
 The same can be replicated in ``datatable`` by using a dictionary ::
 
-    DT[:, {MySum: dt.sum(f.v),
-           MyMin: dt.min(f.v),
-           MyMax: dt.max(f.v)},
+    DT[:, {'MySum': dt.sum(f.v),
+           'MyMin': dt.min(f.v),
+           'MyMax': dt.max(f.v)},
        by(f.x, f.y%2)]
 
 
 Add/Update/Delete Columns
 -------------------------
 
-========================================         ===============================================  ============================================================
-data.table                                           datatable                                              Action
-========================================         ===============================================  ============================================================
-``DT[, z:=42L]``                                 | ``DT[:, update(z=42)]`` or                       Add new column
-                                                 | ``DT['z'] = 42`` or
-                                                 | ``DT[:, 'z'] = 42`` or
-                                                 | ``DT = DT[:, f[:].extend({"z":42})]``
-``DT[, c('sv','mv') := .(sum(v), "X")]``         | ``DT[:, update(sv = dt.sum(f.v), mv = "X")]``    Add multiple columns
-``DT[, z:=NULL]``                                | ``del DT['z']`` or                               Remove column
-                                                 | ``del DT[:, 'z']`` or
-                                                 | ``DT = DT[:, f[:].remove(f.z)]``
-``DT["a", v:=42L, on="x"]``                      | ``DT[f.x=="a", update(v=42)]`` or                Subassign to existing ``v`` column
-                                                 | ``DT[f.x=="a", 'v'] = 42``
-``DT["b", v2:=84L, on="x"]``                     | ``DT[f.x=="b", update(v2=84)]`` or               Subassign to new column (NA padded)
-                                                 | ``DT[f.x=='b', 'v2'] = 84``
-``DT[, m:=mean(v), by=x]``                       | ``DT[:, update(m=dt.mean(f.v)), by("x")]``       Add new column, assigning values group-wise
-========================================         ===============================================  ============================================================
+============================================ =========================================================  ============================================================
+Action                                                       data.table                                         datatable
+============================================ =========================================================  ============================================================
+Add new column                                ``DT[, z:=42L]``                                          | ``DT[:, update(z=42)]`` or
+                                                                                                        | ``DT['z'] = 42`` or
+                                                                                                        | ``DT[:, 'z'] = 42`` or
+                                                                                                        | ``DT = DT[:, f[:].extend({"z":42})]``
+Add multiple columns                          ``DT[, c('sv','mv') := .(sum(v), "X")]``                  | ``DT[:, update(sv = dt.sum(f.v), mv = "X")]`` or
+                                                                                                        | ``DT[:, f[:].extend({"sv": dt.sum(f.v), "mv": "X"})]``
+Remove column                                 ``DT[, z:=NULL]``                                         | ``del DT['z']`` or
+                                                                                                        | ``del DT[:, 'z']`` or
+                                                                                                        | ``DT = DT[:, f[:].remove(f.z)]``
+Subassign to existing ``v`` column            ``DT["a", v:=42L, on="x"]``                               | ``DT[f.x=="a", update(v=42)]`` or
+                                                                                                        | ``DT[f.x=="a", 'v'] = 42``
+Subassign to new column (NA padded)           ``DT["b", v2:=84L, on="x"]``                              | ``DT[f.x=="b", update(v2=84)]`` or
+                                                                                                        | ``DT[f.x=='b', 'v2'] = 84``
+Add new column, assigning values group-wise   ``DT[, m:=mean(v), by=x]``                                | ``DT[:, update(m=dt.mean(f.v)), by("x")]``
+============================================ =========================================================  ============================================================
 
-Note that the :func:`update` function, as well as the ``del`` function operates in-place; there is no need for reassignment. Another advantage of the :func:`update` method is that the row order of the dataframe is not changed, even in a groupby; this comes in handy in a lot of transformation operations.
+In ``data.table``, you can create a new column with a variable
+
+.. code-block:: R
+
+    cols = 'rar'
+    DT[, ..cols:=4242]
+
+Similar operation for the above in ``datatable``
+
+.. code-block:: python
+
+    cols = 'rar'
+    DT[cols] = 4242
+    # or  DT[:, update(cols=4242)]
+
+Note that the :func:`update` function, as well as the ``del`` function (a `python keyword <https://docs.python.org/3/reference/lexical_analysis.html#keywords>`__) operates in-place; there is no need for reassignment. Another advantage of the :func:`update` method is that the row order of the dataframe is not changed, even in a groupby; this comes in handy in a lot of transformation operations.
 
 
 Joins
@@ -157,7 +214,7 @@ Joins
 
 At the moment, only the left outer join is implemented in ``datatable``. Another aspect is that the dataframe being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both dataframes. You can read more about the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
 
-Left join in R's `data'table <https://data.table.gitlab.io/data.table/index.html>`_::
+Left join in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`_::
 
     DT = data.table(x=rep(c("b","a","c"),each=3), y=c(1,3,6), v=1:9)
     X = data.table(x=c("c","b"), v=8:7, foo=c(4,2))
@@ -351,4 +408,5 @@ Join in ``datatable``::
     0	b	42
     1	c	192
 
-Expect significant improvement in join functionality, with more concise syntax as ``datatable`` matures.
+Expect significant improvement in join functionality, with more concise syntax, as well as additions of more features, as ``datatable`` matures.
+
