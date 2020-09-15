@@ -28,10 +28,10 @@ docutils / Sphinx.
 from docutils import nodes
 
 __all__ = (
-	"table",
-	"td",
-	"th",
-	"tr",
+    "table",
+    "td",
+    "th",
+    "tr",
 )
 
 
@@ -46,15 +46,15 @@ __all__ = (
 #        ])
 #
 class xElement(nodes.Element):
-	def __init__(self, *args, rawtext="", children=[], **attributes):
-		assert isinstance(children, list)
-		if args:
-			assert not children
-			children = list(args)
-		for i, child in enumerate(children):
-			if isinstance(child, str):
-				children[i] = nodes.Text(child)
-		super().__init__(rawtext, *children, **attributes)
+    def __init__(self, *args, rawtext="", children=[], **attributes):
+        assert isinstance(children, list)
+        if args:
+            assert not children
+            children = [a for a in args if a is not None]
+        for i, child in enumerate(children):
+            if isinstance(child, str):
+                children[i] = nodes.Text(child)
+        super().__init__(rawtext, *children, **attributes)
 
 
 
@@ -132,15 +132,15 @@ def depart_div(self, node):
 #-------------------------------------------------------------------------------
 
 def setup(app):
-	# Set custom names for the node classes, otherwise Sphinx
-	# complains that the node with same name already registered.
-	table.__name__ = "xtable"
-	tr.__name__ = "xtr"
-	th.__name__ = "xth"
-	td.__name__ = "xtd"
-	div.__name__ = "xdiv"
-	app.add_node(table, html=(visit_table, depart_table))
-	app.add_node(tr, html=(visit_tr, depart_tr))
-	app.add_node(td, html=(visit_tdth, depart_tdth))
-	app.add_node(th, html=(visit_tdth, depart_tdth))
-	app.add_node(div, html=(visit_div, depart_div))
+    # Set custom names for the node classes, otherwise Sphinx
+    # complains that the node with same name already registered.
+    table.__name__ = "xtable"
+    tr.__name__ = "xtr"
+    th.__name__ = "xth"
+    td.__name__ = "xtd"
+    div.__name__ = "xdiv"
+    app.add_node(table, html=(visit_table, depart_table))
+    app.add_node(tr, html=(visit_tr, depart_tr))
+    app.add_node(td, html=(visit_tdth, depart_tdth))
+    app.add_node(th, html=(visit_tdth, depart_tdth))
+    app.add_node(div, html=(visit_div, depart_div))
