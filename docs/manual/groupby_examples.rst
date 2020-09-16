@@ -656,32 +656,6 @@ More Examples
       0	  01-01	  115	0
       1	  01-02	  79	0
 
-- Filter row based on aggregate value
-
-  - Task : Find, for every ``word``, the ``tag`` that has the most ``count``
-
-.. code-block:: python
-
-      df = dt.Frame("""  word  tag count
-                          a     S    30
-                          the   S    20
-                          a     T    60
-                          an    T    5
-                          the   T    10""")
-
-      df[:,
-         update(filter_col = f.count == max(f.count)),
-         by('word')
-         ]
-
-      df[f.filter_col == 1, f[:-1]]
-
-          word	tag	count
-      0	  the	S	20
-      1	  a	T	60
-      2	  an	T	5
-
-
 - Group By and Conditional Sum and add Back to Data Frame
 
   - Task: Sum the ``Count`` value for each ``ID``, when ``Num`` is (17 or 12) and ``Letter`` is 'D' and also add the calculation back to the original data frame as 'Total'
@@ -758,4 +732,70 @@ More Examples
       0	    1	5	4	3
       1	    2	5	3	5
       2	    3	7	4	7
+
+- Filter row based on aggregate value
+
+  - Task : Find, for every ``word``, the ``tag`` that has the most ``count``
+
+.. code-block:: python
+
+    df = dt.Frame("""word  tag count
+                      a     S    30
+                      the   S    20
+                      a     T    60
+                      an    T    5
+                      the   T    10""")
+
+    # The solution builds on the knowledge that sorting
+    # while grouping sorts within each group.    
+    df[0, :, by('word'), sort(-f.count)]
+
+      word	tag	count
+    0	a	T	60
+    1	an	T	5
+    2	the	S	20
+
+- Get the rows where the ``value`` column is minimum, and rename columns
+
+.. code-block:: python
+
+    DT = dt.Frame({"category": ["A"]*3 + ["B"]*3,
+                   "date": ["9/6/2016", "10/6/2016",
+                            "11/6/2016", "9/7/2016",
+                            "10/7/2016", "11/7/2016"],
+                   "value": [7,8,9,10,1,2]})
+
+    DT
+        category     date         value
+    0	A	    9/6/2016	    7
+    1	A	    10/6/2016	    8
+    2	A	    11/6/2016	    9
+    3	B	    9/7/2016	    10
+    4	B	    10/7/2016	    1
+    5	B	    11/7/2016	    2
+
+    DT[0,
+       {"value_date": f.date,
+        "value_min":  f.value},
+      by("category"),
+      sort('value')]
+
+      category	value_date   value_min
+    0	A	 9/6/2016        7
+    1	B	 10/7/2016       1
+
+- Using the same data in the last example, get the rows where the ``value`` column is maximum, and rename columns
+
+.. code-block:: python
+
+    DT[0,
+       {"value_date": f.date,
+        "value_max":  f.value},
+      by("category"),
+      sort(-f.value)]
+
+      category	value_date   value_max
+    0	A	11/6/2016	9
+    1	B	9/7/2016	10
+
 
