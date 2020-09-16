@@ -96,6 +96,9 @@
   -[fix] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
 
+  -[fix] :func:`rbind()`-ing an iterator of frames created on-the-fly no longer
+    produces an undefined behavior. [#2621]
+
 
   Fread
   -----
