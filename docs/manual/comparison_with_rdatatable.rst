@@ -148,13 +148,13 @@ First 2 rows of each group                                      ``DT[, head(.SD,
 Last 2 rows of each group                                       ``DT[, tail(.SD,2), by=x]``                         ``DT[-2:, :, by("x")]``
 ===========================================================   ==============================================   ============================================================
 
-In R's `data'table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
+In R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
 
 In ``data.table``, ``i`` is executed before the grouping, while in ``datatable``, ``i`` is executed after the grouping.
 
 Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
 
-Multiple aggregations within a group can be executed in R's `data'table <https://data.table.gitlab.io/data.table/index.html>`__ with the syntax below ::
+Multiple aggregations within a group can be executed in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ with the syntax below ::
 
     DT[, list(MySum=sum(v),
               MyMin=min(v),
@@ -409,4 +409,49 @@ Join in ``datatable``::
     1	c	192
 
 Expect significant improvement in join functionality, with more concise syntax, as well as additions of more features, as ``datatable`` matures.
+
+Functions in R/data.table not yet implemented
+---------------------------------------------
+
+This is a list of some functions in ``data.table`` that do not have an equivalent in ``datatable`` yet, that we would likely implement
+
+- Reshaping functions 
+   - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__ 
+   - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__ 
+
+- Convenience functions for filtering and subsetting
+   - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__ 
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__ 
+
+- Conditional functions
+   - `fcase <https://rdatatable.gitlab.io/data.table/reference/fcase.html>`__ 
+
+- Duplicate functions
+   - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__ 
+   - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__  in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable`` returns a single column of unique values in the entire dataframe.
+
+- Aggregation functions
+   - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__ 
+   - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+   - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+   - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+
+- Missing values functions
+   - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__ 
+   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__ 
+
+Also, at the moment, custom aggregations in the ``j`` section are not supported in ``datatable``- we intend to implement that at some point.
+
+There are no datetime functions in ``datatable``, and string operations are limited as well.
+
+If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.
+
+
+
 
