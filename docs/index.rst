@@ -76,7 +76,6 @@ messages, and powerful API similar to R ``data.table``'s.
 
     Getting Started  <start/index-start>
     User Guide       <manual/index-manual>
-    Models           <models/index-models>
     API Reference    <api/index-api>
     Development      <develop/index-develop>
     Release History  <releases/index-releases>

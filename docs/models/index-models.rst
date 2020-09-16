@@ -1,7 +1,0 @@
-
-Models
-======
-
-
-.. toctree::
-    FTRL        <ftrl>

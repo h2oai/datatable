@@ -169,6 +169,8 @@ Other
     * - :data:`g`
       - Secondary namespace used during :meth:`DT[..., join()] <Frame.__getitem__>` call.
 
+    * - :data:`options`
+      - datatable options.
 
 .. toctree::
     :hidden:
@@ -178,6 +180,7 @@ Other
     Frame             <frame>
     FExpr             <fexpr>
     Namespace         <namespace>
+    options.          <options>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>

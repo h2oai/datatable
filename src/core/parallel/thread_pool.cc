@@ -203,6 +203,25 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
+static const char* doc_options_nthreads =
+R"(
+The number of threads used by datatable internally.
+
+Many calculations in `datatable` module are parallelized. This
+setting controls how many threads will be used during such
+calculations.
+
+Initially, this option is set to the value returned by C++ call
+`std::thread::hardware_concurrency()`. This is usually equal to the
+number of available cores.
+
+You can set `nthreads` to a value greater or smaller than the
+initial setting. For example, setting `nthreads = 1` will force the
+library into a single-threaded mode. Setting `nthreads` to 0 will
+restore the initial value equal to the number of processor cores.
+Setting `nthreads` to a value less than 0 is equivalent to
+requesting that fewer threads than the maximum.
+)";
 
 
 void ThreadPool::init_options() {
@@ -222,23 +241,8 @@ void ThreadPool::init_options() {
       if (nth <= 0) nth = 1;
       thpool->resize(static_cast<size_t>(nth));
     },
-
-    "The number of threads used by datatable internally.\n"
-    "\n"
-    "Many calculations in `datatable` module are parallelized. This \n"
-    "setting controls how many threads will be used during such\n"
-    "calculations.\n"
-    "\n"
-    "Initially, this option is set to the value returned by C++ call\n"
-    "`std::thread::hardware_concurrency()`. This is usually equal to the\n"
-    "number of available cores.\n"
-    "\n"
-    "You can set `nthreads` to a value greater or smaller than the\n"
-    "initial setting. For example, setting `nthreads = 1` will force the\n"
-    "library into a single-threaded mode. Setting `nthreads` to 0 will\n"
-    "restore the initial value equal to the number of processor cores.\n"
-    "Setting `nthreads` to a value less than 0 is equivalent to\n"
-    "requesting that fewer threads than the maximum.\n");
+    doc_options_nthreads
+  );
 }
 
 

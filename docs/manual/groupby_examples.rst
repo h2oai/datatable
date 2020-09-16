@@ -371,11 +371,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[f.filter_col == 1, :-1]
 
-        item	diff	otherstuff
-    0	 1	 1	    2
-    1	 2	−6	    2
-    2	 3	 0	    0
-
+       item	diff	otherstuff
+    0	    1	   1	         2
+    1	    2	  -6	         2
+    2	    3	   0	         0
 
 - Keep only entries where ``make`` has both 0 and 1 in ``sales``
 

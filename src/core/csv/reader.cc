@@ -46,6 +46,25 @@ namespace read {
 // options
 //------------------------------------------------------------------------------
 
+static const char * doc_fread_log_anonymize =
+R"(
+If `True`, any snippets of data being read that are printed in the
+log will be first anonymized by converting all non-0 digits to `1`,
+all lowercase letters to `a`, all uppercase letters to `A`, and all
+unicode characters to `U`.
+This option is useful in production systems when reading sensitive
+data that must not accidentally leak into log files or be printed
+with the error messages.
+)";
+
+static const char * doc_fread_log_escape_unicode =
+R"(
+If `True`, all unicode characters in the verbose log will be written
+in hexadecimal notation. Use this option if your terminal cannot
+print unicode, or if the output gets somehow corrupted because of
+the unicode characters.
+)";
+
 static bool log_anonymize = false;
 static bool log_escape_unicode = false;
 
@@ -60,22 +79,15 @@ void GenericReader::init_options() {
     "fread.log.anonymize",
     []{ return py::obool(log_anonymize); },
     [](const py::Arg& value){ log_anonymize = value.to_bool_strict(); },
-    "If True, any snippets of data being read that are printed in the\n"
-    "log will be first anonymized by converting all non-0 digits to 1,\n"
-    "all lowercase letters to a, all uppercase letters to A, and all\n"
-    "unicode characters to U.\n"
-    "This option is useful in production systems when reading sensitive\n"
-    "data that must not accidentally leak into log files or be printed\n"
-    "with the error messages.");
+    doc_fread_log_anonymize
+  );
 
   dt::register_option(
     "fread.log.escape_unicode",
     []{ return py::obool(log_escape_unicode); },
     [](const py::Arg& value){ log_escape_unicode = value.to_bool_strict(); },
-    "If True, all unicode characters in the verbose log will be written\n"
-    "in hexadecimal notation. Use this option if your terminal cannot\n"
-    "print unicode, or if the output gets somehow corrupted because of\n"
-    "the unicode characters.");
+    doc_fread_log_escape_unicode
+  );
 }
 
 
