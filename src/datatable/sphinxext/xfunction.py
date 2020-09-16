@@ -1133,7 +1133,7 @@ class XparamDirective(SphinxDirective):
             id0 = param.strip("*/()[]")
             root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
             if i > 0:
-                head += nodes.Text(", ")
+                head += xnodes.div(", ", classes=["sep"])
             if id0 in ["return", "except"]:
                 head += xnodes.div(id0, classes=["param", id0])
             else:
