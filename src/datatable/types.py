@@ -148,20 +148,6 @@ class ltype(enum.Enum):
     this integer can be stored in several "physical" formats: from
     ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
     between ltypes and stypes.
-
-    Examples
-    --------
-    >>> dt.ltype.bool
-    ltype.bool
-    >>> dt.ltype("int32")
-    ltype.int
-
-    For each ltype, you can find the set of stypes that correspond to it:
-
-    >>> dt.ltype.real.stypes
-    [stype.float32, stype.float64]
-    >>> dt.ltype.time.stypes
-    []
     """
     bool = 1
     int = 2
@@ -175,7 +161,13 @@ class ltype(enum.Enum):
 
     @property
     def stypes(self):
-        """List of stypes that represent this ltype."""
+        """
+        List of stypes that represent this ltype.
+
+        Parameters
+        ----------
+        return: List[stype]
+        """
         return [k for k, v in _stype_2_ltype.items() if v == self]
 
 

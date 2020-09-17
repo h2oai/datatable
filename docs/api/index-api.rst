@@ -177,6 +177,7 @@ Other
     models.           <models>
     FExpr             <fexpr>
     Frame             <frame>
+    ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
     build_info        <dt/build_info>
