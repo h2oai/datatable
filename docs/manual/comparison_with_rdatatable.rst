@@ -120,8 +120,99 @@ Same as above, new column name                      ``DT[2:3, .(sv=sum(v))]``   
 Filter in ``i`` and aggregate in ``j``              ``DT[x=="b", .(sum(v*y))]``                       ``DT[f.x=="b", dt.sum(f.v * f.y)]``
 Same as above, return as scalar                     ``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``
 ======================================           ==========================================          ==============================================
-
 In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, all items except the last are included.
+
+Some ``SD``(Subset of Data) operations can be replicated in ``datatable`` 
+
+- Aggregate several columns
+
+.. code-block:: R
+
+    # data.table
+    DT[, lapply(.SD, mean),
+       .SDcols = c("y","v")]
+
+              y v
+    1: 3.333333 5
+
+.. code-block:: python
+
+    # datatable
+    DT[:, dt.mean([f.y,f.v])]
+
+            y	v
+    0	3.33333	5
+
+- Modify columns using a condition
+
+.. code-block:: R
+
+    # data.table
+    DT[, .SD - 1,
+       .SDcols = is.numeric]
+
+       y v
+    1: 0 0
+    2: 2 1
+    3: 5 2
+    4: 0 3
+    5: 2 4
+    6: 5 5
+    7: 0 6
+    8: 2 7
+    9: 5 8
+
+.. code-block:: python
+
+    # datatable
+    DT[:, f[int]-1]
+
+        C0	C1
+    0	0	0
+    1	2	1
+    2	5	2
+    3	0	3
+    4	2	4
+    5	5	5
+    6	0	6
+    7	2	7
+    8	5	8
+
+- Modify several columns and keep others unchanged
+
+.. code-block:: R
+
+    #data.table
+    DT[, c("y", "v") := lapply(.SD, sqrt),
+       .SDcols = c("y", "v")]
+
+       x        y        v
+    1: b 1.000000 1.000000
+    2: b 1.732051 1.414214
+    3: b 2.449490 1.732051
+    4: a 1.000000 2.000000
+    5: a 1.732051 2.236068
+    6: a 2.449490 2.449490
+    7: c 1.000000 2.645751
+    8: c 1.732051 2.828427
+    9: c 2.449490 3.000000
+
+.. code-block:: python
+
+    #datatable
+    # there is a square root function the datatable math module
+    DT[:, update(**{name:f[name]**0.5 for name in ("y","v")})]
+
+        x	y	v
+    0	b	1	1
+    1	b	1.73205	1.41421
+    2	b	2.44949	1.73205
+    3	a	1	2
+    4	a	1.73205	2.23607
+    5	a	2.44949	2.44949
+    6	c	1	2.64575
+    7	c	1.73205	2.82843
+    8	c	2.44949	3
 
 Grouping with :func:`by()`
 --------------------------
@@ -167,7 +258,6 @@ The same can be replicated in ``datatable`` by using a dictionary ::
            'MyMin': dt.min(f.v),
            'MyMax': dt.max(f.v)},
        by(f.x, f.y%2)]
-
 
 Add/Update/Delete Columns
 -------------------------
