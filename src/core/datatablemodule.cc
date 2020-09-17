@@ -115,7 +115,7 @@ static const char* doc_frame_columns_virtual =
 R"(frame_columns_virtual(frame)
 --
 
-Return the list indicating which columns in the Frame are virtual.
+Return the list indicating which columns in the `frame` are virtual.
 
 Parameters
 ----------
@@ -186,17 +186,17 @@ R"(frame_integrity_check(frame)
 
 This function performs a range of tests on the `frame` to verify
 that its internal state is consistent. It returns None on success,
-or throws an AssertionError if any problems were found.
+or throws an :exc:`AssertionError` if any problems were found.
 
 Parameters
 ----------
 frame: Frame
-    A :class:`Frame` that needs to be checked for internal consistency.
+    A :class:`Frame` object that needs to be checked for internal consistency.
 
 return: None
 
 except: AssertionError
-    An error is raised if there were any issues with the `frame`.
+    An exception is raised if there were any issues with the `frame`.
 )";
 
 static py::PKArgs args_frame_integrity_check(
@@ -215,7 +215,7 @@ static void frame_integrity_check(const py::PKArgs& args) {
 
 static const char* doc_in_debug_mode =
 R"(
-Return True if datatable was compiled in debug mode.
+Return `True` if :mod:`datatable` was compiled in debug mode.
 
 .. deprecated:: 0.11.0
 )";
@@ -245,6 +245,11 @@ Parameters
 return: List[str]
     The list of thread ids used by the datatable. The first element
     in the list is the id of the main thread.
+
+See Also
+--------
+- :attr:`dt.options.nthreads <datatable.options.nthreads>` -- global option
+  that controls the number of threads in use.
 )";
 
 static py::PKArgs args_get_thread_ids(
@@ -294,7 +299,7 @@ static void _register_function(const py::PKArgs& args) {
 
 static const char* doc_compiler_version =
 R"(
-Return the version of the C++ compiler used to compile this module
+Return the version of the C++ compiler used to compile this module.
 
 .. deprecated:: 0.11.0
 )";
