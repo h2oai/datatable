@@ -14,11 +14,14 @@ Submodules
     :widths: auto
     :class: api-table
 
-    * - :mod:`.math <datatable.math>`
-      - Mathematical functions, similar to python's ``math`` module.
+    * - :mod:`math. <datatable.math>`
+      - Mathematical functions, similar to python's :mod:`math` module.
 
-    * - :mod:`.models <datatable.models>`
+    * - :mod:`models. <datatable.models>`
       - A small set of data analysis tools.
+
+    * - :mod:`internal. <datatable.internal>`
+      - Access to some internal details of :mod:`datatable` module.
 
 
 Classes
@@ -173,6 +176,7 @@ Other
 .. toctree::
     :hidden:
 
+    internal.         <internal>
     math.             <math>
     models.           <models>
     FExpr             <fexpr>
