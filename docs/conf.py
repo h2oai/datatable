@@ -109,7 +109,7 @@ xf_module_name = "datatable"
 xf_project_root = ".."
 
 try:
-    _ghcommit = subprocess.check_output(["git", "rev-parse", "master"],
+    _ghcommit = subprocess.check_output(["git", "rev-parse", "HEAD"],
                                         universal_newlines=True).strip()
     xf_permalink_url0 = ("https://github.com/h2oai/datatable/blob/" +
                          _ghcommit + "/{filename}")

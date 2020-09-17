@@ -1132,9 +1132,9 @@ def test_materialize():
     DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
     DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
     DT = dt.cbind(DT1, DT2, DT3, force=True)
-    assert frame_columns_virtual(DT) == (True, True, True)
+    assert frame_columns_virtual(DT) == [True, True, True]
     DT.materialize()
-    assert frame_columns_virtual(DT) == (False, False, False)
+    assert frame_columns_virtual(DT) == [False, False, False]
 
 
 def test_materialize_object_col():
@@ -1193,8 +1193,8 @@ def test_export_names(dt0):
 def test_internal_rowindex():
     d0 = dt.Frame(list(range(100)))
     d1 = d0[:20, :]
-    assert frame_columns_virtual(d0) == (False,)
-    assert frame_columns_virtual(d1) == (True,)
+    assert frame_columns_virtual(d0) == [False]
+    assert frame_columns_virtual(d1) == [True]
 
 
 def test_issue898():
