@@ -46,37 +46,6 @@ class stype(enum.Enum):
 
     Notably, :mod:`datatable` does not support arbitrary structures as
     elements of a Column, so the set of stypes is small.
-
-    Examples
-    --------
-    >>> import datatable as dt
-    >>> dt.stype.int16
-    stype.int16
-
-    You can convert strings and Python primitive types (and even numpy dtypes)
-    into stypes:
-
-    >>> dt.stype(str)
-    stype.str64
-    >>> dt.stype("double")
-    stype.float64
-    >>> dt.stype(numpy.dtype("object"))
-    stype.obj64
-    >>> dt.stype("i4")
-    stype.int32
-
-    Each stype has the following properties: `.ltype` returns the corresponding
-    :class:`ltype`, `.code` gives 2-character short code of the stype, and
-    `.ctype` returns the `ctypes` object that describes the underlying data.
-
-    >>> dt.stype.int16.code
-    'i2'
-    >>> dt.stype.int16.ltype
-    ltype.int
-    >>> dt.stype.int16.ctype
-    <class 'ctypes.c_short'>
-    >>> dt.stype.int16.struct
-    '=h'
     """
     bool8 = 1
     int8 = 2
@@ -113,7 +82,7 @@ class stype(enum.Enum):
     @property
     def ctype(self):
         """
-        :module:`ctypes` class that describes the C-level type of each element
+        :mod:`ctypes` class that describes the C-level type of each element
         in a column with this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the ctype
@@ -124,6 +93,9 @@ class stype(enum.Enum):
 
     @property
     def dtype(self):
+        """
+        ``numpy.dtype`` object that corresponds to this stype.
+        """
         if not _numpy_init_attempted:
             _init_numpy_transforms()
         return _stype_2_dtype[self]
@@ -132,7 +104,7 @@ class stype(enum.Enum):
     @property
     def struct(self):
         """
-        :module:`struct` format string corresponding to this stype.
+        :mod:`struct` format string corresponding to this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the
         format string of only the fixed-width component of that column. Thus,
