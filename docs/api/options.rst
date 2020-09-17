@@ -23,7 +23,7 @@
         * - :data:`.progress <datatable.options.progress>`
           - Progress reporting options.
 
-    It also controls the following individual options:
+    It also contains the following individual options:
 
     .. list-table::
         :widths: auto
