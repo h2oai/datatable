@@ -788,7 +788,7 @@ return: Frame
     returned.
 
 except: ValueError
-    This exception is raised if the lengths of `names` or `stypes`
+    The exception is raised if the lengths of `names` or `stypes`
     lists are different from the number of columns created, or when
     creating several columns and they have incompatible lengths.
 
