@@ -75,7 +75,7 @@ static const char* doc_options_progress_enabled =
 R"(
 When `False`, progress reporting functionality will be turned off.
 This option is `True` by default if the `stdout` is connected to a
-terminal or a Jupyter Notebook, and False otherwise."
+terminal or a Jupyter Notebook, and False otherwise.
 )";
 
 
@@ -178,7 +178,7 @@ static void init_option_min_duration() {
 
 static const char* doc_options_progress_callback =
 R"(
-If None, then the built-in progress-reporting function will be used.
+If `None`, then the built-in progress-reporting function will be used.
 Otherwise, this value specifies a function to be called at each
 progress event. The function takes a single parameter `p`, which is
 a namedtuple with the following fields:

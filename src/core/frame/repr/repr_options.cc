@@ -39,7 +39,7 @@ bool   display_interactive = false;
 bool   display_use_colors = true;
 bool   display_allow_unicode = true;
 
-static const char* doc_display_use_colors =
+static const char* doc_options_display_use_colors =
 R"(
 Whether to use colors when printing various messages into
 the console. Turn this off if your terminal is unable to
@@ -47,7 +47,7 @@ display ANSI escape sequences, or if the colors make output
 not legible.
 )";
 
-static const char* doc_display_allow_unicode =
+static const char* doc_options_display_allow_unicode =
 R"(
 If `True`, datatable will allow unicode characters (encoded as
 UTF-8) to be printed into the output.
@@ -55,47 +55,52 @@ If `False`, then unicode characters will either be avoided, or
 hex-escaped as necessary.
 )";
 
-static const char* doc_display_interactive =
+static const char* doc_options_display_interactive =
 R"(
 This option controls the behavior of a Frame when it is viewed in a
-text console. When True, the Frame will be shown in the interactove
+text console. When `True`, the Frame will be shown in the interactove
 mode, allowing you to navigate the rows/columns with keyboard.
-When False, the Frame will be shown in regular, non-interactive mode
-(you can still call DT.view() to enter the interactive mode manually.
+When `False`, the Frame will be shown in regular, non-interactive mode
+(you can still call `DT.view()` to enter the interactive mode manually.
 )";
 
-static const char* doc_display_max_nrows =
+static const char* doc_options_display_max_nrows =
 R"(
 A frame with more rows than this will be displayed truncated
-when the frame is printed to the console: only its first `head_nrows`
-and last `tail_nrows` rows will be printed. It is recommended to have
+when the frame is printed to the console: only its first
+:data:`display.head_nrows <datatable.options.display.head_nrows>`
+and last
+:data:`display.tail_nrows <datatable.options.display.tail_nrows>`
+rows will be printed. It is recommended to have
 `head_nrows + tail_nrows <= max_nrows`.
 Setting this option to None (or a negative value) will cause all
 rows in a frame to be printed, which may cause the console to become
 unresponsive.
 )";
 
-static const char* doc_display_tail_nrows =
+static const char* doc_options_display_tail_nrows =
 R"(
 The number of rows from the bottom of a frame to be displayed when
 the frame's output is truncated due to the total number of frame's
-rows exceeding `max_nrows` value.
+rows exceeding :data:`display.max_nrows <datatable.options.display.max_nrows>`
+value.
 )";
 
-static const char* doc_display_head_nrows =
+static const char* doc_options_display_head_nrows =
 R"(
 The number of rows from the top of a frame to be displayed when
 the frame's output is truncated due to the total number of frame's
-rows exceeding `max_nrows` value.
+rows exceeding :data:`display.max_nrows <datatable.options.display.max_nrows>`
+value.
 )";
 
 
-static const char* doc_display_max_column_width =
+static const char* doc_options_display_max_column_width =
 R"(
 A column's name or values that exceed `max_column_width` in size
 will be truncated. This option applies both to rendering a frame
 in a terminal, and to rendering in a Jupyter notebook. The
-smallest allowed `max_column_width` is 2.
+smallest allowed `max_column_width` is `2`.
 Setting the value to `None` indicates that the
 column's content should never be truncated.
 )";
@@ -110,7 +115,7 @@ static void _init_options()
       display_use_colors = value.to_bool_strict();
       Terminal::standard_terminal().use_colors(display_use_colors);
     },
-    doc_display_use_colors
+    doc_options_display_use_colors
   );
 
   register_option(
@@ -122,7 +127,7 @@ static void _init_options()
       display_allow_unicode = value.to_bool_strict();
       Terminal::standard_terminal().use_unicode(display_allow_unicode);
     },
-    doc_display_allow_unicode
+    doc_options_display_allow_unicode
   );
 
   register_option(
@@ -131,7 +136,7 @@ static void _init_options()
     [](const py::Arg& value) {
       display_interactive = value.to_bool_strict();
     },
-    doc_display_interactive
+    doc_options_display_interactive
   );
 
   register_option(
@@ -148,7 +153,7 @@ static void _init_options()
         display_max_nrows = (n < 0)? NA_size_t : static_cast<size_t>(n);
       }
     },
-    doc_display_max_nrows
+    doc_options_display_max_nrows
   );
 
   register_option(
@@ -159,7 +164,7 @@ static void _init_options()
     [](const py::Arg& value) {
       display_head_nrows = value.to_size_t();
     },
-    doc_display_head_nrows
+    doc_options_display_head_nrows
   );
 
   register_option(
@@ -170,7 +175,7 @@ static void _init_options()
     [](const py::Arg& value) {
       display_tail_nrows = value.to_size_t();
     },
-    doc_display_tail_nrows
+    doc_options_display_tail_nrows
   );
 
   register_option(
@@ -195,7 +200,7 @@ static void _init_options()
         display_max_column_width = n;
       }
     },
-    doc_display_max_column_width
+    doc_options_display_max_column_width
   );
 }
 

@@ -217,9 +217,9 @@ number of available cores.
 
 You can set `nthreads` to a value greater or smaller than the
 initial setting. For example, setting `nthreads = 1` will force the
-library into a single-threaded mode. Setting `nthreads` to 0 will
+library into a single-threaded mode. Setting `nthreads` to `0` will
 restore the initial value equal to the number of processor cores.
-Setting `nthreads` to a value less than 0 is equivalent to
+Setting `nthreads` to a value less than `0` is equivalent to
 requesting that fewer threads than the maximum.
 )";
 

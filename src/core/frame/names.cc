@@ -351,22 +351,22 @@ void Frame::_init_names(XTypeMaker& xt) {
 // Options
 //------------------------------------------------------------------------------
 
-static const char * doc_frame_names_auto_index =
+static const char * doc_options_frame_names_auto_index =
 R"(
 When Frame needs to auto-name columns, they will be assigned
-names C0, C1, C2, ... by default. This option allows you to
+names `C0`, `C1`, `C2`, etc. by default. This option allows you to
 control the starting index in this sequence. For example, setting
-options.frame.names_auto_index=1 will cause the columns to be
-named C1, C2, C3, ...
+`dt.options.frame.names_auto_index=1` will cause the columns to be
+named `C1`, `C2`, `C3`, etc.
 )";
 
-static const char * doc_frame_names_auto_prefix =
+static const char * doc_options_frame_names_auto_prefix =
 R"(
 When Frame needs to auto-name columns, they will be assigned
-names C0, C1, C2, ... by default. This option allows you to
+names `C0`, `C1`, `C2`, etc. by default. This option allows you to
 control the prefix used in this sequence. For example, setting
-`options.frame.names_auto_prefix='Z'` will cause the columns to be
-named Z0, Z1, Z2, ...
+`dt.options.frame.names_auto_prefix='Z'` will cause the columns to be
+named `Z0`, `Z1`, `Z2`, etc.
 )";
 
 static int64_t     names_auto_index = 0;
@@ -377,14 +377,14 @@ void py::Frame::init_names_options() {
     "frame.names_auto_index",
     []{ return py::oint(names_auto_index); },
     [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
-    doc_frame_names_auto_index
+    doc_options_frame_names_auto_index
   );
 
   dt::register_option(
     "frame.names_auto_prefix",
     []{ return py::ostring(names_auto_prefix); },
     [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
-    doc_frame_names_auto_prefix
+    doc_options_frame_names_auto_prefix
   );
 }
 

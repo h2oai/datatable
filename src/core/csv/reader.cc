@@ -46,7 +46,7 @@ namespace read {
 // options
 //------------------------------------------------------------------------------
 
-static const char * doc_fread_log_anonymize =
+static const char * doc_options_fread_log_anonymize =
 R"(
 If `True`, any snippets of data being read that are printed in the
 log will be first anonymized by converting all non-0 digits to `1`,
@@ -57,7 +57,7 @@ data that must not accidentally leak into log files or be printed
 with the error messages.
 )";
 
-static const char * doc_fread_log_escape_unicode =
+static const char * doc_options_fread_log_escape_unicode =
 R"(
 If `True`, all unicode characters in the verbose log will be written
 in hexadecimal notation. Use this option if your terminal cannot
@@ -79,14 +79,14 @@ void GenericReader::init_options() {
     "fread.log.anonymize",
     []{ return py::obool(log_anonymize); },
     [](const py::Arg& value){ log_anonymize = value.to_bool_strict(); },
-    doc_fread_log_anonymize
+    doc_options_fread_log_anonymize
   );
 
   dt::register_option(
     "fread.log.escape_unicode",
     []{ return py::obool(log_escape_unicode); },
     [](const py::Arg& value){ log_escape_unicode = value.to_bool_strict(); },
-    doc_fread_log_escape_unicode
+    doc_options_fread_log_escape_unicode
   );
 }
 

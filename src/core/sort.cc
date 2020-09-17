@@ -257,35 +257,35 @@ void swap(rmem& left, rmem& right) noexcept {
 
 static const char* doc_sort_insert_method_threshold =
 R"(
-    "Largest n at which sorting will be performed using insert sort\n"
-    "method. This setting also governs the recursive parts of the\n"
-    "radix sort algorithm, when we need to sort smaller sub-parts of\n"
-    "the input."
+Largest n at which sorting will be performed using insert sort
+method. This setting also governs the recursive parts of the
+radix sort algorithm, when we need to sort smaller sub-parts of
+the input.
 )";
 
 static const char* doc_sort_thread_multiplier =
 R"(
-doc_sort_thread_multiplier
+Internal
 )";
 
 static const char* doc_sort_max_chunk_length =
 R"(
-doc_sort_max_chunk_length
+Internal
 )";
 
 static const char* doc_sort_max_radix_bits =
 R"(
-doc_sort_max_radix_bits
+Internal
 )";
 
 static const char* doc_sort_over_radix_bits =
 R"(
-doc_sort_over_radix_bits
+Internal
 )";
 
 static const char* doc_sort_nthreads =
 R"(
-doc_sort_nthreads
+Internal
 )";
 
 static size_t sort_insert_method_threshold = 64;
