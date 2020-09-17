@@ -747,7 +747,7 @@ More Examples
                       the   T    10""")
 
     # The solution builds on the knowledge that sorting
-    # while grouping sorts within each group.    
+    # while grouping sorts within each group.
     df[0, :, by('word'), sort(-f.count)]
 
       word	tag	count
@@ -759,13 +759,13 @@ More Examples
 
 .. code-block:: python
 
-    DT = dt.Frame({"category": ["A"]*3 + ["B"]*3,
+    df = dt.Frame({"category": ["A"]*3 + ["B"]*3,
                    "date": ["9/6/2016", "10/6/2016",
                             "11/6/2016", "9/7/2016",
                             "10/7/2016", "11/7/2016"],
                    "value": [7,8,9,10,1,2]})
 
-    DT
+    df
         category     date         value
     0	A	    9/6/2016	    7
     1	A	    10/6/2016	    8
@@ -774,7 +774,7 @@ More Examples
     4	B	    10/7/2016	    1
     5	B	    11/7/2016	    2
 
-    DT[0,
+    df[0,
        {"value_date": f.date,
         "value_min":  f.value},
       by("category"),
@@ -788,7 +788,7 @@ More Examples
 
 .. code-block:: python
 
-    DT[0,
+    df[0,
        {"value_date": f.date,
         "value_max":  f.value},
       by("category"),
@@ -799,3 +799,59 @@ More Examples
     1	B	9/7/2016	10
 
 
+- Get the average of the last three instances per group
+
+.. code-block:: python
+
+    import random
+    random.seed(3)
+
+    df = dt.Frame({"Student": ["Bob", "Bill",
+                               "Bob", "Bob",
+                               "Bill","Joe",
+                               "Joe", "Bill",
+                               "Bob", "Joe",],
+                   "Score": random.sample(range(10,30), 10)})
+
+    df
+
+        Student	Score
+    0	Bob	17
+    1	Bill	28
+    2	Bob	27
+    3	Bob	14
+    4	Bill	21
+    5	Joe	24
+    6	Joe	19
+    7	Bill	29
+    8	Bob	20
+    9	Joe	23
+
+    df[-3:, mean(f[:]), f.Student]
+
+      Student	Score
+    0	Bill	26
+    1	Bob	20.3333
+    2	Joe	22
+
+- Group by on a condition
+
+  - Get the sum of ``Amount`` for ``Number`` in range (1 to 4) and (5 and above)
+
+.. code-block:: python
+
+    df = dt.Frame("""Number, Amount
+                        1,     5
+                        2,     10
+                        3,     11
+                        4,     3
+                        5,     5
+                        6,     8
+                        7,     9
+                        8,     6""")
+
+    df[:, sum(f.Amount), by(ifelse(f.Number>=5, "B","A"))]
+
+        C0	Amount
+    0	A	29
+    1	B	28
