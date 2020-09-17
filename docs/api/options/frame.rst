@@ -1,8 +1,8 @@
 
 .. xdata:: datatable.options.frame
-    :src: src/datatable/__init__.py options
+    :src: --
 
-    This property controls the following :class:`Frame()` options:
+    This namespace contains the following :class:`Frame()` options:
 
     .. list-table::
         :widths: auto

@@ -1,6 +1,6 @@
 
 .. xdata:: datatable.options.fread.log
-    :src: src/datatable/__init__.py options
+    :src: --
 
     This property controls the following logging options:
 

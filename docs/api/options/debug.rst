@@ -1,8 +1,8 @@
 
 .. xdata:: datatable.options.debug
-    :src: src/datatable/__init__.py options
+    :src: --
 
-    This property controls the following debug options:
+    This namespace contains the following debug options:
 
     .. list-table::
         :widths: auto

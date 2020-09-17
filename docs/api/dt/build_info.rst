@@ -1,6 +1,6 @@
 
 .. xdata:: datatable.build_info
-    :src: src/datatable/_build_info.py build_info
+    :src: --
 
     This is a python struct that contains information about the installed
     datatable module. The following fields are available:

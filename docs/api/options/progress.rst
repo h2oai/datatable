@@ -1,8 +1,8 @@
 
 .. xdata:: datatable.options.progress
-    :src: src/datatable/__init__.py options
+    :src: --
 
-    This property controls the following progress reporting options:
+    This namespace contains the following progress reporting options:
 
     .. list-table::
         :widths: auto

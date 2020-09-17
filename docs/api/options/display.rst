@@ -1,8 +1,8 @@
 
 .. xdata:: datatable.options.display
-    :src: src/datatable/__init__.py options
+    :src: --
 
-    This property controls the following display options:
+    This namespace contains the following display options:
 
     .. list-table::
         :widths: auto

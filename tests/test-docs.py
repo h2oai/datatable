@@ -55,7 +55,7 @@ def test_xfunction_paths():
                         outside = False
             else:
                 mm = re.match(re_path, line)
-                if mm:
+                if mm and mm.group(1) != "--":
                     fullpath = ROOT_PATH / mm.group(1)
                     assert fullpath.is_file(), (
                            "Path %s does not exist, found on line %d of %s"

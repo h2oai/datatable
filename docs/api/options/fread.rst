@@ -1,8 +1,8 @@
 
 .. xdata:: datatable.options.fread
-    :src: src/datatable/__init__.py options
+    :src: --
 
-    This property controls the following :meth:`fread()` option groups:
+    This namespace contains the following :meth:`fread()` option groups:
 
     .. list-table::
         :widths: auto
