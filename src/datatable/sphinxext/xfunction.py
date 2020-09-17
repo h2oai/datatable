@@ -45,6 +45,8 @@ This makes several directives available for use in the .rst files:
 
     .. xclass: datatable.Frame
 
+The :src: option is required, but it may be "--" to indicate that the object
+has no identifiable source (use sparingly!).
 """
 import pathlib
 import re
@@ -94,8 +96,8 @@ class XobjectDirective(SphinxDirective):
 
         env.xobject = {
             <docname>: {
-                "timestamp": <time of last build of the page>,
-                "sources": List[<name of a source file>],
+                "timestamp": float,    # time of last build of the page
+                "sources": List[str],  # names of source files
             }
         }
 
@@ -226,6 +228,20 @@ class XobjectDirective(SphinxDirective):
         "noindex": directives.unchanged,
     }
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.src_file = None
+        self.src_fnname = None
+        self.src_fnname2 = None
+        self.src_github_url = None
+        self.doc_file = None
+        self.doc_var = None
+        self.doc_github_url = None
+        self.doc_lines = StringList()
+        self.test_file = None
+        self.tests_github_url = None
+
+
     def run(self):
         """
         Main function invoked by the Sphinx runtime.
@@ -345,6 +361,9 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Option :src: is required for ..%s directive"
                              % self.name)
         src = self.options["src"].strip()
+        if src == '--':
+            return
+
         parts = src.split()
         if self.name in ["xdata", "xattr"]:
             if len(parts) not in [2, 3]:
@@ -369,7 +388,6 @@ class XobjectDirective(SphinxDirective):
                                  "`%s` is not a valid C++ identifier"
                                  % (self.name, p))
         self.src_fnname = parts[1]
-        self.src_fnname2 = None
         if len(parts) == 3:
             self.src_fnname2 = parts[2]
 
@@ -381,8 +399,6 @@ class XobjectDirective(SphinxDirective):
         provided, the fields are set to `None`.
         """
         if "doc" not in self.options:
-            self.doc_file = None
-            self.doc_var = None
             return
         doc = self.options["doc"].strip()
         parts = doc.split()
@@ -415,8 +431,6 @@ class XobjectDirective(SphinxDirective):
         Process the optional option `:tests:`, and set the fields
         `self.test_file` and `self.tests_github_url`.
         """
-        self.test_file = None
-        self.tests_github_url = None
         if "tests" not in self.options:
             return
 
@@ -474,63 +488,32 @@ class XobjectDirective(SphinxDirective):
         """
         txt = (self.project_root / filename).read_text(encoding="utf-8")
         lines = txt.splitlines()
-        if self.name == "xdata":
-            return self._locate_constant(filename, fnname, lines)
-        if filename.endswith(".py"):
-            return self._locate_python_fn(filename, fnname, lines)
-
-        if self.name == "xclass":
-            rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
-        else:
-            rx_cc_function = re.compile(r"(\s*)"
-                                        r"(?:static\s+|inline\s+)*"
-                                        r"(?:[\w:*&<> ]+)\s+" +
-                                        fnname +
-                                        r"\s*\(.*\)\s*" +
-                                        r"(?:const\s*|noexcept\s*|override\s*)*" +
-                                        r"\{\s*")
-        expect_closing = None
-        start_line = None
-        finish_line = None
-        for i, line in enumerate(lines):
-            if expect_closing:
-                if line.startswith(expect_closing):
-                    finish_line = i + 1
-                    break
-            elif fnname in line:
-                start_line = i + 1
-                mm = re.match(rx_cc_function, line)
-                if mm:
-                    expect_closing = mm.group(1) + "}"
+        lines = StringList(lines, items=[(filename, i+1)
+                                         for i in range(len(lines))])
+        try:
+            kind = self.name[1:]  # remove initial 'x'
+            if filename.endswith(".py"):
+                if kind == "data":
+                    i, j = locate_python_variable(fnname, lines)
+                elif kind in ["class", "function", "method", "attr"]:
+                    i, j = locate_python_function(fnname, kind, lines)
+                    self.doc_lines = extract_python_docstring(lines[i:j])
                 else:
-                    mm = re.match(rx_cc_function, line + lines[i+1])
-                    if mm:
-                        expect_closing = mm.group(1) + "}"
-        if not start_line:
-            raise self.error("Could not find function `%s` in file `%s`"
-                             % (fnname, filename))
-        if not expect_closing:
-            raise self.error("Unexpected signature of function `%s` "
-                             "in file `%s` line %d"
-                             % (fnname, filename, start_line))
-        if not finish_line:
-            raise self.error("Could not locate the end of function `%s` "
-                             "in file `%s` line %d"
-                             % (fnname, filename, start_line))
-        return self.permalink(filename, start_line, finish_line)
+                    raise self.error("Unsupported directive %s for "
+                                     "a python source file" % self.name)
+            else:
+                if kind not in ["class", "function", "method", "attr"]:
+                    raise self.error("Unsupported directive %s for "
+                                     "a C++ source file" % self.name)
+                i, j = locate_cxx_function(fnname, kind, lines)
+
+            return self.permalink(filename, i + 1, j)
+
+        except ValueError as e:
+            msg = str(e).replace("<FILE>", "file " + filename)
+            raise self.error(msg) from None
 
 
-    def _locate_constant(self, filename, varname, lines):
-        rx = re.compile(r"\b" + varname + r"\b")
-        for i, line in enumerate(lines):
-            if re.match(rx, line):
-                return self.permalink(filename, i + 1, i + 1)
-        raise self.error("Could not find variable `%s` in file `%s`"
-                         % (varname, filename))
-
-
-    def _locate_python_fn(self, filename, fnname, lines):
-        rx = re.compile(r"")
 
 
     def _extract_docs_from_source(self):
@@ -541,8 +524,6 @@ class XobjectDirective(SphinxDirective):
         the docstring cannot be found.
         """
         if not self.doc_file:
-            self.doc_github_url = None
-            self.doc_lines = StringList()
             return
 
         txt = (self.project_root / self.doc_file).read_text(encoding="utf-8")
@@ -676,6 +657,8 @@ class XobjectDirective(SphinxDirective):
         """
         Parse/transform the body of the function's docstring.
         """
+        # TODO: work with the StringList `lines` directly without converting
+        #       it into a plain string
         body = "\n".join(lines.data)
         line0 = lines.offset(0) if body else 0  # offset of the first line
         self.parsed_body = self._split_into_sections(body, line0)
@@ -1005,7 +988,8 @@ class XobjectDirective(SphinxDirective):
         return node
 
     def _generate_siglinks(self, node):
-        node += a_node(href=self.src_github_url, text="source", new=True)
+        if self.src_github_url:
+            node += a_node(href=self.src_github_url, text="source", new=True)
         if self.doc_github_url and self.doc_file != self.src_file:
             node += a_node(href=self.doc_github_url, text="doc", new=True)
         if self.tests_github_url:
@@ -1110,6 +1094,183 @@ class XobjectDirective(SphinxDirective):
                                     match_titles=True)
         return out
 
+
+
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+
+def locate_python_variable(name, lines):
+    """
+    Find declaration of a variable `name` within python source `lines`.
+
+    Returns a tuple (istart, iend) such that `lines[istart:iend]` would
+    contain the lines where the variable is declared. Variable declaration
+    must have the form of an assignment, i.e. "{name} = ...". Other ways
+    of declaring a variable are not supported.
+
+    A ValueError is raised if variable declaration cannot be found.
+
+    NYI: detection of multi-line variable declarations, such as dicts,
+    lists, multi-line strings, etc.
+    """
+    assert isinstance(name, str)
+    rx = re.compile(r"\s*%s\s*=\s*\S" % name)
+    for i, line in enumerate(lines.data):
+        if re.match(rx, line):
+            return (i, i+1)
+    raise ValueError("Could not find variable `%s` in <FILE>" % name)
+
+
+
+def locate_python_function(name, kind, lines):
+    """
+    Find declaration of a class/function `name` in python source `lines`.
+
+    Returns a tuple (istart, iend) such that `lines[istart:iend]` would
+    contain the lines where the class/function is declared. The body of
+    the class/function starts with "(class|def) {name}..." and ends
+    at a line with the indentation level equal or smaller than the
+    level of the declaration start.
+
+    A ValueError is raised if variable declaration cannot be found.
+    """
+    assert kind in ["class", "function", "method", "attr"]
+    keyword = "class" if kind == "class" else "def"
+    rx_start = re.compile(r"\s*%s\s+%s\b" % (keyword, name))
+    indent = None
+    istart = None
+    iend = -1
+    for i, line in enumerate(lines.data):
+        unindented_line = line.lstrip()
+        if not unindented_line:  # skip blank lines
+            continue
+        line_indent_level = len(line) - len(unindented_line)
+        if istart is None:
+            if re.match(rx_start, line):
+                indent = line_indent_level
+                istart = i
+        else:
+            if line_indent_level <= indent:
+                break
+        iend = i
+
+    iend += 1
+    if istart is None:
+        raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
+
+    # Also include @decorations, if any
+    while istart > 0:
+        line = lines[istart - 1]
+        unindented_line = line.lstrip()
+        line_indent_level = len(line) - len(unindented_line)
+        if line_indent_level == indent and unindented_line[:1] == '@':
+            istart -= 1
+        else:
+            break
+
+    return (istart, iend)
+
+
+def locate_cxx_function(name, kind, lines):
+    if kind == "class":
+        rx_start = re.compile(r"(\s*)class (?:\w+::)*" + name + r"\s*")
+    else:
+        rx_start = re.compile(r"(\s*)"
+                              r"(?:static\s+|inline\s+)*"
+                              r"(?:[\w:*&<> ]+)\s+" +
+                              name +
+                              r"\s*\(.*\)\s*" +
+                              r"(?:const\s*|noexcept\s*|override\s*)*" +
+                              r"\{\s*")
+    expect_closing = None
+    istart = None
+    ifinish = None
+    for i, line in enumerate(lines.data):
+        if expect_closing:
+            if line.startswith(expect_closing):
+                ifinish = i + 1
+                break
+        elif name in line:
+            istart = i
+            mm = re.match(rx_start, line)
+            if mm:
+                expect_closing = mm.group(1) + "}"
+            else:
+                mm = re.match(rx_start, line + lines[i+1])
+                if mm:
+                    expect_closing = mm.group(1) + "}"
+    if not istart:
+        raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
+    if not expect_closing:
+        raise ValueError("Unexpected signature of %s `%s` in <FILE> "
+                         "line %d" % (kind, name, istart))
+    if not ifinish:
+        raise ValueError("Could not locate the end of %s `%s` in <FILE> "
+                         "line %d" % (kind, name, istart))
+    return (istart, ifinish)
+
+
+def extract_python_docstring(lines):
+    """
+    Given a list of lines that contain a class/function definition,
+    this function will find the docstring (if any) within those lines
+    and return it dedented. The return value is a StringList.
+
+    If there is no docstring, return empty StringList.
+    """
+    i = 0
+    while i < len(lines):  # skip decorators
+        uline = lines[i].lstrip()
+        if uline.startswith("@"):
+            i += 1
+        else:
+            break
+    mm = re.match(r"(class|def)\s+(\w+)\s*", uline)
+    if not mm:
+        raise ValueError("Unexpected function/class declaration: %r" % uline)
+    name = mm.group(2)
+    uline = uline[mm.end():]
+
+    if mm.group(1) == "class" and uline == ":":
+        i += 1
+    elif uline.startswith("("):
+        while i + 1 < len(lines):
+            i += 1
+            if uline.endswith("):"):
+                break
+            else:
+                uline = lines[i]
+    else:
+        raise ValueError("Unexpected function/class declaration: %r" % lines[i])
+
+    uline = lines[i].lstrip()
+    indent0 = len(lines[i]) - len(uline)
+    if uline.startswith('"""'):
+        end = '"""'
+    elif uline.startswith("'''"):
+        end = "'''"
+    else:
+        return StringList()
+
+    res_data = []
+    res_items = []
+    if len(uline) > 3:
+        res_data.append(uline[3:])
+        res_items.append(lines.info(i))
+    while i + 1 < len(lines):
+        i += 1
+        line = lines[i][indent0:]
+        if end in line:
+            line = line[:line.find(end)].strip()
+            if line:
+                res_data.append(line)
+                res_items.append(lines.info(i))
+            break
+        else:
+            res_data.append(line)
+            res_items.append(lines.info(i))
+    return StringList(res_data, items=res_items)
 
 
 
