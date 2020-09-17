@@ -52,6 +52,7 @@ If `True`, any snippets of data being read that are printed in the
 log will be first anonymized by converting all non-0 digits to `1`,
 all lowercase letters to `a`, all uppercase letters to `A`, and all
 unicode characters to `U`.
+
 This option is useful in production systems when reading sensitive
 data that must not accidentally leak into log files or be printed
 with the error messages.

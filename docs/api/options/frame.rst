@@ -2,7 +2,7 @@
 .. xdata:: datatable.options.frame
     :src: --
 
-    This namespace contains the following :class:`Frame()` options:
+    This namespace contains the following :class:`Frame` options:
 
     .. list-table::
         :widths: auto

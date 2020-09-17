@@ -358,6 +358,11 @@ names `C0`, `C1`, `C2`, etc. by default. This option allows you to
 control the starting index in this sequence. For example, setting
 `dt.options.frame.names_auto_index=1` will cause the columns to be
 named `C1`, `C2`, `C3`, etc.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
 )";
 
 static const char * doc_options_frame_names_auto_prefix =
@@ -367,6 +372,11 @@ names `C0`, `C1`, `C2`, etc. by default. This option allows you to
 control the prefix used in this sequence. For example, setting
 `dt.options.frame.names_auto_prefix='Z'` will cause the columns to be
 named `Z0`, `Z1`, `Z2`, etc.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
 )";
 
 static int64_t     names_auto_index = 0;
