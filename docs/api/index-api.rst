@@ -177,11 +177,11 @@ Other
 
     math.             <math>
     models.           <models>
+    options.          <options>
     FExpr             <fexpr>
     Frame             <frame>
     ltype             <ltype>
     Namespace         <namespace>
-    options.          <options>
     stype             <stype>
     build_info        <dt/build_info>
     by()              <dt/by>
