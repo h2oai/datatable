@@ -1692,9 +1692,10 @@ For each hashed row of data, according to
 `Ad Click Prediction: a View from the Trenches <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_,
 the following FTRL-Proximal algorithm is employed:
 
-.. figure:: ftrl/ftrl_algorithm.png
-  :width: 400
-  :alt: Per-coordinate FTRL-Proximal online learning algorithm
+.. raw:: html
+
+      <img src="../../_static/ftrl_algorithm.png" width="400"
+       alt="Per-coordinate FTRL-Proximal online learning algorithm" />
 
 When trained, the model can be used to make predictions, or it can be
 re-trained on new datasets as many times as needed improving
