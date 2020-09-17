@@ -26,6 +26,12 @@ namespace progress {
 // dt.options.progress.clear_on_success
 //------------------------------------------------------------------------------
 
+static const char* doc_options_progress_clear_on_success =
+R"(
+If `True`, clear progress bar when job finished successfully.
+)";
+
+
 bool clear_on_success = false;
 
 static void init_option_clear_on_success() {
@@ -33,7 +39,7 @@ static void init_option_clear_on_success() {
     "progress.clear_on_success",
     []{ return py::obool(clear_on_success); },
     [](const py::Arg& value){ clear_on_success = value.to_bool_strict(); },
-    "If `True`, clear progress bar when job finished successfully."
+    doc_options_progress_clear_on_success
   );
 }
 
@@ -42,6 +48,13 @@ static void init_option_clear_on_success() {
 // dt.options.progress.allow_interruption
 //------------------------------------------------------------------------------
 
+static const char* doc_options_progress_allow_interruption =
+R"(
+If `True`, allow datatable to handle the `SIGINT` signal to interrupt
+long-running tasks.
+)";
+
+
 bool allow_interruption = true;
 
 static void init_option_allow_interruption() {
@@ -49,8 +62,7 @@ static void init_option_allow_interruption() {
     "progress.allow_interruption",
     []{ return py::obool(allow_interruption); },
     [](const py::Arg& value){ allow_interruption = value.to_bool_strict(); },
-    "If `True`, allow datatable to handle the `SIGINT` signal to interrupt\n"
-    "long-running tasks."
+    doc_options_progress_allow_interruption
   );
 }
 
@@ -59,8 +71,15 @@ static void init_option_allow_interruption() {
 // dt.options.progress.enabled
 //------------------------------------------------------------------------------
 
-bool enabled = true;
+static const char* doc_options_progress_enabled =
+R"(
+When `False`, progress reporting functionality will be turned off.
+This option is `True` by default if the `stdout` is connected to a
+terminal or a Jupyter Notebook, and False otherwise.
+)";
 
+
+bool enabled = true;
 
 static bool stdout_is_a_terminal() {
   auto rstdout = py::rstdout();
@@ -77,10 +96,7 @@ static void init_option_enabled() {
     "progress.enabled",
     []{ return py::obool(enabled); },
     [](const py::Arg& value){ enabled = value.to_bool_strict(); },
-    "When False, progress reporting functionality will be turned off.\n"
-    "\n"
-    "This option is True by default if the `stdout` is connected to a\n"
-    "terminal or a Jupyter Notebook, and False otherwise."
+    doc_options_progress_enabled
   );
 }
 
@@ -90,8 +106,13 @@ static void init_option_enabled() {
 // dt.options.progress.updates_per_second
 //------------------------------------------------------------------------------
 
-double updates_per_second = 25.0;
+static const char* doc_options_progress_updates_per_second =
+R"(
+Number of times per second the display of the progress bar should be updated.
+)";
 
+
+double updates_per_second = 25.0;
 
 static py::oobj get_ups() {
   return py::ofloat(updates_per_second);
@@ -109,7 +130,7 @@ static void init_option_updates_per_second() {
     "progress.updates_per_second",
     get_ups,
     set_ups,
-    "How often should the display of the progress bar be updated."
+    doc_options_progress_updates_per_second
   );
 }
 
@@ -119,8 +140,16 @@ static void init_option_updates_per_second() {
 // dt.options.progress.min_duration
 //------------------------------------------------------------------------------
 
-double min_duration = 0.5;
+static const char* doc_options_progress_min_duration =
+R"(
+Do not show progress bar if the duration of an operation is
+smaller than this value. If this setting is non-zero, then
+the progress bar will only be shown for long-running operations,
+whose duration (estimated or actual) exceeds this threshold.
+)";
 
+
+double min_duration = 0.5;
 
 static py::oobj get_min_duration() {
   return py::ofloat(min_duration);
@@ -137,10 +166,7 @@ static void init_option_min_duration() {
     "progress.min_duration",
     get_min_duration,
     set_min_duration,
-    "Do not show progress bar if the duration of an operation is\n"
-    "smaller than this value. If this setting is non-zero, then\n"
-    "the progress bar will only be shown for long-running operations,\n"
-    "whose duration (estimated or actual) exceeds this threshold."
+    doc_options_progress_min_duration
   );
 }
 
@@ -150,12 +176,26 @@ static void init_option_min_duration() {
 // dt.options.progress.callback
 //------------------------------------------------------------------------------
 
+static const char* doc_options_progress_callback =
+R"(
+If `None`, then the built-in progress-reporting function will be used.
+Otherwise, this value specifies a function to be called at each
+progress event. The function takes a single parameter `p`, which is
+a namedtuple with the following fields:
+
+  - `p.progress` is a float in the range `0.0 .. 1.0`;
+  - `p.status` is a string, one of 'running', 'finished', 'error' or
+    'cancelled'; and
+  - `p.message` is a custom string describing the operation currently
+    being performed.
+)";
+
+
 // This cannot be `py::oobj`, because then the static variable will be destroyed
 // on program's exit. However, at that point the Python runtime will have be
 // already shut down, and trying to garbage-collect a python object at that
 // moment leads to a segfault.
 PyObject* progress_fn = nullptr;
-
 
 static py::oobj get_callback() {
   return progress_fn? py::oobj(progress_fn) : py::None();
@@ -172,16 +212,7 @@ static void init_option_callback(){
     "progress.callback",
     get_callback,
     set_callback,
-    "If None, then the built-in progress-reporting function will be used.\n"
-    "Otherwise, this value specifies a function to be called at each\n"
-    "progress event. The function takes a single parameter `p`, which is\n"
-    "a namedtuple with the following fields:\n"
-    "\n"
-    "  - `p.progress` is a float in the range 0.0 .. 1.0;\n"
-    "  - `p.status` is a string, one of 'running', 'finished', 'error' or \n"
-    "    'cancelled'; and\n"
-    "  - `p.message` is a custom string describing the operation currently\n"
-    "    being performed."
+    doc_options_progress_callback
   );
 }
 

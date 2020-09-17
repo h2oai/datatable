@@ -41,10 +41,10 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f.Number), by('Fruit')]
 
-        Fruit	Number
-    0	Apples	35
-    1	Grapes	137
-    2	Oranges	140
+        Fruit   Number
+    0   Apples  35
+    1   Grapes  137
+    2   Oranges 140
 
 - Group by multiple columns
 
@@ -52,17 +52,17 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f.Number), by('Fruit', 'Name')]
 
-        Fruit	Name	Number
-    0	Apples	Bob	16
-    1	Apples	Mike	9
-    2	Apples	Steve	10
-    3	Grapes	Bob	35
-    4	Grapes	Tom	87
-    5	Grapes	Tony	15
-    6	Oranges	Bob	67
-    7	Oranges	Mike	57
-    8	Oranges	Tom	15
-    9	Oranges	Tony	1
+        Fruit   Name    Number
+    0   Apples  Bob 16
+    1   Apples  Mike    9
+    2   Apples  Steve   10
+    3   Grapes  Bob 35
+    4   Grapes  Tom 87
+    5   Grapes  Tony    15
+    6   Oranges Bob 67
+    7   Oranges Mike    57
+    8   Oranges Tom 15
+    9   Oranges Tony    1
 
 - By column position
 
@@ -70,10 +70,10 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f.Number), by(f[0])]
 
-        Fruit	Number
-    0	Apples	35
-    1	Grapes	137
-    2	Oranges	140
+        Fruit   Number
+    0   Apples  35
+    1   Grapes  137
+    2   Oranges 140
 
 - By boolean expression
 
@@ -81,9 +81,9 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f.Number), by(f.Fruit == "Apples")]
 
-        C0	Number
-    0	0	277
-    	1	35
+        C0  Number
+    0   0   277
+        1   35
 
 - Combination of column and boolean expression
 
@@ -91,14 +91,14 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f.Number), by(f.Name, f.Fruit == "Apples")]
 
-       Name	C0	Number
-    0	Bob	0	102
-    1	Bob	1	16
-    2	Mike	0	57
-    3	Mike	1	9
-    4	Steve	1	10
-    5	Tom	0	102
-    6	Tony	0	16
+       Name C0  Number
+    0   Bob 0   102
+    1   Bob 1   16
+    2   Mike    0   57
+    3   Mike    1   9
+    4   Steve   1   10
+    5   Tom 0   102
+    6   Tony    0   16
 
 - The grouping column can be excluded from the final output
 
@@ -107,9 +107,9 @@ The aggregate function is applied in the ``j`` section.
     df[:, sum(f.Number), by('Fruit', add_columns=False)]
 
         Number
-    0	35
-    1	137
-    2	140
+    0   35
+    1   137
+    2   140
 
 
 **Note:**
@@ -125,12 +125,12 @@ The aggregate function is applied in the ``j`` section.
            "max": max(f.Number)},
       by('Fruit','Date')]
 
-        Fruit	Date	       min	max
-    0	Apples	10/6/2016	7	9
-    1	Apples	10/7/2016	1	10
-    2	Grapes	10/7/2016	1	87
-    3	Oranges	10/6/2016	15	65
-    4	Oranges	10/7/2016	1	2
+        Fruit   Date           min  max
+    0   Apples  10/6/2016   7   9
+    1   Apples  10/7/2016   1   10
+    2   Grapes  10/7/2016   1   87
+    3   Oranges 10/6/2016   15  65
+    4   Oranges 10/7/2016   1   2
 
 * Functions can be applied across a columnset
 
@@ -148,11 +148,11 @@ The aggregate function is applied in the ``j`` section.
 
       df[:, sum(f["col3":"col4"]), by('col1', 'col2')]
 
-                col1	col2	col3	col4
-      0 	a	c	2	4
-      1 	a	d	1	2
-      2  	b	d	1	2
-      3	        b	e	2	4
+                col1    col2    col3    col4
+      0     a   c   2   4
+      1     a   d   1   2
+      2     b   d   1   2
+      3         b   e   2   4
 
 - Apply different aggregate functions to different columns
 
@@ -160,11 +160,11 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, [max(f.col3), min(f.col4)], by('col1', 'col2')]
 
-        col1	col2	col3	col4
-    0	a	c	1	2
-    1	a	d	1	2
-    2	b	d	1	2
-    3	b	e	1	2
+        col1    col2    col3    col4
+    0   a   c   1   2
+    1   a   d   1   2
+    2   b   d   1   2
+    3   b   e   1   2
 
 * Nested aggregations in ``j``
 
@@ -186,10 +186,10 @@ The aggregate function is applied in the ``j`` section.
          by('cat')
          ]
 
-        cat	AB	CD
-      0	  x	12	12
-      1	  y	18	19
-      2   z	24	26
+        cat AB  CD
+      0   x 12  12
+      1   y 18  19
+      2   z 24  26
 
 * Computation between aggregated columns
 
@@ -206,9 +206,9 @@ The aggregate function is applied in the ``j`` section.
 
       df[:, max(f.VALUE) - min(f.VALUE), by('GROUP')]
 
-          GROUP	  C0
-      0	   1	 5
-      1	   2	 18
+          GROUP   C0
+      0    1     5
+      1    2     18
 
 - Null values are not excluded from the grouping column
 
@@ -222,10 +222,10 @@ The aggregate function is applied in the ``j`` section.
 
     df[:, sum(f[:]), by('b')]
 
-        	b	a	c
-        0	NA	1	4
-        1	1	2	3
-        2	2	2	5
+            b   a   c
+        0   NA  1   4
+        1   1   2   3
+        2   2   2   5
 
 If you wish to ignore null values, first filter them out
 
@@ -233,9 +233,9 @@ If you wish to ignore null values, first filter them out
 
     df[f.b != None, :][:, sum(f[:]), by('b')]
 
-        b	a	c
-    0	1	2	3
-    1	2	2	5
+        b   a   c
+    0   1   2   3
+    1   2   2   5
 
 Filtration
 -----------
@@ -262,10 +262,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[0, :, by('A')]
 
-        A	B
-    0	1	10
-    1	2	30
-    2	3	10
+        A   B
+    0   1   10
+    1   2   30
+    2   3   10
 
 - Select the last row per group
 
@@ -273,10 +273,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[-1, :, by('A')]
 
-        A	B
-    0	1	20
-    1	2	40
-    2	3	10
+        A   B
+    0   1   20
+    1   2   40
+    2   3   10
 
 - Select the nth row per group
 
@@ -286,9 +286,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
       df[1, :, by('A')]
 
-    	  A	   B
-      0	  1	  20
-      1	  2	  40
+          A    B
+      0   1   20
+      1   2   40
 
 **Note:**
     - Filtering this way can be used to drop duplicates; you can decide to keep the first or last non-duplicate.
@@ -310,10 +310,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[-1, :, by('id'), sort('date')]
 
-    	id	product	date
-    0	220	6647	2014-10-16
-    1	826	3380	2015-05-19
-    2	901	4555	2014-11-01
+        id  product date
+    0   220 6647    2014-10-16
+    1   826 3380    2015-05-19
+    2   901 4555    2014-11-01
 
 **Note:**
     -If ``sort`` and ``by`` modifiers are present, the sorting occurs after the grouping, and occurs within each group.
@@ -327,10 +327,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
       df = dt.Frame([[1, 1, 5], [2, 3, 6]], names=['A', 'B'])
 
       df
-          A	  B
-      0	  1	  2
-      1   1	  3
-      2	  5	  6
+          A   B
+      0   1   2
+      1   1   3
+      2   5   6
 
       # Get the count of each group,
       # and assign to a new column, using the update method
@@ -345,9 +345,9 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
       df[f.filter_col > 1, f[:-1]]
 
-          A	  B
-      0	  1	  2
-      1   1	  3
+          A   B
+      0   1   2
+      1   1   3
 
 - Keep only rows per group where ``diff`` is the minimum
 
@@ -371,11 +371,10 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[f.filter_col == 1, :-1]
 
-        item	diff	otherstuff
-    0	 1	 1	    2
-    1	 2	−6	    2
-    2	 3	 0	    0
-
+       item diff  otherstuff
+    0       1      1             2
+    1       2      -6            2
+    2       3      0             0
 
 - Keep only entries where ``make`` has both 0 and 1 in ``sales``
 
@@ -399,15 +398,15 @@ This occurs in the ``i`` section of the groupby, where only a subset of the data
 
     df[f.filter_col == 1, :-1]
 
-        make	 country  other_columns	  sale
-    0	honda	 tokyo	        data	    1
-    1	honda	 hirosima	data	    0
-    2	toyota	 tokyo	        data	    1
-    3	toyota	 hirosima	data	    0
-    4	ferrari	 tokyo	        data	    1
-    5	ferrari	 hirosima	data	    0
-    6	nissan	 tokyo	        data	    1
-    7	nissan	 hirosima	data	    0
+        make     country  other_columns   sale
+    0   honda    tokyo          data        1
+    1   honda    hirosima   data        0
+    2   toyota   tokyo          data        1
+    3   toyota   hirosima   data        0
+    4   ferrari  tokyo          data        1
+    5   ferrari  hirosima   data        0
+    6   nissan   tokyo          data        1
+    7   nissan   hirosima   data        0
 
 Transformation
 --------------
@@ -438,17 +437,17 @@ This is when a function is applied to a column after a groupby and the resulting
       by('y')]
 
     df
-                c	y   min_col  max_col
-        0	9	0	8	9
-        1	8	0	8	9
-        2	3	1	3	3
-        3	6	2	6	6
-        4	1	3	1	5
-        5	2	3	1	5
-        6	5	3	1	5
-        7	4	4	0	7
-        8	0	4	0	7
-        9	7	4	0	7
+                c   y   min_col  max_col
+        0   9   0   8   9
+        1   8   0   8   9
+        2   3   1   3   3
+        3   6   2   6   6
+        4   1   3   1   5
+        5   2   3   1   5
+        6   5   3   1   5
+        7   4   4   0   7
+        8   0   4   0   7
+        9   7   4   0   7
 
 - Fill missing values by group mean
 
@@ -458,16 +457,16 @@ This is when a function is applied to a column after a groupby and the resulting
                    'name' : ['A','A', 'B','B','B','B', 'C','C','C']})
 
     df
-        value	name
-    0	1	A
-    1	NA	A
-    2	NA	B
-    3	2	B
-    4	3	B
-    5	1	B
-    6	3	C
-    7	NA	C
-    8	3	C
+        value   name
+    0   1   A
+    1   NA  A
+    2   NA  B
+    3   2   B
+    4   3   B
+    5   1   B
+    6   3   C
+    7   NA  C
+    8   3   C
 
     # This uses a combination of update and ifelse methods:
 
@@ -478,16 +477,16 @@ This is when a function is applied to a column after a groupby and the resulting
        by('name')]
 
     df
-        value	name
-    0	1	A
-    1	1	A
-    2	2	B
-    3	2	B
-    4	3	B
-    5	1	B
-    6	3	C
-    7	3	C
-    8	3	C
+        value   name
+    0   1   A
+    1   1   A
+    2   2   B
+    3   2   B
+    4   3   B
+    5   1   B
+    6   3   C
+    7   3   C
+    8   3   C
 
 - Transform and Aggregate on Multiple Columns
 
@@ -501,13 +500,13 @@ This is when a function is applied to a column after a groupby and the resulting
                      'd' : ['z','z','z','o','o','o']})
       df
 
-            a	b	c	d
-      0	    1	1	q	z
-      1	    2	2	q	z
-      2	    3	3	q	z
-      3	    4	4	q	o
-      4	    5	5	w	o
-      5	    6	6	w	o
+            a   b   c   d
+      0     1   1   q   z
+      1     2   2   q   z
+      2     3   3   q   z
+      3     4   4   q   o
+      4     5   5   w   o
+      5     6   6   w   o
 
 
       df[:,
@@ -517,13 +516,13 @@ This is when a function is applied to a column after a groupby and the resulting
 
       df
 
-            a	b	c	d	e
-      0	    1	1	q	z	12
-      1	    2	2	q	z	12
-      2	    3	3	q	z	12
-      3	    4	4	q	o	8
-      4	    5	5	w	o	22
-      5	    6	6	w	o	22
+            a   b   c   d   e
+      0     1   1   q   z   12
+      1     2   2   q   z   12
+      2     3   3   q   z   12
+      3     4   4   q   o   8
+      4     5   5   w   o   22
+      5     6   6   w   o   22
 
 - Replicate R's groupby `mutate <https://dplyr.tidyverse.org/reference/mutate.html>`_
 
@@ -538,12 +537,12 @@ This is when a function is applied to a column after a groupby and the resulting
                     )
 
       df
-          a	  b	  c	  d
-      0	  1	  1	  10      3
-      1	  1	  0	  5	  1
-      2	  0       0	  1	  2
-      3	  1	  1	  5	  1
-      4	  0	  0	  10      2
+          a   b   c   d
+      0   1   1   10      3
+      1   1   0   5   1
+      2   0       0   1   2
+      3   1   1   5   1
+      4   0   0   10      2
 
       df[:,
          update(ratio = f.c / sum(f.c * f.d)),
@@ -552,12 +551,12 @@ This is when a function is applied to a column after a groupby and the resulting
 
       df
 
-            a	b	c	d	ratio
-        0   1	1	10	3	0.285714
-        1   1	0	5	1	1
-        2   0	0	1	2	0.0454545
-        3   1	1	5	1	0.142857
-        4   0	0	10	2	0.454545
+            a   b   c   d   ratio
+        0   1   1   10  3   0.285714
+        1   1   0   5   1   1
+        2   0   0   1   2   0.0454545
+        3   1   1   5   1   0.142857
+        4   0   0   10  2   0.454545
 
 
 
@@ -582,9 +581,9 @@ Groupby on Boolean Expressions
          sum(f.data1),
          by(f.key2 == "one", f.key1)][f.C0 == 1, 1:]
 
-          key1	data1
-      0	   a	0.093391
-      1	   b	1.46819
+          key1  data1
+      0    a    0.093391
+      1    b    1.46819
 
 - Conditional Sums based on various Criteria
 
@@ -605,12 +604,12 @@ Groupby on Boolean Expressions
         },
        by('A_id')]
 
-       A_id	sum_up	sum_down  over_200_up
-    0	a1	  1	     0	        0
-    1	a2	  0	     1	        0
-    2	a3	  2	     0	        1
-    3	a4	  0	     0	        0
-    4	a5	  0	     0	        0
+       A_id sum_up  sum_down  over_200_up
+    0   a1    1      0          0
+    1   a2    0      1          0
+    2   a3    2      0          1
+    3   a4    0      0          0
+    4   a5    0      0          0
 
 
 More Examples
@@ -652,9 +651,10 @@ More Examples
                                            f.Data_Value, None)}))
          ]
 
-          Day	  TMAX	TMIN
-      0	  01-01	  115	0
-      1	  01-02	  79	0
+          Day     TMAX  TMIN
+      0   01-01   115   0
+      1   01-02   79    0
+
 
 - Group By and Conditional Sum and add Back to Data Frame
 
@@ -679,14 +679,14 @@ More Examples
 
       df
 
-            ID	Num	Letter	Count	Total
-      0	    1	17	D	1	3
-      1	    1	12	D	2	3
-      2	    1	13	D	3	3
-      3	    2	17	D	4	4
-      4	    2	12	A	5	4
-      5	    2	16	D	1	4
-      6	    3	16	D	1	0
+            ID  Num Letter  Count   Total
+      0     1   17  D   1   3
+      1     1   12  D   2   3
+      2     1   13  D   3   3
+      3     2   17  D   4   4
+      4     2   12  A   5   4
+      5     2   16  D   1   4
+      6     3   16  D   1   0
 
 
 - Multiple indexing with multiple min and max in one aggregate
@@ -704,17 +704,17 @@ More Examples
 
       df
 
-               id	col1	col2	col3
-      0 	1	1	4	34
-      1 	1	3	6	64
-      2 	1	5	8	53
-      3 	2	2	3	5
-      4 	2	5	65	6
-      5 	2	3	3	2
-      6 	2	6	5	4
-      7	        3	3	4	6
-      8 	3	67	4	4
-      9 	3	7	7	67
+               id   col1    col2    col3
+      0     1   1   4   34
+      1     1   3   6   64
+      2     1   5   8   53
+      3     2   2   3   5
+      4     2   5   65  6
+      5     2   3   3   2
+      6     2   6   5   4
+      7         3   3   4   6
+      8     3   67  4   4
+      9     3   7   7   67
 
       df[:,
          {'col1' : max(ifelse(f.col2 == max(f.col2),
@@ -728,10 +728,10 @@ More Examples
           },
          by('id')]
 
-            id	col1	col2	col3
-      0	    1	5	4	3
-      1	    2	5	3	5
-      2	    3	7	4	7
+            id  col1    col2    col3
+      0     1   5   4   3
+      1     2   5   3   5
+      2     3   7   4   7
 
 - Filter row based on aggregate value
 

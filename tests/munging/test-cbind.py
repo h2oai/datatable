@@ -215,7 +215,7 @@ def test_cbind_views3():
     assert d0.to_list() == [list(range(10))[::-1],
                             list("abcde" * 2),
                             [14, 19, 35, 17, 3, 0, 1, 0, 10, 777]]
-    assert frame_columns_virtual(d0) == (True, False, True)
+    assert frame_columns_virtual(d0) == [True, False, True]
 
 
 

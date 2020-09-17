@@ -120,8 +120,99 @@ Same as above, new column name                      ``DT[2:3, .(sv=sum(v))]``   
 Filter in ``i`` and aggregate in ``j``              ``DT[x=="b", .(sum(v*y))]``                       ``DT[f.x=="b", dt.sum(f.v * f.y)]``
 Same as above, return as scalar                     ``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``
 ======================================           ==========================================          ==============================================
-
 In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, all items except the last are included.
+
+Some ``SD``(Subset of Data) operations can be replicated in ``datatable`` 
+
+- Aggregate several columns
+
+.. code-block:: R
+
+    # data.table
+    DT[, lapply(.SD, mean),
+       .SDcols = c("y","v")]
+
+              y v
+    1: 3.333333 5
+
+.. code-block:: python
+
+    # datatable
+    DT[:, dt.mean([f.y,f.v])]
+
+            y	v
+    0	3.33333	5
+
+- Modify columns using a condition
+
+.. code-block:: R
+
+    # data.table
+    DT[, .SD - 1,
+       .SDcols = is.numeric]
+
+       y v
+    1: 0 0
+    2: 2 1
+    3: 5 2
+    4: 0 3
+    5: 2 4
+    6: 5 5
+    7: 0 6
+    8: 2 7
+    9: 5 8
+
+.. code-block:: python
+
+    # datatable
+    DT[:, f[int]-1]
+
+        C0	C1
+    0	0	0
+    1	2	1
+    2	5	2
+    3	0	3
+    4	2	4
+    5	5	5
+    6	0	6
+    7	2	7
+    8	5	8
+
+- Modify several columns and keep others unchanged
+
+.. code-block:: R
+
+    #data.table
+    DT[, c("y", "v") := lapply(.SD, sqrt),
+       .SDcols = c("y", "v")]
+
+       x        y        v
+    1: b 1.000000 1.000000
+    2: b 1.732051 1.414214
+    3: b 2.449490 1.732051
+    4: a 1.000000 2.000000
+    5: a 1.732051 2.236068
+    6: a 2.449490 2.449490
+    7: c 1.000000 2.645751
+    8: c 1.732051 2.828427
+    9: c 2.449490 3.000000
+
+.. code-block:: python
+
+    #datatable
+    # there is a square root function the datatable math module
+    DT[:, update(**{name:f[name]**0.5 for name in ("y","v")})]
+
+        x	y	v
+    0	b	1	1
+    1	b	1.73205	1.41421
+    2	b	2.44949	1.73205
+    3	a	1	2
+    4	a	1.73205	2.23607
+    5	a	2.44949	2.44949
+    6	c	1	2.64575
+    7	c	1.73205	2.82843
+    8	c	2.44949	3
 
 Grouping with :func:`by()`
 --------------------------
@@ -148,13 +239,13 @@ First 2 rows of each group                                      ``DT[, head(.SD,
 Last 2 rows of each group                                       ``DT[, tail(.SD,2), by=x]``                         ``DT[-2:, :, by("x")]``
 ===========================================================   ==============================================   ============================================================
 
-In R's `data'table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
+In R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
 
 In ``data.table``, ``i`` is executed before the grouping, while in ``datatable``, ``i`` is executed after the grouping.
 
 Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
 
-Multiple aggregations within a group can be executed in R's `data'table <https://data.table.gitlab.io/data.table/index.html>`__ with the syntax below ::
+Multiple aggregations within a group can be executed in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ with the syntax below ::
 
     DT[, list(MySum=sum(v),
               MyMin=min(v),
@@ -167,7 +258,6 @@ The same can be replicated in ``datatable`` by using a dictionary ::
            'MyMin': dt.min(f.v),
            'MyMax': dt.max(f.v)},
        by(f.x, f.y%2)]
-
 
 Add/Update/Delete Columns
 -------------------------
@@ -234,9 +324,9 @@ Left join in R's `data.table <https://data.table.gitlab.io/data.table/index.html
 
 Join in ``datatable``::
 
-    DT = dt.Frame({"x":np.repeat(["b","a","c"],3),
-                   "y": [1,3,6]*3,
-                   "v": range(1,10)})
+    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+              y = [1, 3, 6] * 3,
+              v = range(1, 10))
 
     X = dt.Frame({"x":('c','b'),
                   "v":(8,7),
@@ -410,3 +500,44 @@ Join in ``datatable``::
 
 Expect significant improvement in join functionality, with more concise syntax, as well as additions of more features, as ``datatable`` matures.
 
+Functions in R/data.table not yet implemented
+---------------------------------------------
+
+This is a list of some functions in ``data.table`` that do not have an equivalent in ``datatable`` yet, that we would likely implement
+
+- Reshaping functions 
+   - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__ 
+   - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__ 
+
+- Convenience functions for filtering and subsetting
+   - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__ 
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
+   - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__ 
+
+- Conditional functions
+   - `fcase <https://rdatatable.gitlab.io/data.table/reference/fcase.html>`__ 
+
+- Duplicate functions
+   - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__ 
+   - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__  in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable`` returns a single column of unique values in the entire dataframe.
+
+- Aggregation functions
+   - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__ 
+   - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
+   - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+   - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+   - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+
+- Missing values functions
+   - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__ 
+   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__ 
+
+Also, at the moment, custom aggregations in the ``j`` section are not supported in ``datatable``- we intend to implement that at some point.
+
+There are no datetime functions in ``datatable``, and string operations are limited as well.
+
+If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.

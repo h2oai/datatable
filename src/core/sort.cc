@@ -255,6 +255,39 @@ void swap(rmem& left, rmem& right) noexcept {
 // Options
 //------------------------------------------------------------------------------
 
+static const char* doc_sort_insert_method_threshold =
+R"(
+Largest n at which sorting will be performed using insert sort
+method. This setting also governs the recursive parts of the
+radix sort algorithm, when we need to sort smaller sub-parts of
+the input.
+)";
+
+static const char* doc_sort_thread_multiplier =
+R"(
+Internal
+)";
+
+static const char* doc_sort_max_chunk_length =
+R"(
+Internal
+)";
+
+static const char* doc_sort_max_radix_bits =
+R"(
+Internal
+)";
+
+static const char* doc_sort_over_radix_bits =
+R"(
+Internal
+)";
+
+static const char* doc_sort_nthreads =
+R"(
+Internal
+)";
+
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
 static size_t sort_max_chunk_length = 1 << 8;
@@ -272,10 +305,8 @@ void sort_init_options() {
       if (n < 0) n = 0;
       sort_insert_method_threshold = static_cast<size_t>(n);
     },
-    "Largest n at which sorting will be performed using insert sort\n"
-    "method. This setting also governs the recursive parts of the\n"
-    "radix sort algorithm, when we need to sort smaller sub-parts of\n"
-    "the input.");
+    doc_sort_insert_method_threshold
+  );
 
   dt::register_option(
     "sort.thread_multiplier",
@@ -284,7 +315,9 @@ void sort_init_options() {
       int64_t n = value.to_int64_strict();
       if (n < 1) n = 1;
       sort_thread_multiplier = static_cast<size_t>(n);
-    }, "");
+    },
+    doc_sort_thread_multiplier
+  );
 
   dt::register_option(
     "sort.max_chunk_length",
@@ -293,7 +326,9 @@ void sort_init_options() {
       int64_t n = value.to_int64_strict();
       if (n < 1) n = 1;
       sort_max_chunk_length = static_cast<size_t>(n);
-    }, "");
+    },
+    doc_sort_max_chunk_length
+  );
 
   dt::register_option(
     "sort.max_radix_bits",
@@ -303,7 +338,9 @@ void sort_init_options() {
       if (n <= 0)
         throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
       sort_max_radix_bits = static_cast<uint8_t>(n);
-    }, "");
+    },
+    doc_sort_max_radix_bits
+  );
 
   dt::register_option(
     "sort.over_radix_bits",
@@ -313,7 +350,9 @@ void sort_init_options() {
       if (n <= 0)
         throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
       sort_over_radix_bits = static_cast<uint8_t>(n);
-    }, "");
+    },
+    doc_sort_over_radix_bits
+  );
 
   dt::register_option(
     "sort.nthreads",
@@ -323,7 +362,9 @@ void sort_init_options() {
       if (nth <= 0) nth += static_cast<int32_t>(dt::get_hardware_concurrency());
       if (nth <= 0) nth = 1;
       sort_nthreads = static_cast<uint8_t>(nth);
-    }, "");
+    },
+    doc_sort_nthreads
+  );
 
   dt::register_option(
     "sort.new",

@@ -14,11 +14,14 @@ Submodules
     :widths: auto
     :class: api-table
 
-    * - :mod:`.math <datatable.math>`
-      - Mathematical functions, similar to python's ``math`` module.
+    * - :mod:`math. <datatable.math>`
+      - Mathematical functions, similar to python's :mod:`math` module.
 
-    * - :mod:`.models <datatable.models>`
+    * - :mod:`models. <datatable.models>`
       - A small set of data analysis tools.
+
+    * - :mod:`internal. <datatable.internal>`
+      - Access to some internal details of :mod:`datatable` module.
 
 
 Classes
@@ -169,15 +172,21 @@ Other
     * - :data:`g`
       - Secondary namespace used during :meth:`DT[..., join()] <Frame.__getitem__>` call.
 
+    * - :data:`options`
+      - datatable options.
 
 .. toctree::
     :hidden:
 
-    models.           <models>
+    internal.         <internal>
     math.             <math>
-    Frame             <frame>
+    models.           <models>
+    options.          <options>
     FExpr             <fexpr>
+    Frame             <frame>
+    ltype             <ltype>
     Namespace         <namespace>
+    stype             <stype>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>
