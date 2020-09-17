@@ -451,7 +451,3 @@ Also, at the moment, custom aggregations in the ``j`` section are not supported 
 There are no datetime functions in ``datatable``, and string operations are limited as well.
 
 If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.
-
-
-
-
