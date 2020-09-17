@@ -44,7 +44,7 @@ class stype(enum.Enum):
     such as ``int32_t`` or ``double``. However some stypes (corresponding to
     strings and categoricals) have a more complicated underlying structure.
 
-    Notably, :module:`datatable` does not support arbitrary structures as
+    Notably, :mod:`datatable` does not support arbitrary structures as
     elements of a Column, so the set of stypes is small.
 
     Examples

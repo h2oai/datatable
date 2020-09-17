@@ -236,6 +236,8 @@ class XobjectDirective(SphinxDirective):
         self.src_github_url = None
         self.doc_file = None
         self.doc_var = None
+        self.doc_github_url = None
+        self.doc_lines = StringList()
         self.test_file = None
         self.tests_github_url = None
 
@@ -486,6 +488,8 @@ class XobjectDirective(SphinxDirective):
         """
         txt = (self.project_root / filename).read_text(encoding="utf-8")
         lines = txt.splitlines()
+        lines = StringList(lines, items=[(filename, i+1)
+                                         for i in range(len(lines))])
         try:
             kind = self.name[1:]  # remove initial 'x'
             if filename.endswith(".py"):
@@ -493,6 +497,7 @@ class XobjectDirective(SphinxDirective):
                     i, j = locate_python_variable(fnname, lines)
                 elif kind in ["class", "function", "method", "attr"]:
                     i, j = locate_python_function(fnname, kind, lines)
+                    self.doc_lines = extract_python_docstring(lines[i:j])
                 else:
                     raise self.error("Unsupported directive %s for "
                                      "a python source file" % self.name)
@@ -519,8 +524,6 @@ class XobjectDirective(SphinxDirective):
         the docstring cannot be found.
         """
         if not self.doc_file:
-            self.doc_github_url = None
-            self.doc_lines = StringList()
             return
 
         txt = (self.project_root / self.doc_file).read_text(encoding="utf-8")
@@ -654,6 +657,8 @@ class XobjectDirective(SphinxDirective):
         """
         Parse/transform the body of the function's docstring.
         """
+        # TODO: work with the StringList `lines` directly without converting
+        #       it into a plain string
         body = "\n".join(lines.data)
         line0 = lines.offset(0) if body else 0  # offset of the first line
         self.parsed_body = self._split_into_sections(body, line0)
@@ -1111,7 +1116,7 @@ def locate_python_variable(name, lines):
     """
     assert isinstance(name, str)
     rx = re.compile(r"\s*%s\s*=\s*\S" % name)
-    for i, line in enumerate(lines):
+    for i, line in enumerate(lines.data):
         if re.match(rx, line):
             return (i, i+1)
     raise ValueError("Could not find variable `%s` in <FILE>" % name)
@@ -1136,7 +1141,7 @@ def locate_python_function(name, kind, lines):
     indent = None
     istart = None
     iend = -1
-    for i, line in enumerate(lines):
+    for i, line in enumerate(lines.data):
         unindented_line = line.lstrip()
         if not unindented_line:  # skip blank lines
             continue
@@ -1181,7 +1186,7 @@ def locate_cxx_function(name, kind, lines):
     expect_closing = None
     istart = None
     ifinish = None
-    for i, line in enumerate(lines):
+    for i, line in enumerate(lines.data):
         if expect_closing:
             if line.startswith(expect_closing):
                 ifinish = i + 1
@@ -1204,6 +1209,68 @@ def locate_cxx_function(name, kind, lines):
         raise ValueError("Could not locate the end of %s `%s` in <FILE> "
                          "line %d" % (kind, name, istart))
     return (istart, ifinish)
+
+
+def extract_python_docstring(lines):
+    """
+    Given a list of lines that contain a class/function definition,
+    this function will find the docstring (if any) within those lines
+    and return it dedented. The return value is a StringList.
+
+    If there is no docstring, return empty StringList.
+    """
+    i = 0
+    while i < len(lines):  # skip decorators
+        uline = lines[i].lstrip()
+        if uline.startswith("@"):
+            i += 1
+        else:
+            break
+    mm = re.match(r"(class|def)\s+(\w+)\s*", uline)
+    if not mm:
+        raise ValueError("Unexpected function/class declaration: %r" % uline)
+    name = mm.group(2)
+    uline = uline[mm.end():]
+
+    if mm.group(1) == "class" and uline == ":":
+        i += 1
+    elif uline.startswith("("):
+        while i + 1 < len(lines):
+            i += 1
+            if uline.endswith("):"):
+                break
+            else:
+                uline = lines[i]
+    else:
+        raise ValueError("Unexpected function/class declaration: %r" % lines[i])
+
+    uline = lines[i].lstrip()
+    indent0 = len(lines[i]) - len(uline)
+    if uline.startswith('"""'):
+        end = '"""'
+    elif uline.startswith("'''"):
+        end = "'''"
+    else:
+        return StringList()
+
+    res_data = []
+    res_items = []
+    if len(uline) > 3:
+        res_data.append(uline[3:])
+        res_items.append(lines.info(i))
+    while i + 1 < len(lines):
+        i += 1
+        line = lines[i][indent0:]
+        if end in line:
+            line = line[:line.find(end)].strip()
+            if line:
+                res_data.append(line)
+                res_items.append(lines.info(i))
+            break
+        else:
+            res_data.append(line)
+            res_items.append(lines.info(i))
+    return StringList(res_data, items=res_items)
 
 
 
