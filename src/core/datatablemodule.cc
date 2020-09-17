@@ -165,7 +165,7 @@ return: ctypes.c_void_p
 
 static py::PKArgs args_frame_column_data_r(
     2, 0, 0, false, false, {"frame", "i"},
-    "frame_column_data_r", frame_column_data_r);
+    "frame_column_data_r", doc_frame_column_data_r);
 
 static py::oobj frame_column_data_r(const py::PKArgs& args) {
   static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
