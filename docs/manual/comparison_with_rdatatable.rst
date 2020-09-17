@@ -234,9 +234,9 @@ Left join in R's `data.table <https://data.table.gitlab.io/data.table/index.html
 
 Join in ``datatable``::
 
-    DT = dt.Frame({"x":np.repeat(["b","a","c"],3),
-                   "y": [1,3,6]*3,
-                   "v": range(1,10)})
+    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+              y = [1, 3, 6] * 3,
+              v = range(1, 10))
 
     X = dt.Frame({"x":('c','b'),
                   "v":(8,7),
