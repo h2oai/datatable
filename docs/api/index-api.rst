@@ -175,12 +175,14 @@ Other
 .. toctree::
     :hidden:
 
-    models.           <models>
     math.             <math>
-    Frame             <frame>
-    FExpr             <fexpr>
-    Namespace         <namespace>
+    models.           <models>
     options.          <options>
+    FExpr             <fexpr>
+    Frame             <frame>
+    ltype             <ltype>
+    Namespace         <namespace>
+    stype             <stype>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>
