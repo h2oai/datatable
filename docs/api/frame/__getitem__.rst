@@ -242,11 +242,11 @@
         with the given name.
 
     except: KeyError
-        This exception is raised if the column with the given name does not
+        The exception is raised if the column with the given name does not
         exist in the frame.
 
     except: IndexError
-        This exception is raised if the column does not exist at the provided
+        The exception is raised if the column does not exist at the provided
         index `j`.
 
 

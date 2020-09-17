@@ -10,3 +10,4 @@ User Guide
 	groupby_examples
 	row_functions
 	comparison_with_rdatatable
+	ftrl

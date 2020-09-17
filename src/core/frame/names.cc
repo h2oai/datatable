@@ -351,6 +351,34 @@ void Frame::_init_names(XTypeMaker& xt) {
 // Options
 //------------------------------------------------------------------------------
 
+static const char * doc_options_frame_names_auto_index =
+R"(
+When Frame needs to auto-name columns, they will be assigned
+names `C0`, `C1`, `C2`, etc. by default. This option allows you to
+control the starting index in this sequence. For example, setting
+`dt.options.frame.names_auto_index=1` will cause the columns to be
+named `C1`, `C2`, `C3`, etc.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
+)";
+
+static const char * doc_options_frame_names_auto_prefix =
+R"(
+When Frame needs to auto-name columns, they will be assigned
+names `C0`, `C1`, `C2`, etc. by default. This option allows you to
+control the prefix used in this sequence. For example, setting
+`dt.options.frame.names_auto_prefix='Z'` will cause the columns to be
+named `Z0`, `Z1`, `Z2`, etc.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
+)";
+
 static int64_t     names_auto_index = 0;
 static std::string names_auto_prefix = "C";
 
@@ -359,21 +387,15 @@ void py::Frame::init_names_options() {
     "frame.names_auto_index",
     []{ return py::oint(names_auto_index); },
     [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
-    "When Frame needs to auto-name columns, they will be assigned\n"
-    "names C0, C1, C2, ... by default. This option allows you to\n"
-    "control the starting index in this sequence. For example, setting\n"
-    "options.frame.names_auto_index=1 will cause the columns to be\n"
-    "named C1, C2, C3, ...");
+    doc_options_frame_names_auto_index
+  );
 
   dt::register_option(
     "frame.names_auto_prefix",
     []{ return py::ostring(names_auto_prefix); },
     [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
-    "When Frame needs to auto-name columns, they will be assigned\n"
-    "names C0, C1, C2, ... by default. This option allows you to\n"
-    "control the prefix used in this sequence. For example, setting\n"
-    "options.frame.names_auto_prefix='Z' will cause the columns to be\n"
-    "named Z0, Z1, Z2, ...");
+    doc_options_frame_names_auto_prefix
+  );
 }
 
 
