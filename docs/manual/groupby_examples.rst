@@ -655,31 +655,6 @@ More Examples
       0   01-01   115   0
       1   01-02   79    0
 
-- Filter row based on aggregate value
-
-  - Task : Find, for every ``word``, the ``tag`` that has the most ``count``
-
-.. code-block:: python
-
-      df = dt.Frame("""  word  tag count
-                          a     S    30
-                          the   S    20
-                          a     T    60
-                          an    T    5
-                          the   T    10""")
-
-      df[:,
-         update(filter_col = f.count == max(f.count)),
-         by('word')
-         ]
-
-      df[f.filter_col == 1, f[:-1]]
-
-          word  tag count
-      0   the   S   20
-      1   a T   60
-      2   an    T   5
-
 
 - Group By and Conditional Sum and add Back to Data Frame
 
@@ -758,3 +733,125 @@ More Examples
       1     2   5   3   5
       2     3   7   4   7
 
+- Filter row based on aggregate value
+
+  - Task : Find, for every ``word``, the ``tag`` that has the most ``count``
+
+.. code-block:: python
+
+    df = dt.Frame("""word  tag count
+                      a     S    30
+                      the   S    20
+                      a     T    60
+                      an    T    5
+                      the   T    10""")
+
+    # The solution builds on the knowledge that sorting
+    # while grouping sorts within each group.
+    df[0, :, by('word'), sort(-f.count)]
+
+      word	tag	count
+    0	a	T	60
+    1	an	T	5
+    2	the	S	20
+
+- Get the rows where the ``value`` column is minimum, and rename columns
+
+.. code-block:: python
+
+    df = dt.Frame({"category": ["A"]*3 + ["B"]*3,
+                   "date": ["9/6/2016", "10/6/2016",
+                            "11/6/2016", "9/7/2016",
+                            "10/7/2016", "11/7/2016"],
+                   "value": [7,8,9,10,1,2]})
+
+    df
+        category     date         value
+    0	A	    9/6/2016	    7
+    1	A	    10/6/2016	    8
+    2	A	    11/6/2016	    9
+    3	B	    9/7/2016	    10
+    4	B	    10/7/2016	    1
+    5	B	    11/7/2016	    2
+
+    df[0,
+       {"value_date": f.date,
+        "value_min":  f.value},
+      by("category"),
+      sort('value')]
+
+      category	value_date   value_min
+    0	A	 9/6/2016        7
+    1	B	 10/7/2016       1
+
+- Using the same data in the last example, get the rows where the ``value`` column is maximum, and rename columns
+
+.. code-block:: python
+
+    df[0,
+       {"value_date": f.date,
+        "value_max":  f.value},
+      by("category"),
+      sort(-f.value)]
+
+      category	value_date   value_max
+    0	A	11/6/2016	9
+    1	B	9/7/2016	10
+
+
+- Get the average of the last three instances per group
+
+.. code-block:: python
+
+    import random
+    random.seed(3)
+
+    df = dt.Frame({"Student": ["Bob", "Bill",
+                               "Bob", "Bob",
+                               "Bill","Joe",
+                               "Joe", "Bill",
+                               "Bob", "Joe",],
+                   "Score": random.sample(range(10,30), 10)})
+
+    df
+
+        Student	Score
+    0	Bob	17
+    1	Bill	28
+    2	Bob	27
+    3	Bob	14
+    4	Bill	21
+    5	Joe	24
+    6	Joe	19
+    7	Bill	29
+    8	Bob	20
+    9	Joe	23
+
+    df[-3:, mean(f[:]), f.Student]
+
+      Student	Score
+    0	Bill	26
+    1	Bob	20.3333
+    2	Joe	22
+
+- Group by on a condition
+
+  - Get the sum of ``Amount`` for ``Number`` in range (1 to 4) and (5 and above)
+
+.. code-block:: python
+
+    df = dt.Frame("""Number, Amount
+                        1,     5
+                        2,     10
+                        3,     11
+                        4,     3
+                        5,     5
+                        6,     8
+                        7,     9
+                        8,     6""")
+
+    df[:, sum(f.Amount), by(ifelse(f.Number>=5, "B","A"))]
+
+        C0	Amount
+    0	A	29
+    1	B	28
