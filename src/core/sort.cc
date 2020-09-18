@@ -752,10 +752,10 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
-    std::string na_position = "last";
+    std::string na_position = "first";
     TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
-    TI replace_una = na_position == "last" ? uedge + 1 : 0;
+    TI replace_una = na_position == "last" ? column.stats()->max_int(nullptr) + 1 : 0;
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
