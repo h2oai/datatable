@@ -736,6 +736,16 @@ class SortContext {
    * unsigned. Depending on the range of the values (max - min + 1), we cast
    * the data into an appropriate smaller type.
    */
+
+  template<typename T>
+  T set_replace_na(T min, T max) {
+    if (min < 0) {
+      return max - min + 2;
+    } else {
+      return max + 1;
+    }
+  }
+
   template <bool ASC, typename T, typename TU>
   void _initI() {
     xassert(sizeof(T) == sizeof(TU));
@@ -752,10 +762,15 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
-    std::string na_position = "first";
+    std::string na_position = "last";
     TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
-    TI replace_una = na_position == "last" ? column.stats()->max_int(nullptr) + 1 : 0;
+
+    T min = static_cast<T>(column.stats()->min_int(nullptr));
+    T max = static_cast<T>(column.stats()->max_int(nullptr));
+    TI replace_una = na_position == "last" ?
+                     static_cast<TI>(set_replace_na<T>(min, max)) : 0;
+
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
