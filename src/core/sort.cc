@@ -705,11 +705,16 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
+    std::string na_position = "last";
+    uint8_t una = 128;
+    uint8_t replace_una = na_position == "last" ? 4 : 0; // hard-coded
 
     if (use_order) {
       dt::parallel_for_static(n,
         [=](size_t j) {
-          xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
+          uint8_t t = xi[o[j]];
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
                      : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
         });
     } else {
@@ -717,7 +722,9 @@ class SortContext {
         [=](size_t j) {
           // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
           // to int, which leads to wrong results after shift by 6.
-          xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+          uint8_t t = xi[j];
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
@@ -745,8 +752,10 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
+    std::string na_position = "last";
     TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
+    TI replace_una = na_position == "last" ? uedge + 1 : 0;
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
@@ -756,7 +765,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TI t = xi[o[j]];
-          xo[j] = t == una? 0 :
+          xo[j] = t == una? replace_una :
                   ASC? static_cast<TO>(t - uedge + 1)
                      : static_cast<TO>(uedge - t + 1);
         });
@@ -764,7 +773,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TI t = xi[j];
-          xo[j] = t == una? 0 :
+          xo[j] = t == una? replace_una :
                   ASC? static_cast<TO>(t - uedge + 1)
                      : static_cast<TO>(uedge - t + 1);
         });

@@ -43,7 +43,7 @@ enum SortFlag : int {
 enum NAPositionFlag: int {
   FIRST = 0,
   LAST = 1,
-  REMOVE =3,
+  REMOVE = 2,
 };
 
 static inline SortFlag operator|(SortFlag a, SortFlag b) {
