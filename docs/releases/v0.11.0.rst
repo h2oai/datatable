@@ -253,20 +253,31 @@
 
   .. contributors::
 
-    109 @st-pasha
-    47  @oleksiyskononenko
+    176 @st-pasha
+    62  @oleksiyskononenko
+    7   @samukweku           <Samuel Oranyeli>
+    4   @pradkrish           <Pradeep Krishnamurthy>
+    1   @chi2liu             <Liu Chi>
+    1   @wesnm               <Wes Morgan>
     1   @jfaccioni           <Juliano Faccioni>
     1   @mmalohlava
     1   @bboe                <Bryce Boe>
     --
-    34  @st-pasha
-    8   @oleksiyskononenko
-    6   @arnocandel
-    2   @jangorecki
+    50  @st-pasha
+    15  @oleksiyskononenko
+    10  @arnocandel
+    3   @samukweku
+    3   @pseudotensor
+    3   @myamullaciencia     <Mallesham Yamulla>
+    2   @navdeep-G           <Navdeep Gill>
     1   @ben519              <Ben Gorman>
     1   @surenH2oai          <Suren Mohanathas>
-    1   @myamullaciencia     <Mallesham Yamulla>
+    1   @tdhock              <Toby Dylan Hocking>
     1   @ashrith             <Ashrith Barthur>
+    1   @javadba
+    1   @jangorecki
+    1   @timothy-salazar     <Timothy Salazar>
     1   @mmalohlava
+    1   @XiaomoWu
     1   @Viktor-Demin
     1   @chrinide            <Chrinide>
