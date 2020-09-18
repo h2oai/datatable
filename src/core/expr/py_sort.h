@@ -34,6 +34,7 @@ class osort : public oobj
     private:
       oobj cols_;
       std::vector<bool>* reverse_;
+      std::string na_position_;
 
     public:
       void m__init__(const PKArgs&);
@@ -58,6 +59,8 @@ class osort : public oobj
 
     oobj get_arguments() const;
     const std::vector<bool>& get_reverse() const;
+    void set_na_position(const Arg&);
+
 
   private:
     // This private constructor will reinterpret the object `r` as an

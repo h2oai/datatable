@@ -23,6 +23,7 @@
 #include "expr/py_sort.h"
 #include "python/_all.h"
 #include "utils/exceptions.h"
+#include <iostream>
 namespace py {
 
 
@@ -57,12 +58,14 @@ the Highscore column.
 )";
 
 static PKArgs args___init__(
-  0, 0, 1, true, false, {"reverse"}, "__init__", nullptr
+  0, 0, 2, true, false, {"reverse", "na_position"}, "__init__", nullptr
 );
 
 void osort::osort_pyobject::m__init__(const PKArgs& args)
 {
   const Arg& arg_reverse = args[0];
+  const Arg& arg_na_position = args[1];
+  std::string na_position = arg_na_position.to_string();
 
   if (arg_reverse.is_none_or_undefined()) {
     reverse_ = new std::vector<bool>();
@@ -114,6 +117,9 @@ const std::vector<bool>& osort::osort_pyobject::get_reverse() const {
   return *reverse_;
 }
 
+void osort::set_na_position(const Arg& py_na_position) {
+  std::string na_position = py_na_position.to_string();
+}
 
 void osort::osort_pyobject::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.sort");

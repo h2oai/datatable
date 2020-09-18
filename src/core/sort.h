@@ -40,6 +40,12 @@ enum SortFlag : int {
   SORT_ONLY = 4,
 };
 
+enum NAPositionFlag: int {
+  FIRST = 0,
+  LAST = 1,
+  REMOVE =3,
+};
+
 static inline SortFlag operator|(SortFlag a, SortFlag b) {
   return static_cast<SortFlag>(static_cast<int>(a) | static_cast<int>(b));
 }
