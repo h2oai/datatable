@@ -11,7 +11,7 @@ Comparison with R's data.table
 
 ``datatable`` is closely related to R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ attempts to mimic its core algorithms and API; however, there are differences due to language constraints.
 
-This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``. 
+This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``.
 
 Subsetting Rows
 ---------------
@@ -120,9 +120,10 @@ Same as above, new column name                      ``DT[2:3, .(sv=sum(v))]``   
 Filter in ``i`` and aggregate in ``j``              ``DT[x=="b", .(sum(v*y))]``                       ``DT[f.x=="b", dt.sum(f.v * f.y)]``
 Same as above, return as scalar                     ``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``
 ======================================           ==========================================          ==============================================
+
 In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, all items except the last are included.
 
-Some ``SD``(Subset of Data) operations can be replicated in ``datatable`` 
+Some ``SD``(Subset of Data) operations can be replicated in ``datatable``
 
 - Aggregate several columns
 
@@ -505,36 +506,36 @@ Functions in R/data.table not yet implemented
 
 This is a list of some functions in ``data.table`` that do not have an equivalent in ``datatable`` yet, that we would likely implement
 
-- Reshaping functions 
-   - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__ 
-   - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__ 
+- Reshaping functions
+   - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__
+   - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__
 
 - Convenience functions for filtering and subsetting
-   - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__ 
-   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
-   - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
-   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__ 
-   - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__ 
+   - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+   - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+   - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__
 
 - Conditional functions
-   - `fcase <https://rdatatable.gitlab.io/data.table/reference/fcase.html>`__ 
+   - `fcase <https://rdatatable.gitlab.io/data.table/reference/fcase.html>`__
 
 - Duplicate functions
-   - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__ 
+   - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__
    - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__  in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable`` returns a single column of unique values in the entire dataframe.
 
 - Aggregation functions
-   - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__ 
-   - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
-   - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
-   - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__ 
-   - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
-   - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
-   - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__ 
+   - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__
+   - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+   - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+   - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+   - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
+   - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
+   - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
 
 - Missing values functions
-   - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__ 
-   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__ 
+   - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__
+   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__
 
 Also, at the moment, custom aggregations in the ``j`` section are not supported in ``datatable``- we intend to implement that at some point.
 
