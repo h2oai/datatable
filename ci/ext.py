@@ -108,7 +108,7 @@ def get_datatable_version(flavor=None):
                              % version)
         if flavor == "debug":
             version += "+debug"
-        elif flavor not in [None, "build"]:
+        elif flavor not in [None, "sdist", "build"]:
             raise SystemExit("Invalid build flavor %s when building datatable "
                              "in release mode" % flavor)
         return version
