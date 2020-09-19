@@ -115,6 +115,17 @@ ansiColor('xterm') {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
 
+                        sh "git clone https://github.com/h2oai/datatable.git ."
+
+                        if (env.CHANGE_BRANCH) {
+                            // Note: we do not explicitly checkout the branch here,
+                            // because the branch may be on the forked repo
+                            sh """
+                                git fetch origin +refs/pull/${env.CHANGE_ID}/merge
+                                git checkout -qf FETCH_HEAD
+                            """
+                        }
+
                         isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
                         isRelease   = env.CHANGE_BRANCH.startsWith("rel-")
                         doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
@@ -148,16 +159,6 @@ ansiColor('xterm') {
                         println("doPpcTests        = ${doPpcTests}")
                         println("doCoverage        = ${doCoverage}")
 
-                        sh "git clone https://github.com/h2oai/datatable.git ."
-
-                        if (env.CHANGE_BRANCH) {
-                            // Note: we do not explicitly checkout the branch here,
-                            // because the branch may be on the forked repo
-                            sh """
-                                git fetch origin +refs/pull/${env.CHANGE_ID}/merge
-                                git checkout -qf FETCH_HEAD
-                            """
-                        }
 
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
@@ -167,7 +168,6 @@ ansiColor('xterm') {
                         }
 
                         buildInfo(env.BRANCH_NAME, isRelease)
-
 
                         if (isRelease) {
                             DT_RELEASE = 'True'
