@@ -122,6 +122,7 @@ ansiColor('xterm') {
                         if (!params.DISABLE_ALL_TESTS) {
                             doLargeFreadTests = (params.FORCE_LARGER_FREAD_TESTS ||
                                                   isModified("src/core/(read|csv)/.*") ||
+                                                  isRelease ||
                                                   params.FORCE_ALL_TESTS)
                             doExtraTests       = (isMasterJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
