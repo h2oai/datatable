@@ -739,11 +739,7 @@ class SortContext {
 
   template<typename T>
   T set_replace_na(T min, T max) {
-    if (min < 0) {
-      return max - min + 2;
-    } else {
-      return max + 1;
-    }
+    return min < 0 ? max - min + 1 : max + 1;
   }
 
   template <bool ASC, typename T, typename TU>
@@ -833,6 +829,10 @@ class SortContext {
     allocate_x();
     TO* xo = x.data<TO>();
 
+    std::string na_position = "last";
+    TO replace_na = na_position == "first" ? 0 :
+                    static_cast<TO>(sizeof(TO) == 8 ? 0xFFFFFFFFFFFFFFFFULL : 0xFFFFFFFF);
+
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
     constexpr TO SIG
@@ -845,7 +845,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[o[j]];
-          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? replace_na :
                   ASC? t ^ (SBT | (0 - (t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
@@ -853,7 +853,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[j];
-          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? replace_na :
                   ASC? t ^ (SBT | (0 -(t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
@@ -878,7 +878,8 @@ class SortContext {
     elemsize = 1;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-
+    std::string na_position = "last";
+    uint8_t replace_na = na_position == "last" ? 0xFF : 0;
     // `flong` is a flag that checks whether there is any string with len>1.
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
@@ -900,7 +901,7 @@ class SortContext {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
             } else {
-              xo[j] = 0;    // NA string
+              xo[j] = replace_na;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
