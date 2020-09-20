@@ -167,16 +167,22 @@ class ChangelogInfoboxDirective(SphinxDirective):
             if python in ["cp35", "cp36", "cp37", "cp38", "cp39"]:
                 python = "python-3." + python[3:]
             else:
-                raise ValueError("Unrecognized python version `%s` in wheel URL"
+                raise self.error("Unrecognized python version `%s` in wheel URL"
                                  % python)
             if platform.startswith("macosx"):
                 platform = "MacOS"
             elif platform in ["manylinux1_x86_64", "manylinux2010_x86_64"]:
                 platform = "Linux x86-64"
+            elif platform == "manylinux2014_ppc64le":
+                platform = "Linux ppc64le"
+            elif platform == "win_amd64":
+                platform = "Windows"
+            else:
+                raise self.error("Unknown platform %s" % platform)
             if platform not in entries:
                 entries[platform] = {}
             if python in entries[platform]:
-                raise ValueError("Duplicate entries for `%s` - `%s`"
+                raise self.error("Duplicate entries for `%s` - `%s`"
                                  % (platform, python))
             entries[platform][python] = url
         for platform, platform_entries in entries.items():
