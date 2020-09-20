@@ -95,12 +95,10 @@ the following:
 
 ## Installation
 
-On macOS and Linux systems installing datatable is as easy as
+On macOS, Linux and Windows systems installing datatable is as easy as
 ```sh
 pip install datatable
 ```
-
-As of version 0.11.0, `datatable` will also be available on Windows.
 
 On all other platforms a source distribution will be needed. For more
 information see [Build instructions](https://datatable.readthedocs.io/en/latest/install.html).

@@ -35,9 +35,12 @@ buildSummary('https://github.com/h2oai/datatable', true)
 // use default StagesSummary implementation
 buildSummary.get().addStagesSummary(this, new StagesSummary())
 
-///////////////
-// CONSTANTS //
-///////////////
+
+
+//------------------------------------------------------------------------------
+// Global constants
+//------------------------------------------------------------------------------
+
 NODE_LINUX   = "docker && linux && !micro"
 NODE_MACOS   = 'osx'
 NODE_PPC     = 'ibm-power'
@@ -66,29 +69,22 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 // Note: global variables must be declared without `def`
 //       see https://stackoverflow.com/questions/6305910
 
-// Larger tests are invoked if forced or if isModified() routine
-// returns `true`, and unless the larger tests are explicitely
-// disabled. Here we only define the default value for `doLargerFreadTests`
-// adjusting it when we check for the actual code changes.
-doLargerFreadTests = params.FORCE_LARGER_FREAD_TESTS || params.FORCE_ALL_TESTS
-// String with current version (TODO: remove?)
-versionText = "unknown"
-
-isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-doExtraTests = (isMasterJob || params.FORCE_ALL_TESTS) && !params.DISABLE_ALL_TESTS
-doPpcTests = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-doPpcBuild = doPpcTests || isMasterJob || params.FORCE_BUILD_PPC64LE
-doPy38Tests = doExtraTests
-doCoverage = !params.DISABLE_COVERAGE && false   // disable for now
+// These variables will be initialized at the <checkout> stage
+doLargeFreadTests = false
+isMasterJob       = false
+isRelease         = false
+doExtraTests      = false
+doPpcTests        = false
+doPpcBuild        = false
+doPy38Tests       = false
+doCoverage        = false
+doPublish         = false
 
 DT_RELEASE = ""
 DT_BUILD_SUFFIX = ""
 DT_BUILD_NUMBER = ""
 
 
-//////////////
-// PIPELINE //
-//////////////
 properties([
     parameters([
         booleanParam(name: 'FORCE_ALL_TESTS',          defaultValue: false, description: '[BUILD] Run all tests (even for PR).'),
@@ -102,6 +98,12 @@ properties([
     buildDiscarder(logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '180', numToKeepStr: ''))
 ])
 
+
+
+//------------------------------------------------------------------------------
+// PIPELINE
+//------------------------------------------------------------------------------
+
 ansiColor('xterm') {
     timestamps {
         cancelPreviousBuilds()
@@ -112,21 +114,6 @@ ansiColor('xterm') {
                 dir (stageDir) {
                     buildSummary.stageWithSummary('Checkout and Setup Env', stageDir) {
                         deleteDir()
-
-                        println("env.BRANCH_NAME   = ${env.BRANCH_NAME}")
-                        println("env.BUILD_ID      = ${env.BUILD_ID}")
-                        println("env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}")
-                        println("env.CHANGE_ID     = ${env.CHANGE_ID}")
-                        println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
-                        println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
-                        println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
-                        println("isMasterJob       = ${isMasterJob}")
-                        println("doPpcBuild        = ${doPpcBuild}")
-                        println("doExtraTests      = ${doExtraTests}")
-                        println("doPy38Tests       = ${doPy38Tests}")
-                        println("doPpcTests        = ${doPpcTests}")
-                        println("doCoverage        = ${doCoverage}")
-                        println("doPublish()       = ${doPublish()}")
 
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
@@ -139,17 +126,50 @@ ansiColor('xterm') {
                             """
                         }
 
+                        isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+                        isRelease   = env.CHANGE_BRANCH.startsWith("rel-")
+                        doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
+
+                        if (!params.DISABLE_ALL_TESTS) {
+                            doLargeFreadTests = (params.FORCE_LARGER_FREAD_TESTS ||
+                                                  isModified("src/core/(read|csv)/.*") ||
+                                                  isRelease ||
+                                                  params.FORCE_ALL_TESTS)
+                            doExtraTests       = (isMasterJob || isRelease || params.FORCE_ALL_TESTS)
+                            doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
+                            doPpcBuild         = doPpcTests || isMasterJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPy38Tests        = doExtraTests
+                            doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
+                        }
+
+                        println("env.BRANCH_NAME   = ${env.BRANCH_NAME}")
+                        println("env.BUILD_ID      = ${env.BUILD_ID}")
+                        println("env.CHANGE_BRANCH = ${env.CHANGE_BRANCH}")
+                        println("env.CHANGE_ID     = ${env.CHANGE_ID}")
+                        println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
+                        println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
+                        println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
+                        println("isMasterJob       = ${isMasterJob}")
+                        println("isRelease         = ${isRelease}")
+                        println("doPublish         = ${doPublish}")
+                        println("doPpcBuild        = ${doPpcBuild}")
+                        println("doLargeFreadTests = ${doLargeFreadTests}")
+                        println("doExtraTests      = ${doExtraTests}")
+                        println("doPy38Tests       = ${doPy38Tests}")
+                        println("doPpcTests        = ${doPpcTests}")
+                        println("doCoverage        = ${doCoverage}")
+
+
                         if (doPpcBuild) {
                             manager.addBadge("success.gif", "PPC64LE build triggered.")
                         }
-                        if (doPublish()) {
+                        if (doPublish) {
                             manager.addBadge("package.gif", "Publish to S3.")
                         }
 
-                        buildInfo(env.BRANCH_NAME, isRelease())
+                        buildInfo(env.BRANCH_NAME, isRelease)
 
-
-                        if (isRelease()) {
+                        if (isRelease) {
                             DT_RELEASE = 'True'
                         }
                         else if (env.BRANCH_NAME == 'master') {
@@ -166,8 +186,7 @@ ansiColor('xterm') {
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
                         }
 
-                        doLargerFreadTests = (doLargerFreadTests || isModified("src/core/(read|csv)/.*")) && !params.DISABLE_ALL_TESTS
-                        if (doLargerFreadTests) {
+                        if (doLargeFreadTests) {
                             env.DT_LARGE_TESTS_ROOT = "/tmp/pydatatable_large_data"
                             manager.addBadge("warning.gif", "Large fread tests required")
                         }
@@ -175,7 +194,6 @@ ansiColor('xterm') {
                         println("DT_RELEASE      = ${DT_RELEASE}")
                         println("DT_BUILD_NUMBER = ${DT_BUILD_NUMBER}")
                         println("DT_BUILD_SUFFIX = ${DT_BUILD_SUFFIX}")
-                        println("doLargerFreadTests = ${doLargerFreadTests}")
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
@@ -550,7 +568,7 @@ ansiColor('xterm') {
                 ])
             }
             // Publish snapshot to S3
-            if (doPublish()) {
+            if (doPublish) {
                 node(NODE_RELEASE) {
                     def stageDir = 'publish-snapshot'
                     buildSummary.stageWithSummary('Publish Snapshot to S3', stageDir) {
@@ -569,9 +587,8 @@ ansiColor('xterm') {
                             }
                             sh "ls dist/"
 
-                            versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
+                            def versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
                             println("versionText = ${versionText}")
-                            def _versionText = versionText
 
                             def s3cmd = ""
                             def pyindex_links = ""
@@ -608,16 +625,17 @@ ansiColor('xterm') {
                             s3upDocker {
                                 localArtifact = 'dist/*'
                                 artifactId = 'datatable'
-                                version = _versionText
+                                version = versionText
                                 keepPrivate = false
-                                isRelease = isRelease()
+                                isRelease = isRelease
                             }
                        }
                     }
                 }
             }
             // Release to S3 and GitHub
-            if (isRelease()) {
+            /*
+            if (isRelease) {
                 // TODO: merge this stage with the previous one?
                 //       The functionality is pretty much duplicated here...
                 //
@@ -651,6 +669,7 @@ ansiColor('xterm') {
                     }
                 }
             }
+            */
         }
     }
 }
@@ -688,7 +707,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
         docker_args += "-e HOME=/tmp "  // this dir has write permission for all users
         docker_args += "-v `pwd`:/dt "
         docker_args += "-v `pwd`/build/cores:/tmp/cores "
-        if (doLargerFreadTests) {
+        if (doLargeFreadTests) {
             LINK_MAP.each { key, value ->
                 docker_args += "-v /home/0xdiag/${key}:/data/${value} "
             }
@@ -778,6 +797,11 @@ def get_env_for_macos(String pyver) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Helper functions
+//------------------------------------------------------------------------------
+
 def isModified(pattern) {
     def fList
     if (isMasterJob) {
@@ -795,17 +819,6 @@ def isModified(pattern) {
 
     return !(out.isEmpty() || out == "0")
 }
-
-
-def doPublish() {
-    return env.BRANCH_NAME == 'master' || isRelease() || params.FORCE_S3_PUSH
-}
-
-def isRelease() {
-    return env.BRANCH_NAME.startsWith("rel-")
-}
-
-
 
 def markSkipped(String stageName) {
     stage (stageName) {

@@ -1,6 +1,8 @@
 
 
 .. changelog::
+  :version: 0.11.0
+  :released: 2020-09-19
 
 
   Frame
@@ -25,16 +27,16 @@
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
-  -[new] Added a new function :func:`cut()` to bin numeric data
+  -[new] Added a new function :func:`~datatable.cut` to bin numeric data
     to equal-width discrete intervals. [#2483]
 
-  -[new] Added a new function :func:`qcut()` to bin data
+  -[new] Added a new function :func:`~datatable.qcut` to bin data
     to equal-population discrete intervals. [#1680]
 
-  -[new] Added function :func:`round() <datatable.math.round>` which is the
+  -[new] Added function :func:`~datatable.math.round` which is the
     equivalent of Python's built-in ``round()``. [#2285]
 
-  -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
+  -[enh] Method :meth:`.colindex()` now accepts a column selector
     f-expression as an argument.
 
   -[enh] When creating a Frame from a python list, it is now possible to
@@ -44,7 +46,7 @@
         dt.Frame(A=[1, 5, 10] / dt.int64,
                  B=[0, 0, 0] / dt.float64)
 
-  -[enh] Added new argument ``bom=False`` to the :meth:`Frame.to_csv()` method.
+  -[enh] Added new argument ``bom=False`` to the :meth:`.to_csv()` method.
     If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
     CSV file. [#2379]
 
@@ -74,6 +76,10 @@
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
+  -[api] The behaviour of :meth:`.sort()`  is made consistent with
+    func:`sort()`. When the list of columns to sort is empty, both will not
+    sort any columns.
+
   -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
 
@@ -102,6 +108,7 @@
 
   Fread
   -----
+  .. ref-context:: datatable
 
   -[new] Added new function :func:`iread()`, which is similar to
     :func:`fread()`, but suitable for reading multiple sources at once. The
@@ -160,9 +167,6 @@
     previously it could return a dict of Frames if multiple sources were
     detected. Use :func:`iread()` if you need to read multi-source input.
 
-  -[api] The behaviour of :meth:`.sort()`  is made consistent with
-    func:`sort()`. When the list of columns to sort is empty, both will not
-    sort any columns.
 
   General
   -------
@@ -199,8 +203,8 @@
     with the monitor thread. The threads will then restart in both the parent
     and the child, when needed. [#2438]
 
-  -[fix] Internal function :func:`frame_column_data_r` now works properly with
-    virtual columns. [#2269]
+  -[fix] Internal function :func:`~datatable.internal.frame_column_data_r`
+    now works properly with virtual columns. [#2269]
 
   -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
     a forked process, in the datatable compiled with gcc version before 7.0.
@@ -249,20 +253,31 @@
 
   .. contributors::
 
-    109 @st-pasha
-    47  @oleksiyskononenko
+    176 @st-pasha
+    62  @oleksiyskononenko
+    7   @samukweku           <Samuel Oranyeli>
+    4   @pradkrish           <Pradeep Krishnamurthy>
+    1   @chi2liu             <Liu Chi>
+    1   @wesnm               <Wes Morgan>
     1   @jfaccioni           <Juliano Faccioni>
     1   @mmalohlava
     1   @bboe                <Bryce Boe>
     --
-    34  @st-pasha
-    8   @oleksiyskononenko
-    6   @arnocandel
-    2   @jangorecki
+    50  @st-pasha
+    15  @oleksiyskononenko
+    10  @arnocandel
+    3   @samukweku
+    3   @pseudotensor
+    3   @myamullaciencia     <Mallesham Yamulla>
+    2   @navdeep-G           <Navdeep Gill>
     1   @ben519              <Ben Gorman>
     1   @surenH2oai          <Suren Mohanathas>
-    1   @myamullaciencia     <Mallesham Yamulla>
+    1   @tdhock              <Toby Dylan Hocking>
     1   @ashrith             <Ashrith Barthur>
+    1   @javadba
+    1   @jangorecki
+    1   @timothy-salazar     <Timothy Salazar>
     1   @mmalohlava
+    1   @XiaomoWu
     1   @Viktor-Demin
     1   @chrinide            <Chrinide>

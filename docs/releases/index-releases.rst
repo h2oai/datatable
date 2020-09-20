@@ -6,7 +6,7 @@ Release History
 .. toctree::
     :maxdepth: 1
 
-    Version 0.11.0 (unreleased)  <v0.11.0>
+    v0.11.0
     v0.10.1
     v0.10.0
     v0.9.0

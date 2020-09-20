@@ -43,8 +43,9 @@
 
     .. xparam:: .git_branch: str
 
-        Name of the git branch from where the build was made, as
-        obtained from ``git rev-parse --abbrev-ref HEAD``.
+        Name of the git branch from where the build was made. This will
+        be obtained from environment variable ``CHANGE_BRANCH`` if defined,
+        or from command ``git rev-parse --abbrev-ref HEAD`` otherwise.
 
 
     .. xparam:: .git_date: str

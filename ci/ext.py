@@ -108,7 +108,7 @@ def get_datatable_version(flavor=None):
                              % version)
         if flavor == "debug":
             version += "+debug"
-        elif flavor not in [None, "build"]:
+        elif flavor not in [None, "sdist", "build"]:
             raise SystemExit("Invalid build flavor %s when building datatable "
                              "in release mode" % flavor)
         return version
@@ -450,8 +450,11 @@ def generate_build_info(mode=None, strict=False):
     # get the date of the commit (HEAD), as a Unix timestamp
     git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
                          strict=strict)
-    git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                           strict=strict)
+    if "CHANGE_BRANCH" in os.environ:
+        git_branch = os.environ["CHANGE_BRANCH"]
+    else:
+        git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                               strict=strict)
     git_diff = shell_cmd(["git", "diff", "HEAD", "--stat", "--no-color"],
                          strict=strict)
     # Reformat the `git_date` as a UTC time string
