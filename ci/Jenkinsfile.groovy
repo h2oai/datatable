@@ -127,7 +127,7 @@ ansiColor('xterm') {
                         }
 
                         isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-                        isRelease   = env.CHANGE_BRANCH.startsWith("rel-")
+                        isRelease   = !isMasterJob && env.CHANGE_BRANCH.startsWith("rel-")
                         doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
 
                         if (!params.DISABLE_ALL_TESTS) {
