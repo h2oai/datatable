@@ -1,0 +1,12 @@
+
+.. changelog::
+
+    Frame
+    -----
+    .. ref-context:: datatable.Frame
+
+
+    General
+    -------
+
+
