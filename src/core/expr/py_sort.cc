@@ -65,7 +65,6 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
 {
   const Arg& arg_reverse = args[0];
   const Arg& arg_na_position = args[1];
-  std::string na_position = arg_na_position.to_string();
 
   if (arg_reverse.is_none_or_undefined()) {
     reverse_ = new std::vector<bool>();
@@ -85,6 +84,9 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
     throw TypeError() << arg_reverse.name() << " should be a boolean or a list "
         "of booleans, instead got " << arg_reverse.typeobj();
   }
+
+  std::string na_position = arg_na_position.is_none_or_undefined() ? "first" : arg_na_position.to_string();
+  na_position_ = na_position;
 
   size_t n = args.num_vararg_args();
   size_t i = 0;
@@ -117,8 +119,8 @@ const std::vector<bool>& osort::osort_pyobject::get_reverse() const {
   return *reverse_;
 }
 
-void osort::set_na_position(const Arg& py_na_position) {
-  std::string na_position = py_na_position.to_string();
+std::string osort::osort_pyobject::get_na_position() const {
+  return na_position_;
 }
 
 void osort::osort_pyobject::impl_init_type(XTypeMaker& xt) {
@@ -164,6 +166,8 @@ const std::vector<bool>& osort::get_reverse() const {
   return reinterpret_cast<const osort::osort_pyobject*>(v)->get_reverse();
 }
 
-
+std::string osort::get_na_position() const {
+  return reinterpret_cast<const osort::osort_pyobject*>(v)->get_na_position();
+}
 
 }  // namespace py

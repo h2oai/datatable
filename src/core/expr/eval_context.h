@@ -118,7 +118,7 @@ class EvalContext
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    std::string na_position_ = "last";
+    std::string na_position_;
 
     size_t : 40;
 
@@ -154,7 +154,7 @@ class EvalContext
     void set_groupby_columns(Workframe&&);
 
     bool reverse_sort();
-    std::string na_position();
+    std::string na_position() const;
   private:
     void compute_groupby_and_sort();
 

@@ -40,12 +40,6 @@ enum SortFlag : int {
   SORT_ONLY = 4,
 };
 
-enum NAPositionFlag: int {
-  FIRST = 0,
-  LAST = 1,
-  REMOVE = 2,
-};
-
 static inline SortFlag operator|(SortFlag a, SortFlag b) {
   return static_cast<SortFlag>(static_cast<int>(a) | static_cast<int>(b));
 }
@@ -53,7 +47,8 @@ static inline SortFlag operator|(SortFlag a, SortFlag b) {
 
 // Main sorting function
 RiGb group(const std::vector<Column>& columns,
-           const std::vector<SortFlag>& flags);
+           const std::vector<SortFlag>& flags,
+           const std::string& na_pos = {});
 
 
 

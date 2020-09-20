@@ -505,9 +505,11 @@ class SortContext {
     bool use_order;
     bool descending;
     int : 8;
+    std::string na_pos;
 
   public:
-  SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
+  SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups,
+             const std::string& na_position = "first") {
     o = nullptr;
     next_o = nullptr;
     histogram = nullptr;
@@ -521,6 +523,7 @@ class SortContext {
     is_string = false;
     use_order = false;
     descending = false;
+    na_pos = na_position;
 
     nth = static_cast<size_t>(sort_nthreads);
     n = nrows;
@@ -705,9 +708,8 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    std::string na_position = "last";
     uint8_t una = 128;
-    uint8_t replace_una = na_position == "last" ? 4 : 0; // hard-coded
+    uint8_t replace_una = na_pos == "last" ? 4 : 0; // hard-coded
 
     if (use_order) {
       dt::parallel_for_static(n,
@@ -758,13 +760,12 @@ class SortContext {
 
   template <bool ASC, typename T, typename TI, typename TO>
   void _initI_impl(T edge) {
-    std::string na_position = "last";
     TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
 
     T min = static_cast<T>(column.stats()->min_int(nullptr));
     T max = static_cast<T>(column.stats()->max_int(nullptr));
-    TI replace_una = na_position == "last" ?
+    TI replace_una = na_pos == "last" ?
                      static_cast<TI>(set_replace_na<T>(min, max)) : 0;
 
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
@@ -829,8 +830,7 @@ class SortContext {
     allocate_x();
     TO* xo = x.data<TO>();
 
-    std::string na_position = "last";
-    TO replace_na = na_position == "first" ? 0 :
+    TO replace_na = na_pos == "first" ? 0 :
                     static_cast<TO>(sizeof(TO) == 8 ? 0xFFFFFFFFFFFFFFFFULL : 0xFFFFFFFF);
 
     constexpr TO EXP
@@ -878,8 +878,7 @@ class SortContext {
     elemsize = 1;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    std::string na_position = "last";
-    uint8_t replace_na = na_position == "last" ? 0xFF : 0;
+    
     // `flong` is a flag that checks whether there is any string with len>1.
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 
@@ -901,7 +900,7 @@ class SortContext {
                 xo[j] = ASC? 1 : 0xFF;  // empty string
               }
             } else {
-              xo[j] = replace_na;    // NA string
+              xo[j] = 0;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
@@ -1412,7 +1411,8 @@ class SortContext {
 //==============================================================================
 
 RiGb group(const std::vector<Column>& columns,
-           const std::vector<SortFlag>& flags)
+           const std::vector<SortFlag>& flags,
+           const std::string& na_pos)
 {
   RiGb result;
   size_t n = columns.size();
@@ -1459,7 +1459,7 @@ RiGb group(const std::vector<Column>& columns,
   }
 
   bool do_groups = n > 1 || !(flags[0] & SortFlag::SORT_ONLY);
-  SortContext sc(nrows, RowIndex(), do_groups);
+  SortContext sc(nrows, RowIndex(), do_groups, na_pos);
   col0.stats();  // instantiate Stats object; TODO: remove this
   sc.start_sort(col0, bool(flags[0] & SortFlag::DESCENDING));
   for (size_t j = 1; j < n; ++j) {

@@ -30,6 +30,7 @@
 #include "ltype.h"
 #include "sort.h"
 #include "stype.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -75,8 +76,8 @@ void EvalContext::add_sortby(py::osort obj) {
   } else {
     reverse_ = false;
   }
+  na_position_ = obj.get_na_position();
 }
-
 
 void EvalContext::add_i(py::oobj oi) {
   iexpr_ = as_fexpr(oi);
@@ -241,6 +242,10 @@ bool EvalContext::reverse_sort() {
   return reverse_;
 }
 
+std::string EvalContext::na_position() const {
+  return na_position_;
+}
+
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
   if (byexpr_ || sortexpr_) {
@@ -268,7 +273,7 @@ void EvalContext::compute_groupby_and_sort() {
       wf.truncate_columns(n_group_cols);
       set_groupby_columns(std::move(wf));
 
-      auto rigb = group(cols, flags);
+      auto rigb = group(cols, flags, na_position());
       apply_rowindex(std::move(rigb.first));
       groupby_ = std::move(rigb.second);
     }

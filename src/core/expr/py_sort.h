@@ -41,7 +41,7 @@ class osort : public oobj
       void m__dealloc__();
       oobj get_cols() const;
       const std::vector<bool>& get_reverse() const;
-
+      std::string get_na_position() const;
       static void impl_init_type(XTypeMaker&);
   };
 
@@ -59,7 +59,7 @@ class osort : public oobj
 
     oobj get_arguments() const;
     const std::vector<bool>& get_reverse() const;
-    void set_na_position(const Arg&);
+    std::string get_na_position() const;
 
 
   private:
