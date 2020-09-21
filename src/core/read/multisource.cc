@@ -55,17 +55,6 @@ static SourceVec single_source(Source* src) {
 // Constructors
 //------------------------------------------------------------------------------
 
-MultiSource::MultiSource(SourceVec&& srcs)
-  : sources_(std::move(srcs)),
-    iteration_index(0) {}
-
-
-MultiSource::MultiSource(SourcePtr&& src) {
-  sources_.emplace_back(std::move(src));
-  iteration_index = 0;
-}
-
-
 // Main MultiSource constructor
 MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
 {

@@ -64,14 +64,9 @@ class MultiSource
     size_t iteration_index;
 
   public:
-    MultiSource() = default;
-    MultiSource(MultiSource&&) = default;
-    MultiSource(const MultiSource&) = delete;
-    MultiSource& operator=(MultiSource&&) = default;
-
-    MultiSource(SourceVec&&);
-    MultiSource(SourcePtr&&);
     MultiSource(const py::PKArgs&, const GenericReader&);
+    MultiSource(const MultiSource&) = delete;
+    MultiSource(MultiSource&&) = delete;
 
     py::oobj read_single(const GenericReader&);
     py::oobj read_next(const GenericReader&);
