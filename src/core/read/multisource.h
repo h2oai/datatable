@@ -60,16 +60,17 @@ class MultiSource
     using SourcePtr = std::unique_ptr<Source>;
     using SourceVec = std::vector<SourcePtr>;
 
-    SourceVec sources_;
-    size_t iteration_index_;
+    GenericReader reader_;
+    SourceVec     sources_;
+    size_t        iteration_index_;
 
   public:
-    MultiSource(const py::PKArgs&, const GenericReader&);
+    MultiSource(const py::PKArgs&, GenericReader&&);
     MultiSource(const MultiSource&) = delete;
     MultiSource(MultiSource&&) = delete;
 
-    py::oobj read_single(const GenericReader&);
-    py::oobj read_next(const GenericReader&);
+    py::oobj read_single();
+    py::oobj read_next();
 };
 
 

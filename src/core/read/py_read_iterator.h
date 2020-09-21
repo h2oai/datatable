@@ -30,7 +30,6 @@ namespace py {
 class ReadIterator : public XObject<ReadIterator>
 {
   private:
-    std::unique_ptr<dt::read::GenericReader> reader_;
     std::unique_ptr<dt::read::MultiSource> multisource_;
 
     void m__init__(const PKArgs& args);
@@ -38,8 +37,7 @@ class ReadIterator : public XObject<ReadIterator>
     oobj m__next__();
 
   public:
-    static oobj make(std::unique_ptr<dt::read::GenericReader>&& reader,
-                     std::unique_ptr<dt::read::MultiSource>&& multisource);
+    static oobj make(std::unique_ptr<dt::read::MultiSource>&& multisource);
     static void impl_init_type(XTypeMaker& xt);
 };
 

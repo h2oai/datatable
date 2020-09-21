@@ -27,23 +27,20 @@ namespace py {
 void ReadIterator::m__init__(const PKArgs&) {}
 
 void ReadIterator::m__dealloc__() {
-  reader_ = nullptr;
   multisource_ = nullptr;
 }
 
 
 oobj ReadIterator::m__next__() {
-  return multisource_->read_next(*reader_);
+  return multisource_->read_next();
 }
 
 
-oobj ReadIterator::make(std::unique_ptr<dt::read::GenericReader>&& reader,
-                        std::unique_ptr<dt::read::MultiSource>&& multisource)
+oobj ReadIterator::make(std::unique_ptr<dt::read::MultiSource>&& multisource)
 {
   robj rtype(reinterpret_cast<PyObject*>(&ReadIterator::type));
   oobj resobj = rtype.call();
   ReadIterator* iterator = ReadIterator::cast_from(resobj);
-  iterator->reader_ = std::move(reader);
   iterator->multisource_ = std::move(multisource);
   return resobj;
 }
