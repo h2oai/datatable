@@ -148,6 +148,7 @@ GenericReader::GenericReader(const GenericReader& g)
   line    = g.line;
   logger_ = g.logger_;
   source_name = g.source_name;
+  tempfiles = g.tempfiles;
 }
 
 GenericReader::~GenericReader() {}

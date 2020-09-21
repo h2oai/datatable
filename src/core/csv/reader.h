@@ -157,6 +157,7 @@ class GenericReader
   public:
     GenericReader();
     GenericReader(const GenericReader&);
+    GenericReader(GenericReader&&) = default;
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
