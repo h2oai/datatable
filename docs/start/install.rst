@@ -64,11 +64,9 @@ The following platforms are supported:
   work with your Linux distribution if it is compatible with one of these tags.
   Please refer to `PEP-513`_ and `PEP-599`_ for details.
 
-- **Windows (N/A)**
+- **Windows**
 
-  Windows wheels cannot be installed from PyPI just yet, but they will be
-  available after the next release. In the meanwhile, datatable development
-  wheels can be installed (see section below).
+  Windows wheels are available for Windows 10 or later.
 
 
 
