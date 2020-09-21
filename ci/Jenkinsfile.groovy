@@ -130,6 +130,8 @@ ansiColor('xterm') {
                         isRelease   = !isMasterJob && env.CHANGE_BRANCH.startsWith("rel-")
                         doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
 
+                        buildInfo(env.BRANCH_NAME, isRelease)
+
                         if (!params.DISABLE_ALL_TESTS) {
                             doLargeFreadTests = (params.FORCE_LARGER_FREAD_TESTS ||
                                                   isModified("src/core/(read|csv)/.*") ||
@@ -166,8 +168,6 @@ ansiColor('xterm') {
                         if (doPublish) {
                             manager.addBadge("package.gif", "Publish to S3.")
                         }
-
-                        buildInfo(env.BRANCH_NAME, isRelease)
 
                         if (isRelease) {
                             DT_RELEASE = 'True'
