@@ -12,8 +12,8 @@ artifacts:
   - path: dist\*.whl
 
 build_script:
-- cmd: >-
 
+- cmd: >-
     rem Set up DT_* environment variables
 
     rem =======================================================================
@@ -38,10 +38,19 @@ build_script:
 
     echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
 
-    if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
-    else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%MASTER_BUILD_ID%)
-    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
-    else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%BRANCH_BUILD_ID%)
+- ps:
+
+    if ($env:APPVEYOR_PULL_REQUEST_NUMBER -neq $null) {
+      $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER$env:BRANCH_BUILD_ID"
+    } elseif ($env:APPVEYOR_REPO_BRANCH -eq "master") {
+      $env:DT_BUILD_NUMBER=$env:MASTER_BUILD_ID
+    } elseif ($env:APPVEYOR_REPO_BRANCH -match "^rel-") {
+      $env:DT_RELEASE="True"
+    } else {
+      $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
+    }
+
+- cmd: >-
 
     echo DT_RELEASE      = %DT_RELEASE%
 
