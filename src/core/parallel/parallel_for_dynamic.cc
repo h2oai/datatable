@@ -136,7 +136,7 @@ void parallel_for_dynamic(size_t nrows, NThreads NThreads_, dynamicfn_t fn) {
   size_t ith = dt::this_thread_index();
   size_t nthreads = NThreads_.get();
 
-  // Running from the master thread
+  // Running from the main thread
   if (!thpool->in_parallel_region()) {
     size_t tp_size = thpool->size();
     if (nthreads == 0) nthreads = tp_size;
