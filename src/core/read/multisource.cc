@@ -55,21 +55,11 @@ static SourceVec single_source(Source* src) {
 // Constructors
 //------------------------------------------------------------------------------
 
-MultiSource::MultiSource(SourceVec&& srcs)
-  : sources_(std::move(srcs)),
-    iteration_index(0) {}
-
-
-MultiSource::MultiSource(SourcePtr&& src) {
-  sources_.emplace_back(std::move(src));
-  iteration_index = 0;
-}
-
-
-// Main MultiSource constructor
-MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
+MultiSource::MultiSource(const py::PKArgs& args, GenericReader&& rdr)
+  : reader_(std::move(rdr)),
+    sources_(),
+    iteration_index_(0)
 {
-  iteration_index = 0;
   const char* fnname = args.get_long_name();
   const py::Arg& src_any  = args[0];
   const py::Arg& src_file = args[1];
@@ -105,11 +95,11 @@ MultiSource::MultiSource(const py::PKArgs& args, const GenericReader& rdr)
     }
   }
 
-  if (src_any.is_defined())  sources_ = _from_any(src_any.to_oobj(), rdr);
-  if (src_file.is_defined()) sources_ = _from_file(src_file.to_oobj(), rdr);
-  if (src_text.is_defined()) sources_ = _from_text(src_text, rdr);
-  if (src_cmd.is_defined())  sources_ = _from_cmd(src_cmd.to_oobj(), rdr);
-  if (src_url.is_defined())  sources_ = _from_url(src_url.to_oobj(), rdr);
+  if (src_any.is_defined())  sources_ = _from_any(src_any.to_oobj(), reader_);
+  if (src_file.is_defined()) sources_ = _from_file(src_file.to_oobj(), reader_);
+  if (src_text.is_defined()) sources_ = _from_text(src_text, reader_);
+  if (src_cmd.is_defined())  sources_ = _from_cmd(src_cmd.to_oobj(), reader_);
+  if (src_url.is_defined())  sources_ = _from_url(src_url.to_oobj(), reader_);
 }
 
 
@@ -277,18 +267,18 @@ static void emit_badsrc_warning(const std::string& name, const Error& e) {
 
 
 // for fread
-py::oobj MultiSource::read_single(const GenericReader& reader) {
-  xassert(iteration_index == 0);
+py::oobj MultiSource::read_single() {
+  xassert(iteration_index_ == 0);
   if (sources_.empty()) {
     return py::Frame::oframe(new DataTable);
   }
 
-  bool err = (reader.multisource_strategy == FreadMultiSourceStrategy::Error);
-  bool warn = (reader.multisource_strategy == FreadMultiSourceStrategy::Warn);
+  bool err = (reader_.multisource_strategy == FreadMultiSourceStrategy::Error);
+  bool warn = (reader_.multisource_strategy == FreadMultiSourceStrategy::Warn);
   if (sources_.size() > 1 && err) throw _multisrc_error();
 
-  py::oobj res = read_next(reader);
-  if (iteration_index < sources_.size()) {
+  py::oobj res = read_next();
+  if (iteration_index_ < sources_.size()) {
     if (err) throw _multisrc_error();
     if (warn) emit_multisrc_warning();
   }
@@ -297,15 +287,15 @@ py::oobj MultiSource::read_single(const GenericReader& reader) {
 
 
 
-py::oobj MultiSource::read_next(const GenericReader& reader)
+py::oobj MultiSource::read_next()
 {
   start:
-  if (iteration_index >= sources_.size()) return py::oobj();
+  if (iteration_index_ >= sources_.size()) return py::oobj();
 
   py::oobj res;
-  GenericReader new_reader(reader);
-  auto& src = sources_[iteration_index];
-  if (reader.errors_strategy == IreadErrorHandlingStrategy::Error) {
+  GenericReader new_reader(reader_);
+  auto& src = sources_[iteration_index_];
+  if (reader_.errors_strategy == IreadErrorHandlingStrategy::Error) {
     res = src->read(new_reader);
     py::Frame::cast_from(res)->set_source(src->name());
   }
@@ -315,10 +305,10 @@ py::oobj MultiSource::read_next(const GenericReader& reader)
       py::Frame::cast_from(res)->set_source(src->name());
     }
     catch (const Error& e) {
-      if (reader.errors_strategy == IreadErrorHandlingStrategy::Warn) {
+      if (reader_.errors_strategy == IreadErrorHandlingStrategy::Warn) {
         emit_badsrc_warning(src->name(), e);
       }
-      if (reader.errors_strategy == IreadErrorHandlingStrategy::Store) {
+      if (reader_.errors_strategy == IreadErrorHandlingStrategy::Store) {
         exception_to_python(e);
         PyObject* etype = nullptr;
         PyObject* evalue = nullptr;
@@ -334,9 +324,9 @@ py::oobj MultiSource::read_next(const GenericReader& reader)
   }
   SourcePtr next = src->continuation();
   if (next) {
-    sources_[iteration_index] = std::move(next);
+    sources_[iteration_index_] = std::move(next);
   } else {
-    iteration_index++;
+    iteration_index_++;
   }
   if (!res) goto start;
   return res;

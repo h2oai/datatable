@@ -18,6 +18,9 @@ build_script:
 
     rem =======================================================================
 
+    SET DT_HARNESS = AppVeyor
+
+
     FOR /f %%i in ('git rev-list --count master') DO SET MASTER_BUILD_ID=%%i
 
     rem AppVeyor does an additional merge commit, that we don't need to take into account
@@ -25,31 +28,26 @@ build_script:
     FOR /f %%i in ('git rev-list --count master..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
 
 
+    echo APPVEYOR_REPO_BRANCH = %APPVEYOR_REPO_BRANCH%
 
     echo APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = %APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%
 
     echo APPVEYOR_PULL_REQUEST_NUMBER = %APPVEYOR_PULL_REQUEST_NUMBER%
 
-    echo APPVEYOR_REPO_BRANCH = %APPVEYOR_REPO_BRANCH%
-
     echo MASTER_BUILD_ID = %MASTER_BUILD_ID%
 
     echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
 
-
-    if "%APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
-    else if defined AAPPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
+    if defined APPVEYOR_PULL_REQUEST_NUMBER (SET DT_BUILD_SUFFIX=PR%APPVEYOR_PULL_REQUEST_NUMBER%.%BRANCH_BUILD_ID%)
     else if "%APPVEYOR_REPO_BRANCH%"=="master" (SET DT_BUILD_NUMBER=%MASTER_BUILD_ID%)
+    else if "%APPVEYOR_REPO_BRANCH:~0,4%"=="rel-" (SET DT_RELEASE=True)
     else (SET DT_BUILD_SUFFIX=%APPVEYOR_REPO_BRANCH%.%BRANCH_BUILD_ID%)
-
-    SET DT_HARNESS = AppVeyor
 
     echo DT_RELEASE      = %DT_RELEASE%
 
     echo DT_BUILD_NUMBER = %DT_BUILD_NUMBER%
 
     echo DT_BUILD_SUFFIX = %DT_BUILD_SUFFIX%
-
 
 
     rem Python 3.5
