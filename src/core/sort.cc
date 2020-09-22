@@ -751,7 +751,7 @@ class SortContext {
 
   template<typename T>
   T set_replace_na(T min, T max) {
-    return min < 0 ? max - min + 1 : max + 1;
+    return min < 0 ? max - min + 2 : max + 1;
   }
 
   template <bool ASC, typename T, typename TU>
