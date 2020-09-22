@@ -21,7 +21,7 @@ build_script:
     SET DT_HARNESS = AppVeyor
 
 
-    FOR /f %%i in ('git rev-list --count main') DO SET MASTER_BUILD_ID=%%i
+    FOR /f %%i in ('git rev-list --count main') DO SET MAIN_BUILD_ID=%%i
 
     rem AppVeyor does an additional merge commit, that we don't need to take into account
 
@@ -34,7 +34,7 @@ build_script:
 
     echo APPVEYOR_PULL_REQUEST_NUMBER = %APPVEYOR_PULL_REQUEST_NUMBER%
 
-    echo MASTER_BUILD_ID = %MASTER_BUILD_ID%
+    echo MAIN_BUILD_ID = %MAIN_BUILD_ID%
 
     echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
 
@@ -45,7 +45,7 @@ build_script:
     } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
       $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER$env:BRANCH_BUILD_ID"
     } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
-      $env:DT_BUILD_NUMBER=$env:MASTER_BUILD_ID
+      $env:DT_BUILD_NUMBER=$env:MAIN_BUILD_ID
     } else {
       $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
     }
