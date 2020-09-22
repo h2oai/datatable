@@ -44,7 +44,7 @@ build_script:
       $env:DT_RELEASE="True"
     } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
       $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER$env:BRANCH_BUILD_ID"
-    } elseif ($env:APPVEYOR_REPO_BRANCH -eq "master") {
+    } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
       $env:DT_BUILD_NUMBER=$env:MASTER_BUILD_ID
     } else {
       $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
