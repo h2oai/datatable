@@ -146,6 +146,7 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "stype.h"
+#include <iostream>
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
@@ -506,6 +507,7 @@ class SortContext {
     bool descending;
     int : 8;
     std::string na_pos;
+    int count_nas;
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups,
@@ -524,6 +526,7 @@ class SortContext {
     use_order = false;
     descending = false;
     na_pos = na_position;
+    count_nas = 1;
 
     nth = static_cast<size_t>(sort_nthreads);
     n = nrows;
@@ -619,10 +622,17 @@ class SortContext {
   }
 
 
-  RowIndex get_result_rowindex() {
+  RowIndex get_result_rowindex(bool remove_nas = false) {
     auto data = static_cast<int32_t*>(container_o.release());
-    return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
+    if (remove_nas) {
+      int na_count = column.stats()->nacount();
+      auto buf = Buffer::acquire(data, n*sizeof(int32_t));
+      return RowIndex(Buffer::view(buf, (n-na_count)*sizeof(int32_t),
+                      na_count * sizeof(int32_t)), RowIndex::ARR32);
+    } else {
+      return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
                     RowIndex::ARR32);
+    }
   }
 
   Groupby extract_groups() {
@@ -830,8 +840,9 @@ class SortContext {
     allocate_x();
     TO* xo = x.data<TO>();
 
-    TO replace_na = na_pos == "first" ? 0 :
-                    static_cast<TO>(sizeof(TO) == 8 ? 0xFFFFFFFFFFFFFFFFULL : 0xFFFFFFFF);
+    TO replace_na = na_pos == "last" ?
+                    static_cast<TO>(sizeof(TO) == 8 ? 0xFFFFFFFFFFFFFFFFULL : 0xFFFFFFFF)
+                    : 0;
 
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
@@ -1475,7 +1486,9 @@ RiGb group(const std::vector<Column>& columns,
     colj.stats();  // TODO: remove this
     sc.continue_sort(colj, j_descending, do_groups);
   }
-  result.first = sc.get_result_rowindex();
+
+  bool remove_nas = na_pos == "remove" ? true : false;
+  result.first = sc.get_result_rowindex(remove_nas);
   if (!(flags[0] & SortFlag::SORT_ONLY) && !result.second) {
     result.second = sc.extract_groups();
   }
