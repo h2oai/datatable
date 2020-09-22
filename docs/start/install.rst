@@ -78,7 +78,7 @@ officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process.
 
 If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
-Click on a green master build of your choice, then navigate to the "Artifacts"
+Click on a green main build of your choice, then navigate to the "Artifacts"
 tab, copy the wheel URL that corresponds to your Python version, and finally
 install it as:
 

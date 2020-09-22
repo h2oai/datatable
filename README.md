@@ -23,8 +23,8 @@
 # datatable
 
 [![PyPi version](https://img.shields.io/pypi/v/datatable.svg)](https://pypi.org/project/datatable/)
-[![License](https://img.shields.io/pypi/l/datatable.svg)](https://github.com/h2oai/datatable/blob/master/LICENSE)
-[![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=master)](https://travis-ci.org/h2oai/datatable)
+[![License](https://img.shields.io/pypi/l/datatable.svg)](https://github.com/h2oai/datatable/blob/main/LICENSE)
+[![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=main)](https://travis-ci.org/h2oai/datatable)
 [![Documentation Status](https://readthedocs.org/projects/datatable/badge/?version=latest)](https://datatable.readthedocs.io/en/latest/?badge=latest)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/e72cadff26ed4ad68decd61b66b4c563)](https://www.codacy.com/app/st-pasha/datatable?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=h2oai/datatable&amp;utm_campaign=Badge_Grade)
 

@@ -3,7 +3,7 @@ image: Visual Studio 2019
 
 branches:
   only:
-    - master
+    - main
 
 pull_requests:
   do_not_increment_build_number: true
@@ -21,11 +21,11 @@ build_script:
     SET DT_HARNESS = AppVeyor
 
 
-    FOR /f %%i in ('git rev-list --count master') DO SET MASTER_BUILD_ID=%%i
+    FOR /f %%i in ('git rev-list --count main') DO SET MASTER_BUILD_ID=%%i
 
     rem AppVeyor does an additional merge commit, that we don't need to take into account
 
-    FOR /f %%i in ('git rev-list --count master..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
+    FOR /f %%i in ('git rev-list --count main..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
 
 
     echo APPVEYOR_REPO_BRANCH = %APPVEYOR_REPO_BRANCH%

@@ -54,7 +54,7 @@ size_t num_threads_in_team();
 
 /**
  * Return the total number of threads in the thread pool, when called from the
- * master thread, and the total number of threads in a team, otherwise.
+ * main thread, and the total number of threads in a team, otherwise.
  */
 size_t num_threads_available();
 
@@ -62,7 +62,7 @@ size_t num_threads_available();
 /**
  * Return the index of the current thread, similar to `omp_get_thread_num()`.
  * The value returned is between 0 and `num_threads_in_team() - 1`, or
- * `size_t(-1)` for the master thread.
+ * `size_t(-1)` for the main thread.
  */
 size_t this_thread_index();
 

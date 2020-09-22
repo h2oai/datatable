@@ -32,7 +32,7 @@ In the description below, this version will be denoted as
 This is the most common type of release. Use it when neither major nor micro
 update applies.
 
-- Create a new local branch called `rel-{MAJOR}.{MINOR+1}` on top of `master`.
+- Create a new local branch called `rel-{MAJOR}.{MINOR+1}` on top of `main`.
 
 - In the `VERSION.txt` modify the version to `{MAJOR}.{MINOR+1}.0` (call
   this `MN0` for short).
@@ -65,7 +65,7 @@ update applies.
   `s3://h2o-release/datatable/stable/datatable-{MN0}/` and draft a GitHub
   release.
 
-- Merge the PR into master, but **DO NOT delete the branch**. This branch
+- Merge the PR into main, but **DO NOT delete the branch**. This branch
   should be kept forever.
 
 - Go to [Releases](https://github.com/h2oai/datatable/releases) on GitHub —
@@ -96,7 +96,7 @@ version with some bug fixes. Do not add new functionality into a patch release
 - If you need to patch version `{MAJOR}.{MINOR}.{MICRO}`, start by checking out
   the branch `rel-{MAJOR}.{MINOR}`.
 
-- Cherry-pick any commits that you need into this branch from master (or from
+- Cherry-pick any commits that you need into this branch from main (or from
   any other branch).
 
 - In the `VERSION.txt` file change the version to `{MAJOR}.{MINOR}.{MICRO+1}`
