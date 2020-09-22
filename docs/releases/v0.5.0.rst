@@ -27,7 +27,7 @@
 
   -[enh] Fread can now properly recognize quoted NA strings.
 
-  -[fix] Ensure that :func:`fread` only emits messages to Python from the master
+  -[fix] Ensure that :func:`fread` only emits messages to Python from the main
     thread.
 
   -[fix] Fixed an error when unbounded f-expressions were printed to console.

@@ -194,4 +194,4 @@ to implement their own Jay readers / writers.
 
 
 [flatbuffers]: https://google.github.io/flatbuffers/
-[jay.fbs]:     https://github.com/h2oai/datatable/blob/master/c/jay/jay.fbs
+[jay.fbs]:     https://github.com/h2oai/datatable/blob/main/c/jay/jay.fbs
