@@ -19,6 +19,7 @@ build_script:
     # =======================================================================
 
     $env:DT_HARNESS = "AppVeyor"
+
     $env:MAIN_BUILD_ID = git rev-list --count main
 
     # Do not take into account the AppVeyor's additional merge commit
@@ -38,12 +39,19 @@ build_script:
     # =======================================================================
 
     echo "APPVEYOR_REPO_BRANCH = $APPVEYOR_REPO_BRANCH"
+
     echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
+
     echo "APPVEYOR_PULL_REQUEST_NUMBER = $APPVEYOR_PULL_REQUEST_NUMBER"
+
     echo "MAIN_BUILD_ID = $env:MAIN_BUILD_ID"
+
     echo "BRANCH_BUILD_ID = $env:BRANCH_BUILD_ID"
+
     echo "DT_RELEASE = $env:DT_RELEASE"
+
     echo "DT_BUILD_NUMBER = $env:DT_BUILD_NUMBER"
+
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 - cmd: >-
