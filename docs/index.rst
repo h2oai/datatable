@@ -1,50 +1,155 @@
+
 .. raw:: html
 
-  <div id="first-section">
-    <div class="part1">
-      <img src="_static/py_datatable_logo.png" id="dt-logo" />
+    <style type="text/css">
+      footer {display:none;}
+      div#dtcontainer {
+        height: 300pt;
+        position: relative;
+      }
+      div#description {
+        width: 430pt;
+      }
+      div#logo {
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 80px;
+      }
+      div#badges {
+        position: absolute;
+        right: 0;
+        top: 120px;
+      }
+      div#badges a {
+        display: block;
+        padding: 1pt 0;
+        text-align: right;
+      }
+      div#collage {
+        left: 100pt;
+        position: relative;
+        top: 10pt;
+        transform: matrix(1, 0, -0.29, 1, 0, 0);
+      }
+      div#collage a.box {
+        border-radius: 5px;
+        display: inline-block;
+        font-family: Verdana;
+        position: absolute;
+        text-align: center;
+        user-select: none;
+      }
+      div#collage a.box:hover {
+        box-shadow: 2px 2px 2px #222;
+      }
+      div#collage a.box#box1 {
+        background-color: #4684b6;
+        color: white;
+        height: 108pt;
+        padding: 28pt 0;
+        top: 0;
+        width: 111pt;
+      }
+      a.box#box1 div:first-child { font-size: 22pt; }
+      a.box#box1 div:last-child  { font-size: 16pt; }
+      div#collage a.box#box2 {
+        background-color: #2d659c;
+        color: white;
+        height: 50pt;
+        left: 113pt;
+        padding: 11pt 0;
+        top: 58pt;
+        width: 56pt;
+      }
+      a.box#box2 div:first-child { font-size: 11pt; }
+      a.box#box2 div:last-child  { font-size: 10pt; }
+      div#collage a.box#box3 {
+        background-color: #a2c1da;
+        color: black;
+        height: 82pt;
+        left: 171pt;
+        padding: 10pt 0;
+        top: 58pt;
+        width: 93pt;
+      }
+      a.box#box3 div:first-child { font-size: 36pt; }
+      a.box#box3 div:last-child  { font-size: 10pt; }
+      div#collage a.box#box4 {
+        background-color: #2c5735;
+        color: white;
+        font-size: 12pt;
+        height: 22pt;
+        left: 25pt;
+        padding: 2pt;
+        top: 129pt;
+        transform: rotate(-90deg);
+        width: 60pt;
+      }
+      div#collage a.box#box5 {
+        background-color: #ffde56;
+        color: black;
+        height: 99pt;
+        left: 68pt;
+        padding: 17pt 0;
+        top: 110pt;
+        width: 101pt;
+      }
+      a.box#box5 div:first-child { font-size: 30pt; }
+      a.box#box5 div:last-child  { font-size: 16pt; }
+      div#collage a.box#box6 {
+        background-color: #a2a84a;
+        color: black;
+        font-size: 14pt;
+        height: 27pt;
+        left: 171pt;
+        padding: 3pt;
+        top: 142pt;
+        width: 125pt;
+      }
+    </style>
+
+    <div id="dtcontainer">
+      <div id="description"><p>
+        <b>Datatable</b> is a python library for manipulating tabular data.
+        It supports out-of-memory datasets, multi-threaded data processing,
+        and flexible API.
+      </p></div>
+      <div id="logo">
+        <img src="_static/py_datatable_logo.png" id="dt-logo" />
+      </div>
+      <div id="badges">
+        <a href="https://pypi.org/project/datatable/">
+          <img src="https://img.shields.io/pypi/v/datatable.svg">
+        </a>
+        <a href="https://travis-ci.org/h2oai/datatable">
+          <img src="https://travis-ci.org/h2oai/datatable.svg?branch=main">
+        </a>
+        <a href="https://datatable.readthedocs.io/en/latest/?badge=latest">
+          <img src="https://readthedocs.org/projects/datatable/badge/?version=latest">
+        </a>
+      </div>
+      <div id="collage">
+        <a class="box" id="box1" href="start/quick-start.html">
+          <div>Getting</div><div>started</div>
+        </a>
+        <a class="box" id="box2" href="releases/index-releases.html">
+          <div>Release</div><div>history</div>
+        </a>
+        <a class="box" id="box3" href="api/index-api.html">
+          <div>API</div><div>reference</div>
+        </a>
+        <a class="box" id="box4" href="genindex.html">
+          Index
+        </a>
+        <a class="box" id="box5" href="manual/index-manual.html">
+          <div>User</div><div>Manual</div>
+        </a>
+        <a class="box" id="box6" href="develop/index-develop.html">
+          Development
+        </a>
+      </div>
     </div>
-    <div class="part2">
-
-.. image:: https://img.shields.io/pypi/v/datatable.svg
-   :target: https://pypi.org/project/datatable/
-
-.. image:: https://travis-ci.org/h2oai/datatable.svg?branch=main
-   :target: https://travis-ci.org/h2oai/datatable
-
-.. raw:: html
-
-      <div class="chyron">
-        Python library for efficient multi-threaded data processing, with
-        the support for out-of-memory datasets.
-      </div>
-      <div class="main-toc">
-        <div class="large-links">
-          <a class="reference internal" href="start/quick-start.html">
-            <i class="fa fa-chevron-circle-right"></i> Getting Started
-          </a>
-          <a class="reference internal" href="manual/index-manual.html">
-            <i class="fa fa-chevron-circle-right"></i> User Guide
-          </a>
-          <a class="reference internal" href="api/index-api.html">
-            <i class="fa fa-chevron-circle-right"></i> API Reference
-          </a>
-        </div>
-
-        <div class="small-links">
-          <div><a class="reference internal" href="start/install.html">
-           &#x25AA; Installation
-          </a></div>
-          <div><a class="reference internal" href="develop/index-develop.html">
-           &#x25AA; Development
-          </a></div>
-          <div><a class="reference internal" href="genindex.html">
-           &#x25AA; Index
-          </a></div>
-        </div>
-      </div>
-    </div>  <!-- div.part2 -->
-    </div>  <!-- #first-section -->
 
 
 
