@@ -28,8 +28,7 @@ from tests import assert_equals
 
 def test_ifelse_bad_signature():
     DT = dt.Frame(A=range(10))
-    msg = r"Function datatable\.ifelse\(\) requires exactly 3 positional " \
-          r"arguments"
+    msg = r"Function datatable\.ifelse\(\) requires at least 3 arguments"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse()]
     with pytest.raises(TypeError, match=msg):
@@ -37,8 +36,8 @@ def test_ifelse_bad_signature():
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 0, f.A)]
 
-    msg = r"ifelse\(\) takes at most 3 positional arguments, " \
-          r"but 4 were given"
+    msg = r"Missing the required default argument in function " \
+          r"datatable\.ifelse\(\)"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 0, f.A, f.A, f.A)]
 
@@ -46,7 +45,7 @@ def test_ifelse_bad_signature():
 def test_ifelse_wrong_type():
     DT = dt.Frame(A=range(10))
     DT["B"] = dt.str32(f.A)
-    msg = r"The condition argument in ifelse\(\) must be a boolean column"
+    msg = r"The condition1 argument in ifelse\(\) must be a boolean column"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A, f.A, f.A)]
     with pytest.raises(TypeError, match=msg):
@@ -55,16 +54,22 @@ def test_ifelse_wrong_type():
 
 def test_ifelse_columnsets():
     DT = dt.Frame(A=range(10), B=[7]*10, C=list('abcdefghij'))
-    msg = r"Multi-column expressions are not supported in ifelse\(\) function"
+    msg = r"The condition1 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f[:], 0, 1)]
     with pytest.raises(TypeError, match=msg):
+        DT[:, ifelse(f[int] > 3, 3, f[int])]
+
+    msg = r"The value1 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
+    with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 3, f[:], f.A)]
+
+    msg = r"The value2 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 3, f.A, f[:])]
-    # We could in theory make this work...
-    with pytest.raises(TypeError, match=msg):
-        DT[:, ifelse(f[int] > 3, 3, f[int])]
 
 
 

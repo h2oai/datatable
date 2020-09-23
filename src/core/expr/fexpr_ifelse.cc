@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/ifelse.h"        // IfElse_ColumnImpl
+#include "column/ifelsen.h"       // IfElseN_ColumnImpl
 #include "expr/eval_context.h"    // EvalContext
 #include "expr/fexpr_func.h"      // FExpr_Func
 #include "expr/workframe.h"       // Workframe
@@ -36,67 +37,99 @@ namespace expr {
 
 class FExpr_IfElse : public FExpr_Func {
   private:
-    ptrExpr cond_;
-    ptrExpr true_;
-    ptrExpr false_;
+    // The number of conditions is 1 less than the number of values
+    vecExpr conditions_;
+    vecExpr values_;
 
   public:
-    FExpr_IfElse(py::robj, py::robj, py::robj);
+    FExpr_IfElse(vecExpr&&, vecExpr&&);
     Workframe evaluate_n(EvalContext&) const override;
     std::string repr() const override;
 };
 
 
 
-FExpr_IfElse::FExpr_IfElse(py::robj c, py::robj t, py::robj f)
-  : cond_(as_fexpr(c)),
-    true_(as_fexpr(t)),
-    false_(as_fexpr(f)) {}
+FExpr_IfElse::FExpr_IfElse(vecExpr&& conditions, vecExpr&& values)
+  : conditions_(std::move(conditions)),
+    values_(std::move(values))
+{
+  xassert(conditions_.size() == values_.size() - 1);
+}
 
 
 Workframe FExpr_IfElse::evaluate_n(EvalContext& ctx) const {
-  Workframe wf_cond = cond_->evaluate_n(ctx);
-  Workframe wf_true = true_->evaluate_n(ctx);
-  Workframe wf_false = false_->evaluate_n(ctx);
-  if (wf_cond.ncols() != 1 || wf_true.ncols() != 1 || wf_false.ncols() != 1) {
-    throw TypeError() << "Multi-column expressions are not supported in "
-        "`ifelse()` function";
-  }
-  wf_cond.sync_grouping_mode(wf_true);
-  wf_cond.sync_grouping_mode(wf_false);
-  wf_true.sync_grouping_mode(wf_false);
-  auto gmode = wf_cond.get_grouping_mode();
+  size_t n = conditions_.size();
+  xassert(n >= 1);
 
-  Column col_cond = wf_cond.retrieve_column(0);
-  Column col_true = wf_true.retrieve_column(0);
-  Column col_false= wf_false.retrieve_column(0);
-
-  if (col_cond.stype() != SType::BOOL) {
-    throw TypeError()
-        << "The `condition` argument in ifelse() must be a boolean column";
+  std::vector<Workframe> all_workframes;
+  for (const auto& cond : conditions_) {
+    all_workframes.push_back(cond->evaluate_n(ctx));
   }
-  SType out_stype = common_stype(col_true.stype(), col_false.stype());
-  col_true.cast_inplace(out_stype);
-  col_false.cast_inplace(out_stype);
-  Column out_col {new IfElse_ColumnImpl(
-      std::move(col_cond),
-      std::move(col_true),
-      std::move(col_false))
-  };
+  for (const auto& value : values_) {
+    all_workframes.push_back(value->evaluate_n(ctx));
+  }
+  xassert(all_workframes.size() == 2*n + 1);
+  for (size_t j = 0; j < all_workframes.size(); ++j) {
+    if (all_workframes[j].ncols() != 1) {
+      auto jj = (j < n)? j : j - n;
+      throw TypeError() << "The `" << (j==jj? "condition" : "value")
+          << (jj+1) << "` argument in ifelse() cannot be a multi-column "
+                       "expression";
+    }
+  }
+  auto gmode = Workframe::sync_grouping_mode(all_workframes);
+
+  colvec condition_cols;
+  for (size_t j = 0; j < n; ++j) {
+    Column col = all_workframes[j].retrieve_column(0);
+    if (col.stype() != SType::BOOL) {
+      throw TypeError()
+          << "The `condition" << (j+1)
+          << "` argument in ifelse() must be a boolean column";
+    }
+    condition_cols.push_back(std::move(col));
+  }
+
+  colvec value_cols;
+  SType out_stype = SType::VOID;
+  for (size_t j = n; j < all_workframes.size(); ++j) {
+    Column col = all_workframes[j].retrieve_column(0);
+    out_stype = common_stype(out_stype, col.stype());
+    value_cols.push_back(std::move(col));
+  }
+  for (Column& col : value_cols) {
+    col.cast_inplace(out_stype);
+  }
 
   Workframe wf_out(ctx);
-  wf_out.add_column(std::move(out_col), std::string(), gmode);
+  if (n == 1) {
+    wf_out.add_column(Column{
+      new IfElse_ColumnImpl(
+          std::move(condition_cols[0]),
+          std::move(value_cols[0]),
+          std::move(value_cols[1]))
+      }, std::string(), gmode
+    );
+  } else {
+    wf_out.add_column(
+      Column{
+        new IfElseN_ColumnImpl(std::move(condition_cols), std::move(value_cols))
+      }, std::string(), gmode
+    );
+  }
   return wf_out;
 }
 
 
 std::string FExpr_IfElse::repr() const {
   std::string out = "ifelse(";
-  out += cond_->repr();
-  out += ", ";
-  out += true_->repr();
-  out += ", ";
-  out += false_->repr();
+  for (size_t i = 0; i < conditions_.size(); ++i) {
+    out += conditions_[i]->repr();
+    out += ", ";
+    out += values_[i]->repr();
+    out += ", ";
+  }
+  out += values_.back()->repr();
   out += ')';
   return out;
 }
@@ -148,17 +181,33 @@ return: FExpr
 )";
 
 static py::oobj ifelse(const py::XArgs& args) {
+  auto n = args.num_varargs();
+  if (n < 3) {
+    throw TypeError()
+      << "Function `datatable.ifelse()` requires at least 3 arguments";
+  }
+  if (n % 2 != 1) {
+    throw TypeError()
+      << "Missing the required `default` argument in function "
+         "`datatable.ifelse()`";
+  }
+  vecExpr conditions;
+  vecExpr values;
+  for (size_t i = 0; i < n/2; i++) {
+    conditions.push_back(as_fexpr(args.vararg(i*2)));
+    values.push_back(as_fexpr(args.vararg(i*2 + 1)));
+  }
+  values.push_back(as_fexpr(args.vararg(n - 1)));
   return dt::expr::PyFExpr::make(
-              new dt::expr::FExpr_IfElse(args[0].to_robj(),
-                                         args[1].to_robj(),
-                                         args[2].to_robj())
+              new dt::expr::FExpr_IfElse(std::move(conditions),
+                                         std::move(values))
          );
 }
 
 DECLARE_PYFN(&ifelse)
     ->name("ifelse")
     ->docs(doc_ifelse)
-    ->allow_varargs(3);
+    ->allow_varargs();
 
 
 
