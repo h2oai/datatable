@@ -13,7 +13,7 @@ artifacts:
 
 build_script:
 
-- ps:
+- ps: >-
 
     # Set up required environment variables
     # =======================================================================
