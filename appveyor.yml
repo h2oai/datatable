@@ -13,32 +13,15 @@ artifacts:
 
 build_script:
 
-- cmd: >-
-    rem Set up DT_* environment variables
-
-    rem =======================================================================
-
-    SET DT_HARNESS = AppVeyor
-
-
-    FOR /f %%i in ('git rev-list --count main') DO SET MAIN_BUILD_ID=%%i
-
-    rem AppVeyor does an additional merge commit, that we don't need to take into account
-
-    FOR /f %%i in ('git rev-list --count main..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
-
-
-    echo APPVEYOR_REPO_BRANCH = %APPVEYOR_REPO_BRANCH%
-
-    echo APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = %APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%
-
-    echo APPVEYOR_PULL_REQUEST_NUMBER = %APPVEYOR_PULL_REQUEST_NUMBER%
-
-    echo MAIN_BUILD_ID = %MAIN_BUILD_ID%
-
-    echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
-
 - ps:
+    # Set up DT_* environment variables
+    # =======================================================================
+
+    $env:DT_HARNESS = "AppVeyor"
+    $env:MAIN_BUILD_ID = git rev-list --count main
+
+    # Do not take into account the AppVeyor's additional merge commit
+    $env:BRANCH_BUILD_ID = (git rev-list --count main..) - 1
 
     if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
       $env:DT_RELEASE="True"
@@ -50,14 +33,19 @@ build_script:
       $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
     }
 
+    # Print out variable's content
+    # =======================================================================
+
+    echo "APPVEYOR_REPO_BRANCH = $APPVEYOR_REPO_BRANCH"
+    echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
+    echo "APPVEYOR_PULL_REQUEST_NUMBER = $APPVEYOR_PULL_REQUEST_NUMBER"
+    echo "MAIN_BUILD_ID = $env:MAIN_BUILD_ID"
+    echo "BRANCH_BUILD_ID = $env:BRANCH_BUILD_ID"
+    echo "DT_RELEASE = $env:DT_RELEASE"
+    echo "DT_BUILD_NUMBER = $env:DT_BUILD_NUMBER"
+    echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
+
 - cmd: >-
-
-    echo DT_RELEASE      = %DT_RELEASE%
-
-    echo DT_BUILD_NUMBER = %DT_BUILD_NUMBER%
-
-    echo DT_BUILD_SUFFIX = %DT_BUILD_SUFFIX%
-
 
     rem Python 3.5
 
