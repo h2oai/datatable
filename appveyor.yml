@@ -14,7 +14,7 @@ artifacts:
 build_script:
 
 - ps:
-    # Set up DT_* environment variables
+    # Set up required environment variables
     # =======================================================================
 
     $env:DT_HARNESS = "AppVeyor"
