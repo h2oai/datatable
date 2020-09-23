@@ -109,11 +109,18 @@ std::string FExpr_IfElse::repr() const {
 //------------------------------------------------------------------------------
 
 static const char* doc_ifelse =
-R"(ifelse(condition, expr_if_true, expr_if_false)
+R"(ifelse(condition1, value1, condition2, value2, ..., default)
 --
 
-Produce a column that chooses one of the two values based on the
-condition.
+An expression that chooses its value based on one or more
+conditions.
+
+This is roughly equivalent to the following Python code::
+
+    result = value1 if condition1 else \
+             value2 if condition2 else \
+             ...                  else \
+             default
 
 This function will only compute those values that are needed for
 the result. Thus, for each row we will evaluate either `expr_if_true`
@@ -122,14 +129,14 @@ This may be relevant for those cases
 
 Parameters
 ----------
-condition: FExpr
+condition1, condition2, ...: FExpr[bool]
     An expression yielding a single boolean column.
 
-expr_if_true: FExpr
+value1, value2, ...: FExpr
     Values that will be used when the condition evaluates to True.
     This must be a single column.
 
-expr_if_false: FExpr
+default: FExpr
     Values that will be used when the condition evaluates to False.
     This must be a single column.
 
@@ -151,9 +158,7 @@ static py::oobj ifelse(const py::XArgs& args) {
 DECLARE_PYFN(&ifelse)
     ->name("ifelse")
     ->docs(doc_ifelse)
-    ->arg_names({"condition", "expr_if_true", "expr_if_false"})
-    ->n_positional_args(3)
-    ->n_required_args(3);
+    ->allow_varargs(3);
 
 
 
