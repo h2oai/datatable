@@ -20,21 +20,21 @@ build_script:
 
     $env:DT_HARNESS = "AppVeyor"
 
-    $env:MAIN_BUILD_ID = git rev-list --count main
+    $MAIN_BUILD_ID = git rev-list --count main
 
 
     # Do not take into account the AppVeyor's additional merge commit
 
-    $env:BRANCH_BUILD_ID = (git rev-list --count main..) - 1
+    $BRANCH_BUILD_ID = (git rev-list --count main..) - 1
 
     if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
       $env:DT_RELEASE="True"
     } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
-      $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$env:BRANCH_BUILD_ID"
+      $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
     } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
-      $env:DT_BUILD_NUMBER=$env:MAIN_BUILD_ID
+      $env:DT_BUILD_NUMBER=$MAIN_BUILD_ID
     } else {
-      $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
+      $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
     }
 
     # Print out variable's content
@@ -46,9 +46,9 @@ build_script:
 
     echo "APPVEYOR_PULL_REQUEST_NUMBER = $APPVEYOR_PULL_REQUEST_NUMBER"
 
-    echo "MAIN_BUILD_ID = $env:MAIN_BUILD_ID"
+    echo "MAIN_BUILD_ID = $MAIN_BUILD_ID"
 
-    echo "BRANCH_BUILD_ID = $env:BRANCH_BUILD_ID"
+    echo "BRANCH_BUILD_ID = $BRANCH_BUILD_ID"
 
     echo "DT_RELEASE = $env:DT_RELEASE"
 
