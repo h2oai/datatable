@@ -86,16 +86,16 @@
     an ``obj64`` column was created instead. The new behavior is more
     consistent with fread's behavior when reading CSV files.
 
-  -[api] Expression `f[:]` now excludes groupby columns when used in a
+  -[api] Expression ``f[:]`` now excludes groupby columns when used in a
     groupby context. [#2460]
 
   -[api] Parameters ``_strategy=`` in :meth:`.to_csv()` and :meth:`.to_jay()`
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
-  -[api] The behaviour of :meth:`.sort()`  is made consistent with
-    func:`sort()`. When the list of columns to sort is empty, both will not
-    sort any columns.
+  -[api] The behaviour of a frame method :meth:`.sort() <.sort>` is made consistent with
+    the function :func:`sort() <datatable.sort>`. When the list of columns to sort
+    is empty, both will not sort any columns.
 
   -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
