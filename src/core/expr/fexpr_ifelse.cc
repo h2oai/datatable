@@ -144,6 +144,7 @@ std::string FExpr_IfElse::repr() const {
 static const char* doc_ifelse =
 R"(ifelse(condition1, value1, condition2, value2, ..., default)
 --
+.. xversionadded:: 0.11.0
 
 An expression that chooses its value based on one or more
 conditions.
@@ -155,29 +156,41 @@ This is roughly equivalent to the following Python code::
              ...                  else \
              default
 
-This function will only compute those values that are needed for
-the result. Thus, for each row we will evaluate either `expr_if_true`
-or `expr_if_false` (based on the `condition` value) but not both.
-This may be relevant for those cases
+For every row this function evaluates the smallest number of expressions
+necessary to get the result. Thus, it evaluates `condition1`, `condition2`,
+and so on until it finds the first condition that evaluates to `True`.
+It then computes and returns the corresponding `value`. If all conditions
+evaluate to `False`, then the `default` value is computed and returned.
+
+Also, if any of the conditions produces NA then the result of the expression
+also becomes NA without evaluating any further conditions or values.
+
 
 Parameters
 ----------
 condition1, condition2, ...: FExpr[bool]
-    An expression yielding a single boolean column.
+    Expressions each producing a single boolean column. These conditions
+    will be evaluated in order until we find the one equal to `True`.
 
 value1, value2, ...: FExpr
-    Values that will be used when the condition evaluates to True.
-    This must be a single column.
+    Values that will be used when the corresponding condition evaluates
+    to `True`. These must be single columns.
 
 default: FExpr
-    Values that will be used when the condition evaluates to False.
+    Value that will be used when all conditions evaluate to `False`.
     This must be a single column.
 
 return: FExpr
     The resulting expression is a single column whose stype is the
-    stype which is common for `expr_if_true` and `expr_if_false`,
-    i.e. it is the smallest stype into which both exprs can be
-    upcasted.
+    common stype for all `value1`, ..., `default` columns.
+
+
+Notes
+-----
+.. versionchanged:: 1.0.0
+
+    Earlier this function accepted a single condition only.
+
 )";
 
 static py::oobj ifelse(const py::XArgs& args) {
