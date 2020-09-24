@@ -23,7 +23,6 @@
 #include "expr/py_sort.h"
 #include "python/_all.h"
 #include "utils/exceptions.h"
-#include <iostream>
 namespace py {
 
 

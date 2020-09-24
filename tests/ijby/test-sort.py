@@ -1017,7 +1017,7 @@ def test_sort_double_negation():
 
 
 #-------------------------------------------------------------------------------
-# Sorting with na_position
+# Sort and assign positional value for NAs
 #-------------------------------------------------------------------------------
 
 def key_func(x, rev, na_pos):

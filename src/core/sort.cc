@@ -146,7 +146,6 @@
 #include "rowindex.h"
 #include "sort.h"
 #include "stype.h"
-#include <iostream>
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
