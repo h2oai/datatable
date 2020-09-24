@@ -908,10 +908,10 @@ class SortContext {
                            : 0xFE - static_cast<uint8_t>(*value.data());
                 len_gt_1 |= (value.size() > 1);
               } else {
-                xo[j] = ASC? 1 : 0xFF;  // empty string
+                xo[j] = ASC? 1 : 0xFE;  // empty string
               }
             } else {
-              xo[j] = 0;    // NA string
+              xo[j] = na_pos == "last" ? 0xFF : 0;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
@@ -1336,7 +1336,7 @@ class SortContext {
                 tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
               }
               if (is_string) {
-                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending);
+                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
               } else {
                 switch (elemsize) {
                   case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
@@ -1376,7 +1376,7 @@ class SortContext {
     int32_t* tmp = tmparr.get();
     int32_t nn = static_cast<int32_t>(n);
     if (is_string) {
-      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
+      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending, na_pos);
     } else {
       switch (elemsize) {
         case 1: _insert_sort_keys<uint8_t >(tmp); break;
@@ -1390,7 +1390,7 @@ class SortContext {
   void vinsert_sort() {
     if (is_string) {
       int32_t nn = static_cast<int32_t>(n);
-      insert_sort_values_str(column, 0, o, nn, gg, descending);
+      insert_sort_values_str(column, 0, o, nn, gg, descending, na_pos);
     } else {
       switch (elemsize) {
         case 1: _insert_sort_values<uint8_t >(); break;
