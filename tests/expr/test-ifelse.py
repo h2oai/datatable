@@ -119,3 +119,54 @@ def test_ifelse_with_groupby():
     assert_equals(R2, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 2, 4, 5, 3, 3]))
     assert_equals(R3, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 0, 0, 0, 1, 3]))
     assert_equals(R4, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 2, 0, 0, 1, 1]))
+
+
+
+#-------------------------------------------------------------------------------
+# Multi-expression ifelse
+#-------------------------------------------------------------------------------
+
+def test_ifelse_multi():
+    DT = dt.Frame(A=['fox', 'cat', 'jay', 'cow'])
+    RES = DT[:, ifelse(f.A == 'fox', 3,
+                       f.A == 'dog', 7,
+                       f.A == 'cow', 2, -1)]
+    assert_equals(RES, dt.Frame([3, -1, -1, 2]))
+
+
+def test_ifelse_multi_different_grouplevels():
+    DT = dt.Frame(A=[1, 2, 3, 4, 5, 6])
+    RES = DT[:, ifelse(f.A <= 2, dt.min(f.A),
+                       f.A >= 5, dt.max(f.A),
+                       f.A == 0, 1000000,
+                       f.A)]
+    assert_equals(RES, dt.Frame([1, 1, 3, 4, 6, 6]))
+
+
+def test_countries():
+    # inspired by @knapply's example
+    countries = dt.Frame(
+        name=["Czech Republic", "Czecho-Slovakia", "Mexico", "Czech Republic",
+              "Canada", "Czechoslovakia", "USA", "Britain"],
+        year=[1918] + list(range(1990, 1997))
+    )
+    def is_czech_name(x):
+        return ((x == "Czechoslovak Republic") |
+                (x == "Czechoslovakia") |
+                (x == "Czech Republic") |
+                (x == "Czecho-Slovakia"))
+
+    name, year = countries.export_names()
+    RES = countries[:, {"historic_name": ifelse(
+              is_czech_name(name) & (year <= 1938), "Czechoslovak Republic",
+              is_czech_name(name) & (year <= 1992), "Czechoslovakia",
+              is_czech_name(name) & (year >= 1993), "Czech Republic",
+              (name == "USA"),                      "United States of America",
+              (name == "Britain"),                  "United Kingdom",
+              name
+            )}]
+    assert_equals(RES,
+        dt.Frame(historic_name=["Czechoslovak Republic", "Czechoslovakia",
+            "Mexico", "Czechoslovakia", "Canada", "Czech Republic",
+            "United States of America", "United Kingdom"]))
+
