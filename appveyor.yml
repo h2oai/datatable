@@ -40,17 +40,18 @@ build_script:
       $env:DT_BUILD_SUFFIX = "$env:APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
     }
 
+
     # Print out variable's content
 
     # =======================================================================
 
     echo "DEFAULT_PATH = $DEFAULT_PATH"
 
-    echo "APPVEYOR_REPO_BRANCH = $APPVEYOR_REPO_BRANCH"
+    echo "APPVEYOR_REPO_BRANCH = $env:APPVEYOR_REPO_BRANCH"
 
-    echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
+    echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
 
-    echo "APPVEYOR_PULL_REQUEST_NUMBER = $APPVEYOR_PULL_REQUEST_NUMBER"
+    echo "APPVEYOR_PULL_REQUEST_NUMBER = $env:APPVEYOR_PULL_REQUEST_NUMBER"
 
     echo "MAIN_BUILD_ID = $MAIN_BUILD_ID"
 
@@ -72,9 +73,9 @@ build_script:
 
     python ci\ext.py wheel
 
-    $wheel = ls dist\*-cp35-*.whl
+    $datatable_wheel = ls dist\*-cp35-*.whl
 
-    pip install $wheel pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
@@ -88,9 +89,9 @@ build_script:
 
     python ci\ext.py wheel
 
-    $wheel = ls dist\*-cp36-*.whl
+    $datatable_wheel = ls dist\*-cp36-*.whl
 
-    pip install $wheel pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
@@ -104,9 +105,9 @@ build_script:
 
     python ci\ext.py wheel
 
-    $wheel = ls dist\*-cp37-*.whl
+    $datatable_wheel = ls dist\*-cp37-*.whl
 
-    pip install $wheel pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
@@ -120,8 +121,8 @@ build_script:
 
     python ci\ext.py wheel
 
-    $wheel = ls dist\*-cp38-*.whl
+    $datatable_wheel = ls dist\*-cp38-*.whl
 
-    pip install $wheel pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
