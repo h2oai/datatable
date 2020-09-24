@@ -1,4 +1,4 @@
-version: 0.10.{build}
+version: 1.0.{build}
 image: Visual Studio 2019
 
 branches:
@@ -15,11 +15,13 @@ build_script:
 
 - ps: >-
 
-    # Set up required environment variables
+    # Set up required variables
 
     # =======================================================================
 
     $env:DT_HARNESS = "AppVeyor"
+
+    $DEFAULT_PATH = $env:PATH
 
     $MAIN_BUILD_ID = git rev-list --count main
 
@@ -42,6 +44,8 @@ build_script:
 
     # =======================================================================
 
+    echo "DEFAULT_PATH = $DEFAULT_PATH"
+
     echo "APPVEYOR_REPO_BRANCH = $APPVEYOR_REPO_BRANCH"
 
     echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
@@ -60,68 +64,64 @@ build_script:
 
 
 
-    # Python 3.5
+    # Build and test wheel for Python 3.5
 
     # =======================================================================
 
-    $env:PATH = "C:\Python35-x64;C:\Python35-x64\Scripts;$env:PATH"
+    $env:PATH = "C:\Python35-x64;C:\Python35-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
     $wheel = ls dist\*-cp35-*.whl
 
-    pip install $wheel
-
-    pip install pytest docutils pandas
+    pip install $wheel pytest docutils pandas
 
     pytest .\tests\
 
-- cmd: >-
 
-    rem Python 3.6
 
-    rem =======================================================================
+    # Build and test wheel for Python 3.6
 
-    SET PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
+    # =======================================================================
+
+    $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp36-*.whl) DO pip install %%i
+    $wheel = ls dist\*-cp36-*.whl
 
-    pip install pytest docutils pandas
+    pip install $wheel pytest docutils pandas
 
     pytest .\tests\
 
 
 
-    rem Python 3.7
+    # Build and test wheel for Python 3.7
 
-    rem =======================================================================
+    # =======================================================================
 
-    SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
+    $env:PATH = "C:\Python37-x64;C:\Python37-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp37-*.whl) DO pip install %%i
+    $wheel = ls dist\*-cp37-*.whl
 
-    pip install pytest docutils pandas
+    pip install $wheel pytest docutils pandas
 
     pytest .\tests\
 
 
 
-    rem Python 3.8
+    # Build and test wheel for Python 3.8
 
-    rem =======================================================================
+    # =======================================================================
 
-    SET PATH=C:\Python38-x64;C:\Python38-x64\Scripts;%PATH%
+    $env:PATH = "C:\Python38-x64;C:\Python38-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp38-*.whl) DO pip install %%i
+    $wheel = ls dist\*-cp38-*.whl
 
-    pip install pytest docutils pandas
+    pip install $wheel pytest docutils pandas
 
     pytest .\tests\
-
-
