@@ -1,4 +1,3 @@
-version: 0.10.{build}
 image: Visual Studio 2019
 
 branches:
@@ -13,112 +12,116 @@ artifacts:
 
 build_script:
 
-- cmd: >-
-    rem Set up DT_* environment variables
+- ps: >-
 
-    rem =======================================================================
+    # Set up required variables
 
-    SET DT_HARNESS = AppVeyor
+    # =======================================================================
 
+    $env:DT_HARNESS = "AppVeyor"
 
-    FOR /f %%i in ('git rev-list --count main') DO SET MAIN_BUILD_ID=%%i
+    $DEFAULT_PATH = $env:PATH
 
-    rem AppVeyor does an additional merge commit, that we don't need to take into account
-
-    FOR /f %%i in ('git rev-list --count main..') DO SET /a "BRANCH_BUILD_ID=%%i-1"
+    $MAIN_BUILD_ID = git rev-list --count main
 
 
-    echo APPVEYOR_REPO_BRANCH = %APPVEYOR_REPO_BRANCH%
+    # Do not take into account the AppVeyor's additional merge commit
 
-    echo APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = %APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH%
-
-    echo APPVEYOR_PULL_REQUEST_NUMBER = %APPVEYOR_PULL_REQUEST_NUMBER%
-
-    echo MAIN_BUILD_ID = %MAIN_BUILD_ID%
-
-    echo BRANCH_BUILD_ID = %BRANCH_BUILD_ID%
-
-- ps:
+    $BRANCH_BUILD_ID = (git rev-list --count main..) - 1
 
     if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
-      $env:DT_RELEASE="True"
+      $env:DT_RELEASE = "True"
     } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
-      $env:DT_BUILD_SUFFIX="PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$env:BRANCH_BUILD_ID"
+      $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
     } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
-      $env:DT_BUILD_NUMBER=$env:MAIN_BUILD_ID
+      $env:DT_BUILD_NUMBER = $MAIN_BUILD_ID
     } else {
-      $env:DT_BUILD_SUFFIX="$env:APPVEYOR_REPO_BRANCH$env:BRANCH_BUILD_ID"
+      $env:DT_BUILD_SUFFIX = "$env:APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
     }
 
-- cmd: >-
 
-    echo DT_RELEASE      = %DT_RELEASE%
+    # Print out variable's content
 
-    echo DT_BUILD_NUMBER = %DT_BUILD_NUMBER%
+    # =======================================================================
 
-    echo DT_BUILD_SUFFIX = %DT_BUILD_SUFFIX%
+    echo "DEFAULT_PATH = $DEFAULT_PATH"
+
+    echo "APPVEYOR_REPO_BRANCH = $env:APPVEYOR_REPO_BRANCH"
+
+    echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
+
+    echo "APPVEYOR_PULL_REQUEST_NUMBER = $env:APPVEYOR_PULL_REQUEST_NUMBER"
+
+    echo "MAIN_BUILD_ID = $MAIN_BUILD_ID"
+
+    echo "BRANCH_BUILD_ID = $BRANCH_BUILD_ID"
+
+    echo "DT_RELEASE = $env:DT_RELEASE"
+
+    echo "DT_BUILD_NUMBER = $env:DT_BUILD_NUMBER"
+
+    echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
-    rem Python 3.5
 
-    rem =======================================================================
+    # Build and test wheel for Python 3.5
 
-    SET PATH=C:\Python35-x64;C:\Python35-x64\Scripts;%PATH%
+    # =======================================================================
+
+    $env:PATH = "C:\Python35-x64;C:\Python35-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp35-*.whl) DO pip install %%i
+    $datatable_wheel = ls dist\*-cp35-*.whl
 
-    pip install pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
 
 
-    rem Python 3.6
+    # Build and test wheel for Python 3.6
 
-    rem =======================================================================
+    # =======================================================================
 
-    SET PATH=C:\Python36-x64;C:\Python36-x64\Scripts;%PATH%
+    $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp36-*.whl) DO pip install %%i
+    $datatable_wheel = ls dist\*-cp36-*.whl
 
-    pip install pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
 
 
-    rem Python 3.7
+    # Build and test wheel for Python 3.7
 
-    rem =======================================================================
+    # =======================================================================
 
-    SET PATH=C:\Python37-x64;C:\Python37-x64\Scripts;%PATH%
+    $env:PATH = "C:\Python37-x64;C:\Python37-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp37-*.whl) DO pip install %%i
+    $datatable_wheel = ls dist\*-cp37-*.whl
 
-    pip install pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
 
 
 
-    rem Python 3.8
+    # Build and test wheel for Python 3.8
 
-    rem =======================================================================
+    # =======================================================================
 
-    SET PATH=C:\Python38-x64;C:\Python38-x64\Scripts;%PATH%
+    $env:PATH = "C:\Python38-x64;C:\Python38-x64\Scripts;$DEFAULT_PATH"
 
     python ci\ext.py wheel
 
-    FOR %%i in (dist\*-cp38-*.whl) DO pip install %%i
+    $datatable_wheel = ls dist\*-cp38-*.whl
 
-    pip install pytest docutils pandas
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
-
-
