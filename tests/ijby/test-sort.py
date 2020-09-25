@@ -1032,7 +1032,7 @@ def sort_func(src, rev, na_pos):
 
 
 def test_sort_ints_nas():
-    src = [-5,-8,None,None,11,2,8,None,4]
+    src = [-5,-8,None,None,11,2,8,None,4]*1000
     rev = False
     DT = dt.Frame(A=src)
 
@@ -1049,7 +1049,7 @@ def test_sort_ints_nas():
     assert_equals(EXP3, RES3)
 
 def test_sort_ints_nas_reverse():
-    src = [-5,-8,None,None,11,2,8,None,4]
+    src = [-5,-8,None,None,11,2,8,None,4]*1000
     rev = True
     DT = dt.Frame(A=src)
 
@@ -1067,7 +1067,7 @@ def test_sort_ints_nas_reverse():
 
 
 def test_sort_floats_nas():
-    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]
+    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000
     rev = False
     DT = dt.Frame(A=src)
 
@@ -1084,7 +1084,7 @@ def test_sort_floats_nas():
     assert_equals(EXP3, RES3)
 
 def test_sort_floats_nas_reverse():
-    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]
+    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000
     rev = True
     DT = dt.Frame(A=src)
 
@@ -1101,7 +1101,7 @@ def test_sort_floats_nas_reverse():
     assert_equals(EXP3, RES3)
 
 def test_sort_bool_nas():
-    src = [True,None,False,None,False,True]
+    src = [True,None,False,None,False,True]*1000
     rev = False
     DT = dt.Frame(A=src)
 
@@ -1118,7 +1118,7 @@ def test_sort_bool_nas():
     assert_equals(EXP3, RES3)
 
 def test_sort_bool_nas_reverse():
-    src = [True,None,False,None,False,True]
+    src = [True,None,False,None,False,True]*1000
     rev = True
     DT = dt.Frame(A=src)
 

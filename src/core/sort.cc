@@ -718,7 +718,7 @@ class SortContext {
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
     uint8_t una = 128;
-    uint8_t replace_una = na_pos == "last" ? 4 : 0; // hard-coded
+    uint8_t replace_una = na_pos == "last" ? 3 : 0;
 
     if (use_order) {
       dt::parallel_for_static(n,
@@ -735,7 +735,7 @@ class SortContext {
           // to int, which leads to wrong results after shift by 6.
           uint8_t t = xi[j];
           xo[j] = t == una? replace_una :
-                  ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+                  ASC? static_cast<uint8_t>(xi[j]+1)
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
