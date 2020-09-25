@@ -6,6 +6,15 @@
     .. ref-context:: datatable.Frame
 
 
+    FExpr
+    -----
+    .. ref-context:: datatable
+
+    -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
+      implementing a chained-if functionality. This is equivalent to
+      ``CASE WHEN`` in SQL. [#2656]
+
+
     General
     -------
 

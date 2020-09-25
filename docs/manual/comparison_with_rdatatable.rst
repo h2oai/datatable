@@ -517,9 +517,6 @@ This is a list of some functions in ``data.table`` that do not have an equivalen
    - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
    - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__
 
-- Conditional functions
-   - `fcase <https://rdatatable.gitlab.io/data.table/reference/fcase.html>`__
-
 - Duplicate functions
    - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__
    - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__  in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable`` returns a single column of unique values in the entire dataframe.

@@ -321,6 +321,20 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
 }
 
 
+Grouping Workframe::sync_grouping_mode(std::vector<Workframe>& workframes) {
+  Grouping gmode = Grouping::SCALAR;
+  for (const auto& wf : workframes) {
+    if (static_cast<size_t>(wf.grouping_mode_) > static_cast<size_t>(gmode)) {
+      gmode = wf.grouping_mode_;
+    }
+  }
+  for (auto& wf : workframes) {
+    wf.increase_grouping_mode(gmode);
+  }
+  return gmode;
+}
+
+
 void Workframe::increase_grouping_mode(Grouping gmode) {
   if (grouping_mode_ == gmode) return;
   for (auto& item : entries_) {
