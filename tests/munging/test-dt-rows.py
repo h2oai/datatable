@@ -26,7 +26,7 @@ import datatable as dt
 import random
 from datatable import stype, ltype, f, by
 from datatable.internal import frame_columns_virtual, frame_integrity_check
-from tests import same_iterables, noop, assert_equals, isview
+from tests import list_equals, noop, assert_equals, isview
 
 
 #-------------------------------------------------------------------------------
@@ -614,7 +614,7 @@ def test_0rows_frame():
     dt1 = dt0[f.A == 0, :]
     frame_integrity_check(dt1)
     assert dt1.shape == (0, 2)
-    assert same_iterables(dt1.names, ("A", "B"))
+    assert list_equals(dt1.names, ("A", "B"))
     dt2 = dt0[:, f.A - f.B]
     frame_integrity_check(dt2)
     assert dt2.shape == (0, 1)

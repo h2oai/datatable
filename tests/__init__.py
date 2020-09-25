@@ -45,53 +45,6 @@ except ImportError as e:
 
 
 
-def same_iterables(a, b):
-    """
-    Convenience function for testing datatables created from dictionaries.
-
-    On Python3.6+ it simply checks whether `a == b`. However on Python3.5, it
-    checks whether `a` and `b` have same elements but potentially in a different
-    order.
-
-    The reason for this helper function is the difference between semantics of
-    a dictionary in Python3.6 versus older versions: in Python3.6 dictionaries
-    preserved the order of their keys, whereas in previous Python versions they
-    didn't. Thus, if one creates say a datatable
-
-        dt = datatable.Frame({"A": 1, "B": "foo", "C": 3.5})
-
-    then in Python3.6 it will be guaranteed to have columns ("A", "B", "C") --
-    in this order, whereas in Python3.5 or older the order may be arbitrary.
-    Thus, this function is designed to help with testing of such a datatable:
-
-        assert same_iterables(dt.names, ("A", "B", "C"))
-        assert same_iterables(dt.types, ("int", "string", "float"))
-
-    Then in Python3.6 lhs and rhs will be tested with strict equality, whereas
-    in older Python versions the test will be weaker, taking into account the
-    non-deterministic nature of the dictionary that created the datatable.
-    """
-    ta = type(a)
-    tb = type(b)
-    if ta != tb or len(a) != len(b):
-        return False
-    if sys.version_info >= (3, 6):
-        return list_equals(a, b)
-    else:
-        js = set(range(len(a)))
-        for ai in a:
-            found = False
-            for j in js:
-                if list_equals(ai, b[j]):
-                    found = True
-                    js.remove(j)
-                    break
-            if not found:
-                return False
-        return True
-
-
-
 def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
     """
     Helper functions that tests whether two lists `a` and `b` are equal.
@@ -167,9 +120,9 @@ def assert_equals(frame1, frame2):
                     % (i, frame1.names[i], j, val1, val2, arr1, arr2))
     else:
         assert frame1.shape == frame2.shape
-        assert same_iterables(frame1.names, frame2.names)
-        assert same_iterables(frame1.stypes, frame2.stypes)
-        assert same_iterables(frame1.to_list(), frame2.to_list())
+        assert list_equals(frame1.names, frame2.names)
+        assert list_equals(frame1.stypes, frame2.stypes)
+        assert list_equals(frame1.to_list(), frame2.to_list())
 
 
 

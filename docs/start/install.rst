@@ -9,8 +9,7 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.5+ is required, although we recommend Python 3.6 or newer for best
-results. You can check your python version via
+Python 3.6+ is required. You can check your python version via
 
 .. xcode:: shell
 

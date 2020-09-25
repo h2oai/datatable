@@ -12,7 +12,7 @@ import pytest
 import random
 import re
 from datatable.internal import frame_integrity_check
-from tests import find_file, same_iterables, list_equals
+from tests import find_file, list_equals
 
 
 def test_issue1935():
@@ -480,7 +480,7 @@ def test_issue998():
     assert f0.shape == (2000000, 29)
     assert f0.names == tuple("C%d" % i for i in range(f0.ncols))
     assert f0.stypes == (dt.stype.float64,) * f0.ncols
-    assert same_iterables(
+    assert list_equals(
         f0.sum().to_list(),
         [[1058818.0], [1981919.6107614636], [701.7858121241807],
          [-195.48500674014213], [1996390.3476011853], [-1759.5364254778178],

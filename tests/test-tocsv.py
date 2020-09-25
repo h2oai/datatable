@@ -459,7 +459,6 @@ def test_quoting():
                   B=[True, False, None, None, True],
                   C=[0.77, -3.14, math.inf, math.nan, 200.001],
                   D=["once", "up'on", "  a time  ", None, ", THE END"])
-    DT = DT[:, list("ABCD")]  # Fix column order in Python 3.5
 
     answer0 = ("A,B,C,D\n"
                "0,1,0.77,once\n"
@@ -582,7 +581,6 @@ def test_header():
 
 def test_header2():
     DT = dt.Frame(A=range(3), B=[5]*3, ZZZ=['yes', 'no', None])
-    DT = DT[:, ["A", "B", "ZZZ"]]  # for py3.5
     assert DT.to_csv(header=False) == ("0,5,yes\n"
                                        "1,5,no\n"
                                        "2,5,\n")

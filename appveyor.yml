@@ -64,22 +64,6 @@ build_script:
 
 
 
-    # Build and test wheel for Python 3.5
-
-    # =======================================================================
-
-    $env:PATH = "C:\Python35-x64;C:\Python35-x64\Scripts;$DEFAULT_PATH"
-
-    python ci\ext.py wheel
-
-    $datatable_wheel = ls dist\*-cp35-*.whl
-
-    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
-
-    pytest .\tests\
-
-
-
     # Build and test wheel for Python 3.6
 
     # =======================================================================
