@@ -75,6 +75,10 @@ build_script:
 
     $datatable_wheel = ls dist\*-cp36-*.whl
 
+    echo "----- build_info 3.6 ---------------------------------------------"
+    cat src/datatable/_build_info.py
+    echo "------------------------------------------------------------------"
+
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
@@ -91,6 +95,10 @@ build_script:
 
     $datatable_wheel = ls dist\*-cp37-*.whl
 
+    echo "----- build_info 3.7 ---------------------------------------------"
+    cat src/datatable/_build_info.py
+    echo "------------------------------------------------------------------"
+
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
@@ -106,6 +114,10 @@ build_script:
     python ci\ext.py wheel
 
     $datatable_wheel = ls dist\*-cp38-*.whl
+
+    echo "----- build_info 3.8 ---------------------------------------------"
+    cat src/datatable/_build_info.py
+    echo "------------------------------------------------------------------"
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 

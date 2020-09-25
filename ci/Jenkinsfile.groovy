@@ -215,7 +215,11 @@ ansiColor('xterm') {
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                 -c "env && /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py sdist"
                         """
-                        sh "cat src/datatable/_build_info.py"
+                        sh """
+                            echo "--------- _build_info.py --------------------"
+                            cat src/datatable/_build_info.py
+                            echo "---------------------------------------------"
+                        """
                         arch "src/datatable/_build_info.py"
                         stash includes: 'src/datatable/_build_info.py', name: 'build_info'
                         stash includes: 'dist/*.tar.gz', name: 'sdist'
