@@ -71,7 +71,7 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // These variables will be initialized at the <checkout> stage
 doLargeFreadTests = false
-isMasterJob       = false
+isMainJob       = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
@@ -117,7 +117,18 @@ ansiColor('xterm') {
 
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
-                        if (env.CHANGE_BRANCH) {
+                        isMainJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+                        isRelease = !isMainJob && env.CHANGE_BRANCH.startsWith("rel-")
+                        doPublish = isMainJob || isRelease || params.FORCE_S3_PUSH
+
+                        if (isMainJob) {
+                            // No need to do anything: already on the main branch
+                        }
+                        else if (isRelease) {
+                            // During the release it must be an actual checkout
+                            sh "git checkout ${env.CHANGE_BRANCH}"
+                        }
+                        else {
                             // Note: we do not explicitly checkout the branch here,
                             // because the branch may be on the forked repo
                             sh """
@@ -126,10 +137,6 @@ ansiColor('xterm') {
                             """
                         }
 
-                        isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-                        isRelease   = !isMasterJob && env.CHANGE_BRANCH.startsWith("rel-")
-                        doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
-
                         buildInfo(env.BRANCH_NAME, isRelease)
 
                         if (!params.DISABLE_ALL_TESTS) {
@@ -137,9 +144,9 @@ ansiColor('xterm') {
                                                   isModified("src/core/(read|csv)/.*") ||
                                                   isRelease ||
                                                   params.FORCE_ALL_TESTS)
-                            doExtraTests       = (isMasterJob || isRelease || params.FORCE_ALL_TESTS)
+                            doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcTests || isMasterJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPpcBuild         = doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
@@ -151,7 +158,7 @@ ansiColor('xterm') {
                         println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
                         println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
                         println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
-                        println("isMasterJob       = ${isMasterJob}")
+                        println("isMainJob         = ${isMainJob}")
                         println("isRelease         = ${isRelease}")
                         println("doPublish         = ${doPublish}")
                         println("doPpcBuild        = ${doPpcBuild}")
@@ -757,7 +764,7 @@ def get_env_for_macos(String pyver) {
 
 def isModified(pattern) {
     def fList
-    if (isMasterJob) {
+    if (isMainJob) {
         fList = buildInfo.get().getChangedFiles().join('\n')
     } else {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"

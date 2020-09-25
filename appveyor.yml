@@ -31,6 +31,7 @@ build_script:
 
     if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
       $env:DT_RELEASE = "True"
+      git checkout $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH$
     } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
       $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
     } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
