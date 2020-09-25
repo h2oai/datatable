@@ -273,7 +273,6 @@ def test_assign_bad_type():
 
 def test_assign_different_types():
     DT = dt.Frame(A=range(5), B=list("ABCDE"))
-    DT = DT[:, ["A", "B"]]  # for py35
     assert DT.stypes == (dt.int32, dt.str32)
     DT[:, update(A=dt.float32, B=dt.str64)]
     assert_equals(DT, dt.Frame(A=range(5), B=list("ABCDE"),

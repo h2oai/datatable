@@ -144,11 +144,6 @@ def _resolve_source_file(file, tempfiles):
         # os.PathLike interface
         file = os.path.expanduser(file)
         file = os.fsdecode(file)
-    elif isinstance(file, pathlib.Path):
-        # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
-        # os.PathLike interface and is included in `_pathlike`.
-        file = file.expanduser()
-        file = str(file)
     elif hasattr(file, "read") and callable(file.read):
         out_src = None
         out_fileno = None
@@ -540,8 +535,7 @@ def _apply_columns_function(colsfn, colsdesc):
 #-------------------------------------------------------------------------------
 
 # os.PathLike interface was added in Python 3.6
-_pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
-            (str, bytes)
+_pathlike = (str, bytes, os.PathLike)
 
 
 

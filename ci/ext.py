@@ -390,7 +390,6 @@ def get_meta():
             "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
             "Operating System :: MacOS",
             "Operating System :: Unix",
-            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
@@ -405,7 +404,7 @@ def get_meta():
             "pandas; extra == 'optional'",
             "xlrd; extra == 'optional'",
         ],
-        requires_python=">=3.5",
+        requires_python=">=3.6",
     )
 
 

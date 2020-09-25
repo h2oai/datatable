@@ -3,18 +3,6 @@ language: python
 
 jobs:
   include:
-    - name: "Python 3.5 on Linux with LLVM7"
-      python: 3.5
-      before_install:
-        - ( test -f $CXX ) || ( wget -O llvm7.tar.xz "http://releases.llvm.org/7.0.1/clang+llvm-7.0.1-x86_64-linux-gnu-ubuntu-16.04.tar.xz" && mkdir -p "$LLVM7" && tar xf llvm7.tar.xz -C "$LLVM7" --strip-components 1 )
-      env:
-        - LLVM7=$HOME/LLVM7
-        - LD_LIBRARY_PATH=$LLVM7/lib:$LD_LIBRARY_PATH
-        - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
-        - SEGFAULT_SIGNALS=all
-        - DT_HARNESS=Travis
-        - CXX=$LLVM7/bin/clang-7
-
     - name: "Python 3.6 on Linux with LLVM7"
       python: 3.6
       before_install:

@@ -241,7 +241,6 @@ ansiColor('xterm') {
                                             ls -la && \
                                             ls -la src/datatable && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                            /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
@@ -269,8 +268,6 @@ ansiColor('xterm') {
                                         . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
-                                        python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py38
                                         python ci/ext.py wheel
@@ -308,7 +305,6 @@ ansiColor('xterm') {
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
@@ -353,20 +349,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-manylinux-py35', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-manylinux-py35", "35",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -423,20 +405,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py35', doPpcTests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
@@ -505,19 +473,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
                                     test_macos('36')
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-macos-py35', { stageName, stageDir ->
-                        node(NODE_MACOS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-macos-wheels'
-                                    test_macos('35')
                                 }
                             }
                         }
@@ -752,7 +707,6 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
 
 def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
-        if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
@@ -792,7 +746,6 @@ def get_env_for_macos(String pyver) {
     if (pyver == "38") return "datatable-py38"
     if (pyver == "37") return "datatable-py37-with-pandas"
     if (pyver == "36") return "datatable-py36-with-pandas"
-    if (pyver == "35") return "datatable-py35-with-pandas"
     throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
