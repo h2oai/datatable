@@ -157,11 +157,11 @@ void insert_sort_keys(const T* x, V* o, V* tmp, int n, GroupGatherer& gg)
 template <typename V>
 void insert_sort_keys_str(
     const Column& column, size_t strstart, V* o, V* tmp, int n,
-    GroupGatherer& gg, bool descending, std::string na_pos)
+    GroupGatherer& gg, bool descending, NaPosition na_pos)
 {
   dt::CString i_value, k_value;
   bool i_valid, k_valid;
-  bool na = na_pos == "last" ? true : false;
+  bool na = na_pos == NaPosition::LAST ? true : false;
   auto compfn = descending ? (na ? compare_strings<-1,-1> : compare_strings<-1,1>) :
                             (na ? compare_strings<1,-1> : compare_strings<1,1>);
   int j;
@@ -190,11 +190,11 @@ void insert_sort_keys_str(
 template <typename V>
 void insert_sort_values_str(
     const Column& column, size_t strstart, V* o, int n,
-    GroupGatherer& gg, bool descending, std::string na_pos)
+    GroupGatherer& gg, bool descending, NaPosition na_pos)
 {
   dt::CString i_value, k_value;
   bool i_valid, k_valid;
-  bool na = na_pos == "last" ? true : false;
+  bool na = na_pos == NaPosition::LAST ? true : false;
   auto compfn = descending ? (na ? compare_strings<-1,-1> : compare_strings<-1,1>) :
                             (na ? compare_strings<1,-1> : compare_strings<1,1>);
   int j;
@@ -231,8 +231,8 @@ template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool, std::string);
-template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool, std::string);
+template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
+template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
 
 template int compare_strings<1,1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
 template int compare_strings<1,-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);

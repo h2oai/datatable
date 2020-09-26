@@ -23,13 +23,13 @@
 #include "expr/eval_context.h"
 #include "expr/py_by.h"
 #include "expr/py_join.h"
-#include "expr/py_sort.h"
 #include "expr/py_update.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "sort.h"
 #include "stype.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -75,7 +75,7 @@ void EvalContext::add_sortby(py::osort obj) {
   } else {
     reverse_ = false;
   }
-  na_position_ = obj.get_na_position();
+  na_position_ = obj.get_na_position().at(0);
 }
 
 void EvalContext::add_i(py::oobj oi) {
@@ -241,7 +241,7 @@ bool EvalContext::reverse_sort() {
   return reverse_;
 }
 
-std::string EvalContext::na_position() const {
+NaPosition EvalContext::get_na_position() const {
   return na_position_;
 }
 
@@ -272,7 +272,7 @@ void EvalContext::compute_groupby_and_sort() {
       wf.truncate_columns(n_group_cols);
       set_groupby_columns(std::move(wf));
 
-      auto rigb = group(cols, flags, na_position());
+      auto rigb = group(cols, flags, get_na_position());
       apply_rowindex(std::move(rigb.first));
       groupby_ = std::move(rigb.second);
     }

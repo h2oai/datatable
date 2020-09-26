@@ -23,9 +23,17 @@
 #include "expr/py_sort.h"
 #include "python/_all.h"
 #include "utils/exceptions.h"
+#include <iostream>
 namespace py {
 
-
+/**
+ *  Model type names and their corresponding dt::FtrlModelType's
+ */
+static const std::unordered_map<std::string, NaPosition> NaPositionValue {
+   {"first", NaPosition::FIRST},
+   {"last", NaPosition::LAST},
+   {"remove", NaPosition::REMOVE},
+};
 
 //------------------------------------------------------------------------------
 // py::osort::osort_pyobject
@@ -84,8 +92,32 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
         "of booleans, instead got " << arg_reverse.typeobj();
   }
 
-  std::string na_position = arg_na_position.is_none_or_undefined() ? "first" : arg_na_position.to_string();
-  na_position_ = na_position;
+  if (arg_na_position.is_none_or_undefined()) {
+    auto it = py::NaPositionValue.find("first");
+    na_position_ = new std::vector<NaPosition>(1, it->second);
+  }
+  else if (arg_na_position.is_string()) {
+    auto it = py::NaPositionValue.find(arg_na_position.to_string());
+    if (it == py::NaPositionValue.end()) {
+      throw ValueError() << "na position value `" << arg_na_position.to_string() << "` is not supported";
+    }
+    na_position_ = new std::vector<NaPosition>(1, it->second);
+  }
+  else if (arg_na_position.is_list_or_tuple()) {
+    auto na_position_list  = arg_na_position.to_pylist();
+    na_position_ = new std::vector<NaPosition>(na_position_list.size());
+    for (size_t i = 0; i < na_position_->size(); ++i) {
+      auto it = py::NaPositionValue.find(na_position_list[i].to_string());
+      if (it == py::NaPositionValue.end()) {
+        throw ValueError() << "na position value `" << arg_na_position.to_string() << "` is not supported";
+      }
+      (*na_position_)[i] = it->second;
+    }
+  }
+  else {
+    throw TypeError() << arg_na_position.name() << " should be a boolean or a list "
+        "of booleans, instead got " << arg_na_position.typeobj();
+  }
 
   size_t n = args.num_vararg_args();
   size_t i = 0;
@@ -118,8 +150,8 @@ const std::vector<bool>& osort::osort_pyobject::get_reverse() const {
   return *reverse_;
 }
 
-std::string osort::osort_pyobject::get_na_position() const {
-  return na_position_;
+const std::vector<NaPosition>& osort::osort_pyobject::get_na_position() const {
+  return *na_position_;
 }
 
 void osort::osort_pyobject::impl_init_type(XTypeMaker& xt) {
@@ -165,7 +197,7 @@ const std::vector<bool>& osort::get_reverse() const {
   return reinterpret_cast<const osort::osort_pyobject*>(v)->get_reverse();
 }
 
-std::string osort::get_na_position() const {
+const std::vector<NaPosition>& osort::get_na_position() const {
   return reinterpret_cast<const osort::osort_pyobject*>(v)->get_na_position();
 }
 

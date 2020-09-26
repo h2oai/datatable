@@ -25,6 +25,7 @@
 #include "expr/declarations.h"
 #include "expr/expr.h"
 #include "expr/py_by.h"      // py::oby
+#include "expr/py_sort.h"
 #include "expr/workframe.h"
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
@@ -118,8 +119,7 @@ class EvalContext
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    std::string na_position_;
-
+    NaPosition na_position_;
     size_t : 40;
 
   public:
@@ -154,7 +154,7 @@ class EvalContext
     void set_groupby_columns(Workframe&&);
 
     bool reverse_sort();
-    std::string na_position() const;
+    NaPosition get_na_position() const;
   private:
     void compute_groupby_and_sort();
 
