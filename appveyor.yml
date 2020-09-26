@@ -31,11 +31,15 @@ build_script:
 
     if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
       $env:DT_RELEASE = "True"
-    } elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
+      git checkout $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH
+    }
+    elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
       $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
-    } elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
+    }
+    elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
       $env:DT_BUILD_NUMBER = $MAIN_BUILD_ID
-    } else {
+    }
+    else {
       $env:DT_BUILD_SUFFIX = "$env:APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
     }
 
@@ -74,6 +78,12 @@ build_script:
 
     $datatable_wheel = ls dist\*-cp36-*.whl
 
+    echo "----- build_info 3.6 ---------------------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
@@ -90,6 +100,12 @@ build_script:
 
     $datatable_wheel = ls dist\*-cp37-*.whl
 
+    echo "----- build_info 3.7 ---------------------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
     pytest .\tests\
@@ -105,6 +121,12 @@ build_script:
     python ci\ext.py wheel
 
     $datatable_wheel = ls dist\*-cp38-*.whl
+
+    echo "----- build_info 3.8 ---------------------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
