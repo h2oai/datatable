@@ -624,7 +624,7 @@ class SortContext {
   RowIndex get_result_rowindex(bool remove_nas = false) {
     auto data = static_cast<int32_t*>(container_o.release());
     if (remove_nas) {
-      int na_count = column.stats()->nacount();
+      size_t na_count = column.stats()->nacount();
       auto buf = Buffer::acquire(data, n*sizeof(int32_t));
       return RowIndex(Buffer::view(buf, (n-na_count)*sizeof(int32_t),
                       na_count * sizeof(int32_t)), RowIndex::ARR32);
@@ -774,8 +774,8 @@ class SortContext {
 
     T min = static_cast<T>(column.stats()->min_int(nullptr));
     T max = static_cast<T>(column.stats()->max_int(nullptr));
-    TI replace_una = na_pos == "last" ?
-                     static_cast<TI>(set_replace_na<T>(min, max)) : 0;
+    TO replace_una = na_pos == "last" ?
+                     static_cast<TO>(set_replace_na<T>(min, max)) : 0;
 
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
