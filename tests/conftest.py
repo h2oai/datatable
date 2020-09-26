@@ -20,15 +20,8 @@ import warnings
 @pytest.fixture(autouse=True, scope="session")
 def setup():
     """This fixture will be run once only."""
-    assert sys.version_info >= (3, 5), "Python version 3.5+ is required"
+    assert sys.version_info >= (3, 6), "Python version 3.6+ is required"
     dt.options.progress.enabled = False
-
-
-@pytest.fixture(scope="session")
-def py36():
-    """Skip the test when run under Python 3.5.x"""
-    if sys.version_info < (3, 6):
-        pytest.skip("Python3.6+ is required")
 
 
 def is_ppc64():

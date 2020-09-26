@@ -331,6 +331,7 @@ void XArgs::bind(PyObject* args, PyObject* kwds) {
       }
     }
   }
+  n_bound_args_ = n_bound_args;
   kwds_dict_ = kwds;
   args_tuple_ = args;
 }
@@ -352,6 +353,7 @@ PyObject* XArgs::exec_function(PyObject* args, PyObject* kwds) noexcept {
 
 
 const Arg& XArgs::operator[](size_t i) const {
+  xassert(i < bound_args_.size());
   return bound_args_[i];
 }
 
@@ -363,6 +365,13 @@ size_t XArgs::num_varkwds() const noexcept {
   return n_varkwds_;
 }
 
+
+py::robj XArgs::vararg(size_t i) const {
+  xassert(i < n_varargs_);
+  auto j = static_cast<Py_ssize_t>(i + n_bound_args_);
+  // PyTuple_GET_ITEM() returns a borrowed reference
+  return py::robj(PyTuple_GET_ITEM(args_tuple_, j));
+}
 
 
 

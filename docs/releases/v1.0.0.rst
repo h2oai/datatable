@@ -1,0 +1,24 @@
+
+.. changelog::
+
+    Frame
+    -----
+    .. ref-context:: datatable.Frame
+
+
+    FExpr
+    -----
+    .. ref-context:: datatable
+
+    -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
+      implementing a chained-if functionality. This is equivalent to
+      ``CASE WHEN`` in SQL. [#2656]
+
+
+    General
+    -------
+
+    -[api] Datatable no longer supports Python 3.5, because Python 3.5 itself
+      has reached its end of life on 2020-09-13 and will no longer be
+      supported. If you are still using Python 3.5, please consider upgrading.
+      [#2642]

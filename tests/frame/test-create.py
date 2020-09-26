@@ -33,7 +33,7 @@ import datatable as dt
 from datatable import ltype, stype
 from datatable.exceptions import DatatableWarning
 from datatable.internal import frame_integrity_check
-from tests import same_iterables, list_equals, assert_equals
+from tests import list_equals, assert_equals
 
 
 #-------------------------------------------------------------------------------
@@ -68,10 +68,7 @@ def test_unknown_arg():
             str(e.value))
 
 
-@pytest.mark.usefixtures("py36")
 def test_unknown_args():
-    # Under py35 the order of kw parameters will be random, which will affect
-    # the error message
     with pytest.raises(TypeError) as e:
         dt.Frame([1], A=1, B=2)
     assert ("Frame() constructor got 2 unexpected keyword arguments: "
@@ -282,8 +279,8 @@ def test_create_from_dict():
                    "B": [True, False, None],
                    "C": ["alpha", "beta", "gamma"]})
     assert d7.shape == (3, 3)
-    assert same_iterables(d7.names, ("A", "B", "C"))
-    assert same_iterables(d7.ltypes, (ltype.int, ltype.bool, ltype.str))
+    assert list_equals(d7.names, ("A", "B", "C"))
+    assert list_equals(d7.ltypes, (ltype.int, ltype.bool, ltype.str))
     frame_integrity_check(d7)
 
 
@@ -309,8 +306,8 @@ def test_create_from_kwargs0():
 def test_create_from_kwargs1():
     d0 = dt.Frame(A=[1, 2, 3], B=[True, None, False], C=["a", "b", "c"])
     frame_integrity_check(d0)
-    assert same_iterables(d0.names, ("A", "B", "C"))
-    assert same_iterables(d0.to_list(), [[1, 2, 3],
+    assert list_equals(d0.names, ("A", "B", "C"))
+    assert list_equals(d0.to_list(), [[1, 2, 3],
                                          [True, None, False],
                                          ["a", "b", "c"]])
 
@@ -319,9 +316,9 @@ def test_create_from_kwargs2():
     d0 = dt.Frame(x=range(4), y=[1, 3, 8, 0], stypes=[dt.int64, dt.float32])
     frame_integrity_check(d0)
     assert d0.shape == (4, 2)
-    assert same_iterables(d0.names, ("x", "y"))
-    assert same_iterables(d0.stypes, (dt.int64, dt.float32))
-    assert same_iterables(d0.to_list(), [[0, 1, 2, 3], [1, 3, 8, 0]])
+    assert list_equals(d0.names, ("x", "y"))
+    assert list_equals(d0.stypes, (dt.int64, dt.float32))
+    assert list_equals(d0.to_list(), [[0, 1, 2, 3], [1, 3, 8, 0]])
 
 
 def test_create_from_kwargs_error():
@@ -409,7 +406,6 @@ def test_create_from_frame_error():
     assert str(e1.value) == str(e2.value)
 
 
-@pytest.mark.usefixtures("py36")
 def test_create_from_column_frames():
     DT0 = dt.Frame(A=range(5), B=list("dfkjd"),
                    C=[False, True, True, None, True])
@@ -419,7 +415,6 @@ def test_create_from_column_frames():
     assert DT1.to_list() == DT0.to_list()
 
 
-@pytest.mark.usefixtures("py36")
 def test_create_from_doublestar_expansion():
     DT0 = dt.Frame(A=range(3), B=["df", "qe;r", None])
     DT1 = dt.Frame(D=[7.99, -12.5, 0.1], E=[None]*3)
@@ -546,7 +541,6 @@ def test_create_from_list_of_namedtuples_names_override():
 # Create from a list of dictionaries (as rows)
 #-------------------------------------------------------------------------------
 
-@pytest.mark.usefixtures("py36")
 def test_create_from_list_of_dicts1():
     d0 = dt.Frame([{"a": 5, "b": 7, "c": "Hey"},
                    {"a": 99},
@@ -562,7 +556,6 @@ def test_create_from_list_of_dicts1():
                             [None, None, 2.17, 1e10, None]]
 
 
-@pytest.mark.usefixtures("py36")
 def test_create_from_list_of_dicts2():
     d0 = dt.Frame([{"foo": 11, "bar": 34}, {"argh": 17, "foo": 4}, {"_": 0}])
     frame_integrity_check(d0)
@@ -931,7 +924,7 @@ def test_create_from_pandas_with_names(pandas):
     d = dt.Frame(p, names=["miniature", "miniscule"])
     frame_integrity_check(d)
     assert d.shape == (3, 2)
-    assert same_iterables(d.names, ("miniature", "miniscule"))
+    assert list_equals(d.names, ("miniature", "miniscule"))
 
 
 def test_create_from_pandas_series_with_names(pandas):
@@ -1157,7 +1150,7 @@ def test_create_from_dict_of_numpy_arrays(numpy):
     frame_integrity_check(df)
     assert df.shape == (67, 3)
     assert df.stypes == (stype.float64,) * 3
-    assert same_iterables(df.names, ("A", "B", "C"))
+    assert list_equals(df.names, ("A", "B", "C"))
 
 
 def test_create_from_mixed_sources(numpy):
@@ -1167,8 +1160,8 @@ def test_create_from_mixed_sources(numpy):
                    "D": numpy.array([5, 8, 1, 3, 5813], dtype="int32")})
     frame_integrity_check(df)
     assert df.shape == (5, 4)
-    assert same_iterables(df.names, ("A", "B", "C", "D"))
-    assert same_iterables(df.stypes, (stype.float64, stype.int32, stype.str32,
+    assert list_equals(df.names, ("A", "B", "C", "D"))
+    assert list_equals(df.stypes, (stype.float64, stype.int32, stype.str32,
                                       stype.int32))
 
 

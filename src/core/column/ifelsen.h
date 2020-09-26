@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,43 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"
-#include "read/py_read_iterator.h"
-namespace py {
+#ifndef dt_COLUMN_IFELSEN_h
+#define dt_COLUMN_IFELSEN_h
+#include "column/virtual.h"
+namespace dt {
 
 
-void ReadIterator::m__init__(const PKArgs&) {}
+/**
+  * Virtual column that implements n-element if-else (aka "case").
+  *
+  * If the condition evaluates to NA then an NA value is returned.
+  */
+class IfElseN_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    colvec conditions_;
+    colvec values_;
 
-void ReadIterator::m__dealloc__() {
-  multisource_ = nullptr;
-}
+  public:
+    IfElseN_ColumnImpl(colvec&&, colvec&&);
 
+    ColumnImpl* clone() const override;
 
-oobj ReadIterator::m__next__() {
-  return multisource_->read_next();
-}
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
 
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::oobj*) const override;
 
-oobj ReadIterator::make(std::unique_ptr<dt::read::MultiSource>&& multisource)
-{
-  robj rtype(reinterpret_cast<PyObject*>(&ReadIterator::type));
-  oobj resobj = rtype.call();
-  ReadIterator* iterator = ReadIterator::cast_from(resobj);
-  iterator->multisource_ = std::move(multisource);
-  return resobj;
-}
-
-
-void ReadIterator::impl_init_type(XTypeMaker& xt) {
-  xt.set_class_name("read_iterator");
-
-  static PKArgs args_init(0, 0, 0, false, false, {}, "__init__", nullptr);
-  xt.add(CONSTRUCTOR(&ReadIterator::m__init__, args_init));
-  xt.add(DESTRUCTOR(&ReadIterator::m__dealloc__));
-  xt.add(METHOD__NEXT__(&ReadIterator::m__next__));
-}
-
-
+  private:
+    template <typename T> inline bool _get(size_t i, T* out) const;
+};
 
 
-} // namespace py
+
+
+}  // namespace dt
+#endif

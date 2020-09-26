@@ -28,8 +28,7 @@ from tests import assert_equals
 
 def test_ifelse_bad_signature():
     DT = dt.Frame(A=range(10))
-    msg = r"Function datatable\.ifelse\(\) requires exactly 3 positional " \
-          r"arguments"
+    msg = r"Function datatable\.ifelse\(\) requires at least 3 arguments"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse()]
     with pytest.raises(TypeError, match=msg):
@@ -37,8 +36,8 @@ def test_ifelse_bad_signature():
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 0, f.A)]
 
-    msg = r"ifelse\(\) takes at most 3 positional arguments, " \
-          r"but 4 were given"
+    msg = r"Missing the required default argument in function " \
+          r"datatable\.ifelse\(\)"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 0, f.A, f.A, f.A)]
 
@@ -46,7 +45,7 @@ def test_ifelse_bad_signature():
 def test_ifelse_wrong_type():
     DT = dt.Frame(A=range(10))
     DT["B"] = dt.str32(f.A)
-    msg = r"The condition argument in ifelse\(\) must be a boolean column"
+    msg = r"The condition1 argument in ifelse\(\) must be a boolean column"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A, f.A, f.A)]
     with pytest.raises(TypeError, match=msg):
@@ -55,16 +54,22 @@ def test_ifelse_wrong_type():
 
 def test_ifelse_columnsets():
     DT = dt.Frame(A=range(10), B=[7]*10, C=list('abcdefghij'))
-    msg = r"Multi-column expressions are not supported in ifelse\(\) function"
+    msg = r"The condition1 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f[:], 0, 1)]
     with pytest.raises(TypeError, match=msg):
+        DT[:, ifelse(f[int] > 3, 3, f[int])]
+
+    msg = r"The value1 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
+    with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 3, f[:], f.A)]
+
+    msg = r"The value2 argument in ifelse\(\) cannot be a multi-column " \
+          r"expression"
     with pytest.raises(TypeError, match=msg):
         DT[:, ifelse(f.A > 3, f.A, f[:])]
-    # We could in theory make this work...
-    with pytest.raises(TypeError, match=msg):
-        DT[:, ifelse(f[int] > 3, 3, f[int])]
 
 
 
@@ -114,3 +119,54 @@ def test_ifelse_with_groupby():
     assert_equals(R2, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 2, 4, 5, 3, 3]))
     assert_equals(R3, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 0, 0, 0, 1, 3]))
     assert_equals(R4, dt.Frame(A=[2, 2, 2, 2, 5, 5], C0=[0, 2, 0, 0, 1, 1]))
+
+
+
+#-------------------------------------------------------------------------------
+# Multi-expression ifelse
+#-------------------------------------------------------------------------------
+
+def test_ifelse_multi():
+    DT = dt.Frame(A=['fox', 'cat', 'jay', 'cow'])
+    RES = DT[:, ifelse(f.A == 'fox', 3,
+                       f.A == 'dog', 7,
+                       f.A == 'cow', 2, -1)]
+    assert_equals(RES, dt.Frame([3, -1, -1, 2]))
+
+
+def test_ifelse_multi_different_grouplevels():
+    DT = dt.Frame(A=[1, 2, 3, 4, 5, 6])
+    RES = DT[:, ifelse(f.A <= 2, dt.min(f.A),
+                       f.A >= 5, dt.max(f.A),
+                       f.A == 0, 1000000,
+                       f.A)]
+    assert_equals(RES, dt.Frame([1, 1, 3, 4, 6, 6]))
+
+
+def test_countries():
+    # inspired by @knapply's example
+    countries = dt.Frame(
+        name=["Czech Republic", "Czecho-Slovakia", "Mexico", "Czech Republic",
+              "Canada", "Czechoslovakia", "USA", "Britain"],
+        year=[1918] + list(range(1990, 1997))
+    )
+    def is_czech_name(x):
+        return ((x == "Czechoslovak Republic") |
+                (x == "Czechoslovakia") |
+                (x == "Czech Republic") |
+                (x == "Czecho-Slovakia"))
+
+    name, year = countries.export_names()
+    RES = countries[:, {"historic_name": ifelse(
+              is_czech_name(name) & (year <= 1938), "Czechoslovak Republic",
+              is_czech_name(name) & (year <= 1992), "Czechoslovakia",
+              is_czech_name(name) & (year >= 1993), "Czech Republic",
+              (name == "USA"),                      "United States of America",
+              (name == "Britain"),                  "United Kingdom",
+              name
+            )}]
+    assert_equals(RES,
+        dt.Frame(historic_name=["Czechoslovak Republic", "Czechoslovakia",
+            "Mexico", "Czechoslovakia", "Canada", "Czech Republic",
+            "United States of America", "United Kingdom"]))
+

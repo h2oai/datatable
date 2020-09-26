@@ -66,7 +66,7 @@ rx_param = re.compile(r"""
     (?:(\w+)                                        # parameter name
        (?:\s*=\s*(\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|
                   \[[^\[\]]*\]|[^,\[\(\"]*))?       # default value
-       |(\*\*?\w*|/)                                # varags/varkwds
+       |(\*\*?\w*|/|\.\.\.)                         # varags/varkwds
     )\s*(?:,\s*)?                                   # followed by a comma
     |                                               # - or -
     \[,?\s*(\w+),?\s*\]\s*                          # a parameter in square brackets
@@ -625,6 +625,7 @@ class XobjectDirective(SphinxDirective):
           - "*"                 # separator for kw-only arguments
           - "*" + varname       # positional varargs
           - "**" + varname      # keyword varargs
+          - "..."               # the ellipsis
 
         Type annotations in the signature are not supported.
         """
@@ -1028,12 +1029,12 @@ class XobjectDirective(SphinxDirective):
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
                 if param == "self": continue
-                if param == "*" or param == "/": classes += ["special"]
+                if param in ["*" , "/", "..."]: classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
                     if printed:
                         params += nodes.inline("", nodes.Text(", "), classes=["punct"])
-                    if param in ["self", "*", "/"]:
+                    if param in ["self", "*", "/", "..."]:
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param.lstrip("*"))
@@ -1291,10 +1292,13 @@ class XparamDirective(SphinxDirective):
         desc_node = xnodes.div(classes=["xparam-body"])
         root = xnodes.div(head, desc_node)
         for i, param in enumerate(self.params):
-            id0 = param.strip("*/()[]")
-            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
             if i > 0:
                 head += xnodes.div(", ", classes=["sep"])
+            id0 = param.strip("*/()[]")
+            if id0 == "...":
+                head += xnodes.div("...", classes=["sep"])
+                continue
+            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
             if id0 in ["return", "except"]:
                 head += xnodes.div(id0, classes=["param", id0])
             else:

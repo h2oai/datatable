@@ -25,7 +25,7 @@ a JupyterLab notebook or in a Python console:
 .. raw:: html
 
   <div class="output-cell"><div class='highlight'>
-    <pre>0.10.0</pre>
+    <pre>0.11.0</pre>
   </div></div>
 
 

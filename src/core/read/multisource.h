@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_MULTISOURCE_h
 #define dt_READ_MULTISOURCE_h
-#include "read/source.h"      // Source
 #include "_dt.h"
+#include "read/source.h"      // Source
 namespace dt {
 namespace read {
 
@@ -60,21 +60,17 @@ class MultiSource
     using SourcePtr = std::unique_ptr<Source>;
     using SourceVec = std::vector<SourcePtr>;
 
-    SourceVec sources_;
-    size_t iteration_index;
+    GenericReader reader_;
+    SourceVec     sources_;
+    size_t        iteration_index_;
 
   public:
-    MultiSource() = default;
-    MultiSource(MultiSource&&) = default;
+    MultiSource(const py::PKArgs&, GenericReader&&);
     MultiSource(const MultiSource&) = delete;
-    MultiSource& operator=(MultiSource&&) = default;
+    MultiSource(MultiSource&&) = delete;
 
-    MultiSource(SourceVec&&);
-    MultiSource(SourcePtr&&);
-    MultiSource(const py::PKArgs&, const GenericReader&);
-
-    py::oobj read_single(const GenericReader&);
-    py::oobj read_next(const GenericReader&);
+    py::oobj read_single();
+    py::oobj read_next();
 };
 
 

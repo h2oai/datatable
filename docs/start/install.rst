@@ -9,8 +9,7 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.5+ is required, although we recommend Python 3.6 or newer for best
-results. You can check your python version via
+Python 3.6+ is required. You can check your python version via
 
 .. xcode:: shell
 
@@ -64,11 +63,9 @@ The following platforms are supported:
   work with your Linux distribution if it is compatible with one of these tags.
   Please refer to `PEP-513`_ and `PEP-599`_ for details.
 
-- **Windows (N/A)**
+- **Windows**
 
-  Windows wheels cannot be installed from PyPI just yet, but they will be
-  available after the next release. In the meanwhile, datatable development
-  wheels can be installed (see section below).
+  Windows wheels are available for Windows 10 or later.
 
 
 
@@ -80,7 +77,7 @@ officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process.
 
 If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
-Click on a green master build of your choice, then navigate to the "Artifacts"
+Click on a green main build of your choice, then navigate to the "Artifacts"
 tab, copy the wheel URL that corresponds to your Python version, and finally
 install it as:
 

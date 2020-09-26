@@ -51,7 +51,7 @@ grouping for string columns.
 
 When the input frame has more columns than two,
 a parallel one-pass Ad-Hoc algorithm is employed, see description of
-`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/master/src/core/models/aggregator.cc>`_
+`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/main/src/core/models/aggregator.cc>`_
 method for more details. This algorithm takes into account
 the numeric columns only, and all the string columns are ignored.
 
