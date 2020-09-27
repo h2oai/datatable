@@ -117,9 +117,9 @@ class EvalContext
     Workframe  groupby_columns_;
     strvec     newnames_;
     EvalMode   eval_mode_;
+    NaPosition na_position_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    NaPosition na_position_;
     size_t : 40;
 
   public:

@@ -29,7 +29,6 @@
 #include "ltype.h"
 #include "sort.h"
 #include "stype.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
