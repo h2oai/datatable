@@ -71,9 +71,9 @@ def assert_equals(frame1, frame2):
                     % (i, frame1.names[i], j, val1, val2, arr1, arr2))
     else:
         assert frame1.shape == frame2.shape
-        assert same_iterables(frame1.names, frame2.names)
-        assert same_iterables(frame1.stypes, frame2.stypes)
-        assert same_iterables(frame1.to_list(), frame2.to_list())
+        assert list_equals(frame1.names, frame2.names)
+        assert list_equals(frame1.stypes, frame2.stypes)
+        assert list_equals(frame1.to_list(), frame2.to_list())
 
 
 def traced(fn):

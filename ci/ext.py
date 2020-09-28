@@ -390,7 +390,6 @@ def get_meta():
             "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
             "Operating System :: MacOS",
             "Operating System :: Unix",
-            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
@@ -405,7 +404,7 @@ def get_meta():
             "pandas; extra == 'optional'",
             "xlrd; extra == 'optional'",
         ],
-        requires_python=">=3.5",
+        requires_python=">=3.6",
     )
 
 
@@ -450,11 +449,8 @@ def generate_build_info(mode=None, strict=False):
     # get the date of the commit (HEAD), as a Unix timestamp
     git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
                          strict=strict)
-    if "CHANGE_BRANCH" in os.environ:
-        git_branch = os.environ["CHANGE_BRANCH"]
-    else:
-        git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                               strict=strict)
+    git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                           strict=strict)
     git_diff = shell_cmd(["git", "diff", "HEAD", "--stat", "--no-color"],
                          strict=strict)
     # Reformat the `git_date` as a UTC time string

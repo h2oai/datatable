@@ -35,7 +35,7 @@ package is closely related to R's [data.table][] and attempts to mimic its core
 algorithms and API.
 
 Currently `datatable` is in the Beta stage and undergoing active development.
-Some of the features may still be missing. Python 3.5+ is required.
+Some of the features may still be missing. Python 3.6+ is required.
 
 
 ## Project goals
@@ -90,7 +90,7 @@ the following:
 * Interoperability with pandas / numpy / pure python: the users should have
   the ability to convert to another data-processing framework with ease.
 
-* Restrictions: Python 3.5+, 64-bit systems only.
+* Restrictions: Python 3.6+, 64-bit systems only.
 
 
 ## Installation

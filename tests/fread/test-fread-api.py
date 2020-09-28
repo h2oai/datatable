@@ -150,7 +150,7 @@ def test_fread_from_anysource_as_file1(tempfile, capsys):
     assert "Input is assumed to be a file name" in out
 
 
-def test_fread_from_anysource_as_file2(tempfile, py36):
+def test_fread_from_anysource_as_file2(tempfile):
     import pathlib
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
