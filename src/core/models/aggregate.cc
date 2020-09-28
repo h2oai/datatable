@@ -51,7 +51,7 @@ grouping for string columns.
 
 When the input frame has more columns than two,
 a parallel one-pass Ad-Hoc algorithm is employed, see description of
-`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/master/src/core/models/aggregator.cc>`_
+`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/main/src/core/models/aggregate.cc#L879>`_
 method for more details. This algorithm takes into account
 the numeric columns only, and all the string columns are ignored.
 
@@ -98,7 +98,7 @@ fixed_radius: float
     case number of exemplars may be equal to the number of rows
     in the data. For big data this may result in extremly large
     execution times. Since all the columns are normalized to `[0, 1)`,
-    the `fixed_radius` value should be choosen accordingly.
+    the `fixed_radius` value should be chosen accordingly.
 
 return: Tuple[Frame, Frame]
     The first element in the tuple is the aggregated frame, i.e.
@@ -110,9 +110,9 @@ return: Tuple[Frame, Frame]
     number of members per exemplar.
 
     The second element in the tuple is the members frame with the shape of
-    `(frame.nrows, 1)`, each row in this frame corresponds to the
-    row with the same id in the input `frame`. The only column `exemplar_id`
-    has an stype of `int32` and contains the exemplar ids a particular
+    `(frame.nrows, 1)`. Each row in this frame corresponds to the
+    row with the same id in the input `frame`. Only the column `exemplar_id`
+    has an stype of `int32` and contains the exemplar ids that a particular
     member belongs to. These ids are effectively the ids of
     the exemplar's rows from the input frame.
 

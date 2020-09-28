@@ -108,7 +108,7 @@ nepochs: float
 double_precision: bool
     An option to indicate whether double precision, i.e. `float64`,
     or single precision, i.e. `float32`, arithmetic should be used
-    for computations. It is not guaranteed, that setting
+    for computations. It is not guaranteed that setting
     `double_precision` to `True` will automatically improve
     the model accuracy. It will, however, roughly double the memory
     footprint of the `Ftrl` object.
@@ -130,7 +130,7 @@ interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
 
 model_type: "binomial" | "multinomial" | "regression" | "auto"
     The model type to be built. When this option is `"auto"`
-    then the model type will be automatically choosen based on
+    then the model type will be automatically chosen based on
     the target column `stype`.
 
 params: FtrlParams
@@ -628,7 +628,7 @@ Parameters
 ----------
 return: Frame
     A one-column frame with the classification labels.
-    In the case of the numeric regression the label is
+    In the case of numeric regression, the label is
     the target column name.
 )";
 
@@ -1461,7 +1461,7 @@ newparams: FtrlParams
 except: ValueError
     The exception is raised when
 
-    - trying to change this option for a model that has alerady been trained;
+    - trying to change this option for a model that has already been trained;
 
     - individual parameter values are incompatible with the corresponding setters.
 

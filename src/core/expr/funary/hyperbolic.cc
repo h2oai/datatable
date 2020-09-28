@@ -211,7 +211,7 @@ R"(artanh(x)
 
 The inverse hyperbolic tangent of `x`.
 
-This function satisfies the property that ``sinh(arcsinh(x)) == x``.
+This function satisfies the property that ``tanh(artanh(x)) == x``.
 Alternatively, this function can also be computed as
 :math:`\tanh^{-1}(x) = \frac12\ln\frac{1+x}{1-x}`.
 
