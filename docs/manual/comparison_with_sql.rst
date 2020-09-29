@@ -13,8 +13,8 @@ Let's import ``datatable`` and read in the data:
 
     from datatable import dt, f, g, by, join, sort, update, fread
 
-    url = 'https://gist.github.com/curran/a08a1080b88344b0c8a7/raw/639388c2cbc2120a14dcf466e85730eb8be498bb/iris.csv'
-    iris = fread(url)
+    file_path = '/datatable/docs/_static/iris.csv'
+    iris = fread(file_path)
 
     iris.head(5)
 
