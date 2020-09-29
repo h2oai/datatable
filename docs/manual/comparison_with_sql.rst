@@ -5,7 +5,7 @@ Comparison with SQL
 
 This page provides some examples of how various `SQL <https://en.wikipedia.org/wiki/SQL>`__ operations can be performed in ``datatable``. The ``datatable`` library is still growing; as such, not all functions in ``SQL`` can be replicated yet. If there is a feature you would love to have in ``datatable``, please make a feature request on the `github issues <https://github.com/h2oai/datatable/issues>`__ page.
 
-Most of the examples will be based on the famous `iris <https://en.wikipedia.org/wiki/Iris_flower_data_set>`__ dataset. The assumption here is that the data is already loaded into a database; we'll simply show the relevant ``SQL`` queries side by side with ``datatable`` constructs.
+Most of the examples will be based on the famous `iris <https://en.wikipedia.org/wiki/Iris_flower_data_set>`__ dataset. `SQLite <https://www.sqlite.org/>`__ will be the flavour of SQL used in the comparison.
 
 Let's import ``datatable`` and read in the data:
 
@@ -13,14 +13,14 @@ Let's import ``datatable`` and read in the data:
 
     from datatable import dt, f, g, by, join, sort, update, fread
 
-    url = 'https://bit.ly/3kTNxM4'
+    url = 'https://gist.github.com/curran/a08a1080b88344b0c8a7/raw/639388c2cbc2120a14dcf466e85730eb8be498bb/iris.csv'
     iris = fread(url)
 
     iris.head(5)
 
 
 .. csv-table:: iris dataset
-    :header: "sepal_length", "sepal_width", "petal_length", "petal_width",	"species"
+    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
     :widths: 10,10,10,10,20
 
     5.1,	3.5,	1.4,	0.2,	setosa
@@ -28,6 +28,11 @@ Let's import ``datatable`` and read in the data:
     	4.7,	3.2,	1.3,	0.2,	setosa
     	4.6,	3.1,	1.5,	0.2,	setosa
     	5,	3.6,	1.4,	0.2,	setosa
+
+Loading data into an SQL table is a bit more involved, where you need to create the structure of the table (a schema), before importing the csv file. Have a look `here <https://www.sqlitetutorial.net/sqlite-import-csv/>`__ for an example on loading data into an `SQLite <https://www.sqlite.org/>`__ datatabase. The :func:`fread()` function makes it quite easy to read delimited files.
+
+We'll assume that the data has been loaded into a database.
+
 
 
 SELECT
@@ -51,7 +56,7 @@ In ``datatable``, columns are selected in the ``j`` section :
 
 
 .. csv-table:: select columns
-    :header: "sepal_length", "sepal_width", "petal_length"
+    :header: "sepal\\_length", "sepal\\_width", "petal\\_length"
     :widths: 10,10,10
 
     5.1,	3.5,	1.4
@@ -75,7 +80,7 @@ In ``datatable``, all columns can be selected with the :ref:`f-expressions` :
     iris[:5, f[:]]
 
 .. csv-table:: select all columns
-    :header: "sepal_length", "sepal_width", "petal_length", "petal_width",	"species"
+    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
     :widths: 10,10,10,10,10
 
     5.1,	3.5,	1.4,	0.2,	setosa
@@ -83,6 +88,32 @@ In ``datatable``, all columns can be selected with the :ref:`f-expressions` :
     	4.7,	3.2,	1.3,	0.2,	setosa
     	4.6,	3.1,	1.5,	0.2,	setosa
     	5,	3.6,	1.4,	0.2,	setosa
+
+If you are selecting a single column, ``datatable`` allows you to access just the ``j`` section within the square brackets; you do not need to include the ``i`` section --> ``DT[j]``
+
+.. code-block:: SQL
+
+    SELECT sepal_length
+    FROM iris
+    LIMIT 5;
+
+.. code-block:: python
+
+    # datatable
+    iris['species'].head(5)
+
+.. csv-table:: 
+    :header: sepal\\_length
+    :widths: 20
+
+	5.1
+	4.9
+	4.7
+	4.6
+	5
+
+
+
 
 How about adding new columns? In ``SQL``, this is done also in the ``SELECT`` clause :
 
@@ -109,7 +140,7 @@ The :func:`update` option can also be used to add new columns. The operation occ
     iris[:5, :]
 
 .. csv-table:: Add a new column
-    :header:    sepal_length,	sepal_width,	petal_length,	petal_width,	species,	sepal_length_doubled
+    :header:    sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species,	sepal\\_length\\_doubled
     :widths: 10,10,10,10,10,10
 
     	5.1,	3.5,1.4,	0.2,	setosa,	10.2
@@ -128,7 +159,7 @@ Filtering in ``SQL`` is done via the ``WHERE`` clause.
 
     SELECT *
     FROM iris
-    WHERE species = 'viriginica'
+    WHERE species = 'virginica'
     LIMIT 5;
 
 In ``datatable``, filtration is done in the ``i`` section :
@@ -138,7 +169,7 @@ In ``datatable``, filtration is done in the ``i`` section :
     iris[f.species=="virginica", :].head(5)
 
 .. csv-table:: Filtration
-    :header:    sepal_length,	sepal_width,	petal_length,	petal_width,	species
+    :header:    sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
     :widths: 10,10,10,10,10
 
     6.3,	3.3,	6,	2.5,	virginica
@@ -161,10 +192,10 @@ In ``datatable`` each condition is wrapped in parentheses; the ``&`` operator is
 
 .. code-block:: python
 
-    iris[(f.species=="setosa")&(f.sepal_length==5), :]
+    iris[(f.species=="setosa") & (f.sepal_length==5), :]
 
 .. csv-table:: Filtering on Multiple Conditions
-    :header: sepal_length,	sepal_width,	petal_length,	petal_width,	species
+    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
     :widths: 10,10,10,10,10
 
 	5,	3.6,	1.4,	0.2,	setosa
@@ -270,7 +301,7 @@ In SQL, sorting is executed with the ``ORDER BY`` clause, while in ``datatable``
     iris[:5, :, sort('sepal_length')]
 
 .. csv-table:: Sorting in Ascending Order
-    :header: sepal_length,	sepal_width,	petal_length,	petal_width,	species
+    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
     :widths: 10,10,10,10,10
 
     	4.3,	3,	1.1,	0.1,	setosa
@@ -303,7 +334,7 @@ or, you could negate the sorting column; datatable will correctly interprete the
     iris[:5, :, sort(-f.sepal_length)]
 
 .. csv-table:: Sorting in Descending Order
-    :header: sepal_length,	sepal_width,	petal_length,	petal_width,	species
+    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
     :widths: 10,10,10,10,10
 
     	7.9,	3.8,	6.4,	2,	virginica
@@ -365,7 +396,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
         by('species')]
 
 .. csv-table:: Multiple Aggregations
-    :header: species, mean_sepal_length, N
+    :header: species, mean\\_sepal\\_length, N
     :widths: 10,10, 10
 
     setosa,	5.006, 50
@@ -411,7 +442,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
                 by('Fruit', 'Name')]
 
 .. csv-table:: Aggregations on Multiple COlumns
-    :header: Fruit, Name, sum_num
+    :header: Fruit, Name, sum\\_num
     :widths: 10,10, 10
 
     Apples,	Bob,	16
@@ -430,8 +461,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 .. code-block:: SQL
 
     SELECT species,
-           AVG(sepal_length) as avg_sepal_length,
-           SUM(number) as sum_num
+           AVG(sepal_length) as avg_sepal_length
     FROM iris
     WHERE sepal_width > 3
     GROUP BY species;
@@ -445,7 +475,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
                               by('species')]
 
 .. csv-table:: Filtration in a Group By
-    :header: species, avg_sepal_length
+    :header: species, avg\\_sepal\\_length
     :widths: 10,10
 
     setosa,	5.02917
@@ -472,7 +502,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
                by('Fruit','Name')][f.sum_num > 50, :]
 
 .. csv-table:: Filtration after a Group By
-    :header: Fruit, Name, sum_num
+    :header: Fruit, Name, sum\\_num
     :widths: 10,10, 10
 
     Grapes,	Tom,	87
@@ -498,7 +528,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
          by(f.sepal_width >= 3)]
 
 .. csv-table:: Grouping on a Condition
-    :header: CO, avg_sepal_length
+    :header: CO, avg\\_sepal\\_length
     :widths: 10,10
 
     	0,	5.95263
@@ -509,7 +539,7 @@ At the moment, names cannot be assigned in the ``by`` section.
 LEFT OUTER JOIN
 ----------------
 
-We will compare the left outer join, as that is the only join currently implemented in ``datatable``. Another aspect is that the dataframe being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both dataframes. You can read more about the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+We will compare the left outer join, as that is the only join currently implemented in ``datatable``. Another aspect is that the frame being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both frames. You can read more about the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
 
 Example data ::
 
@@ -567,7 +597,7 @@ The ``UNION ALL`` clause in SQL can be replicated in ``datatable`` with :func:`r
     SELECT x, v
     FROM x
 
-In ``datatable``, :func:`rbind()` takes a list/tuple of dataframes and lumps into one :
+In ``datatable``, :func:`rbind()` takes a list/tuple of frames and lumps into one :
 
 .. code-block:: python
 
@@ -594,7 +624,7 @@ SQL's ``UNION`` removes duplicate rows after combining the results of the indivi
 SQL's WINDOW FUNCTIONS
 ----------------------
 
-Some SQL window functions can be replicated in datatable (`rank` is one of the windows function not currently implemented in datatable) :
+Some SQL window functions can be replicated in ``datatable`` (`rank` is one of the windows function not currently implemented in datatable) :
 
 - TOP n rows per group
 
@@ -612,7 +642,7 @@ Some SQL window functions can be replicated in datatable (`rank` is one of the w
     iris[:3, :, by('species'), sort(-f.sepal_length)]
 
 .. csv-table:: Top N rows per group
-    :header: "sepal_length", "sepal_width", "petal_length", "petal_width",	"species"
+    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
     :widths: 10,10,10,10,10
 
     setosa,	5.8,	4,	1.2,	0.2
@@ -651,7 +681,7 @@ Some SQL window functions can be replicated in datatable (`rank` is one of the w
     iris[f.temp == 1, f[:-1]].head(5)
 
 .. csv-table:: Rows above the mean sepal length
-    :header: "sepal_length", "sepal_width", "petal_length", "petal_width",	"species"
+    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
     :widths: 10,10,10,10,10
 
         5.1,	3.5,	1.4,	0.2,	setosa
