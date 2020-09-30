@@ -207,20 +207,28 @@ static const char* doc_options_nthreads =
 R"(
 The number of threads used by datatable internally.
 
-Many calculations in `datatable` module are parallelized. This
+Many calculations in `datatable` package are parallelized. This
 setting controls how many threads will be used during such
 calculations.
 
-Initially, this option is set to the value returned by C++ call
-`std::thread::hardware_concurrency()`. This is usually equal to the
-number of available cores.
 
-You can set `nthreads` to a value greater or smaller than the
-initial setting. For example, setting `nthreads = 1` will force the
-library into a single-threaded mode. Setting `nthreads` to `0` will
-restore the initial value equal to the number of processor cores.
-Setting `nthreads` to a value less than `0` is equivalent to
-requesting that fewer threads than the maximum.
+Parameters
+----------
+return: int
+    Current `nthreads` value. Initially, this option is set to
+    the value returned by C++ call `std::thread::hardware_concurrency()`,
+    and usually equals to the number of available cores.
+
+new_nthreads: int
+    New `nthreads` value. It can be greater or smaller than the initial setting.
+    For example, setting `nthreads = 1` will force the library into
+    a single-threaded mode. Setting `nthreads` to `0` will restore
+    the initial value equal to the number of processor cores.
+    Setting `nthreads` to a value less than `0` is equivalent to requesting
+    that fewer threads than the maximum.
+
+except: TypeError
+    The exception is raised when `new_nthreads` type is not `int`.
 )";
 
 
