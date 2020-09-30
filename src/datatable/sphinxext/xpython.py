@@ -48,6 +48,35 @@ from sphinx.domains.python import PythonDomain
 logger = logging.getLogger(__name__)
 
 
+#-------------------------------------------------------------------------------
+# .. xpy:current-class::
+# .. xpy:current-module::
+#-------------------------------------------------------------------------------
+
+class CurrentContextDirective(sphinx.util.docutils.SphinxDirective):
+    has_content = False
+    required_arguments = 1
+    optional_arguments = 0
+
+    def run(self):
+        ctx_type = self.name
+        if ctx_type.startswith("xpy:"):
+            ctx_type = ctx_type[4:]
+        if ctx_type.startswith("current-"):
+            ctx_type = ctx_type[8:]
+        if ctx_type not in ["class", "module"]:
+            raise self.error(f"Unexpected directive name {self.name}")
+
+        ctx_name = self.arguments[0]
+        xpy = self.env.get_domain("xpy")
+        xpy.current_context = (ctx_type, ctx_name)
+        return []
+
+
+
+#-------------------------------------------------------------------------------
+# .. xpy:module::
+#-------------------------------------------------------------------------------
 
 class ModuleDirective(sphinx.util.docutils.SphinxDirective):
     """
@@ -172,12 +201,14 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
             qualifier = mm.group(2)
             fnname = mm.group(3)
             parens = mm.group(4)
-            if parens and not self.need_parens:
-                self.error(f"Reference `{self.rawtext}` should not have "
-                           f"parentheses")
-                parens = ""
-            if not parens and self.need_parens:
-                parens = "()"
+            if parens:
+                if not self.need_parens:
+                    parens = ""
+                    self.error(f"Reference `{self.rawtext}` should not have "
+                               f"parentheses")
+            else:
+                parens = "()" if self.need_parens else ""
+
             if initialdot and qualifier:
                 self.error(f"Reference `{self.rawtext}` should not have both "
                            f"the initial dot and the qualifier", node)
@@ -227,6 +258,8 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
 
 
     def error(self, msg, node=None):
+        import pdb
+        pdb.set_trace
         self.env.get_domain('xpy').error(msg, node)
 
 
@@ -253,6 +286,8 @@ class XPythonDomain(Domain):
     }
     directives = {
         'module': ModuleDirective,
+        'current-class': CurrentContextDirective,
+        'current-module': CurrentContextDirective,
     }
     roles = {
         'attr':  XRefRole(),
@@ -260,6 +295,8 @@ class XPythonDomain(Domain):
         'data':  XRefRole(),
         'func':  XRefRole(),
         'meth':  XRefRole(),
+        'exc':   XRefRole(),
+        'mod':   XRefRole(),
     }
 
     def __init__(self, env):
@@ -372,15 +409,6 @@ class XPythonDomain(Domain):
     def current_context(self, new_context):
         assert isinstance(new_context, tuple) and len(new_context) == 2
         assert new_context[0] in ("module", "class")
-
-        curr_ctx = self.current_context
-        if new_context == curr_ctx:
-            return
-        if curr_ctx is not None:
-            self.error(f"Attempt to redefine context from "
-                       f"{curr_ctx[0]}:{curr_ctx[1]} to "
-                       f"{new_context[0]}:{new_context[1]} "
-                       f"for document {self.env.docname}")
         self._current_context = new_context
         self._current_doc = self.env.docname
 
