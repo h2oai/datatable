@@ -272,14 +272,14 @@ return: Tuple[str, ...]
     frame's columns, as a tuple. The length of the tuple is equal to
     the number of columns in the frame, :attr:`ncols <Frame.ncols>`.
 
-newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
+new_names: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     The most common form is to assign the list or tuple of new
     column names. The length of the new list must be equal to the
     number of columns in the frame. Some (or all) elements in the list
     may be ``None``'s, indicating that that column should have
     an auto-generated name.
 
-    If ``newnames`` is a dictionary, then it provides a mapping from
+    If ``new_names`` is a dictionary, then it provides a mapping from
     old to new column names. The dictionary may contain less entries
     than the number of columns in the frame: the columns not mentioned
     in the dictionary will retain their names.
@@ -289,11 +289,11 @@ newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     which are usually ``C0, C1, ...``.
 
 except: ValueError
-    If the length of the list/tuple `newnames` does not match the
+    If the length of the list/tuple `new_names` does not match the
     number of columns in the frame.
 
 except: KeyError
-    If `newnames` is a dictionary containing entries that do not
+    If `new_names` is a dictionary containing entries that do not
     match any of the existing columns in the frame.
 
 Examples

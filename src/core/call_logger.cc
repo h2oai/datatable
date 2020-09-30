@@ -116,11 +116,13 @@ When the :data:`debug.report_args <datatable.options.debug.report_args>` is
 `True`, this option will limit the display size of each argument in order
 to prevent potentially huge outputs. This option's value
 cannot be less than `10`.
+
+The default value for this option is `100`.
 )";
 
 
 static bool opt_report_args = false;
-static size_t opt_truncate_length = 100;
+static size_t opt_arg_max_size = 100;
 
 static void _init_options() {
   register_option(
@@ -177,10 +179,10 @@ static void _init_options() {
   register_option(
     "debug.arg_max_size",
     [] {
-      return py::oint(opt_truncate_length);
+      return py::oint(opt_arg_max_size);
     },
     [](const py::Arg& arg) {
-      opt_truncate_length = std::max(arg.to_size_t(), size_t(10));
+      opt_arg_max_size = std::max(arg.to_size_t(), size_t(10));
     },
     doc_options_debug_arg_max_size
   );
@@ -215,12 +217,12 @@ log::Message& log::Message::operator<<(const R& r) {
   }
   py::ostring repr = r.obj.safe_repr();
   auto strobj = repr.to_cstring();
-  if (strobj.size() <= opt_truncate_length) {
+  if (strobj.size() <= opt_arg_max_size) {
     auto len = static_cast<long>(strobj.size());
     out_.write(strobj.data(), len);
   } else {
-    auto len0 = static_cast<long>(opt_truncate_length * 3/5);
-    auto len1 = static_cast<long>(opt_truncate_length * 2/5 - 3);
+    auto len0 = static_cast<long>(opt_arg_max_size * 3/5);
+    auto len1 = static_cast<long>(opt_arg_max_size * 2/5 - 3);
     out_.write(strobj.data(), len0);
     out_.write("...", 3);
     out_.write(strobj.end() - len1, len1);

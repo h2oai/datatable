@@ -224,23 +224,25 @@ requesting that fewer threads than the maximum.
 )";
 
 
+static py::oobj get_nthreads() {
+  return py::oint(num_threads_in_pool());
+}
+
+static void set_nthreads(const py::Arg& value) {
+  int32_t nth = value.to_int32_strict();
+  if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
+  if (nth <= 0) nth = 1;
+  thpool->resize(static_cast<size_t>(nth));
+}
+
 void ThreadPool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
   thpool->resize(get_hardware_concurrency());
 
   dt::register_option(
     "nthreads",
-
-    /* getter= */[]() -> py::oobj {
-      return py::oint(num_threads_in_pool());
-    },
-
-    /* setter= */[](const py::Arg& value) {
-      int32_t nth = value.to_int32_strict();
-      if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
-      if (nth <= 0) nth = 1;
-      thpool->resize(static_cast<size_t>(nth));
-    },
+    get_nthreads,
+    set_nthreads,
     doc_options_nthreads
   );
 }
