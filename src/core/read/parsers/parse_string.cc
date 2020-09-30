@@ -192,14 +192,23 @@ static void parse_string_unquoted(const ParseContext& ctx) {
   const char* end = ctx.eof;
   const char quote = ctx.quote;
   const char sep = ctx.sep;
-
+  bool found_matching_quote = true;
+  bool use_sep = true;
   if (ctx.strip_whitespace) {
     while (ch < end && *ch == ' ') ch++;
   }
   const char* field_start = ch;
   while (ch < end) {
     char c = *ch;
-    if (c == sep) break;  // end of field
+    if (c == '\"' && found_matching_quote) {
+      found_matching_quote = false;
+      use_sep = false;
+    }
+    else if (c == '\"' && !found_matching_quote) {
+      found_matching_quote = true;
+      use_sep = true;
+    }
+    if (c == sep && use_sep) break;  // end of field
     if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
       if (c == '\n') {
         // Move back to the beginning of \r+\n sequence
