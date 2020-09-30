@@ -193,12 +193,17 @@ static void parse_string_unquoted(const ParseContext& ctx) {
   const char quote = ctx.quote;
   const char sep = ctx.sep;
   bool found_matching_quote = true;
+  bool single_quouted_string = false;
   if (ctx.strip_whitespace) {
     while (ch < end && *ch == ' ') ch++;
   }
   const char* field_start = ch;
   while (ch < end) {
     char c = *ch;
+    if (c == '\"' && single_quouted_string) {
+      ch++;
+      continue;
+    }
     if (c == '\"' && found_matching_quote) {
       found_matching_quote = false;
     }
@@ -217,6 +222,12 @@ static void parse_string_unquoted(const ParseContext& ctx) {
     else if (c == quote && QUOTES_FORBIDDEN) {
       ctx.target->str32.setna();
       return;
+    }
+    if (*(ch+1) == '\n' && !found_matching_quote) {
+      ch = ctx.ch;
+      found_matching_quote = true;
+      single_quouted_string = true;
+      continue;
     }
     ch++;
   }
