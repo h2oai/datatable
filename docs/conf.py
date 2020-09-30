@@ -53,6 +53,7 @@ extensions = [
     'sphinxext.xcode',
     'sphinxext.xcontributors',
     'sphinxext.xfunction',
+    'sphinxext.xpython',
     'sphinxext.dt_changelog',
     'sphinxext.ref_context',
     'sphinx.ext.mathjax',

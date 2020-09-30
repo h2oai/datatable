@@ -116,10 +116,10 @@ Examples
 
 See also
 --------
-- :func:`dt.cbind() <datatable.cbind>` -- function for cbinding frames
+- :xpy:func:`datatable.cbind` -- function for cbinding frames
   "out-of-place" instead of in-place;
 
-- :meth:`.rbind()` -- method for row-binding frames.
+- :xpy:meth:`.rbind()` -- method for row-binding frames.
 )";
 
 static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);

@@ -1,6 +1,8 @@
 
 .. py:module:: datatable.math
 
+.. xpy:module:: datatable.math
+
 datatable.math
 ==============
 
@@ -307,12 +309,12 @@ math                numpy                 datatable
 
 **Mathematical constants**
 -------------------------------------------------------------------------------
-``e``               ``e``                 :const:`e`
-\                   \                     :const:`golden`
-``inf``             ``inf``               :const:`inf`
-``nan``             ``nan``               :const:`nan`
-``pi``              ``pi``                :const:`pi`
-``tau``                                   :const:`tau`
+``e``               ``e``                 :data:`e`
+\                   \                     :data:`golden`
+``inf``             ``inf``               :data:`inf`
+``nan``             ``nan``               :data:`nan`
+``pi``              ``pi``                :data:`pi`
+``tau``                                   :data:`tau`
 ==================  ====================  =====================================
 
 .. _`numpy math functions`: https://docs.scipy.org/doc/numpy-1.13.0/reference/routines.math.html

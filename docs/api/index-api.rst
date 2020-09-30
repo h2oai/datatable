@@ -1,6 +1,9 @@
 
 .. py:module:: datatable
 
+.. xpy:module:: datatable
+
+
 datatable API
 =============
 

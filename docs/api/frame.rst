@@ -88,31 +88,31 @@
         :widths: auto
         :class: api-table
 
-        * - :data:`.key <Frame.key>`
+        * - :attr:`.key <Frame.key>`
           - The primary key for the Frame, if any.
 
-        * - :data:`.ltypes <Frame.ltypes>`
+        * - :attr:`.ltypes <Frame.ltypes>`
           - Logical types (:class:`ltype`s) of all columns.
 
-        * - :data:`.names <Frame.names>`
+        * - :attr:`.names <Frame.names>`
           - The names of all columns in the frame.
 
-        * - :data:`.ncols <Frame.ncols>`
+        * - :attr:`.ncols <Frame.ncols>`
           - Number of columns in the frame.
 
-        * - :data:`.nrows <Frame.nrows>`
+        * - :attr:`.nrows <Frame.nrows>`
           - Number of rows in the frame.
 
-        * - :data:`.stype <Frame.shape>`
+        * - :attr:`.stype <Frame.shape>`
           - A tuple (number of rows, number of columns).
 
-        * - :data:`.source <Frame.source>`
+        * - :attr:`.source <Frame.source>`
           - Where this frame was loaded from.
 
-        * - :data:`.stype <Frame.stype>`
+        * - :attr:`.stype <Frame.stype>`
           - The common :class:`stype` for the entire frame.
 
-        * - :data:`.stypes <Frame.stypes>`
+        * - :attr:`.stypes <Frame.stypes>`
           - Storage types (:class:`stype`s) of all columns.
 
 

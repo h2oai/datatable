@@ -210,10 +210,10 @@
 
     See Also
     --------
-    - :func:`DT[i, j, ...] = R <datatable.Frame.__setitem__>` -- update
+    - :meth:`DT[i, j, ...] = R <datatable.Frame.__setitem__>` -- update
       values in the frame.
 
-    - :func:`del DT[i, j, ...] <datatable.Frame.__delitem__>` -- delete
+    - :meth:`del DT[i, j, ...] <datatable.Frame.__delitem__>` -- delete
       rows/columns of the frame.
 
 
