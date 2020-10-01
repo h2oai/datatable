@@ -9,7 +9,7 @@
         :class: api-table
 
         * - :data:`.log <datatable.options.fread.log>`
-          - Logging related options.
+          - Logging-related options.
 
 .. toctree::
     :hidden:
