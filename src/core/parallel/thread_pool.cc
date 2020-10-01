@@ -211,7 +211,7 @@ Many calculations in `datatable` module are parallelized. This
 setting controls how many threads will be used during such
 calculations.
 
-Initially, this option is set to the value returned by C++ call
+Initially, this option is set to the value returned by the C++ call
 `std::thread::hardware_concurrency()`. This is usually equal to the
 number of available cores.
 

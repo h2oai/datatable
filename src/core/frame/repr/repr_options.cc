@@ -61,7 +61,7 @@ This option controls the behavior of a Frame when it is viewed in a
 text console. When `True`, the Frame will be shown in the interactove
 mode, allowing you to navigate the rows/columns with keyboard.
 When `False`, the Frame will be shown in regular, non-interactive mode
-(you can still call `DT.view()` to enter the interactive mode manually.
+(you can still call `DT.view()` to enter the interactive mode manually).
 )";
 
 static const char* doc_options_display_max_nrows =
