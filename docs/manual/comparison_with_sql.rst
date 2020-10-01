@@ -746,4 +746,4 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 
 The equivalent of SQL's ``LAG`` is :func:`shift()` with a positive number, while SQL's ``LEAD`` is :func:`shift()` with a negative number.
 
-There are a couple of windows functions that are not yet replicable within ``datatable``; one of them is ``UNBOUNDED PRECEDING`` (useful for cumulative sums). Also, ``datatable`` does not natively support datetimes yet.
+Note: ``datatable`` does not natively support datetimes yet.
