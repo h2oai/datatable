@@ -181,6 +181,13 @@ static void save_unescaped_string(const ParseContext& ctx,
   * advanced); if the flag is false then the quote chars are treated
   * as any other regular character.
   *
+  * found_matching_quote prevents using sep until a matching double quote
+  * is found. Defaults to true for parsing unquoted strings.
+  *
+  * After parsing a string that does not contain a matching double quote,
+  * parse the string from the beginning again using sep skipping all
+  * (unmatched) double quotes.
+  *
   * This function
   *   - WILL NOT check for NA strings;
   *   - WILL NOT check for UTF8 validity;
@@ -200,6 +207,7 @@ static void parse_string_unquoted(const ParseContext& ctx) {
   const char* field_start = ch;
   while (ch < end) {
     char c = *ch;
+    // skip all double quotes if it is a single quoted string
     if (c == '\"' && single_quouted_string) {
       ch++;
       continue;
@@ -210,6 +218,7 @@ static void parse_string_unquoted(const ParseContext& ctx) {
     else if (c == '\"' && !found_matching_quote) {
       found_matching_quote = true;
     }
+    // use sep only if found_matching_quote is true
     if (c == sep && found_matching_quote) break;  // end of field
     if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
       if (c == '\n') {
@@ -223,6 +232,8 @@ static void parse_string_unquoted(const ParseContext& ctx) {
       ctx.target->str32.setna();
       return;
     }
+    // resume parsing the string from the beginning if matching
+    // double quote is not found
     if (*(ch+1) == '\n' && !found_matching_quote) {
       ch = ctx.ch;
       found_matching_quote = true;
