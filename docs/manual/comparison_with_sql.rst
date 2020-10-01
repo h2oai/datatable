@@ -102,7 +102,7 @@ If you are selecting a single column, ``datatable`` allows you to access just th
     # datatable
     iris['species'].head(5)
 
-.. csv-table:: 
+.. csv-table::
     :header: sepal\\_length
     :widths: 20
 
@@ -283,8 +283,8 @@ or :
 
 Note : ``SQL`` has the ``IN`` operator, which does not have an equivalent in ``datatable`` yet.
 
-SORTING
--------
+ORDER BY
+--------
 
 In SQL, sorting is executed with the ``ORDER BY`` clause, while in ``datatable`` it is handled by the :func:`sort()` function.
 
@@ -690,3 +690,60 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 	    5.8,	4,	1.2,	0.2,	setosa
     	5.7,	4.4,	1.5,	0.4,	setosa
 
+- Lead and Lag
+
+.. csv-table:: Source Data
+    :header: name,	destination,	dep\\_date,	duration
+    :widths: 10,10,10,10
+
+	Ann,	Japan,	2019-02-02,	7
+	Ann,	Korea,	2019-01-01,	21
+	Ann,	Switzerland,	2020-01-11,	14
+	Bob,	USA,	2019-05-05,	10
+	Bob,	Switzerland,	2020-01-11,	14
+
+
+.. code-block:: SQL
+
+    SELECT name,
+           destination,
+           dep_date,
+           LEAD(dep_date) OVER (ORDER BY dep_date, name) as lead1,
+           LEAD(dep_date, 2) OVER (ORDER BY dep_date, name) as lead2,
+           LAG(dep_date) OVER (ORDER BY dep_date, name) as lag1,
+           LAG(dep_date, 3) OVER (ORDER BY dep_date, name) as lag3
+    FROM source_data;
+
+.. code-block:: python
+
+    #datatable
+
+    source_data = dt.Frame({'name': ['Ann', 'Ann', 'Ann', 'Bob', 'Bob'],
+                            'destination': ['Japan', 'Korea', 'Switzerland',
+                                            'USA', 'Switzerland'],
+                            'dep_date': ['2019-02-02', '2019-01-01',
+                                         '2020-01-11', '2019-05-05',
+                                         '2020-01-11'],
+                            'duration': [7, 21, 14, 10, 14]})
+
+    source_data[:,
+                f[:].extend({"lead1": dt.shift(f.dep_date, -1),
+                             "lead2": dt.shift(f.dep_date, -2),
+                             "lag1": dt.shift(f.dep_date),
+                             "lag3": dt.shift(f.dep_date,3)
+                             }),
+                sort('dep_date','name')]
+
+.. csv-table:: Source Data with Lead and Lag
+    :header: name,	destination,	dep\\_date,	duration,	lead1,	lead2,	lag1,	lag3
+    :widths: 10,10,10,10,10,10,10,10
+
+	Ann,	Korea,	2019-01-01,	21,	2019-02-02,	2019-05-05,	NA,	NA
+	Ann,	Japan,	2019-02-02,	7,	2019-05-05,	2020-01-11,	2019-01-01,	NA
+	Bob,	USA,	2019-05-05,	10,	2020-01-11,	2020-01-11,	2019-02-02,	NA
+	Ann,	Switzerland,	2020-01-11,	14,	2020-01-11,	NA,	2019-05-05,	2019-01-01
+	Bob,	Switzerland,	2020-01-11,	14,	NA,	NA,	2020-01-11,	2019-02-02
+
+The equivalent of SQL's ``LAG`` is :func:`shift()` with a positive number, while SQL's ``LEAD`` is :func:`shift()` with a negative number.
+
+There are a couple of windows functions that are not yet replicable within ``datatable``; one of them is ``UNBOUNDED PRECEDING`` (useful for cumulative sums). Also, ``datatable`` does not natively support datetimes yet.
