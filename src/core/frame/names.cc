@@ -353,11 +353,22 @@ void Frame::_init_names(XTypeMaker& xt) {
 
 static const char * doc_options_frame_names_auto_index =
 R"(
-When Frame needs to auto-name columns, they will be assigned
-names `C0`, `C1`, `C2`, etc. by default. This option allows you to
-control the starting index in this sequence. For example, setting
-`dt.options.frame.names_auto_index=1` will cause the columns to be
-named `C1`, `C2`, `C3`, etc.
+
+This option controls the starting index that is used for auto-naming
+the columns. By default, the names that datatable assigns to frame's columns are
+`C0`, `C1`, `C2`, etc. Setting `names_auto_index`, for instance, to
+`1` will cause the columns to be named as `C1`, `C2`, `C3`, etc.
+
+Parameters
+----------
+return: int
+    Current `names_auto_index` value. Initially, this option is set to `0`.
+
+new_names_auto_index: int
+    New `names_auto_index` value.
+
+except: TypeError
+    The exception is raised when the type of `new_names_auto_index` is not `int`.
 
 See Also
 --------
@@ -367,11 +378,23 @@ See Also
 
 static const char * doc_options_frame_names_auto_prefix =
 R"(
-When Frame needs to auto-name columns, they will be assigned
-names `C0`, `C1`, `C2`, etc. by default. This option allows you to
-control the prefix used in this sequence. For example, setting
-`dt.options.frame.names_auto_prefix='Z'` will cause the columns to be
-named `Z0`, `Z1`, `Z2`, etc.
+
+This option controls the prefix that is used for auto-naming
+the columns. By default, the names that datatable assigns to frame's columns are
+`C0`, `C1`, `C2`, etc. Setting `names_auto_prefix`, for instance, to
+`Z` will cause the columns to be named as `Z1`, `Z2`, `Z3`, etc.
+
+Parameters
+----------
+return: str
+    Current `names_auto_prefix` value. Initially, this option is set to `C`.
+
+new_names_auto_prefix: str
+    New `names_auto_prefix` value.
+
+except: TypeError
+    The exception is raised when the type of `new_names_auto_prefix` is not `str`.
+
 
 See Also
 --------
@@ -382,18 +405,37 @@ See Also
 static int64_t     names_auto_index = 0;
 static std::string names_auto_prefix = "C";
 
+
+static py::oobj get_names_auto_index() {
+  return py::oint(names_auto_index);
+}
+
+static void set_names_auto_index(const py::Arg& arg) {
+  names_auto_index = arg.to_int64_strict();
+}
+
+
+static py::oobj get_names_auto_prefix() {
+  return py::ostring(names_auto_prefix);
+}
+
+static void set_names_auto_prefix(const py::Arg& arg) {
+  names_auto_prefix = value.to_string();
+}
+
+
 void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_index",
-    []{ return py::oint(names_auto_index); },
-    [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
+    get_names_auto_index,
+    set_names_auto_index,
     doc_options_frame_names_auto_index
   );
 
   dt::register_option(
     "frame.names_auto_prefix",
-    []{ return py::ostring(names_auto_prefix); },
-    [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
+    get_names_auto_prefix,
+    set_names_auto_prefix,
     doc_options_frame_names_auto_prefix
   );
 }
