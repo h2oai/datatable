@@ -120,7 +120,7 @@ How about adding new columns? In ``SQL``, this is done also in the ``SELECT`` cl
 .. code-block:: SQL
 
     SELECT *,
-          sepal_length*2 as sepal_length_doubled
+          sepal_length*2 AS sepal_length_doubled
     FROM iris
     LIMIT 5;
 
@@ -357,7 +357,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 .. code-block:: SQL
 
     SELECT species,
-           COUNT() as N
+           COUNT() AS N
     FROM iris
     GROUP BY species;
 
@@ -381,8 +381,8 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 .. code-block:: SQL
 
     SELECT species,
-           COUNT() as N,
-           AVG(sepal_length) as mean_sepal_length
+           COUNT() AS N,
+           AVG(sepal_length) AS mean_sepal_length
     FROM iris
     GROUP BY species;
 
@@ -429,7 +429,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
     SELECT fruit,
            name,
-           SUM(number) as sum_num
+           SUM(number) AS sum_num
     FROM fruits_data
     GROUP BY fruit, name;
 
@@ -461,7 +461,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 .. code-block:: SQL
 
     SELECT species,
-           AVG(sepal_length) as avg_sepal_length
+           AVG(sepal_length) AS avg_sepal_length
     FROM iris
     WHERE sepal_width > 3
     GROUP BY species;
@@ -488,7 +488,7 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
     SELECT fruit,
            name,
-           SUM(number) as sum_num
+           SUM(number) AS sum_num
     FROM fruits_data
     GROUP BY fruit, name
     HAVING sum_num > 50;
@@ -514,8 +514,8 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
 .. code-block:: SQL
 
-    SELECT sepal_width >=3 as width_larger_than_3,
-           AVG(sepal_length) as avg_sepal_length
+    SELECT sepal_width >=3 AS width_larger_than_3,
+           AVG(sepal_length) AS avg_sepal_length
     FROM iris
     GROUP BY sepal_width>=3;
 
@@ -560,8 +560,8 @@ A left outer join in SQL :
            DT.v,
            X.foo
     FROM DT
-    left join X
-    on DT.x = X.x
+    left JOIN X
+    ON DT.x = X.x
 
 A left outer join in ``datatable`` :
 
@@ -632,7 +632,7 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 
     SELECT * from
     (SELECT *,
-           ROW_NUMBER() OVER(PARTITION BY species ORDER BY sepal_length DESC) as row_num
+           ROW_NUMBER() OVER(PARTITION BY species ORDER BY sepal_length DESC) AS row_num
      FROM iris)
     WHERE row_num < 3;
 
@@ -666,7 +666,7 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
            species
     FROM
     (SELECT *,
-    AVG(sepal_length) OVER (PARTITION BY species) as avg_sepal_length
+    AVG(sepal_length) OVER (PARTITION BY species) AS avg_sepal_length
     FROM iris)
     WHERE sepal_length > avg_sepal_length
     LIMIT 5;
@@ -708,16 +708,15 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
     SELECT name,
            destination,
            dep_date,
-           LEAD(dep_date) OVER (ORDER BY dep_date, name) as lead1,
-           LEAD(dep_date, 2) OVER (ORDER BY dep_date, name) as lead2,
-           LAG(dep_date) OVER (ORDER BY dep_date, name) as lag1,
-           LAG(dep_date, 3) OVER (ORDER BY dep_date, name) as lag3
+           LEAD(dep_date) OVER (ORDER BY dep_date, name) AS lead1,
+           LEAD(dep_date, 2) OVER (ORDER BY dep_date, name) AS lead2,
+           LAG(dep_date) OVER (ORDER BY dep_date, name) AS lag1,
+           LAG(dep_date, 3) OVER (ORDER BY dep_date, name) AS lag3
     FROM source_data;
 
 .. code-block:: python
 
     #datatable
-
     source_data = dt.Frame({'name': ['Ann', 'Ann', 'Ann', 'Bob', 'Bob'],
                             'destination': ['Japan', 'Korea', 'Switzerland',
                                             'USA', 'Switzerland'],
@@ -747,3 +746,37 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 The equivalent of SQL's ``LAG`` is :func:`shift()` with a positive number, while SQL's ``LEAD`` is :func:`shift()` with a negative number.
 
 Note: ``datatable`` does not natively support datetimes yet.
+
+- Get the total sum and the proportions
+
+.. csv-table:: proportions
+    :header: t
+    :widths: 10
+
+	1
+	2
+	3
+
+.. code-block:: SQL
+
+    SELECT  t,
+            SUM(t) OVER () AS sum,
+            CAST(t as FLOAT)/SUM(t) OVER () AS pct
+    FROM proportions;
+
+.. code-block:: python
+
+    # datatable
+    proportions = dt.Frame({"t": [1, 2, 3]})
+
+    proportions[:,
+                f[:].extend({"sum": dt.sum(f.t),
+                            "pct": f.t/dt.sum(f.t)})]
+
+.. csv-table:: sum and proportions
+    :header: t, sum, pct
+    :widths: 10, 10, 10
+
+    1,	6,	0.166667
+	2,	6,	0.333333
+	3,	6,	0.5
