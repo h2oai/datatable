@@ -12,7 +12,7 @@
           - The number of characters to use per a function/method argument.
 
         * - :data:`.enabled <datatable.options.debug.enabled>`
-          - Switch that enables logging of the debug information.
+          - Option that enables logging of the debug information.
 
         * - :data:`.logger <datatable.options.debug.logger>`
           - The custom logger object.
