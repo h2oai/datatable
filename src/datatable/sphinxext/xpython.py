@@ -38,19 +38,19 @@
 import docutils
 import logging
 import re
+import sphinx.domains
+import sphinx.ext
 import sphinx.util.docutils
 import warnings
 from docutils.nodes import Node, system_message
 from typing import List, Dict, Tuple
-from sphinx.domains import Domain
-from sphinx.domains.python import PythonDomain
 
 logger = logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
-# .. xpy:current-class::
-# .. xpy:current-module::
+# .. current-class::
+# .. current-module::
 #-------------------------------------------------------------------------------
 
 class CurrentContextDirective(sphinx.util.docutils.SphinxDirective):
@@ -75,7 +75,7 @@ class CurrentContextDirective(sphinx.util.docutils.SphinxDirective):
 
 
 #-------------------------------------------------------------------------------
-# .. xpy:module::
+# .. module::
 #-------------------------------------------------------------------------------
 
 class ModuleDirective(sphinx.util.docutils.SphinxDirective):
@@ -105,17 +105,26 @@ class ModuleDirective(sphinx.util.docutils.SphinxDirective):
         return []
 
 
+#-------------------------------------------------------------------------------
+# :func:`...`
+# :meth:`...`
+# :class:`...`
+# :attr:`...`
+# :data:`...`
+# :mod:`...`
+# :exc:`...`
+#-------------------------------------------------------------------------------
 
 class XRefRole(sphinx.util.docutils.ReferenceRole):
     """
     Class that implements rst roles for referencing xpy objects. These
     roles are:
 
-        :xpy:class:`...`
-        :xpy:func:`...`
-        :xpy:meth:`...`
-        :xpy:attr:`...`
-        :xpy:mod:`...`
+        :class:`...`
+        :func:`...`
+        :meth:`...`
+        :attr:`...`
+        :mod:`...`
         etc.
 
     This class creates a `pending_xref` node with the following attributes:
@@ -125,6 +134,7 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
         "reftype": the full name of the role (without domain), for example
                    "attribute", "method", "function", etc.
         "reftarget": fully-qualified target name, eg. "datatable.Frame.to_csv"
+        "refexternal": if True, then use intersphinx to resolve the reference
 
     Inherited properties
     --------------------
@@ -160,19 +170,31 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
     """
 
     def run(self) -> Tuple[List[Node], List[system_message]]:
-        assert self.name.startswith("xpy:")
-        self.rolename = XPythonDomain.translate_type(self.name[4:])
-        self.need_parens = self.rolename in ["function", "method"]
-        self.allows_dot = self.rolename in ["method", "attribute"]
+        rolename = self.name
+        if rolename.startswith("xpy:"):
+            rolename = rolename[4:]
+        if rolename.startswith("ext-"):
+            rolename = rolename[4:]
+            self.external = True
+        else:
+            self.external = False
+        rolename = XPythonDomain.translate_type(rolename)
+        self.rolename = rolename
+        self.need_parens = rolename in ["func", "meth"]
+        self.allows_dot = rolename in ["meth", "attr"]
 
         node = sphinx.addnodes.pending_xref(self.rawtext)
-        classes = ['xref', self.rolename]
+        classes = ['xref', 'xpy-' + rolename]
         node['refdoc'] = self.env.docname
         node['refline'] = self.lineno
         node['refdomain'] = "xpy"  # Tell Sphinx which domain resolves this ref
-        node['reftype'] = self.rolename
+        node['reftype'] = rolename
+        node['refexternal'] = self.external
         title, target = self.get_title_and_target(node)
         node['reftarget'] = target
+        if not title:
+            assert target == ''
+            title = self.title
         node += docutils.nodes.literal(self.rawtext, title, classes=classes)
         return [node], []
 
@@ -181,7 +203,11 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
         xpy = self.env.get_domain('xpy')
         title = self.title
         target = self.target
-        if self.has_explicit_title:
+
+        if self.external:
+            # For external references use title/target as-is.
+            pass
+        elif self.has_explicit_title:
             qual0 = target.split('.')[0]
             if qual0 == xpy.main_module:
                 pass
@@ -208,6 +234,7 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
                                f"parentheses")
             else:
                 parens = "()" if self.need_parens else ""
+            assert isinstance(parens, str)
 
             if initialdot and qualifier:
                 self.error(f"Reference `{self.rawtext}` should not have both "
@@ -239,6 +266,8 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
                 else:
                     title = xpy.main_module_abbrev + \
                             qualifier[len(xpy.main_module):] + fnname + parens
+            elif title == xpy.main_module and self.rolename == "mod":
+                pass
             else:
                 ctx = xpy.current_context
                 if ctx is None:
@@ -258,8 +287,6 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
 
 
     def error(self, msg, node=None):
-        import pdb
-        pdb.set_trace
         self.env.get_domain('xpy').error(msg, node)
 
 
@@ -269,7 +296,7 @@ class XRefRole(sphinx.util.docutils.ReferenceRole):
 # XPythonDomain
 #-------------------------------------------------------------------------------
 
-class XPythonDomain(Domain):
+class XPythonDomain(sphinx.domains.Domain):
     """
     An extended Python domain. This domain aims to supplement the
     standard 'py:' domain and provide a richer documentation
@@ -297,6 +324,9 @@ class XPythonDomain(Domain):
         'meth':  XRefRole(),
         'exc':   XRefRole(),
         'mod':   XRefRole(),
+        'ext-mod': XRefRole(),
+        'ext-func': XRefRole(),
+        'ext-class': XRefRole(),
     }
 
     def __init__(self, env):
@@ -332,6 +362,9 @@ class XPythonDomain(Domain):
 
 
     def resolve_xref(self, env, fromdoc, builder, objtype, target, node, childnode):
+        if node.get("refexternal"):
+            node["refdomain"] = "py"
+            return sphinx.ext.intersphinx.missing_reference(builder.app, env, node, childnode)
         targetdoc = self.find_ref(node)
         if not targetdoc:
             return None
@@ -360,18 +393,18 @@ class XPythonDomain(Domain):
 
 
     _types_map = {
-        "attr":      "attribute",
-        "attribute": "attribute",
+        "attr":      "attr",
+        "attribute": "attr",
         "class":     "class",
         "data":      "data",
-        "exc":       "exception",
-        "exception": "exception",
-        "func":      "function",
-        "function":  "function",
-        "meth":      "method",
-        "method":    "method",
-        "mod":       "module",
-        "module":    "module",
+        "exc":       "exc",
+        "exception": "exc",
+        "func":      "func",
+        "function":  "func",
+        "meth":      "meth",
+        "method":    "meth",
+        "mod":       "mod",
+        "module":    "mod",
     }
 
     @staticmethod
