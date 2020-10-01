@@ -337,7 +337,7 @@ Here accessing column "Angle" in namespace ``f`` creates an ``FExpr``.
 Multiplying this ``FExpr`` by a python scalar ``2`` creates a new ``FExpr``.
 And finally, applying the sine function creates yet another ``FExpr``. The
 resulting expression can be applied to a frame via the
-:meth:`DT[i,j] <Frame.__getitem__>` method, which will compute that expression
+:meth:`DT[i,j] <dt.Frame.__getitem__>` method, which will compute that expression
 using the data of that particular frame.
 
 Thus, an ``FExpr`` is a stored computation, which can later be applied to a

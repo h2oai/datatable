@@ -1,4 +1,6 @@
 
+.. default-domain:: xpy
+
 .. xclass:: datatable.FExpr
     :src: src/core/expr/fexpr.h FExpr
     :doc: src/core/expr/fexpr.cc doc_fexpr
@@ -14,13 +16,13 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`.__init__(e) <FExpr.__init__>`
+        * - :meth:`.__init__(e)`
           - Create an ``FExpr``.
 
-        * - :meth:`.extend() <FExpr.extend>`
+        * - :meth:`.extend()`
           - Append another FExpr.
 
-        * - :meth:`.remove() <FExpr.remove>`
+        * - :meth:`.remove()`
           - Remove columns from the FExpr.
 
 
@@ -31,31 +33,31 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`__add__(x, y) <FExpr.__add__>`
+        * - :meth:`__add__(x, y) <dt.FExpr.__add__>`
           - Addition ``x + y``.
 
-        * - :meth:`__sub__(x,  y) <FExpr.__sub__>`
+        * - :meth:`__sub__(x,  y) <dt.FExpr.__sub__>`
           - Subtraction ``x - y``.
 
-        * - :meth:`__mul__(x, y) <FExpr.__mul__>`
+        * - :meth:`__mul__(x, y) <dt.FExpr.__mul__>`
           - Multiplication ``x * y``.
 
-        * - :meth:`__truediv__(x, y) <FExpr.__truediv__>`
+        * - :meth:`__truediv__(x, y) <dt.FExpr.__truediv__>`
           - Division ``x / y``.
 
-        * - :meth:`__floordiv__(x, y) <FExpr.__floordiv__>`
+        * - :meth:`__floordiv__(x, y) <dt.FExpr.__floordiv__>`
           - Integer division ``x // y``.
 
-        * - :meth:`__mod__(x, y) <FExpr.__mod__>`
+        * - :meth:`__mod__(x, y) <dt.FExpr.__mod__>`
           - Modulus ``x % y`` (the remainder after integer division).
 
-        * - :meth:`__pow__(x, y) <FExpr.__pow__>`
+        * - :meth:`__pow__(x, y) <dt.FExpr.__pow__>`
           - Power ``x ** y``.
 
-        * - :meth:`__pos__(x) <FExpr.__pos__>`
+        * - :meth:`__pos__(x) <dt.FExpr.__pos__>`
           - Unary plus ``+x``.
 
-        * - :meth:`__neg__(x) <FExpr.__neg__>`
+        * - :meth:`__neg__(x) <dt.FExpr.__neg__>`
           - Unary minus ``-x``.
 
 
@@ -66,22 +68,22 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`__and__(x, y) <FExpr.__and__>`
+        * - :meth:`__and__(x, y) <dt.FExpr.__and__>`
           - Bitwise AND ``x & y``.
 
-        * - :meth:`__or__(x, y) <FExpr.__or__>`
+        * - :meth:`__or__(x, y) <dt.FExpr.__or__>`
           - Bitwise OR ``x | y``.
 
-        * - :meth:`__xor__(x, y) <FExpr.__xor__>`
+        * - :meth:`__xor__(x, y) <dt.FExpr.__xor__>`
           - Bitwise XOR ``x ^ y``.
 
-        * - :meth:`__invert__(x) <FExpr.__invert__>`
+        * - :meth:`__invert__(x) <dt.FExpr.__invert__>`
           - Bitwise NOT ``~x``.
 
-        * - :meth:`__lshift__(x, y) <FExpr.__lshift__>`
+        * - :meth:`__lshift__(x, y) <dt.FExpr.__lshift__>`
           - Left shift ``x << y``.
 
-        * - :meth:`__rshift__(x, y) <FExpr.__rshift__>`
+        * - :meth:`__rshift__(x, y) <dt.FExpr.__rshift__>`
           - Right shift ``x >> y``.
 
 
@@ -92,22 +94,22 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`__eq__(x, y) <FExpr.__eq__>`
+        * - :meth:`__eq__(x, y) <dt.FExpr.__eq__>`
           - Equal ``x == y``.
 
-        * - :meth:`__ne__(x, y) <FExpr.__ne__>`
+        * - :meth:`__ne__(x, y) <dt.FExpr.__ne__>`
           - Not equal ``x != y``.
 
-        * - :meth:`__lt__(x, y) <FExpr.__lt__>`
+        * - :meth:`__lt__(x, y) <dt.FExpr.__lt__>`
           - Less than ``x < y``.
 
-        * - :meth:`__le__(x, y) <FExpr.__le__>`
+        * - :meth:`__le__(x, y) <dt.FExpr.__le__>`
           - Less than or equal ``x <= y``.
 
-        * - :meth:`__gt__(x, y) <FExpr.__gt__>`
+        * - :meth:`__gt__(x, y) <dt.FExpr.__gt__>`
           - Greater than ``x > y``.
 
-        * - :meth:`__ge__(x, y) <FExpr.__ge__>`
+        * - :meth:`__ge__(x, y) <dt.FExpr.__ge__>`
           - Greater than or equal ``x >= y``.
 
 
@@ -118,16 +120,16 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`.__bool__() <FExpr.__bool__>`
+        * - :meth:`.__bool__()`
           - Implicitly convert FExpr into a boolean value.
 
-        * - :meth:`.__repr__() <FExpr.__repr__>`
-          - Used by Python function :func:`repr`.
+        * - :meth:`.__repr__()`
+          - Used by Python function :ext-func:`repr() <repr>`.
 
-        * - :meth:`.len() <FExpr.len>`
+        * - :meth:`.len()`
           - String length.
 
-        * - :meth:`.re_match(pattern) <FExpr.re_match>`
+        * - :meth:`.re_match(pattern)`
           - Check whether the string column matches a pattern.
 
 
