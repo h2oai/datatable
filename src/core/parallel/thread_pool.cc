@@ -228,7 +228,7 @@ new_nthreads: int
     that fewer threads than the maximum.
 
 except: TypeError
-    The exception is raised when `new_nthreads` type is not `int`.
+    The exception is raised when the type of `new_nthreads` is not `int`.
 )";
 
 
@@ -236,8 +236,8 @@ static py::oobj get_nthreads() {
   return py::oint(num_threads_in_pool());
 }
 
-static void set_nthreads(const py::Arg& value) {
-  int32_t nth = value.to_int32_strict();
+static void set_nthreads(const py::Arg& arg) {
+  int32_t nth = arg.to_int32_strict();
   if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
   if (nth <= 0) nth = 1;
   thpool->resize(static_cast<size_t>(nth));
