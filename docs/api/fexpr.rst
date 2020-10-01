@@ -1,5 +1,4 @@
 
-.. default-domain:: xpy
 
 .. xclass:: datatable.FExpr
     :src: src/core/expr/fexpr.h FExpr

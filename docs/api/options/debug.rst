@@ -8,16 +8,16 @@
         :widths: auto
         :class: api-table
 
-        * - :data:`.arg_max_size <datatable.options.debug.arg_max_size>`
+        * - :attr:`.arg_max_size <datatable.options.debug.arg_max_size>`
           - The number of characters to use per a function/method argument.
 
-        * - :data:`.enabled <datatable.options.debug.enabled>`
+        * - :attr:`.enabled <datatable.options.debug.enabled>`
           - Switch that enables logging of the debug information.
 
-        * - :data:`.logger <datatable.options.debug.logger>`
+        * - :attr:`.logger <datatable.options.debug.logger>`
           - The custom logger object.
 
-        * - :data:`.report_args <datatable.options.debug.report_args>`
+        * - :attr:`.report_args <datatable.options.debug.report_args>`
           - Switch that enables logging of the function/method arguments.
 
 .. toctree::

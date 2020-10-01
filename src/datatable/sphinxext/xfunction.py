@@ -278,14 +278,15 @@ class XobjectDirective(SphinxDirective):
             timestamp = time.time(),
             sources = []
         )
-        # equivalent of `.. py::currentmodule::` directive
         xpy = self.env.get_domain("xpy")
-        self.env.ref_context['py:module'] = self.module_name
         if self.name == "xclass":
             xpy.current_context = ("class", self.qualifier + self.obj_name)
         if self.name in ["xattr", "xmethod"]:
             assert self.qualifier[-1:] == '.'
             xpy.current_context = ("class", self.qualifier[:-1])
+        if self.name in ["xfunction", "xdata"]:
+            assert self.qualifier[-1:] == '.'
+            xpy.current_context = ("module", self.qualifier[:-1])
 
 
     def _register_source_file(self, filename):

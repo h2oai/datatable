@@ -127,7 +127,7 @@ Notes
 -----
 .. deprecated:: 0.11.0
 
-This function will be expanded and moved into the main :class:`Frame` class.
+This function will be expanded and moved into the main :class:`dt.Frame` class.
 )";
 
 static py::PKArgs args_frame_columns_virtual(
@@ -154,7 +154,7 @@ The column will be materialized if it was virtual.
 Parameters
 ----------
 frame: Frame
-    The :class:`Frame` where to look up the column.
+    The :class:`dt.Frame` where to look up the column.
 
 i: int
     The index of a column, in the range ``[0; ncols)``.
@@ -186,12 +186,12 @@ R"(frame_integrity_check(frame)
 
 This function performs a range of tests on the `frame` to verify
 that its internal state is consistent. It returns None on success,
-or throws an :exc:`AssertionError` if any problems were found.
+or throws an ``AssertionError`` if any problems were found.
 
 Parameters
 ----------
 frame: Frame
-    A :class:`Frame` object that needs to be checked for internal consistency.
+    A :class:`dt.Frame` object that needs to be checked for internal consistency.
 
 return: None
 

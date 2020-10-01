@@ -6,7 +6,7 @@
     --
 
     Return string representation of this object. This method is used
-    by Python's built-in function :func:`repr()`.
+    by Python's built-in function :ext-func:`repr()`.
 
     The returned string has the following format::
 

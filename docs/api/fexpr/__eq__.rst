@@ -23,7 +23,7 @@
     comparison. In practice it means, for example, that ``1 == "1"`.
 
     Lastly, the comparison ``x == None`` is exactly equivalent to the
-    :func:`isna() <math.isna>` function.
+    :func:`isna() <dt.math.isna>` function.
 
 
     Parameters

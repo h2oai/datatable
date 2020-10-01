@@ -13,10 +13,10 @@
     --------
     .. py:currentmodule:: None
 
-    - :data:`tau <datatable.math.tau>` -- mathematical constant
+    - :data:`tau` -- mathematical constant
       :math:`\tau = 2\pi`;
 
-    - :data:`math.pi` -- The :math:`\pi` constant in the Python ``math``
+    - :ext-data:`math.pi` -- The :math:`\pi` constant in the Python ``math``
       module;
 
     .. _`[1]`: https://gallica.bnf.fr/ark:/12148/bpt6k69587/f156.image

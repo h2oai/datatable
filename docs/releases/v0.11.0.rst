@@ -24,14 +24,14 @@
 
   Frame
   -----
-  .. xpy:current-class:: datatable.Frame
+  .. current-class:: datatable.Frame
 
-  -[new] Property :xpy:attr:`.source` contains the name of the file
+  -[new] Property :attr:`.source` contains the name of the file
     where the frame was loaded from. If the frame was modified after loading,
     or if it was created dynamically to begin with, this property will
     return ``None``.
 
-  -[new] The expression :xpy:meth:`len(DT) <datatable.Frame.__len__>` now works,
+  -[new] The expression :meth:`len(DT) <datatable.Frame.__len__>` now works,
     and returns the number of columns in the Frame. This allows the Frame to
     be used in contexts where an iterable might be expected.
 
@@ -44,16 +44,16 @@
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
-  -[new] Added a new function :xpy:func:`datatable.cut` to bin numeric data
+  -[new] Added a new function :func:`datatable.cut` to bin numeric data
     to equal-width discrete intervals. [#2483]
 
-  -[new] Added a new function :xpy:func:`datatable.qcut` to bin data
+  -[new] Added a new function :func:`datatable.qcut` to bin data
     to equal-population discrete intervals. [#1680]
 
-  -[new] Added function :xpy:func:`datatable.math.round` which is the
+  -[new] Added function :func:`datatable.math.round` which is the
     equivalent of Python's built-in ``round()``. [#2285]
 
-  -[enh] Method :xpy:meth:`.colindex()` now accepts a column selector
+  -[enh] Method :meth:`.colindex()` now accepts a column selector
     f-expression as an argument.
 
   -[enh] When creating a Frame from a python list, it is now possible to
@@ -63,7 +63,7 @@
         dt.Frame(A=[1, 5, 10] / dt.int64,
                  B=[0, 0, 0] / dt.float64)
 
-  -[enh] Added new argument ``bom=False`` to the :xpy:meth:`.to_csv()` method.
+  -[enh] Added new argument ``bom=False`` to the :meth:`.to_csv()` method.
     If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
     CSV file. [#2379]
 
@@ -72,13 +72,13 @@
   -[enh] It is now possible to create a Frame from a pandas DataFrame with
     Categorical columns (which will be converted into strings). [#2407]
 
-  -[api] Method :xpy:meth:`.cbind()` now throws a
-    :xpy:exc:`dt.exceptions.InvalidOperationError`
+  -[api] Method :meth:`.cbind()` now throws a
+    :exc:`dt.exceptions.InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
 
-  -[api] Method :xpy:meth:`.colindex()` now throws an :xpy:exc:`dt.exceptions.KeyError` when given
-    a column that doesn't exist in the frame, or an :xpy:exc:`dt.exceptions.IndexError` if
+  -[api] Method :meth:`.colindex()` now throws an :exc:`dt.exceptions.KeyError` when given
+    a column that doesn't exist in the frame, or an :exc:`dt.exceptions.IndexError` if
     given a numeric column index outside of the allowed range. Previously it
     was throwing a ``ValueError`` in both cases.
 
@@ -90,12 +90,12 @@
   -[api] Expression ``f[:]`` now excludes groupby columns when used in a
     groupby context. [#2460]
 
-  -[api] Parameters ``_strategy=`` in :xpy:meth:`.to_csv()` and :xpy:meth:`.to_jay()`
+  -[api] Parameters ``_strategy=`` in :meth:`.to_csv()` and :meth:`.to_jay()`
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
-  -[api] The behaviour of a method :xpy:meth:`.sort()` is made consistent with
-    the function :xpy:func:`dt.sort()`. When the list of columns to sort
+  -[api] The behaviour of a method :meth:`.sort()` is made consistent with
+    the function :func:`dt.sort()`. When the list of columns to sort
     is empty, both will not sort any columns.
 
   -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
@@ -115,35 +115,35 @@
     when the option ``quoting="all"`` is used. [#2382]
 
   -[fix] It is no longer allowed to combine ``compression="gzip"`` and
-    ``append=True`` in :xpy:meth:`.to_csv()`.
+    ``append=True`` in :meth:`.to_csv()`.
 
   -[fix] Empty strings no longer get confused with NA strings in
-    :xpy:meth:`.replace()`. [#2502]
+    :meth:`.replace()`. [#2502]
 
-  -[fix] :xpy:func:`dt.rbind()`-ing an iterator of frames created on-the-fly
+  -[fix] :func:`dt.rbind()`-ing an iterator of frames created on-the-fly
     no longer produces an undefined behavior. [#2621]
 
 
   Fread
   -----
-  .. xpy:current-module:: datatable
+  .. current-module:: datatable
 
-  -[new] Added new function :xpy:func:`iread()`, which is similar to
-    :xpy:func:`fread()`, but suitable for reading multiple sources at once. The
+  -[new] Added new function :func:`iread()`, which is similar to
+    :func:`fread()`, but suitable for reading multiple sources at once. The
     function will return an iterator of Frames.
 
     Use this function to read multiple files using a glob, or give it a list
     of files, or an archive containing multiple files inside, or an Excel
     file with multiple sheets, etc.
 
-    The function :xpy:func:`iread()` has parameter ``errors=`` which controls
+    The function :func:`iread()` has parameter ``errors=`` which controls
     what shouold happen when some of the sources cannot be read. Possible
     values are: ``"warn"``, ``"raise"``, ``"ignore"`` and ``"store"``. The
     latter will catch the exceptions that may occur when reading each
     input, and return those exception objects within the iterator. [#2008]
 
   -[new] It is now possible to read multi-file ``.tar.gz`` files using
-    :xpy:func:`iread()`. [#2392]
+    :func:`iread()`. [#2392]
 
   -[new] Added parameter ``encoding`` which will force fread to decode the
     input using the specified encoding before attempting to read it. The
@@ -181,9 +181,9 @@
   -[fix] Opening Jay file from a bytes object now produces a Frame that
     remains valid even after the bytes object is deleted. [#2547]
 
-  -[api] Function :xpy:func:`fread()` now always returns a single Frame object;
+  -[api] Function :func:`fread()` now always returns a single Frame object;
     previously it could return a dict of Frames if multiple sources were
-    detected. Use :xpy:func:`iread()` if you need to read multi-source input.
+    detected. Use :func:`iread()` if you need to read multi-source input.
 
 
   General
@@ -211,7 +211,7 @@
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
 
-  -[enh] Added 2 new fields into the :xpy:data:`dt.build_info` struct: ``.git_date``
+  -[enh] Added 2 new fields into the :data:`dt.build_info` struct: ``.git_date``
     is the UTC timestamp of the git revision from which that version of
     datatable was built, and ``.git_diff`` which will be non-empty for builds
     from code that was modified compared to the git revision they are based on.
@@ -220,7 +220,7 @@
     with the monitor thread. The threads will then restart in both the parent
     and the child, when needed. [#2438]
 
-  -[fix] Internal function :xpy:func:`dt.internal.frame_column_data_r`
+  -[fix] Internal function :func:`dt.internal.frame_column_data_r`
     now works properly with virtual columns. [#2269]
 
   -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
@@ -229,7 +229,7 @@
 
   -[fix] Fix rare crash in the interrupt signal handler. [#2282]
 
-  -[fix] Fixed possible crash in :xpy:func:`rbind()` and :xpy:func:`union()` when
+  -[fix] Fixed possible crash in :func:`rbind()` and :func:`union()` when
     they were called with a string argument, or with an object that caused
     infinite recursion. [#2386]
 
@@ -240,8 +240,8 @@
     exception at the same time. [#2526]
 
   -[api] All exceptions thrown by datatable are now declared in the
-    :xpy:mod:`datatable.exceptions` module. These exceptions are now organized to
-    derive from the common base class :xpy:exc:`dt.exceptions.DtException`.
+    :mod:`datatable.exceptions` module. These exceptions are now organized to
+    derive from the common base class :exc:`dt.exceptions.DtException`.
 
     The exception messages when stringified no longer contain backticks. The
     backticks are still emitted internally to help display the error in a
@@ -253,16 +253,16 @@
 
   FTRL model
   ----------
-  .. xpy:current-class:: datatable.models.Ftrl
+  .. current-class:: datatable.models.Ftrl
 
-  -[enh] :xpy:attr:`.nepochs`, the number of epochs to train the model, can now
+  -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
 
-  -[enh] :xpy:meth:`.fit()` now throws :xpy:exc:`dt.exceptions.TypeError` when ltypes in the
+  -[enh] :meth:`.fit()` now throws :exc:`dt.exceptions.TypeError` when ltypes in the
    training and validation frames are not consistent.
 
-  -[api] :xpy:attr:`.interactions` now throws an :xpy:exc:`dt.exceptions.ValueError`
-    instead of a :xpy:exc:`dt.exceptions.TypeError` when assigning interactions
+  -[api] :attr:`.interactions` now throws an :exc:`dt.exceptions.ValueError`
+    instead of a :exc:`dt.exceptions.TypeError` when assigning interactions
     having zero features.
 
   -[fix] Fixed inconsistency in progress reporting. [#2520]

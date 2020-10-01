@@ -64,7 +64,7 @@ combined by rows, i.e. rbinding a frame of shape [n x k] to a Frame
 of shape [m x k] produces a frame of shape [(m + n) x k].
 
 This method modifies the current frame in-place. If you do not want
-the current frame modified, then use the :func:`rbind()` function.
+the current frame modified, then use the :func:`dt.rbind()` function.
 
 If frame(s) being appended have columns of types different from the
 current frame, then these columns will be promoted to the largest of
@@ -270,7 +270,7 @@ by_names: bool
 See also
 --------
 - :func:`cbind()` -- function for col-binding several frames.
-- :meth:`Frame.rbind()` -- Frame method for rbinding some frames to
+- :meth:`dt.Frame.rbind()` -- Frame method for rbinding some frames to
   another.
 )";
 

@@ -228,7 +228,7 @@ return: FExpr
 
 See also
 --------
-- :meth:`remove() <FExpr.remove>` -- remove columns from a columnset.
+- :meth:`remove() <dt.FExpr.remove>` -- remove columns from a columnset.
 )";
 
 static PKArgs args_extend(1, 0, 0, false, false, {"arg"}, "extend", doc_extend);
@@ -264,7 +264,7 @@ return: FExpr
 
 See also
 --------
-- :meth:`extend() <FExpr.extend>` -- append a columnset.
+- :meth:`extend() <dt.FExpr.extend>` -- append a columnset.
 )";
 
 static PKArgs args_remove(1, 0, 0, false, false, {"arg"}, "remove", doc_remove);

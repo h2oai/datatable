@@ -38,7 +38,7 @@ Join clause for use in Frame’s square-bracket selector.
 
 This clause is equivalent to the SQL `JOIN`, though for the moment
 datatable only supports left outer joins. In order to join,
-the `frame` must be :attr:`keyed <Frame.key>` first, and then joined
+the `frame` must be :attr:`keyed <dt.Frame.key>` first, and then joined
 to another frame `DT` as
 
 .. code-block:: python

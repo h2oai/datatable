@@ -1,5 +1,4 @@
 
-.. default-domain:: xpy
 
 .. xclass:: datatable.Frame
     :src: src/core/frame/py_frame.h Frame

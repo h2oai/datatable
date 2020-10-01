@@ -327,6 +327,7 @@ class XPythonDomain(sphinx.domains.Domain):
         'ext-mod': XRefRole(),
         'ext-func': XRefRole(),
         'ext-class': XRefRole(),
+        'ext-data': XRefRole(),
     }
 
     def __init__(self, env):

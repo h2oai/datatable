@@ -3,8 +3,6 @@
 
 .. xpy:module:: datatable
 
-.. default-domain:: xpy
-
 
 datatable API
 =============

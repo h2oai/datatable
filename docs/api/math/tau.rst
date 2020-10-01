@@ -11,8 +11,8 @@
     --------
     .. py:currentmodule:: None
 
-    - :data:`pi <datatable.math.pi>` -- mathematical constant :math:`\pi = \frac12\tau`;
-    - :data:`math.tau` -- The :math:`\tau` constant in the Python ``math`` module;
+    - :data:`pi` -- mathematical constant :math:`\pi = \frac12\tau`;
+    - :ext-data:`math.tau` -- The :math:`\tau` constant in the Python ``math`` module;
     - `Tau manifesto <https://tauday.com/tau-manifesto>`_
 
 

@@ -69,7 +69,7 @@ As a special case, ``arctan2(0, 0) == 0``, and ``arctan2(0, -1) == tau/2``.
 
 See also
 --------
-- :func:`arctan(x) <math.arctan>` -- inverse tangent function.
+- :func:`arctan(x)` -- inverse tangent function.
 )";
 
 py::PKArgs args_atan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_atan2);

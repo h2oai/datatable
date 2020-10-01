@@ -1,5 +1,4 @@
 
-.. currentmodule:: datatable
 
 .. changelog::
   :version: 0.8.0
@@ -11,15 +10,16 @@
 
   Frame
   -----
+  .. current-class:: datatable.Frame
 
-  -[new] Method :meth:`Frame.to_tuples` converts a Frame into a list of tuples,
+  -[new] Method :meth:`.to_tuples` converts a Frame into a list of tuples,
     each tuple representing a single row. [#1439]
 
-  -[new] Method :meth:`Frame.to_dict` converts the Frame into a dictionary where
+  -[new] Method :meth:`.to_dict` converts the Frame into a dictionary where
     the keys are column names and values are lists of elements in each
     column. [#1439]
 
-  -[new] Methods :meth:`.head(n) <Frame.head>` and :meth:`.tail(n) <Frame.tail>`
+  -[new] Methods :meth:`.head(n)` and :meth:`.tail(n)`
     added, returning the first/last ``n`` rows of the Frame respectively.
     [#1307]
 
@@ -27,14 +27,14 @@
     interface. [#1444] This also has an added benefit of reducing the potential
     for a deadlock when using the ``multiprocessing`` module.
 
-  -[new] Added function :func:`repeat(frame, n) <repeat>` that creates a new
+  -[new] Added function :func:`dt.repeat(frame, n)` that creates a new
     Frame by row-binding ``n`` copies of the ``frame``. [#1459]
 
-  -[new] Added functions :func:`log` and :func:`log10` for computing the natural
-    and base-10 logarithms of a column. [#1558]
+  -[new] Added functions :func:`log <dt.math.log>` and :func:`log10 <dt.math.log10>`
+    for computing the natural and base-10 logarithms of a column. [#1558]
 
   -[new] Sorting functionality is now integrated into the ``DT[i, j, ...]`` call
-    via the function :func:`sort()`. If sorting is specified alongside a
+    via the function :func:`sort() <dt.sort>`. If sorting is specified alongside a
     groupby, the values will be sorted within each group. [#1531]
 
   -[enh] The primary datatable expression ``DT[i, j, ...]`` is now evaluated
@@ -48,16 +48,16 @@
 
       del DT[:, (name.endswith("_tmp") for name in DT.names)]
 
-  -[enh] A slice-valued ``i`` expression can now be combined with a :func:`by()`
+  -[enh] A slice-valued ``i`` expression can now be combined with a :func:`dt.by()`
     operator in ``DT[i, j, by]``. The result is that the slice ``i`` is applied
     to each group produced by ``by()``, before the ``j`` is evaluated. [#1585]
 
   -[enh] Implemented sorting in reverse direction, via
-    :func:`sort(-col) <sort>`, where ``col`` is any regular column selector
+    :func:`sort(-col) <dt.sort>`, where ``col`` is any regular column selector
     such as ``f.A`` or ``f[column]``. The ``-`` sign is symbolic, no actual
     negation occurs. As such, this works even for string columns. [#792]
 
-  -[enh] :meth:`Frame.copy()` now retains the frame's key, if any. [#1443]
+  -[enh] :meth:`.copy()` now retains the frame's key, if any. [#1443]
 
   -[enh] The equality operators ``==`` / ``!=`` can now be applied to string
     columns too. [#1491]
@@ -65,7 +65,7 @@
   -[enh] Partial column update (i.e. expression of the form ``DT[i, j] = R``)
     now works for string columns as well. [#1523]
 
-  -[enh] Improved the performance of setting :attr:`Frame.nrows`. Now if the
+  -[enh] Improved the performance of setting :attr:`.nrows`. Now if the
     frame has multiple columns, a view will be created.
 
   -[fix] Fixed rendering of "view" Frames in a Jupyter notebook. This bug
@@ -86,7 +86,7 @@
   -[fix] Fixed crash when viewing a frame obtained by resizing a 0-row frame.
     [#1527]
 
-  -[fix] Function :func:`count()` now returns correct result within the
+  -[fix] Function :func:`count() <dt.count>` now returns correct result within the
     ``DT[i, j]`` expression with non-trivial row filter ``i``. [#1316]
 
   -[fix] Fixed groupby when it is applied to a Frame with view columns. [#1542]
@@ -96,7 +96,7 @@
 
   -[fix] Fixed join results when join is applied to a view frame. [#1540]
 
-  -[fix] Fixed :meth:`Frame.replace()` in view string columns. [#1549]
+  -[fix] Fixed :meth:`.replace()` in view string columns. [#1549]
 
   -[fix] A 0-row integer column can now be used as ``i`` in ``DT[i, j]``.
     [#1551]
@@ -107,13 +107,13 @@
   -[fix] Fixed incorrect result during "true division" of integer columns, when
     one of the values was negative and the other positive. [#1562]
 
-  -[fix] :meth:`Frame.to_csv()` no longer crashes on Unix when writing an empty
+  -[fix] :meth:`.to_csv()` no longer crashes on Unix when writing an empty
     frame. [#1565]
 
   -[fix] Fixed crash when the RHS of assignment ``DT[i, j] = R`` was a list of
     expressions. [#1539]
 
-  -[fix] Fixed crash when an empty :func:`by()` condition was used in
+  -[fix] Fixed crash when an empty :func:`dt.by()` condition was used in
     ``DT[i, j, by]``. [#1572]
 
   -[fix] Expression ``DT[:, :, by(...)]`` no longer produces duplicates of
@@ -132,7 +132,7 @@
 
   -[api] Setting :attr:`.nrows` now always pads the frame with NAs, even if
     the frame has only 1 row. Previously changing :attr:`.nrows` on a 1-row
-    frame caused its value to be repeated. Use :meth:`Frame.repeat()` in order
+    frame caused its value to be repeated. Use ``.repeat()`` in order
     to expand the frame by copying its values.
 
   -[api] When no columns are selected in ``DT[i, j]``, the returned frame will
@@ -148,11 +148,11 @@
     now legal only if column A is of integer or real type, but will raise an
     exception if A is a boolean or string.
 
-  -[api] :meth:`Frame.rbind()` method no longer has a return value. The method
+  -[api] :meth:`.rbind()` method no longer has a return value. The method
     always updated the frame in-place, so it was confusing to both update
     in-place and return the original frame. [#1610]
 
-  -[api] :func:`min()` / :func:`max()` over an empty or all-NA column now
+  -[api] :func:`dt.min()` / :func:`dt.max()` over an empty or all-NA column now
     returns ``None`` instead of ``+Inf`` / ``-Inf`` respectively. [#1624]
 
   -[old] Frame methods ``.topython()``, ``.topandas()`` and ``.tonumpy()`` are
@@ -162,7 +162,7 @@
   -[old] Calling a frame object
     ``DT(rows=i, select=j, groupby=g, join=z, sort=s)`` is now deprecated. Use
     the expression ``DT[i, j, by(g), join(z), sort(s)]`` instead, where symbols
-    :func:`by()`, :func:`join()` and :func:`sort()` can all be imported from the
+    :func:`dt.by()`, :func:`dt.join()` and :func:`dt.sort()` can all be imported from the
     ``datatable`` namespace. [#1579]
 
   -[old] Single-item Frame selectors are now prohibited: ``DT[col]`` is an
@@ -179,8 +179,9 @@
 
   General
   -------
+  .. current-module:: datatable
 
-  -[new] Module ``datatable`` now exposes C API, to allow other C/C++ libraries
+  -[new] Module :mod:`datatable` now exposes C API, to allow other C/C++ libraries
     interact with datatable Frames natively. [#1469]
     See "datatable/include/datatable.h" for the description of the API
     functions.

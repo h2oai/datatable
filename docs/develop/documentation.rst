@@ -175,7 +175,7 @@ declaration at the top of the page::
 
 Note that some of these links may render in red. It means the documentation for
 the referenced function/class/object is missing and still needs to be added:
-:func:`datatable.missing_function()`.
+:py:func:`datatable.missing_function()`.
 
 
 Advanced directives
