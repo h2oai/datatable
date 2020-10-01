@@ -420,7 +420,7 @@ static py::oobj get_names_auto_prefix() {
 }
 
 static void set_names_auto_prefix(const py::Arg& arg) {
-  names_auto_prefix = value.to_string();
+  names_auto_prefix = arg.to_string();
 }
 
 

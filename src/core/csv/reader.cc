@@ -111,7 +111,7 @@ static py::oobj get_escape_unicode() {
 }
 
 static void set_escape_unicode(const py::Arg& arg) {
-  log_escape_unicode = value.to_bool_strict();
+  log_escape_unicode = arg.to_bool_strict();
 }
 
 
