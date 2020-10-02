@@ -18,7 +18,7 @@
           - The custom logger object.
 
         * - :attr:`.report_args <datatable.options.debug.report_args>`
-          - Switch that enables logging of the function/method arguments.
+          - Option that enables logging of the function/method arguments.
 
 .. toctree::
      :hidden:

@@ -2,7 +2,7 @@
 .. xdata:: datatable.options.fread
     :src: --
 
-    This namespace contains the following :func:`dt.fread()` option groups:
+    This namespace contains the following :func:`fread <dt.fread>` option groups:
 
     .. list-table::
         :widths: auto

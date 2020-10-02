@@ -205,12 +205,9 @@ size_t get_hardware_concurrency() noexcept {
 
 static const char* doc_options_nthreads =
 R"(
-The number of threads used by datatable internally.
 
-Many calculations in `datatable` package are parallelized. This
-setting controls how many threads will be used during such
-calculations.
-
+This option controls the number of threads used by datatable
+for parallel calculations.
 
 Parameters
 ----------

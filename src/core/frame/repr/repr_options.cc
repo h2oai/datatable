@@ -88,7 +88,7 @@ R"(
 
 This option controls the behavior of a Frame when it is viewed in a
 text console. To enter the interactive mode manually, one can still
-call the :meth:`.view()` method.
+call the :meth:`Frame.view() <dt.Frame.view>` method.
 
 Parameters
 ----------
@@ -141,7 +141,7 @@ R"(
 
 This option controls the number of rows from the bottom of a frame
 to be displayed when the frame's output is truncated due to the total number of
-rows exceeding :attr:`display.max_nrows <datatable.options.display.max_nrows>`
+rows exceeding :attr:`max_nrows <datatable.options.display.max_nrows>`
 value.
 
 Parameters
