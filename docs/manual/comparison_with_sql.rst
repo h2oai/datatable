@@ -13,7 +13,7 @@ Let's import ``datatable`` and read in the data:
 
     from datatable import dt, f, g, by, join, sort, update, fread
 
-    file_path = '/datatable/docs/_static/iris.csv'
+    file_path = 'https://github.com/h2oai/datatable/tree/main/docs/_static/iris.csv'
     iris = fread(file_path)
 
     iris.head(5)
