@@ -155,20 +155,20 @@ column: str | int | FExpr
     complicated f-expressions are not allowed and will result in a
     `TypeError`.
 
-(return): int
+return: int
     The numeric index of the provided `column`. This will be an
     integer between `0` and `self.ncols - 1`.
 
-(except): KeyError | IndexError
+except: dt.exceptions.KeyError | dt.exceptions.IndexError
     If the `column` argument is a string, and the column with such
-    name does not exist in the frame, then a :exc:`KeyError` is raised.
+    name does not exist in the frame, then a :exc:`dt.exceptions.KeyError` is raised.
     When this exception is thrown, the error message may contain
     suggestions for up to 3 similarly looking column names that
     actually exist in the Frame.
 
     If the `column` argument is an integer that is either greater
-    than or equal to :attr:`ncols <Frame.ncols>` or less than
-    `-ncols`, then an :exc:`IndexError` is raised.
+    than or equal to :attr:`.ncols` or less than
+    `-ncols`, then an :exc:`dt.exceptions.IndexError` is raised.
 
 
 Examples
@@ -270,7 +270,7 @@ Parameters
 return: Tuple[str, ...]
     When used in getter form, this property returns the names of all
     frame's columns, as a tuple. The length of the tuple is equal to
-    the number of columns in the frame, :attr:`ncols <Frame.ncols>`.
+    the number of columns in the frame, :attr:`.ncols`.
 
 newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     The most common form is to assign the list or tuple of new

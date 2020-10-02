@@ -24,16 +24,16 @@
 
   Frame
   -----
-  .. ref-context:: datatable.Frame
+  .. current-class:: datatable.Frame
 
-  -[new] Property :attr:`Frame.source` will contain the name of the file
+  -[new] Property :attr:`.source` contains the name of the file
     where the frame was loaded from. If the frame was modified after loading,
     or if it was created dynamically to begin with, this property will
     return ``None``.
 
-  -[new] The expression ``len(DT)`` now works, and returns the number of
-    columns in the Frame. This allows the Frame to be used in contexts where
-    an iterable might be expected.
+  -[new] The expression :meth:`len(DT) <datatable.Frame.__len__>` now works,
+    and returns the number of columns in the Frame. This allows the Frame to
+    be used in contexts where an iterable might be expected.
 
   -[new] Added ability to cast string columns into numeric types: int, float
     or boolean. [#1313]
@@ -44,13 +44,13 @@
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
-  -[new] Added a new function :func:`~datatable.cut` to bin numeric data
+  -[new] Added a new function :func:`datatable.cut` to bin numeric data
     to equal-width discrete intervals. [#2483]
 
-  -[new] Added a new function :func:`~datatable.qcut` to bin data
+  -[new] Added a new function :func:`datatable.qcut` to bin data
     to equal-population discrete intervals. [#1680]
 
-  -[new] Added function :func:`~datatable.math.round` which is the
+  -[new] Added function :func:`datatable.math.round` which is the
     equivalent of Python's built-in ``round()``. [#2285]
 
   -[enh] Method :meth:`.colindex()` now accepts a column selector
@@ -72,12 +72,13 @@
   -[enh] It is now possible to create a Frame from a pandas DataFrame with
     Categorical columns (which will be converted into strings). [#2407]
 
-  -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
+  -[api] Method :meth:`.cbind()` now throws a
+    :exc:`dt.exceptions.InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
 
-  -[api] Method :meth:`.colindex()` now throws an :exc:`KeyError` when given
-    a column that doesn't exist in the frame, or an :exc:`IndexError` if
+  -[api] Method :meth:`.colindex()` now throws an :exc:`dt.exceptions.KeyError` when given
+    a column that doesn't exist in the frame, or an :exc:`dt.exceptions.IndexError` if
     given a numeric column index outside of the allowed range. Previously it
     was throwing a ``ValueError`` in both cases.
 
@@ -93,8 +94,8 @@
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
-  -[api] The behaviour of a method :meth:`.sort() <.sort>` is made consistent with
-    the function :func:`sort() <datatable.sort>`. When the list of columns to sort
+  -[api] The behaviour of a method :meth:`.sort()` is made consistent with
+    the function :func:`dt.sort()`. When the list of columns to sort
     is empty, both will not sort any columns.
 
   -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
@@ -119,13 +120,13 @@
   -[fix] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
 
-  -[fix] :func:`rbind()`-ing an iterator of frames created on-the-fly no longer
-    produces an undefined behavior. [#2621]
+  -[fix] :func:`dt.rbind()`-ing an iterator of frames created on-the-fly
+    no longer produces an undefined behavior. [#2621]
 
 
   Fread
   -----
-  .. ref-context:: datatable
+  .. current-module:: datatable
 
   -[new] Added new function :func:`iread()`, which is similar to
     :func:`fread()`, but suitable for reading multiple sources at once. The
@@ -187,7 +188,6 @@
 
   General
   -------
-  .. ref-context:: datatable
 
   -[new] datatable is now fully supported on Windows.
 
@@ -211,7 +211,7 @@
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
 
-  -[enh] Added 2 new fields into the ``dt.build_info`` struct: ``.git_date``
+  -[enh] Added 2 new fields into the :data:`dt.build_info` struct: ``.git_date``
     is the UTC timestamp of the git revision from which that version of
     datatable was built, and ``.git_diff`` which will be non-empty for builds
     from code that was modified compared to the git revision they are based on.
@@ -220,7 +220,7 @@
     with the monitor thread. The threads will then restart in both the parent
     and the child, when needed. [#2438]
 
-  -[fix] Internal function :func:`~datatable.internal.frame_column_data_r`
+  -[fix] Internal function :func:`dt.internal.frame_column_data_r`
     now works properly with virtual columns. [#2269]
 
   -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
@@ -240,29 +240,29 @@
     exception at the same time. [#2526]
 
   -[api] All exceptions thrown by datatable are now declared in the
-    ``datatable.exceptions`` module. These exceptions are now organized to
-    derive from the common base class ``DtException``.
+    :mod:`datatable.exceptions` module. These exceptions are now organized to
+    derive from the common base class :exc:`dt.exceptions.DtException`.
 
     The exception messages when stringified no longer contain backticks. The
     backticks are still emitted internally to help display the error in a
     color-supporting terminal, but when the exception is converted into a
-    string via `str()` or `repr()`, these backticks will now be stripped.
+    string via ``str()`` or ``repr()``, these backticks will now be stripped.
     This change ensures that the exception message remains the same regardless
     of how it is rendered.
 
 
   FTRL model
   ----------
-  .. ref-context:: datatable.models.Ftrl
+  .. current-class:: datatable.models.Ftrl
 
-  -[enh] :attr:`models.Ftrl.nepochs`, the number of epochs to train the model, can now
+  -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
 
-  -[enh] :meth:`models.Ftrl.fit()` now throws :exc:`TypeError` when ltypes in the
+  -[enh] :meth:`.fit()` now throws :exc:`dt.exceptions.TypeError` when ltypes in the
    training and validation frames are not consistent.
 
-  -[api] :attr:`models.Ftrl.interactions` now throws an :exc:`ValueError`
-    instead of a :exc:`TypeError` when assigning interactions
+  -[api] :attr:`.interactions` now throws an :exc:`dt.exceptions.ValueError`
+    instead of a :exc:`dt.exceptions.TypeError` when assigning interactions
     having zero features.
 
   -[fix] Fixed inconsistency in progress reporting. [#2520]

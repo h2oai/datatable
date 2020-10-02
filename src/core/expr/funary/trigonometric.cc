@@ -77,8 +77,8 @@ float32, in which case the result is float32 as well.
 
 See also
 --------
-- :func:`cos(x) <math.cos>` -- the trigonometric cosine function;
-- :func:`arcsin(x) <math.arcsin>` -- the inverse sine function.
+- :func:`cos(x)` -- the trigonometric cosine function;
+- :func:`arcsin(x)` -- the inverse sine function.
 )";
 
 py::PKArgs args_sin(1, 0, 0, false, false, {"x"}, "sin", doc_sin);
@@ -107,8 +107,8 @@ float32, in which case the result is float32 as well.
 
 See also
 --------
-- :func:`sin(x) <math.sin>` -- the trigonometric sine function;
-- :func:`arccos(x) <math.arccos>` -- the inverse cosine function.
+- :func:`sin(x)` -- the trigonometric sine function;
+- :func:`arccos(x)` -- the inverse cosine function.
 )";
 
 py::PKArgs args_cos(1, 0, 0, false, false, {"x"}, "cos", doc_cos);
@@ -138,7 +138,7 @@ float32, in which case the result is float32 as well.
 
 See also
 --------
-- :func:`arctan(x) <math.arctan>` -- the inverse tangent function.
+- :func:`arctan(x)` -- the inverse tangent function.
 )";
 
 py::PKArgs args_tan(1, 0, 0, false, false, {"x"}, "tan", doc_tan);
@@ -166,13 +166,13 @@ In mathematics, this may be written as :math:`\arcsin x` or
 
 The returned value is in the interval :math:`[-\frac14 \tau, \frac14\tau]`,
 and NA for the values of ``x`` that lie outside the interval ``[-1, 1]``.
-This function is the inverse of :func:`sin() <math.sin>` in the sense
+This function is the inverse of :func:`sin()` in the sense
 that `sin(arcsin(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
 
 See also
 --------
-- :func:`sin(x) <math.sin>` -- the trigonometric sine function;
-- :func:`arccos(x) <math.arccos>` -- the inverse cosine function.
+- :func:`sin(x)` -- the trigonometric sine function;
+- :func:`arccos(x)` -- the inverse cosine function.
 )";
 
 py::PKArgs args_arcsin(1, 0, 0, false, false, {"x"}, "arcsin", doc_arcsin);
@@ -201,13 +201,13 @@ In mathematics, this may be written as :math:`\arccos x` or
 The returned value is in the interval :math:`[0, \frac12\tau]`,
 and NA for the values of ``x`` that lie outside the interval
 ``[-1, 1]``. This function is the inverse of
-:func:`cos() <math.cos>` in the sense that
+:func:`cos()` in the sense that
 `cos(arccos(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
 
 See also
 --------
-- :func:`cos(x) <math.cos>` -- the trigonometric cosine function;
-- :func:`arcsin(x) <math.arcsin>` -- the inverse sine function.
+- :func:`cos(x)` -- the trigonometric cosine function;
+- :func:`arcsin(x)` -- the inverse sine function.
 )";
 
 py::PKArgs args_arccos(1, 0, 0, false, false, {"x"}, "arccos", doc_arccos);
@@ -234,8 +234,8 @@ This function satisfies the property that ``tan(arctan(x)) == x``.
 
 See also
 --------
-- :func:`atan2(x, y) <math.atan2>` -- two-argument inverse tangent function;
-- :func:`tan(x) <math.tan>` -- the trigonometric tangent function.
+- :func:`atan2(x, y)` -- two-argument inverse tangent function;
+- :func:`tan(x)` -- the trigonometric tangent function.
 )";
 
 py::PKArgs args_arctan(1, 0, 0, false, false, {"x"}, "arctan", doc_arctan);
@@ -261,7 +261,7 @@ Convert angle measured in degrees into radians:
 
 See also
 --------
-- :func:`rad2deg(x) <math.rad2deg>` -- convert radians into degrees.
+- :func:`rad2deg(x)` -- convert radians into degrees.
 )";
 
 py::PKArgs args_deg2rad(1, 0, 0, false, false, {"x"}, "deg2rad", doc_deg2rad);
@@ -298,7 +298,7 @@ Convert angle measured in radians into degrees:
 
 See also
 --------
-- :func:`deg2rad(x) <math.deg2rad>` -- convert degrees into radians.
+- :func:`deg2rad(x)` -- convert degrees into radians.
 )";
 
 py::PKArgs args_rad2deg(1, 0, 0, false, false, {"x"}, "rad2deg", doc_rad2deg);

@@ -9,7 +9,7 @@
 
     The boolean-cast operator is used by Python whenever it wants to
     know whether the object is equivalent to a single ``True`` or ``False``
-    value. This is not applicable for a :class:`FExpr`, which represents
+    value. This is not applicable for a :class:`dt.FExpr`, which represents
     *stored* computation on a *column* or multiple columns. As such, an
     error is raised.
 

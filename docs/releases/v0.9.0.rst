@@ -13,18 +13,12 @@
   Frame
   -----
 
-  -[new] Method :meth:`Frame.len()` can be applied to a string column to obtain
-    the lengths of strings in each row.
+  .. current-class:: datatable.Frame
 
-  -[new] Method :meth:`.re_match` applies to a string column, and produces
-    boolean indicator whether each value matches the regular expression ``re``
-    or not. The method matches the entire string, not just the beginning. Thus,
-    it most closely resembles Python function ``re.fullmatch()``.
-
-  -[new] :meth:`Frame.__str__()` now returns a string containing the preview of
+  -[new] :meth:`.__str__()` now returns a string containing the preview of
     the frame's data. This allows datatable frames to be used with ``print()``.
 
-  -[new] New function :func:`median()` can be used to compute median of a
+  -[new] New function :func:`dt.median()` can be used to compute median of a
     certain column or expression, either per group or for the entire Frame.
     [#1530]
 
@@ -33,7 +27,7 @@
     longer represents anything. Certain internal properties of ``Frame`` can be
     accessed via functions declared in the ``dt.internal.`` module.
 
-  -[enh] :meth:`Frame.rbind()` can now also accept a list or tuple of frames
+  -[enh] :meth:`.rbind()` can now also accept a list or tuple of frames
     (previously only a vararg sequence was allowed).
 
   -[enh] Frame can now be treated as an iterable over the columns. Thus, a Frame
@@ -44,15 +38,15 @@
 
   -[enh] Single-column frames can be be used as sources for Frame construction.
 
-  -[enh] Added parameter ``quoting=`` to method :meth:`Frame.to_csv`. The
+  -[enh] Added parameter ``quoting=`` to method :meth:`.to_csv()`. The
     accepted values are the 4 constants from the standard ``csv`` module:
     ``csv.QUOTE_MINIMAL`` (default), ``csv.QUOTE_ALL``, ``csv.QUOTE_NONNUMERIC``
     and ``csv.QUOTE_NONE``.
 
-  -[enh] :meth:`Frame.to_csv` now quotes fields containing single-quote mark
+  -[enh] :meth:`.to_csv()` now quotes fields containing single-quote mark
     (``'``).
 
-  -[enh] Added parameter ``compression=`` to method :meth:`Frame.to_csv()`, with
+  -[enh] Added parameter ``compression=`` to method :meth:`.to_csv()`, with
     possibility to request gzip compression for the output file. By default the
     compression method will be inferred from the file name.
 
@@ -71,10 +65,10 @@
     groupby. (#1639)
 
   -[fix] A keyed frame will now be rendered correctly when viewing it in python
-    console via :meth:`Frame.view()`. (#1672)
+    console via :meth:`.view()`. (#1672)
 
   -[fix] ``str32`` column can no longer overflow during the
-    :meth:`.replace() <datatable.Frame.replace>` operation,
+    :meth:`.replace()` operation,
     or when converting from python, numpy or pandas, etc. In all these cases
     we will now transparently create a ``str64`` column instead. (#1694)
 
@@ -130,7 +124,7 @@
 
   -[fix] Fixed a crash when replacing values in a str64 column. (#1890)
 
-  -[fix] :meth:`cbind() <datatable.Frame.cbind>` no longer throws an error when
+  -[fix] :meth:`.cbind()` no longer throws an error when
     passed a generator producing temporary frames. (#1905)
 
   -[fix] Fixed comparison of string columns vs. value ``None``. (#1912)
@@ -152,17 +146,17 @@
     ``DT[a:b]`` for a row selection. A column slice may still be selected via
     the i-j selector ``DT[:, a:b]``.
 
-  -[api] The ``nthreads=`` parameter in :meth:`Frame.to_csv()` was removed. If
+  -[api] The ``nthreads=`` parameter in :meth:`.to_csv()` was removed. If
     needed, please set the global option ``dt.options.nthreads``.
 
   -[old] Frame method ``.scalar()`` is now deprecated and will be removed in
     release 0.10.0. Please use ``frame[0, 0]`` instead.
 
   -[old] Frame method ``.append()`` is now deprecated and will be removed in
-    release 0.10.0. Please use :meth:`.rbind() <datatable.Frame.rbind>` instead.
+    release 0.10.0. Please use :meth:`.rbind()` instead.
 
   -[old] Frame method ``.save()`` was renamed into
-    :meth:`.to_jay() <datatable.Frame.to_jay>` (for consistency with other
+    :meth:`.to_jay()` (for consistency with other
     ``.to_*()`` methods). The old name is still usable, but marked as deprecated
     and will be removed in 0.10.0.
 
@@ -170,6 +164,14 @@
 
   General
   -------
+
+  -[new] Method :meth:`.len() <dt.FExpr.len>` can be applied to a string column to obtain
+    the lengths of strings in each row.
+
+  -[new] Method :meth:`.re_match() <dt.FExpr.re_match>` applies to a string column, and produces
+    boolean indicator whether each value matches the regular expression ``re``
+    or not. The method matches the entire string, not just the beginning. Thus,
+    it most closely resembles Python function ``re.fullmatch()``.
 
   -[new] Added method ``dt.options.describe()``, which will print the available
     options together with their values and descriptions.

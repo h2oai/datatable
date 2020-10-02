@@ -23,8 +23,8 @@
         * - :meth:`ltype(x) <datatable.ltype.__new__>`
           - Find ltype corresponding to value ``x``.
 
-        * - :attr:`.stypes <datatable.ltype.stypes>`
-          - The list of :class:`stype`s that correspond to this ltype.
+        * - :meth:`.stypes()`
+          - The list of :class:`dt.stype`s that correspond to this ltype.
 
     Examples
     --------

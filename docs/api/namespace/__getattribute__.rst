@@ -23,5 +23,5 @@
 
     See also
     --------
-    - :meth:`__getitem__() <Namespace.__getitem__>` -- retrieving columns
+    - :meth:`.__getitem__()` -- retrieving columns
       via the ``[]``-notation.

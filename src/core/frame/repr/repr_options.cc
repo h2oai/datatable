@@ -68,9 +68,9 @@ static const char* doc_options_display_max_nrows =
 R"(
 A frame with more rows than this will be displayed truncated
 when the frame is printed to the console: only its first
-:data:`display.head_nrows <datatable.options.display.head_nrows>`
+:attr:`display.head_nrows <datatable.options.display.head_nrows>`
 and last
-:data:`display.tail_nrows <datatable.options.display.tail_nrows>`
+:attr:`display.tail_nrows <datatable.options.display.tail_nrows>`
 rows will be printed. It is recommended to have
 `head_nrows + tail_nrows <= max_nrows`.
 Setting this option to None (or a negative value) will cause all
@@ -82,7 +82,7 @@ static const char* doc_options_display_tail_nrows =
 R"(
 The number of rows from the bottom of a frame to be displayed when
 the frame's output is truncated due to the total number of frame's
-rows exceeding :data:`display.max_nrows <datatable.options.display.max_nrows>`
+rows exceeding :attr:`display.max_nrows <datatable.options.display.max_nrows>`
 value.
 )";
 
@@ -90,7 +90,7 @@ static const char* doc_options_display_head_nrows =
 R"(
 The number of rows from the top of a frame to be displayed when
 the frame's output is truncated due to the total number of frame's
-rows exceeding :data:`display.max_nrows <datatable.options.display.max_nrows>`
+rows exceeding :attr:`display.max_nrows <datatable.options.display.max_nrows>`
 value.
 )";
 

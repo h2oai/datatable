@@ -94,9 +94,9 @@ The exponent of `x`, that is :math:`e^x`.
 
 See also
 --------
-- :data:`e <math.e>` -- the Euler's number;
-- :func:`expm1(x) <math.expm1>` -- exponent function minus one;
-- :func:`exp2(x) <math.exp2>` -- binary exponent;
+- :data:`e` -- the Euler's number;
+- :func:`expm1(x)` -- exponent function minus one;
+- :func:`exp2(x)` -- binary exponent;
 )";
 
 py::PKArgs args_exp(1, 0, 0, false, false, {"x"}, "exp", doc_exp);
@@ -120,7 +120,7 @@ Binary exponent of x, same as :math:`2^x`.
 
 See also
 --------
-- :func:`exp(x) <math.exp>` -- base-:math:`e` exponent.
+- :func:`exp(x)` -- base-:math:`e` exponent.
 )";
 
 py::PKArgs args_exp2(1, 0, 0, false, false, {"x"}, "exp2", doc_exp2);
@@ -162,12 +162,12 @@ R"(log(x)
 --
 
 Natural logarithm of `x`, aka :math:`\ln x`. This function is the
-inverse of :func:`exp() <math.exp>`.
+inverse of :func:`exp()`.
 
 See also
 --------
-- :func:`log10() <math.log10>` -- decimal logarithm;
-- :func:`log2() <math.log2>` -- binary logarithm.
+- :func:`log10()` -- decimal logarithm;
+- :func:`log2()` -- binary logarithm.
 )";
 
 py::PKArgs args_log(1, 0, 0, false, false, {"x"}, "log", doc_log);
@@ -189,12 +189,12 @@ R"(log10(x)
 
 Decimal (base-10) logarithm of x, which is :math:`\lg(x)` or
 :math:`\log_{10} x`. This function is the inverse of
-:func:`pow(10, x) <math.pow>`.
+:func:`pow(10, x)`.
 
 See also
 --------
-- :func:`log() <math.log>` -- natural logarithm;
-- :func:`log2() <math.log2>` -- binary logarithm.
+- :func:`log()` -- natural logarithm;
+- :func:`log2()` -- binary logarithm.
 )";
 
 py::PKArgs args_log10(1, 0, 0, false, false, {"x"}, "log10", doc_log10);
@@ -239,8 +239,8 @@ Binary (base-2) logarithm of x, which in mathematics is :math:`\log_2 x`.
 
 See also
 --------
-- :func:`log() <math.log>` -- natural logarithm;
-- :func:`log10() <math.log2>` -- decimal logarithm.
+- :func:`log()` -- natural logarithm;
+- :func:`log10()` -- decimal logarithm.
 )";
 
 py::PKArgs args_log2(1, 0, 0, false, false, {"x"}, "log2", doc_log2);

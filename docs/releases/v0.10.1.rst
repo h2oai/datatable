@@ -13,8 +13,7 @@
 
   Frame
   -----
-
-  .. ref-context:: datatable.Frame
+  .. current-class:: datatable.Frame
 
   -[api] A Python list of integers containing only 0s and 1s will now produce
     an ``int8`` column instead of ``bool8``. In order to create a boolean
@@ -41,8 +40,7 @@
 
   General
   -------
-
-  .. ref-context:: datatable
+  .. current-module:: datatable
 
   -[api] Properties ``dt.bool8.min`` and ``dt.bool8.max`` are now equal to
     ``False`` and ``True`` respectively, instead of integers 0 and 1. (#2231)
@@ -54,8 +52,7 @@
 
   FTRL model
   ----------
-
-  .. ref-context:: datatable.models.Ftrl
+  .. current-class:: datatable.models.Ftrl
 
   -[fix] Fix feature importance normalization to [0, 1] in FTRL. (#2224)
 
