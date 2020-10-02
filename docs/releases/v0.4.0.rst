@@ -1,13 +1,13 @@
 
-.. currentmodule:: datatable
 
 .. changelog::
   :version: 0.4.0
   :released: 2018-05-07
   :wheels: https://files.pythonhosted.org/packages/af/10/5f458bb24545845da3f290179a139f93c9c6966a3817fab9049f930cd5b8/datatable-0.4.0.tar.gz
 
-  .. ref-context:: datatable
-
+  General
+  -------
+  .. current-module:: datatable
 
   -[enh] :func:`fread` now parses integers with thousands separator (for example
     ``1,000``).

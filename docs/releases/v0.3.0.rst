@@ -4,11 +4,14 @@
   :released: 2018-03-19
   :wheels: https://files.pythonhosted.org/packages/a0/c4/fb925a263ab65f4706e0f06e6e31a8c3a57f2cc07ec7f16eef53bb1b57f3/datatable-0.3.0-cp35-cp35m-macosx_10_6_x86_64.whl
 
-  .. ref-context:: datatable
+  General
+  -------
+  .. current-module:: datatable
 
 
-  -[enh] Method :meth:`Frame.tonumpy()` now has argument ``stype`` which will
-    force conversion into a numpy array of the specific stype.
+  -[enh] Method :meth:`Frame.tonumpy() <dt.Frame.to_numpy>` now has argument
+    ``stype`` which will force conversion into a numpy array of the specific
+    stype.
 
   -[new] Enums ``stype`` and ``ltype`` that encapsulate the type-system of the
     ``datatable`` module.
@@ -83,9 +86,9 @@
   -[enh] DataTable can now accept pandas/numpy frames with columns of float16
     dtype (which will be automatically converted to ``float32``).
 
-  -[enh] :func:`.isna()` function now works on strings too.
+  -[enh] :func:`isna() <dt.math.isna>` function now works on strings too.
 
-  -[enh] :func:`.save()` is now a method of ``Frame`` class.
+  -[enh] Function ``save()`` is now a method of ``Frame`` class.
 
   -[enh] Warnings now have custom display hook.
 
@@ -96,15 +99,15 @@
   -[new] Add method ``.scalar()`` to quickly convert a 1x1 Frame into a python
     scalar.
 
-  -[new] New methods :func:`.min1()`, :func:`.max1()`, :func:`.mean1()`,
-    :func:`.sum1()`, :func:`.sd1()`, :func:`.countna1()` that are similar to
-    :func:`.min()`, :func:`.max()`, etc. but return a scalar instead of a Frame
+  -[new] New methods ``.min1()``, ``.max1()``, ``.mean1()``,
+    ``.sum1()``, ``.sd1()``, ``.countna1()`` that are similar to
+    ``.min()``, ``.max()``, etc. but return a scalar instead of a Frame
     (however they only work with a 1-column Frames).
 
-  -[new] Implemented method :func:`.nunique()` to compute the number of unique
+  -[new] Implemented method ``.nunique()`` to compute the number of unique
     values in each column.
 
-  -[new] Added stats functions :func:`.mode()` and :func:`.nmodal()`.
+  -[new] Added stats functions ``.mode()`` and ``.nmodal()``.
 
   -[enh] When writing "round" doubles/floats to CSV, they'll now always have
     trailing zero. For example, ``[0.0, 1.0, 1e23]`` now produces
@@ -144,7 +147,7 @@
 
   -[api] "eager" evaluation engine is now the default.
 
-  -[api] Parameter ``inplace`` of method :meth:`rbind()` was removed: instead
+  -[api] Parameter ``inplace`` of method :meth:`dt.Frame.rbind()` was removed: instead
     you can now rbind frames to an empty frame: ``dt.Frame().rbind(df1, df2)``.
 
   -[fix] ``datatable`` will no longer cause the C locale settings to change upon

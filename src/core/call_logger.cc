@@ -113,7 +113,7 @@ static const char* doc_options_debug_logger =
 R"(
 The logger object used for reporting calls to datatable core
 functions. This option has no effect if
-:data:`debug.enabled <datatable.options.debug.enabled>` is `False`.
+:attr:`debug.enabled <datatable.options.debug.enabled>` is `False`.
 
 Parameters
 ----------
@@ -155,7 +155,7 @@ R"(
 
 This option limits the display size of each argument in order
 to prevent potentially huge outputs. It has no effect,
-if :data:`debug.report_args <datatable.options.debug.report_args>` is
+if :attr:`debug.report_args <datatable.options.debug.report_args>` is
 `False`.
 
 Parameters

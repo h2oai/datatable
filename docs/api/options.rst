@@ -29,7 +29,7 @@
         :widths: auto
         :class: api-table
 
-        * - :data:`.nthreads <datatable.options.nthreads>`
+        * - :attr:`.nthreads <datatable.options.nthreads>`
           - Number of threads used by datatable for parallel computations.
 
 .. toctree::

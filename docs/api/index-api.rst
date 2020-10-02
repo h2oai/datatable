@@ -1,10 +1,14 @@
 
 .. py:module:: datatable
 
+.. xpy:module:: datatable
+
+
 datatable API
 =============
 
-Symbols listed here are available for import from the ``datatable`` module.
+Symbols listed here are available for import from the root of the ``datatable``
+module.
 
 
 Submodules
@@ -167,13 +171,15 @@ Other
       - The datatable module.
 
     * - :data:`f`
-      - The primary namespace used during :meth:`DT[...] <Frame.__getitem__>` call.
+      - The primary namespace used during :meth:`DT[...] <dt.Frame.__getitem__>` call.
 
     * - :data:`g`
-      - Secondary namespace used during :meth:`DT[..., join()] <Frame.__getitem__>` call.
+      - Secondary namespace used during :meth:`DT[..., join()] <dt.Frame.__getitem__>` call.
 
     * - :data:`options`
       - datatable options.
+
+
 
 .. toctree::
     :hidden:

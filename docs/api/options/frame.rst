@@ -2,16 +2,16 @@
 .. xdata:: datatable.options.frame
     :src: --
 
-    This namespace contains the following :class:`Frame` options:
+    This namespace contains the following :class:`dt.Frame` options:
 
     .. list-table::
         :widths: auto
         :class: api-table
 
-        * - :data:`.names_auto_index <datatable.options.frame.names_auto_index>`
+        * - :attr:`.names_auto_index <datatable.options.frame.names_auto_index>`
           - Initial value of the default column name index.
 
-        * - :data:`.names_auto_prefix <datatable.options.frame.names_auto_prefix>`
+        * - :attr:`.names_auto_prefix <datatable.options.frame.names_auto_prefix>`
           - Default column name prefix.
 
 

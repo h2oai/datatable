@@ -3,9 +3,11 @@
   :version: 0.2.2
   :released: 2017-10-18
 
-  .. ref-context:: datatable
+  General
+  -------
+  .. current-module:: datatable
 
-  -[new] New function :meth:`Frame.to_csv()` to write DataTable into a CSV file.
+  -[new] New function :meth:`dt.Frame.to_csv()` to write DataTable into a CSV file.
     The CSV writer is multi-threaded and extremely fast.
 
   -[new] Added ``.internal.column(i).data_pointer`` getter, to allow native code

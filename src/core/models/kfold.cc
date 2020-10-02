@@ -143,7 +143,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`kfold_random() <models.kfold_random>` -- Perform randomized k-fold split.
+:func:`kfold_random()` -- Perform randomized k-fold split.
 
 )";
 
@@ -248,7 +248,7 @@ return: List[Tuple]
 
 See Also
 --------
-:func:`kfold() <models.kfold>` -- Perform k-fold split.
+:func:`kfold()` -- Perform k-fold split.
 
 )";
 

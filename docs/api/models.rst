@@ -1,6 +1,8 @@
 
 .. py:module:: datatable.models
 
+.. xpy:module:: datatable.models
+
 datatable.models
 ================
 

@@ -722,7 +722,7 @@ Parameters
 return: Frame
     A frame with two columns: `feature_name` that has stype `str32`,
     and `feature_importance` that has stype `float32` or `float64`
-    depending on whether the :attr:`double_precision <models.Ftrl.double_precision>`
+    depending on whether the :attr:`.double_precision`
     option is `False` or `True`.
 )";
 
@@ -757,7 +757,7 @@ return: List[str]
 
 See also
 --------
-- :attr:`colname_hashes <models.Ftrl.colname_hashes>` -- the hashed column names.
+- :attr:`.colname_hashes` -- the hashed column names.
 
 )";
 
@@ -803,7 +803,7 @@ void Ftrl::set_colnames(robj py_colnames) {
 static const char* doc_colname_hashes =
 R"(
 Hashes of the column names used for the hashing trick as
-described in the :class:`Ftrl <models.Ftrl>` class description.
+described in the :class:`Ftrl <dt.models.Ftrl>` class description.
 
 Parameters
 ----------
@@ -812,7 +812,7 @@ return: List[int]
 
 See also
 --------
-- :attr:`colnames <models.Ftrl.colnames>` -- the column names of the
+- :attr:`.colnames` -- the column names of the
   training frame, i.e. the feature names.
 
 )";
@@ -1374,9 +1374,7 @@ except: ValueError
 
 See also
 --------
-- :attr:`.model_type_trained <models.Ftrl.model_type_trained>` -- the model
-  type `Ftrl` has build.
-
+- :attr:`.model_type_trained` -- the model type `Ftrl` has build.
 )";
 
 static GSArgs args_model_type(
@@ -1422,9 +1420,7 @@ return: str
 
 See also
 --------
-- :attr:`.model_type <models.Ftrl.model_type>` -- the model type `Ftrl` should
-  build.
-
+- :attr:`.model_type` -- the model type `Ftrl` should build.
 )";
 
 static GSArgs args_model_type_trained(
@@ -1447,7 +1443,7 @@ oobj Ftrl::get_model_type_trained() const {
 static const char* doc_params =
 R"(
 `Ftrl` model parameters as a named tuple `FtrlParams`,
-see :meth:`.Ftrl.__init__` for more details.
+see :meth:`.__init__` for more details.
 This option is read-only for a trained model.
 
 Parameters

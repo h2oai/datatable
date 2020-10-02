@@ -15,7 +15,7 @@
     skipped or visited more than once.
 
     This method is not intended for manual use. Instead, it is
-    invoked by Python runtime either when you call :func:`iter`,
+    invoked by Python runtime either when you call :ext-func:`iter() <iter>`,
     or when you use the frame in a loop::
 
         for column in frame:

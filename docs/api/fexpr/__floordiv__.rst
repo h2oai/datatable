@@ -34,4 +34,4 @@
 
     See also
     --------
-    - :meth:`x / y <FExpr.__truediv__>` -- regular division operator.
+    - :meth:`x / y <dt.FExpr.__truediv__>` -- regular division operator.

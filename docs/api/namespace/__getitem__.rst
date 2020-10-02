@@ -9,7 +9,7 @@
 
     By "retrieve" we actually mean that an expression is created
     such that when that expression is used within the
-    :meth:`DT[i,j] <Frame.__getitem__>` call, it would locate and
+    :meth:`DT[i,j] <dt.Frame.__getitem__>` call, it would locate and
     return the specified column(s).
 
 

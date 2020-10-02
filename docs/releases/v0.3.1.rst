@@ -6,16 +6,18 @@
            https://files.pythonhosted.org/packages/95/f6/4798ab9418eecea6adb6f060f27e254c6a185352e8a4539ee6c64d5efe8c/datatable-0.3.1-cp36-cp36m-macosx_10_6_intel.whl
            https://files.pythonhosted.org/packages/fd/98/a881ebd763f8785c4df59518f67f3703c7194f496040c9a472982fb8544d/datatable-0.3.1.tar.gz
 
-  .. ref-context:: datatable
+  General
+  -------
+  .. current-module:: datatable
 
 
   -[enh] Added ability to delete rows from a view Frame.
 
-  -[enh] Implemented :func:`countna()` function for ``obj64`` columns.
+  -[enh] Implemented function ``countna()`` function for ``obj64`` columns.
 
   -[new] New option ``dt.options.core_logger`` to help debug datatable.
 
-  -[new] New Frame method :meth:`Frame.materialize()` to convert a view Frame
+  -[new] New Frame method :meth:`dt.Frame.materialize()` to convert a view Frame
     into a "real" one. This method is noop if applied to a non-view Frame.
 
   -[enh] Added several internal options to fine-tune the performance of sorting
