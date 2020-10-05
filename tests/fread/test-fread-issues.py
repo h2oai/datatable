@@ -541,3 +541,9 @@ def test_issue2523():
     # Make sure no AssertionError occurs here
     with pytest.raises(IOError):
         dt.fread("{\n  \"cells\": [\n    {\n\"import numpy \\n\",\n")
+
+
+def test_issue934():
+    DT = dt.fread("A,B,C\n1,2,3\n3,4,5\n0,0,\"moo\n\n")
+    assert DT.shape == (3, 3)
+    assert DT[2, 2] == '"moo'  # without extra newlines!
