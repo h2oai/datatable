@@ -547,3 +547,17 @@ def test_issue934():
     DT = dt.fread("A,B,C\n1,2,3\n3,4,5\n0,0,\"moo\n\n")
     assert DT.shape == (3, 3)
     assert DT[2, 2] == '"moo'  # without extra newlines!
+
+
+@pytest.mark.xfail()
+@pytest.mark.parametrize('shape', [(int(random.expovariate(0.001) + 100),
+                                    int(random.expovariate(0.001) + 100))])
+def test_issue1036(shape):
+    n1, n2 = shape
+    src = "A,B,C\n" + "q,f,r\n" * n1 + "foo,\"bar,bza\n" + "a,bb,ccc\n" * n2
+    DT = dt.fread(src, fill=True)
+    out = DT.to_list()
+    assert DT.names == ("A", "B", "C")
+    assert out[0] == ['q'] * n1 + ['foo'] + ['a'] * n2
+    assert out[1] == ['f'] * n1 + ['\"bar'] + ['bb'] * n2
+    assert out[2] == ['r'] * n1 + ['bza'] + ['ccc'] * n2
