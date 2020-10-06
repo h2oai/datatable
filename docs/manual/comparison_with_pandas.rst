@@ -2,7 +2,7 @@
 
 Comparison with Pandas
 =======================
-A lot of potential ``datatable`` users are likely to have some familiarity with `pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`__; as such, this page provides some examples of how various ``pandas`` operations can be performed within ``datatable``. ``datatable`` emphasizes speed and big data support, two areas that ``pandas`` struggles with; it also has an expressive and concise syntax, which makes ``datatable`` also useful for small datasets.
+A lot of potential ``datatable`` users are likely to have some familiarity with `pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`__; as such, this page provides some examples of how various ``pandas`` operations can be performed within ``datatable``. ``datatable`` emphasizes speed and big data support (an area that ``pandas`` struggles with); it also has an expressive and concise syntax, which makes ``datatable`` also useful for small datasets.
 
 .. note:: In ``pandas``, there are two fundamental data structures, `Series <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series>`__ and `DataFrame <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`__. In ``datatable``, there is only one fundamental data structure - the `Frame <https://datatable.readthedocs.io/en/latest/api/frame.html#datatable-frame>`__. Most of the comparisons will be between a ``pandas`` DataFrame and ``datatable`` Frame.
 
@@ -33,19 +33,21 @@ Row and Column Selection
 Select a single row
 ``df.loc[2]``                                        ``DT[2, :]``
 
-Select ``n`` rows
+Select several rows by their indices
 ``df.iloc[[2,3,4]]``                                  ``DT[[2,3,4], :]``
 
 Select a slice of rows by position
-``df.iloc[range(2,5)]``                               ``DT[range(2,5), :]``
-
-Same as above
 ``df.iloc[2:5]``                                      ``DT[2:5, :]``
 
-Select every ``n`` rows
+
+Same as above
+``df.iloc[range(2,5)]``                               ``DT[range(2,5), :]``
+
+
+Select every second row
 ``df.iloc[::2]``                                       ``DT[::2, :]``
 
-Select rows based on booleans
+Select rows using a Boolean mask
 ``df.iloc[[True, True, False, False, True]]``            ``DT[[True, True, False, False, True], :]``
 
 Select rows on a condition
@@ -78,7 +80,7 @@ Select multiple columns by slicing
 Same as above, by position
 ``df.iloc[:, 1:3]``                                      ``DT[:, 1:3]``
 
-Select columns by boolean
+Select columns by Boolean mask
 ``df.loc[:, [True,False,False,True]]``                ``DT[:, [True,False,False,True]]``
 
 Select multiple rows and columns
@@ -101,7 +103,7 @@ Same as above, by position
 =================================================  ============================================
 
 
-In ``pandas`` the index numbers are returned :
+In ``pandas`` every frame has a row index, and if a filtration is executed, the row number is returned :
 
 .. code-block:: python
 
@@ -112,7 +114,7 @@ In ``pandas`` the index numbers are returned :
     3	4	7	10	9
     4	5	8	11     -1
 
-This is not the case in ``datatable`` :
+``datatable`` has no notion of a row index; the row numbers displayed are just for convenience:
 
 .. code-block:: python
 
@@ -122,7 +124,6 @@ This is not the case in ``datatable`` :
     0	4	7	10	9
     1	5	8	11     −1
 
-In datatable, the index numbers for the filtered rows are not returned, instead new indices are generated.
 
 
 In ``pandas``, the index can be numbers, or characters, or intervals, or even MultiIndexes; you can subset rows on these labels.
@@ -147,7 +148,7 @@ In ``pandas``, the index can be numbers, or characters, or intervals, or even Mu
     b	2	5	8	7
     c	3	6	9	2
 
-``datatable`` does not support index notation this way; yes, you could have multiple indexes or character indexes, but their purpose is for use in joins, not for subsetting data :
+``datatable`` has the `key <https://datatable.readthedocs.io/en/latest/api/frame/key.html#datatable-frame-key>`__ property, which is meant as an equivalent of pandas indices, but its purpose at the moment is for joins, not for subsetting data :
 
 .. code-block:: python
 
@@ -218,7 +219,7 @@ However, selecting with ``iloc`` for the row with number 7 returns an error, bec
 
     IndexError: single positional indexer is out-of-bounds
 
-As stated earlier, ``datatable`` keys are used for joins, not row subsetting, and as such selection similar to ``loc`` with the row label is not possible.
+As stated earlier, ``datatable`` has the `key <https://datatable.readthedocs.io/en/latest/api/frame/key.html#datatable-frame-key>`__ property, which is used for joins, not row subsetting, and as such selection similar to ``loc`` with the row label is not possible.
 
 .. code-block:: python
 
