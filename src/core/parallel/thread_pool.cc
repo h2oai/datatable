@@ -224,8 +224,6 @@ new_nthreads: int
     Setting `nthreads` to a value less than `0` is equivalent to requesting
     that fewer threads than the maximum.
 
-except: TypeError
-    The exception is raised when the type of `new_nthreads` is not `int`.
 )";
 
 

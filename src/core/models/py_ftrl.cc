@@ -1223,9 +1223,6 @@ except: ValueError
     The exception is raised when trying to change this option
     for a model that has already been trained.
 
-except: TypeError
-    The exception is raised when `new_negative_class` is not `bool`.
-
 )";
 
 static GSArgs args_negative_class(

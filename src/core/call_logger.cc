@@ -104,9 +104,6 @@ new_enabled: bool
     New `enabled` value. If set to `True`, all the calls to the datatable
     core functions will be logged along with their respective timings.
 
-except: TypeError
-    The exception is raised when the type of `new_enabled` is not `bool`.
-
 )";
 
 static const char* doc_options_debug_logger =
@@ -144,9 +141,6 @@ return: bool
 new_report_args: object
     New `report_args` value.
 
-except: TypeError
-    The exception is raised when the type of `new_report_args` is not `bool`.
-
 )";
 
 
@@ -163,13 +157,12 @@ Parameters
 return: int
     Current `arg_max_size` value. Initially, this option is set to `100`.
 
-new_arg_max_size: object
-    New `arg_max_size` value. If `new_arg_max_size < 10`, then `arg_max_size`
-    will be set to `10`.
+new_arg_max_size: int
+    New `arg_max_size` value, should be non-negative.
+    If `new_arg_max_size < 10`, then `arg_max_size` will be set to `10`.
 
 except: TypeError
-    The exception is raised when the type of `new_arg_max_size` is not `int`
-    or its value is negative.
+    The exception is raised when `new_arg_max_size` is negative.
 
 )";
 

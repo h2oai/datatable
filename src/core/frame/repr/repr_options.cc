@@ -53,9 +53,6 @@ return: bool
 new_use_colors: bool
     New `use_colors` value.
 
-except: TypeError
-    The exception is raised when the type of `new_use_colors` is not `bool`.
-
 )";
 
 static const char* doc_options_display_allow_unicode =
@@ -74,9 +71,6 @@ new_allow_unicode: bool
     characters (encoded as UTF-8) to be printed into the output.
     If `False`, then unicode characters will either be avoided, or
     hex-escaped as necessary.
-
-except: TypeError
-    The exception is raised when the type of `new_allow_unicode` is not `bool`.
 
 )";
 
@@ -100,9 +94,6 @@ new_interactive: bool
     the interactove mode, allowing you to navigate the rows/columns
     with the keyboard. If `False`, frames will be shown in regular,
     non-interactive mode.
-
-except: TypeError
-    The exception is raised when the type of `new_interactive` is not `bool`.
 
 )";
 
@@ -131,9 +122,6 @@ new_max_nrows: int
     which may cause the console to become unresponsive for frames
     with large number of rows.
 
-except: TypeError
-    The exception is raised when the type of `new_max_nrows` is not `int`.
-
 )";
 
 static const char* doc_options_display_tail_nrows =
@@ -155,9 +143,6 @@ new_tail_nrows: int
 except: ValueError
     The exception is raised when the `new_tail_nrows` is negative.
 
-except: TypeError
-    The exception is raised when the type of `new_tail_nrows` is not `int`.
-
 )";
 
 static const char* doc_options_display_head_nrows =
@@ -178,9 +163,6 @@ new_head_nrows: int
 
 except: ValueError
     The exception is raised when the `new_head_nrows` is negative.
-
-except: TypeError
-    The exception is raised when the type of `new_head_nrows` is not `int`.
 
 )";
 
@@ -208,9 +190,6 @@ new_max_column_width: int
 
 except: ValueError
     The exception is raised when the `new_max_column_width` is less than `2`.
-
-except: TypeError
-    The exception is raised when the type of `new_max_column_width` is not `int`.
 
 )";
 

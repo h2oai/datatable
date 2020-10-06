@@ -65,9 +65,6 @@ new_anonymize: bool
     all uppercase letters to `A`, and all unicode characters to `U`.
     If `False`, no data anonymization will be performed.
 
-except: TypeError
-    The exception is raised when the type of `new_anonymize` is not `bool`.
-
 )";
 
 static const char * doc_options_fread_log_escape_unicode =
@@ -87,9 +84,6 @@ new_escape_unicode: bool
     If `True`, all unicode characters in the verbose log will be written
     in hexadecimal notation. If `False`, no escaping of the unicode
     characters will be performed.
-
-except: TypeError
-    The exception is raised when the type of `new_escape_unicode` is not `bool`.
 
 )";
 

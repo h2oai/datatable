@@ -41,9 +41,6 @@ new_clear_on_success: bool
     job finished successfully. If `False`, the progress remains visible
     even when the job has already finished.
 
-except: TypeError
-    The exception is raised when the type of `new_clear_on_success` is not `bool`.
-
 )";
 
 
@@ -86,9 +83,6 @@ new_allow_interruption: bool
     New `allow_interruption` value. If `True`, datatable will be allowed
     to handle the `SIGINT` signal to interrupt long-running tasks.
     If `False`, it will not be possible to interrupt tasks with `SIGINT`.
-
-except: TypeError
-    The exception is raised when the type of `new_allow_interruption` is not `bool`.
 
 )";
 
@@ -134,9 +128,6 @@ return: bool
 new_enabled: bool
     New `enabled` value. If `True`, the progress reporting
     functionality will be turned on. If `False`, it is turned off.
-
-except: TypeError
-    The exception is raised when the type of `new_enabled` is not `bool`.
 
 )";
 
@@ -193,10 +184,6 @@ new_updates_per_second: float
     New `updates_per_second` value. This is the number of times per second
     the display of the progress bar should be updated.
 
-except: TypeError
-    The exception is raised when the type of `new_updates_per_second`
-    is not numeric.
-
 )";
 
 
@@ -246,10 +233,6 @@ new_min_duration: float
     If this value is non-zero, then the progress bar will only be shown
     for long-running operations, whose duration (estimated or actual)
     exceeds this threshold.
-
-except: TypeError
-    The exception is raised when the type of `new_min_duration`
-    is not numeric.
 
 )";
 
@@ -303,10 +286,6 @@ new_callback: function
       `'cancelled'`;
     - `p.message` is a custom string describing the operation currently
       being performed.
-
-except: TypeError
-    The exception is raised when the type of `new_callback`
-    is not `function`.
 
 )";
 

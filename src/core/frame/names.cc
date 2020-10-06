@@ -367,9 +367,6 @@ return: int
 new_names_auto_index: int
     New `names_auto_index` value.
 
-except: TypeError
-    The exception is raised when the type of `new_names_auto_index` is not `int`.
-
 See Also
 --------
 - :ref:`name-mangling` -- tutorial on name mangling.
@@ -391,10 +388,6 @@ return: str
 
 new_names_auto_prefix: str
     New `names_auto_prefix` value.
-
-except: TypeError
-    The exception is raised when the type of `new_names_auto_prefix` is not `str`.
-
 
 See Also
 --------
