@@ -18,14 +18,14 @@
           - Generic ``datatable`` warnings;
 
         * - ``FreadWarning``
-          - Warnings related to :func:`fread`;
+          - Warnings related to :func:`fread` function;
 
         * - `IOWarning`
           - Warnings related to input/output.
 
 
-    **Exceptions** are thrown when a special condition, that is unexpected or
-    anomalous, encountered during runtime. Along with the built-in Python
+    **Exceptions** are thrown when a special condition, that is unexpected,
+    encountered during runtime. Along with the built-in Python
     `exceptions <https://docs.python.org/3/library/exceptions.html>`_
     ``datatable`` may also throw:
 
@@ -33,7 +33,7 @@
         :widths: auto
         :class: api-table
 
-        * - :exc:`InvalidOperationError <dt.exceptions.InvalidOperationError>`
+        * - ``InvalidOperationError``
           - Thrown when the operation requested is illegal
             for the given combination of parameters.
 
