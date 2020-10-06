@@ -170,6 +170,9 @@ Other
     * - :data:`dt`
       - The ``datatable`` module itself.
 
+    * - :data:`exceptions`
+      - ``datatable`` warnings and exceptions.
+
     * - :data:`f`
       - The primary namespace used during :meth:`DT[...] <dt.Frame.__getitem__>` call.
 
@@ -201,6 +204,7 @@ Other
     cov()             <dt/cov>
     cut()             <dt/cut>
     dt                <dt/dt>
+    exceptions        <exceptions>
     f                 <dt/f>
     first()           <dt/first>
     fread()           <dt/fread>
