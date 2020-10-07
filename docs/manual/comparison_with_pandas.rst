@@ -278,8 +278,64 @@ Update multiple columns
 ``df.loc[:, "A":"C"] = np.arange(15).reshape(-1,3)``        ``DT[:, "A":"C"] = np.arange(15).reshape(-1,3)``
 =======================================================  ===============================================================
 
-.. note:: In ``datatable``, the :func:`update()` method is in-place, reassigment to the Frame ``DT`` is not required.
+.. note:: In ``datatable``, the :func:`update()` method is in-place; reassigment to the Frame ``DT`` is not required.
+
+
+Rename Columns
+--------------
+
+=======================================================  ===============================================================
+        Pandas                                              datatable
+=======================================================  ===============================================================
+Rename a column
+``df = df.rename(columns={"A":"col_A"})``                    | ``DT[:, update(col_A = f.A)]`` or
+                                                             | ``DT.names = {"A" : "col_A"}``
+
+Rename multiple columns
+``df = df.rename(columns={"A":"col_A", "B":"col_B"})``      ``DT[:, update(col_A = f.A, col_B = f.B)]``
+=======================================================  ===============================================================
+
+Delete Columns
+--------------
+
+=======================================================  ===============================================================
+        Pandas                                              datatable
+=======================================================  ===============================================================
+Delete a column
+``df = df.drop('B', axis=1)``                                 ``DT[:, f[:].remove(f.B)]``
+Same as above
+``del df['B']``                                                ``del DT['B']``
+
+Remove multiple columns
+``df = df.drop(['B', 'C'], axis=1)``                         | ``DT[:, f[:].remove([f.B, f.C])]`` or
+                                                             | ``del DT[: , ['B', 'C']]``
+=======================================================  ===============================================================
+
 
 
 Sorting
 -------
+
+===========================================================  ===============================================================
+        Pandas                                                datatable
+===========================================================  ===============================================================
+Sort by a column - default ascending
+``df.sort_values('A')``                                       ``DT.sort('A')`` or ``DT[:, : , sort('A')]``
+
+Sort by a column - descending
+``df.sort_values('A',ascending=False)``                       | ``DT.sort(-f.A)`` or ``DT[:, :, sort(-f.A)]`` or
+                                                              | ``DT[:, :, sort('A', reverse=True)]``
+
+Sort by multiple columns - default ascending
+``df.sort_values(['A','C'])``                                 ``DT.sort('A','C')`` or ``DT[:, :, sort('A','C')]``
+
+Sort by multiple columns - both descending
+``df.sort_values(['A','C'],ascending=[False,False])``         | ``DT.sort(-f.A, -f.C)`` or
+                                                              | ``DT[:, :, sort(-f.A, -f.C)]`` or
+                                                              | ``DT[:, :, sort('A', 'C', reverse=[True, True])]``
+
+Sort by multiple columns - different sort directions
+``df.sort_values(['A', 'C'], ascending=[True, False])``       | ``DT.sort(f.A, -f.C)`` or
+                                                              | ``DT[:, :, sort(f.A, -f.C)]`` or
+                                                              | ``DT[:, :, sort('A', 'C', reverse=[False, True])]``
+===========================================================  ===============================================================
