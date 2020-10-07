@@ -279,6 +279,7 @@ void FreadReader::detect_sep_and_qr() {
   // `numLines` has the number of lines in each group.
   int numFields[JUMPLINES+1];
   int numLines[JUMPLINES+1];
+  bool check_all_qr = false;
   for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
     for (int s=0; s<nseps; s++) {
       sep = seps[s];
@@ -296,6 +297,7 @@ void FreadReader::detect_sep_and_qr() {
         if (thisncol < 0) {
           // invalid file with this sep and quote rule; abort
           numFields[0] = -1;
+          check_all_qr = true;
           break;
         }
         if (thisncol != lastncol) {  // new contiguous consistent ncols started
@@ -345,6 +347,7 @@ void FreadReader::detect_sep_and_qr() {
             << topNumFields << " fields using quote rule " << topQuoteRule;
       }
     }
+    if (!check_all_qr && quoteRule == 1) break; else continue;
   }
   if (!topNumFields) topNumFields = 1;
   xassert(firstJumpEnd && topQuoteRule >= 0);
