@@ -45,7 +45,7 @@ This makes it easy to create constant columns or to append reduction
 results (such as min/max/mean/etc) to the current Frame.
 
 If some of the `frames` have an incompatible number of rows, then the
-operation will fail with an :data:`InvalidOperationError <dt.exceptions>`.
+operation will fail with an :exc:`dt.exceptions.InvalidOperationError`.
 However, if you set the flag `force` to True, then the error will no
 longer be raised - instead all frames that are shorter than the others
 will be padded with NAs.
