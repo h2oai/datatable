@@ -44,31 +44,40 @@ The following exceptions may be thrown:
     :class: api-table
 
     * - :exc:`ImportError`
-      - https://docs.python.org/3/library/exceptions.html#ImportError
+      - inherited from the built-in
+        `ImportError <https://docs.python.org/3/library/exceptions.html#ImportError>`_.
 
     * - :exc:`IndexError`
-      - https://docs.python.org/3/library/exceptions.html#IndexError
+      - inherited from the built-in
+        `IndexError <https://docs.python.org/3/library/exceptions.html#IndexError>`_.
 
     * - :exc:`InvalidOperationError`
       - The operation requested is illegal for the given combination of parameters.
 
     * - :exc:`IOError`
-      - https://docs.python.org/3/library/exceptions.html#IOError
+      - inherited from the built-in
+        `IOError <https://docs.python.org/3/library/exceptions.html#IOError>`_.
 
     * - :exc:`KeyError`
-      - https://docs.python.org/3/library/exceptions.html#KeyError
+      - inherited from the built-in
+        `KeyError <https://docs.python.org/3/library/exceptions.html#KeyError>`_.
 
     * - :exc:`MemoryError`
-      - https://docs.python.org/3/library/exceptions.html#MemoryError
+      - inherited from the built-in
+        `MemoryError <https://docs.python.org/3/library/exceptions.html#MemoryError>`_.
 
     * - :exc:`NotImplementedError`
-      - https://docs.python.org/3/library/exceptions.html#NotImplementedError
+      - inherited from the built-in
+        `NotImplementedError <https://docs.python.org/3/library/exceptions.html#NotImplementedError>`_.
 
     * - :exc:`OverflowError`
-      - https://docs.python.org/3/library/exceptions.html#OverflowError
+      - inherited from the built-in
+        `OverflowError <https://docs.python.org/3/library/exceptions.html#OverflowError>`_.
 
     * - :exc:`TypeError`
-      - https://docs.python.org/3/library/exceptions.html#TypeError
+      - inherited from the built-in
+        `TypeError <https://docs.python.org/3/library/exceptions.html#TypeError>`_.
 
     * - :exc:`ValueError`
-      - https://docs.python.org/3/library/exceptions.html#ValueError
+      - inherited from the built-in
+        `ValueError <https://docs.python.org/3/library/exceptions.html#ValueError>`_.
