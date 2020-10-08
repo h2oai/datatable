@@ -57,9 +57,6 @@ return: Join Object
     In most of the cases the returned object is directly used in the
     Frame’s square-bracket selector.
 
-except: TypeError
-    The exception is raised if the input frame is missing.
-
 except: ValueError
     The exception is raised if `frame` is not keyed.
 

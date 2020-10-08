@@ -9,13 +9,13 @@
         :class: api-table
 
         * - :attr:`.allow_unicode <datatable.options.display.allow_unicode>`
-          - Switch that controls if the unicode characters are allowed.
+          - Option that controls if the unicode characters are allowed.
 
         * - :attr:`.head_nrows <datatable.options.display.head_nrows>`
           - The number of top rows to display when the frame view is truncated.
 
         * - :attr:`.interactive <datatable.options.display.interactive>`
-          - Switch that controls if the interactive view is enabled or not.
+          - Option that controls if the interactive view is enabled or not.
 
         * - :attr:`.max_column_width <datatable.options.display.max_column_width>`
           - The threshold for the column's width to be truncated.
@@ -27,7 +27,7 @@
           - The number of bottom rows to display when the frame view is truncated.
 
         * - :attr:`.use_colors <datatable.options.display.use_colors>`
-          - Switch that controls if colors should be used in the console.
+          - Option that controls if colors should be used in the console.
 
 
 .. toctree::
