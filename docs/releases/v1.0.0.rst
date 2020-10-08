@@ -15,6 +15,13 @@
       ``CASE WHEN`` in SQL. [#2656]
 
 
+    fread
+    -----
+
+    -[fix] Fix an error when reading a file with uneven number of fields
+      and having Windows-style newlines. [#2681]
+
+
     General
     -------
 

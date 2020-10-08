@@ -354,7 +354,7 @@ static void parse_string_naive(const ParseContext& ctx) {
     else if (static_cast<uint8_t>(c) <= 13) {  // probably a newline
       if (c == '\n') {
         // Move back to the beginning of \r+\n sequence
-        while (ch >= field_start && ch[-1] == '\r') ch--;
+        while (ch > field_start && ch[-1] == '\r') ch--;
         break;
       }
       if (c == '\r' && ctx.cr_is_newline) break;
