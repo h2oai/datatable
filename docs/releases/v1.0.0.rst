@@ -14,6 +14,8 @@
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
 
+    -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
+      the stype/ltype of that column us now allowed to change. [#2685]
 
     fread
     -----
