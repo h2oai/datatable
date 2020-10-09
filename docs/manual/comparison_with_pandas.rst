@@ -408,7 +408,7 @@ Transformations within groups in pandas is done using the `transform <https://pa
     3	1	2	33	2
     4	2	4	50	4
 
-In ``datatable``, transformations occur within the ``j`` section :
+In ``datatable``, transformations occur within the ``j`` section; in the presence of :func:`by()`, the computations within ``j`` are per group :
 
 .. code-block:: python
 
@@ -459,7 +459,7 @@ To get the total revenue, we first need to create a revenue column, then sum it 
     0	A	235
     1	B	1842
 
-In ``datatable``, there is no need to create a temporary column; you can easily nest your computations in the ``j`` section :
+In ``datatable``, there is no need to create a temporary column; you can easily nest your computations in the ``j`` section; the computations will be executed per group :
 
 .. code-block:: python
 
