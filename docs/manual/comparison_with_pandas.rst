@@ -476,5 +476,5 @@ You can learn more about the :func:`by()` function  at the `Grouping with by <ht
 
 .. note:: Pandas allows custom functions via the apply method. ``datatable`` does not yet support custom functions.
 
-.. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), as well as windows functions (rolling, expanding, ...)
+.. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), some aggregate functions like `nunique`, `ngroup`, ..., as well as windows functions (rolling, expanding, ...)
 
