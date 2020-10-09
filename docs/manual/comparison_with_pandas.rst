@@ -1,5 +1,13 @@
 .. py:currentmodule:: datatable
 
+
+.. raw:: html
+
+    <style>
+    .wy-nav-content { max-width: 100%; }
+    </style>
+
+
 Comparison with Pandas
 =======================
 A lot of potential ``datatable`` users are likely to have some familiarity with `pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`__; as such, this page provides some examples of how various ``pandas`` operations can be performed within ``datatable``. ``datatable`` emphasizes speed and big data support (an area that ``pandas`` struggles with); it also has an expressive and concise syntax, which makes ``datatable`` also useful for small datasets.
@@ -341,11 +349,132 @@ Sort by multiple columns - different sort directions
 ===========================================================  ===============================================================
 
 
-Grouping
---------
+Grouping and Aggregation
+------------------------
+
+.. code-block:: python
+
+    data = {"a": [1, 1, 2, 1, 2],
+            "b": [2, 20, 30, 2, 4],
+            "c": [3, 30, 50, 33, 50]}
+
+    # datatable
+    DT = dt.Frame(data)
+
+    # pandas
+    df = pd.DataFrame(data)
+
 
 ===========================================================  ===============================================================
         Pandas                                                datatable
 ===========================================================  ===============================================================
+Group by ``a`` and sum the other columns
+``df.groupby("a").agg("sum")``                                  ``DT[:, dt.sum(f[:]), by("a")]``
 
+Group by ``a`` and ``b`` and sum ``c``
+``df.groupby(["a", "b"]).agg("sum")``                           ``DT[:, dt.sum(f.c), by("a", "b")]``
+
+Get size per group
+``df.groupby("a").size()``                                      ``DT[:, dt.count(), by("a")]``
+
+Grouping with multiple aggregation functions
+``df.groupby("a").agg({"b": "sum", "c": "mean"})``              | ``DT[:, {"b": dt.sum(f.b), "c": dt.mean(f.c)}, by("a")]``
+
+Get the first row per group
+``df.groupby("a").first()``                                     ``DT[0, :, by("a")]``
+
+Get the last row per group
+``df.groupby('a').last()``                                      ``DT[-1, :, by("a")]``
+
+Get the first two rows per group
+``df.groupby("a").head(2)``                                     ``DT[:2, :, by("a")]``
+
+Get the last two rows per group
+``df.groupby("a").tail(2)``                                     ``DT[-2:, :, by("a")]``
 ===========================================================  ===============================================================
+
+Transformations within groups in pandas is done using the `transform <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.groupby.DataFrameGroupBy.transform.html>`__ function :
+
+.. code-block:: python
+
+    # pandas
+    grouping = df.groupby("a")["b"].transform("min")
+    df.assign(min_b=grouping)
+
+        a	b	c	min_b
+    0	1	2	3	2
+    1	1	20	30	2
+    2	2	30	50	4
+    3	1	2	33	2
+    4	2	4	50	4
+
+In ``datatable``, transformations occur within the ``j`` section :
+
+.. code-block:: python
+
+    DT[:, f[:].extend({"min_b": dt.min(f.b)}), by("a")]
+
+    	a	b	c	min_b
+    0	1	2	3	2
+    1	1	20	30	2
+    2	1	2	33	2
+    3	2	30	50	4
+    4	2	4	50	4
+
+Note the results above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option :
+
+
+.. code-block:: python
+
+    DT[:, update(min_b=dt.min(f.b)), by("a")]
+
+    DT
+
+        a	b	c	min_b
+    0	1	2	3	2
+    1	1	20	30	2
+    2	2	30	50	4
+    3	1	2	33	2
+    4	2	4	50	4
+
+In Pandas, some computations might require creating the column first before aggregation within a groupby. Take the example below, where we need to calculate the revenue per group :
+
+.. code-block:: python
+
+    data = {'shop': ['A', 'B', 'A'],
+            'item_price': [123, 921, 28],
+            'item_sold': [1, 2, 4]}
+
+    df1 = pd.DataFrame(data) # pandas
+    DT1 = dt.Frame(data)  # datatable
+
+To get the total revenue, we first need to create a revenue column, then sum it in the groupby :
+
+.. code-block:: python
+
+    df1['revenue'] = df1['item_price'] * df1['item_sold']
+    df1.groupby("shop")['revenue'].sum().reset_index()
+
+    	shop	revenue
+    0	A	235
+    1	B	1842
+
+In ``datatable``, there is no need to create a temporary column; you can easily nest your computations in the ``j`` section :
+
+.. code-block:: python
+
+    # datatable
+
+    DT1[:, {"revenue": dt.sum(f.item_price * f.item_sold)}, "shop"]
+
+        shop	revenue
+    0	A	235
+    1	B	1842
+
+You can learn more about the :func:`by()` function  at the `Grouping with by <https://datatable.readthedocs.io/en/latest/manual/groupby_examples.html>`__ documentation, as well as the API : :func:`by()`.
+
+
+.. note:: Pandas allows custom functions via the apply method. ``datatable`` does not yet support custom functions.
+
+.. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), as well as windows functions (rolling, expanding, ...)
+
