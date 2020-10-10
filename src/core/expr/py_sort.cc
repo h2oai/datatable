@@ -116,8 +116,8 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
     }
   }
   else {
-    throw TypeError() << arg_na_position.name() << " should be one of 'first', 'last' or
-      'remove', instead got " << arg_na_position.typeobj();
+    throw TypeError() << arg_na_position.name() <<
+        " should be one of 'first', 'last' or 'remove', instead got " << arg_na_position.typeobj();
   }
 
   size_t n = args.num_vararg_args();
