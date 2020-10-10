@@ -1027,7 +1027,10 @@ def key_func(x, rev, na_pos):
         return not rev if x is None else rev
 
 def sort_func(src, rev, na_pos):
-    res = sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
+    if na_pos == "remove":
+        res = sorted([s for s in src if s != None], reverse=rev)
+    else:
+        res = sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
     return res
 
 
@@ -1038,7 +1041,7 @@ def test_sort_ints_nas():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1055,7 +1058,7 @@ def test_sort_ints_nas_reverse():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1073,7 +1076,7 @@ def test_sort_floats_nas():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1090,7 +1093,7 @@ def test_sort_floats_nas_reverse():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1107,7 +1110,7 @@ def test_sort_bool_nas():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1124,7 +1127,7 @@ def test_sort_bool_nas_reverse():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1141,7 +1144,7 @@ def test_sort_str_nas():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
@@ -1158,7 +1161,7 @@ def test_sort_str_nas_reverse():
 
     EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
     EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sorted([s for s in src if s != None], reverse=rev))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
 
     RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
     RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]

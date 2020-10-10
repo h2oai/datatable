@@ -506,7 +506,6 @@ class SortContext {
     bool descending;
     int : 8;
     NaPosition na_pos;
-    int count_nas;
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups,
@@ -525,7 +524,6 @@ class SortContext {
     use_order = false;
     descending = false;
     na_pos = na_position;
-    count_nas = 1;
 
     nth = static_cast<size_t>(sort_nthreads);
     n = nrows;
@@ -747,12 +745,6 @@ class SortContext {
    * unsigned. Depending on the range of the values (max - min + 1), we cast
    * the data into an appropriate smaller type.
    */
-
-  template<typename T>
-  T set_replace_na(T min, T max) {
-    return min < 0 ? max - min + 2 : max + 2;
-  }
-
   template <bool ASC, typename T, typename TU>
   void _initI() {
     xassert(sizeof(T) == sizeof(TU));
@@ -774,8 +766,10 @@ class SortContext {
 
     T min = static_cast<T>(column.stats()->min_int(nullptr));
     T max = static_cast<T>(column.stats()->max_int(nullptr));
+
     TO replace_una = na_pos == NaPosition::LAST ?
-                     static_cast<TO>(set_replace_na<T>(min, max)) : 0;
+                     static_cast<TO>(max - min + 1) : 0;
+    TO INCREMENT = (na_pos == NaPosition::LAST) ? 0 : 1;
 
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
@@ -787,16 +781,16 @@ class SortContext {
         [&](size_t j) {
           TI t = xi[o[j]];
           xo[j] = t == una? replace_una :
-                  ASC? static_cast<TO>(t - uedge + 1)
-                     : static_cast<TO>(uedge - t + 1);
+                  ASC? static_cast<TO>(t - uedge + INCREMENT)
+                     : static_cast<TO>(uedge - t + INCREMENT);
         });
     } else {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TI t = xi[j];
           xo[j] = t == una? replace_una :
-                  ASC? static_cast<TO>(t - uedge + 1)
-                     : static_cast<TO>(uedge - t + 1);
+                  ASC? static_cast<TO>(t - uedge + INCREMENT)
+                     : static_cast<TO>(uedge - t + INCREMENT);
         });
     }
   }

@@ -41,6 +41,7 @@ enum SortFlag : int {
 };
 
 enum NaPosition : int {
+  INVALID = 0,
   FIRST =  1,
   LAST = 2,
   REMOVE = 3,
