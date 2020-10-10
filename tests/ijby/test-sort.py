@@ -1171,6 +1171,24 @@ def test_sort_str_nas_reverse():
     assert_equals(EXP2, RES2)
     assert_equals(EXP3, RES3)
 
+def test_nas_numeric_limits():
+    MAX = pow(2,31)-1
+    src = [0,1,None,MAX,None,-MAX,None]*1000
+    rev = False
+    DT = dt.Frame(A=src)
+
+    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
+    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
+    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
+
+    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
+    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
+    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
+
+    assert_equals(EXP1, RES1)
+    assert_equals(EXP2, RES2)
+    assert_equals(EXP3, RES3)
+
 #-------------------------------------------------------------------------------
 # Misc issues
 #-------------------------------------------------------------------------------
