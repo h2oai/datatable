@@ -25,12 +25,6 @@
 #include "utils/exceptions.h"
 namespace py {
 
-static const std::unordered_map<std::string, NaPosition> NaPositionValue {
-   {"first", NaPosition::FIRST},
-   {"last", NaPosition::LAST},
-   {"remove", NaPosition::REMOVE},
-};
-
 static NaPosition  get_na_position_from_string(const std::string& str) {
    return (str == "first")? NaPosition::FIRST :
           (str == "last")? NaPosition::LAST :
