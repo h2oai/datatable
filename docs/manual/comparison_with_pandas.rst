@@ -296,12 +296,12 @@ Rename Columns
         Pandas                                              datatable
 =======================================================  ===============================================================
 Rename a column
-``df = df.rename(columns={"A":"col_A"})``                    | ``DT[:, update(col_A = f.A)]`` or
-                                                             | ``DT.names = {"A" : "col_A"}``
+``df = df.rename(columns={"A":"col_A"})``                    ``DT.names = {"A" : "col_A"}``
 
 Rename multiple columns
-``df = df.rename(columns={"A":"col_A", "B":"col_B"})``      ``DT[:, update(col_A = f.A, col_B = f.B)]``
+``df = df.rename(columns={"A":"col_A", "B":"col_B"})``      ``DT.names = {"A" : "col_A", "B": "col_B"}``
 =======================================================  ===============================================================
+
 
 Delete Columns
 --------------
@@ -310,13 +310,14 @@ Delete Columns
         Pandas                                              datatable
 =======================================================  ===============================================================
 Delete a column
-``df = df.drop('B', axis=1)``                                 ``DT[:, f[:].remove(f.B)]``
-Same as above
 ``del df['B']``                                                ``del DT['B']``
 
+Same as above
+``df = df.drop('B', axis=1)``                                 ``DT = DT[:, f[:].remove(f.B)]``
+
 Remove multiple columns
-``df = df.drop(['B', 'C'], axis=1)``                         | ``DT[:, f[:].remove([f.B, f.C])]`` or
-                                                             | ``del DT[: , ['B', 'C']]``
+``df = df.drop(['B', 'C'], axis=1)``                         | ``del DT[: , ['B', 'C']]`` or
+                                                             | ``DT = DT[:, f[:].remove([f.B, f.C])]``
 =======================================================  ===============================================================
 
 
@@ -348,6 +349,11 @@ Sort by multiple columns - different sort directions
                                                               | ``DT[:, :, sort('A', 'C', reverse=[False, True])]``
 ===========================================================  ===============================================================
 
+.. note:: By default, ``Pandas`` puts NAs last in the sorted data, while ``datatable`` puts them first.
+
+.. note:: In ``Pandas``, there is an option to sort with a Callable; this option is not supported in ``datatable``.
+
+.. note:: In ``Pandas``, you can sort on the rows or columns; in ``datatable`` sorting is column-wise only.
 
 Grouping and Aggregation
 ------------------------
@@ -421,12 +427,12 @@ In ``datatable``, transformations occur within the ``j`` section; in the presenc
     3	2	30	50	4
     4	2	4	50	4
 
-Note the results above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option :
+Note the results above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster) :
 
 
 .. code-block:: python
 
-    DT[:, update(min_b=dt.min(f.b)), by("a")]
+    DT[:, update(min_b = dt.min(f.b)), by("a")]
 
     DT
 
@@ -477,4 +483,130 @@ You can learn more about the :func:`by()` function  at the `Grouping with by <ht
 .. note:: Pandas allows custom functions via the apply method. ``datatable`` does not yet support custom functions.
 
 .. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), some aggregate functions like `nunique`, `ngroup`, ..., as well as windows functions (rolling, expanding, ...)
+
+CONCATENATE
+------------
+
+In Pandas you can combine multiple dataframes column-wise and row-wise using the ``concatenate`` method :
+
+.. code-block:: python
+
+    # pandas
+    df1 = pd.DataFrame({"A": ["a", "a", "a"], "B": range(3)})
+
+    df2 = pd.DataFrame({"A": ["b", "b", "b"], "B": range(4, 7)})
+
+By default, pandas concatenates the rows, with one dataframe on top of the other:
+
+.. code-block:: python
+
+    pd.concat([df1, df2], axis = 0)
+
+        A	B
+    0	a	0
+    1	a	1
+    2	a	2
+    0	b	4
+    1	b	5
+    2	b	6
+
+The same functionality can be replicated in ``datatable`` using the `rbind <file:///home/sam/github_cloned_projects/datatable/docs/_build/html/api/frame/rbind.html>`__ function:
+
+.. code-block:: python
+
+    # datatable
+    DT1 = dt.Frame(df1)
+    DT2 = dt.Frame(df2)
+
+    dt.rbind([DT1, DT2])
+
+        A	B
+    0	a	0
+    1	a	1
+    2	a	2
+    3	b	4
+    4	b	5
+    5	b	6
+
+Notice how in ``Pandas`` the indices are preserved (you can get rid of the indices with the `ignore_index` argument), whereas in ``datatable`` the indices are not referenced.
+
+To combine data across the columns, where the dataframes are side by side, in ``Pandas``, you set the axis argument to ``1`` or ``columns`` :
+
+.. code-block:: python
+
+    # pandas
+    df1 = pd.DataFrame({"A": ["a", "a", "a"], "B": range(3)})
+
+    df2 = pd.DataFrame({"C": ["b", "b", "b"], "D": range(4, 7)})
+
+    df3 = pd.DataFrame({"E": ["c", "c", "c"], "F": range(7, 10)})
+
+    pd.concat([df1, df2, df3], axis = 1)
+
+    	A	B	C	D	E	F
+    0	a	0	b	4	c	7
+    1	a	1	b	5	c	8
+    2	a	2	b	6	c	9
+
+In ``datatable``, you combine frames along the columns using the `cbind <file:///home/sam/github_cloned_projects/datatable/docs/_build/html/api/frame/cbind.html>`__ function :
+
+.. code-block:: python
+
+    # datatable
+
+    DT1 = dt.Frame(df1)
+    DT2 = dt.Frame(df2)
+    DT3 = dt.Frame(df3)
+
+    dt.cbind([DT1, DT2, DT3])
+
+        A	B	C	D	E	F
+    0	a	0	b	4	c	7
+    1	a	1	b	5	c	8
+    2	a	2	b	6	c	9
+
+In ``Pandas``, if you concatenate dataframes along the rows, and the columns do not match, a dataframe of all the columns is returned, with null values for the missing rows :
+
+.. code-block:: python
+
+    # pandas
+    pd.concat([df1, df2, df3], axis = 0)
+
+        A	B	C	D	E	F
+    0	a	0.0	NaN	NaN	NaN	NaN
+    1	a	1.0	NaN	NaN	NaN	NaN
+    2	a	2.0	NaN	NaN	NaN	NaN
+    0	NaN	NaN	b	4.0	NaN	NaN
+    1	NaN	NaN	b	5.0	NaN	NaN
+    2	NaN	NaN	b	6.0	NaN	NaN
+    0	NaN	NaN	NaN	NaN	c	7.0
+    1	NaN	NaN	NaN	NaN	c	8.0
+    2	NaN	NaN	NaN	NaN	c	9.0
+
+In ``datatable``, if you concatenate along the rows and the columns in the frames do not match, you get an error message; you can however force the row combinations, by passing ``force=True`` :
+
+.. code-block:: python
+
+    # datatable
+    dt.rbind([DT1, DT2, DT3], force=True)
+
+        A	B	C	D	E	F
+    0	a	0	NA	NA	NA	NA
+    1	a	1	NA	NA	NA	NA
+    2	a	2	NA	NA	NA	NA
+    3	NA	NA	b	4	NA	NA
+    4	NA	NA	b	5	NA	NA
+    5	NA	NA	b	6	NA	NA
+    6	NA	NA	NA	NA	c	7
+    7	NA	NA	NA	NA	c	8
+    8	NA	NA	NA	NA	c	9
+
+.. note:: :func:`rbind()` and :func:`cbind()` methods exist for the frames.
+
+.. note:: pandas ``concatenate`` method can also join dataframes based on the indexes; ``datatable`` uses the :func:`join()` function.
+
+JOIN/MERGE
+----------
+
+``Pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and the keys must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function.
 
