@@ -1028,10 +1028,9 @@ def key_func(x, rev, na_pos):
 
 def sort_func(src, rev, na_pos):
     if na_pos == "remove":
-        res = sorted([s for s in src if s != None], reverse=rev)
+        return sorted([s for s in src if s != None], reverse=rev)
     else:
-        res = sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
-    return res
+        return sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
 
 
 def test_sort_ints_nas():
