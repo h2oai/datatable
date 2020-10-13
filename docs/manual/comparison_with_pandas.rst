@@ -608,5 +608,52 @@ In ``datatable``, if you concatenate along the rows and the columns in the frame
 JOIN/MERGE
 ----------
 
-``Pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and the keys must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function.
+``Pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and the keys must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function. As such, our comparison will be limited to left-joins only.
 
+In Pandas, you can join dataframes very easily with the ``merge`` method : 
+
+.. code-block:: python
+
+    df1 = pd.DataFrame({x : ["b"]*3 + ["a"]*3 + ["c"]*3,
+              y : [1, 3, 6] * 3,
+              v : range(1, 10)})
+
+    df2 = pd.DataFrame({"x":('c','b'),
+                  "v":(8,7),
+                  "foo":(4,2)})
+
+    df1.merge(df2, on="x", how="left")
+
+    	x	y	v_x	v_y	foo
+    0	b	1	1	7.0	2.0
+    1	b	3	2	7.0	2.0
+    2	b	6	3	7.0	2.0
+    3	a	1	4	NaN	NaN
+    4	a	3	5	NaN	NaN
+    5	a	6	6	NaN	NaN
+    6	c	1	7	8.0	4.0
+    7	c	3	8	8.0	4.0
+    8	c	6	9	8.0	4.0
+
+In datatable, there are limitations currently. First, the joining dataframe must be keyed. Second, the column(s) used as the joining key(s) must be unique. Third, the join columns must have the same name.
+
+.. code-block:: python
+
+    DT1 = dt.Frame(df1)
+    DT2 = dt.Frame(df2)
+
+    # set key on DT2
+    DT2.key = 'x'
+
+    DT1[:, :, join(DT2)]
+
+        x	y	v	v.0	foo
+    0	b	1	1	7	2
+    1	b	3	2	7	2
+    2	b	6	3	7	2
+    3	a	1	4	NA	NA
+    4	a	3	5	NA	NA
+    5	a	6	6	NA	NA
+    6	c	1	7	8	4
+    7	c	3	8	8	4
+    8	c	6	9	8	4
