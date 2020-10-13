@@ -118,7 +118,7 @@ condition.
 This function will only compute those values that are needed for
 the result. Thus, for each row we will evaluate either `expr_if_true`
 or `expr_if_false` (based on the `condition` value) but not both.
-This may be relevant for those cases
+This may be relevant for those cases.
 
 Parameters
 ----------
