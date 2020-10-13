@@ -154,7 +154,7 @@
           groupby context. Check documentation for each individual function
           to find out whether it has special treatment for groupby contexts.
 
-        In addition, ``by()`` also affects the order pf columns in the output
+        In addition, ``by()`` also affects the order of columns in the output
         frame. Specifically, all columns listed as the groupby keys will be
         automatically placed at the front of the resulting frame, and also
         excluded from ``:`` or ``f[:]`` within ``j``.

@@ -9,7 +9,7 @@
 Comparison with R's data.table
 ==============================
 
-``datatable`` is closely related to R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ attempts to mimic its core algorithms and API; however, there are differences due to language constraints.
+``datatable`` is closely related to R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ and attempts to mimic its core algorithms and API; however, there are differences due to language constraints.
 
 This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``.
 
