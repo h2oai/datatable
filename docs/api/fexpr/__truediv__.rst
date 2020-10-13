@@ -32,4 +32,4 @@
 
     See also
     --------
-    - :meth:`x // y <FExpr.__floordiv__>` -- integer division operator.
+    - :meth:`x // y <dt.FExpr.__floordiv__>` -- integer division operator.

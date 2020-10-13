@@ -66,7 +66,7 @@ rx_param = re.compile(r"""
     (?:(\w+)                                        # parameter name
        (?:\s*=\s*(\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|
                   \[[^\[\]]*\]|[^,\[\(\"]*))?       # default value
-       |(\*\*?\w*|/)                                # varags/varkwds
+       |(\*\*?\w*|/|\.\.\.)                         # varags/varkwds
     )\s*(?:,\s*)?                                   # followed by a comma
     |                                               # - or -
     \[,?\s*(\w+),?\s*\]\s*                          # a parameter in square brackets
@@ -240,6 +240,7 @@ class XobjectDirective(SphinxDirective):
         self.doc_lines = StringList()
         self.test_file = None
         self.tests_github_url = None
+        self.qualifier = None
 
 
     def run(self):
@@ -247,8 +248,8 @@ class XobjectDirective(SphinxDirective):
         Main function invoked by the Sphinx runtime.
         """
         self._parse_config()
-        self._init_env()
         self._parse_arguments()
+        self._init_env()
         self._parse_option_src()
         self._parse_option_doc()
         self._parse_option_tests()
@@ -277,8 +278,15 @@ class XobjectDirective(SphinxDirective):
             timestamp = time.time(),
             sources = []
         )
-        # equivalent of `.. py::currentmodule::` directive
-        self.env.ref_context['py:module'] = self.module_name
+        xpy = self.env.get_domain("xpy")
+        if self.name == "xclass":
+            xpy.current_context = ("class", self.qualifier + self.obj_name)
+        if self.name in ["xattr", "xmethod"]:
+            assert self.qualifier[-1:] == '.'
+            xpy.current_context = ("class", self.qualifier[:-1])
+        if self.name in ["xfunction", "xdata"]:
+            assert self.qualifier[-1:] == '.'
+            xpy.current_context = ("module", self.qualifier[:-1])
 
 
     def _register_source_file(self, filename):
@@ -625,6 +633,7 @@ class XobjectDirective(SphinxDirective):
           - "*"                 # separator for kw-only arguments
           - "*" + varname       # positional varargs
           - "**" + varname      # keyword varargs
+          - "..."               # the ellipsis
 
         Type annotations in the signature are not supported.
         """
@@ -910,6 +919,9 @@ class XobjectDirective(SphinxDirective):
             domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
                                objtype=self.name[1:],  # remove initial 'x'
                                node_id=targetname)
+            domain = self.env.get_domain("xpy")
+            domain.note_object(objtype=self.name[1:], objname=targetname,
+                               docname=self.env.docname)
         out = [sig_node]
         if self.name == "xattr":
             if self.setter:
@@ -978,10 +990,11 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_qualifier(self):
+        reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
         node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
-                                    reftype="class", refdomain="py")
+                                    reftype=reftype, refdomain="py")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
         node += nodes.generated("", "", ref)
@@ -1028,12 +1041,12 @@ class XobjectDirective(SphinxDirective):
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
                 if param == "self": continue
-                if param == "*" or param == "/": classes += ["special"]
+                if param in ["*" , "/", "..."]: classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
                     if printed:
                         params += nodes.inline("", nodes.Text(", "), classes=["punct"])
-                    if param in ["self", "*", "/"]:
+                    if param in ["self", "*", "/", "..."]:
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param.lstrip("*"))
@@ -1291,10 +1304,13 @@ class XparamDirective(SphinxDirective):
         desc_node = xnodes.div(classes=["xparam-body"])
         root = xnodes.div(head, desc_node)
         for i, param in enumerate(self.params):
-            id0 = param.strip("*/()[]")
-            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
             if i > 0:
                 head += xnodes.div(", ", classes=["sep"])
+            id0 = param.strip("*/()[]")
+            if id0 == "...":
+                head += xnodes.div("...", classes=["sep"])
+                continue
+            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
             if id0 in ["return", "except"]:
                 head += xnodes.div(id0, classes=["param", id0])
             else:

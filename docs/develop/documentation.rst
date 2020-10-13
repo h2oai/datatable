@@ -175,7 +175,7 @@ declaration at the top of the page::
 
 Note that some of these links may render in red. It means the documentation for
 the referenced function/class/object is missing and still needs to be added:
-:func:`datatable.missing_function()`.
+:py:func:`datatable.missing_function()`.
 
 
 Advanced directives
@@ -308,7 +308,7 @@ In order to document a getter/setter property of a class, use the following::
         :src: src/core/frame/key.cc Frame::get_key Frame::set_key
         :doc: src/core/frame/key.cc doc_key
         :tests: tests/test-keys.py
-        :settable: newkey
+        :settable: new_key
         :deletable:
 
 The ``:src:`` parameter can now accept two function names: the getter and the

@@ -29,7 +29,7 @@ import pytest
 import datatable as dt
 import os
 from datatable import ltype, stype
-from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
+from datatable.exceptions import DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -150,7 +150,7 @@ def test_fread_from_anysource_as_file1(tempfile, capsys):
     assert "Input is assumed to be a file name" in out
 
 
-def test_fread_from_anysource_as_file2(tempfile, py36):
+def test_fread_from_anysource_as_file2(tempfile):
     import pathlib
     with open(tempfile, "w") as o:
         o.write("A,B\n1,2\n")
@@ -609,7 +609,7 @@ def test_fread_columns_set2():
 
 
 def test_fread_columns_set_bad():
-    with pytest.warns(FreadWarning) as ws:
+    with pytest.warns(IOWarning) as ws:
         dt.fread(text="A,B,C\n1,2,3", columns={"A", "foo"})
     assert len(ws) == 1
     assert "Column(s) ['foo'] not found in the input" in ws[0].message.args[0]

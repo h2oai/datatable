@@ -71,7 +71,7 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // These variables will be initialized at the <checkout> stage
 doLargeFreadTests = false
-isMasterJob       = false
+isMainJob       = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
@@ -117,7 +117,18 @@ ansiColor('xterm') {
 
                         sh "git clone https://github.com/h2oai/datatable.git ."
 
-                        if (env.CHANGE_BRANCH) {
+                        isMainJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
+                        isRelease = !isMainJob && env.CHANGE_BRANCH.startsWith("rel-")
+                        doPublish = isMainJob || isRelease || params.FORCE_S3_PUSH
+
+                        if (isMainJob) {
+                            // No need to do anything: already on the main branch
+                        }
+                        else if (isRelease) {
+                            // During the release it must be an actual checkout
+                            sh "git checkout ${env.CHANGE_BRANCH}"
+                        }
+                        else {
                             // Note: we do not explicitly checkout the branch here,
                             // because the branch may be on the forked repo
                             sh """
@@ -126,10 +137,6 @@ ansiColor('xterm') {
                             """
                         }
 
-                        isMasterJob = (env.CHANGE_BRANCH == null || env.CHANGE_BRANCH == '')
-                        isRelease   = !isMasterJob && env.CHANGE_BRANCH.startsWith("rel-")
-                        doPublish   = isMasterJob || isRelease || params.FORCE_S3_PUSH
-
                         buildInfo(env.BRANCH_NAME, isRelease)
 
                         if (!params.DISABLE_ALL_TESTS) {
@@ -137,9 +144,9 @@ ansiColor('xterm') {
                                                   isModified("src/core/(read|csv)/.*") ||
                                                   isRelease ||
                                                   params.FORCE_ALL_TESTS)
-                            doExtraTests       = (isMasterJob || isRelease || params.FORCE_ALL_TESTS)
+                            doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcTests || isMasterJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPpcBuild         = doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
@@ -151,7 +158,7 @@ ansiColor('xterm') {
                         println("env.CHANGE_TARGET = ${env.CHANGE_TARGET}")
                         println("env.CHANGE_SOURCE = ${env.CHANGE_SOURCE}")
                         println("env.CHANGE_FORK   = ${env.CHANGE_FORK}")
-                        println("isMasterJob       = ${isMasterJob}")
+                        println("isMainJob         = ${isMainJob}")
                         println("isRelease         = ${isRelease}")
                         println("doPublish         = ${doPublish}")
                         println("doPpcBuild        = ${doPpcBuild}")
@@ -172,15 +179,15 @@ ansiColor('xterm') {
                         if (isRelease) {
                             DT_RELEASE = 'True'
                         }
-                        else if (env.BRANCH_NAME == 'master') {
+                        else if (env.BRANCH_NAME == 'main') {
                             DT_BUILD_NUMBER = sh(
-                              script: "git rev-list --count master",
+                              script: "git rev-list --count main",
                               returnStdout: true
                             ).trim()
                         }
                         else {
                             def BRANCH_BUILD_ID = sh(script:
-                              "git rev-list --count master..",
+                              "git rev-list --count main..",
                               returnStdout: true
                             ).trim()
                             DT_BUILD_SUFFIX = env.BRANCH_NAME.replaceAll('[^\\w]+', '') + "." + BRANCH_BUILD_ID
@@ -208,7 +215,11 @@ ansiColor('xterm') {
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
                                 -c "env && /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py sdist"
                         """
-                        sh "cat src/datatable/_build_info.py"
+                        sh """
+                            echo "--------- _build_info.py --------------------"
+                            cat src/datatable/_build_info.py
+                            echo "---------------------------------------------"
+                        """
                         arch "src/datatable/_build_info.py"
                         stash includes: 'src/datatable/_build_info.py', name: 'build_info'
                         stash includes: 'dist/*.tar.gz', name: 'sdist'
@@ -241,7 +252,6 @@ ansiColor('xterm') {
                                             ls -la && \
                                             ls -la src/datatable && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                            /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
@@ -269,8 +279,6 @@ ansiColor('xterm') {
                                         . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
-                                        python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py35-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py38
                                         python ci/ext.py wheel
@@ -308,7 +316,6 @@ ansiColor('xterm') {
                                                 useradd -u `id -u` -g jenkins jenkins && \
                                                 su jenkins && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp35-cp35m/bin/python3.5 ci/ext.py wheel --audit && \
                                                 /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
@@ -353,20 +360,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-manylinux-py35', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-manylinux-py35", "35",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -423,20 +416,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py36", "36",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py35', doPpcTests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py35", "35",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
@@ -505,19 +484,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
                                     test_macos('36')
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-macos-py35', { stageName, stageDir ->
-                        node(NODE_MACOS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-macos-wheels'
-                                    test_macos('35')
                                 }
                             }
                         }
@@ -752,7 +718,6 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
 
 def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
-        if (pyver == "35") return "/opt/python/cp35-cp35m/bin/python3.5"
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
@@ -765,6 +730,7 @@ def test_macos(String pyver) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
+            mkdir -p /tmp/cores
             rm -f /tmp/cores/*
             env
             . /Users/jenkins/anaconda/bin/activate ${pyenv}
@@ -792,7 +758,6 @@ def get_env_for_macos(String pyver) {
     if (pyver == "38") return "datatable-py38"
     if (pyver == "37") return "datatable-py37-with-pandas"
     if (pyver == "36") return "datatable-py36-with-pandas"
-    if (pyver == "35") return "datatable-py35-with-pandas"
     throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
@@ -804,7 +769,7 @@ def get_env_for_macos(String pyver) {
 
 def isModified(pattern) {
     def fList
-    if (isMasterJob) {
+    if (isMainJob) {
         fList = buildInfo.get().getChangedFiles().join('\n')
     } else {
         sh "git fetch --no-tags --progress https://github.com/h2oai/datatable +refs/heads/${env.CHANGE_TARGET}:refs/remotes/origin/${env.CHANGE_TARGET}"

@@ -30,7 +30,7 @@ import tempfile
 import warnings
 
 from datatable.lib import core
-from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
+from datatable.exceptions import TypeError, ValueError, IOError, IOWarning
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import backticks_escape as escape
@@ -144,11 +144,6 @@ def _resolve_source_file(file, tempfiles):
         # os.PathLike interface
         file = os.path.expanduser(file)
         file = os.fsdecode(file)
-    elif isinstance(file, pathlib.Path):
-        # This is only for Python 3.5; in Python 3.6 pathlib.Path implements
-        # os.PathLike interface and is included in `_pathlike`.
-        file = file.expanduser()
-        file = str(file)
     elif hasattr(file, "read") and callable(file.read):
         out_src = None
         out_fileno = None
@@ -431,7 +426,7 @@ def _apply_columns_set(colset, colsdesc):
             coltypes[i] = rtype.rauto.value
     if requested_cols:
         warnings.warn("Column(s) %r not found in the input file"
-                      % list(requested_cols), category=FreadWarning)
+                      % list(requested_cols), category=IOWarning)
     return (colnames, coltypes)
 
 
@@ -540,8 +535,7 @@ def _apply_columns_function(colsfn, colsdesc):
 #-------------------------------------------------------------------------------
 
 # os.PathLike interface was added in Python 3.6
-_pathlike = (str, bytes, os.PathLike) if hasattr(os, "PathLike") else \
-            (str, bytes)
+_pathlike = (str, bytes, os.PathLike)
 
 
 

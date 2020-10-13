@@ -3,10 +3,31 @@
 
     Frame
     -----
-    .. ref-context:: datatable.Frame
+    .. current-class:: datatable.Frame
+
+
+    FExpr
+    -----
+    .. current-module:: datatable
+
+    -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
+      implementing a chained-if functionality. This is equivalent to
+      ``CASE WHEN`` in SQL. [#2656]
+
+    -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
+      the stype/ltype of that column us now allowed to change. [#2685]
+
+    fread
+    -----
+
+    -[fix] Fix an error when reading a file with uneven number of fields
+      and having Windows-style newlines. [#2681]
 
 
     General
     -------
 
-
+    -[api] Datatable no longer supports Python 3.5, because Python 3.5 itself
+      has reached its end of life on 2020-09-13 and will no longer be
+      supported. If you are still using Python 3.5, please consider upgrading.
+      [#2642]

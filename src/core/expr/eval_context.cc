@@ -431,7 +431,8 @@ void EvalContext::typecheck_for_update(
     Workframe& replframe, const sztvec& indices)
 {
   DataTable* dt0 = get_datatable(0);
-  bool allrows = !(get_rowindex(0));
+  Kind ikind = iexpr_->get_expr_kind();
+  bool allrows = (ikind == Kind::SliceAll || ikind == Kind::None);
   bool repl_1row = replframe.get_grouping_mode() == Grouping::SCALAR;
   size_t n = indices.size();
   xassert(replframe.ncols() == indices.size());

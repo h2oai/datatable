@@ -1,5 +1,5 @@
 
-.. py:module:: datatable.internal
+.. xpy:module:: datatable.internal
 
 datatable.internal
 ==================

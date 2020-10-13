@@ -7,5 +7,5 @@
 
     Find an ltype corresponding to `value`.
 
-    This method is similar to :meth:`stype.__new__()`, except that it
+    This method is similar to :meth:`dt.stype.__new__()`, except that it
     returns an ltype instead of an stype.

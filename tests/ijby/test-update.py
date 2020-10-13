@@ -98,4 +98,8 @@ def test_update_misplaced():
         DT[:, :, update(B=0)]
 
 
-
+def test_update_with_groupby():
+    DT = dt.Frame(A=range(5), B=[1, 2, 2, 2, 1])
+    assert DT.stype == dt.int32
+    DT[:, update(A=f.A*100/dt.sum(f.A)), by(f.B)]
+    assert_equals(DT, dt.Frame(A=[0, 100/6, 100/3, 50, 100], B=[1, 2, 2, 2, 1]))

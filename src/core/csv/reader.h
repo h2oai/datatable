@@ -148,7 +148,7 @@ class GenericReader
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
-    // variable. Call `emit_delayed_messages()` from the master thread to send
+    // variable. Call `emit_delayed_messages()` from the main thread to send
     // these messages to the frontend.
     mutable std::string delayed_message;
     // std::string delayed_warning;

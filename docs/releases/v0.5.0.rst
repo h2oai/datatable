@@ -1,6 +1,4 @@
 
-.. currentmodule:: datatable
-
 .. changelog::
   :version: 0.5.0
   :released: 2018-05-25
@@ -8,7 +6,9 @@
            https://files.pythonhosted.org/packages/0e/cd/d994e4d67867f1ffbfbb355b98e43db5e689507fb785ed11057ea907980a/datatable-0.5.0-cp36-cp36m-macosx_10_7_x86_64.whl
            https://files.pythonhosted.org/packages/09/ac/fd225408382529a4995143ff97c5226c72c8df8057496831256376e0ff9f/datatable-0.5.0.tar.gz
 
-  .. ref-context:: datatable
+  General
+  -------
+  .. current-module:: datatable
 
   -[new] New function :func:`rbind()` to perform out-of-place row binding.
 
@@ -27,7 +27,7 @@
 
   -[enh] Fread can now properly recognize quoted NA strings.
 
-  -[fix] Ensure that :func:`fread` only emits messages to Python from the master
+  -[fix] Ensure that :func:`fread` only emits messages to Python from the main
     thread.
 
   -[fix] Fixed an error when unbounded f-expressions were printed to console.

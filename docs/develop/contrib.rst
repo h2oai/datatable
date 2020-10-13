@@ -48,8 +48,8 @@ these steps in order to set up your local development environment:
       $ cd datatable
       $ git remote add upstream https://github.com/h2oai/datatable
       $ git fetch upstream
-      $ git config branch.master.remote upstream
-      $ git config branch.master.merge refs/heads/master
+      $ git config branch.main.remote upstream
+      $ git config branch.main.merge refs/heads/main
 
 This completes the setup of your local datatable fork. Make sure to note
 the location of the ``datatable/`` directory that you created in step 3.
@@ -65,7 +65,7 @@ you were working with the repository:
 
 .. xcode:: shell
 
-   $ git checkout master
+   $ git checkout main
    $ git pull
 
 

@@ -150,7 +150,7 @@ skip_blank_lines: bool
     this parameter is `False` then: (a) in single-column mode empty
     lines are kept as empty lines; otherwise (b) if `fill=True` then
     empty lines produce a single line filled with NAs in the output;
-    otherwise (c) an :exc:`IOError` is raised.
+    otherwise (c) an :exc:`dt.exceptions.IOError` is raised.
 
 strip_whitespace: bool
     If `True`, then the leading/trailing whitespace will be stripped
@@ -164,7 +164,7 @@ quotechar: '"' | "'" | "`"
 tempdir: str | None
     Use this directory for storing temporary files as needed. If not
     provided then the system temporary directory will be used, as
-    determined via the :mod:`tempfile` Python module.
+    determined via the :ext-mod:`tempfile` Python module.
 
 nthreads: int | None
     Number of threads to use when reading the file. This number cannot
@@ -187,7 +187,7 @@ multiple_sources: "warn" | "error" | "ignore"
     distinct sources. By default, (`"warn"`) a warning will be issued
     and only the first source will be read and returned as a Frame.
     The `"ignore"` action is similar, except that the extra sources
-    will be discarded without a warning. Lastly, an :exc:`IOError`
+    will be discarded without a warning. Lastly, an :exc:`dt.exceptions.IOError`
     can be raised if the value of this parameter is `"error"`.
 
     If you want all sources to be read instead of only the first one
@@ -211,14 +211,14 @@ memory_limit: int
     or filter and materialize the frame (if not the performance may
     be slow).
 
-(return): Frame
+return: Frame
     A single :class:`Frame` object is always returned.
 
     .. versionchanged:: 0.11.0
         Previously, a ``dict`` of Frames was returned when multiple
         input sources were provided.
 
-(except): IOError
+except: dt.exceptions.IOError
 
 See Also
 --------

@@ -5,7 +5,7 @@
     __init__(self, e)
     --
 
-    Create a new :class:`FExpr` object out of `e`.
+    Create a new :class:`dt.FExpr` object out of `e`.
 
     The ``FExpr`` is serve as a simple wrapper of the underlying object,
     allowing it to be combined with othef ``FExpr``s.

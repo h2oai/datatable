@@ -8,11 +8,11 @@
         :widths: auto
         :class: api-table
 
-        * - :data:`.anonymize <datatable.options.fread.log.anonymize>`
-          - Switch that controls if the logs should be anonymized.
+        * - :attr:`.anonymize <datatable.options.fread.log.anonymize>`
+          - Option that controls logs anonymization.
 
-        * - :data:`.escape_unicode <datatable.options.fread.log.escape_unicode>`
-          - Switch that controls if the unicode characters should be escaped.
+        * - :attr:`.escape_unicode <datatable.options.fread.log.escape_unicode>`
+          - Option that controls escaping of the unicode characters.
 
 
 .. toctree::
