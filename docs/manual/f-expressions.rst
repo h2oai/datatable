@@ -168,7 +168,7 @@ columns into the columnset as well::
 When a columnset is extended, the order of the elements is preserved. Thus, a
 columnset is closer in functionality to a python list than to a set. In
 addition, some of the elements in a columnset can have names if the columnset
-is created from a dictionary. The names may be non-unique, too.
+is created from a dictionary. The names may be non-unique too.
 
 The ``.remove()`` method is the opposite of ``.extend()``: it takes an existing
 columnset and then removes all columns that are passed as the argument::

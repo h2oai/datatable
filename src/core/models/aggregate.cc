@@ -51,7 +51,7 @@ grouping for string columns.
 
 When the input frame has more columns than two,
 a parallel one-pass Ad-Hoc algorithm is employed, see description of
-`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/main/src/core/models/aggregate.cc#L879>`_
+`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/00185546f033cc9d2fca202b516a1720b85581f5/src/core/models/aggregate.cc#L878-L1024>`_
 method for more details. This algorithm takes into account
 the numeric columns only, and all the string columns are ignored.
 
@@ -111,7 +111,7 @@ return: Tuple[Frame, Frame]
 
     The second element in the tuple is the members frame with the shape of
     `(frame.nrows, 1)`. Each row in this frame corresponds to the
-    row with the same id in the input `frame`. Only the column `exemplar_id`
+    row with the same id in the input `frame`. The single column `exemplar_id`
     has an stype of `int32` and contains the exemplar ids that a particular
     member belongs to. These ids are effectively the ids of
     the exemplar's rows from the input frame.

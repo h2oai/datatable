@@ -127,7 +127,7 @@ expression can even be a python type (such as ``int`` or ``dt.float32``),
 selecting all columns matching that type.
 
 In addition to the selector expression shown above, we support the update and
-delete statements, too:
+delete statements too:
 
 ::
 
