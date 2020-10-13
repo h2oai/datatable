@@ -165,10 +165,6 @@ evaluate to `False`, then the `default` value is computed and returned.
 Also, if any of the conditions produces NA then the result of the expression
 also becomes NA without evaluating any further conditions or values.
 
-This function will only compute those values that are needed for
-the result. Thus, for each row we will evaluate either `expr_if_true`
-or `expr_if_false` (based on the `condition` value) but not both.
-This may be relevant for those cases.
 
 Parameters
 ----------
