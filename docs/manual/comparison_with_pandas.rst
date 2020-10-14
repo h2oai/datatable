@@ -657,3 +657,5 @@ In datatable, there are limitations currently. First, the joining dataframe must
     6	c	1	7	8	4
     7	c	3	8	8	4
     8	c	6	9	8	4
+
+More details about joins in datatble can be found at the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
