@@ -1152,4 +1152,33 @@ More examples will be added to the cookbook documentation. Feel free to submit a
 MISSING FUNCTIONS
 -----------------
 
-Reshaping functions in ``Pandas``
+Listed below are some functions in Pandas that do not have an equivalent in datatable yet, and are likely to be implemented : 
+
+- Reshaping functions
+    - `melt <https://pandas.pydata.org/docs/reference/api/pandas.melt.html>`__
+    - `wide_to_long <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.wide_to_long.html>`__
+    - `pivot_table <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.pivot_table.html>`__
+
+- Convenience function for filtering and subsetting
+    - `isin <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.isin.html>`__
+
+- `Datetime functions <https://pandas.pydata.org/pandas-docs/stable/user_guide/timeseries.html>`__
+
+- Missing values
+    - `forward fill <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.ffill.html>`__
+    - `backward fill <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.bfill.html>`__
+
+- Aggregation functions, such as 
+    - `cumsum <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cumsum.html>`__
+    - `cummax <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cummax.html>`__
+    - `expanding <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.expanding.html>`__
+    - `rolling <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rolling.html>`__
+
+- String functions, such as 
+    - `string split <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.str.split.html>`__
+    - `string extract <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.str.extract.html>`__
+    - `string replace <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.str.replace.html>`__
+
+- Custom function application, via `apply <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`__ and `pipe <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.pipe.html>`__
+If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.
+
