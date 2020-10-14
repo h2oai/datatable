@@ -1147,7 +1147,7 @@ In ``datatable`` you can nest conditions within aggregations ::
     1	2008	        3	        3	     0	        68.5
     2	2009	        3	        2	     2	        60.6667
 
-More examples will be added to the cookbook documentation. Feel free to submit a pull request on `github <https://github.com/h2oai/datatable>`__ for examples you would like to share with the community.
+Feel free to submit a pull request on `github <https://github.com/h2oai/datatable>`__ for examples you would like to share with the community.
 
 MISSING FUNCTIONS
 -----------------
