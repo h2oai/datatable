@@ -12,7 +12,7 @@ Comparison with Pandas
 =======================
 A lot of potential ``datatable`` users are likely to have some familiarity with `pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`__; as such, this page provides some examples of how various ``pandas`` operations can be performed within ``datatable``. ``datatable`` emphasizes speed and big data support (an area that ``pandas`` struggles with); it also has an expressive and concise syntax, which makes ``datatable`` also useful for small datasets.
 
-.. note:: In ``pandas``, there are two fundamental data structures, `Series <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series>`__ and `DataFrame <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`__. In ``datatable``, there is only one fundamental data structure - the `Frame <https://datatable.readthedocs.io/en/latest/api/frame.html#datatable-frame>`__. Most of the comparisons will be between a ``pandas`` DataFrame and ``datatable`` Frame.
+.. note:: In ``pandas``, there are two fundamental data structures, `Series <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series>`__ and `DataFrame <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`__. In ``datatable``, there is only one fundamental data structure - the `Frame <https://datatable.readthedocs.io/en/latest/api/frame.html#datatable-frame>`__. Most of the comparisons will be between ``pandas`` DataFrame and ``datatable`` Frame.
 
 .. code-block:: python
 
@@ -302,6 +302,20 @@ Rename multiple columns
 ``df = df.rename(columns={"A":"col_A", "B":"col_B"})``      ``DT.names = {"A" : "col_A", "B": "col_B"}``
 =======================================================  ===============================================================
 
+In datatable, you can select and rename columns at the same time, by passing a dictionary of :ref:`f-expressions` into the ``j`` section :
+
+.. code-block:: python
+
+    # datatable
+    DT[:, {"A": f.A, "box": f.B, "C": f.C, "D": f.D * 2}]
+
+	A	box	C	D
+    0	1	4	7	10
+    1	2	5	8	14
+    2	3	6	9	4
+    3	4	7	10	18
+    4	5	8	11	−2
+
 
 Delete Columns
 --------------
@@ -427,7 +441,7 @@ In ``datatable``, transformations occur within the ``j`` section; in the presenc
     3	2	30	50	4
     4	2	4	50	4
 
-Note the results above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster) :
+Note that the result above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster) :
 
 
 .. code-block:: python
@@ -480,14 +494,14 @@ In ``datatable``, there is no need to create a temporary column; you can easily 
 You can learn more about the :func:`by()` function  at the `Grouping with by <https://datatable.readthedocs.io/en/latest/manual/groupby_examples.html>`__ documentation, as well as the API : :func:`by()`.
 
 
-.. note:: Pandas allows custom functions via the apply method. ``datatable`` does not yet support custom functions.
+.. note:: Pandas allows custom functions via the ``apply`` or ``pipe`` method. ``datatable`` does not yet support custom functions.
 
 .. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), some aggregate functions like `nunique`, `ngroup`, ..., as well as windows functions (rolling, expanding, ...)
 
 CONCATENATE
 ------------
 
-In Pandas you can combine multiple dataframes column-wise and row-wise using the ``concatenate`` method :
+In Pandas you can combine multiple dataframes using the ``concatenate`` method; the concatenation is based on the indices :
 
 .. code-block:: python
 
@@ -530,7 +544,7 @@ The same functionality can be replicated in ``datatable`` using the `rbind <file
 
 Notice how in ``Pandas`` the indices are preserved (you can get rid of the indices with the `ignore_index` argument), whereas in ``datatable`` the indices are not referenced.
 
-To combine data across the columns, where the dataframes are side by side, in ``Pandas``, you set the axis argument to ``1`` or ``columns`` :
+To combine data across the columns, in ``Pandas``, you set the axis argument to ``columns`` :
 
 .. code-block:: python
 
@@ -601,16 +615,15 @@ In ``datatable``, if you concatenate along the rows and the columns in the frame
     7	NA	NA	NA	NA	c	8
     8	NA	NA	NA	NA	c	9
 
-.. note:: :func:`rbind()` and :func:`cbind()` methods exist for the frames.
+.. note:: :func:`rbind()` and :func:`cbind()` methods exist for the frames, and operate in-place.
 
-.. note:: pandas ``concatenate`` method can also join dataframes based on the indexes; ``datatable`` uses the :func:`join()` function.
 
 JOIN/MERGE
 ----------
 
 ``Pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and the keys must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function. As such, our comparison will be limited to left-joins only.
 
-In Pandas, you can join dataframes very easily with the ``merge`` method : 
+In Pandas, you can join dataframes easily with the ``merge`` method :
 
 .. code-block:: python
 
@@ -658,4 +671,485 @@ In datatable, there are limitations currently. First, the joining dataframe must
     7	c	3	8	8	4
     8	c	6	9	8	4
 
-More details about joins in datatble can be found at the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+More details about joins in ``datatable`` can be found at the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+
+MORE EXAMPLES
+-------------
+
+This section shows how some solutions in ``Pandas`` can be translated to ``datatable``; most of the examples used here, as well as the ``Pandas`` solutions,  are from the `Pandas cookbook <https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html>`__.
+
+
+- if-then-else using numpy’s where() :
+
+.. code-block:: python
+
+    # pandas
+    df = pd.DataFrame({"AAA": [4, 5, 6, 7],
+                       "BBB": [10, 20, 30, 40],
+                       "CCC": [100, 50, -30, -50]})
+
+    df
+
+    	AAA	BBB	CCC
+    0	4	10	100
+    1	5	20	50
+    2	6	30	-30
+    3	7	40	-50
+
+Solution in ``Pandas`` ::
+
+    df['logic'] = np.where(df['AAA'] > 5, 'high', 'low')
+
+        AAA  BBB  CCC logic
+    0    4   10  100   low
+    1    5   20   50   low
+    2    6   30  -30  high
+    3    7   40  -50  high
+
+In ``datatable``, this can be solved using the :func:`ifelse()` function
+
+.. code-block:: python
+
+    # datatable
+    DT = dt.Frame(df)
+
+    DT["logic"] = DT[:, ifelse(f.AAA > 5, "high", "low")]
+
+    DT
+        AAA	BBB	CCC	logic
+    0	4	10	100	low
+    1	5	20	50	low
+    2	6	30	−30	high
+    3	7	40	−50	high
+
+- Select rows with data closest to certain value using argsort
+
+.. code-block:: python
+
+    # pandas
+    df = pd.DataFrame({"AAA": [4, 5, 6, 7],
+                       "BBB": [10, 20, 30, 40],
+                       "CCC": [100, 50, -30, -50]})
+
+    aValue = 43.0
+
+Solution in ``Pandas`` ::
+
+    df.loc[(df.CCC - aValue).abs().argsort()]
+
+     AAA  BBB  CCC
+    1    5   20   50
+    0    4   10  100
+    2    6   30  -30
+    3    7   40  -50
+
+In ``datatable``, the ``newsort`` function is roughly similar to `np.argsort <https://numpy.org/doc/stable/reference/generated/numpy.argsort.html>`__ or `pd.Series.argsort <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.argsort.html>`__ ::
+
+    DT = dt.Frame(df)
+
+    order = DT[:, dt.math.abs(f.CCC - aValue)].newsort()
+
+    order
+
+    	order
+    0	1
+    1	0
+    2	2
+    3	3
+
+Now, we can apply the ``order`` variable to the ``i`` section ::
+
+    DT[order, :]
+
+        AAA	BBB	CCC
+    0	5	20	50
+    1	4	10	100
+    2	6	30	−30
+    3	7	40	−50
+
+Of course, you can skip creating a temporary variable (at the expense of readability) ::
+
+    DT[DT[:, dt.math.abs(f.CCC - aValue)].newsort(), :]
+
+
+
+- Efficiently and dynamically creating new columns using applymap
+
+.. code-block:: python
+
+    # pandas
+    df = pd.DataFrame({"AAA": [1, 2, 1, 3],
+                       "BBB": [1, 1, 2, 2],
+                       "CCC": [2, 1, 3, 1]})
+
+        AAA	BBB	CCC
+    0	1	1	2
+    1	2	1	1
+    2	1	2	3
+    3	3	2	1
+
+    source_cols = df.columns
+
+    new_cols = [str(x) + "_cat" for x in source_cols]
+
+    categories = {1: 'Alpha', 2: 'Beta', 3: 'Charlie'}
+
+    df[new_cols] = df[source_cols].applymap(categories.get)
+
+    df
+
+        AAA  BBB  CCC  AAA_cat BBB_cat  CCC_cat
+    0    1    1    2    Alpha   Alpha     Beta
+    1    2    1    1     Beta   Alpha    Alpha
+    2    1    2    3    Alpha    Beta  Charlie
+    3    3    2    1  Charlie    Beta    Alpha
+
+We can replicate the solution above in ``datatable`` :
+
+.. code-block:: python
+
+    # datatable
+
+    import itertools as it
+
+    DT = dt.Frame(df)
+
+    mixer = it.product(DT.names, categories)
+
+    conditions = [(name, f[name] == value, categories[value])
+                  for name, value in mixer]
+
+    for name, cond, value in conditions:
+        DT[cond, f"{name}_cat"] = value
+
+        AAA	BBB	CCC	AAA_cat	BBB_cat	CCC_cat
+    0	1	1	2	Alpha	Alpha	Beta
+    1	2	1	1	Beta	Alpha	Alpha
+    2	1	2	3	Alpha	Beta	Charlie
+    3	3	2	1	Charlie	Beta	Alpha
+
+- Keep other columns when using min() with groupby
+
+.. code-block:: python
+
+    # pandas
+    df = pd.DataFrame({'AAA': [1, 1, 1, 2, 2, 2, 3, 3],
+                       'BBB': [2, 1, 3, 4, 5, 1, 2, 3]})
+
+    df
+
+      AAA  BBB
+    0    1    2
+    1    1    1
+    2    1    3
+    3    2    4
+    4    2    5
+    5    2    1
+    6    3    2
+    7    3    3
+
+Solution in ``Pandas``::
+
+    df.loc[df.groupby("AAA")["BBB"].idxmin()]
+
+           AAA  BBB
+    1    1    1
+    5    2    1
+    6    3    2
+
+In ``datatable``, you can :func:`sort()` within a group, to achieve the same result above :
+
+.. code-block:: python
+
+    # datatable
+
+    DT = dt.Frame(df)
+
+    DT[0, :, by("AAA"), sort(f.BBB)]
+
+        AAA	BBB
+    0	1	1
+    1	2	1
+    2	3	2
+
+- Apply to different items in a group
+
+.. code-block:: python
+
+    # pandas
+
+    df = pd.DataFrame({'animal': 'cat dog cat fish dog cat cat'.split(),
+                       'size': list('SSMMMLL'),
+                       'weight': [8, 10, 11, 1, 20, 12, 12],
+                       'adult': [False] * 5 + [True] * 2})
+
+    df
+
+      animal size  weight  adult
+    0    cat    S       8  False
+    1    dog    S      10  False
+    2    cat    M      11  False
+    3   fish    M       1  False
+    4    dog    M      20  False
+    5    cat    L      12   True
+    6    cat    L      12   True
+
+
+Solution in ``Pandas`` ::
+
+    def GrowUp(x):
+        avg_weight = sum(x[x['size'] == 'S'].weight * 1.5)
+        avg_weight += sum(x[x['size'] == 'M'].weight * 1.25)
+        avg_weight += sum(x[x['size'] == 'L'].weight)
+        avg_weight /= len(x)
+        return pd.Series(['L', avg_weight, True],
+                         index=['size', 'weight', 'adult'])
+
+    expected_df = gb.apply(GrowUp)
+
+            size   weight  adult
+    animal
+    cat       L  12.4375   True
+    dog       L  20.0000   True
+    fish      L   1.2500   True
+
+In ``datatable``, we can use the :func:`ifelse()` function to replicate the solution above, since it is based on a series of conditions::
+
+    DT = dt.Frame(df)
+
+    conditions = ifelse(f.size == "S", f.weight * 1.5,
+                        f.size == "M", f.weight * 1.25,
+                        f.size == "L", f.weight,
+                        None)
+
+    DT[:, {"size": "L",
+           "avg_wt": dt.sum(conditions) / dt.count(),
+           "adult": True},
+       by("animal")]
+
+        animal	size	avg_wt	adult
+    0	cat	L	12.4375	1
+    1	dog	L	20	1
+    2	fish	L	1.25	1
+
+.. note:: :func:`ifelse()` can take multiple conditions, along with a default return value.
+
+.. note:: Custom functions are not supported in ``datatable`` yet.
+
+- Sort groups by aggregated data
+
+.. code-block:: python
+
+    # pandas
+
+    df = pd.DataFrame({'code': ['foo', 'bar', 'baz'] * 2,
+                       'data': [0.16, -0.21, 0.33, 0.45, -0.59, 0.62],
+                       'flag': [False, True] * 3})
+
+        code	data	flag
+    0	foo	0.16	False
+    1	bar	-0.21	True
+    2	baz	0.33	False
+    3	foo	0.45	True
+    4	bar	-0.59	False
+    5	baz	0.62	True
+
+Solution in ``Pandas`` ::
+
+    code_groups = df.groupby('code')
+
+    agg_n_sort_order = code_groups[['data']].transform(sum).sort_values(by='data')
+
+    sorted_df = df.loc[agg_n_sort_order.index]
+
+    sorted_df
+
+        code  data   flag
+    1  bar -0.21   True
+    4  bar -0.59  False
+    0  foo  0.16  False
+    3  foo  0.45   True
+    2  baz  0.33  False
+    5  baz  0.62   True
+
+The solution above sorts the data based on the sum of the ``data`` column per group in the ``code`` column.
+
+We can replicate this in ``datatable`` ::
+
+    DT = dt.Frame(df)
+
+    DT[:, update(sum_data = dt.sum(f.data)), by("code")]
+
+    DT[:, :-1, sort(f.sum_data)]
+
+        code	data	flag
+    0	bar	−0.21	1
+    1	bar	−0.59	0
+    2	foo	0.16	0
+    3	foo	0.45	1
+    4	baz	0.33	0
+    5	baz	0.62	1
+
+- Create a value counts column and reassign back to the DataFrame
+
+.. code-block:: python
+
+    # pandas
+    df = pd.DataFrame({'Color': 'Red Red Red Blue'.split(),
+                       'Value': [100, 150, 50, 50]})
+
+    df
+
+      Color  Value
+    0   Red    100
+    1   Red    150
+    2   Red     50
+    3  Blue     50
+
+Solution in ``Pandas`` ::
+
+    df['Counts'] = df.groupby(['Color']).transform(len)
+
+    df
+
+        Color  Value  Counts
+    0   Red    100       3
+    1   Red    150       3
+    2   Red     50       3
+    3  Blue     50       1
+
+In ``datatable``, you can replicate the solution above with the :func:`count()` function ::
+
+    DT = dt.Frame(df)
+
+    DT[:, update(Counts=dt.count()), by("Color")]
+
+        Color	Value	Counts
+    0	Red	100	3
+    1	Red	150	3
+    2	Red	50	3
+    3	Blue	50	1
+
+- Shift groups of the values in a column based on the index
+
+.. code-block:: python
+
+    # pandas
+
+    df = pd.DataFrame({'line_race': [10, 10, 8, 10, 10, 8],
+                       'beyer': [99, 102, 103, 103, 88, 100]},
+                       index=['Last Gunfighter', 'Last Gunfighter',
+                              'Last Gunfighter', 'Paynter', 'Paynter',
+                              'Paynter'])
+
+    df
+
+                        line_race  beyer
+    Last Gunfighter         10     99
+    Last Gunfighter         10    102
+    Last Gunfighter          8    103
+    Paynter                 10    103
+    Paynter                 10     88
+    Paynter                  8    100
+
+
+Solution in ``Pandas`` ::
+
+    df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
+
+    df
+
+                        line_race  beyer  beyer_shifted
+    Last Gunfighter         10     99            NaN
+    Last Gunfighter         10    102           99.0
+    Last Gunfighter          8    103          102.0
+    Paynter                 10    103            NaN
+    Paynter                 10     88          103.0
+    Paynter                  8    100           88.0
+
+``datatable`` has an equivalent :func:`shift()` function ::
+
+    DT = dt.Frame(df) # the index becomes part of the frame
+
+    DT[:, update(beyer_shifted = dt.shift(f.beyer)), by("index")]
+
+    DT
+
+    line_race	beyer	index	        beyer_shifted
+    0	10	99	Last Gunfighter	    NA
+    1	10	102	Last Gunfighter	    99
+    2	8	103	Last Gunfighter	    102
+    3	10	103	Paynter	            NA
+    4	10	88	Paynter	            103
+    5	8	100	Paynter	            88
+
+- Frequency table like plyr in R
+
+.. code-block:: python
+
+    grades = [48, 99, 75, 80, 42, 80, 72, 68, 36, 78]
+
+    df = pd.DataFrame({'ID': ["x%d" % r for r in range(10)],
+                       'Gender': ['F', 'M', 'F', 'M', 'F',
+                                  'M', 'F', 'M', 'M', 'M'],
+                       'ExamYear': ['2007', '2007', '2007', '2008', '2008',
+                                    '2008', '2008', '2009', '2009', '2009'],
+                       'Class': ['algebra', 'stats', 'bio', 'algebra',
+                                 'algebra', 'stats', 'stats', 'algebra',
+                                 'bio', 'bio'],
+                       'Participated': ['yes', 'yes', 'yes', 'yes', 'no',
+                                        'yes', 'yes', 'yes', 'yes', 'yes'],
+                       'Passed': ['yes' if x > 50 else 'no' for x in grades],
+                       'Employed': [True, True, True, False,
+                                    False, False, False, True, True, False],
+                       'Grade': grades})
+
+    df
+
+        ID	Gender	ExamYear	Class	Participated	Passed	    Employed	  Grade
+    0	x0	F	2007	        algebra	    yes	        no	    True            48
+    1	x1	M	2007	        stats	    yes	        yes	    True	    99
+    2	x2	F	2007	        bio	    yes	        yes	    True	    75
+    3	x3	M	2008	        algebra	    yes	        yes	    False	    80
+    4	x4	F	2008	        algebra	    no	        no	    False	    42
+    5	x5	M	2008	        stats	    yes	        yes	    False	    80
+    6	x6	F	2008	        stats	    yes	        yes	    False	    72
+    7	x7	M	2009	        algebra	    yes	        yes	    True	    68
+    8	x8	M	2009	        bio	    yes	        no	    True	    36
+    9	x9	M	2009	        bio	    yes	        yes	    False	    78
+
+
+Solution in ``Pandas`` ::
+
+    df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
+                                'Passed': lambda x: sum(x == 'yes'),
+                                'Employed': lambda x: sum(x),
+                                'Grade': lambda x: sum(x) / len(x)})
+
+                Participated  Passed  Employed      Grade
+    ExamYear
+    2007                 3       2         3        74.000000
+    2008                 3       3         0        68.500000
+    2009                 3       2         2        60.666667
+
+In ``datatable`` you can nest conditions within aggregations ::
+
+    DT = dt.Frame(df)
+
+    DT[:, {"Participated": dt.sum(f.Participated == "yes"),
+           "Passed": dt.sum(f.Passed == "yes"),
+           "Employed": dt.sum(f.Employed),
+           "Grade": dt.mean(f.Grade)},
+       by("ExamYear")]
+
+        ExamYear	Participated	Passed	Employed	Grade
+    0	2007	        3	        2	     3	        74
+    1	2008	        3	        3	     0	        68.5
+    2	2009	        3	        2	     2	        60.6667
+
+More examples will be added to the cookbook documentation. Feel free to submit a pull request on `github <https://github.com/h2oai/datatable>`__ for examples you would like to share with the community.
+
+MISSING FUNCTIONS
+-----------------
+
+Reshaping functions in ``Pandas``
