@@ -146,6 +146,7 @@ div.document div.notranslate.highlight-default div.highlight {
 
 div.document div.notranslate.highlight-python div.highlight pre,
 div.document div.notranslate.highlight-default div.highlight pre {
+  margin-bottom: 0;
   padding: 0.5em 1em;
 }
 

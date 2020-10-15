@@ -36,6 +36,11 @@ h2 {
   margin-top: 40px;
 }
 
+h3 {
+  font-size: 19px;
+  font-weight: bold;
+}
+
 a.headerlink {
   display: none;
   font-size: 60%;
