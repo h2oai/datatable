@@ -261,8 +261,10 @@ div.nav-right > #toc-local a:hover {
 }
 
 div.nav-right > #toc-local a.list-group-item.active {
-  font-weight: bold;
+  border-left: 4px solid #4684b6;
   color: #212529;
+  margin-left: -9px;
+  padding-left: 5px;
 }
 
 
