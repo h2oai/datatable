@@ -1,0 +1,305 @@
+
+@font-face { font-family: Lato; src: url("fonts/lato-regular.woff2")     format("woff2"); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-bold.woff2")        format("woff2"); font-weight: 700; font-style: normal; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-bold-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-italic.woff2")      format("woff2"); font-weight: 400; font-style: italic; font-display: block; }
+
+
+/*------------------------------------------------------------------------------
+ * General properties
+ *----------------------------------------------------------------------------*/
+
+html {
+  /* Ensure that anchors within the page scroll past the top header */
+  scroll-padding-top: 65px;
+}
+
+body {
+  background-color: #E5E5E5;
+  counter-reset: cc;
+  font-family: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  font-size: 14px;
+  /* required for ScrollSpy plugin */
+  position: relative;
+}
+
+h1 {
+  border-bottom: 1px solid #ccc;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 0 0 20px 0;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 40px;
+}
+
+a.headerlink {
+  display: none;
+}
+
+a {
+  color: #6395d4;
+}
+
+ul:last-child {
+  margin-bottom: 0;
+}
+
+li p {
+  margin: 0;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Top navigation bar
+ *----------------------------------------------------------------------------*/
+
+div.topbar {
+  align-items: center;
+  background: white;
+  box-shadow: 0px 3px 7px rgba(80,80,80,0.25), 0 1px 2px rgba(50,50,50,0.35);
+  contain: strict;
+  display: flex;
+  height: 50px;
+  margin-left: auto;
+  margin-right: auto;
+  padding: 5px 15px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1010;
+}
+
+div.topbar a.logo_image {
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+div.topbar a.logo_image:hover {
+  background: #eee;
+}
+
+div.topbar a.logo_image img {
+  height: 26px;
+}
+
+div.expander {
+  flex: 1;
+}
+
+div.topbar div.searchbox {
+  flex: 0;
+}
+
+div.topbar div.searchbox form {
+  transition: width 0.3s;
+  width: 200px;
+}
+
+div.topbar div.searchbox form:focus-within {
+  width: 500px;
+}
+
+
+div.topbar div.searchbox form input[type="text"] {
+  background-color: #eee;
+  border-style: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  width: 100%;
+}
+
+div.topbar div.searchbox form input[type="text"]:focus {
+  outline: none;
+  box-shadow: 0 0 3px #888 inset, 0 0 1px #333 inset;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Left navigation bar
+ *----------------------------------------------------------------------------*/
+
+div.sidebar-left-bg {
+  background: #FAFAFD;
+  bottom: 0;
+  box-shadow: 2px 0 4px rgba(80, 80, 80, 0.25);
+  contain: strict;
+  position: fixed;
+  top: 0;
+  width: 300px;
+  z-index: 1005;
+}
+
+div.sidebar-left {
+  bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 70px 0 0 10pt;
+  position: fixed;
+  top: 0;
+  width: 300px;
+  z-index: 1007;
+}
+
+div.nav-left {
+  margin-bottom: 70px;
+}
+
+div.nav-left ul {
+  display: none;
+  padding: 0 0 0 16px;
+}
+
+div.nav-left ul.current,
+div.nav-left > ul {
+  display: block;
+}
+
+div.nav-left > ul.current {
+  margin-left: -10px;
+}
+
+div.nav-left li {
+  list-style-type: none;
+}
+
+div.nav-left li > a {
+  border-radius: 5px 0 0 5px;
+  color: #696e8e;
+  display: block;
+  font-size: 13px;
+  margin-left: -10px;
+  padding: 2px 0 2px 10px;
+  text-decoration: none;
+}
+
+div.nav-left li > a:hover {
+  background-color: #E5E5E5;
+}
+
+div.nav-left li.current > a.current {
+  background: #FFF;
+  box-shadow: 0 0 2px #999;
+  color: #333;
+  position: relative;
+  /* Ensure that box-shadow is above the adjacent list items,
+     even when they are hovered */
+  z-index: 1001;
+}
+
+div.nav-left li.current > ul {
+  display: block;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Right navigation bar
+ *----------------------------------------------------------------------------*/
+
+body > div.main-area {
+  display: flex;
+  margin: 75px 0 25px 340px;
+}
+
+div.nav-right > #toc-local {
+  border-left: 4px solid #2d659c;
+  margin: 0 0 0 20px;
+  padding: 0 0 0 10px;
+  position: fixed;
+}
+
+div.nav-right > #toc-local a.list-group-item {
+  background: transparent;
+  border: none;
+  color: #696e8e;
+  font-size: 13px;
+  line-height: 1.2;
+  list-style-type: none;
+  padding: 4px 0;
+}
+
+div.nav-right > #toc-local a:first-child {
+  padding-top: 0;
+}
+
+div.nav-right > #toc-local a:last-child {
+  padding-bottom: 0;
+}
+
+div.nav-right > #toc-local a:hover {
+  color: black;
+  text-decoration: none;
+}
+
+div.nav-right > #toc-local a.list-group-item.active {
+  font-weight: bold;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Main document
+ *----------------------------------------------------------------------------*/
+
+div.document {
+  background-color: white;
+  border-radius: 2pt;
+  box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
+  width: 900px;
+  padding: 40px;
+}
+
+div.copyright {
+  font-size: 12px;
+  margin-top: 3px;
+  opacity: 0.5;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * .api-table
+ *----------------------------------------------------------------------------*/
+
+table.api-table {
+  border: none;
+}
+
+table.api-table tr td {
+  border-style: none;
+  font-size: 100%;
+  padding: 0 16px 6px 0;
+  vertical-align: top;
+  white-space: normal;
+}
+
+table.api-table tr td > p {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0 !important;
+}
+
+table.api-table td:first-child code.xref.literal {
+  background: transparent;
+  padding: 0;
+}
+
+table.api-table td:first-child a {
+}
+
+table.api-table td:first-child a code.literal {
+  color: #6395d4;
+  font-weight: bold;
+}
+
+table.api-table td:first-child a:hover code.literal {
+  color: #223d5a;
+  text-decoration: underline;
+}
+
