@@ -316,12 +316,25 @@ def test_del_rows_array():
     assert d0.to_list() == [[1, 2, 3, 4, 5, 6, 9]]
 
 
-@pytest.mark.skip("Issue #805")
 def test_del_rows_array_unordered():
     d0 = dt.Frame(range(10))
     del d0[[3, 1, 5, 2, 2, 0, -1], :]
     frame_integrity_check(d0)
     assert d0.to_list() == [[4, 6, 7, 8]]
+
+
+def test_del_rows_array_unordered_index_duplicated():
+    d0 = dt.Frame(range(10))
+    del d0[[-1, 3, 0, 0, 3, -1, 4, 1, 1], :]
+    frame_integrity_check(d0)
+    assert d0.to_list() == [[2, 5, 6, 7, 8]]
+
+
+def test_del_rows_array_unordered_larger_than_frame():
+    d0 = dt.Frame(range(10))
+    del d0[[5, 6, 5, 8, 5, -1, 3, 0, 0, 3, -1, 4, 1, 1], :]
+    frame_integrity_check(d0)
+    assert d0.to_list() == [[2, 7]]
 
 
 def test_del_rows_filter():
