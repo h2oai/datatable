@@ -209,6 +209,7 @@ body > div.main-area {
 
 div.nav-right > #toc-local {
   border-left: 4px solid #2d659c;
+  border-radius: 0;
   margin: 0 0 0 20px;
   padding: 0 0 0 10px;
   position: fixed;
@@ -239,6 +240,7 @@ div.nav-right > #toc-local a:hover {
 
 div.nav-right > #toc-local a.list-group-item.active {
   font-weight: bold;
+  color: #212529;
 }
 
 
