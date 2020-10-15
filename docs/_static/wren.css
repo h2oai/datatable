@@ -38,6 +38,23 @@ h2 {
 
 a.headerlink {
   display: none;
+  font-size: 60%;
+  visibility: hidden;
+}
+
+a.headerlink::after {
+  content: "\f0c1";
+  font-family: 'FontAwesome';
+  left: -3px;
+  position: relative;
+  top: -2px;
+  visibility: visible;
+}
+
+h1:hover a.headerlink,
+h2:hover a.headerlink,
+h3:hover a.headerlink {
+  display: initial;
 }
 
 a {
