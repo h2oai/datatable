@@ -24,6 +24,8 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include <algorithm>
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -259,14 +261,20 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
   auto inrows = static_cast<int64_t>(ctx.nrows());
   Buffer databuf = Buffer::mem(args.size() * sizeof(int32_t));
   int32_t* data = static_cast<int32_t*>(databuf.xptr());
+  bool is_list_to_negate_sorted = true;
+  EvalMode eval_mode = ctx.get_mode();
+  int32_t max_value = args[0]->evaluate_int();
   size_t data_index = 0;
   for (size_t i = 0; i < args.size(); ++i) {
     auto ikind = args[i]->get_expr_kind();
     if (ikind == Kind::Int) {
-      int64_t x = args[i]->evaluate_int();
+      int32_t x = args[i]->evaluate_int();
       if (x < -inrows || x >= inrows) {
         throw ValueError() << "Index " << x << " is invalid for a Frame with "
             << inrows << " rows";
+      }
+      if (eval_mode == EvalMode::DELETE && is_list_to_negate_sorted) {
+        if (x >= max_value) max_value = x; else is_list_to_negate_sorted = false;
       }
       data[data_index++] = static_cast<int32_t>((x >= 0)? x : x + inrows);
     }
@@ -280,6 +288,7 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
     }
   }
   databuf.resize(data_index * sizeof(int32_t));
+  if (!is_list_to_negate_sorted) std::sort(data, data + data_index);
   return RowIndex(std::move(databuf), RowIndex::ARR32);
 }
 

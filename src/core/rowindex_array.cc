@@ -31,7 +31,7 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "stype.h"
-
+#include <algorithm>
 #if DT_DEBUG
   inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
@@ -314,27 +314,34 @@ void ArrayRowIndexImpl::compactify()
   _resize_data();
 }
 
+template<typename TI>
+void get_next_index_to_skip(const TI* inputs, size_t& j)
+{
+  while (inputs[j] == inputs[j+1]) {
+    ++j;
+  }
+  ++j;
+}
 
 template <typename TI, typename TO>
 RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
 {
   auto inputs = static_cast<const TI*>(buf_.rptr());
-  size_t newsize = nrows - length;
+  size_t newsize = nrows;
   size_t inpsize = length;
   Buffer outbuf = Buffer::mem(newsize * sizeof(TO));
   auto outputs = static_cast<TO*>(outbuf.xptr());
   TO orows = static_cast<TO>(nrows);
 
   TO next_index_to_skip = static_cast<TO>(inputs[0]);
-  size_t j = 1;  // next index to read from the `inputs` array
+  size_t count_indices_to_skip = 0;
+  size_t j = 0;  // index to read from the `inputs` array
   size_t k = 0;  // next index to write into the `outputs` array
   for (TO i = 0; i < orows; ++i) {
     if (i == next_index_to_skip) {
-      next_index_to_skip =
-        j < inpsize? static_cast<TO>(inputs[j++]) : orows;
-      if (next_index_to_skip <= i) {
-        throw ValueError() << "Cannot invert RowIndex which is not sorted";
-      }
+      ++count_indices_to_skip;
+      get_next_index_to_skip(inputs, j);
+      next_index_to_skip = j < inpsize? static_cast<TO>(inputs[j]) : orows;
     } else {
       outputs[k++] = i;
     }
@@ -342,6 +349,7 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
 
   int flags = RowIndex::SORTED;
   flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
+  outbuf.resize((newsize - count_indices_to_skip) * sizeof(TO));
   return new ArrayRowIndexImpl(std::move(outbuf), flags);
 }
 
