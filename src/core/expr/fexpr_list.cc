@@ -24,8 +24,7 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
-#include <algorithm>
-#include <iostream>
+#include <algorithm>             // std::sort
 namespace dt {
 namespace expr {
 

@@ -31,7 +31,6 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "stype.h"
-#include <algorithm>
 #if DT_DEBUG
   inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
@@ -346,7 +345,7 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
       outputs[k++] = i;
     }
   }
-
+  xassert(nrows >= count_indices_to_skip);
   int flags = RowIndex::SORTED;
   flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
   outbuf.resize((newsize - count_indices_to_skip) * sizeof(TO));
@@ -355,7 +354,6 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
 
 
 RowIndexImpl* ArrayRowIndexImpl::negate(size_t nrows) const {
-  xassert(nrows >= length);
   if (type == RowIndexType::ARR32) {
     if (nrows <= INT32_MAX)
       return negate_impl<int32_t, int32_t>(nrows);
