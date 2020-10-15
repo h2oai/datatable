@@ -262,12 +262,12 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
   int32_t* data = static_cast<int32_t*>(databuf.xptr());
   bool is_list_to_negate_sorted = true;
   EvalMode eval_mode = ctx.get_mode();
-  int32_t max_value = args[0]->evaluate_int();
+  int64_t max_value = args[0]->evaluate_int();
   size_t data_index = 0;
   for (size_t i = 0; i < args.size(); ++i) {
     auto ikind = args[i]->get_expr_kind();
     if (ikind == Kind::Int) {
-      int32_t x = args[i]->evaluate_int();
+      int64_t x = args[i]->evaluate_int();
       if (x < -inrows || x >= inrows) {
         throw ValueError() << "Index " << x << " is invalid for a Frame with "
             << inrows << " rows";
