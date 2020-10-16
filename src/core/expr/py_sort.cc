@@ -131,6 +131,7 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
 
 void osort::osort_pyobject::m__dealloc__() {
   delete reverse_;
+  delete na_position_;
   reverse_ = nullptr;
   cols_ = nullptr;  // Releases the stored oobj
   na_position_ = nullptr;
