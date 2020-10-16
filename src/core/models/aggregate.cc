@@ -47,13 +47,30 @@ an exemplar, i.e. one of the members.
 
 For one- and two-column frames the aggregation is based on
 the standard equal-interval binning for numeric columns, and
-grouping for string columns.
+grouping operation for string columns.
 
-When the input frame has more columns than two,
-a parallel one-pass Ad-Hoc algorithm is employed, see description of
-`Aggregator<T>::group_nd() <https://github.com/h2oai/datatable/blob/00185546f033cc9d2fca202b516a1720b85581f5/src/core/models/aggregate.cc#L878-L1024>`_
-method for more details. This algorithm takes into account
-the numeric columns only, and all the string columns are ignored.
+In the general case, a parallel one-pass ad hoc algorithm is employed.
+It starts with an empty exemplar list and does one pass through the data.
+If a partucular observation falls into a bubble with a given radius and
+the center being one of the exemplars, it marks this observation as a
+member of that exemplar's cluster. If there is no appropriate exemplar found,
+the observation is marked as a new exemplar.
+
+If the `fixed_radius` is `None`, the algorithm will start
+with the `delta`, that is radius squared, being equal to the machine precision.
+When the number of gathered exemplars becomes larger than `nd_max_bins`,
+the following procedure is performed
+
+- find the mean distance between all the gathered exemplars;
+- merge all the exemplars that are within the half of this distance;
+- adjust `delta` by taking into account the initial bubble radius;
+- save the exemplar's merging information for the final processing.
+
+If the `fixed_radius` is set to a valid numeric value, the algorithm
+will stick to that value and will not adjust `delta`.
+
+**Note:** the general n-dimensional algorithm takes into account the numeric
+columns only, and all the other columns are ignored.
 
 
 Parameters
