@@ -46,7 +46,7 @@ a set of members, i.e. a subset of the input frame, and is represented by
 an exemplar, i.e. one of the members.
 
 For one- and two-column frames the aggregation is based on
-the standard equal-interval binning for numeric columns, and
+the standard equal-interval binning for numeric columns and
 grouping operation for string columns.
 
 In the general case, a parallel one-pass ad hoc algorithm is employed.
@@ -59,7 +59,7 @@ the observation is marked as a new exemplar.
 If the `fixed_radius` is `None`, the algorithm will start
 with the `delta`, that is radius squared, being equal to the machine precision.
 When the number of gathered exemplars becomes larger than `nd_max_bins`,
-the following procedure is performed
+the following procedure is performed:
 
 - find the mean distance between all the gathered exemplars;
 - merge all the exemplars that are within the half of this distance;
