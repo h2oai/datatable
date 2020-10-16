@@ -59,14 +59,18 @@ return: Frame
     and as many boolean columns as there were unique labels found.
     The labels will also become the output column names.
 
-except: ValueError
-    The exception is raised if the input frame is missing or it has more
-    than one column. It is also raised if `sep` is not a single-character
-    string.
+except: ValueError | TypeError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-except: TypeError
-    The exception is raised if the single column of `frame` has a type
-    different from string.
+        * - :exc:`ValueError`
+          - raised if the input frame is missing or it has more
+            than one column. It is also raised if `sep` is not a single-character
+            string.
+
+        * - :exc:`TypeError`
+          - raised if the single column of `frame` has non-string stype.
 
 
 Examples

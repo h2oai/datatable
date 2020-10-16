@@ -238,12 +238,16 @@ return: Frame
     A single-column frame. The column stype is the smallest common
     stype of columns in the `frames`.
 
-except: ValueError
-    The exception is raised when one of the input frames has more than
-    one column.
+except: ValueError | NotImplementedError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-except: NotImplementedError
-    The exception is raised when one of the frame columns has stype `obj64`.
+        * - :exc:`ValueError`
+          - raised when one of the input frames has more than one column.
+
+        * - :exc:`NotImplementedError`
+          - raised when one of the columns has stype `obj64`.
 
 See Also
 --------
@@ -357,13 +361,16 @@ return: Frame
     A single-column frame. The column stype is the smallest common
     stype of columns in the `frames`.
 
-except: ValueError
-    The exception is raised when one of the input frames has more than
-    one column.
+except: ValueError | NotImplementedError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-except: NotImplementedError
-    The exception is raised when one of the frame columns has stype
-    `obj64`.
+        * - :exc:`ValueError`
+          - raised when one of the input frames has more than one column.
+
+        * - :exc:`NotImplementedError`
+          - raised when one of the columns has stype `obj64`.
 
 See Also
 --------
@@ -453,12 +460,17 @@ return: Frame
     A single-column frame. The column stype is the smallest common
     stype of columns from the `frames`.
 
-except: ValueError
-    The exception is raised when one of the input frames, i.e. `frame0`
-    or any from the `frames`, has more than one column.
+except: ValueError | NotImplementedError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-except: NotImplementedError
-    The exception is raised when one frame columns has stype `obj64`.
+        * - :exc:`ValueError`
+          - raised when one of the input frames, i.e. `frame0`
+            or any one from the `frames`, has more than one column.
+
+        * - :exc:`NotImplementedError`
+          - raised when one of the columns has stype `obj64`.
 
 
 See Also
@@ -572,12 +584,16 @@ return: Frame
     A single-column frame. The column stype is the smallest common
     stype of columns from the `frames`.
 
-except: ValueError
-    The exception is raised when one of the input frames has more
-    than one column.
+except: ValueError | NotImplementedError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-except: NotImplementedError
-    The exception is raised when one of the frame columns has stype `obj64`.
+        * - :exc:`ValueError`
+          - raised when one of the input frames has more than one column.
+
+        * - :exc:`NotImplementedError`
+          - raised when one of the columns has stype `obj64`.
 
 
 See Also

@@ -1273,10 +1273,6 @@ except: ValueError
     - trying to change this option for a model that has already been trained;
     - one of the interactions has zero features.
 
-except: TypeError
-    The exception is raised when `new_interactions` has a wrong type.
-
-
 )";
 
 static GSArgs args_interactions(
@@ -1455,7 +1451,6 @@ except: ValueError
     The exception is raised when
 
     - trying to change this option for a model that has already been trained;
-
     - individual parameter values are incompatible with the corresponding setters.
 
 )";

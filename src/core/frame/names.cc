@@ -159,17 +159,20 @@ return: int
     The numeric index of the provided `column`. This will be an
     integer between `0` and `self.ncols - 1`.
 
-except: dt.exceptions.KeyError | dt.exceptions.IndexError
-    If the `column` argument is a string, and the column with such
-    name does not exist in the frame, then a :exc:`dt.exceptions.KeyError` is raised.
-    When this exception is thrown, the error message may contain
-    suggestions for up to 3 similarly looking column names that
-    actually exist in the Frame.
+except: KeyError | IndexError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-    If the `column` argument is an integer that is either greater
-    than or equal to :attr:`.ncols` or less than
-    `-ncols`, then an :exc:`dt.exceptions.IndexError` is raised.
+        * - :exc:`KeyError`
+          - raised if the `column` argument is a string, and the column with
+            such name does not exist in the frame. When this exception is
+            thrown, the error message may contain suggestions for up to 3
+            similarly looking column names that actually exist in the Frame.
 
+        * - :exc:`IndexError`
+          - raised if the `column` argument is an integer that is either greater
+            than or equal to :attr:`.ncols` or less than `-ncols`.
 
 Examples
 --------
@@ -288,13 +291,19 @@ new_names: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     ``del`` keyword: the names will be set to their default values,
     which are usually ``C0, C1, ...``.
 
-except: ValueError
-    If the length of the list/tuple `new_names` does not match the
-    number of columns in the frame.
 
-except: KeyError
-    If `new_names` is a dictionary containing entries that do not
-    match any of the existing columns in the frame.
+except: ValueError | KeyError
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :exc:`ValueError`
+          - raised If the length of the list/tuple `new_names` does not match the
+            number of columns in the frame.
+
+        * - :exc:`KeyError`
+          - raised If `new_names` is a dictionary containing entries that do not
+            match any of the existing columns in the frame.
 
 Examples
 --------
