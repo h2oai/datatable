@@ -1033,160 +1033,19 @@ def sort_func(src, rev, na_pos):
         return sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
 
 
-def test_sort_ints_nas():
-    src = [-5,-8,None,None,11,2,8,None,4]*1000
-    rev = False
+@pytest.mark.parametrize('rev', [True, False])
+@pytest.mark.parametrize('napos', ['first', 'last', 'remove'])
+@pytest.mark.parametrize('src', [[-5,-8,None,None,11,2,8,None,4]*1000,
+                                 [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000,
+                                 [True,None,False,None,False,True]*1000,
+                                 ['',None,'pr',None,'','rww','auy','dfuy']*1000,
+                                 [0,1,None,2**31-1,None,-(2**31-1),None]*1000,
+                                 [0,1,None,2**63-1,None,-(2**63-1),None]*1000])
+def test_sort_na_position(rev, napos, src):
     DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_ints_nas_reverse():
-    src = [-5,-8,None,None,11,2,8,None,4]*1000
-    rev = True
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-
-def test_sort_floats_nas():
-    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000
-    rev = False
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_floats_nas_reverse():
-    src = [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000
-    rev = True
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_bool_nas():
-    src = [True,None,False,None,False,True]*1000
-    rev = False
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_bool_nas_reverse():
-    src = [True,None,False,None,False,True]*1000
-    rev = True
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_str_nas():
-    src = ['',None,'pr',None,'','rww','auy','dfuy']*1000
-    rev = False
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_sort_str_nas_reverse():
-    src = ['',None,'pr',None,'','rww','auy','dfuy']*1000
-    rev = True
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
-
-def test_nas_numeric_limits():
-    MAX = pow(2,31)-1
-    src = [0,1,None,MAX,None,-MAX,None]*1000
-    rev = False
-    DT = dt.Frame(A=src)
-
-    EXP1 = dt.Frame(A=sort_func(src, rev, "first"))
-    EXP2 = dt.Frame(A=sort_func(src, rev, "last"))
-    EXP3 = dt.Frame(A=sort_func(src, rev, "remove"))
-
-    RES1 = DT[:, :, dt.sort(0, reverse=rev, na_position="first")]
-    RES2 = DT[:, :, dt.sort(0, reverse=rev, na_position="last")]
-    RES3 = DT[:, :, dt.sort(0, reverse=rev, na_position="remove")]
-
-    assert_equals(EXP1, RES1)
-    assert_equals(EXP2, RES2)
-    assert_equals(EXP3, RES3)
+    RES = DT[:, :, dt.sort(0, reverse=rev, na_position=napos)]
+    EXP = dt.Frame(A=sort_func(src, rev, napos))
+    assert_equals(RES, EXP)
 
 #-------------------------------------------------------------------------------
 # Misc issues
