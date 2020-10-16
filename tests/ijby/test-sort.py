@@ -1021,10 +1021,7 @@ def test_sort_double_negation():
 #-------------------------------------------------------------------------------
 
 def key_func(x, rev, na_pos):
-    if na_pos == "first":
-        return not rev if x is not None else rev
-    else:
-        return not rev if x is None else rev
+    return (x is None) ^ (rev) ^ (na_pos == "first")
 
 def sort_func(src, rev, na_pos):
     if na_pos == "remove":
