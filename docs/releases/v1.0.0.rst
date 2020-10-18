@@ -5,7 +5,7 @@
     -----
     .. current-class:: datatable.Frame
 
-    -[fix] The row selector ``i`` in the delete operation ``del DT[i, :]``
+    -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.
 
