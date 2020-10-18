@@ -309,32 +309,35 @@ def test_del_rows_slice_step():
     assert d0.to_list() == [[1, 2, 4, 5, 7, 8]]
 
 
-def test_del_rows_array():
-    d0 = dt.Frame(range(10))
-    del d0[[0, 7, 8], :]
+def setdiff(rows, del_array):
+    del_array = [rows[i] for i in del_array]
+    res = list(set(rows) - set(del_array))
+    res.sort()
+    return res
+
+
+@pytest.mark.parametrize('del_array', [[0,7,8],
+                                       [3,1,5,2,2,0,-1],
+                                       [-1,3,0,0,3,-1,4,1,1],
+                                       [5,6,5,8,5,-1,3,0,0,3,-1,4,1,1],
+                                       [3],
+                                       [],
+                                       [3]*1000])
+def test_del_rows_array_unsorted_1(del_array):
+    rows = range(10)
+    d0 = dt.Frame(rows)
+    del d0[del_array, :]
     frame_integrity_check(d0)
-    assert d0.to_list() == [[1, 2, 3, 4, 5, 6, 9]]
+    assert d0.to_list() == [setdiff(rows,del_array)]
 
 
-def test_del_rows_array_unordered():
-    d0 = dt.Frame(range(10))
-    del d0[[3, 1, 5, 2, 2, 0, -1], :]
+@pytest.mark.parametrize('del_array',[[3,2,0,2,0,1,4,4,0]])
+def test_del_rows_array_unsorted_2(del_array):
+    rows = range(5)
+    d0 = dt.Frame(rows)
+    del d0[del_array, :]
     frame_integrity_check(d0)
-    assert d0.to_list() == [[4, 6, 7, 8]]
-
-
-def test_del_rows_array_unordered_index_duplicated():
-    d0 = dt.Frame(range(10))
-    del d0[[-1, 3, 0, 0, 3, -1, 4, 1, 1], :]
-    frame_integrity_check(d0)
-    assert d0.to_list() == [[2, 5, 6, 7, 8]]
-
-
-def test_del_rows_array_unordered_larger_than_frame():
-    d0 = dt.Frame(range(10))
-    del d0[[5, 6, 5, 8, 5, -1, 3, 0, 0, 3, -1, 4, 1, 1], :]
-    frame_integrity_check(d0)
-    assert d0.to_list() == [[2, 7]]
+    assert d0.to_list() == [setdiff(rows,del_array)]
 
 
 def test_del_rows_filter():

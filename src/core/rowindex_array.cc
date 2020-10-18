@@ -313,14 +313,6 @@ void ArrayRowIndexImpl::compactify()
   _resize_data();
 }
 
-template<typename TI>
-void get_next_index_to_skip(const TI* inputs, size_t& j)
-{
-  while (inputs[j] == inputs[j+1]) {
-    ++j;
-  }
-  ++j;
-}
 
 template <typename TI, typename TO>
 RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
@@ -333,22 +325,25 @@ RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
   TO orows = static_cast<TO>(nrows);
 
   TO next_index_to_skip = static_cast<TO>(inputs[0]);
-  size_t count_indices_to_skip = 0;
+  size_t count_indices_skipped = 0;
   size_t j = 0;  // index to read from the `inputs` array
   size_t k = 0;  // next index to write into the `outputs` array
   for (TO i = 0; i < orows; ++i) {
     if (i == next_index_to_skip) {
-      ++count_indices_to_skip;
-      get_next_index_to_skip(inputs, j);
+      ++count_indices_skipped;
+      while ( (j+1 < inpsize) && (inputs[j] == inputs[j+1]) ) {
+        ++j;
+      }
+      ++j;
       next_index_to_skip = j < inpsize? static_cast<TO>(inputs[j]) : orows;
     } else {
       outputs[k++] = i;
     }
   }
-  xassert(nrows >= count_indices_to_skip);
+  xassert(nrows >= count_indices_skipped);
   int flags = RowIndex::SORTED;
   flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
-  outbuf.resize((newsize - count_indices_to_skip) * sizeof(TO));
+  outbuf.resize((newsize - count_indices_skipped) * sizeof(TO));
   return new ArrayRowIndexImpl(std::move(outbuf), flags);
 }
 
