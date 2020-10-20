@@ -161,7 +161,7 @@ div.sidebar-left {
   bottom: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  padding: 70px 0 0 10pt;
+  padding: 70px 0 0 6px;
   position: fixed;
   top: 0;
   width: 300px;
@@ -180,10 +180,6 @@ div.nav-left ul {
 div.nav-left ul.current,
 div.nav-left > ul {
   display: block;
-}
-
-div.nav-left > ul.current {
-  margin-left: -10px;
 }
 
 div.nav-left li {
