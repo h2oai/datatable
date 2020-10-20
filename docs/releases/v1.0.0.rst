@@ -14,6 +14,10 @@
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
 
+    -[enh] Function :func:`sort()` can now accept a third argument na_positon.
+      It can take three values: "first"(default), "last" and "remove". The
+      values describe the position assigned to NAs after sorting.
+
 
     General
     -------
