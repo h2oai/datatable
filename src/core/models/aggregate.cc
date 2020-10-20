@@ -134,12 +134,10 @@ return: Tuple[Frame, Frame]
     the exemplar's rows from the input frame.
 
 
-except: ValueError
-    The exception is raised if the input frame is missing.
-
 except: TypeError
     The exception is raised when one of the `frame`'s columns has an
-    unsupported stype, i.e. the column is both non-numeric and non-string.
+    unsupported stype, i.e. there is a column that is both non-numeric
+    and non-string.
 
 )";
 

@@ -242,13 +242,18 @@
         Single-column frame containing the column at the specified index or
         with the given name.
 
-    except: KeyError
-        The exception is raised if the column with the given name does not
-        exist in the frame.
+    except: KeyError | IndexError
+        .. list-table::
+            :widths: auto
+            :class: api-table
 
-    except: IndexError
-        The exception is raised if the column does not exist at the provided
-        index `j`.
+            * - :exc:`KeyError`
+              - raised if the column with the given name does not
+                exist in the frame.
+
+            * - :exc:`IndexError`
+              - raised if the column does not exist at the provided
+                index `j`.
 
 
 
