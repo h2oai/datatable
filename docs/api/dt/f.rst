@@ -5,7 +5,7 @@
     The main :class:`Namespace` object.
 
     The function of this object is that during the evaluation of a
-    :meth:`DT[i,j] <Frame.__getitem__>` call, the variable ``f``
+    :meth:`DT[i,j] <dt.Frame.__getitem__>` call, the variable ``f``
     represents the columns of frame ``DT``.
 
     Specifically, *within* expression ``DT[i, j]`` the following
@@ -19,4 +19,4 @@
 
     See also
     --------
-    - :data:`g <datatable.g>` -- namespace for joined frames.
+    - :data:`g` -- namespace for joined frames.

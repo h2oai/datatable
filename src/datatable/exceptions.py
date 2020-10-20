@@ -53,7 +53,6 @@ class ValueError(DtException, builtins.ValueError): pass
 
 
 class DatatableWarning(DtException, UserWarning): pass
-class FreadWarning(DatatableWarning): pass
 class IOWarning(DatatableWarning): pass
 
 

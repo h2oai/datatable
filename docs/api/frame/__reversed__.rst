@@ -9,5 +9,5 @@
     frame[-3], ...``.
 
     This function is not intended for manual use. Instead, it is
-    invoked by Python builtin function :func:`reversed`.
+    invoked by Python builtin function :ext-func:`reversed() <reversed>`.
 

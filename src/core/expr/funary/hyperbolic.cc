@@ -74,8 +74,8 @@ Hyperbolic sine of `x`, defined as
 
 See also
 --------
-- :func:`cosh <math.cosh>` -- hyperbolic cosine;
-- :func:`arsinh <math.arsinh>` -- inverse hyperbolic sine.
+- :func:`cosh` -- hyperbolic cosine;
+- :func:`arsinh` -- inverse hyperbolic sine.
 )";
 
 py::PKArgs args_sinh(1, 0, 0, false, false, {"x"}, "sinh", doc_sinh);
@@ -101,8 +101,8 @@ The hyperbolic cosine of `x`, defined as
 
 See also
 --------
-- :func:`sinh <math.sinh>` -- hyperbolic sine;
-- :func:`arcosh <math.arcosh>` -- inverse hyperbolic cosine.
+- :func:`sinh` -- hyperbolic sine;
+- :func:`arcosh` -- inverse hyperbolic cosine.
 )";
 
 py::PKArgs args_cosh(1, 0, 0, false, false, {"x"}, "cosh", doc_cosh);
@@ -128,7 +128,7 @@ Hyperbolic tangent of `x`, defined as
 
 See also
 --------
-- :func:`artanh <math.artanh>` -- inverse hyperbolic tangent.
+- :func:`artanh` -- inverse hyperbolic tangent.
 )";
 
 py::PKArgs args_tanh(1, 0, 0, false, false, {"x"}, "tanh", doc_tanh);
@@ -157,8 +157,8 @@ Alternatively, this function can also be computed as
 
 See also
 --------
-- :func:`sinh <math.sinh>` -- hyperbolic sine;
-- :func:`arcosh <math.arcosh>` -- inverse hyperbolic cosine.
+- :func:`sinh` -- hyperbolic sine;
+- :func:`arcosh` -- inverse hyperbolic cosine.
 )";
 
 py::PKArgs args_arsinh(1, 0, 0, false, false, {"x"}, "arsinh", doc_arsinh);
@@ -187,8 +187,8 @@ Alternatively, this function can also be computed as
 
 See also
 --------
-- :func:`cosh <math.cosh>` -- hyperbolic cosine;
-- :func:`arsinh <math.arsinh>` -- inverse hyperbolic sine.
+- :func:`cosh` -- hyperbolic cosine;
+- :func:`arsinh` -- inverse hyperbolic sine.
 )";
 
 py::PKArgs args_arcosh(1, 0, 0, false, false, {"x"}, "arcosh", doc_arcosh);
@@ -211,13 +211,13 @@ R"(artanh(x)
 
 The inverse hyperbolic tangent of `x`.
 
-This function satisfies the property that ``sinh(arcsinh(x)) == x``.
+This function satisfies the property that ``tanh(artanh(x)) == x``.
 Alternatively, this function can also be computed as
 :math:`\tanh^{-1}(x) = \frac12\ln\frac{1+x}{1-x}`.
 
 See also
 --------
-- :func:`tanh <math.tanh>` -- hyperbolic tangent;
+- :func:`tanh` -- hyperbolic tangent;
 )";
 
 py::PKArgs args_artanh(1, 0, 0, false, false, {"x"}, "artanh", doc_artanh);

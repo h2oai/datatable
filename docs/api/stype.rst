@@ -45,10 +45,10 @@
           - **numpy** dtype corresponding to this stype.
 
         * - :attr:`.ltype <datatable.stype.ltype>`
-          - :class:`ltype` corresponding to this stype.
+          - :class:`dt.ltype` corresponding to this stype.
 
         * - :attr:`.struct <datatable.stype.struct>`
-          - :mod:`struct` string corresponding to this stype.
+          - :ext-mod:`struct` string corresponding to this stype.
 
         * - :attr:`.min <datatable.stype.min>`
           - The smallest numeric value for this stype.

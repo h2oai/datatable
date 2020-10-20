@@ -74,7 +74,7 @@ class stype(enum.Enum):
     @property
     def ltype(self):
         """
-        :class:`ltype` corresponding to this stype. Several stypes may map to
+        :class:`dt.ltype` corresponding to this stype. Several stypes may map to
         the same ltype, whereas each stype is described by exactly one ltype.
         """
         return _stype_2_ltype[self]
@@ -82,7 +82,7 @@ class stype(enum.Enum):
     @property
     def ctype(self):
         """
-        :mod:`ctypes` class that describes the C-level type of each element
+        :ext-mod:`ctypes` class that describes the C-level type of each element
         in a column with this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the ctype
@@ -104,7 +104,7 @@ class stype(enum.Enum):
     @property
     def struct(self):
         """
-        :mod:`struct` format string corresponding to this stype.
+        :ext-mod:`struct` format string corresponding to this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the
         format string of only the fixed-width component of that column. Thus,

@@ -30,4 +30,4 @@
 
     See also
     --------
-    - :meth:`__lshift__(x, y) <FExpr.__lshift__>` -- left shift.
+    - :meth:`__lshift__(x, y) <dt.FExpr.__lshift__>` -- left shift.

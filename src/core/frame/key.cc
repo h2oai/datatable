@@ -52,14 +52,14 @@ Parameters
     When used as a getter, returns the tuple of names of the primary
     key columns.
 
-newkey: str | List[str] | Tuple[str, ...] | None
+new_key: str | List[str] | Tuple[str, ...] | None
     Specify a column or a list of columns that will become the new
     primary key of the Frame. Object columns cannot be used for a key.
     The values in the key column must be unique; if multiple columns
     are assigned as the key, then their combined (tuple-like) values
     must be unique.
 
-    If `newkey` is `None`, then this is equivalent to deleting the
+    If `new_key` is `None`, then this is equivalent to deleting the
     key. When the key is deleted, the key columns remain in the frame,
     they merely stop being marked as "key".
 
@@ -67,7 +67,7 @@ newkey: str | List[str] | Tuple[str, ...] | None
     Raised when the values in the key column(s) are not unique.
 
 (except): KeyError
-    Raised when `newkey` contains a column name that doesn't exist
+    Raised when `new_key` contains a column name that doesn't exist
     in the Frame.
 
 Examples

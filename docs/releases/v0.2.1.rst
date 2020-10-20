@@ -3,8 +3,9 @@
   :version: 0.2.1
   :released: 2017-09-11
 
-  .. ref-context:: datatable
-
+  General
+  -------
+  .. current-module:: datatable
 
   -[new] Created the CHANGELOG file.
 

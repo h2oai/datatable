@@ -59,10 +59,10 @@
 
     See Also
     --------
-    - :func:`update()` -- An alternative way to update values in the frame within
+    - :func:`dt.update()` -- An alternative way to update values in the frame within
       ``DT[i, j]`` getter.
 
-    - :meth:`Frame.replace()` -- Search and replace for certain values within
+    - :meth:`.replace()` -- Search and replace for certain values within
       the entire frame.
 
 
