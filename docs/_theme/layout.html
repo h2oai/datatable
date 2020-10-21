@@ -63,6 +63,13 @@
     <a href="{{ pathto(master_doc)|e }}" class="logo_image">
       <img src="{{pathto(theme_logo, 1)}}">
     </a>
+    <div class="highlight-box" role="alert" style="display:none">
+      <div>
+        <div class="title">highlighted:</div>
+        <div class="content" id="highlight-content"></div>
+      </div>
+      <button type="button" class="close" data-dismiss="alert" aria-label="Dismiss">×</button>
+    </div>
     <div class="expander"></div>
     <div class="searchbox" role="search">
       <form id="dt-search-form" action="{{ pathto('search') }}" method="get">

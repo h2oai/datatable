@@ -5,7 +5,7 @@
 @font-face { font-family: Lato; src: url("fonts/lato-italic.woff2")      format("woff2"); font-weight: 400; font-style: italic; font-display: block; }
 
 :root {
-  --highlight-color: #ffe85b;
+  --highlight-color: 255, 233, 92;
 }
 
 
@@ -293,11 +293,11 @@ div.copyright {
  * Search results
  *----------------------------------------------------------------------------*/
 
-div[role="main"] span.highlighted {
-  background-color: var(--highlight-color);
+div[role="main"] span.highlighted:not(.off) {
+  background-color: rgb(var(--highlight-color));
   border-radius: 5px;
-  box-shadow: 0 0 0 3px var(--highlight-color),
-              0 0 0 4px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 3px rgb(var(--highlight-color)),
+              0 0 0 4px rgba(0, 0, 0, 0.3);
   color: #000;
 }
 
@@ -332,6 +332,56 @@ ul.search > li > div.context span.highlighted {
   font-weight: bold;
   color: #000;
 }
+
+
+
+/*------------------------------------------------------------------------------
+ * Search highlight box
+ *----------------------------------------------------------------------------*/
+
+div.highlight-box {
+  background: black linear-gradient(rgba(var(--highlight-color), 100%),
+                                    rgba(var(--highlight-color), 85%),
+                                    rgba(var(--highlight-color), 50%));
+  border: 1px solid #5a441b;
+  border-style: none solid;
+  display: flex;
+  height: 100%;
+  left: 340px;
+  padding: 3px 8px;
+  position: absolute;
+  top: 0;
+}
+
+div.highlight-box div.title {
+  font-size: 12px;
+  font-variant: small-caps;
+  line-height: 16px;
+  opacity: 0.5;
+}
+
+div.highlight-box div.content {
+  display: flex;
+}
+
+div.highlight-box div.content > span {
+  background: rgb(var(--highlight-color));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 4px;
+  padding: 1px 6px 2px 6px;
+}
+
+div.highlight-box div.content > span.off {
+  background: none;
+  border-style: dashed;
+}
+
+div.highlight-box button.close {
+  margin: 0 0 0 20px;
+}
+
 
 
 
