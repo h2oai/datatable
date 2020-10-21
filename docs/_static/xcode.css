@@ -17,7 +17,7 @@ div.document p + .xcode {
 .section ul li>p + .xcode,
 .section dl dd>p + .xcode {
     margin-left: 24px;
-    margin-top: -10px;
+    margin-top: 0;
 }
 
 

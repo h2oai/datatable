@@ -430,3 +430,33 @@ table.api-table td:first-child a:hover code.literal {
   text-decoration: underline;
 }
 
+
+
+/*------------------------------------------------------------------------------
+ * Footnotes
+ *----------------------------------------------------------------------------*/
+
+a.footnote-reference {
+  font-size: 60%;
+  position: relative;
+  top: -4px;
+}
+
+p.rubric {
+  border-top: 1px solid #ccc;
+  font-weight: bold;
+  font-size: 0;
+  margin: 40px 0 6px 0;
+}
+
+dl.footnote dt {
+  display: inline;
+  font-size: 60%;
+  position: relative;
+  top: -4px;
+  padding-right: 6px;
+}
+
+dl.footnote dd {
+  display: inline-block;
+}
