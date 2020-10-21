@@ -6,6 +6,10 @@
 
 :root {
   --highlight-color: 255, 233, 92;
+  --top-menu-height: 50px;
+  --left-menu-width: 270px;
+  --right-menu-width: 240px;
+  --document-width: 900px;
 }
 
 
@@ -15,7 +19,7 @@
 
 html {
   /* Ensure that anchors within the page scroll past the top header */
-  scroll-padding-top: 65px;
+  scroll-padding-top: calc(var(--top-menu-height) + 25px);
 }
 
 body {
@@ -90,7 +94,7 @@ div.topbar {
   box-shadow: 0px 3px 7px rgba(80,80,80,0.25), 0 1px 2px rgba(50,50,50,0.35);
   contain: strict;
   display: flex;
-  height: 50px;
+  height: var(--top-menu-height);
   margin-left: auto;
   margin-right: auto;
   padding: 5px 15px;
@@ -157,7 +161,7 @@ div.sidebar-left-bg {
   contain: strict;
   position: fixed;
   top: 0;
-  width: 300px;
+  width: var(--left-menu-width);
   z-index: 1005;
 }
 
@@ -167,8 +171,8 @@ div.sidebar-left {
   overflow-y: auto;
   padding: 20px 0 0 6px;
   position: fixed;
-  top: 50px;
-  width: 300px;
+  top: var(--top-menu-height);
+  width: var(--left-menu-width);
   z-index: 1007;
 }
 
@@ -226,13 +230,14 @@ div.nav-left li.current > ul {
 
 body > div.main-area {
   display: flex;
-  margin: 75px 0 25px 340px;
+  margin: 75px 0 25px calc(var(--left-menu-width) + 40px);
 }
 
 div.nav-right > #toc-local {
   border-left: 4px solid #2d659c;
   border-radius: 0;
   margin: 0 0 0 20px;
+  max-width: var(--right-menu-width);
   padding: 0 0 0 10px;
   position: fixed;
 }
@@ -277,7 +282,7 @@ div.document {
   background-color: white;
   border-radius: 2pt;
   box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
-  width: 900px;
+  width: var(--document-width);
   padding: 40px;
 }
 
@@ -347,7 +352,7 @@ div.highlight-box {
   border-style: none solid;
   display: flex;
   height: 100%;
-  left: 340px;
+  left: calc(var(--left-menu-width) + 40px);
   padding: 3px 8px;
   position: absolute;
   top: 0;
