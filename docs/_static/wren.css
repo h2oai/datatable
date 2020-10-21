@@ -4,6 +4,10 @@
 @font-face { font-family: Lato; src: url("fonts/lato-bold-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: block; }
 @font-face { font-family: Lato; src: url("fonts/lato-italic.woff2")      format("woff2"); font-weight: 400; font-style: italic; font-display: block; }
 
+:root {
+  --highlight-color: #ffe85b;
+}
+
 
 /*------------------------------------------------------------------------------
  * General properties
@@ -281,6 +285,51 @@ div.copyright {
   font-size: 12px;
   margin-top: 3px;
   opacity: 0.5;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Search results
+ *----------------------------------------------------------------------------*/
+
+div[role="main"] span.highlighted {
+  background-color: var(--highlight-color);
+  border-radius: 5px;
+  box-shadow: 0 0 0 3px var(--highlight-color),
+              0 0 0 4px rgba(0,0,0,0.3);
+}
+
+div#search-results h2 {
+  display: none;
+}
+
+div#search-results p.search-summary {
+  opacity: 0.25;
+}
+
+ul.search {
+  padding: 0;
+}
+
+ul.search > li {
+  list-style: none;
+  margin: 0 0 20px 0;
+}
+
+ul.search > li > a {
+  font-size: 18px;
+}
+
+ul.search > li > div.context {
+  color: #555;
+}
+
+ul.search > li > div.context span.highlighted {
+  background: none;
+  box-shadow: none;
+  font-weight: bold;
+  color: #000;
 }
 
 
