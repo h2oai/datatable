@@ -8,8 +8,8 @@
     </style>
 
 
-Comparison with Pandas
-=======================
+Comparison with pandas
+======================
 A lot of potential ``datatable`` users are likely to have some familiarity with `pandas <https://pandas.pydata.org/pandas-docs/stable/index.html>`__; as such, this page provides some examples of how various ``pandas`` operations can be performed within ``datatable``. ``datatable`` emphasizes speed and big data support (an area that ``pandas`` struggles with); it also has an expressive and concise syntax, which makes ``datatable`` also useful for small datasets.
 
 .. note:: In ``pandas``, there are two fundamental data structures, `Series <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.html#pandas.Series>`__ and `DataFrame <https://pandas.pydata.org/pandas-docs/stable/user_guide/dsintro.html#dataframe>`__. In ``datatable``, there is only one fundamental data structure - the `Frame <https://datatable.readthedocs.io/en/latest/api/frame.html#datatable-frame>`__. Most of the comparisons will be between ``pandas`` DataFrame and ``datatable`` Frame.
@@ -36,7 +36,7 @@ Row and Column Selection
 ------------------------
 
 =================================================  ============================================
-        Pandas                                              datatable
+pandas                                              datatable
 =================================================  ============================================
 Select a single row
 ``df.loc[2]``                                        ``DT[2, :]``
@@ -111,7 +111,7 @@ Same as above, by position
 =================================================  ============================================
 
 
-In ``pandas`` every frame has a row index, and if a filtration is executed, the row number is returned :
+In ``pandas`` every frame has a row index, and if a filtration is executed, the row number is returned:
 
 .. code-block:: python
 
@@ -156,7 +156,7 @@ In ``pandas``, the index can be numbers, or characters, or intervals, or even Mu
     b	2	5	8	7
     c	3	6	9	2
 
-``datatable`` has the `key <https://datatable.readthedocs.io/en/latest/api/frame/key.html#datatable-frame-key>`__ property, which is meant as an equivalent of pandas indices, but its purpose at the moment is for joins, not for subsetting data :
+``datatable`` has the `key <https://datatable.readthedocs.io/en/latest/api/frame/key.html#datatable-frame-key>`__ property, which is meant as an equivalent of pandas indices, but its purpose at the moment is for joins, not for subsetting data:
 
 .. code-block:: python
 
@@ -190,10 +190,11 @@ In ``pandas``, the index can be numbers, or characters, or intervals, or even Mu
 
     TypeError: A string slice cannot be used as a row selector
 
-Pandas' ``loc`` notation works on labels, while ``iloc`` works on actual position. This is noticeable during row selection.  ``datatable``, however, works only on position.
+pandas' ``loc`` notation works on labels, while ``iloc`` works on actual position. This is noticeable during row selection.  ``datatable``, however, works only on position.
 
 .. code-block:: python
 
+    # pandas
     df1 = df.set_index('C')
 
         A	B	D
@@ -208,6 +209,7 @@ Selecting with loc for the row with number 7 returns no error :
 
 .. code-block:: python
 
+    # pandas
     df1.loc[7]
 
     A    1
@@ -219,6 +221,7 @@ However, selecting with ``iloc`` for the row with number 7 returns an error, bec
 
 .. code-block:: python
 
+    # pandas
     df.iloc[7]
 
     ---------------------------------------------------------------------------
@@ -259,7 +262,7 @@ Add New/Update Existing Columns
 -------------------------------
 
 =======================================================  ===============================================================
-        Pandas                                              datatable
+pandas                                                      datatable
 =======================================================  ===============================================================
 Add a new column with a scalar value
 ``df['new_col'] = 2``                                        ``DT['new_col'] = 2``
@@ -293,7 +296,7 @@ Rename Columns
 --------------
 
 =======================================================  ===============================================================
-        Pandas                                              datatable
+pandas                                                      datatable
 =======================================================  ===============================================================
 Rename a column
 ``df = df.rename(columns={"A":"col_A"})``                    ``DT.names = {"A" : "col_A"}``
@@ -321,7 +324,7 @@ Delete Columns
 --------------
 
 =======================================================  ===============================================================
-        Pandas                                              datatable
+pandas                                                      datatable
 =======================================================  ===============================================================
 Delete a column
 ``del df['B']``                                                ``del DT['B']``
@@ -340,7 +343,7 @@ Sorting
 -------
 
 ===========================================================  ===============================================================
-        Pandas                                                datatable
+pandas                                                       datatable
 ===========================================================  ===============================================================
 Sort by a column - default ascending
 ``df.sort_values('A')``                                       ``DT.sort('A')`` or ``DT[:, : , sort('A')]``
@@ -363,11 +366,11 @@ Sort by multiple columns - different sort directions
                                                               | ``DT[:, :, sort('A', 'C', reverse=[False, True])]``
 ===========================================================  ===============================================================
 
-.. note:: By default, ``Pandas`` puts NAs last in the sorted data, while ``datatable`` puts them first.
+.. note:: By default, ``pandas`` puts NAs last in the sorted data, while ``datatable`` puts them first.
 
-.. note:: In ``Pandas``, there is an option to sort with a Callable; this option is not supported in ``datatable``.
+.. note:: In ``pandas``, there is an option to sort with a Callable; this option is not supported in ``datatable``.
 
-.. note:: In ``Pandas``, you can sort on the rows or columns; in ``datatable`` sorting is column-wise only.
+.. note:: In ``pandas``, you can sort on the rows or columns; in ``datatable`` sorting is column-wise only.
 
 Grouping and Aggregation
 ------------------------
@@ -386,7 +389,7 @@ Grouping and Aggregation
 
 
 ===========================================================  ===============================================================
-        Pandas                                                datatable
+pandas                                                         datatable
 ===========================================================  ===============================================================
 Group by ``a`` and sum the other columns
 ``df.groupby("a").agg("sum")``                                  ``DT[:, dt.sum(f[:]), by("a")]``
@@ -413,7 +416,7 @@ Get the last two rows per group
 ``df.groupby("a").tail(2)``                                     ``DT[-2:, :, by("a")]``
 ===========================================================  ===============================================================
 
-Transformations within groups in pandas is done using the `transform <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.groupby.DataFrameGroupBy.transform.html>`__ function :
+Transformations within groups in pandas is done using the `transform <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.groupby.DataFrameGroupBy.transform.html>`__ function:
 
 .. code-block:: python
 
@@ -428,10 +431,11 @@ Transformations within groups in pandas is done using the `transform <https://pa
     3	1	2	33	2
     4	2	4	50	4
 
-In ``datatable``, transformations occur within the ``j`` section; in the presence of :func:`by()`, the computations within ``j`` are per group :
+In ``datatable``, transformations occur within the ``j`` section; in the presence of :func:`by()`, the computations within ``j`` are per group:
 
 .. code-block:: python
 
+    # datatable
     DT[:, f[:].extend({"min_b": dt.min(f.b)}), by("a")]
 
     	a	b	c	min_b
@@ -441,11 +445,12 @@ In ``datatable``, transformations occur within the ``j`` section; in the presenc
     3	2	30	50	4
     4	2	4	50	4
 
-Note that the result above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster) :
+Note that the result above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster):
 
 
 .. code-block:: python
 
+    # datatable
     DT[:, update(min_b = dt.min(f.b)), by("a")]
 
     DT
@@ -457,7 +462,7 @@ Note that the result above is sorted by the grouping column. If you want the dat
     3	1	2	33	2
     4	2	4	50	4
 
-In Pandas, some computations might require creating the column first before aggregation within a groupby. Take the example below, where we need to calculate the revenue per group :
+In pandas, some computations might require creating the column first before aggregation within a groupby. Take the example below, where we need to calculate the revenue per group:
 
 .. code-block:: python
 
@@ -468,10 +473,16 @@ In Pandas, some computations might require creating the column first before aggr
     df1 = pd.DataFrame(data) # pandas
     DT1 = dt.Frame(data)  # datatable
 
-To get the total revenue, we first need to create a revenue column, then sum it in the groupby :
+    	shop	item_price	item_sold
+    0	A	    123	            1
+    1	B	    921	            2
+    2	A	    28	            4
+
+To get the total revenue, we first need to create a revenue column, then sum it in the groupby:
 
 .. code-block:: python
 
+    # pandas
     df1['revenue'] = df1['item_price'] * df1['item_sold']
     df1.groupby("shop")['revenue'].sum().reset_index()
 
@@ -494,14 +505,14 @@ In ``datatable``, there is no need to create a temporary column; you can easily 
 You can learn more about the :func:`by()` function  at the `Grouping with by <https://datatable.readthedocs.io/en/latest/manual/groupby_examples.html>`__ documentation, as well as the API : :func:`by()`.
 
 
-.. note:: Pandas allows custom functions via the ``apply`` or ``pipe`` method. ``datatable`` does not yet support custom functions.
+.. note:: pandas allows custom functions via the ``apply`` or ``pipe`` method. ``datatable`` does not yet support custom functions.
 
-.. note:: Also missing in ``datatable`` but available in Pandas are cumulative functions (cumsum, cumprod, ...), some aggregate functions like `nunique`, `ngroup`, ..., as well as windows functions (rolling, expanding, ...)
+.. note:: Also missing in ``datatable`` but available in pandas are cumulative functions (cumsum, cumprod, ...), some aggregate functions like `nunique`, `ngroup`, ..., as well as windows functions (rolling, expanding, ...)
 
 CONCATENATE
-------------
+-----------
 
-In Pandas you can combine multiple dataframes using the ``concatenate`` method; the concatenation is based on the indices :
+In pandas you can combine multiple dataframes using the ``concatenate`` method; the concatenation is based on the indices :
 
 .. code-block:: python
 
@@ -524,7 +535,7 @@ By default, pandas concatenates the rows, with one dataframe on top of the other
     1	b	5
     2	b	6
 
-The same functionality can be replicated in ``datatable`` using the `rbind <file:///home/sam/github_cloned_projects/datatable/docs/_build/html/api/frame/rbind.html>`__ function:
+The same functionality can be replicated in ``datatable`` using the `rbind <https://datatable.readthedocs.io/en/latest/api/frame/rbind.html#datatable-frame-rbind>`__ function:
 
 .. code-block:: python
 
@@ -542,9 +553,9 @@ The same functionality can be replicated in ``datatable`` using the `rbind <file
     4	b	5
     5	b	6
 
-Notice how in ``Pandas`` the indices are preserved (you can get rid of the indices with the `ignore_index` argument), whereas in ``datatable`` the indices are not referenced.
+Notice how in ``pandas`` the indices are preserved (you can get rid of the indices with the `ignore_index` argument), whereas in ``datatable`` the indices are not referenced.
 
-To combine data across the columns, in ``Pandas``, you set the axis argument to ``columns`` :
+To combine data across the columns, in ``pandas``, you set the axis argument to ``columns`` :
 
 .. code-block:: python
 
@@ -562,7 +573,7 @@ To combine data across the columns, in ``Pandas``, you set the axis argument to 
     1	a	1	b	5	c	8
     2	a	2	b	6	c	9
 
-In ``datatable``, you combine frames along the columns using the `cbind <file:///home/sam/github_cloned_projects/datatable/docs/_build/html/api/frame/cbind.html>`__ function :
+In ``datatable``, you combine frames along the columns using the `cbind <https://datatable.readthedocs.io/en/latest/api/frame/cbind.html#datatable-frame-cbind>`__ function :
 
 .. code-block:: python
 
@@ -579,7 +590,7 @@ In ``datatable``, you combine frames along the columns using the `cbind <file://
     1	a	1	b	5	c	8
     2	a	2	b	6	c	9
 
-In ``Pandas``, if you concatenate dataframes along the rows, and the columns do not match, a dataframe of all the columns is returned, with null values for the missing rows :
+In ``pandas``, if you concatenate dataframes along the rows, and the columns do not match, a dataframe of all the columns is returned, with null values for the missing rows :
 
 .. code-block:: python
 
@@ -621,9 +632,9 @@ In ``datatable``, if you concatenate along the rows and the columns in the frame
 JOIN/MERGE
 ----------
 
-``Pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and the keys must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function. As such, our comparison will be limited to left-joins only.
+``pandas`` has a variety of options for joining dataframes, using the ``join`` or ``merge`` method; in ``datatable``, only the left join is possible, and there are certain limitations. You have to set keys on the dataframe to be joined, and for that, the keyed columns must be unique. The main function in ``datatable`` for joining dataframes based on column values is the :func:`join()` function. As such, our comparison will be limited to left-joins only.
 
-In Pandas, you can join dataframes easily with the ``merge`` method :
+In pandas, you can join dataframes easily with the ``merge`` method :
 
 .. code-block:: python
 
@@ -648,7 +659,7 @@ In Pandas, you can join dataframes easily with the ``merge`` method :
     7	c	3	8	8.0	4.0
     8	c	6	9	8.0	4.0
 
-In datatable, there are limitations currently. First, the joining dataframe must be keyed. Second, the column(s) used as the joining key(s) must be unique. Third, the join columns must have the same name.
+In datatable, there are limitations currently. First, the joining dataframe must be keyed. Second, the values in the column(s) used as the joining key(s) must be unique, otherwise the keying operation will fail. Third, the join columns must have the same name.
 
 .. code-block:: python
 
@@ -676,10 +687,10 @@ More details about joins in ``datatable`` can be found at the :func:`join()` API
 MORE EXAMPLES
 -------------
 
-This section shows how some solutions in ``Pandas`` can be translated to ``datatable``; most of the examples used here, as well as the ``Pandas`` solutions,  are from the `Pandas cookbook <https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html>`__.
+This section shows how some solutions in ``pandas`` can be translated to ``datatable``; the examples used here, as well as the ``pandas`` solutions,  are from the `pandas cookbook <https://pandas.pydata.org/pandas-docs/stable/user_guide/cookbook.html>`__.
 
 
-- if-then-else using numpy’s where() :
+- if-then-else using numpy’s `where() <https://numpy.org/doc/stable/reference/generated/numpy.where.html>`__ :
 
 .. code-block:: python
 
@@ -696,7 +707,7 @@ This section shows how some solutions in ``Pandas`` can be translated to ``datat
     2	6	30	-30
     3	7	40	-50
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     df['logic'] = np.where(df['AAA'] > 5, 'high', 'low')
 
@@ -716,7 +727,7 @@ In ``datatable``, this can be solved using the :func:`ifelse()` function
     DT["logic"] = DT[:, ifelse(f.AAA > 5, "high", "low")]
 
     DT
-        AAA	BBB	CCC	logic
+       AAA	BBB	CCC	logic
     0	4	10	100	low
     1	5	20	50	low
     2	6	30	−30	high
@@ -733,11 +744,11 @@ In ``datatable``, this can be solved using the :func:`ifelse()` function
 
     aValue = 43.0
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     df.loc[(df.CCC - aValue).abs().argsort()]
 
-     AAA  BBB  CCC
+        AAA  BBB  CCC
     1    5   20   50
     0    4   10  100
     2    6   30  -30
@@ -761,7 +772,7 @@ Now, we can apply the ``order`` variable to the ``i`` section ::
 
     DT[order, :]
 
-        AAA	BBB	CCC
+       AAA	BBB	CCC
     0	5	20	50
     1	4	10	100
     2	6	30	−30
@@ -782,7 +793,7 @@ Of course, you can skip creating a temporary variable (at the expense of readabi
                        "BBB": [1, 1, 2, 2],
                        "CCC": [2, 1, 3, 1]})
 
-        AAA	BBB	CCC
+       AAA	BBB	CCC
     0	1	1	2
     1	2	1	1
     2	1	2	3
@@ -828,7 +839,7 @@ We can replicate the solution above in ``datatable`` :
     2	1	2	3	Alpha	Beta	Charlie
     3	3	2	1	Charlie	Beta	Alpha
 
-- Keep other columns when using min() with groupby
+- Keep other columns when using ``min()`` with groupby
 
 .. code-block:: python
 
@@ -838,7 +849,7 @@ We can replicate the solution above in ``datatable`` :
 
     df
 
-      AAA  BBB
+        AAA  BBB
     0    1    2
     1    1    1
     2    1    3
@@ -848,11 +859,11 @@ We can replicate the solution above in ``datatable`` :
     6    3    2
     7    3    3
 
-Solution in ``Pandas``::
+Solution in ``pandas``::
 
     df.loc[df.groupby("AAA")["BBB"].idxmin()]
 
-           AAA  BBB
+        AAA  BBB
     1    1    1
     5    2    1
     6    3    2
@@ -867,7 +878,7 @@ In ``datatable``, you can :func:`sort()` within a group, to achieve the same res
 
     DT[0, :, by("AAA"), sort(f.BBB)]
 
-        AAA	BBB
+       AAA	BBB
     0	1	1
     1	2	1
     2	3	2
@@ -895,7 +906,7 @@ In ``datatable``, you can :func:`sort()` within a group, to achieve the same res
     6    cat    L      12   True
 
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     def GrowUp(x):
         avg_weight = sum(x[x['size'] == 'S'].weight * 1.5)
@@ -947,14 +958,14 @@ In ``datatable``, we can use the :func:`ifelse()` function to replicate the solu
                        'flag': [False, True] * 3})
 
         code	data	flag
-    0	foo	0.16	False
-    1	bar	-0.21	True
-    2	baz	0.33	False
-    3	foo	0.45	True
-    4	bar	-0.59	False
-    5	baz	0.62	True
+    0	 foo 	0.16	False
+    1	 bar   -0.21	True
+    2	 baz 	0.33	False
+    3	 foo 	0.45	True
+    4	 bar   -0.59	False
+    5	 baz	0.62	True
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     code_groups = df.groupby('code')
 
@@ -964,13 +975,13 @@ Solution in ``Pandas`` ::
 
     sorted_df
 
-        code  data   flag
-    1  bar -0.21   True
-    4  bar -0.59  False
-    0  foo  0.16  False
-    3  foo  0.45   True
-    2  baz  0.33  False
-    5  baz  0.62   True
+        code  data  flag
+    1   bar -0.21   True
+    4   bar -0.59  False
+    0   foo  0.16  False
+    3   foo  0.45   True
+    2   baz  0.33  False
+    5   baz  0.62   True
 
 The solution above sorts the data based on the sum of the ``data`` column per group in the ``code`` column.
 
@@ -982,13 +993,13 @@ We can replicate this in ``datatable`` ::
 
     DT[:, :-1, sort(f.sum_data)]
 
-        code	data	flag
-    0	bar	−0.21	1
-    1	bar	−0.59	0
-    2	foo	0.16	0
-    3	foo	0.45	1
-    4	baz	0.33	0
-    5	baz	0.62	1
+        code      data	    flag
+    0	bar      −0.21	     1
+    1	bar	 −0.59	     0
+    2	foo	  0.16	     0
+    3	foo	  0.45	     1
+    4	baz	  0.33	     0
+    5	baz	  0.62	     1
 
 - Create a value counts column and reassign back to the DataFrame
 
@@ -1006,7 +1017,7 @@ We can replicate this in ``datatable`` ::
     2   Red     50
     3  Blue     50
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     df['Counts'] = df.groupby(['Color']).transform(len)
 
@@ -1053,7 +1064,7 @@ In ``datatable``, you can replicate the solution above with the :func:`count()` 
     Paynter                  8    100
 
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     df['beyer_shifted'] = df.groupby(level=0)['beyer'].shift(1)
 
@@ -1083,7 +1094,7 @@ Solution in ``Pandas`` ::
     4	10	88	Paynter	            103
     5	8	100	Paynter	            88
 
-- Frequency table like plyr in R
+- Frequency table like `plyr <https://www.rdocumentation.org/packages/plyr/versions/1.8.6>`__ in R
 
 .. code-block:: python
 
@@ -1119,7 +1130,7 @@ Solution in ``Pandas`` ::
     9	x9	M	2009	        bio	    yes	        yes	    False	    78
 
 
-Solution in ``Pandas`` ::
+Solution in ``pandas`` ::
 
     df.groupby('ExamYear').agg({'Participated': lambda x: x.value_counts()['yes'],
                                 'Passed': lambda x: sum(x == 'yes'),
@@ -1152,7 +1163,7 @@ Feel free to submit a pull request on `github <https://github.com/h2oai/datatabl
 MISSING FUNCTIONS
 -----------------
 
-Listed below are some functions in Pandas that do not have an equivalent in datatable yet, and are likely to be implemented : 
+Listed below are some functions in pandas that do not have an equivalent in datatable yet, and are likely to be implemented:
 
 - Reshaping functions
     - `melt <https://pandas.pydata.org/docs/reference/api/pandas.melt.html>`__
@@ -1168,17 +1179,18 @@ Listed below are some functions in Pandas that do not have an equivalent in data
     - `forward fill <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.ffill.html>`__
     - `backward fill <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.bfill.html>`__
 
-- Aggregation functions, such as 
+- Aggregation functions, such as
     - `cumsum <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cumsum.html>`__
     - `cummax <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cummax.html>`__
     - `expanding <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.expanding.html>`__
     - `rolling <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rolling.html>`__
 
-- String functions, such as 
+- String functions, such as
     - `string split <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.str.split.html>`__
     - `string extract <https://pandas.pydata.org/pandas-docs/stable/generated/pandas.Series.str.extract.html>`__
     - `string replace <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Series.str.replace.html>`__
 
-- Custom function application, via `apply <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`__ and `pipe <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.pipe.html>`__
+- Custom function application, via `apply <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.apply.html>`__ and `pipe <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.pipe.html>`__.
+
 If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.
 
