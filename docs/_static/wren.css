@@ -233,13 +233,21 @@ body > div.main-area {
   margin: 75px 0 25px calc(var(--left-menu-width) + 40px);
 }
 
+div.sidebar-right {
+  flex: 5;
+  height: calc(100vh - 20px - var(--top-menu-height));
+  margin-right: 20px;
+  max-width: var(--right-menu-width);
+  position: sticky;
+  top: calc(20px + var(--top-menu-height));
+}
+
 div.nav-right > #toc-local {
   border-left: 4px solid #2d659c;
   border-radius: 0;
   margin: 0 0 0 20px;
   max-width: var(--right-menu-width);
   padding: 0 0 0 10px;
-  position: fixed;
 }
 
 div.nav-right > #toc-local a.list-group-item {
@@ -272,17 +280,28 @@ div.nav-right > #toc-local a.list-group-item.active {
   padding-left: 5px;
 }
 
+@media (max-width: 1200px) {
+  div.sidebar-right {
+    display: none;
+  }
+}
+
 
 
 /*------------------------------------------------------------------------------
  * Main document
  *----------------------------------------------------------------------------*/
 
+div.document-wrapper {
+  flex: 25;
+  max-width: var(--document-width);
+  min-width: calc(var(--document-width) * 2/3);
+}
+
 div.document {
   background-color: white;
   border-radius: 2pt;
   box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
-  width: var(--document-width);
   padding: 40px;
 }
 
