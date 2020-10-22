@@ -30,7 +30,7 @@ import tempfile
 import warnings
 
 from datatable.lib import core
-from datatable.exceptions import TypeError, ValueError, IOError, FreadWarning
+from datatable.exceptions import TypeError, ValueError, IOError, IOWarning
 from datatable.utils.misc import normalize_slice, normalize_range
 from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import backticks_escape as escape
@@ -426,7 +426,7 @@ def _apply_columns_set(colset, colsdesc):
             coltypes[i] = rtype.rauto.value
     if requested_cols:
         warnings.warn("Column(s) %r not found in the input file"
-                      % list(requested_cols), category=FreadWarning)
+                      % list(requested_cols), category=IOWarning)
     return (colnames, coltypes)
 
 

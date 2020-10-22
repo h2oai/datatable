@@ -8,7 +8,7 @@
     Find an stype corresponding to `value`.
 
     This method is called when you attempt to construct a new
-    :class:`stype` object, for example ``dt.stype(int)``. Instead of
+    :class:`dt.stype` object, for example ``dt.stype(int)``. Instead of
     actually creating any new stypes, we return one of the existing
     stype values.
 
@@ -21,7 +21,7 @@
         type such as `bool` or `float`, or a numpy dtype.
 
     return: stype
-        An :class:`stype` that corresponds to the input `value`.
+        An :class:`dt.stype` that corresponds to the input `value`.
 
     except: ValueError
         Raised if `value` does not correspond to any stype.

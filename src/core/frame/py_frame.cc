@@ -405,7 +405,7 @@ Force all data in the Frame to be laid out physically.
 
 In datatable, a Frame may contain "virtual" columns, i.e. columns
 whose data is computed on-the-fly. This allows us to have better
-performance for certain types of computations, while also reduce
+performance for certain types of computations, while also reducing
 the total memory footprint. The use of virtual columns is generally
 transparent to the user, and datatable will materialize them as
 needed.
@@ -467,7 +467,7 @@ frame `DT`. Such usage, however, is not recommended.
 
 See also
 --------
-- :attr:`nrows <Frame.nrows>`: getter for the number of rows of the frame.
+- :attr:`.nrows`: getter for the number of rows of the frame.
 )";
 
 static GSArgs args_ncols("ncols", doc_ncols);
@@ -498,12 +498,12 @@ return: int
     The number of rows can be either zero or a positive integer.
 
 n: int
-    The new number of rows for the frame, this should be a nonnegative
+    The new number of rows for the frame, this should be a non-negative
     integer.
 
 See also
 --------
-- :attr:`ncols <Frame.ncols>`: getter for the number of columns of the frame.
+- :attr:`.ncols`: getter for the number of columns of the frame.
 )";
 
 static GSArgs args_nrows("nrows", doc_nrows);
@@ -544,8 +544,8 @@ return: Tuple[int, int]
 
 See also
 --------
-- :attr:`nrows <Frame.nrows>` -- getter for the number of rows;
-- :attr:`ncols <Frame.ncols>` -- getter for the number of columns.
+- :attr:`.nrows` -- getter for the number of rows;
+- :attr:`.ncols` -- getter for the number of columns.
 )";
 
 static GSArgs args_shape("shape", doc_shape);
@@ -626,8 +626,8 @@ return: Tuple[stype, ...]
 
 See also
 --------
-- :attr:`stype <Frame.stype>` -- common stype for all columns
-- :attr:`ltypes <Frame.ltypes>` -- tuple of columns' logical types
+- :attr:`.stype` -- common stype for all columns
+- :attr:`.ltypes` -- tuple of columns' logical types
 )";
 
 static GSArgs args_stypes("stypes", doc_stypes);
@@ -654,7 +654,7 @@ static const char* doc_stype =
 R"(
 .. xversionadded:: v0.10.0
 
-The common :class:`stype` for all columns.
+The common :class:`dt.stype` for all columns.
 
 This property is well-defined only for frames where all columns have
 the same stype.
@@ -672,7 +672,7 @@ except: InvalidOperationError
 
 See also
 --------
-- :attr:`stypes <Frame.stypes>` -- tuple of stypes for all columns.
+- :attr:`.stypes` -- tuple of stypes for all columns.
 )";
 
 static GSArgs args_stype("stype", doc_stype);
@@ -710,7 +710,7 @@ return: Tuple[ltype, ...]
 
 See also
 --------
-- :attr:`stypes <Frame.stypes>` -- tuple of columns' storage types
+- :attr:`.stypes` -- tuple of columns' storage types
 )";
 
 static GSArgs args_ltypes("ltypes", doc_ltypes);
@@ -807,7 +807,7 @@ empty frame::
 
 The varkwd arguments `**cols` can be used to construct a Frame by
 columns. In this case the keys become column names, and the values
-are column initializers. This form is mostly used for convenience,
+are column initializers. This form is mostly used for convenience;
 it is equivalent to converting `cols` into a `dict` and passing as
 the first argument::
 
@@ -1018,7 +1018,7 @@ number of rows significantly exceeds the number of columns.
 A Frame can be viewed as a ``list`` of columns: standard Python
 function ``len()`` will return the number of columns in the Frame,
 and ``frame[j]`` will return the column at index ``j`` (each "column"
-will be a Ffame with ``ncols == 1``). Similarly, you can iterate over
+will be a Frame with ``ncols == 1``). Similarly, you can iterate over
 the columns of a Frame in a loop, or use it in a ``*``-expansion::
 
     for column in frame:

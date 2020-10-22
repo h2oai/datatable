@@ -30,4 +30,4 @@
 
     See also
     --------
-    - :meth:`__rshift__(x, y) <FExpr.__rshift__>` -- right shift.
+    - :meth:`__rshift__(x, y) <dt.FExpr.__rshift__>` -- right shift.

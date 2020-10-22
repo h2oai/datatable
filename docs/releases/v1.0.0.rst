@@ -3,12 +3,12 @@
 
     Frame
     -----
-    .. ref-context:: datatable.Frame
+    .. current-class:: datatable.Frame
 
 
     FExpr
     -----
-    .. ref-context:: datatable
+    .. current-module:: datatable
 
     -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
       implementing a chained-if functionality. This is equivalent to
@@ -17,6 +17,15 @@
     -[enh] Function :func:`sort()` can now accept a third argument na_positon.
       It can take three values: "first"(default), "last" and "remove". The
       values describe the position assigned to NAs after sorting.
+
+    -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
+      the stype/ltype of that column us now allowed to change. [#2685]
+
+    fread
+    -----
+
+    -[fix] Fix an error when reading a file with uneven number of fields
+      and having Windows-style newlines. [#2681]
 
 
     General

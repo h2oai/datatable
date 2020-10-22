@@ -81,7 +81,9 @@ static const char* doc_view =
 R"(view(self, interactive=None, plain=False)
 --
 
-**This function is currently not working properly**
+**Warning: This function is currently not working properly**
+`[#2669] <https://github.com/h2oai/datatable/issues/2669>`_
+
 )";
 
 static PKArgs args_view(
