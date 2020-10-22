@@ -98,17 +98,17 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
     }
     na_position_ = new std::vector<NaPosition>(1, na_pos);
   }
-  else if (arg_na_position.is_list_or_tuple()) {
+  /*else if (arg_na_position.is_list_or_tuple()) {  ######## This needs to be implemented ################
     auto na_position_list  = arg_na_position.to_pylist();
     na_position_ = new std::vector<NaPosition>(na_position_list.size());
     for (size_t i = 0; i < na_position_->size(); ++i) {
-      NaPosition na_pos = get_na_position_from_string(arg_na_position.to_string());
+      NaPosition na_pos = get_na_position_from_string(na_position_list[i].to_string());
       if (na_pos == NaPosition::INVALID) {
-        throw ValueError() << "na position value `" << arg_na_position.to_string() << "` is not supported";
+        throw ValueError() << "na position value `" << na_position_list[i].to_string() << "` is not supported";
       }
       (*na_position_)[i] = na_pos;
     }
-  }
+  }*/
   else {
     throw TypeError() << arg_na_position.name() <<
         " should be one of 'first', 'last' or 'remove', instead got " << arg_na_position.typeobj();

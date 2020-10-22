@@ -1037,12 +1037,21 @@ def sort_func(src, rev, na_pos):
                                  [True,None,False,None,False,True]*1000,
                                  ['',None,'pr',None,'','rww','auy','dfuy']*1000,
                                  [0,1,None,2**31-1,None,-(2**31-1),None]*1000,
-                                 [0,1,None,2**63-1,None,-(2**63-1),None]*1000])
+                                 [0,1,None,2**63-1,None,-(2**63-1),None]*1000,
+                                 ['', None, '\x00', '\x01', '\x00'*5, None, '']*987])
 def test_sort_na_position(rev, napos, src):
     DT = dt.Frame(A=src)
     RES = DT[:, :, dt.sort(0, reverse=rev, na_position=napos)]
     EXP = dt.Frame(A=sort_func(src, rev, napos))
     assert_equals(RES, EXP)
+
+@pytest.mark.parametrize('na_pos', ['las', '', ' '])
+def test_na_position_value_error(na_pos):
+    msg = "na position value %s is not supported" %(na_pos)
+    DT = dt.Frame(A=[3,9,0])
+    with pytest.raises(ValueError, match=msg):
+        DT[:, :, dt.sort(0, reverse=True, na_position=na_pos)]
+
 
 #-------------------------------------------------------------------------------
 # Misc issues

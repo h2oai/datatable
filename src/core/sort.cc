@@ -898,7 +898,7 @@ class SortContext {
             if (isvalid) {
               if (value.size()) {
                 xo[j] = ASC? static_cast<uint8_t>(*value.data()) + 2
-                           : 0xFE - static_cast<uint8_t>(*value.data());
+                           : 0xFD - static_cast<uint8_t>(*value.data());
                 len_gt_1 |= (value.size() > 1);
               } else {
                 xo[j] = ASC? 1 : 0xFE;  // empty string
