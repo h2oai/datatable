@@ -24,6 +24,7 @@
 #include <vector>
 #include "python/obj.h"
 #include "python/xobject.h"
+#include "sort.h"
 namespace py {
 
 
@@ -34,13 +35,14 @@ class osort : public oobj
     private:
       oobj cols_;
       std::vector<bool>* reverse_;
+      std::vector<NaPosition>* na_position_;
 
     public:
       void m__init__(const PKArgs&);
       void m__dealloc__();
       oobj get_cols() const;
       const std::vector<bool>& get_reverse() const;
-
+      const std::vector<NaPosition>& get_na_position() const;
       static void impl_init_type(XTypeMaker&);
   };
 
@@ -58,6 +60,7 @@ class osort : public oobj
 
     oobj get_arguments() const;
     const std::vector<bool>& get_reverse() const;
+    const std::vector<NaPosition>& get_na_position() const;
 
   private:
     // This private constructor will reinterpret the object `r` as an

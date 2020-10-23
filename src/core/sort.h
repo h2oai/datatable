@@ -40,6 +40,13 @@ enum SortFlag : int {
   SORT_ONLY = 4,
 };
 
+enum NaPosition : int {
+  INVALID = 0,
+  FIRST =  1,
+  LAST = 2,
+  REMOVE = 3,
+};
+
 static inline SortFlag operator|(SortFlag a, SortFlag b) {
   return static_cast<SortFlag>(static_cast<int>(a) | static_cast<int>(b));
 }
@@ -47,7 +54,8 @@ static inline SortFlag operator|(SortFlag a, SortFlag b) {
 
 // Main sorting function
 RiGb group(const std::vector<Column>& columns,
-           const std::vector<SortFlag>& flags);
+           const std::vector<SortFlag>& flags,
+           NaPosition na_pos = NaPosition::FIRST);
 
 
 
@@ -149,12 +157,12 @@ template <typename T, typename V>
 void insert_sort_values(const T* x, V* o, int n, GroupGatherer& gg);
 
 template <typename V>
-void insert_sort_keys_str(const Column&, size_t, V*, V*, int, GroupGatherer&, bool);
+void insert_sort_keys_str(const Column&, size_t, V*, V*, int, GroupGatherer&, bool, NaPosition na_pos);
 
 template <typename V>
-void insert_sort_values_str(const Column&, size_t, V*, int, GroupGatherer&, bool);
+void insert_sort_values_str(const Column&, size_t, V*, int, GroupGatherer&, bool, NaPosition na_pos);
 
-template <int R>
+template <int R, int NA>
 int compare_strings(const dt::CString& a, bool a_isna,
                     const dt::CString& b, bool b_isna, size_t strstart);
 
@@ -169,11 +177,13 @@ extern template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGat
 extern template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 extern template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-extern template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-extern template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
+extern template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
+extern template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
 
-extern template int compare_strings<1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
-extern template int compare_strings<-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+extern template int compare_strings<1,1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+extern template int compare_strings<1,-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+extern template int compare_strings<-1,1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+extern template int compare_strings<-1,-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
 
 extern template void GroupGatherer::from_data(const uint8_t*,  const int32_t*, size_t);
 extern template void GroupGatherer::from_data(const uint16_t*, const int32_t*, size_t);

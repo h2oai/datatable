@@ -70,7 +70,7 @@ void GroupGatherer::from_data(const Column& column, const V* o, size_t n) {
   size_t last_i = 0;
   for (size_t i = 1; i < n; ++i) {
     curr_valid = column.get_element(static_cast<size_t>(o[i]), &curr_value);
-    if (compare_strings<1>(last_value, last_valid, curr_value, curr_valid, 0)) {
+    if (compare_strings<1,1>(last_value, last_valid, curr_value, curr_valid, 0)) {
       push(i - last_i);
       last_i = i;
       last_valid = curr_valid;

@@ -49,11 +49,11 @@
  * compares equal to another NA string, and less than any non-NA string. An
  * empty string compares greater than NA, but less than any non-empty string.
  */
-template <int R>
+template <int R, int NA=1>
 int compare_strings(const dt::CString& a, bool a_valid,
                     const dt::CString& b, bool b_valid, size_t strstart)
 {
-  if (!(a_valid && b_valid)) return b_valid - a_valid;
+  if (!(a_valid && b_valid)) return (b_valid - a_valid) * NA;
   const size_t a_len = a.size();
   const size_t b_len = b.size();
   const bool a_isempty = (a_len <= strstart);
@@ -153,14 +153,17 @@ void insert_sort_keys(const T* x, V* o, V* tmp, int n, GroupGatherer& gg)
 // Finally, parameter `strstart` instructs to compare the strings starting from
 // that byte.
 //
+
 template <typename V>
 void insert_sort_keys_str(
     const Column& column, size_t strstart, V* o, V* tmp, int n,
-    GroupGatherer& gg, bool descending)
+    GroupGatherer& gg, bool descending, NaPosition na_pos)
 {
   dt::CString i_value, k_value;
   bool i_valid, k_valid;
-  auto compfn = descending? compare_strings<-1> : compare_strings<1>;
+  bool na = na_pos == NaPosition::LAST ? true : false;
+  auto compfn = descending ? (na ? compare_strings<-1,-1> : compare_strings<-1,1>) :
+                            (na ? compare_strings<1,-1> : compare_strings<1,1>);
   int j;
   tmp[0] = 0;
   for (int i = 1; i < n; ++i) {
@@ -184,15 +187,16 @@ void insert_sort_keys_str(
   std::memcpy(o, tmp, static_cast<size_t>(n) * sizeof(V));
 }
 
-
 template <typename V>
 void insert_sort_values_str(
     const Column& column, size_t strstart, V* o, int n,
-    GroupGatherer& gg, bool descending)
+    GroupGatherer& gg, bool descending, NaPosition na_pos)
 {
   dt::CString i_value, k_value;
   bool i_valid, k_valid;
-  auto compfn = descending? compare_strings<-1> : compare_strings<1>;
+  bool na = na_pos == NaPosition::LAST ? true : false;
+  auto compfn = descending ? (na ? compare_strings<-1,-1> : compare_strings<-1,1>) :
+                            (na ? compare_strings<1,-1> : compare_strings<1,1>);
   int j;
   o[0] = 0;
   for (int i = 1; i < n; ++i) {
@@ -227,8 +231,10 @@ template void insert_sort_values(const uint16_t*, int32_t*, int, GroupGatherer&)
 template void insert_sort_values(const uint32_t*, int32_t*, int, GroupGatherer&);
 template void insert_sort_values(const uint64_t*, int32_t*, int, GroupGatherer&);
 
-template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool);
-template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool);
+template void insert_sort_keys_str(const Column&, size_t, int32_t*, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
+template void insert_sort_values_str(const Column&, size_t, int32_t*, int, GroupGatherer&, bool, NaPosition na_pos);
 
-template int compare_strings<1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
-template int compare_strings<-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+template int compare_strings<1,1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+template int compare_strings<1,-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+template int compare_strings<-1,1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
+template int compare_strings<-1,-1>(const dt::CString&, bool, const dt::CString&, bool, size_t);
