@@ -27,6 +27,9 @@
     -[fix] Fix an error when reading a file with uneven number of fields
       and having Windows-style newlines. [#2681]
 
+    -[fix] Fread no longer throws an exception when the list of column types
+      passed to parameter `columns=` contains `str64`. [#2704]
+
 
     General
     -------

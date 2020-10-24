@@ -266,7 +266,8 @@ void ThreadContext::postorder() {
       case SType::FLOAT64: postorder_float64_column(outcol, j); break;
       case SType::STR32:   postorder_string_column(outcol, j); break;
       default:
-        throw RuntimeError() << "Unknown column SType in fread";
+        throw RuntimeError() << "Unknown column of type "
+            << col.get_stype() << " in fread";
     }
     j++;
   }

@@ -105,7 +105,7 @@ void InputColumn::set_rtype(int64_t it) {
     case RFloat64: parse_type_ = PT::Float64Plain; break;
     case RStr:     parse_type_ = PT::Str32; break;
     case RStr32:   parse_type_ = PT::Str32; break;
-    case RStr64:   parse_type_ = PT::Str64; break;
+    case RStr64:   parse_type_ = PT::Str32; break;  // ?
   }
 }
 
