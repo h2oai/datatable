@@ -59,6 +59,12 @@ div.rst-content .admonition-title {
 
 /* ------- Side menu adjustments -------------------------------------------- */
 
+@media (min-width:768px) {
+  .wy-side-scroll {
+    width: 310px;
+  }
+}
+
 .wy-menu-vertical {
   margin-bottom: 48pt;
 }
