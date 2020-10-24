@@ -1,36 +1,29 @@
 
+|logo|Datatable
+================
+.. |logo| image:: _static/py_datatable_logo.png
+          :width: 80
+          :class: no-scaled-link
+
+**Datatable** is a python library for manipulating tabular data.
+It supports out-of-memory datasets, multi-threaded data processing,
+and flexible API.
+
 .. raw:: html
 
     <style type="text/css">
-      footer {display:none;}
-      div#dtcontainer {
-        height: 300pt;
-        position: relative;
-      }
-      div#description {
-        width: 430pt;
-      }
-      div#logo {
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 80px;
-      }
-      div#badges {
-        position: absolute;
-        right: 0;
-        top: 120px;
-      }
-      div#badges a {
-        display: block;
-        padding: 1pt 0;
+      footer .rst-footer-buttons {display:none;}
+      p.badge {
         text-align: right;
       }
+      p.badge a::after{
+        display: none;
+      }
       div#collage {
-        left: 100pt;
+        left: 50%;
         position: relative;
-        top: 10pt;
-        transform: matrix(1, 0, -0.29, 1, 0, 0);
+        height: 250pt;
+        transform: matrix(1, 0, -0.29, 1, -200, 0);
       }
       div#collage a.box {
         border-radius: 5px;
@@ -108,50 +101,43 @@
         width: 125pt;
       }
     </style>
-
-    <div id="dtcontainer">
-      <div id="description"><p>
-        <b>Datatable</b> is a python library for manipulating tabular data.
-        It supports out-of-memory datasets, multi-threaded data processing,
-        and flexible API.
-      </p></div>
-      <div id="logo">
-        <img src="_static/py_datatable_logo.png" id="dt-logo" />
-      </div>
-      <div id="badges">
-        <a href="https://pypi.org/project/datatable/">
-          <img src="https://img.shields.io/pypi/v/datatable.svg">
-        </a>
-        <a href="https://travis-ci.org/h2oai/datatable">
-          <img src="https://travis-ci.org/h2oai/datatable.svg?branch=main">
-        </a>
-        <a href="https://datatable.readthedocs.io/en/latest/?badge=latest">
-          <img src="https://readthedocs.org/projects/datatable/badge/?version=latest">
-        </a>
-      </div>
-      <div id="collage">
-        <a class="box" id="box1" href="start/quick-start.html">
-          <div>Getting</div><div>started</div>
-        </a>
-        <a class="box" id="box2" href="releases/index-releases.html">
-          <div>Release</div><div>history</div>
-        </a>
-        <a class="box" id="box3" href="api/index-api.html">
-          <div>API</div><div>reference</div>
-        </a>
-        <a class="box" id="box4" href="genindex.html">
-          Index
-        </a>
-        <a class="box" id="box5" href="manual/index-manual.html">
-          <div>User</div><div>Manual</div>
-        </a>
-        <a class="box" id="box6" href="develop/index-develop.html">
-          Development
-        </a>
-      </div>
+    
+    <div id="collage">
+      <a class="box" id="box1" href="start/quick-start.html">
+        <div>Getting</div><div>started</div>
+      </a>
+      <a class="box" id="box2" href="releases/index-releases.html">
+        <div>Release</div><div>history</div>
+      </a>
+      <a class="box" id="box3" href="api/index-api.html">
+        <div>API</div><div>reference</div>
+      </a>
+      <a class="box" id="box4" href="genindex.html">
+        Index
+      </a>
+      <a class="box" id="box5" href="manual/index-manual.html">
+        <div>User</div><div>Manual</div>
+      </a>
+      <a class="box" id="box6" href="develop/index-develop.html">
+        Development
+      </a>
     </div>
 
 
+.. rst-class:: badge
+
+|pypi| |docs| |build| |license| |code|
+
+.. |pypi| image:: https://img.shields.io/pypi/v/datatable.svg
+          :target: https://pypi.org/project/datatable/
+.. |build| image:: https://travis-ci.org/h2oai/datatable.svg?branch=main
+           :target: https://travis-ci.org/h2oai/datatable
+.. |docs| image:: https://readthedocs.org/projects/datatable/badge/?version=latest
+          :target: https://datatable.readthedocs.io/en/latest/?badge=latest
+.. |license| image:: https://img.shields.io/pypi/l/datatable.svg
+             :target: https://github.com/h2oai/datatable/blob/main/LICENSE
+.. |code| image:: https://api.codacy.com/project/badge/Grade/e72cadff26ed4ad68decd61b66b4c563
+          :target: https://www.codacy.com/app/st-pasha/datatable?utm_source=github.com&utm_medium=referral&utm_content=h2oai/datatable&utm_campaign=Badge_Grade
 
 .. toctree::
     :hidden:
