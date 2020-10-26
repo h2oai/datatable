@@ -58,7 +58,7 @@ Sort by column ``x`` ascending, ``y`` descending     ``DT[order(x, -y)]``       
 
 In ``data.table``, ``DT[2]`` would mean ``2nd row``, whereas in ``datatable``, ``DT[2]`` would select the 3rd column.
 
-In ``data.table``, when selecting rows you do not need to indicate the columns. So, something like the code below works fine :
+In ``data.table``, when selecting rows you do not need to indicate the columns. So, something like the code below works fine:
 
 .. code-block:: R
 
@@ -70,19 +70,13 @@ In ``data.table``, when selecting rows you do not need to indicate the columns. 
     2: a 3 5
     3: c 3 8
 
-In ``datatable`` however, when selecting rows, there has to be a column selector, or you get an error message : 
+In ``datatable`` however, when selecting rows, there has to be a column selector, or you get an error:
 
 .. code-block:: python
 
     # datatable
     DT[f.y==3]
-
-    ---------------------------------------------------------------------------
-    TypeError                                 Traceback (most recent call last)
-    <ipython-input-210-e82acc31577f> in <module>
-    -   ---> 1 DT[f.y==3]
-
-    TypeError: Column selector must be an integer or a string, not <class 'datatable.FExpr'>
+    # TypeError: Column selector must be an integer or a string, not <class 'datatable.FExpr'>
 
 The code above fails because ``datatable`` only allows single column selection using the style above:
 
