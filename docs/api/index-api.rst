@@ -1,6 +1,4 @@
 
-.. py:module:: datatable
-
 .. xpy:module:: datatable
 
 
@@ -18,14 +16,19 @@ Submodules
     :widths: auto
     :class: api-table
 
+    * - :mod:`exceptions. <datatable.exceptions>`
+      - ``datatable`` warnings and exceptions.
+
+    * - :mod:`internal. <datatable.internal>`
+      - Access to some internal details of ``datatable`` module.
+
     * - :mod:`math. <datatable.math>`
       - Mathematical functions, similar to python's :mod:`math` module.
 
     * - :mod:`models. <datatable.models>`
       - A small set of data analysis tools.
 
-    * - :mod:`internal. <datatable.internal>`
-      - Access to some internal details of :mod:`datatable` module.
+
 
 
 Classes
@@ -165,10 +168,10 @@ Other
     :class: api-table
 
     * - :data:`build_info`
-      - Information about the build of the datatable module.
+      - Information about the build of the ``datatable`` module.
 
     * - :data:`dt`
-      - The datatable module.
+      - The ``datatable`` module itself.
 
     * - :data:`f`
       - The primary namespace used during :meth:`DT[...] <dt.Frame.__getitem__>` call.
@@ -177,13 +180,14 @@ Other
       - Secondary namespace used during :meth:`DT[..., join()] <dt.Frame.__getitem__>` call.
 
     * - :data:`options`
-      - datatable options.
+      - ``datatable`` options.
 
 
 
 .. toctree::
     :hidden:
 
+    exceptions.       <exceptions>
     internal.         <internal>
     math.             <math>
     models.           <models>

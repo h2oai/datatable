@@ -270,7 +270,9 @@ template <typename T, void(T::*METH)()>
 void _safe_dealloc(PyObject* self) noexcept {
   auto cl = dt::CallLogger::dealloc(self);
   try {
+    PyTypeObject* tp = Py_TYPE(self);
     (static_cast<T*>(self)->*METH)();
+    tp->tp_free(self);
   }
   catch (const std::exception& e) {
     exception_to_python(e);

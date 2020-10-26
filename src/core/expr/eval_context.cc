@@ -23,7 +23,6 @@
 #include "expr/eval_context.h"
 #include "expr/py_by.h"
 #include "expr/py_join.h"
-#include "expr/py_sort.h"
 #include "expr/py_update.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
@@ -75,8 +74,8 @@ void EvalContext::add_sortby(py::osort obj) {
   } else {
     reverse_ = false;
   }
+  na_position_ = obj.get_na_position().at(0);
 }
-
 
 void EvalContext::add_i(py::oobj oi) {
   iexpr_ = as_fexpr(oi);
@@ -241,6 +240,10 @@ bool EvalContext::reverse_sort() {
   return reverse_;
 }
 
+NaPosition EvalContext::get_na_position() const {
+  return na_position_;
+}
+
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
   if (byexpr_ || sortexpr_) {
@@ -268,7 +271,7 @@ void EvalContext::compute_groupby_and_sort() {
       wf.truncate_columns(n_group_cols);
       set_groupby_columns(std::move(wf));
 
-      auto rigb = group(cols, flags);
+      auto rigb = group(cols, flags, get_na_position());
       apply_rowindex(std::move(rigb.first));
       groupby_ = std::move(rigb.second);
     }
@@ -431,7 +434,8 @@ void EvalContext::typecheck_for_update(
     Workframe& replframe, const sztvec& indices)
 {
   DataTable* dt0 = get_datatable(0);
-  bool allrows = !(get_rowindex(0));
+  Kind ikind = iexpr_->get_expr_kind();
+  bool allrows = (ikind == Kind::SliceAll || ikind == Kind::None);
   bool repl_1row = replframe.get_grouping_mode() == Grouping::SCALAR;
   size_t n = indices.size();
   xassert(replframe.ncols() == indices.size());

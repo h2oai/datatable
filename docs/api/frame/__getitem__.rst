@@ -154,7 +154,7 @@
           groupby context. Check documentation for each individual function
           to find out whether it has special treatment for groupby contexts.
 
-        In addition, ``by()`` also affects the order pf columns in the output
+        In addition, ``by()`` also affects the order of columns in the output
         frame. Specifically, all columns listed as the groupby keys will be
         automatically placed at the front of the resulting frame, and also
         excluded from ``:`` or ``f[:]`` within ``j``.
@@ -242,13 +242,18 @@
         Single-column frame containing the column at the specified index or
         with the given name.
 
-    except: KeyError
-        The exception is raised if the column with the given name does not
-        exist in the frame.
+    except: KeyError | IndexError
+        .. list-table::
+            :widths: auto
+            :class: api-table
 
-    except: IndexError
-        The exception is raised if the column does not exist at the provided
-        index `j`.
+            * - :exc:`KeyError`
+              - raised if the column with the given name does not
+                exist in the frame.
+
+            * - :exc:`IndexError`
+              - raised if the column does not exist at the provided
+                index `j`.
 
 
 

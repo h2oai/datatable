@@ -205,24 +205,38 @@ size_t get_hardware_concurrency() noexcept {
 
 static const char* doc_options_nthreads =
 R"(
-The number of threads used by datatable internally.
 
-Many calculations in `datatable` module are parallelized. This
-setting controls how many threads will be used during such
-calculations.
+This option controls the number of threads used by datatable
+for parallel calculations.
 
-Initially, this option is set to the value returned by C++ call
-`std::thread::hardware_concurrency()`. This is usually equal to the
-number of available cores.
+Parameters
+----------
+return: int
+    Current `nthreads` value. Initially, this option is set to
+    the value returned by C++ call `std::thread::hardware_concurrency()`,
+    and usually equals to the number of available cores.
 
-You can set `nthreads` to a value greater or smaller than the
-initial setting. For example, setting `nthreads = 1` will force the
-library into a single-threaded mode. Setting `nthreads` to `0` will
-restore the initial value equal to the number of processor cores.
-Setting `nthreads` to a value less than `0` is equivalent to
-requesting that fewer threads than the maximum.
+new_nthreads: int
+    New `nthreads` value. It can be greater or smaller than the initial setting.
+    For example, setting `nthreads = 1` will force the library into
+    a single-threaded mode. Setting `nthreads` to `0` will restore
+    the initial value equal to the number of processor cores.
+    Setting `nthreads` to a value less than `0` is equivalent to requesting
+    that fewer threads than the maximum.
+
 )";
 
+
+static py::oobj get_nthreads() {
+  return py::oint(num_threads_in_pool());
+}
+
+static void set_nthreads(const py::Arg& arg) {
+  int32_t nth = arg.to_int32_strict();
+  if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
+  if (nth <= 0) nth = 1;
+  thpool->resize(static_cast<size_t>(nth));
+}
 
 void ThreadPool::init_options() {
   // By default, set the number of threads to `hardware_concurrency`
@@ -230,17 +244,8 @@ void ThreadPool::init_options() {
 
   dt::register_option(
     "nthreads",
-
-    /* getter= */[]() -> py::oobj {
-      return py::oint(num_threads_in_pool());
-    },
-
-    /* setter= */[](const py::Arg& value) {
-      int32_t nth = value.to_int32_strict();
-      if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
-      if (nth <= 0) nth = 1;
-      thpool->resize(static_cast<size_t>(nth));
-    },
+    get_nthreads,
+    set_nthreads,
     doc_options_nthreads
   );
 }

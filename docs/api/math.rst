@@ -1,6 +1,4 @@
 
-.. py:module:: datatable.math
-
 .. xpy:module:: datatable.math
 
 datatable.math

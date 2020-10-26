@@ -9,16 +9,16 @@
         :class: api-table
 
         * - :attr:`.allow_interruption <datatable.options.progress.allow_interruption>`
-          - Switch that controls if the datatable tasks could be interrupted.
+          - Option that controls if the datatable tasks could be interrupted.
 
         * - :attr:`.callback <datatable.options.progress.callback>`
           - A custom progress-reporting function.
 
         * - :attr:`.clear_on_success <datatable.options.progress.clear_on_success>`
-          - Switch that controls if the progress bar is cleared on success.
+          - Option that controls if the progress bar is cleared on success.
 
         * - :attr:`.enabled <datatable.options.progress.enabled>`
-          - Switch that controls if the progress reporting is enabled.
+          - Option that controls if the progress reporting is enabled.
 
         * - :attr:`.min_duration <datatable.options.progress.min_duration>`
           - The minimum duration of a task to show the progress bar.

@@ -81,7 +81,7 @@ exception if the frame is sufficiently big.
 Parameters
 ----------
 frames: Frame | List[Frame]
-    One or more frame to append. These frames should have the same
+    One or more frames to append. These frames should have the same
     columnar structure as the current frame (unless option `force` is
     used).
 

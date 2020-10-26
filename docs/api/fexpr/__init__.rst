@@ -10,7 +10,7 @@
     The ``FExpr`` is serve as a simple wrapper of the underlying object,
     allowing it to be combined with othef ``FExpr``s.
 
-    This constructor is almost never needs to be run manually by the user.
+    This constructor almost never needs to be run manually by the user.
 
 
     Parameters

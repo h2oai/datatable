@@ -7,9 +7,9 @@
 The ``datatable`` module exports a special symbol ``f``, which can be used
 to refer to the columns of a frame currently being operated on. If this sounds
 cryptic, consider that the most common way to operate on a frame is via the
-square-bracket call ``DT[i, j, by, ...]``. And it is often the case that within
+square-bracket call ``DT[i, j, by, ...]``. It is often the case that within
 this expression you would want to refer to individual columns of the frame:
-either to create a filter, or a transform, or specify a grouping variable, etc.
+either to create a filter, a transform, or specify a grouping variable, etc.
 In all such cases the ``f`` symbol is used, and it is considered to be
 evaluated within the context of the frame ``DT``.
 
@@ -167,7 +167,7 @@ columns into the columnset as well::
 
 When a columnset is extended, the order of the elements is preserved. Thus, a
 columnset is closer in functionality to a python list than to a set. In
-addition, some of the elements in a columnset can have names, if the columnset
+addition, some of the elements in a columnset can have names if the columnset
 is created from a dictionary. The names may be non-unique too.
 
 The ``.remove()`` method is the opposite of ``.extend()``: it takes an existing
@@ -186,7 +186,7 @@ be removed are simply ignored.
 If a columnset includes some column several times, and then you request to
 remove that column, then only the first occurrence in the sequence will be
 removed. Generally, the multiplicity of some column "A" in columnset
-``cs1.remove(cs2)`` will be equal the multiplicity of "A" in ``cs1`` minus the
+``cs1.remove(cs2)`` will be equal to the multiplicity of "A" in ``cs1`` minus the
 multiplicity of "A" in ``cs2``, or 0 if such difference would be negative.
 Thus,::
 
