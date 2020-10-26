@@ -7,9 +7,10 @@
 :root {
   --highlight-color: 255, 233, 92;
   --top-menu-height: 50px;
-  --left-menu-width: 270px;
+  --left-menu-width: clamp(200px, 25vw, 270px);
   --right-menu-width: 240px;
   --document-width: 900px;
+  --document-x-margin: clamp(10px, 2.5vw, 40px);
 }
 
 
@@ -148,6 +149,10 @@ div.topbar div.searchbox form input[type="text"]:focus {
   box-shadow: 0 0 3px #888 inset, 0 0 1px #333 inset;
 }
 
+div.topbar #menu-button {
+  display: none;
+}
+
 
 
 /*------------------------------------------------------------------------------
@@ -230,7 +235,10 @@ div.nav-left li.current > ul {
 
 body > div.main-area {
   display: flex;
-  margin: 75px 0 25px calc(var(--left-menu-width) + 40px);
+  margin-top: var(--top-menu-height);
+  margin-right: 0;
+  margin-bottom: 25px;
+  margin-left: var(--left-menu-width);
 }
 
 div.sidebar-right {
@@ -280,12 +288,6 @@ div.nav-right > #toc-local a.list-group-item.active {
   padding-left: 5px;
 }
 
-@media (max-width: 1200px) {
-  div.sidebar-right {
-    display: none;
-  }
-}
-
 
 
 /*------------------------------------------------------------------------------
@@ -296,6 +298,8 @@ div.document-wrapper {
   flex: 25;
   max-width: var(--document-width);
   min-width: calc(var(--document-width) * 2/3);
+  margin-left: var(--document-x-margin);
+  margin-top: 25px;
 }
 
 div.document {
@@ -478,4 +482,59 @@ dl.footnote dt {
 
 dl.footnote dd {
   display: inline-block;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Responsive design adjustments
+ *----------------------------------------------------------------------------*/
+
+@media (max-width: 1200px) {
+  div.sidebar-right {
+    display: none;
+  }
+}
+
+
+@media (max-width: 900px) {
+  :root {
+    --left-menu-width: min(270px, 80vw);
+  }
+
+  div.topbar #menu-button {
+    display: inline-block;
+    margin-left: -8px;
+  }
+  #menu-button:focus {
+    box-shadow: none;
+  }
+  #menu-button:hover {
+    background-color: rgba(0,0,0,0.07);
+  }
+  #menu-button.active {
+    background-color: #a2c1d9;
+  }
+
+  div.sidebar-left-area {
+    position: absolute;
+    left: calc(0px - var(--left-menu-width));
+    transition: left 0.3s;
+  }
+
+  div.sidebar-left-area.active {
+    left: 0;
+  }
+
+  body > div.main-area {
+    margin-left: 0;
+  }
+
+  body > div.main-area > div.document-wrapper {
+    margin: 0;
+  }
+
+  body > div.main-area > div.expander {
+    display: none;
+  }
 }

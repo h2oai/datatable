@@ -60,6 +60,16 @@
 
 <body data-spy="scroll" data-target="#toc-local" data-offset="80">
   <div class="topbar">
+    <button id="menu-button" class="btn" title="Toggle menu"><i class="fa fa-bars"></i></button>
+    <script type="text/javascript">
+      jQuery(function(){
+        $("#menu-button").click(function() {
+          $(this).toggleClass("active");
+          $(".sidebar-left-area").toggleClass("active");
+        });
+      });
+    </script>
+
     <a href="{{ pathto(master_doc)|e }}" class="logo_image">
       <img src="{{pathto(theme_logo, 1)}}">
     </a>
@@ -78,10 +88,12 @@
     </div>
   </div>
 
-  <div class="sidebar-left-bg"></div>
-  <div class="sidebar-left">
-    <div class="nav-left" role="navigation" aria-label="Main">
-      {{ toctree(maxdepth=0, collapse=False, includehidden=True, titles_only=True) }}
+  <div class="sidebar-left-area">
+    <div class="sidebar-left-bg"></div>
+    <div class="sidebar-left">
+      <div class="nav-left" role="navigation" aria-label="Main">
+        {{ toctree(maxdepth=0, collapse=False, includehidden=True, titles_only=True) }}
+      </div>
     </div>
   </div>
 
