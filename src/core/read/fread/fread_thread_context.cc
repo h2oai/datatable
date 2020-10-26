@@ -193,9 +193,9 @@ void FreadThreadContext::read_chunk(
         j++;
         if (*tch=='\n' && sep != ' ' && j < ncols) {
           const char* prev_tch = tch;
-          while (*tch != sep) {
+          while (*tch!=sep) {
             tch--;
-            if (*tch == '\n') {
+            if (*tch=='\n') {
               tch = prev_tch;
               break;
             }

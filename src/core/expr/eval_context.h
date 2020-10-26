@@ -120,7 +120,7 @@ class EvalContext
     NaPosition na_position_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    size_t : 40;
+    //size_t : 40;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
