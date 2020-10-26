@@ -196,7 +196,7 @@ static const char* doc_isna =
 R"(isna(x)
 --
 
-Returns True if the argument is NA, and False otherwise.
+Returns `True` if the argument is NA, and `False` otherwise.
 )";
 
 py::PKArgs args_isna(1, 0, 0, false, false, {"x"}, "isna", doc_isna);
