@@ -191,7 +191,7 @@ void FreadThreadContext::read_chunk(
         }
         parse_ctx_.target ++;
         j++;
-        if (*tch=='\n' && sep != ' ' && j < ncols) {
+        if (tch < parse_ctx_.eof && j < ncols && *tch=='\n' && sep!=' ') {
           const char* prev_tch = tch;
           while (*tch!=sep) {
             tch--;
@@ -200,7 +200,7 @@ void FreadThreadContext::read_chunk(
               break;
             }
           }
-          if (*tch == sep) {
+          if (*tch==sep) {
             tch++;
             ++ptype_iter;
             continue;
