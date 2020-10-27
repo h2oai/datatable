@@ -28,7 +28,7 @@
 #include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
-
+#include <iostream>
 #define D() if (verbose) d()
 
 
@@ -238,6 +238,7 @@ void FreadReader::detect_sep_and_qr() {
 
   int nseps;
   char seps[] = ",|;\t ";  // default seps in order of preference. See ?fread.
+  //char seps[] = " ";  // default seps in order of preference. See ?fread.
   char topSep;             // which sep matches the input best so far
   // using seps[] not *seps for writeability (http://stackoverflow.com/a/164258/403310)
 
@@ -294,6 +295,7 @@ void FreadReader::detect_sep_and_qr() {
       while (tch < eof && thisLine++ < JUMPLINES) {
         // Compute num columns and move `tch` to the start of next line
         int thisncol = ctx.countfields();
+        //std::cout << "thisncol=" << thisncol << ", sep=" << sep << std::endl;
         if (thisncol < 0) {
           // invalid file with this sep and quote rule; abort
           numFields[0] = -1;
