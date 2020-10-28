@@ -34,7 +34,6 @@ class OpCodes(enum.Enum):
 
     # Misc
     NOOP = 0
-    CAST = 2
     SETPLUS = 3
     SETMINUS = 4
     SHIFTFN = 5
