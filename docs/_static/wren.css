@@ -487,6 +487,48 @@ dl.footnote dd {
 
 
 /*------------------------------------------------------------------------------
+ * ReadTheDocs menu
+ *----------------------------------------------------------------------------*/
+
+div.rst-versions.rst-badge {
+  background: #1f1f1fe5;
+  border-radius: 10px;
+  bottom: 20px;
+}
+
+div.rst-versions.rst-badge .rst-current-version {
+  align-items: center;
+  background-color: #6e758869;
+  border-radius: 10px;
+  color: #87dc72;
+  display: flex;
+  height: auto;
+  line-height: normal;
+  padding: 6px 10px;
+}
+
+div.rst-versions.rst-badge.shift-up .rst-current-version {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:first-child {
+  flex: 1;
+  padding-right: 8px;
+  text-align: left;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:last-child {
+  padding-left: 4px;
+}
+
+div.rst-versions div.rst-other-versions dl:nth-child(2) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(4) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
+
+
+
+/*------------------------------------------------------------------------------
  * Responsive design adjustments
  *----------------------------------------------------------------------------*/
 
