@@ -425,6 +425,11 @@ def test_as_type_arguments():
         as_type(f.A, f.B, f.C)
 
 
+def test_as_type_repr():
+    assert repr(as_type(f.A, dt.int64)) == 'FExpr<as_type(f.A, int64)>'
+    assert repr(as_type(f[1], dt.str32)) == 'FExpr<as_type(f[1], str32)>'
+
+
 @pytest.mark.parametrize("target", [dt.int64, int, dt.str32, dt.float32])
 def test_as_type(target):
     DT = dt.Frame(A=range(5))
