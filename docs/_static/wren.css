@@ -197,6 +197,7 @@ div.nav-left > ul {
 
 div.nav-left li {
   list-style-type: none;
+  position: relative;
 }
 
 div.nav-left li > a {
@@ -204,13 +205,27 @@ div.nav-left li > a {
   color: #696e8e;
   display: block;
   font-size: 13px;
-  margin-left: -10px;
-  padding: 2px 0 2px 10px;
+  margin-left: -12px;
+  padding: 2px 0 2px 12px;
   text-decoration: none;
 }
 
 div.nav-left li > a:hover {
   background-color: #E5E5E5;
+}
+
+div.nav-left li > a:not(:only-child)::before {
+  color: #b1cbde;
+  content: "\f0da";
+  font-family: 'FontAwesome';
+  font-size: 70%;
+  left: -7px;
+  position: absolute;
+  top: 5px;
+}
+
+div.nav-left li > a:not(:only-child):not(.current):hover::before {
+  color: #69698e;
 }
 
 div.nav-left li.current > a.current {
@@ -221,6 +236,11 @@ div.nav-left li.current > a.current {
   /* Ensure that box-shadow is above the adjacent list items,
      even when they are hovered */
   z-index: 1001;
+}
+
+div.nav-left li.current > a.current:not(:only-child)::before {
+  content: "\f0d7";
+  left: 4px;
 }
 
 div.nav-left li.current > ul {
