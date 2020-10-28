@@ -5,6 +5,9 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
+      can now be an unsorted list. The list can also contain duplicate
+      values.
 
     FExpr
     -----
@@ -14,9 +17,14 @@
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
 
-    -[enh] Function :func:`sort()` can now accept a third argument na_positon.
-      It can take three values: "first"(default), "last" and "remove". The
-      values describe the position assigned to NAs after sorting.
+    -[new] New function :func:`as_type()` that allows casting columns into
+      a different stype. This function is an alternative to the already
+      existing functionality of using the stype itself as a cast function.
+
+    -[enh] Function :func:`sort()` can now accept argument ``na_positon=``.
+      It can take three values: ``"first"`` (default), ``"last"`` and
+      ``"remove"``. The values describe the position assigned to NAs after
+      sorting. [#793]
 
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
@@ -26,6 +34,9 @@
 
     -[fix] Fix an error when reading a file with uneven number of fields
       and having Windows-style newlines. [#2681]
+
+    -[fix] Fread no longer throws an exception when the list of column types
+      passed to parameter ``columns=`` contains ``str64``. [#2704]
 
 
     General

@@ -24,7 +24,6 @@
 import ctypes
 import enum
 from datatable.exceptions import ValueError
-from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
 
 __all__ = ("stype", "ltype")
@@ -62,7 +61,7 @@ class stype(enum.Enum):
         return str(self)
 
     def __call__(self, arg):
-        return Expr(OpCodes.CAST, (arg,), (self,))
+        return core.as_type(arg, self)
 
     @property
     def code(self):

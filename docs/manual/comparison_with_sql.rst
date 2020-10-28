@@ -238,7 +238,7 @@ In ``datatable``, the ``NOT`` operator is replicated with the ``!=`` symbol :
 
     null_data[f.b!=None, :]
 
-You could also use the :func:`isna()` function with the ``~`` (tilde) symbol, which inverts the boolean selection :
+You could also use the :func:`isna <dt.math.isna>` function with the ``~`` (tilde) symbol, which inverts the boolean selection :
 
 .. code-block:: python
 

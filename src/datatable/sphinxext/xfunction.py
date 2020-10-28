@@ -875,9 +875,7 @@ class XobjectDirective(SphinxDirective):
     #---------------------------------------------------------------------------
 
     def _generate_nodes(self):
-        title_text = self.qualifier + self.obj_name
-        sect = nodes.section(ids=[title_text],
-                             classes=["x-function", self.name])
+        sect = xnodes.div(classes=["x-function", self.name])
         sect += self._index_node()
         sect += self._generate_signature()
         sect += self._generate_body()
