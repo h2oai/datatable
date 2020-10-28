@@ -241,8 +241,12 @@ div.nav-left li.current > a.current {
   z-index: 1001;
 }
 
-div.nav-left li.current > a.current:not(:only-child)::before {
+div.nav-left li.current > a:not(:only-child)::before {
   content: "\f0d7";
+  left: -8px;
+}
+
+div.nav-left li.current > a.current:not(:only-child)::before {
   left: 4px;
 }
 
