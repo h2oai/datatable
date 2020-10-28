@@ -91,6 +91,8 @@ Functions
       - Concatenate frame by rows
     * -
       -
+    * - :func:`as_type()`
+      - Cast column into another type
     * - :func:`ifelse()`
       - Ternary if operator
     * - :func:`shift()`
@@ -197,6 +199,7 @@ Other
     ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
+    as_type           <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>

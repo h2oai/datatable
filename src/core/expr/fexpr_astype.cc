@@ -68,7 +68,7 @@ class FExpr_AsType : public FExpr_FuncUnary {
 // Python-facing `as_type()` function
 //------------------------------------------------------------------------------
 
-static const char* doc_as_type =
+static const char* doc_astype =
 R"(as_type(cols, new_type)
 --
 .. xversionadded:: 1.0
@@ -92,15 +92,15 @@ return: FExpr
     input; column names will be preserved too.
 )";
 
-static py::oobj pyfn_as_type(const py::XArgs& args) {
+static py::oobj pyfn_astype(const py::XArgs& args) {
   auto cols    = args[0].to_oobj();
   auto newtype = args[1].to_stype();
   return PyFExpr::make(new FExpr_AsType(as_fexpr(cols), newtype));
 }
 
-DECLARE_PYFN(&pyfn_as_type)
+DECLARE_PYFN(&pyfn_astype)
     ->name("as_type")
-    ->docs(doc_as_type)
+    ->docs(doc_astype)
     ->arg_names({"cols", "new_type"})
     ->n_positional_args(2)
     ->n_required_args(2);
