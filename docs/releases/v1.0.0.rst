@@ -38,6 +38,7 @@
     -[fix] Fread no longer throws an exception when the list of column types
       passed to parameter ``columns=`` contains ``str64``. [#2704]
 
+    -[fix] Fread no longer detects separators within quoted strings. [#922]
 
     General
     -------

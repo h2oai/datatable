@@ -347,7 +347,7 @@ void FreadReader::detect_sep_and_qr() {
             << topNumFields << " fields using quote rule " << topQuoteRule;
       }
     }
-    if (!check_all_quoteRules && quoteRule == 1) break; else continue;
+    if (!check_all_quoteRules && quoteRule == 1) break;
   }
   if (!topNumFields) topNumFields = 1;
   xassert(firstJumpEnd && topQuoteRule >= 0);
