@@ -11,6 +11,9 @@
   --right-menu-width: 240px;
   --document-width: 900px;
   --document-x-margin: clamp(10px, 2.5vw, 40px);
+
+  --font-sans: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  --font-mono: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 }
 
 
@@ -26,7 +29,7 @@ html {
 body {
   background-color: #E5E5E5;
   counter-reset: cc;
-  font-family: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   /* required for ScrollSpy plugin */
   position: relative;
