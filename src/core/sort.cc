@@ -506,6 +506,7 @@ class SortContext {
     bool descending;
     int : 8;
     NaPosition na_pos;
+    int : 32;
 
   public:
   SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups,
@@ -882,7 +883,7 @@ class SortContext {
     elemsize = 1;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    
+
     // `flong` is a flag that checks whether there is any string with len>1.
     std::atomic_flag flong = ATOMIC_FLAG_INIT;
 

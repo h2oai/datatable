@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -117,10 +117,10 @@ class EvalContext
     Workframe  groupby_columns_;
     strvec     newnames_;
     EvalMode   eval_mode_;
-    NaPosition na_position_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    size_t : 40;
+    size_t : 8;
+    NaPosition na_position_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);

@@ -101,13 +101,6 @@ RiGb Head_Func::evaluate_iby(const vecExpr&, EvalContext&) const {
 // Construction factory
 //------------------------------------------------------------------------------
 
-static ptrHead make_cast(Op, const py::otuple& params) {
-  xassert(params.size() == 1);
-  SType stype = params[0].to_stype();
-  return ptrHead(new Head_Func_Cast(stype));
-}
-
-
 static ptrHead make_colsetop(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
   (void) params;
@@ -165,7 +158,6 @@ void Head_Func::init() {
   for (size_t i = REDUCER_FIRST; i <= REDUCER_LAST; ++i) factory[i] = make_reduce1;
   for (size_t i = MATH_FIRST;    i <= MATH_LAST;    ++i) factory[i] = make_unop;
   for (size_t i = ROWFNS_FIRST;  i <= ROWFNS_LAST;  ++i) factory[i] = make_rowfn;
-  factory[static_cast<size_t>(Op::CAST)]       = make_cast;
   factory[static_cast<size_t>(Op::SETPLUS)]    = make_colsetop;
   factory[static_cast<size_t>(Op::SETMINUS)]   = make_colsetop;
   factory[static_cast<size_t>(Op::SHIFTFN)]    = &Head_Func_Shift::make;
