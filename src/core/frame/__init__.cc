@@ -81,6 +81,7 @@ class FrameInitializationManager {
       }
     }
 
+
     void run()
     {
       if (src.is_list_or_tuple()) {
@@ -132,6 +133,9 @@ class FrameInitializationManager {
       }
       if (src.is_numpy_array()) {
         return init_from_numpy();
+      }
+      if (src.is_arrow_table()) {
+        return init_from_arrow();
       }
       if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
@@ -477,6 +481,57 @@ class FrameInitializationManager {
       make_datatable(names_arg);
     }
 
+
+    void init_from_arrow() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from an arrow Table";
+      }
+      auto pasrc = src.to_robj();
+      // batches: List[pa.RecordBatch]
+      py::olist batches = pasrc.invoke("to_batches").to_pylist();
+
+      struct ArrowSchema {
+        // Array type description
+        const char* format;
+        const char* name;
+        const char* metadata;
+        int64_t flags;
+        int64_t n_children;
+        struct ArrowSchema** children;
+        struct ArrowSchema* dictionary;
+
+        // Release callback
+        void (*release)(struct ArrowSchema*);
+        // Opaque producer-specific data
+        void* private_data;
+      };
+
+      struct ArrowArray {
+        // Array data description
+        int64_t length;
+        int64_t null_count;
+        int64_t offset;
+        int64_t n_buffers;
+        int64_t n_children;
+        const void** buffers;
+        struct ArrowArray** children;
+        struct ArrowArray* dictionary;
+
+        // Release callback
+        void (*release)(struct ArrowArray*);
+        // Opaque producer-specific data
+        void* private_data;
+      };
+
+      ArrowArray array;
+      ArrowSchema schema;
+      batches[0].invoke("_export_to_c", {
+                          py::oint(reinterpret_cast<size_t>(&array)),
+                          py::oint(reinterpret_cast<size_t>(&schema))
+      });
+      throw RuntimeError();
+    }
 
 
   //----------------------------------------------------------------------------

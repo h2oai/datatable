@@ -67,6 +67,7 @@ class Arg : public _obj::error_manager {
     bool is_numpy_array() const;
     bool is_pandas_frame() const;
     bool is_pandas_series() const;
+    bool is_arrow_table() const;
     bool is_range() const;
     bool is_string() const;
     bool is_tuple() const;
