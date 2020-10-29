@@ -11,6 +11,9 @@
   --right-menu-width: 240px;
   --document-width: 900px;
   --document-x-margin: clamp(10px, 2.5vw, 40px);
+
+  --font-sans: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  --font-mono: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
 }
 
 
@@ -26,7 +29,7 @@ html {
 body {
   background-color: #E5E5E5;
   counter-reset: cc;
-  font-family: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   /* required for ScrollSpy plugin */
   position: relative;
@@ -197,6 +200,7 @@ div.nav-left > ul {
 
 div.nav-left li {
   list-style-type: none;
+  position: relative;
 }
 
 div.nav-left li > a {
@@ -204,13 +208,27 @@ div.nav-left li > a {
   color: #696e8e;
   display: block;
   font-size: 13px;
-  margin-left: -10px;
-  padding: 2px 0 2px 10px;
+  margin-left: -12px;
+  padding: 2px 0 2px 12px;
   text-decoration: none;
 }
 
 div.nav-left li > a:hover {
   background-color: #E5E5E5;
+}
+
+div.nav-left li > a:not(:only-child)::before {
+  color: #b1cbde;
+  content: "\f0da";
+  font-family: 'FontAwesome';
+  font-size: 70%;
+  left: -7px;
+  position: absolute;
+  top: 5px;
+}
+
+div.nav-left li > a:not(:only-child):not(.current):hover::before {
+  color: #69698e;
 }
 
 div.nav-left li.current > a.current {
@@ -221,6 +239,15 @@ div.nav-left li.current > a.current {
   /* Ensure that box-shadow is above the adjacent list items,
      even when they are hovered */
   z-index: 1001;
+}
+
+div.nav-left li.current > a:not(:only-child)::before {
+  content: "\f0d7";
+  left: -8px;
+}
+
+div.nav-left li.current > a.current:not(:only-child)::before {
+  left: 4px;
 }
 
 div.nav-left li.current > ul {
@@ -483,6 +510,48 @@ dl.footnote dt {
 dl.footnote dd {
   display: inline-block;
 }
+
+
+
+/*------------------------------------------------------------------------------
+ * ReadTheDocs menu
+ *----------------------------------------------------------------------------*/
+
+div.rst-versions.rst-badge {
+  background: #1f1f1fe5;
+  border-radius: 10px;
+  bottom: 20px;
+}
+
+div.rst-versions.rst-badge .rst-current-version {
+  align-items: center;
+  background-color: #6e758869;
+  border-radius: 10px;
+  color: #87dc72;
+  display: flex;
+  height: auto;
+  line-height: normal;
+  padding: 6px 10px;
+}
+
+div.rst-versions.rst-badge.shift-up .rst-current-version {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:first-child {
+  flex: 1;
+  padding-right: 8px;
+  text-align: left;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:last-child {
+  padding-left: 4px;
+}
+
+div.rst-versions div.rst-other-versions dl:nth-child(2) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(4) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
 
 
 
