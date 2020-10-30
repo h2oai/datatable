@@ -51,7 +51,14 @@ namespace dt {
   struct ArrowSchema;
   class OArrowArray;
   class OArrowSchema;
+
+  // Base class for various "resource guardians"
+  class ResourceOwner {
+    public:
+      virtual ~ResourceOwner() = default;
+  };
 }
+
 
 using std::size_t;
 using dtptr = std::unique_ptr<DataTable>;

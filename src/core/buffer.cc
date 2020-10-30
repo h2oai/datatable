@@ -44,6 +44,7 @@
 #define MAP_NORESERVE 0 // does not exist in FreeBSD 11.x
 #endif
 
+
 //------------------------------------------------------------------------------
 // BufferImpl
 //------------------------------------------------------------------------------
@@ -247,6 +248,7 @@ class BufferImpl
 const size_t BufferImpl::page_size_ = BufferImpl::calc_page_size();
 
 
+
 //------------------------------------------------------------------------------
 // Memory_BufferImpl
 //------------------------------------------------------------------------------
@@ -313,7 +315,7 @@ class Memory_BufferImpl : public BufferImpl
 class External_BufferImpl : public BufferImpl
 {
   private:
-    std::unique_ptr<py::buffer> pybufinfo_;
+    std::unique_ptr<dt::ResourceOwner> owner_;
 
   public:
     External_BufferImpl(const void* ptr, size_t n) {
@@ -325,10 +327,10 @@ class External_BufferImpl : public BufferImpl
     }
 
     External_BufferImpl(const void* ptr, size_t n,
-                        std::unique_ptr<py::buffer>&& pybuf)
+                        std::unique_ptr<dt::ResourceOwner>&& owner)
       : External_BufferImpl(ptr, n)
     {
-      pybufinfo_ = std::move(pybuf);
+      owner_ = std::move(owner);
     }
 
     External_BufferImpl(void* ptr, size_t n)
@@ -349,7 +351,7 @@ class External_BufferImpl : public BufferImpl
     }
 
     void to_memory(Buffer& out) override {
-      if (pybufinfo_) out = Buffer::copy(data_, size_);
+      if (owner_) out = Buffer::copy(data_, size_);
     }
 };
 
@@ -795,7 +797,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n, py::buffer&& pb) {
+  Buffer Buffer::from_pybuffer(const void* ptr, size_t n, py::buffer&& pb) {
     return Buffer(new External_BufferImpl(
               ptr, n, std::make_unique<py::buffer>(std::move(pb))));
   }

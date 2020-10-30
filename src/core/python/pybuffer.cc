@@ -207,12 +207,12 @@ Column buffer::to_column() &&
   }
   else if (stride_ == 1) {
     size_t datasize = itemsize() * nrows;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     return Column::new_mbuf_column(nrows, stype, std::move(databuf));
   }
   else if (static_cast<int64_t>(stride_) > 0) {
     size_t datasize = itemsize() * nrows * stride_;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     Column internal_col = Column::new_mbuf_column(nrows * stride_, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(
@@ -225,7 +225,7 @@ Column buffer::to_column() &&
 
     size_t datasize = itemsize() * nrows * minus_stride;
     ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * minus_stride;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     Column internal_col = Column::new_mbuf_column(nrows * minus_stride, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(
