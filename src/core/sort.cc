@@ -531,7 +531,7 @@ class SortContext {
     container_o.ensure_size(n * sizeof(int32_t));
     o = static_cast<int32_t*>(container_o.ptr);
     if (rowindex) {
-      Buffer oview = Buffer::external(o, n * sizeof(int32_t));
+      Buffer oview = Buffer::unsafe(o, n * sizeof(int32_t));
       rowindex.extract_into(oview, RowIndex::ARR32);
       use_order = true;
     }
@@ -546,7 +546,7 @@ class SortContext {
               bool make_groups)
     : SortContext(nrows, rowindex, make_groups)
   {
-    groups = Buffer::external(groupby.offsets_r(),
+    groups = Buffer::unsafe(groupby.offsets_r(),
                               (groupby.size() + 1) * sizeof(int32_t));
     gg.init(nullptr, 0, groupby.size());
     if (!rowindex) {

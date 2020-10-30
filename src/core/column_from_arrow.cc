@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column.h"
+#include "stype.h"
 #include "utils/arrow_structs.h"
 
 
@@ -35,38 +36,48 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
 
   switch (format[0]) {
     case 'n': {  // null
-      return Column::new_na_column(nrows, SType::VOID);
+      return Column::new_na_column(nrows, dt::SType::VOID);
     }
     case 'b': {  // boolean
       xassert(nbuffers == 2);
+      break;
     }
     case 'c':    // int8
     case 'C': {  // uint8
       xassert(nbuffers == 2);
+      break;
     }
     case 's':    // int16
     case 'S': {  // uint16
       xassert(nbuffers == 2);
+      break;
     }
     case 'i':    // int32
     case 'I': {  // uint32
       xassert(nbuffers == 2);
+      break;
     }
     case 'l':    // int64
     case 'L': {  // uint64
       xassert(nbuffers == 2);
+      break;
     }
     case 'f': {  // float32
       xassert(nbuffers == 2);
+      break;
     }
     case 'g': {  // float64
       xassert(nbuffers == 2);
+      break;
     }
     case 'u': {  // utf-8 string
       xassert(nbuffers == 3);
+      break;
     }
     case 'U': {  // large  utf-8 string
       xassert(nbuffers == 3);
+      break;
     }
   }
+  throw NotImplError();
 }

@@ -787,11 +787,11 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
     return Buffer(new Memory_BufferImpl(std::move(ptr), n));
   }
 
-  Buffer Buffer::external(void* ptr, size_t n) {
+  Buffer Buffer::unsafe(void* ptr, size_t n) {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n) {
+  Buffer Buffer::unsafe(const void* ptr, size_t n) {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 

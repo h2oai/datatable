@@ -86,7 +86,7 @@ py::oobj Source_Python::read(GenericReader& reader) {
       }
     #endif
   } else if (!(text = text_arg.to_cstring()).isna()) {
-    input_mbuf = Buffer::external(text.data(), text.size());
+    input_mbuf = Buffer::unsafe(text.data(), text.size());
 
   } else if (!(filename = file_arg.to_cstring()).isna()) {
     input_mbuf = Buffer::mmap(filename.to_string());

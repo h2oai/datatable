@@ -107,7 +107,7 @@ class Buffer
     //   Buffer object. In this case the `ptr` should have had been
     //   allocated using `dt::malloc`.
     //
-    // Buffer::external(ptr, n)
+    // Buffer::unsafe(ptr, n)
     //   Create Buffer from an existing pointer `ptr` to a memory buffer
     //   of size `n`, however the ownership of the pointer will not be assumed:
     //   the caller will be responsible for deallocating `ptr` when it is no
@@ -136,8 +136,8 @@ class Buffer
     static Buffer mem(int64_t n);
     static Buffer copy(const void* ptr, size_t n);
     static Buffer acquire(void* ptr, size_t n);
-    static Buffer external(void* ptr, size_t n);
-    static Buffer external(const void* ptr, size_t n);
+    static Buffer unsafe(void* ptr, size_t n);
+    static Buffer unsafe(const void* ptr, size_t n);
     static Buffer external(const void* ptr, size_t n, py::buffer&& pybuf);
     static Buffer pybytes(const py::oobj& src);
     static Buffer view(const Buffer& src, size_t n, size_t offset);
