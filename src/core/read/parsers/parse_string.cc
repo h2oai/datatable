@@ -197,15 +197,15 @@ static void parse_string_unquoted(const ParseContext& ctx) {
     while (ch < end && *ch == ' ') ch++;
   }
   const char* field_start = ch;
-  bool is_alphabet;
-  if (*field_start >= 65 && *field_start <=122) is_alphabet=true; else is_alphabet=false;
+  //bool is_alphabet;
+  //if (*field_start >= 65 && *field_start <=122) is_alphabet=true; else is_alphabet=false;
   while (ch < end) {
     char c = *ch;
     if (c == sep && sep != ' ') { 
       break; 
-    }  else if (c == sep && sep == ' ' && !is_alphabet) {
-      break;
-    } else if (c == sep && sep == ' ' && (*(ch+1) == ' ') && is_alphabet) { 
+    //}  else if (c == sep && sep == ' ' && !is_alphabet) {
+    //  break;
+    } else if (c == sep && sep == ' ' && *(ch+1) == ' ') { 
       break;
     }
     // end of field
