@@ -375,7 +375,7 @@ class XPythonDomain(sphinx.domains.Domain):
                               childnode = childnode)
 
     def find_ref(self, node):
-        reftype = node.get("reftype")
+        reftype = self.translate_type(node.get("reftype"))
         reftarget = node.get("reftarget")
         if (reftype, reftarget) in self.refs:
             return self.refs[reftype, reftarget]

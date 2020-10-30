@@ -913,12 +913,9 @@ class XobjectDirective(SphinxDirective):
         # Tell Sphinx that this is a target for `:py:obj:` references
         if "noindex" not in self.options:
             self.state.document.note_explicit_target(sig_node)
-            domain = self.env.get_domain("py")
-            domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
-                               objtype=self.name[1:],  # remove initial 'x'
-                               node_id=targetname)
             domain = self.env.get_domain("xpy")
-            domain.note_object(objtype=self.name[1:], objname=targetname,
+            domain.note_object(objtype=self.name[1:],  # remove initial 'x'
+                               objname=targetname,     # e.g. "datatable.Frame.cbind"
                                docname=self.env.docname)
         out = [sig_node]
         if self.name == "xattr":
@@ -992,7 +989,7 @@ class XobjectDirective(SphinxDirective):
         node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
-                                    reftype=reftype, refdomain="py")
+                                    reftype=reftype, refdomain="xpy")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
         node += nodes.generated("", "", ref)
