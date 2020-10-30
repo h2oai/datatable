@@ -46,6 +46,11 @@ namespace dt {
   class CString;
   enum class LType : uint8_t;
   enum class SType : uint8_t;
+
+  struct ArrowArray;
+  struct ArrowSchema;
+  class OArrowArray;
+  class OArrowSchema;
 }
 
 using std::size_t;

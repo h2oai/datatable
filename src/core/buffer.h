@@ -44,10 +44,10 @@ namespace py { class buffer; }
   * Buffer objects to be copied with negligible overhead.
   *
   * The class implements Copy-on-Write semantics: if a user wants to
-  * write into the memory buffer contained in a Buffer object, and
-  * that memory buffer is currently shared with other Buffer instances,
+  * write into the memory region contained in a Buffer object, and
+  * that memory region is currently shared with other Buffer instances,
   * then the class will first replace its internal impl with a
-  * writable copy of the memory buffer.
+  * writable copy of the memory region.
   *
   * The class may also be marked as "containing PyObjects". In this
   * case the contents of the buffer will receive special treatment:
@@ -94,9 +94,8 @@ class Buffer
     // Factory constructors:
     //
     // Buffer::mem(n)
-    //   Allocate memory region of size `n` in memory (on the heap). The memory
-    //   will be freed when the Buffer object goes out of scope (assuming
-    //   no shallow copies were created).
+    //   Allocate memory region of size `n` in memory ("on the heap").
+    //   The memory will be freed when the Buffer object is destroyed.
     //
     // Buffer::copy(ptr, n)
     //   Allocate a memory region of size `n` in memory, and copy the contents
