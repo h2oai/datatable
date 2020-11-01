@@ -235,6 +235,37 @@ def test_dt_sd_special_cases(src, res):
     assert list_equals(dtr.to_list(), [[res]])
 
 
+#-------------------------------------------------------------------------------
+# Skew function dt.skew()
+#-------------------------------------------------------------------------------
+
+def truncate(n, decimals=0):
+    multiplier = 10 ** decimals
+    return int(n * multiplier) / multiplier
+
+
+def test_dt_skew(numpy, pandas):
+    x = numpy.linspace( -5, 5, 1000 )
+    y = 1./(numpy.sqrt(2.*numpy.pi)) * numpy.exp( -.5*(x)**2  )
+    pd_df = pandas.DataFrame(y)
+    dt_df = dt.Frame(y)
+    EXP = pd_df.skew()[0]
+    RES = dt_df.skew1()
+    assert truncate(EXP, 2) == truncate(RES, 2)
+
+
+#-------------------------------------------------------------------------------
+# Kurtosis function dt.kurt()
+#-------------------------------------------------------------------------------
+
+def test_dt_kurt(numpy, pandas):
+    x = numpy.linspace( -5, 5, 1000 )
+    y = 1./(numpy.sqrt(2.*numpy.pi)) * numpy.exp( -.5*(x)**2  )
+    pd_df = pandas.DataFrame(y)
+    dt_df = dt.Frame(y)
+    EXP = pd_df.kurtosis()[0]
+    RES = dt_df.kurt1()
+    assert truncate(EXP, 2) == truncate(RES, 2)
 
 #-------------------------------------------------------------------------------
 # Count_na function dt.count_na()
