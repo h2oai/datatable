@@ -31,7 +31,6 @@
 #include "utils/exceptions.h"
 
 class BufferImpl;
-namespace py { class buffer; }
 
 
 //==============================================================================
@@ -139,6 +138,7 @@ class Buffer
     static Buffer unsafe(void* ptr, size_t n);
     static Buffer unsafe(const void* ptr, size_t n);
     static Buffer from_pybuffer(const void* ptr, size_t n, py::buffer&& pybuf);
+    static Buffer from_arrowarray(const void* ptr, size_t n, std::shared_ptr<dt::OArrowArray> arr);
     static Buffer pybytes(const py::oobj& src);
     static Buffer view(const Buffer& src, size_t n, size_t offset);
     static Buffer mmap(const std::string& path);

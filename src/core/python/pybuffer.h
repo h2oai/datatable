@@ -36,8 +36,7 @@ namespace py {
   * The purpose of this class is to automatically release the
   * underlying resources when this object goes out of scope.
   */
-class buffer : public dt::ResourceOwner
-{
+class buffer {
   private:
     Py_buffer* info_;  // owned
     size_t stride_;
@@ -51,7 +50,7 @@ class buffer : public dt::ResourceOwner
     buffer(robj obj);
     buffer(const buffer&) = delete;
     buffer(buffer&&) noexcept;
-    ~buffer() override;
+    ~buffer();
 
 
     //---- Properties -------

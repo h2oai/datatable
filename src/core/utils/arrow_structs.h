@@ -22,6 +22,7 @@
 #ifndef dt_UTILS_ARROW_STRUCTS_h
 #define dt_UTILS_ARROW_STRUCTS_h
 #include <memory>
+#include "_dt.h"
 #include "utils/assert.h"
 namespace dt {
 

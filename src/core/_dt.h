@@ -51,12 +51,6 @@ namespace dt {
   struct ArrowSchema;
   class OArrowArray;
   class OArrowSchema;
-
-  // Base class for various "resource guardians"
-  class ResourceOwner {
-    public:
-      virtual ~ResourceOwner() = default;
-  };
 }
 
 
@@ -76,6 +70,7 @@ namespace py {
   class GSArgs;
   class PKArgs;
   class XArgs;
+  class buffer;  // in pybuffer.h
   class obool;
   class oby;
   class odict;
