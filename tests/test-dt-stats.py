@@ -245,28 +245,27 @@ def truncate(n, decimals=0):
 
 
 def test_dt_skew(numpy, pandas):
-    x = numpy.linspace( -5, 5, 1000 )
-    y = 1./(numpy.sqrt(2.*numpy.pi)) * numpy.exp( -.5*(x)**2  )
-    pd_df = pandas.DataFrame(y)
-    dt_df = dt.Frame(y)
+    x = numpy.random.normal(0, 1000, 10000) 
+    pd_df = pandas.DataFrame(x)
+    dt_df = dt.Frame(x)
     EXP = pd_df.skew()[0]
     RES = dt_df.skew1()
     assert truncate(EXP, 2) == truncate(RES, 2)
-
+    assert truncate(EXP, 3) == truncate(RES, 3)
 
 #-------------------------------------------------------------------------------
 # Kurtosis function dt.kurt()
 #-------------------------------------------------------------------------------
 
 def test_dt_kurt(numpy, pandas):
-    x = numpy.linspace( -5, 5, 1000 )
-    y = 1./(numpy.sqrt(2.*numpy.pi)) * numpy.exp( -.5*(x)**2  )
-    pd_df = pandas.DataFrame(y)
-    dt_df = dt.Frame(y)
+    x = numpy.random.normal(0, 1000, 10000) 
+    pd_df = pandas.DataFrame(x)
+    dt_df = dt.Frame(x)
     EXP = pd_df.kurtosis()[0]
     RES = dt_df.kurt1()
     assert truncate(EXP, 2) == truncate(RES, 2)
-
+    assert truncate(EXP, 3) == truncate(RES, 3)
+    
 #-------------------------------------------------------------------------------
 # Count_na function dt.count_na()
 #-------------------------------------------------------------------------------
