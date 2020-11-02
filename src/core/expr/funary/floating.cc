@@ -74,7 +74,7 @@ Examples
 See also
 --------
 
-- :func:`fabs() <datatable.math.fabs>`
+- :func:`fabs()`
 )";
 
 py::PKArgs args_abs(1, 0, 0, false, false, {"x"}, "abs", doc_abs);
@@ -196,7 +196,7 @@ static const char* doc_isna =
 R"(isna(x)
 --
 
-Returns True if the argument is NA, and False otherwise.
+Returns `True` if the argument is NA, and `False` otherwise.
 )";
 
 py::PKArgs args_isna(1, 0, 0, false, false, {"x"}, "isna", doc_isna);
@@ -296,8 +296,8 @@ or NaN. This function is equivalent to ``!(isna(x) or isinf(x))``.
 
 See also
 --------
-- :func:`isna() <math.isna>`
-- :func:`isinf() <math.isinf>`
+- :func:`isna()`
+- :func:`isinf()`
 )";
 
 py::PKArgs args_isfinite(1, 0, 0, false, false, {"x"}, "isfinite", doc_isfinite);

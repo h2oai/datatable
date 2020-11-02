@@ -107,39 +107,51 @@ static size_t hypergeom(dt::function<double(void)> rnd,
 // kfold()
 //------------------------------------------------------------------------------
 
-static PKArgs args_kfold_simple(
-  0, 0, 2, false, false,
-  {"nrows", "nsplits"}, "kfold",
-
+static const char* doc_kfold =
 R"(kfold(nrows, nsplits)
 --
 
 Perform k-fold split of data with `nrows` rows into `nsplits` train/test
-subsets.
+subsets. The dataset itself is not passed to this function:
+it is sufficient to know only the number of rows in order to decide
+how the data should be split.
 
-This function will return a list of `nsplits` tuples `(train_rows, test_rows)`,
-where each component of the tuple is a rows selector that can be applied to a
-frame with `nrows` rows. Some of these row selectors will be simple python
-ranges, others will be single-column Frame objects.
-
-The range `[0; nrows)` is split into `nsplits` approximately equal parts
-(called "folds"), and then each `i`-th split will use the `i`-th fold as a
+The range `[0; nrows)` is split into `nsplits` approximately equal parts,
+i.e. folds, and then each `i`-th split will use the `i`-th fold as a
 test part, and all the remaining rows as the train part. Thus, `i`-th split is
 comprised of:
 
-  - train: rows [0; i*nrows/nsplits) + [(i+1)*nrows/nsplits; nrows)
-  - test:  rows [i*nrows/nsplits; (i+1)*nrows/nsplits)
+  - train rows: `[0; i*nrows/nsplits) + [(i+1)*nrows/nsplits; nrows)`;
+  - test rows: `[i*nrows/nsplits; (i+1)*nrows/nsplits)`.
 
 where integer division is assumed.
 
 Parameters
 ----------
 nrows: int
-    The number of rows in the frame that you want to split.
+    The number of rows in the frame that is going to be split.
 
 nsplits: int
-    Number of folds, must be at least 2, but not larger than `nrows`.
-)");
+    Number of folds, must be at least `2`, but not larger than `nrows`.
+
+return: List[Tuple]
+    This function returns a list of `nsplits` tuples `(train_rows, test_rows)`,
+    where each component of the tuple is a rows selector that can be applied
+    to any frame with `nrows` rows to select the desired folds.
+    Some of these row selectors will be simple python ranges,
+    others will be single-column Frame objects.
+
+See Also
+--------
+:func:`kfold_random()` -- Perform randomized k-fold split.
+
+)";
+
+static PKArgs args_kfold_simple(
+  0, 0, 2, false, false,
+  {"nrows", "nsplits"}, "kfold",
+  doc_kfold
+);
 
 
 static oobj kfold(const PKArgs& args) {
@@ -196,29 +208,21 @@ static oobj kfold(const PKArgs& args) {
 // kfold_random()
 //------------------------------------------------------------------------------
 
-static PKArgs args_kfold_random(
-  0, 0, 3, false, false,
-  {"nrows", "nsplits", "seed"}, "kfold_random",
-
+static const char* doc_kfold_random =
 R"(kfold_random(nrows, nsplits, seed=None)
 --
 
-Computes randomized k-fold split of data with `nrows` rows into
-`nsplits` train/test subsets.
+Perform randomized k-fold split of data with `nrows` rows into
+`nsplits` train/test subsets. The dataset itself is not passed to this
+function: it is sufficient to know only the number of rows in order to decide
+how the data should be split.
 
-The dataset itself is not passed to this function: it is sufficient
-to know only the number of rows in order to decide how the data should
-be divided. Instead, this function returns a list of `nsplits` tuples,
-each tuple containing `(train_rows, test_rows)`. Here `train_rows` and
-`test_rows` are "row selectors": they can be applied to any frame with
-`nrows` rows to select the desired folds.
-
-The train/test subsets produced by this function will have these
+The train/test subsets produced by this function will have the following
 properties:
-  - All test folds will be of approximately same size nrows/nsplits;
-  - All observations have equal ex-ante chance of getting assigned
-    into each fold;
-  - The row indices in all train and test folds will be sorted.
+
+  - all test folds will be of approximately the same size `nrows/nsplits`;
+  - all observations have equal ex-ante chance of getting assigned into each fold;
+  - the row indices in all train and test folds will be sorted.
 
 The function uses single-pass parallelized algorithm to construct the
 folds.
@@ -229,13 +233,30 @@ nrows: int
     The number of rows in the frame that you want to split.
 
 nsplits: int
-    Number of folds, must be at least 2, but not larger than `nrows`.
+    Number of folds, must be at least `2`, but not larger than `nrows`.
 
-seed: int (optional)
+seed: int
     Seed value for the random number generator used by this function.
-    Calling ``kfold_random()`` several times with the same seed values
+    Calling the function several times with the same seed values
     will produce same results each time.
-)");
+
+return: List[Tuple]
+    This function returns a list of `nsplits` tuples `(train_rows, test_rows)`,
+    where each component of the tuple is a rows selector that can be applied to
+    to any frame with `nrows` rows to select the desired folds.
+
+
+See Also
+--------
+:func:`kfold()` -- Perform k-fold split.
+
+)";
+
+static PKArgs args_kfold_random(
+  0, 0, 3, false, false,
+  {"nrows", "nsplits", "seed"}, "kfold_random",
+  doc_kfold_random
+);
 
 
 static constexpr size_t CHUNK_SIZE = 4096;

@@ -24,7 +24,6 @@
 import ctypes
 import enum
 from datatable.exceptions import ValueError
-from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
 
 __all__ = ("stype", "ltype")
@@ -44,39 +43,8 @@ class stype(enum.Enum):
     such as ``int32_t`` or ``double``. However some stypes (corresponding to
     strings and categoricals) have a more complicated underlying structure.
 
-    Notably, :module:`datatable` does not support arbitrary structures as
+    Notably, :mod:`datatable` does not support arbitrary structures as
     elements of a Column, so the set of stypes is small.
-
-    Examples
-    --------
-    >>> import datatable as dt
-    >>> dt.stype.int16
-    stype.int16
-
-    You can convert strings and Python primitive types (and even numpy dtypes)
-    into stypes:
-
-    >>> dt.stype(str)
-    stype.str64
-    >>> dt.stype("double")
-    stype.float64
-    >>> dt.stype(numpy.dtype("object"))
-    stype.obj64
-    >>> dt.stype("i4")
-    stype.int32
-
-    Each stype has the following properties: `.ltype` returns the corresponding
-    :class:`ltype`, `.code` gives 2-character short code of the stype, and
-    `.ctype` returns the `ctypes` object that describes the underlying data.
-
-    >>> dt.stype.int16.code
-    'i2'
-    >>> dt.stype.int16.ltype
-    ltype.int
-    >>> dt.stype.int16.ctype
-    <class 'ctypes.c_short'>
-    >>> dt.stype.int16.struct
-    '=h'
     """
     bool8 = 1
     int8 = 2
@@ -93,7 +61,7 @@ class stype(enum.Enum):
         return str(self)
 
     def __call__(self, arg):
-        return Expr(OpCodes.CAST, (arg,), (self,))
+        return core.as_type(arg, self)
 
     @property
     def code(self):
@@ -105,7 +73,7 @@ class stype(enum.Enum):
     @property
     def ltype(self):
         """
-        :class:`ltype` corresponding to this stype. Several stypes may map to
+        :class:`dt.ltype` corresponding to this stype. Several stypes may map to
         the same ltype, whereas each stype is described by exactly one ltype.
         """
         return _stype_2_ltype[self]
@@ -113,7 +81,7 @@ class stype(enum.Enum):
     @property
     def ctype(self):
         """
-        :module:`ctypes` class that describes the C-level type of each element
+        :ext-mod:`ctypes` class that describes the C-level type of each element
         in a column with this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the ctype
@@ -124,6 +92,9 @@ class stype(enum.Enum):
 
     @property
     def dtype(self):
+        """
+        ``numpy.dtype`` object that corresponds to this stype.
+        """
         if not _numpy_init_attempted:
             _init_numpy_transforms()
         return _stype_2_dtype[self]
@@ -132,7 +103,7 @@ class stype(enum.Enum):
     @property
     def struct(self):
         """
-        :module:`struct` format string corresponding to this stype.
+        :ext-mod:`struct` format string corresponding to this stype.
 
         For non-fixed-width columns (such as `str32`) this will return the
         format string of only the fixed-width component of that column. Thus,
@@ -176,20 +147,6 @@ class ltype(enum.Enum):
     this integer can be stored in several "physical" formats: from
     ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
     between ltypes and stypes.
-
-    Examples
-    --------
-    >>> dt.ltype.bool
-    ltype.bool
-    >>> dt.ltype("int32")
-    ltype.int
-
-    For each ltype, you can find the set of stypes that correspond to it:
-
-    >>> dt.ltype.real.stypes
-    [stype.float32, stype.float64]
-    >>> dt.ltype.time.stypes
-    []
     """
     bool = 1
     int = 2
@@ -203,7 +160,13 @@ class ltype(enum.Enum):
 
     @property
     def stypes(self):
-        """List of stypes that represent this ltype."""
+        """
+        List of stypes that represent this ltype.
+
+        Parameters
+        ----------
+        return: List[stype]
+        """
         return [k for k, v in _stype_2_ltype.items() if v == self]
 
 

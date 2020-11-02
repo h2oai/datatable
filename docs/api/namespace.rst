@@ -10,10 +10,10 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`__getattribute__(attr) <Namespace.__getattribute__>`
+        * - :meth:`.__getattribute__(attr)`
           - Access columns as attributes.
 
-        * - :meth:`__getitem__(item) <Namespace.__getitem__>`
+        * - :meth:`.__getitem__(item)`
           - Access columns by their names / indices.
 
 

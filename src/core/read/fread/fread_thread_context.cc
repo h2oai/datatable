@@ -98,7 +98,8 @@ void FreadThreadContext::read_chunk(
         tch++;
         j++;
       }
-      //*** END HOT. START TEPID ***//
+
+      const char* fieldEnd = tch;
       if (tch == tlineStart) {
         parse_ctx_.skip_whitespace_at_line_start();
         if (tch == parse_ctx_.eof) break;  // empty last line
@@ -109,13 +110,14 @@ void FreadThreadContext::read_chunk(
         parse_ctx_.target ++;
         j++;
         if (j==ncols) { used_nrows++; continue; }  // next line
-        tch--;
+        // TODO: fill the rest of the fields with NAs explicitly, without
+        //       going through type-bumping process below
+        tch = fieldEnd;
       }
       else {
         tch = fieldStart;
       }
     }
-    //*** END TEPID. NOW COLD.
 
     if (sep==' ') {
       while (tch < parse_ctx_.eof && *tch==' ') tch++;

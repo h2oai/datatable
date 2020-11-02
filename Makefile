@@ -60,7 +60,7 @@ test:
 
 # In order to run with Address Sanitizer:
 #   $ make asan
-#   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/7.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
+#   $ DYLD_INSERT_LIBRARIES=/usr/local/opt/llvm/lib/clang/10.0.0/lib/darwin/libclang_rt.asan_osx_dynamic.dylib ASAN_OPTIONS=detect_leaks=1 python -m pytest
 #
 .PHONY: asan
 asan:

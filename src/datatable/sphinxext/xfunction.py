@@ -45,6 +45,8 @@ This makes several directives available for use in the .rst files:
 
     .. xclass: datatable.Frame
 
+The :src: option is required, but it may be "--" to indicate that the object
+has no identifiable source (use sparingly!).
 """
 import pathlib
 import re
@@ -60,13 +62,15 @@ from . import xnodes
 
 rx_cc_id = re.compile(r"(?:\w+::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
-rx_param = re.compile(r"(?:"
-                      r"(\w+)(?:\s*=\s*("
-                      r"\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|\[[^\[\]]*\]|[^,\[\(\"]*"
-                      r"))?"
-                      r"|([\*/]|\*\*?\w+)"
-                      r")\s*(?:,\s*)?|"
-                      r"\[,?\s*(\w+),?\s*\]\s*")
+rx_param = re.compile(r"""
+    (?:(\w+)                                        # parameter name
+       (?:\s*=\s*(\"[^\"]*\"|'[^']*'|\([^\(\)]*\)|
+                  \[[^\[\]]*\]|[^,\[\(\"]*))?       # default value
+       |(\*\*?\w*|/|\.\.\.)                         # varags/varkwds
+    )\s*(?:,\s*)?                                   # followed by a comma
+    |                                               # - or -
+    \[,?\s*(\w+),?\s*\]\s*                          # a parameter in square brackets
+    """, re.VERBOSE)
 rx_header = re.compile(r"(\-{3,})\s*")
 rx_return = re.compile(r"[\[\(]?returns?[\]\)]?")
 
@@ -92,8 +96,8 @@ class XobjectDirective(SphinxDirective):
 
         env.xobject = {
             <docname>: {
-                "timestamp": <time of last build of the page>,
-                "sources": List[<name of a source file>],
+                "timestamp": float,    # time of last build of the page
+                "sources": List[str],  # names of source files
             }
         }
 
@@ -224,13 +228,28 @@ class XobjectDirective(SphinxDirective):
         "noindex": directives.unchanged,
     }
 
+    def __init__(self, *args):
+        super().__init__(*args)
+        self.src_file = None
+        self.src_fnname = None
+        self.src_fnname2 = None
+        self.src_github_url = None
+        self.doc_file = None
+        self.doc_var = None
+        self.doc_github_url = None
+        self.doc_lines = StringList()
+        self.test_file = None
+        self.tests_github_url = None
+        self.qualifier = None
+
+
     def run(self):
         """
         Main function invoked by the Sphinx runtime.
         """
         self._parse_config()
-        self._init_env()
         self._parse_arguments()
+        self._init_env()
         self._parse_option_src()
         self._parse_option_doc()
         self._parse_option_tests()
@@ -259,8 +278,15 @@ class XobjectDirective(SphinxDirective):
             timestamp = time.time(),
             sources = []
         )
-        # equivalent of `.. py::currentmodule::` directive
-        self.env.ref_context['py:module'] = self.module_name
+        xpy = self.env.get_domain("xpy")
+        if self.name == "xclass":
+            xpy.current_context = ("class", self.qualifier + self.obj_name)
+        if self.name in ["xattr", "xmethod"]:
+            assert self.qualifier[-1:] == '.'
+            xpy.current_context = ("class", self.qualifier[:-1])
+        if self.name in ["xfunction", "xdata"]:
+            assert self.qualifier[-1:] == '.'
+            xpy.current_context = ("module", self.qualifier[:-1])
 
 
     def _register_source_file(self, filename):
@@ -343,6 +369,9 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Option :src: is required for ..%s directive"
                              % self.name)
         src = self.options["src"].strip()
+        if src == '--':
+            return
+
         parts = src.split()
         if self.name in ["xdata", "xattr"]:
             if len(parts) not in [2, 3]:
@@ -367,7 +396,6 @@ class XobjectDirective(SphinxDirective):
                                  "`%s` is not a valid C++ identifier"
                                  % (self.name, p))
         self.src_fnname = parts[1]
-        self.src_fnname2 = None
         if len(parts) == 3:
             self.src_fnname2 = parts[2]
 
@@ -379,8 +407,6 @@ class XobjectDirective(SphinxDirective):
         provided, the fields are set to `None`.
         """
         if "doc" not in self.options:
-            self.doc_file = None
-            self.doc_var = None
             return
         doc = self.options["doc"].strip()
         parts = doc.split()
@@ -413,8 +439,6 @@ class XobjectDirective(SphinxDirective):
         Process the optional option `:tests:`, and set the fields
         `self.test_file` and `self.tests_github_url`.
         """
-        self.test_file = None
-        self.tests_github_url = None
         if "tests" not in self.options:
             return
 
@@ -472,63 +496,32 @@ class XobjectDirective(SphinxDirective):
         """
         txt = (self.project_root / filename).read_text(encoding="utf-8")
         lines = txt.splitlines()
-        if self.name == "xdata":
-            return self._locate_constant(filename, fnname, lines)
-        if filename.endswith(".py"):
-            return self._locate_python_fn(filename, fnname, lines)
-
-        if self.name == "xclass":
-            rx_cc_function = re.compile(r"(\s*)class (?:\w+::)*" + fnname + r"\s*")
-        else:
-            rx_cc_function = re.compile(r"(\s*)"
-                                        r"(?:static\s+|inline\s+)*"
-                                        r"(?:[\w:*&<> ]+)\s+" +
-                                        fnname +
-                                        r"\s*\(.*\)\s*" +
-                                        r"(?:const\s*|noexcept\s*|override\s*)*" +
-                                        r"\{\s*")
-        expect_closing = None
-        start_line = None
-        finish_line = None
-        for i, line in enumerate(lines):
-            if expect_closing:
-                if line.startswith(expect_closing):
-                    finish_line = i + 1
-                    break
-            elif fnname in line:
-                start_line = i + 1
-                mm = re.match(rx_cc_function, line)
-                if mm:
-                    expect_closing = mm.group(1) + "}"
+        lines = StringList(lines, items=[(filename, i+1)
+                                         for i in range(len(lines))])
+        try:
+            kind = self.name[1:]  # remove initial 'x'
+            if filename.endswith(".py"):
+                if kind == "data":
+                    i, j = locate_python_variable(fnname, lines)
+                elif kind in ["class", "function", "method", "attr"]:
+                    i, j = locate_python_function(fnname, kind, lines)
+                    self.doc_lines = extract_python_docstring(lines[i:j])
                 else:
-                    mm = re.match(rx_cc_function, line + lines[i+1])
-                    if mm:
-                        expect_closing = mm.group(1) + "}"
-        if not start_line:
-            raise self.error("Could not find function `%s` in file `%s`"
-                             % (fnname, filename))
-        if not expect_closing:
-            raise self.error("Unexpected signature of function `%s` "
-                             "in file `%s` line %d"
-                             % (fnname, filename, start_line))
-        if not finish_line:
-            raise self.error("Could not locate the end of function `%s` "
-                             "in file `%s` line %d"
-                             % (fnname, filename, start_line))
-        return self.permalink(filename, start_line, finish_line)
+                    raise self.error("Unsupported directive %s for "
+                                     "a python source file" % self.name)
+            else:
+                if kind not in ["class", "function", "method", "attr"]:
+                    raise self.error("Unsupported directive %s for "
+                                     "a C++ source file" % self.name)
+                i, j = locate_cxx_function(fnname, kind, lines)
+
+            return self.permalink(filename, i + 1, j)
+
+        except ValueError as e:
+            msg = str(e).replace("<FILE>", "file " + filename)
+            raise self.error(msg) from None
 
 
-    def _locate_constant(self, filename, varname, lines):
-        rx = re.compile(r"\b" + varname + r"\b")
-        for i, line in enumerate(lines):
-            if re.match(rx, line):
-                return self.permalink(filename, i + 1, i + 1)
-        raise self.error("Could not find variable `%s` in file `%s`"
-                         % (varname, filename))
-
-
-    def _locate_python_fn(self, filename, fnname, lines):
-        rx = re.compile(r"")
 
 
     def _extract_docs_from_source(self):
@@ -539,8 +532,6 @@ class XobjectDirective(SphinxDirective):
         the docstring cannot be found.
         """
         if not self.doc_file:
-            self.doc_github_url = None
-            self.doc_lines = StringList()
             return
 
         txt = (self.project_root / self.doc_file).read_text(encoding="utf-8")
@@ -642,6 +633,7 @@ class XobjectDirective(SphinxDirective):
           - "*"                 # separator for kw-only arguments
           - "*" + varname       # positional varargs
           - "**" + varname      # keyword varargs
+          - "..."               # the ellipsis
 
         Type annotations in the signature are not supported.
         """
@@ -674,6 +666,8 @@ class XobjectDirective(SphinxDirective):
         """
         Parse/transform the body of the function's docstring.
         """
+        # TODO: work with the StringList `lines` directly without converting
+        #       it into a plain string
         body = "\n".join(lines.data)
         line0 = lines.offset(0) if body else 0  # offset of the first line
         self.parsed_body = self._split_into_sections(body, line0)
@@ -881,9 +875,7 @@ class XobjectDirective(SphinxDirective):
     #---------------------------------------------------------------------------
 
     def _generate_nodes(self):
-        title_text = self.qualifier + self.obj_name
-        sect = nodes.section(ids=[title_text],
-                             classes=["x-function", self.name])
+        sect = xnodes.div(classes=["x-function", self.name])
         sect += self._index_node()
         sect += self._generate_signature()
         sect += self._generate_body()
@@ -921,10 +913,10 @@ class XobjectDirective(SphinxDirective):
         # Tell Sphinx that this is a target for `:py:obj:` references
         if "noindex" not in self.options:
             self.state.document.note_explicit_target(sig_node)
-            domain = self.env.get_domain("py")
-            domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
-                               objtype=self.name[1:],  # remove initial 'x'
-                               node_id=targetname)
+            domain = self.env.get_domain("xpy")
+            domain.note_object(objtype=self.name[1:],  # remove initial 'x'
+                               objname=targetname,     # e.g. "datatable.Frame.cbind"
+                               docname=self.env.docname)
         out = [sig_node]
         if self.name == "xattr":
             if self.setter:
@@ -993,17 +985,19 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_qualifier(self):
+        reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
         node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
-                                    reftype="class", refdomain="py")
+                                    reftype=reftype, refdomain="xpy")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
         node += nodes.generated("", "", ref)
         return node
 
     def _generate_siglinks(self, node):
-        node += a_node(href=self.src_github_url, text="source", new=True)
+        if self.src_github_url:
+            node += a_node(href=self.src_github_url, text="source", new=True)
         if self.doc_github_url and self.doc_file != self.src_file:
             node += a_node(href=self.doc_github_url, text="doc", new=True)
         if self.tests_github_url:
@@ -1042,12 +1036,12 @@ class XobjectDirective(SphinxDirective):
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
                 if param == "self": continue
-                if param == "*" or param == "/": classes += ["special"]
+                if param in ["*" , "/", "..."]: classes += ["special"]
                 if i == last_i: classes += ["final"]
                 if isinstance(param, str):
                     if printed:
                         params += nodes.inline("", nodes.Text(", "), classes=["punct"])
-                    if param in ["self", "*", "/"]:
+                    if param in ["self", "*", "/", "..."]:
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param.lstrip("*"))
@@ -1110,6 +1104,183 @@ class XobjectDirective(SphinxDirective):
 
 
 
+#-------------------------------------------------------------------------------
+# Helper functions
+#-------------------------------------------------------------------------------
+
+def locate_python_variable(name, lines):
+    """
+    Find declaration of a variable `name` within python source `lines`.
+
+    Returns a tuple (istart, iend) such that `lines[istart:iend]` would
+    contain the lines where the variable is declared. Variable declaration
+    must have the form of an assignment, i.e. "{name} = ...". Other ways
+    of declaring a variable are not supported.
+
+    A ValueError is raised if variable declaration cannot be found.
+
+    NYI: detection of multi-line variable declarations, such as dicts,
+    lists, multi-line strings, etc.
+    """
+    assert isinstance(name, str)
+    rx = re.compile(r"\s*%s\s*=\s*\S" % name)
+    for i, line in enumerate(lines.data):
+        if re.match(rx, line):
+            return (i, i+1)
+    raise ValueError("Could not find variable `%s` in <FILE>" % name)
+
+
+
+def locate_python_function(name, kind, lines):
+    """
+    Find declaration of a class/function `name` in python source `lines`.
+
+    Returns a tuple (istart, iend) such that `lines[istart:iend]` would
+    contain the lines where the class/function is declared. The body of
+    the class/function starts with "(class|def) {name}..." and ends
+    at a line with the indentation level equal or smaller than the
+    level of the declaration start.
+
+    A ValueError is raised if variable declaration cannot be found.
+    """
+    assert kind in ["class", "function", "method", "attr"]
+    keyword = "class" if kind == "class" else "def"
+    rx_start = re.compile(r"\s*%s\s+%s\b" % (keyword, name))
+    indent = None
+    istart = None
+    iend = -1
+    for i, line in enumerate(lines.data):
+        unindented_line = line.lstrip()
+        if not unindented_line:  # skip blank lines
+            continue
+        line_indent_level = len(line) - len(unindented_line)
+        if istart is None:
+            if re.match(rx_start, line):
+                indent = line_indent_level
+                istart = i
+        else:
+            if line_indent_level <= indent:
+                break
+        iend = i
+
+    iend += 1
+    if istart is None:
+        raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
+
+    # Also include @decorations, if any
+    while istart > 0:
+        line = lines[istart - 1]
+        unindented_line = line.lstrip()
+        line_indent_level = len(line) - len(unindented_line)
+        if line_indent_level == indent and unindented_line[:1] == '@':
+            istart -= 1
+        else:
+            break
+
+    return (istart, iend)
+
+
+def locate_cxx_function(name, kind, lines):
+    if kind == "class":
+        rx_start = re.compile(r"(\s*)class (?:\w+::)*" + name + r"\s*")
+    else:
+        rx_start = re.compile(r"(\s*)"
+                              r"(?:static\s+|inline\s+)*"
+                              r"(?:[\w:*&<> ]+)\s+" +
+                              name +
+                              r"\s*\(.*\)\s*" +
+                              r"(?:const\s*|noexcept\s*|override\s*)*" +
+                              r"\{\s*")
+    expect_closing = None
+    istart = None
+    ifinish = None
+    for i, line in enumerate(lines.data):
+        if expect_closing:
+            if line.startswith(expect_closing):
+                ifinish = i + 1
+                break
+        elif name in line:
+            istart = i
+            mm = re.match(rx_start, line)
+            if mm:
+                expect_closing = mm.group(1) + "}"
+            else:
+                mm = re.match(rx_start, line + lines[i+1])
+                if mm:
+                    expect_closing = mm.group(1) + "}"
+    if not istart:
+        raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
+    if not expect_closing:
+        raise ValueError("Unexpected signature of %s `%s` in <FILE> "
+                         "line %d" % (kind, name, istart))
+    if not ifinish:
+        raise ValueError("Could not locate the end of %s `%s` in <FILE> "
+                         "line %d" % (kind, name, istart))
+    return (istart, ifinish)
+
+
+def extract_python_docstring(lines):
+    """
+    Given a list of lines that contain a class/function definition,
+    this function will find the docstring (if any) within those lines
+    and return it dedented. The return value is a StringList.
+
+    If there is no docstring, return empty StringList.
+    """
+    i = 0
+    while i < len(lines):  # skip decorators
+        uline = lines[i].lstrip()
+        if uline.startswith("@"):
+            i += 1
+        else:
+            break
+    mm = re.match(r"(class|def)\s+(\w+)\s*", uline)
+    if not mm:
+        raise ValueError("Unexpected function/class declaration: %r" % uline)
+    name = mm.group(2)
+    uline = uline[mm.end():]
+
+    if mm.group(1) == "class" and uline == ":":
+        i += 1
+    elif uline.startswith("("):
+        while i + 1 < len(lines):
+            i += 1
+            if uline.endswith("):"):
+                break
+            else:
+                uline = lines[i]
+    else:
+        raise ValueError("Unexpected function/class declaration: %r" % lines[i])
+
+    uline = lines[i].lstrip()
+    indent0 = len(lines[i]) - len(uline)
+    if uline.startswith('"""'):
+        end = '"""'
+    elif uline.startswith("'''"):
+        end = "'''"
+    else:
+        return StringList()
+
+    res_data = []
+    res_items = []
+    if len(uline) > 3:
+        res_data.append(uline[3:])
+        res_items.append(lines.info(i))
+    while i + 1 < len(lines):
+        i += 1
+        line = lines[i][indent0:]
+        if end in line:
+            line = line[:line.find(end)].strip()
+            if line:
+                res_data.append(line)
+                res_items.append(lines.info(i))
+            break
+        else:
+            res_data.append(line)
+            res_items.append(lines.info(i))
+    return StringList(res_data, items=res_items)
+
+
 
 #-------------------------------------------------------------------------------
 # XparamDirective
@@ -1117,51 +1288,65 @@ class XobjectDirective(SphinxDirective):
 
 class XparamDirective(SphinxDirective):
     has_content = True
-    required_arguments = 2
+    required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = True
 
     def run(self):
         self._parse_arguments()
-        id0 = self.param.strip("*/()[]")
-        root = xnodes.div(classes=["xparam-box"], ids=[id0])
         head = xnodes.div(classes=["xparam-head"])
-        if id0 in ["return", "except"]:
-            param_node = xnodes.div(classes=["param", id0])
-            param_node += nodes.Text(id0)
-        else:
-            param_node = xnodes.div(classes=["param"])
-            param_node += nodes.Text(self.param)
-        head += param_node
         types_node = xnodes.div(classes=["types"])
+        desc_node = xnodes.div(classes=["xparam-body"])
+        root = xnodes.div(head, desc_node)
+        for i, param in enumerate(self.params):
+            if i > 0:
+                head += xnodes.div(", ", classes=["sep"])
+            id0 = param.strip("*/()[]")
+            if id0 == "...":
+                head += xnodes.div("...", classes=["sep"])
+                continue
+            root = xnodes.div(root, ids=[id0], classes=["xparam-box"])
+            if id0 in ["return", "except"]:
+                head += xnodes.div(id0, classes=["param", id0])
+            else:
+                head += xnodes.div(param, classes=["param"])
         types_str = " | ".join("``%s``" % p for p in self.types)
         self.state.nested_parse(StringList([types_str]), self.content_offset,
                                 types_node)
         assert isinstance(types_node[0], nodes.paragraph)
         types_node.children = types_node[0].children
         head += types_node
-        root += head
-        desc_node = xnodes.div(classes=["xparam-body"])
         self.state.nested_parse(self.content, self.content_offset, desc_node)
-        root += desc_node
         return [root]
 
 
     def _parse_arguments(self):
-        self.param = self.arguments[0].rstrip(":")
+        params, args = self.arguments[0].split(":", 1)
+        self.params = [p.strip() for p in params.split(",")]
         self.types = []
 
         rx_separator = re.compile(r"(?:,?\s+or\s+|\s*[,\|]\s*)")
-        args = self.arguments[1]
+        opening_brackets = "[({'\""
+        closing_brackets = "])}'\""
+        args = args.strip()
         i0 = 0
-        bracket_level = 0
+        brackets = []
         i = 0
         while i < len(args):  # iterate by characters
-            if args[i] in "[({'\"":
-                bracket_level += 1
-            elif args[i] in "\"'})]":
-                bracket_level -= 1
-            elif bracket_level == 0:
+            if brackets:
+                closing_bracket = brackets[-1]
+                if args[i] == closing_bracket:
+                    brackets.pop()
+                elif closing_bracket in ['"', "'"]:
+                    pass
+                elif args[i] in opening_brackets:
+                    j = opening_brackets.find(args[i])
+                    brackets.append(closing_brackets[j])
+
+            elif args[i] in opening_brackets:
+                j = opening_brackets.find(args[i])
+                brackets.append(closing_brackets[j])
+            else:
                 mm = re.match(rx_separator, args[i:])
                 if mm:
                     self.types.append(args[i0:i])
@@ -1170,6 +1355,7 @@ class XparamDirective(SphinxDirective):
                     continue
             i += 1
         assert i == len(args)
+        assert not brackets
         self.types.append(args[i0:])
 
 

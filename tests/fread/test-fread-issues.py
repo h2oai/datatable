@@ -12,7 +12,7 @@ import pytest
 import random
 import re
 from datatable.internal import frame_integrity_check
-from tests import find_file, same_iterables, list_equals
+from tests import find_file, list_equals, assert_equals
 
 
 def test_issue1935():
@@ -480,7 +480,7 @@ def test_issue998():
     assert f0.shape == (2000000, 29)
     assert f0.names == tuple("C%d" % i for i in range(f0.ncols))
     assert f0.stypes == (dt.stype.float64,) * f0.ncols
-    assert same_iterables(
+    assert list_equals(
         f0.sum().to_list(),
         [[1058818.0], [1981919.6107614636], [701.7858121241807],
          [-195.48500674014213], [1996390.3476011853], [-1759.5364254778178],
@@ -541,3 +541,12 @@ def test_issue2523():
     # Make sure no AssertionError occurs here
     with pytest.raises(IOError):
         dt.fread("{\n  \"cells\": [\n    {\n\"import numpy \\n\",\n")
+
+
+def test_issue2681():
+    src = 'A,B,C\n' + 'rr,dd",g\n' + '1,2,3\n'*99 + 'abc,def\r\n'
+    DT = dt.fread(src, fill=True)
+    assert_equals(DT,
+        dt.Frame(A=['rr'] + ['1']*99 + ['abc'],
+                 B=['dd"'] + ['2']*99 + ['def'],
+                 C=['g'] + ['3']*99 + [None]))

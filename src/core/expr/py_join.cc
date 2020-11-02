@@ -38,7 +38,7 @@ Join clause for use in Frame’s square-bracket selector.
 
 This clause is equivalent to the SQL `JOIN`, though for the moment
 datatable only supports left outer joins. In order to join,
-the `frame` must be :meth:`keyed <Frame.key>` first, and then joined
+the `frame` must be :attr:`keyed <dt.Frame.key>` first, and then joined
 to another frame `DT` as
 
 .. code-block:: python
@@ -57,16 +57,13 @@ return: Join Object
     In most of the cases the returned object is directly used in the
     Frame’s square-bracket selector.
 
-except: TypeError
-    The exception is raised if the input frame is missing.
-
 except: ValueError
     The exception is raised if `frame` is not keyed.
 
 See Also
 --------
 
-- `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+- `Tutorial on joins <start/quick-start.html#join>`_
 
 
 )";

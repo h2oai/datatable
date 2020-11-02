@@ -1,6 +1,6 @@
 
-FTRL
-====
+FTRL Model
+==========
 
 This section describes the FTRL (Follow the Regularized Leader) model as implemented in datatable.
 

@@ -34,7 +34,7 @@ from collections import namedtuple
 from datatable import stype, ltype
 from datatable.internal import frame_columns_virtual, frame_integrity_check
 from datatable.lib import core
-from tests import (same_iterables, list_equals, noop, isview, assert_equals,
+from tests import (list_equals, noop, isview, assert_equals,
                    skip_on_jenkins, cpp_test, get_core_tests)
 
 
@@ -256,7 +256,6 @@ def test_frame_star_expansion(dt0):
     foo(*dt0)
 
 
-@pytest.mark.usefixtures("py36")
 def test_frame_as_mapping(dt0):
     assert dt0.keys() == dt0.names
     i = 0
@@ -343,8 +342,7 @@ def test_collections():
         import collections
         assert isinstance(DT, collections.Sized)
         assert isinstance(DT, collections.Iterable)
-        if hasattr(collections, "Reversible"):  # doesn't exist in py3.5
-            assert isinstance(DT, collections.Reversible)
+        assert isinstance(DT, collections.Reversible)
 
 
 
@@ -361,7 +359,7 @@ def test_core_coverage(testname):
 
 # To pick up attacks based on the corresponding weights, random attacker
 # uses random.choices(), introduced in Python 3.6.
-@pytest.mark.usefixtures("py36", "numpy")
+@pytest.mark.usefixtures("numpy")
 def test_random_attack():
     import subprocess
     script = os.path.join(os.path.dirname(__file__),
@@ -738,7 +736,7 @@ def test_topandas():
     d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
     p0 = d0.to_pandas()
     assert p0.shape == (2, 3)
-    assert same_iterables(p0.columns.tolist(), ["A", "B", "C"])
+    assert list_equals(p0.columns.tolist(), ["A", "B", "C"])
     assert p0["A"].values.tolist() == [1, 5]
     assert p0["B"].values.tolist() == ["hello", "you"]
     assert p0["C"].values.tolist() == [True, False]
@@ -818,7 +816,7 @@ def test_tonumpy1(numpy):
     a0 = d0.to_numpy()
     assert a0.shape == d0.shape
     assert a0.dtype == numpy.dtype("object")
-    assert same_iterables(a0.T.tolist(), d0.to_list())
+    assert list_equals(a0.T.tolist(), d0.to_list())
     a1 = numpy.array(d0)
     assert (a0 == a1).all()
 
@@ -1132,9 +1130,9 @@ def test_materialize():
     DT2 = dt.repeat(dt.Frame(B=["red", "green", "blue"]), 2)
     DT3 = dt.Frame(C=[4, 2, 9.1, 12, 0])
     DT = dt.cbind(DT1, DT2, DT3, force=True)
-    assert frame_columns_virtual(DT) == (True, True, True)
+    assert frame_columns_virtual(DT) == [True, True, True]
     DT.materialize()
-    assert frame_columns_virtual(DT) == (False, False, False)
+    assert frame_columns_virtual(DT) == [False, False, False]
 
 
 def test_materialize_object_col():
@@ -1193,8 +1191,8 @@ def test_export_names(dt0):
 def test_internal_rowindex():
     d0 = dt.Frame(list(range(100)))
     d1 = d0[:20, :]
-    assert frame_columns_virtual(d0) == (False,)
-    assert frame_columns_virtual(d1) == (True,)
+    assert frame_columns_virtual(d0) == [False]
+    assert frame_columns_virtual(d1) == [True]
 
 
 def test_issue898():

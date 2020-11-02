@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,33 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#ifndef dt_COLUMN_IFELSEN_h
+#define dt_COLUMN_IFELSEN_h
+#include "column/virtual.h"
 namespace dt {
-namespace expr {
 
 
-Head_Func_Cast::Head_Func_Cast(SType s) : stype(s) {}
+/**
+  * Virtual column that implements n-element if-else (aka "case").
+  *
+  * If the condition evaluates to NA then an NA value is returned.
+  */
+class IfElseN_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    colvec conditions_;
+    colvec values_;
+
+  public:
+    IfElseN_ColumnImpl(colvec&&, colvec&&);
+
+    ColumnImpl* clone() const override;
+
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, py::oobj*) const override;
+
+  private:
+    template <typename T> inline bool _get(size_t i, T* out) const;
+};
 
 
-Workframe Head_Func_Cast::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  xassert(args.size() == 1);
-  Workframe outputs = args[0]->evaluate_n(ctx);
-  size_t n = outputs.ncols();
-  for (size_t i = 0; i < n; ++i) {
-    Column col = outputs.retrieve_column(i);
-    col.cast_inplace(stype);
-    outputs.replace_column(i, std::move(col));
-  }
-  return outputs;
-}
 
 
-
-
-}}  // namespace dt::expr
+}  // namespace dt
+#endif

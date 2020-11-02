@@ -28,7 +28,7 @@
         The row selector.
 
         If this is an integer or a slice, then the behavior is the same as in
-        Python when working on a list with :attr:`nrows <Frame.nrows>`
+        Python when working on a list with :attr:`.nrows`
         elements. In particular, the integer value must be within the range
         ``[-nrows; nrows)``. On the other hand when `i` is a slice, then either
         its start or end or both may be safely outside the row-range of the
@@ -53,7 +53,7 @@
 
         When `i` is a list of booleans, then it is equivalent to a single-column
         boolean frame. In particular, the length of the list must be equal to
-        :attr:`nrows <Frame.nrows>`.
+        :attr:`.nrows`.
 
         Finally, `i` can be a list of any of the above (integers, slices, frames,
         expressions, etc), in which case each element of the list is evaluated
@@ -65,12 +65,13 @@
         the columns.
 
         ``int``
-            Select a single column at the specified index. An :exc:`IndexError`
-            is raised if `j` is not in the range ``[-ncols; ncols)``.
+            Select a single column at the specified index. A
+            :exc:`dt.exceptions.IndexError` is raised if `j` is not in the
+            range ``[-ncols; ncols)``.
 
         ``str``
-            Select a single column by name. A :exc:`KeyError` is raised if
-            the column with such a name does not exist.
+            Select a single column by name. A :exc:`dt.exceptions.KeyError`
+            is raised if the column with such a name does not exist.
 
         ``:``
             This is a trivial slice, and it means "select everything", and is
@@ -93,7 +94,7 @@
             then the returned columns will be in the reverse order.
 
             Both endpoints of the slice must be valid columns (or omitted), or
-            otherwise a :exc:`KeyError` will be raised.
+            otherwise a :exc:`dt.exceptions.KeyError` will be raised.
 
         ``type`` | ``stype`` | ``ltype``
             Select only columns of the matching type.
@@ -106,7 +107,7 @@
 
         ``List[bool]``
             If ``j`` is a list of boolean values, then it must have the length
-            of :attr:`ncols <Frame.ncols>`, and it describes which columns are
+            of :attr:`.ncols`, and it describes which columns are
             to be selected into the result.
 
         ``List[Any]``
@@ -138,8 +139,8 @@
         separately within each group, (c) row-binding the results for each
         group. In practice the following operations are affected:
 
-        - all reduction operators such as :func:`dt.min() <datatable.min>` or
-          :func:`dt.sum() <datatable.sum>` now work separately within each
+        - all reduction operators such as :func:`dt.min()` or
+          :func:`dt.sum()` now work separately within each
           group. Thus, instead of computing sum over the entire column, it is
           computed separately within each group in ``by()``, and the resulting
           column will have as many rows as the number of groups.
@@ -148,12 +149,12 @@
           each group. For example, if ``i`` is an integer or a slice, then it
           will now be selecting row(s) within each group.
 
-        - certain functions (such as :func:`dt.shift() <datatable.shift>`) are
+        - certain functions (such as :func:`dt.shift()`) are
           also "group-aware", and produce results that take into account the
           groupby context. Check documentation for each individual function
           to find out whether it has special treatment for groupby contexts.
 
-        In addition, ``by()`` also affects the order pf columns in the output
+        In addition, ``by()`` also affects the order of columns in the output
         frame. Specifically, all columns listed as the groupby keys will be
         automatically placed at the front of the resulting frame, and also
         excluded from ``:`` or ``f[:]`` within ``j``.
@@ -210,10 +211,10 @@
 
     See Also
     --------
-    - :func:`DT[i, j, ...] = R <datatable.Frame.__setitem__>` -- update
+    - :meth:`DT[i, j, ...] = R <datatable.Frame.__setitem__>` -- update
       values in the frame.
 
-    - :func:`del DT[i, j, ...] <datatable.Frame.__delitem__>` -- delete
+    - :meth:`del DT[i, j, ...] <datatable.Frame.__delitem__>` -- delete
       rows/columns of the frame.
 
 
@@ -241,13 +242,18 @@
         Single-column frame containing the column at the specified index or
         with the given name.
 
-    except: KeyError
-        This exception is raised if the column with the given name does not
-        exist in the frame.
+    except: KeyError | IndexError
+        .. list-table::
+            :widths: auto
+            :class: api-table
 
-    except: IndexError
-        This exception is raised if the column does not exist at the provided
-        index `j`.
+            * - :exc:`KeyError`
+              - raised if the column with the given name does not
+                exist in the frame.
+
+            * - :exc:`IndexError`
+              - raised if the column does not exist at the provided
+                index `j`.
 
 
 

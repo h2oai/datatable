@@ -996,8 +996,61 @@ def test_sort_strings_reverse_large():
     DT = dt.Frame(A=src)
     RES = dt.Frame(A=sorted(src, reverse=True))
     assert_equals(DT[:, :, sort(-f.A)], RES)
+    assert_equals(DT[:, :, sort(f.A, reverse=True)], RES)
 
 
+def test_sort_double_negation():
+    src = ['klein', 'nim', 'toapr', 'f', '', 'zleu', '?34', '.............']
+    src *= 10
+    src += ['adferg', 'reneeas', 'ldodls', 'qu', 'zleuss', 'ni'] * 7
+    src *= 25
+    src += ['shoo!', 'zzZzzZ' * 5]
+    DT = dt.Frame(A=src)
+    RES1 = DT[:, :, dt.sort(-f.A, reverse=True)]
+    RES2 = DT[:, :, dt.sort(-f.A, reverse=False)]
+    RES3 = DT[:, :, dt.sort(0, reverse=True)]
+    RES4 = DT[:, :, dt.sort(0, reverse=False)]
+    assert_equals(DT[:, :, sort(f.A)], RES1)
+    assert_equals(DT[:, :, sort(-f.A)], RES2)
+    assert_equals(DT[:, :, sort(-f.A)], RES3)
+    assert_equals(DT[:, :, sort(f.A)], RES4)
+
+
+#-------------------------------------------------------------------------------
+# Sort with positional value for NAs
+#-------------------------------------------------------------------------------
+
+def key_func(x, rev, na_pos):
+    return (x is None) ^ (rev) ^ (na_pos == "first")
+
+def sort_func(src, rev, na_pos):
+    if na_pos == "remove":
+        return sorted([s for s in src if s != None], reverse=rev)
+    else:
+        return sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
+
+
+@pytest.mark.parametrize('rev', [True, False])
+@pytest.mark.parametrize('napos', ['first', 'last', 'remove'])
+@pytest.mark.parametrize('src', [[-5,-8,None,None,11,2,8,None,4]*1000,
+                                 [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000,
+                                 [True,None,False,None,False,True]*1000,
+                                 ['',None,'pr',None,'','rww','auy','dfuy']*1000,
+                                 [0,1,None,2**31-1,None,-(2**31-1),None]*1000,
+                                 [0,1,None,2**63-1,None,-(2**63-1),None]*1000,
+                                 ['', None, '\x00', '\x01', '\x00'*5, None, '']*987])
+def test_sort_na_position(rev, napos, src):
+    DT = dt.Frame(A=src)
+    RES = DT[:, :, dt.sort(0, reverse=rev, na_position=napos)]
+    EXP = dt.Frame(A=sort_func(src, rev, napos))
+    assert_equals(RES, EXP)
+
+@pytest.mark.parametrize('na_pos', ['las', '', ' '])
+def test_na_position_value_error(na_pos):
+    msg = "na position value %s is not supported" %(na_pos)
+    DT = dt.Frame(A=[3,9,0])
+    with pytest.raises(ValueError, match=msg):
+        DT[:, :, dt.sort(0, reverse=True, na_position=na_pos)]
 
 
 #-------------------------------------------------------------------------------
@@ -1011,10 +1064,13 @@ def test_sort_api():
     df3 = df.sort("A", "B")
     df4 = df.sort(["A", "B"])
     df5 = df.sort()  # issue 1354
+    df6 = df[:, :, dt.sort()]
+    df7 = df[:, :, dt.sort(["A", "B"])]
     assert df1.to_list() == [[1, 1, 2, 2], [3.3, 0.1, 2.7, 4.5]]
     assert df2.to_list() == [[1, 2, 1, 2], [0.1, 2.7, 3.3, 4.5]]
     assert df3.to_list() == [[1, 1, 2, 2], [0.1, 3.3, 2.7, 4.5]]
-    assert df4.to_list() == df5.to_list() == df3.to_list()
+    assert df4.to_list() == df7.to_list()
+    assert df5.to_list() == df6.to_list()
 
 
 def test_issue1401():

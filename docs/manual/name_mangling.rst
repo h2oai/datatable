@@ -1,6 +1,4 @@
 
-.. ref-context:: datatable
-
 .. _name-mangling:
 
 =============

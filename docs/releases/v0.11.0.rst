@@ -1,20 +1,39 @@
 
 
 .. changelog::
+  :version: 0.11.0
+  :released: 2020-09-19
+  :wheels: https://files.pythonhosted.org/packages/18/d3/c4edd8e4ceac998558a49ee0bbb8337c4e5ea7337874ec84425d24c0a407/datatable-0.11.0-cp35-cp35m-macosx_10_6_x86_64.whl
+           https://files.pythonhosted.org/packages/50/41/4ff398c2ec7ce4078e6a6c53759d96c0a8c3627b94a87fd84725a1015e63/datatable-0.11.0-cp35-cp35m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/4a/ac/ec5b668091e42069341ff981a53d701da98fb165b43e49618b3dbac52075/datatable-0.11.0-cp35-cp35m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/53/ac/e28264e5c022a6b82582b17544e9dd0ed693ad9b2ba688880f9b79a9eb07/datatable-0.11.0-cp35-cp35m-win_amd64.whl
+           https://files.pythonhosted.org/packages/32/18/f846e1829137d1270c21a150d4b5595c33b5ac69f9ffd85bd8e6a9edd575/datatable-0.11.0-cp36-cp36m-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/80/07/7ca237758866497cbe076e31920a0320e28808f54fa75a5e2b0348d7aa8a/datatable-0.11.0-cp36-cp36m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/31/e9/83c68f6682d84dbb5a8a44f30c2eceee031ac323e9c4d27b1eb2774a8dc8/datatable-0.11.0-cp36-cp36m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/50/6e/a5ab62db0613ce8e14dbfe53625a417a0714793774093cfe85f804bbc06c/datatable-0.11.0-cp36-cp36m-win_amd64.whl
+           https://files.pythonhosted.org/packages/87/4f/6b0daf9a58791658e0544928b3532d4d1c3c1f0822ce0fcc428d0284704c/datatable-0.11.0-cp37-cp37m-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/d3/3d/5b2ea70b0b9ff28373ca3b46c4fcc82599ad797ef13a368a704a65424f54/datatable-0.11.0-cp37-cp37m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/87/b1/72629bda96067d579712bf3146d09cc047fb45eaa39d45c55bced5b29b83/datatable-0.11.0-cp37-cp37m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/99/61/3d08933e4e8bf73838ab88cf81fa3433f56305fb4cbca914a6f87a20c6f8/datatable-0.11.0-cp37-cp37m-win_amd64.whl
+           https://files.pythonhosted.org/packages/29/88/9816df2e80d1f3d46ab6db23ea9d33875b2678d60b8dced206862167ccab/datatable-0.11.0-cp38-cp38-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/bd/45/4acd6c270748e005cb98f7bbd6ab904b7ed072d920393fa3cf8afa288fb6/datatable-0.11.0-cp38-cp38-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/92/d7/f89c441fa05dac62c33e078a2a735c1c2501611039ac7b6ed35211e5c7f7/datatable-0.11.0-cp38-cp38-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/45/cf/37ad8e57a5eb041f66caa067882f2ef5ee21479fea132cb3c7c4725745c5/datatable-0.11.0-cp38-cp38-win_amd64.whl
+           https://files.pythonhosted.org/packages/2e/6a/bba91ebcff851f7b650ddcf2783b997c7f9b4c2d46f7c90bd7e436396f99/datatable-0.11.0.tar.gz
 
 
   Frame
   -----
-  .. ref-context:: datatable.Frame
+  .. current-class:: datatable.Frame
 
-  -[new] Property :attr:`Frame.source` will contain the name of the file
+  -[new] Property :attr:`.source` contains the name of the file
     where the frame was loaded from. If the frame was modified after loading,
     or if it was created dynamically to begin with, this property will
     return ``None``.
 
-  -[new] The expression ``len(DT)`` now works, and returns the number of
-    columns in the Frame. This allows the Frame to be used in contexts where
-    an iterable might be expected.
+  -[new] The expression :meth:`len(DT) <datatable.Frame.__len__>` now works,
+    and returns the number of columns in the Frame. This allows the Frame to
+    be used in contexts where an iterable might be expected.
 
   -[new] Added ability to cast string columns into numeric types: int, float
     or boolean. [#1313]
@@ -25,16 +44,16 @@
   -[new] String columns can now be added together, similarly to how strings
     can be added in Python. [#1839]
 
-  -[new] Added a new function :func:`cut()` to bin numeric data
+  -[new] Added a new function :func:`datatable.cut` to bin numeric data
     to equal-width discrete intervals. [#2483]
 
-  -[new] Added a new function :func:`qcut()` to bin data
+  -[new] Added a new function :func:`datatable.qcut` to bin data
     to equal-population discrete intervals. [#1680]
 
-  -[new] Added function :func:`round() <datatable.math.round>` which is the
+  -[new] Added function :func:`datatable.math.round` which is the
     equivalent of Python's built-in ``round()``. [#2285]
 
-  -[enh] Method :meth:`Frame.colindex()` now accepts a column selector
+  -[enh] Method :meth:`.colindex()` now accepts a column selector
     f-expression as an argument.
 
   -[enh] When creating a Frame from a python list, it is now possible to
@@ -44,7 +63,7 @@
         dt.Frame(A=[1, 5, 10] / dt.int64,
                  B=[0, 0, 0] / dt.float64)
 
-  -[enh] Added new argument ``bom=False`` to the :meth:`Frame.to_csv()` method.
+  -[enh] Added new argument ``bom=False`` to the :meth:`.to_csv()` method.
     If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
     CSV file. [#2379]
 
@@ -53,12 +72,13 @@
   -[enh] It is now possible to create a Frame from a pandas DataFrame with
     Categorical columns (which will be converted into strings). [#2407]
 
-  -[api] Method :meth:`.cbind()` now throws an :exc:`InvalidOperationError`
+  -[api] Method :meth:`.cbind()` now throws a
+    :exc:`dt.exceptions.InvalidOperationError`
     instead of a ``ValueError`` if the argument frames have incompatible
     shapes.
 
-  -[api] Method :meth:`.colindex()` now throws an :exc:`KeyError` when given
-    a column that doesn't exist in the frame, or an :exc:`IndexError` if
+  -[api] Method :meth:`.colindex()` now throws an :exc:`dt.exceptions.KeyError` when given
+    a column that doesn't exist in the frame, or an :exc:`dt.exceptions.IndexError` if
     given a numeric column index outside of the allowed range. Previously it
     was throwing a ``ValueError`` in both cases.
 
@@ -67,12 +87,16 @@
     an ``obj64`` column was created instead. The new behavior is more
     consistent with fread's behavior when reading CSV files.
 
-  -[api] Expression `f[:]` now excludes groupby columns when used in a
+  -[api] Expression ``f[:]`` now excludes groupby columns when used in a
     groupby context. [#2460]
 
   -[api] Parameters ``_strategy=`` in :meth:`.to_csv()` and :meth:`.to_jay()`
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
+
+  -[api] The behaviour of a method :meth:`.sort()` is made consistent with
+    the function :func:`dt.sort()`. When the list of columns to sort
+    is empty, both will not sort any columns.
 
   -[fix] Deleting a key from the Frame (``del DT.key``) no longer causes a
     seg.fault. [#2357]
@@ -96,9 +120,13 @@
   -[fix] Empty strings no longer get confused with NA strings in
     :meth:`.replace()`. [#2502]
 
+  -[fix] :func:`dt.rbind()`-ing an iterator of frames created on-the-fly
+    no longer produces an undefined behavior. [#2621]
+
 
   Fread
   -----
+  .. current-module:: datatable
 
   -[new] Added new function :func:`iread()`, which is similar to
     :func:`fread()`, but suitable for reading multiple sources at once. The
@@ -160,7 +188,6 @@
 
   General
   -------
-  .. ref-context:: datatable
 
   -[new] datatable is now fully supported on Windows.
 
@@ -184,7 +211,7 @@
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
 
-  -[enh] Added 2 new fields into the ``dt.build_info`` struct: ``.git_date``
+  -[enh] Added 2 new fields into the :data:`dt.build_info` struct: ``.git_date``
     is the UTC timestamp of the git revision from which that version of
     datatable was built, and ``.git_diff`` which will be non-empty for builds
     from code that was modified compared to the git revision they are based on.
@@ -193,8 +220,8 @@
     with the monitor thread. The threads will then restart in both the parent
     and the child, when needed. [#2438]
 
-  -[fix] Internal function :func:`frame_column_data_r` now works properly with
-    virtual columns. [#2269]
+  -[fix] Internal function :func:`dt.internal.frame_column_data_r`
+    now works properly with virtual columns. [#2269]
 
   -[fix] Avoid rare deadlock when creating a frame from pandas DataFrame in
     a forked process, in the datatable compiled with gcc version before 7.0.
@@ -213,43 +240,61 @@
     exception at the same time. [#2526]
 
   -[api] All exceptions thrown by datatable are now declared in the
-    ``datatable.exceptions`` module. These exceptions are now organized to
-    derive from the common base class ``DtException``.
+    :mod:`datatable.exceptions` module. These exceptions are now organized to
+    derive from the common base class :exc:`dt.exceptions.DtException`.
 
     The exception messages when stringified no longer contain backticks. The
     backticks are still emitted internally to help display the error in a
     color-supporting terminal, but when the exception is converted into a
-    string via `str()` or `repr()`, these backticks will now be stripped.
+    string via ``str()`` or ``repr()``, these backticks will now be stripped.
     This change ensures that the exception message remains the same regardless
     of how it is rendered.
 
 
   FTRL model
   ----------
-  .. ref-context:: datatable.models.Ftrl
+  .. current-class:: datatable.models.Ftrl
 
   -[enh] :attr:`.nepochs`, the number of epochs to train the model, can now
     be a float rather than an integer.
+
+  -[enh] :meth:`.fit()` now throws :exc:`dt.exceptions.TypeError` when ltypes in the
+   training and validation frames are not consistent.
+
+  -[api] :attr:`.interactions` now throws an :exc:`dt.exceptions.ValueError`
+    instead of a :exc:`dt.exceptions.TypeError` when assigning interactions
+    having zero features.
 
   -[fix] Fixed inconsistency in progress reporting. [#2520]
 
 
   .. contributors::
 
-    109 @st-pasha
-    47  @oleksiyskononenko
+    176 @st-pasha
+    62  @oleksiyskononenko
+    7   @samukweku           <Samuel Oranyeli>
+    4   @pradkrish           <Pradeep Krishnamurthy>
+    1   @chi2liu             <Liu Chi>
+    1   @wesnm               <Wes Morgan>
     1   @jfaccioni           <Juliano Faccioni>
     1   @mmalohlava
     1   @bboe                <Bryce Boe>
     --
-    34  @st-pasha
-    8   @oleksiyskononenko
-    6   @arnocandel
-    2   @jangorecki
+    50  @st-pasha
+    15  @oleksiyskononenko
+    10  @arnocandel
+    3   @samukweku
+    3   @pseudotensor
+    3   @myamullaciencia     <Mallesham Yamulla>
+    2   @navdeep-G           <Navdeep Gill>
     1   @ben519              <Ben Gorman>
     1   @surenH2oai          <Suren Mohanathas>
-    1   @myamullaciencia     <Mallesham Yamulla>
+    1   @tdhock              <Toby Dylan Hocking>
     1   @ashrith             <Ashrith Barthur>
+    1   @javadba
+    1   @jangorecki
+    1   @timothy-salazar     <Timothy Salazar>
     1   @mmalohlava
+    1   @XiaomoWu
     1   @Viktor-Demin
     1   @chrinide            <Chrinide>

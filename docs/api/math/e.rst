@@ -13,5 +13,5 @@
     --------
     .. py:currentmodule:: None
 
-    - :data:`math.e` -- The Euler's number in the Python ``math``
+    - :ext-data:`math.e` -- The Euler's number in the Python ``math``
       module;

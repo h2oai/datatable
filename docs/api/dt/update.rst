@@ -8,14 +8,26 @@ Examples
 --------
 
 .. code-block:: python
+<<<<<<< HEAD
     from datatable import update
     DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+=======
+
+    from datatable import update
+
+    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+
+>>>>>>> c69b74d44835917a5017351b534207b72f75d1b1
         A	B
     0	0	4
     1	1	3
     2	2	9
     3	3	11
     4	4      −1
+<<<<<<< HEAD
+=======
+
+>>>>>>> c69b74d44835917a5017351b534207b72f75d1b1
 - Create new columns and update existing columns::
 
     DT[:, update(C = f.A * 2,
@@ -53,3 +65,9 @@ Examples
     2	8	10	4	3	25
     3	60	12	6	3	33
     4	80	0	8      −1	23
+<<<<<<< HEAD
+=======
+
+
+
+>>>>>>> c69b74d44835917a5017351b534207b72f75d1b1

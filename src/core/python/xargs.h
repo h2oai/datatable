@@ -58,6 +58,7 @@ class XArgs : public ArgParent {
     // Runtime arguments
     std::vector<Arg> bound_args_;
     std::unordered_map<PyObject*, size_t> kwd_map_;
+    size_t n_bound_args_;
     size_t n_varargs_;
     size_t n_varkwds_;
     PyObject* args_tuple_;  // for var-args iteration
@@ -130,6 +131,8 @@ class XArgs : public ArgParent {
     const Arg& operator[](size_t i) const;
     size_t num_varargs() const noexcept;
     size_t num_varkwds() const noexcept;
+    py::robj vararg(size_t i) const;
+
     // VarKwdsIterable varkwds() const noexcept;
     // VarArgsIterable varargs() const noexcept;
 

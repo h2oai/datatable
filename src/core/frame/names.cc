@@ -155,21 +155,24 @@ column: str | int | FExpr
     complicated f-expressions are not allowed and will result in a
     `TypeError`.
 
-(return): int
+return: int
     The numeric index of the provided `column`. This will be an
     integer between `0` and `self.ncols - 1`.
 
-(except): KeyError | IndexError
-    If the `column` argument is a string, and the column with such
-    name does not exist in the frame, then a :exc:`KeyError` is raised.
-    When this exception is thrown, the error message may contain
-    suggestions for up to 3 similarly looking column names that
-    actually exist in the Frame.
+except: KeyError | IndexError
+    .. list-table::
+        :widths: auto
+        :class: api-table
 
-    If the `column` argument is an integer that is either greater
-    than or equal to :attr:`ncols <Frame.ncols>` or less than
-    `-ncols`, then an :exc:`IndexError` is raised.
+        * - :exc:`KeyError`
+          - raised if the `column` argument is a string, and the column with
+            such name does not exist in the frame. When this exception is
+            thrown, the error message may contain suggestions for up to 3
+            similarly looking column names that actually exist in the Frame.
 
+        * - :exc:`IndexError`
+          - raised if the `column` argument is an integer that is either greater
+            than or equal to :attr:`.ncols` or less than `-ncols`.
 
 Examples
 --------
@@ -270,16 +273,16 @@ Parameters
 return: Tuple[str, ...]
     When used in getter form, this property returns the names of all
     frame's columns, as a tuple. The length of the tuple is equal to
-    the number of columns in the frame, :attr:`ncols <Frame.ncols>`.
+    the number of columns in the frame, :attr:`.ncols`.
 
-newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
+new_names: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     The most common form is to assign the list or tuple of new
     column names. The length of the new list must be equal to the
     number of columns in the frame. Some (or all) elements in the list
     may be ``None``'s, indicating that that column should have
     an auto-generated name.
 
-    If ``newnames`` is a dictionary, then it provides a mapping from
+    If ``new_names`` is a dictionary, then it provides a mapping from
     old to new column names. The dictionary may contain less entries
     than the number of columns in the frame: the columns not mentioned
     in the dictionary will retain their names.
@@ -288,13 +291,19 @@ newnames: List[str?] | Tuple[str?, ...] | Dict[str, str?] | None
     ``del`` keyword: the names will be set to their default values,
     which are usually ``C0, C1, ...``.
 
-except: ValueError
-    If the length of the list/tuple `newnames` does not match the
-    number of columns in the frame.
 
-except: KeyError
-    If `newnames` is a dictionary containing entries that do not
-    match any of the existing columns in the frame.
+except: ValueError | KeyError
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :exc:`ValueError`
+          - raised If the length of the list/tuple `new_names` does not match the
+            number of columns in the frame.
+
+        * - :exc:`KeyError`
+          - raised If `new_names` is a dictionary containing entries that do not
+            match any of the existing columns in the frame.
 
 Examples
 --------
@@ -351,29 +360,86 @@ void Frame::_init_names(XTypeMaker& xt) {
 // Options
 //------------------------------------------------------------------------------
 
+static const char * doc_options_frame_names_auto_index =
+R"(
+
+This option controls the starting index that is used for auto-naming
+the columns. By default, the names that datatable assigns to frame's columns are
+`C0`, `C1`, `C2`, etc. Setting `names_auto_index`, for instance, to
+`1` will cause the columns to be named as `C1`, `C2`, `C3`, etc.
+
+Parameters
+----------
+return: int
+    Current `names_auto_index` value. Initially, this option is set to `0`.
+
+new_names_auto_index: int
+    New `names_auto_index` value.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
+)";
+
+static const char * doc_options_frame_names_auto_prefix =
+R"(
+
+This option controls the prefix that is used for auto-naming
+the columns. By default, the names that datatable assigns to frame's columns are
+`C0`, `C1`, `C2`, etc. Setting `names_auto_prefix`, for instance, to
+`Z` will cause the columns to be named as `Z1`, `Z2`, `Z3`, etc.
+
+Parameters
+----------
+return: str
+    Current `names_auto_prefix` value. Initially, this option is set to `C`.
+
+new_names_auto_prefix: str
+    New `names_auto_prefix` value.
+
+See Also
+--------
+- :ref:`name-mangling` -- tutorial on name mangling.
+
+)";
+
 static int64_t     names_auto_index = 0;
 static std::string names_auto_prefix = "C";
+
+
+static py::oobj get_names_auto_index() {
+  return py::oint(names_auto_index);
+}
+
+static void set_names_auto_index(const py::Arg& arg) {
+  names_auto_index = arg.to_int64_strict();
+}
+
+
+static py::oobj get_names_auto_prefix() {
+  return py::ostring(names_auto_prefix);
+}
+
+static void set_names_auto_prefix(const py::Arg& arg) {
+  names_auto_prefix = arg.to_string();
+}
+
 
 void py::Frame::init_names_options() {
   dt::register_option(
     "frame.names_auto_index",
-    []{ return py::oint(names_auto_index); },
-    [](const py::Arg& value){ names_auto_index = value.to_int64_strict(); },
-    "When Frame needs to auto-name columns, they will be assigned\n"
-    "names C0, C1, C2, ... by default. This option allows you to\n"
-    "control the starting index in this sequence. For example, setting\n"
-    "options.frame.names_auto_index=1 will cause the columns to be\n"
-    "named C1, C2, C3, ...");
+    get_names_auto_index,
+    set_names_auto_index,
+    doc_options_frame_names_auto_index
+  );
 
   dt::register_option(
     "frame.names_auto_prefix",
-    []{ return py::ostring(names_auto_prefix); },
-    [](const py::Arg& value){ names_auto_prefix = value.to_string(); },
-    "When Frame needs to auto-name columns, they will be assigned\n"
-    "names C0, C1, C2, ... by default. This option allows you to\n"
-    "control the prefix used in this sequence. For example, setting\n"
-    "options.frame.names_auto_prefix='Z' will cause the columns to be\n"
-    "named Z0, Z1, Z2, ...");
+    get_names_auto_prefix,
+    set_names_auto_prefix,
+    doc_options_frame_names_auto_prefix
+  );
 }
 
 

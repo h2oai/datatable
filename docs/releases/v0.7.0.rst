@@ -1,5 +1,4 @@
 
-.. currentmodule:: datatable
 
 .. changelog::
   :version: 0.7.0
@@ -11,7 +10,7 @@
 
   Frame
   -----
-  .. ref-context:: datatable.Frame
+  .. current-class:: datatable.Frame
 
   -[new] Added ability to read/write Jay files.
 
@@ -42,13 +41,13 @@
     At most 3 possible columns are reported, and they are ordered from most
     likely to least likely. [#1253]
 
-  -[new] :meth:`Frame.copy()` can now be used to create a copy of the Frame.
+  -[new] :meth:`.copy()` can now be used to create a copy of the Frame.
 
-  -[enh] :meth:`Frame.cbind()` now accepts a list of frames as the argument.
+  -[enh] :meth:`.cbind()` now accepts a list of frames as the argument.
 
   -[enh] Frame can now be sorted by multiple columns.
 
-  -[new] Implemented :meth:`Frame.replace()` function. [#1319]
+  -[new] Implemented :meth:`.replace()` function. [#1319]
 
   -[enh] Added HTML rendering of Frames inside a Jupyter notebook.
 
@@ -61,23 +60,23 @@
   -[api] The ``names`` argument in Frame constructor can no longer be a
     string -- use a list or tuple of strings instead.
 
-  -[api] Method :meth:`Frame.rename()` removed -- the :attr:`.name` setter can
+  -[api] Method ``.rename()`` removed -- the :attr:`.names` setter can
     be used instead.
 
-  -[api] :meth:`Frame.resize()` removed -- same functionality is available via
-    assigning to :attr:`Frame.nrows`.
+  -[api] Method ``.resize()`` removed -- same functionality is available via
+    assigning to :attr:`.nrows`.
 
   -[api] The expression ``Frame([])`` now creates a ``[0 x 0]`` Frame instead of
    ``[0 x 1]``.
 
-  -[api] Parameter ``inplace`` in :meth:`Frame.cbind()` removed (was
+  -[api] Parameter ``inplace`` in :meth:`.cbind()` removed (was
     deprecated). Instead of ``inplace=False`` use ``dt.cbind(...)``.
 
-  -[api] :meth:`Frame.cbind()` no longer returns anything (previously it
+  -[api] :meth:`.cbind()` no longer returns anything (previously it
     returned self, but this was confusing w.r.t whether it modifies the target,
     or returns a modified copy).
 
-  -[api] default format for :meth:`Frame.save()` is now "jay".
+  -[api] default format for :meth:`.save() <dt.Frame.to_jay>` is now "jay".
 
   -[fix] ``names`` parameter in Frame constructor is now checked for
     correctness.
@@ -99,7 +98,7 @@
   -[fix] Fixed calculation of min/max values in internal rowindex upon row
     resizing.
 
-  -[fix] :meth:`Frame.sort()` with no arguments no longer produces an error.
+  -[fix] :meth:`.sort()` with no arguments no longer produces an error.
 
   -[fix] Fixed writing to disk of columns > 2GB in size. [#1387]
 
@@ -110,6 +109,7 @@
 
   DT[i, j] evaluation
   -------------------
+  .. current-module:: datatable
 
   -[new] Filters can now be used together with groupby expressions.
 
@@ -158,15 +158,14 @@
 
   General
   -------
-  .. ref-context:: datatable
 
-  -[new] Added function :func:`.abs()` to find the absolute value of elements
+  -[new] Added function :func:`dt.math.abs()` to find the absolute value of elements
     in a frame.
 
-  -[enh] :func:`.fread()`'s verbose output now includes time spent opening
+  -[enh] :func:`fread()`'s verbose output now includes time spent opening
     the input file.
 
-  -[new] new function :func:`.split_into_nhot()` to split a string column into
+  -[new] new function :func:`split_into_nhot()` to split a string column into
     fragments and then convert them into a set of indicator variables
     ("n-hot encode").
 

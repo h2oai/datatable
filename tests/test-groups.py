@@ -26,7 +26,7 @@ import pytest
 import random
 from datatable import f, mean, min, max, sum, count, by, sort
 from datatable.internal import frame_integrity_check
-from tests import same_iterables, assert_equals, isview
+from tests import list_equals, assert_equals, isview
 
 
 
@@ -353,7 +353,7 @@ def test_groupby_multi_large(seed):
     DT0 = dt.Frame([col0, col1, col2, col3], names=["A", "B", "C", "D"])
     DT1 = DT0[:, sum(f.D), by(f.A, f.B, f.C)]
     DT2 = dt.Frame(grouped)
-    assert same_iterables(DT1.to_list(), DT2.to_list())
+    assert list_equals(DT1.to_list(), DT2.to_list())
 
 
 def test_groupby_on_view():

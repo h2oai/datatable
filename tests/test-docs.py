@@ -28,6 +28,7 @@
 #
 #-------------------------------------------------------------------------------
 import pathlib
+import pytest
 import re
 
 # First .parent removes the file name, second goes up to the root level
@@ -35,14 +36,13 @@ ROOT_PATH = pathlib.Path(__file__).parent.parent
 API_PATH = ROOT_PATH / "docs" / "api"
 
 
-
+@pytest.mark.skipif(not API_PATH.is_dir(), reason="API docs folder doesn't exist")
 def test_xfunction_paths():
     """
     This test looks at all `.. xfunction::` directives and checks
     that the paths specified for `:src:` / `:doc:` / `:tests:`
     options are valid.
     """
-    assert API_PATH.is_dir()
     re_path = re.compile(r"\s+:(?:src|docs?|tests?): (\S*)")
     for filepath in API_PATH.glob("**/*.rst"):
         text = filepath.read_text(encoding="utf-8")
@@ -55,7 +55,7 @@ def test_xfunction_paths():
                         outside = False
             else:
                 mm = re.match(re_path, line)
-                if mm:
+                if mm and mm.group(1) != "--":
                     fullpath = ROOT_PATH / mm.group(1)
                     assert fullpath.is_file(), (
                            "Path %s does not exist, found on line %d of %s"

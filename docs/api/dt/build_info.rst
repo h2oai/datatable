@@ -1,6 +1,6 @@
 
 .. xdata:: datatable.build_info
-    :src: src/datatable/_build_info.py build_info
+    :src: --
 
     This is a python struct that contains information about the installed
     datatable module. The following fields are available:
@@ -43,8 +43,9 @@
 
     .. xparam:: .git_branch: str
 
-        Name of the git branch from where the build was made, as
-        obtained from ``git rev-parse --abbrev-ref HEAD``.
+        Name of the git branch from where the build was made. This will
+        be obtained from environment variable ``CHANGE_BRANCH`` if defined,
+        or from command ``git rev-parse --abbrev-ref HEAD`` otherwise.
 
 
     .. xparam:: .git_date: str

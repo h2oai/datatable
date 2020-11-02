@@ -129,6 +129,7 @@ class Workframe {
     void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;
     void increase_grouping_mode(Grouping g);
+    static Grouping sync_grouping_mode(std::vector<Workframe>& wokframes);
 
   private:
     void column_increase_grouping_mode(Column&, Grouping from, Grouping to);

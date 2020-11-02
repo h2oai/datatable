@@ -9,8 +9,7 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.5+ is required, although we recommend Python 3.6 or newer for best
-results. You can check your python version via
+Python 3.6+ is required. You can check your python version via
 
 .. xcode:: shell
 
@@ -19,7 +18,7 @@ results. You can check your python version via
 
 
 In addition, we recommend using ``pip`` version 20.0+, especially if you're
-planning to install datatable from source, or if you are on a Unix machine.
+planning to install datatable from the source, or if you are on a Unix machine.
 
 .. xcode:: shell
 
@@ -64,11 +63,9 @@ The following platforms are supported:
   work with your Linux distribution if it is compatible with one of these tags.
   Please refer to `PEP-513`_ and `PEP-599`_ for details.
 
-- **Windows (N/A)**
+- **Windows**
 
-  Windows wheels cannot be installed from PyPI just yet, but they will be
-  available after the next release. In the meanwhile, datatable development
-  wheels can be installed (see section below).
+  Windows wheels are available for Windows 10 or later.
 
 
 
@@ -80,7 +77,7 @@ officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process.
 
 If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
-Click on a green master build of your choice, then navigate to the "Artifacts"
+Click on a green main build of your choice, then navigate to the "Artifacts"
 tab, copy the wheel URL that corresponds to your Python version, and finally
 install it as:
 
@@ -216,7 +213,7 @@ know how to resolve them. If none of these help you, please ask a question on
 
 ``ImportError: cannot import name '_datatable'``
   This means the internal core library ``_datatable.*.so`` is either missing
-  entirely, or is in a wrong location, or have wrong name. The first step
+  entirely, is in a wrong location, or has the wrong name. The first step
   is therefore to find where that file actually is. Use the system ``find``
   tool, limiting the search to your python directory.
 
@@ -235,16 +232,16 @@ know how to resolve them. If none of these help you, please ask a question on
     'cpython-36m-ppc64le-linux-gnu'
 
   The reported suffix should match the suffix of the ``_datatable.*.so`` file.
-  If it doesn't then renaming the file will fix the problem.
+  If it doesn't, then renaming the file will fix the problem.
 
 ``Python.h: no such file or directory`` when compiling from source
   Your Python distribution was shipped without the ``Python.h`` header file.
-  This have been observed on certain Linux machines. You would need to install
+  This has been observed on certain Linux machines. You would need to install
   a Python package with a ``-dev`` suffix, for example ``python3.6-dev``.
 
 ``fatal error: 'sys/mman.h' file not found`` on macOS
   In order to compile from source on mac computers, you need to have Xcode
-  Command Line Tools installed. Run
+  Command Line Tools installed. Run:
 
   .. xcode:: shell
 

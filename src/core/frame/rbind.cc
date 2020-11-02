@@ -64,7 +64,7 @@ combined by rows, i.e. rbinding a frame of shape [n x k] to a Frame
 of shape [m x k] produces a frame of shape [(m + n) x k].
 
 This method modifies the current frame in-place. If you do not want
-the current frame modified, then use the :func:`rbind()` function.
+the current frame modified, then use the :func:`dt.rbind()` function.
 
 If frame(s) being appended have columns of types different from the
 current frame, then these columns will be promoted to the largest of
@@ -81,7 +81,7 @@ exception if the frame is sufficiently big.
 Parameters
 ----------
 frames: Frame | List[Frame]
-    One or more frame to append. These frames should have the same
+    One or more frames to append. These frames should have the same
     columnar structure as the current frame (unless option `force` is
     used).
 
@@ -113,6 +113,10 @@ void Frame::rbind(const PKArgs& args) {
 
   std::vector<DataTable*> dts;
   std::vector<sztvec> cols;
+  // This is needed in case python objs that are owning the DataTables `dts`
+  // would go out of scope and be DECREFed after the process_arg. This can
+  // happen for example if the frames are produced from a generator.
+  std::vector<oobj> dtobjs;
 
   // First, find all frames that will be rbound. We will process both the
   // vararg sequence, and the case when a list (or tuple) passed. In fact,
@@ -124,7 +128,10 @@ void Frame::rbind(const PKArgs& args) {
     FN process_arg = [&](const py::robj arg, size_t level) {
       if (arg.is_frame()) {
         DataTable* df = arg.to_datatable();
-        if (df->nrows()) dts.push_back(df);
+        if (df->nrows()) {
+          dts.push_back(df);
+          dtobjs.push_back(arg);
+        }
         ++j;
       }
       else if (arg.is_iterable() && !arg.is_string() && level < 2) {
@@ -263,7 +270,7 @@ by_names: bool
 See also
 --------
 - :func:`cbind()` -- function for col-binding several frames.
-- :meth:`Frame.rbind()` -- Frame method for rbinding some frames to
+- :meth:`dt.Frame.rbind()` -- Frame method for rbinding some frames to
   another.
 )";
 

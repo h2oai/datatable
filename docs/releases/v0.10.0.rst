@@ -77,15 +77,16 @@
 
   Frame
   -----
+  .. current-class:: datatable.Frame
 
-  -[new] Added function :func:`update`, which can be used to in a ``DT[i, j]``
+  -[new] Added function :func:`dt.update`, which can be used to in a ``DT[i, j]``
     expression. This function can be used in the ``j`` place, and it allows the
     user to create new columns in a Frame, or update the existing ones::
 
       DT = dt.Frame(A=range(5))
       DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
 
-  -[new] Added method :meth:`.export_names() <datatable.Frame.export_names>`
+  -[new] Added method :meth:`.export_names()`
     which returns a tuple of variables referencing each column in the Frame::
 
       PROC_ID, SORT_NR, *other = DT.export_names()
@@ -97,8 +98,8 @@
       # Only create variables for the first 5 columns
       A, B, C, D, E = DT[:, :5].export_names()
 
-  -[new] Added frame property :meth:`.stype <datatable.Frame.stype>` which is
-    similar to :meth:`.stypes <datatable.Frame.stypes>` except that it returns
+  -[new] Added frame property :attr:`.stype` which is
+    similar to :attr:`.stypes` except that it returns
     a single stype instead of a tuple. This method can only be used on a frame
     where all columns have the same stype, or there is only one column.
 
@@ -110,7 +111,7 @@
     ``dt.options.display.head_nrows``, ``dt.options.display.tail_nrows`` and
     ``dt.options.display.max_nrows``.
 
-  -[enh] Method :meth:`Frame.copy() <datatable.Frame.copy>` now has a new
+  -[enh] Method :meth:`.copy()` now has a new
     parameter ``deep=False``. When set to ``True``, it will create a deep copy
     of the frame instead of the usual shallow one.
 
@@ -141,7 +142,7 @@
   -[enh] When selecting the key column from a keyed frame ``DT[key]``, the
     resulting single-column frame will now retain its "keyed" property.
 
-  -[enh] Method :meth:`.to_csv() <datatable.Frame.to_csv>` gains two new boolean
+  -[enh] Method :meth:`.to_csv()` gains two new boolean
     parameters: ``header=`` and ``append=``. The ``header=`` parameter controls
     whether or not to write into the output the header row with column names. The
     ``append=`` parameter allows the CSV content to be appended to an existing
@@ -200,7 +201,7 @@
     the datatable import. This makes it less likely that the stylesheets will
     get accidentally removed from the page. However, if it still does occur,
     there is now also a method to load those styles directly:
-    :meth:`init_styles`. (#1871)
+    :func:`dt.init_styles`. (#1871)
 
   -[fix] Fixed error when displaying ``help(dt)``. (#1931)
 
@@ -239,7 +240,7 @@
   -[fix] Deleting columns from a keyed Frame no longer results in a crash
     when the deleted columns are part of the key. (#2083)
 
-  -[fix] The :meth:`count` reducer now always produces a column with stype
+  -[fix] The :func:`dt.count` reducer now always produces a column with stype
     ``int64``. Before, it sometimes produced an ``int32`` column, and sometimes
     an ``int64`` column.
 
@@ -257,7 +258,7 @@
     printing a Frame containing string columns with unicode data. These values
     will now be properly escaped if the option value is ``False``.
 
-  -[fix] Function :meth:`isna` now returns correct result for a column
+  -[fix] Function :func:`dt.math.isna` now returns correct result for a column
     obtained from joining another frame, provided that the join was only
     partially successful. (#2109)
 
@@ -267,13 +268,14 @@
 
   General
   -------
+  .. current-module:: datatable
 
-  -[api] We no longer export symbols :meth:`open`, :meth:`abs`, :meth:`min`,
-    :meth:`max` and :meth:`sum` from datatable module when doing
+  -[api] We no longer export symbols ``dt.open()``, ``dt.abs()``, :func:`min`,
+    :func:`max` and :func:`sum` from datatable module when doing
     ``from datatable import *``. They are still available when looked up
     explicitly, i.e. ``dt.open()`` will still work.
 
-  -[api] Function :func:`open` is marked as deprecated, scheduled to be
+  -[api] Function ``dt.open()`` is marked as deprecated, scheduled to be
     removed in version 0.12. Instead we recommend to use :func:`fread`
     function to open Jay files.
 

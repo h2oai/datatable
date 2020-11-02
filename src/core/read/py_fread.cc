@@ -146,11 +146,11 @@ skip_to_line: int
     used together with `skip_to_string`.
 
 skip_blank_lines: bool
-    If `True` then any empty lines in the input will be skipped. If
+    If `True`, then any empty lines in the input will be skipped. If
     this parameter is `False` then: (a) in single-column mode empty
     lines are kept as empty lines; otherwise (b) if `fill=True` then
     empty lines produce a single line filled with NAs in the output;
-    otherwise (c) an :exc:`IOError` is raised.
+    otherwise (c) an :exc:`dt.exceptions.IOError` is raised.
 
 strip_whitespace: bool
     If `True`, then the leading/trailing whitespace will be stripped
@@ -164,7 +164,7 @@ quotechar: '"' | "'" | "`"
 tempdir: str | None
     Use this directory for storing temporary files as needed. If not
     provided then the system temporary directory will be used, as
-    determined via the :mod:`tempfile` Python module.
+    determined via the :ext-mod:`tempfile` Python module.
 
 nthreads: int | None
     Number of threads to use when reading the file. This number cannot
@@ -184,10 +184,10 @@ logger: object
 
 multiple_sources: "warn" | "error" | "ignore"
     Action that should be taken when the input resolves to multiple
-    distinct sources. By default (`"warn"`) a warning will be issued
+    distinct sources. By default, (`"warn"`) a warning will be issued
     and only the first source will be read and returned as a Frame.
     The `"ignore"` action is similar, except that the extra sources
-    will be discarded without a warning. Lastly, an :exc:`IOError`
+    will be discarded without a warning. Lastly, an :exc:`dt.exceptions.IOError`
     can be raised if the value of this parameter is `"error"`.
 
     If you want all sources to be read instead of only the first one
@@ -211,14 +211,14 @@ memory_limit: int
     or filter and materialize the frame (if not the performance may
     be slow).
 
-(return): Frame
+return: Frame
     A single :class:`Frame` object is always returned.
 
     .. versionchanged:: 0.11.0
-        Previously a ``dict`` of Frames was returned when multiple
+        Previously, a ``dict`` of Frames was returned when multiple
         input sources were provided.
 
-(except): IOError
+except: dt.exceptions.IOError
 
 See Also
 --------
@@ -281,8 +281,8 @@ static py::oobj fread(const py::PKArgs& args) {
     rdr.init_encoding(   arg_encoding);
   }
 
-  MultiSource multisource(args, rdr);
-  return multisource.read_single(rdr);
+  MultiSource multisource(args, std::move(rdr));
+  return multisource.read_single();
 }
 
 
@@ -375,31 +375,31 @@ static py::oobj iread(const py::PKArgs& args) {
   const py::Arg& arg_errors     = args[k++];
   const py::Arg& arg_memlimit   = args[k++];
 
-  auto rdr = std::make_unique<GenericReader>();
-  rdr->init_logger(arg_logger, arg_verbose);
+  GenericReader rdr;
+  rdr.init_logger(arg_logger, arg_verbose);
   {
-    auto section = rdr->logger_.section("[*] Process input parameters");
-    rdr->init_nthreads(   arg_nthreads);
-    rdr->init_fill(       arg_fill);
-    rdr->init_maxnrows(   arg_maxnrows);
-    rdr->init_skiptoline( arg_skiptoline);
-    rdr->init_sep(        arg_sep);
-    rdr->init_dec(        arg_dec);
-    rdr->init_quote(      arg_quotechar);
-    rdr->init_header(     arg_header);
-    rdr->init_nastrings(  arg_nastrings);
-    rdr->init_skipstring( arg_skiptostr);
-    rdr->init_stripwhite( arg_stripwhite);
-    rdr->init_skipblanks( arg_skipblanks);
-    rdr->init_columns(    arg_columns);
-    rdr->init_tempdir(    arg_tempdir);
-    rdr->init_errors(     arg_errors);
-    rdr->init_memorylimit(arg_memlimit);
-    rdr->init_encoding(   arg_encoding);
+    auto section = rdr.logger_.section("[*] Process input parameters");
+    rdr.init_nthreads(   arg_nthreads);
+    rdr.init_fill(       arg_fill);
+    rdr.init_maxnrows(   arg_maxnrows);
+    rdr.init_skiptoline( arg_skiptoline);
+    rdr.init_sep(        arg_sep);
+    rdr.init_dec(        arg_dec);
+    rdr.init_quote(      arg_quotechar);
+    rdr.init_header(     arg_header);
+    rdr.init_nastrings(  arg_nastrings);
+    rdr.init_skipstring( arg_skiptostr);
+    rdr.init_stripwhite( arg_stripwhite);
+    rdr.init_skipblanks( arg_skipblanks);
+    rdr.init_columns(    arg_columns);
+    rdr.init_tempdir(    arg_tempdir);
+    rdr.init_errors(     arg_errors);
+    rdr.init_memorylimit(arg_memlimit);
+    rdr.init_encoding(   arg_encoding);
   }
 
-  auto ms = std::make_unique<MultiSource>(args, *rdr);
-  return py::ReadIterator::make(std::move(rdr), std::move(ms));
+  auto ms = std::make_unique<MultiSource>(args, std::move(rdr));
+  return py::ReadIterator::make(std::move(ms));
 }
 
 

@@ -81,7 +81,7 @@ class progress_manager {
 
   public:
     /**
-      * This function should be called periodically from the master
+      * This function should be called periodically from the main
       * thread to re-draw the progress bar (if needed) and check
       * for signals. This function may throw an exception if there
       * is a KeyboardInterrupt signal pending, or if the progress-

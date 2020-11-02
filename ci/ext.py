@@ -77,7 +77,7 @@ def is_source_distribution():
 # - In PR mode (env.variable DT_BUILD_SUFFIX is present), the final
 #   version is `VERSION.txt` "0+" `DT_BUILD_SUFFIX`
 #
-# - In dev-master mode (env.variable DT_BUILD_NUMBER is present),
+# - In dev-main mode (env.variable DT_BUILD_NUMBER is present),
 #   the version is equal to `VERSION.txt` BUILD_NUMBER;
 #
 # - When building from source distribution (file VERSION.txt is
@@ -108,7 +108,7 @@ def get_datatable_version(flavor=None):
                              % version)
         if flavor == "debug":
             version += "+debug"
-        elif flavor not in [None, "build"]:
+        elif flavor not in [None, "sdist", "build"]:
             raise SystemExit("Invalid build flavor %s when building datatable "
                              "in release mode" % flavor)
         return version
@@ -130,7 +130,7 @@ def get_datatable_version(flavor=None):
             version += ".debug"
         return version
 
-    # In "master-dev" mode, the DT_BUILD_NUMBER is used
+    # In "main-dev" mode, the DT_BUILD_NUMBER is used
     if build_mode == "dev":
         build = os.environ.get("DT_BUILD_NUMBER")
         if not re.fullmatch(r"\d+", build):
@@ -390,7 +390,6 @@ def get_meta():
             "License :: OSI Approved :: Mozilla Public License 2.0 (MPL 2.0)",
             "Operating System :: MacOS",
             "Operating System :: Unix",
-            "Programming Language :: Python :: 3.5",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
@@ -405,7 +404,7 @@ def get_meta():
             "pandas; extra == 'optional'",
             "xlrd; extra == 'optional'",
         ],
-        requires_python=">=3.5",
+        requires_python=">=3.6",
     )
 
 

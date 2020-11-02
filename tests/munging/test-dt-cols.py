@@ -23,7 +23,7 @@
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
-from tests import same_iterables, noop, isview, assert_equals
+from tests import list_equals, noop, isview, assert_equals
 from datatable import ltype, stype, f
 from datatable.internal import frame_integrity_check
 
@@ -434,9 +434,9 @@ def test_j_dict(dt0, tbl0):
     dt1 = dt0[:, {"x": f[0], "y": f["D"]}]
     frame_integrity_check(dt1)
     assert dt1.shape == (6, 2)
-    assert same_iterables(dt1.names, ("x", "y"))
+    assert list_equals(dt1.names, ("x", "y"))
     assert not isview(dt1)
-    assert same_iterables(dt1.to_list(), [tbl0[0], tbl0[3]])
+    assert list_equals(dt1.to_list(), [tbl0[0], tbl0[3]])
 
 
 def test_j_dict_bad1(dt0):
@@ -481,7 +481,7 @@ def test_j_colselector3(dt0, tbl0):
     dt3 = dt0[:, {"x": f.A, "y": f.D}]
     frame_integrity_check(dt3)
     assert dt3.shape == (6, 2)
-    assert same_iterables(dt3.names, ("x", "y"))
+    assert list_equals(dt3.names, ("x", "y"))
     assert not isview(dt3)
 
 
@@ -502,8 +502,8 @@ def test_j_expression(dt0, tbl0):
     dt3 = dt0[:, {"foo": f.A + f.B - f.C * 10, "a": f.A, "b": f[1], "c": f[2]}]
     frame_integrity_check(dt3)
     assert dt3.shape == (6, 4)
-    assert same_iterables(dt3.names, ("foo", "a", "b", "c"))
-    assert same_iterables(dt3.ltypes,
+    assert list_equals(dt3.names, ("foo", "a", "b", "c"))
+    assert list_equals(dt3.ltypes,
                           (ltype.real, ltype.int, ltype.int, ltype.real))
     assert dt3[:, "foo"].to_list() == [[tbl0[0][i] + tbl0[1][i] - tbl0[2][i] * 10
                                        for i in range(6)]]
