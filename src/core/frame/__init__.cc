@@ -525,7 +525,7 @@ class FrameInitializationManager {
       }
 
       strvec colnames;
-      if (n_batches == 0) {
+      if (n_batches == 1) {
         for (size_t i = 0; i < ncols; ++i) {
           auto col_schema = schema->children[i];
           auto col_array = arrays[0].detach_child(i);

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column.h"
+#include "column/arrow_fw.h"
 #include "stype.h"
 #include "utils/arrow_structs.h"
 
@@ -60,7 +61,10 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
     case 'l':    // int64
     case 'L': {  // uint64
       xassert(nbuffers == 2);
-      break;
+      Buffer valid = Buffer::from_arrowarray((*array)->buffers[0], (nrows + 7)/8, array);
+      Buffer data = Buffer::from_arrowarray((*array)->buffers[1], nrows*sizeof(int64_t), array);
+      return Column(new dt::ArrowFw_ColumnImpl(nrows, dt::SType::INT64,
+                                               std::move(valid), std::move(data)));
     }
     case 'f': {  // float32
       xassert(nbuffers == 2);
@@ -79,5 +83,6 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       break;
     }
   }
-  throw NotImplError();
+  throw NotImplError()
+    << "Cannot create a column from an Arrow array with format `" << format << "`";
 }
