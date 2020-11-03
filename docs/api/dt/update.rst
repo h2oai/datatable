@@ -57,3 +57,27 @@ Examples
     2	8	10	4	3	25
     3	60	12	6	3	33
     4	80	0	8      −1	23
+
+
+- You can also add a new column or update an existing column in a groupby operation, similar to SQL's  `window` operation, or pandas `transform` ::
+
+    df = dt.Frame("""exporter assets   liabilities
+                      False      5          1
+                      True       10         8
+                      False      3          1
+                      False      24         20
+                      False      40         2
+                      True       12         11""")
+
+    # Get the ratio for each row per group 
+    df[:, 
+       update(ratio=sum(f.liabilities) * 100 / sum(f.assets)), 
+       by(f.exporter)]
+
+        exporter	assets	liabilities	ratio
+    0	    0	        5	    1	        33.3333
+    1	    1	        10	    8	        86.3636
+    2	    0	        3	    1	        33.3333
+    3	    0	        24	    20	        33.3333
+    4	    0	        40	    2	        33.3333
+    5	    1	        12	    11	        86.3636
