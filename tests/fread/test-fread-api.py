@@ -29,7 +29,7 @@ import pytest
 import datatable as dt
 import os
 from datatable import ltype, stype
-from datatable.exceptions import FreadWarning, DatatableWarning, IOWarning
+from datatable.exceptions import DatatableWarning, IOWarning
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -609,7 +609,7 @@ def test_fread_columns_set2():
 
 
 def test_fread_columns_set_bad():
-    with pytest.warns(FreadWarning) as ws:
+    with pytest.warns(IOWarning) as ws:
         dt.fread(text="A,B,C\n1,2,3", columns={"A", "foo"})
     assert len(ws) == 1
     assert "Column(s) ['foo'] not found in the input" in ws[0].message.args[0]
@@ -703,6 +703,13 @@ def test_fread_columns_empty(columns):
     assert d0.shape == (1, 3)
     assert d0.names == ("A", "B", "C")
     assert d0.to_list() == [[1], [2], [3]]
+
+
+def test_fread_str64_type():
+    DT = dt.fread("a\n1\n2\n3\n", columns=[dt.str64])
+    # Note: currently fread does not support creating str64 columns directly,
+    #       so we fall back to str32 here. (see #2704)
+    assert_equals(DT, dt.Frame(a=['1', '2', '3']/dt.str32))
 
 
 

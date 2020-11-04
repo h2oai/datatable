@@ -505,9 +505,12 @@ class SortContext {
     bool use_order;
     bool descending;
     int : 8;
+    NaPosition na_pos;
+    int : 32;
 
   public:
-  SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups) {
+  SortContext(size_t nrows, const RowIndex& rowindex, bool make_groups,
+             NaPosition na_position = NaPosition::FIRST) {
     o = nullptr;
     next_o = nullptr;
     histogram = nullptr;
@@ -521,6 +524,7 @@ class SortContext {
     is_string = false;
     use_order = false;
     descending = false;
+    na_pos = na_position;
 
     nth = static_cast<size_t>(sort_nthreads);
     n = nrows;
@@ -616,10 +620,17 @@ class SortContext {
   }
 
 
-  RowIndex get_result_rowindex() {
+  RowIndex get_result_rowindex(bool remove_nas = false) {
     auto data = static_cast<int32_t*>(container_o.release());
-    return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
+    if (remove_nas) {
+      size_t na_count = column.stats()->nacount();
+      auto buf = Buffer::acquire(data, n*sizeof(int32_t));
+      return RowIndex(Buffer::view(buf, (n-na_count)*sizeof(int32_t),
+                      na_count * sizeof(int32_t)), RowIndex::ARR32);
+    } else {
+      return RowIndex(Buffer::acquire(data, n * sizeof(int32_t)),
                     RowIndex::ARR32);
+    }
   }
 
   Groupby extract_groups() {
@@ -705,11 +716,15 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
+    uint8_t una = 128;
+    uint8_t replace_una = na_pos == NaPosition::LAST ? 3 : 0;
 
     if (use_order) {
       dt::parallel_for_static(n,
         [=](size_t j) {
-          xo[j] = ASC? static_cast<uint8_t>(xi[o[j]] + 191) >> 6
+          uint8_t t = xi[o[j]];
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<uint8_t>(xi[o[j]] + 1)
                      : static_cast<uint8_t>(128 - xi[o[j]]) >> 6;
         });
     } else {
@@ -717,7 +732,9 @@ class SortContext {
         [=](size_t j) {
           // xi[j]+191 should be computed as uint8_t; by default C++ upcasts it
           // to int, which leads to wrong results after shift by 6.
-          xo[j] = ASC? static_cast<uint8_t>(xi[j] + 191) >> 6
+          uint8_t t = xi[j];
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<uint8_t>(xi[j] + 1)
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
@@ -747,6 +764,14 @@ class SortContext {
   void _initI_impl(T edge) {
     TI una = static_cast<TI>(dt::GETNA<T>());
     TI uedge = static_cast<TI>(edge);
+
+    T min = static_cast<T>(column.stats()->min_int(nullptr));
+    T max = static_cast<T>(column.stats()->max_int(nullptr));
+
+    TO replace_una = na_pos == NaPosition::LAST ?
+                     static_cast<TO>(max - min + 1) : 0;
+    TO INCREMENT = (na_pos == NaPosition::LAST) ? 0 : 1;
+
     const TI* xi = static_cast<const TI*>(column.get_data_readonly());
     elemsize = sizeof(TO);
     allocate_x();
@@ -756,17 +781,17 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TI t = xi[o[j]];
-          xo[j] = t == una? 0 :
-                  ASC? static_cast<TO>(t - uedge + 1)
-                     : static_cast<TO>(uedge - t + 1);
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<TO>(t - uedge + INCREMENT)
+                     : static_cast<TO>(uedge - t + INCREMENT);
         });
     } else {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TI t = xi[j];
-          xo[j] = t == una? 0 :
-                  ASC? static_cast<TO>(t - uedge + 1)
-                     : static_cast<TO>(uedge - t + 1);
+          xo[j] = t == una? replace_una :
+                  ASC? static_cast<TO>(t - uedge + INCREMENT)
+                     : static_cast<TO>(uedge - t + INCREMENT);
         });
     }
   }
@@ -809,6 +834,10 @@ class SortContext {
     allocate_x();
     TO* xo = x.data<TO>();
 
+    TO replace_na = na_pos == NaPosition::LAST ?
+                    static_cast<TO>(sizeof(TO) == 8 ? 0xFFFFFFFFFFFFFFFFULL : 0xFFFFFFFF)
+                    : 0;
+
     constexpr TO EXP
       = static_cast<TO>(sizeof(TO) == 8? 0x7FF0000000000000ULL : 0x7F800000);
     constexpr TO SIG
@@ -821,7 +850,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[o[j]];
-          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? replace_na :
                   ASC? t ^ (SBT | (0 - (t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
@@ -829,7 +858,7 @@ class SortContext {
       dt::parallel_for_static(n,
         [&](size_t j) {
           TO t = xi[j];
-          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? 0 :
+          xo[j] = ((t & EXP) == EXP && (t & SIG) != 0) ? replace_na :
                   ASC? t ^ (SBT | (0 -(t>>SHIFT)) )
                      : t ^ (~SBT & ((t>>SHIFT) - 1));
         });
@@ -870,13 +899,13 @@ class SortContext {
             if (isvalid) {
               if (value.size()) {
                 xo[j] = ASC? static_cast<uint8_t>(*value.data()) + 2
-                           : 0xFE - static_cast<uint8_t>(*value.data());
+                           : 0xFD - static_cast<uint8_t>(*value.data());
                 len_gt_1 |= (value.size() > 1);
               } else {
-                xo[j] = ASC? 1 : 0xFF;  // empty string
+                xo[j] = ASC? 1 : 0xFE;  // empty string
               }
             } else {
-              xo[j] = 0;    // NA string
+              xo[j] = na_pos == NaPosition::LAST ? 0xFF : 0;    // NA string
             }
           });
         if (len_gt_1) flong.test_and_set();
@@ -1301,7 +1330,7 @@ class SortContext {
                 tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
               }
               if (is_string) {
-                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending);
+                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
               } else {
                 switch (elemsize) {
                   case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
@@ -1341,7 +1370,7 @@ class SortContext {
     int32_t* tmp = tmparr.get();
     int32_t nn = static_cast<int32_t>(n);
     if (is_string) {
-      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending);
+      insert_sort_keys_str(column, 0, o, tmp, nn, gg, descending, na_pos);
     } else {
       switch (elemsize) {
         case 1: _insert_sort_keys<uint8_t >(tmp); break;
@@ -1355,7 +1384,7 @@ class SortContext {
   void vinsert_sort() {
     if (is_string) {
       int32_t nn = static_cast<int32_t>(n);
-      insert_sort_values_str(column, 0, o, nn, gg, descending);
+      insert_sort_values_str(column, 0, o, nn, gg, descending, na_pos);
     } else {
       switch (elemsize) {
         case 1: _insert_sort_values<uint8_t >(); break;
@@ -1387,7 +1416,8 @@ class SortContext {
 //==============================================================================
 
 RiGb group(const std::vector<Column>& columns,
-           const std::vector<SortFlag>& flags)
+           const std::vector<SortFlag>& flags,
+           NaPosition na_pos)
 {
   RiGb result;
   size_t n = columns.size();
@@ -1434,7 +1464,7 @@ RiGb group(const std::vector<Column>& columns,
   }
 
   bool do_groups = n > 1 || !(flags[0] & SortFlag::SORT_ONLY);
-  SortContext sc(nrows, RowIndex(), do_groups);
+  SortContext sc(nrows, RowIndex(), do_groups, na_pos);
   col0.stats();  // instantiate Stats object; TODO: remove this
   sc.start_sort(col0, bool(flags[0] & SortFlag::DESCENDING));
   for (size_t j = 1; j < n; ++j) {
@@ -1450,7 +1480,9 @@ RiGb group(const std::vector<Column>& columns,
     colj.stats();  // TODO: remove this
     sc.continue_sort(colj, j_descending, do_groups);
   }
-  result.first = sc.get_result_rowindex();
+
+  bool remove_nas = na_pos == NaPosition::REMOVE ? true : false;
+  result.first = sc.get_result_rowindex(remove_nas);
   if (!(flags[0] & SortFlag::SORT_ONLY) && !result.second) {
     result.second = sc.extract_groups();
   }

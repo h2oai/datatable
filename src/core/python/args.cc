@@ -371,7 +371,7 @@ VarArgsIterator VarArgsIterable::end() const {
 
 
 VarKwdsIterator::VarKwdsIterator(const PKArgs& args, Py_ssize_t i0)
-    : parent(args), pos(i0), curr_value(py::robj(nullptr), py::robj(nullptr))
+    : parent(args), pos(i0)
 {
   if (parent.kwds_dict) {
     advance();

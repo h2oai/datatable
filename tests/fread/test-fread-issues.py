@@ -12,7 +12,7 @@ import pytest
 import random
 import re
 from datatable.internal import frame_integrity_check
-from tests import find_file, list_equals
+from tests import find_file, list_equals, assert_equals
 
 
 def test_issue1935():
@@ -561,3 +561,12 @@ def test_issue1036(shape):
     assert out[0] == ['q'] * n1 + ['foo'] + ['a'] * n2
     assert out[1] == ['f'] * n1 + ['\"bar'] + ['bb'] * n2
     assert out[2] == ['r'] * n1 + ['bza'] + ['ccc'] * n2
+
+
+def test_issue2681():
+    src = 'A,B,C\n' + 'rr,dd",g\n' + '1,2,3\n'*99 + 'abc,def\r\n'
+    DT = dt.fread(src, fill=True)
+    assert_equals(DT,
+        dt.Frame(A=['rr'] + ['1']*99 + ['abc'],
+                 B=['dd"'] + ['2']*99 + ['def'],
+                 C=['g'] + ['3']*99 + [None]))

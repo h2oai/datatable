@@ -405,7 +405,7 @@ Force all data in the Frame to be laid out physically.
 
 In datatable, a Frame may contain "virtual" columns, i.e. columns
 whose data is computed on-the-fly. This allows us to have better
-performance for certain types of computations, while also reduce
+performance for certain types of computations, while also reducing
 the total memory footprint. The use of virtual columns is generally
 transparent to the user, and datatable will materialize them as
 needed.
@@ -498,7 +498,7 @@ return: int
     The number of rows can be either zero or a positive integer.
 
 n: int
-    The new number of rows for the frame, this should be a nonnegative
+    The new number of rows for the frame, this should be a non-negative
     integer.
 
 See also
@@ -807,7 +807,7 @@ empty frame::
 
 The varkwd arguments `**cols` can be used to construct a Frame by
 columns. In this case the keys become column names, and the values
-are column initializers. This form is mostly used for convenience,
+are column initializers. This form is mostly used for convenience;
 it is equivalent to converting `cols` into a `dict` and passing as
 the first argument::
 
@@ -1018,7 +1018,7 @@ number of rows significantly exceeds the number of columns.
 A Frame can be viewed as a ``list`` of columns: standard Python
 function ``len()`` will return the number of columns in the Frame,
 and ``frame[j]`` will return the column at index ``j`` (each "column"
-will be a Ffame with ``ncols == 1``). Similarly, you can iterate over
+will be a Frame with ``ncols == 1``). Similarly, you can iterate over
 the columns of a Frame in a loop, or use it in a ``*``-expansion::
 
     for column in frame:

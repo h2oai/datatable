@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,6 +25,7 @@
 #include "expr/declarations.h"
 #include "expr/expr.h"
 #include "expr/py_by.h"      // py::oby
+#include "expr/py_sort.h"
 #include "expr/workframe.h"
 #include "datatable.h"       // DataTable
 #include "rowindex.h"        // RowIndex
@@ -118,7 +119,8 @@ class EvalContext
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    size_t : 40;
+    size_t : 8;
+    NaPosition na_position_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
@@ -152,6 +154,7 @@ class EvalContext
     void set_groupby_columns(Workframe&&);
 
     bool reverse_sort();
+    NaPosition get_na_position() const;
   private:
     void compute_groupby_and_sort();
 

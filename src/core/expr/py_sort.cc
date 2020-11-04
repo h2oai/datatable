@@ -25,7 +25,11 @@
 #include "utils/exceptions.h"
 namespace py {
 
-
+static NaPosition  get_na_position_from_string(const std::string& str) {
+   return (str == "first")? NaPosition::FIRST :
+          (str == "last")? NaPosition::LAST :
+          (str == "remove")? NaPosition::REMOVE : NaPosition::INVALID;
+}
 
 //------------------------------------------------------------------------------
 // py::osort::osort_pyobject
@@ -57,12 +61,13 @@ the Highscore column.
 )";
 
 static PKArgs args___init__(
-  0, 0, 1, true, false, {"reverse"}, "__init__", nullptr
+  0, 0, 2, true, false, {"reverse", "na_position"}, "__init__", nullptr
 );
 
 void osort::osort_pyobject::m__init__(const PKArgs& args)
 {
   const Arg& arg_reverse = args[0];
+  const Arg& arg_na_position = args[1];
 
   if (arg_reverse.is_none_or_undefined()) {
     reverse_ = new std::vector<bool>();
@@ -83,6 +88,32 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
         "of booleans, instead got " << arg_reverse.typeobj();
   }
 
+  if (arg_na_position.is_none_or_undefined()) {
+    na_position_ = new std::vector<NaPosition>(1, NaPosition::FIRST);
+  }
+  else if (arg_na_position.is_string()) {
+    NaPosition na_pos = get_na_position_from_string(arg_na_position.to_string());
+    if (na_pos == NaPosition::INVALID) {
+      throw ValueError() << "na position value `" << arg_na_position.to_string() << "` is not supported";
+    }
+    na_position_ = new std::vector<NaPosition>(1, na_pos);
+  }
+  /*else if (arg_na_position.is_list_or_tuple()) {  ######## This needs to be implemented ################
+    auto na_position_list  = arg_na_position.to_pylist();
+    na_position_ = new std::vector<NaPosition>(na_position_list.size());
+    for (size_t i = 0; i < na_position_->size(); ++i) {
+      NaPosition na_pos = get_na_position_from_string(na_position_list[i].to_string());
+      if (na_pos == NaPosition::INVALID) {
+        throw ValueError() << "na position value `" << na_position_list[i].to_string() << "` is not supported";
+      }
+      (*na_position_)[i] = na_pos;
+    }
+  }*/
+  else {
+    throw TypeError() << arg_na_position.name() <<
+        " should be one of 'first', 'last' or 'remove', instead got " << arg_na_position.typeobj();
+  }
+
   size_t n = args.num_vararg_args();
   size_t i = 0;
   olist colslist(n);
@@ -100,8 +131,10 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
 
 void osort::osort_pyobject::m__dealloc__() {
   delete reverse_;
+  delete na_position_;
   reverse_ = nullptr;
   cols_ = nullptr;  // Releases the stored oobj
+  na_position_ = nullptr;
 }
 
 
@@ -114,6 +147,9 @@ const std::vector<bool>& osort::osort_pyobject::get_reverse() const {
   return *reverse_;
 }
 
+const std::vector<NaPosition>& osort::osort_pyobject::get_na_position() const {
+  return *na_position_;
+}
 
 void osort::osort_pyobject::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.sort");
@@ -158,6 +194,8 @@ const std::vector<bool>& osort::get_reverse() const {
   return reinterpret_cast<const osort::osort_pyobject*>(v)->get_reverse();
 }
 
-
+const std::vector<NaPosition>& osort::get_na_position() const {
+  return reinterpret_cast<const osort::osort_pyobject*>(v)->get_na_position();
+}
 
 }  // namespace py

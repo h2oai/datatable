@@ -69,14 +69,14 @@ evaluation semantics:
   auto-expanded into a column that is constant within each group.
 
 - Note that if both ``i`` and ``j`` contain reducer functions, then
-  those functions will have slightly different notion of groups: the
+  those functions will have a slightly different notion of groups: the
   reducers in ``i`` will see each group "in full", whereas the
   reducers in ``j`` will see each group after it was filtered by the
   expression in ``i`` (and possibly not even see some of the groups
   at all, if they were filtered out completely).
 
 - If ``j`` contains only reducer expressions, then the final result
-  will be a Frame containing containing just a single row for each
+  will be a Frame containing just a single row for each
   group. This resulting frame will also be keyed by the grouped-by
   columns.
 

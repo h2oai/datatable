@@ -48,26 +48,66 @@ namespace read {
 
 static const char * doc_options_fread_log_anonymize =
 R"(
-If `True`, any snippets of data being read that are printed in the
-log will be first anonymized by converting all non-0 digits to `1`,
-all lowercase letters to `a`, all uppercase letters to `A`, and all
-unicode characters to `U`.
 
-This option is useful in production systems when reading sensitive
-data that must not accidentally leak into log files or be printed
-with the error messages.
+This option controls logs anonymization that is useful in production
+systems, when reading sensitive data that must not accidentally leak
+into log files or be printed with the error messages.
+
+Parameters
+----------
+return: bool
+    Current `anonymize` value. Initially, this option is set to `False`.
+
+new_anonymize: bool
+    New `anonymize` value. If `True`, any snippets of data being read
+    that are printed in the log will be first anonymized by converting
+    all non-zero digits to `1`, all lowercase letters to `a`,
+    all uppercase letters to `A`, and all unicode characters to `U`.
+    If `False`, no data anonymization will be performed.
+
 )";
 
 static const char * doc_options_fread_log_escape_unicode =
 R"(
-If `True`, all unicode characters in the verbose log will be written
-in hexadecimal notation. Use this option if your terminal cannot
-print unicode, or if the output gets somehow corrupted because of
-the unicode characters.
+
+This option controls escaping of the unicode characters.
+
+Use this option if your terminal cannot print unicode,
+or if the output gets somehow corrupted because of the unicode characters.
+
+Parameters
+----------
+return: bool
+    Current `escape_unicode` value. Initially, this option is set to `False`.
+
+new_escape_unicode: bool
+    If `True`, all unicode characters in the verbose log will be written
+    in hexadecimal notation. If `False`, no escaping of the unicode
+    characters will be performed.
+
 )";
 
 static bool log_anonymize = false;
 static bool log_escape_unicode = false;
+
+
+static py::oobj get_anonymize() {
+  return py::obool(log_anonymize);
+}
+
+static void set_anonymize(const py::Arg& arg) {
+  log_anonymize = arg.to_bool_strict();
+}
+
+
+static py::oobj get_escape_unicode() {
+  return py::obool(log_escape_unicode);
+}
+
+static void set_escape_unicode(const py::Arg& arg) {
+  log_escape_unicode = arg.to_bool_strict();
+}
+
 
 void GenericReader::init_options() {
   dt::register_option(
@@ -78,15 +118,15 @@ void GenericReader::init_options() {
 
   dt::register_option(
     "fread.log.anonymize",
-    []{ return py::obool(log_anonymize); },
-    [](const py::Arg& value){ log_anonymize = value.to_bool_strict(); },
+    get_anonymize,
+    set_anonymize,
     doc_options_fread_log_anonymize
   );
 
   dt::register_option(
     "fread.log.escape_unicode",
-    []{ return py::obool(log_escape_unicode); },
-    [](const py::Arg& value){ log_escape_unicode = value.to_bool_strict(); },
+    get_escape_unicode,
+    set_escape_unicode,
     doc_options_fread_log_escape_unicode
   );
 }

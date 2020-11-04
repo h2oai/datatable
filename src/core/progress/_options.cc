@@ -28,17 +28,37 @@ namespace progress {
 
 static const char* doc_options_progress_clear_on_success =
 R"(
-If `True`, clear progress bar when job finished successfully.
+
+This option controls if the progress bar is cleared on success.
+
+Parameters
+----------
+return: bool
+    Current `clear_on_success` value. Initially, this option is set to `False`.
+
+new_clear_on_success: bool
+    New `clear_on_success` value. If `True`, the progress bar is cleared when
+    job finished successfully. If `False`, the progress remains visible
+    even when the job has already finished.
+
 )";
 
 
 bool clear_on_success = false;
 
+static py::oobj get_clear_on_success() {
+  return py::obool(clear_on_success);
+}
+
+static void set_clear_on_success(const py::Arg& arg) {
+  clear_on_success = arg.to_bool_strict();
+}
+
 static void init_option_clear_on_success() {
   dt::register_option(
     "progress.clear_on_success",
-    []{ return py::obool(clear_on_success); },
-    [](const py::Arg& value){ clear_on_success = value.to_bool_strict(); },
+    get_clear_on_success,
+    set_clear_on_success,
     doc_options_progress_clear_on_success
   );
 }
@@ -50,18 +70,40 @@ static void init_option_clear_on_success() {
 
 static const char* doc_options_progress_allow_interruption =
 R"(
-If `True`, allow datatable to handle the `SIGINT` signal to interrupt
-long-running tasks.
+
+This option controls if the datatable tasks could be interrupted.
+
+
+Parameters
+----------
+return: bool
+    Current `allow_interruption` value. Initially, this option is set to `True`.
+
+new_allow_interruption: bool
+    New `allow_interruption` value. If `True`, datatable will be allowed
+    to handle the `SIGINT` signal to interrupt long-running tasks.
+    If `False`, it will not be possible to interrupt tasks with `SIGINT`.
+
 )";
 
 
 bool allow_interruption = true;
 
+
+static py::oobj get_allow_interruption() {
+  return py::obool(allow_interruption);
+}
+
+static void set_allow_interruption(const py::Arg& arg) {
+  allow_interruption = arg.to_bool_strict();
+}
+
+
 static void init_option_allow_interruption() {
   dt::register_option(
     "progress.allow_interruption",
-    []{ return py::obool(allow_interruption); },
-    [](const py::Arg& value){ allow_interruption = value.to_bool_strict(); },
+    get_allow_interruption,
+    set_allow_interruption,
     doc_options_progress_allow_interruption
   );
 }
@@ -73,13 +115,34 @@ static void init_option_allow_interruption() {
 
 static const char* doc_options_progress_enabled =
 R"(
-When `False`, progress reporting functionality will be turned off.
-This option is `True` by default if the `stdout` is connected to a
-terminal or a Jupyter Notebook, and False otherwise.
+
+This option controls if the progress reporting is enabled.
+
+Parameters
+----------
+return: bool
+    Current `enabled` value. Initially, this option is set to `True`
+    if the `stdout` is connected to a terminal or a Jupyter Notebook,
+    and `False` otherwise.
+
+new_enabled: bool
+    New `enabled` value. If `True`, the progress reporting
+    functionality will be turned on. If `False`, it is turned off.
+
 )";
 
 
 bool enabled = true;
+
+
+static py::oobj get_enabled() {
+  return py::obool(enabled);
+}
+
+static void set_enabled(const py::Arg& arg) {
+  enabled = arg.to_bool_strict();
+}
+
 
 static bool stdout_is_a_terminal() {
   auto rstdout = py::rstdout();
@@ -94,8 +157,8 @@ static void init_option_enabled() {
   enabled = stdout_is_a_terminal();
   dt::register_option(
     "progress.enabled",
-    []{ return py::obool(enabled); },
-    [](const py::Arg& value){ enabled = value.to_bool_strict(); },
+    get_enabled,
+    set_enabled,
     doc_options_progress_enabled
   );
 }
@@ -108,28 +171,41 @@ static void init_option_enabled() {
 
 static const char* doc_options_progress_updates_per_second =
 R"(
-Number of times per second the display of the progress bar should be updated.
+
+This option controls the progress bar update frequency.
+
+
+Parameters
+----------
+return: float
+    Current `updates_per_second` value. Initially, this option is set to `25.0`.
+
+new_updates_per_second: float
+    New `updates_per_second` value. This is the number of times per second
+    the display of the progress bar should be updated.
+
 )";
 
 
 double updates_per_second = 25.0;
 
-static py::oobj get_ups() {
+
+static py::oobj get_updates_per_second() {
   return py::ofloat(updates_per_second);
 }
 
-static void set_ups(const py::Arg& value) {
-  double x = value.to_double();
-  py::Validator::check_finite(x, value);
-  py::Validator::check_positive(x, value);
+static void set_updates_per_second(const py::Arg& arg) {
+  double x = arg.to_double();
+  py::Validator::check_finite(x, arg);
+  py::Validator::check_positive(x, arg);
   updates_per_second = x;
 }
 
 static void init_option_updates_per_second() {
   dt::register_option(
     "progress.updates_per_second",
-    get_ups,
-    set_ups,
+    get_updates_per_second,
+    set_updates_per_second,
     doc_options_progress_updates_per_second
   );
 }
@@ -142,10 +218,22 @@ static void init_option_updates_per_second() {
 
 static const char* doc_options_progress_min_duration =
 R"(
-Do not show progress bar if the duration of an operation is
-smaller than this value. If this setting is non-zero, then
-the progress bar will only be shown for long-running operations,
-whose duration (estimated or actual) exceeds this threshold.
+
+This option controls the minimum duration of a task to show the progress bar.
+
+
+Parameters
+----------
+return: float
+    Current `min_duration` value. Initially, this option is set to `0.5`.
+
+new_min_duration: float
+    New `min_duration` value. The progress bar will not be shown
+    if the duration of an operation is smaller than `new_min_duration`.
+    If this value is non-zero, then the progress bar will only be shown
+    for long-running operations, whose duration (estimated or actual)
+    exceeds this threshold.
+
 )";
 
 
@@ -178,16 +266,27 @@ static void init_option_min_duration() {
 
 static const char* doc_options_progress_callback =
 R"(
-If `None`, then the built-in progress-reporting function will be used.
-Otherwise, this value specifies a function to be called at each
-progress event. The function takes a single parameter `p`, which is
-a namedtuple with the following fields:
 
-  - `p.progress` is a float in the range `0.0 .. 1.0`;
-  - `p.status` is a string, one of 'running', 'finished', 'error' or
-    'cancelled'; and
-  - `p.message` is a custom string describing the operation currently
-    being performed.
+This option controls the custom progress-reporting function.
+
+
+Parameters
+----------
+return: function
+    Current `callback` value. Initially, this option is set to `None`.
+
+new_callback: function
+    New `callback` value. If `None`, then the built-in progress-reporting
+    function will be used. Otherwise, the `new_callback` specifies a function
+    to be called at each progress event. The function should take a single
+    parameter `p`, which is a namedtuple with the following fields:
+
+    - `p.progress` is a float in the range `0.0 .. 1.0`;
+    - `p.status` is a string, one of `'running'`, `'finished'`, `'error'` or
+      `'cancelled'`;
+    - `p.message` is a custom string describing the operation currently
+      being performed.
+
 )";
 
 

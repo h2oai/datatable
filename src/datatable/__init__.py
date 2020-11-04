@@ -24,6 +24,7 @@ from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
 from .lib._datatable import (
+    as_type,
     by,
     cbind,
     cut,
@@ -70,6 +71,7 @@ except ImportError:
 
 
 __all__ = (
+    "as_type",
     "bool8",
     "by",
     "cbind",

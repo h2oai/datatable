@@ -1016,6 +1016,42 @@ def test_sort_double_negation():
     assert_equals(DT[:, :, sort(f.A)], RES4)
 
 
+#-------------------------------------------------------------------------------
+# Sort with positional value for NAs
+#-------------------------------------------------------------------------------
+
+def key_func(x, rev, na_pos):
+    return (x is None) ^ (rev) ^ (na_pos == "first")
+
+def sort_func(src, rev, na_pos):
+    if na_pos == "remove":
+        return sorted([s for s in src if s != None], reverse=rev)
+    else:
+        return sorted(src, key=lambda x: (key_func(x, rev, na_pos), x), reverse=rev)
+
+
+@pytest.mark.parametrize('rev', [True, False])
+@pytest.mark.parametrize('napos', ['first', 'last', 'remove'])
+@pytest.mark.parametrize('src', [[-5,-8,None,None,11,2,8,None,4]*1000,
+                                 [-5.9,None,-8.3,11.5576,2.2,8.9,None,4.1]*1000,
+                                 [True,None,False,None,False,True]*1000,
+                                 ['',None,'pr',None,'','rww','auy','dfuy']*1000,
+                                 [0,1,None,2**31-1,None,-(2**31-1),None]*1000,
+                                 [0,1,None,2**63-1,None,-(2**63-1),None]*1000,
+                                 ['', None, '\x00', '\x01', '\x00'*5, None, '']*987])
+def test_sort_na_position(rev, napos, src):
+    DT = dt.Frame(A=src)
+    RES = DT[:, :, dt.sort(0, reverse=rev, na_position=napos)]
+    EXP = dt.Frame(A=sort_func(src, rev, napos))
+    assert_equals(RES, EXP)
+
+@pytest.mark.parametrize('na_pos', ['las', '', ' '])
+def test_na_position_value_error(na_pos):
+    msg = "na position value %s is not supported" %(na_pos)
+    DT = dt.Frame(A=[3,9,0])
+    with pytest.raises(ValueError, match=msg):
+        DT[:, :, dt.sort(0, reverse=True, na_position=na_pos)]
+
 
 #-------------------------------------------------------------------------------
 # Misc issues

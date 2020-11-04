@@ -20,3 +20,9 @@
 
     return: FExpr
         Expression that converts its inputs into the current stype.
+
+
+    See Also
+    --------
+    :func:`dt.as_type()` -- equivalent method of casting a column into
+       another stype.

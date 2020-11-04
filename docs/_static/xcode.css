@@ -10,14 +10,14 @@
 }
 
 div.document p + .xcode {
-    margin-top: -22px;
+    margin-top: -12px;
 }
 
-.rst-content .section ol li>p + .xcode,
-.rst-content .section ul li>p + .xcode,
-.rst-content .section dl dd>p + .xcode {
+.section ol li>p + .xcode,
+.section ul li>p + .xcode,
+.section dl dd>p + .xcode {
     margin-left: 24px;
-    margin-top: -10px;
+    margin-top: 0;
 }
 
 

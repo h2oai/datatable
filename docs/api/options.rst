@@ -2,7 +2,7 @@
 .. xdata:: datatable.options
     :src: src/datatable/__init__.py options
 
-    This namespace contains the following datatable option groups:
+    This namespace contains the following option groups:
 
     .. list-table::
         :widths: auto
