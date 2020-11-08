@@ -5,6 +5,8 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] Property :attr:`.meta` contains frame's meta information,
+      if any, as set by datatable's functions/methods or by the user.
 
     FExpr
     -----
