@@ -175,6 +175,8 @@ def test_dt_help():
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
     frame_integrity_check(dt0)
+    assert dt0.source is None
+    assert dt0.meta is None
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
@@ -390,6 +392,18 @@ def test_dt_stype_heterogenous(dt0):
             "from the stype of the previous column" in str(e.value))
 
 
+#-------------------------------------------------------------------------------
+# Meta information
+#-------------------------------------------------------------------------------
+
+def test_meta():
+    DT = dt.Frame([[3, 1, 4, 1, 5], ["three", "one", "four", "one", "five"]])
+    assert DT.meta is None
+    DT.meta = {"C0" : "numbers"}
+    assert DT.meta == {"C0" : "numbers"}
+    DT.meta["C1"] = "strings"
+    assert DT.meta == {"C0" : "numbers", "C1" : "strings"}
+    frame_integrity_check(DT)
 
 
 #-------------------------------------------------------------------------------

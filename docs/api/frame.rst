@@ -95,6 +95,9 @@
         * - :attr:`.ltypes`
           - Logical types (:class:`dt.ltype`s) of all columns.
 
+        * - :attr:`.meta`
+          - The frame's meta information.
+
         * - :attr:`.names`
           - The names of all columns in the frame.
 
