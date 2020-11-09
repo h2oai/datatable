@@ -204,9 +204,7 @@ ansiColor('xterm') {
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
-                            podman run --rm \
-                                --userns=keep-id \
-                                --security-opt="label=disable"
+                            docker run --rm \
                                 -v `pwd`:/dot \
                                 -u `id -u`:`id -g` \
                                 -w /dot \
@@ -304,7 +302,9 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        docker run --rm --init \
+                                        podman run --rm --init \
+                                            --userns=keep-id \
+                                            --security-opt="label=disable"
                                             -v `pwd`:/dot \
                                             -e DT_RELEASE=${DT_RELEASE} \
                                             -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
