@@ -303,7 +303,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run
-                                            --userns=keep-id \
                                             --security-opt="label=disable" \
                                             --rm --init \
                                             -v `pwd`:/dot \
