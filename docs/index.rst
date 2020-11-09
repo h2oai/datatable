@@ -1,8 +1,8 @@
+.. title:: Home
 
 .. raw:: html
 
     <style type="text/css">
-      footer {display:none;}
       div#dtcontainer {
         height: 300pt;
         position: relative;
@@ -115,10 +115,10 @@
         It supports out-of-memory datasets, multi-threaded data processing,
         and flexible API.
       </p></div>
-      <div id="logo">
-        <img src="_static/py_datatable_logo.png" id="dt-logo" />
-      </div>
       <div id="badges">
+        <a href="https://gitter.im/h2oai/datatable">
+          <img src="https://badges.gitter.im/Join%20Chat.svg">
+        </a>
         <a href="https://pypi.org/project/datatable/">
           <img src="https://img.shields.io/pypi/v/datatable.svg">
         </a>

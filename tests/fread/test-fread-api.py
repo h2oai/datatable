@@ -705,6 +705,13 @@ def test_fread_columns_empty(columns):
     assert d0.to_list() == [[1], [2], [3]]
 
 
+def test_fread_str64_type():
+    DT = dt.fread("a\n1\n2\n3\n", columns=[dt.str64])
+    # Note: currently fread does not support creating str64 columns directly,
+    #       so we fall back to str32 here. (see #2704)
+    assert_equals(DT, dt.Frame(a=['1', '2', '3']/dt.str32))
+
+
 
 
 #-------------------------------------------------------------------------------

@@ -105,7 +105,10 @@ void InputColumn::set_rtype(int64_t it) {
     case RFloat64: parse_type_ = PT::Float64Plain; break;
     case RStr:     parse_type_ = PT::Str32; break;
     case RStr32:   parse_type_ = PT::Str32; break;
-    case RStr64:   parse_type_ = PT::Str64; break;
+    // If at some point we implement creating str64 columns from fread directly,
+    // then this line will have to be changed. For now, though, if the user
+    // requests a str64 column type, we'll create a regular str32 instead.
+    case RStr64:   parse_type_ = PT::Str32; break;
   }
 }
 

@@ -1,7 +1,8 @@
 
-body {
-  counter-reset: cc;
-}
+/*
+  TODO: combine with wren.css
+*/
+
 
 div.rst-content li {
   margin-bottom: 12pt;
@@ -56,116 +57,6 @@ div.rst-content .admonition-title {
   vertical-align: inherit;
 }
 
-
-/* ------- Side menu adjustments -------------------------------------------- */
-
-.wy-menu-vertical {
-  margin-bottom: 48pt;
-}
-
-.wy-menu-vertical li code {
-  font-size: 95%;
-}
-
-.wy-menu-vertical li.toctree-l1,
-.wy-menu-vertical li.toctree-l2,
-.wy-menu-vertical li.toctree-l3,
-.wy-menu-vertical li.toctree-l4 {
-  font-size: 100%;
-}
-
-.wy-menu-vertical li>a span.toctree-expand,
-.wy-menu-vertical li.current>a span.toctree-expand {
-  line-height: 1.8em;
-}
-
-.wy-menu-vertical li.current > a {
-  font-weight: normal;
-}
-
-
-/* First-level menu */
-.wy-menu-vertical li.toctree-l1 > a:hover {
-  background-color: #555;
-}
-
-.wy-menu-vertical li.toctree-l1.current > a {
-  background-color: #f0f0f0;
-  border: 1px solid #ccc;
-  border-top-style: none;
-  border-left-style: none;
-}
-
-.wy-menu-vertical li.toctree-l1.current > a:hover {
-  background-color: white;
-}
-
-.wy-menu-vertical li.toctree-l1.current > a.current {
-  background-color: #fcfcfc;
-  border-right-style: none;
-}
-
-
-/* Second-level menu */
-.wy-menu-vertical li.toctree-l1 > ul {
-  background: #ddd;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 > a {
-  padding: 3.5pt 0 3pt 24pt;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a {
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-style: none solid none none;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a:hover {
-  background-color: #fff;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2.current > a.current {
-  background-color: #fcfcfc;
-  border-right: none;
-}
-
-
-/* Third-level menu */
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 > ul {
-  border-style: solid none;
-  border-width: 1px;
-  border-color: #999;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a {
-  padding: 1.5pt 0 1.5pt 36pt;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a:hover {
-  background-color: #fff;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > a.current {
-  background-color: #fcfcfc;
-}
-
-
-/* Fourth-level menu */
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 > ul {
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 li.toctree-l4 > a {
-  padding: 1.5pt 0 1.5pt 48pt;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 li.toctree-l4 > a:hover {
-  background-color: #fff;
-}
-
-.wy-menu-vertical li.toctree-l1 li.toctree-l2 li.toctree-l3 li.toctree-l4 > a.current {
-  background-color: #fcfcfc;
-}
 
 
 
@@ -255,6 +146,7 @@ div.document div.notranslate.highlight-default div.highlight {
 
 div.document div.notranslate.highlight-python div.highlight pre,
 div.document div.notranslate.highlight-default div.highlight pre {
+  margin-bottom: 0;
   padding: 0.5em 1em;
 }
 
@@ -332,49 +224,11 @@ div.document div.notranslate.highlight-pycon div.highlight pre {
 
 /* ------- Miscellaneous ---------------------------------------------------- */
 
-html {
-  font-size: 11pt;
-}
-
-div[role=navigation] hr {
-  visibility: hidden;
-}
-
-.wy-breadcrumbs {
-  display: none;
-}
-
-h1 {
-  border-bottom: 1px solid #ccc;
-  font-family: inherit;
-  margin-top: -22pt;
-}
-
-h2 {
-  font-family: inherit;
-  margin-top: 24pt;
-}
-
-h3 {
-  font-family: inherit;
-}
-
-p {
-  font-size: 100%;
-  line-height: 22px;
-}
-
-p + ul.simple,
-p + ol.simple {
-  margin-top: -12pt;
-  margin-left: 12pt;
-}
-
 /* inter-paragraph distance is reduced in a ul|ol */
-.rst-content .section ol p + ul.simple,
-.rst-content .section ul p + ul.simple,
-.rst-content .section ol p + ol.simple,
-.rst-content .section ul p + ol.simple {
+.section ol p + ul.simple,
+.section ul p + ul.simple,
+.section ol p + ol.simple,
+.section ul p + ol.simple {
   margin-top: -6pt;
 }
 
