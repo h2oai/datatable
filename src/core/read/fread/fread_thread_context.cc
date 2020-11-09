@@ -191,21 +191,6 @@ void FreadThreadContext::read_chunk(
         }
         parse_ctx_.target ++;
         j++;
-        if (tch < parse_ctx_.eof && j < ncols && *tch=='\n' && sep!=' ') {
-          const char* prev_tch = tch;
-          while (*tch!=sep) {
-            tch--;
-            if (*tch=='\n') {
-              tch = prev_tch;
-              break;
-            }
-          }
-          if (*tch==sep) {
-            tch++;
-            ++ptype_iter;
-            continue;
-          }
-        }
         if (tch < parse_ctx_.eof && *tch==sep) { tch++; continue; }
         if (fill && (tch == parse_ctx_.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string

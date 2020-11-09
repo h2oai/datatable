@@ -455,7 +455,7 @@ R"(
 
 Frame's meta information.
 
-This property contains meta information, if any, as set by datatable's
+This property contains meta information, if any, as set by datatable
 functions and methods. It is a settable property, so that users can also
 update it with any information relevant to a particular frame. However,
 it is not guaranteed that the existing meta information will be preserved
@@ -483,7 +483,7 @@ oobj Frame::get_meta() const {
 
 void Frame::set_meta(const Arg& meta) {
   if (!meta.is_dict() && !meta.is_none()) {
-    throw TypeError() << "`.meta` property must be a dictionary or `None`, "
+    throw TypeError() << "`.meta` must be a dictionary or `None`, "
       << "instead got: " << meta.typeobj();
   }
   meta_ = meta.is_none()? py::None() : meta.to_pydict();
