@@ -302,9 +302,8 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        docker run
-                                            --security-opt="label=disable" \
-                                            --rm --init \
+                                        docker run --rm --init \
+                                            --userns=keep-id --security-opt="label=disable" \
                                             -v `pwd`:/dot \
                                             -e DT_RELEASE=${DT_RELEASE} \
                                             -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
