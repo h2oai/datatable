@@ -204,7 +204,9 @@ ansiColor('xterm') {
                     }
                     buildSummary.stageWithSummary('Generate sdist & version file', stageDir) {
                         sh """
-                            docker run --rm \
+                            podman run --rm \
+                                --userns=keep-id \
+                                --security-opt="label=disable"
                                 -v `pwd`:/dot \
                                 -u `id -u`:`id -g` \
                                 -w /dot \
