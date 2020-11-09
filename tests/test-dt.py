@@ -402,8 +402,11 @@ def test_meta():
     DT.meta = {"C0" : "numbers"}
     assert DT.meta == {"C0" : "numbers"}
     DT.meta["C1"] = "strings"
+    DT1 = DT.copy()
     assert DT.meta == {"C0" : "numbers", "C1" : "strings"}
+    assert DT.meta == DT1.meta
     frame_integrity_check(DT)
+    frame_integrity_check(DT1)
 
 
 #-------------------------------------------------------------------------------
