@@ -303,7 +303,7 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run \
-                                           -u $(id -u):$(id -g) \
+                                           -u `id -u`:`id -g` \
                                            -e USER=$USER \
                                            -v /etc/passwd:/etc/passwd:ro \
                                            -v /etc/group:/etc/group:ro \
