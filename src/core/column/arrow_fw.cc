@@ -32,7 +32,7 @@ ArrowFw_ColumnImpl::ArrowFw_ColumnImpl(size_t nrows, SType stype,
     validity_(std::move(valid)),
     data_(std::move(data))
 {
-  xassert(validity_.size() == (nrows + 7) / 8);
+  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
   xassert(data_.size() == stype_elemsize(stype) * nrows);
 }
 
@@ -58,8 +58,8 @@ template <typename T>
 inline bool ArrowFw_ColumnImpl::_get(size_t  i, T* out) const {
   xassert(i < nrows_);
   xassert(compatible_type<T>(stype_));
-  bool valid = static_cast<const uint8_t*>(validity_.rptr())[i / 8]
-               & (1 << (i & 7));
+  auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
+  bool valid = !validity_data || (validity_data[i / 8] & (1 << (i & 7)));
   if (valid) {
     *out = static_cast<const T*>(data_.rptr())[i];
   }

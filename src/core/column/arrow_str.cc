@@ -35,7 +35,7 @@ ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
     offsets_(std::move(offsets)),
     strdata_(std::move(data))
 {
-  xassert(validity_.size() == (nrows + 7) / 8);
+  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
   xassert(offsets_.size() == stype_elemsize(stype) * (nrows + 1));
   xassert(stype_elemsize(stype_) == sizeof(T));
 }
@@ -63,8 +63,8 @@ size_t ArrowStr_ColumnImpl<T>::n_children() const noexcept {
 template <typename T>
 bool ArrowStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
   xassert(i < nrows_);
-  bool valid = static_cast<const uint8_t*>(validity_.rptr())[i / 8]
-               & (1 << (i & 7));
+  auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
+  bool valid = (!validity_data) || (validity_data[i / 8] & (1 << (i & 7)));
   if (valid) {
     T start = static_cast<const T*>(offsets_.rptr())[i];
     T end = static_cast<const T*>(offsets_.rptr())[i + 1];
