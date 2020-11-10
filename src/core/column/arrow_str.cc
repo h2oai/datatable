@@ -37,7 +37,7 @@ ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
 {
   xassert(validity_.size() == (nrows + 7) / 8);
   xassert(offsets_.size() == stype_elemsize(stype) * (nrows + 1));
-  xassert(compatible_type<T>(stype_));
+  xassert(stype_elemsize(stype_) == sizeof(T));
 }
 
 
@@ -75,6 +75,9 @@ bool ArrowStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
 }
 
 
+
+template class ArrowStr_ColumnImpl<uint32_t>;
+template class ArrowStr_ColumnImpl<uint64_t>;
 
 
 }  // namespace dt
