@@ -78,6 +78,10 @@ a {
   color: #6395d4;
 }
 
+a:hover {
+  text-decoration: none;
+}
+
 a.reference.external::after {
   content: "\f08e";
   font-family: 'FontAwesome';

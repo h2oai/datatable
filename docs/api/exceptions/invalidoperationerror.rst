@@ -5,7 +5,7 @@
     Raised in multiple scenarios whenever the requested operation is
     logically invalid with the given combination of parameters.
 
-    For example, :func:`cbind <dt.Frame.cbind>`-ing several frames with
+    For example, :meth:`cbind <dt.Frame.cbind>`-ing several frames with
     incompatible shapes.
 
     Inherits from :exc:`datatable.exceptions.DtException`.

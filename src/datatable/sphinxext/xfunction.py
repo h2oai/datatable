@@ -241,6 +241,7 @@ class XobjectDirective(SphinxDirective):
         self.test_file = None
         self.tests_github_url = None
         self.qualifier = None
+        self.qualifier_reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
 
 
     def run(self):
@@ -975,6 +976,7 @@ class XobjectDirective(SphinxDirective):
             assert qual_parts[-1] == ""
             self.obj_name = qual_parts[-2]
             self.qualifier = ".".join(qual_parts[:-2]) + "."
+            self.qualifier_reftype = "module"
             assert self.parsed_params[0] == "self"
             del self.parsed_params[0]
 
@@ -985,11 +987,10 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_qualifier(self):
-        reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
         node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
-                                    reftype=reftype, refdomain="xpy")
+                                    reftype=self.qualifier_reftype, refdomain="xpy")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
         node += nodes.generated("", "", ref)
