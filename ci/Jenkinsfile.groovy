@@ -146,7 +146,7 @@ ansiColor('xterm') {
                                                   params.FORCE_ALL_TESTS)
                             doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPpcBuild         = doPpcBuild || doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
