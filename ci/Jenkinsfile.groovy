@@ -71,11 +71,11 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // These variables will be initialized at the <checkout> stage
 doLargeFreadTests = false
-isMainJob       = false
+isMainJob         = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
-doPpcBuild        = true
+doPpcBuild        = false
 doPy38Tests       = false
 doCoverage        = false
 doPublish         = false
