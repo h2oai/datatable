@@ -5,30 +5,9 @@
 datatable.exceptions
 ====================
 
-This module contains warnings and exceptions that ``datatable`` may
+This module contains warnings and exceptions that :mod:`datatable` may
 throw during runtime.
 
-Warnings
---------
-
-Warnings are issued when it is helpful to inform the user of some condition
-in a program, that doesn't result in an exception and the program termination.
-``datatable`` may issue the following warnings:
-
-
-.. list-table::
-    :widths: auto
-    :class: api-table
-
-    * - :exc:`FutureWarning`
-      - A built-in python `warning <https://docs.python.org/3/library/exceptions.html#FutureWarning>`_
-        about deprecated features.
-
-    * - :exc:`DatatableWarning`
-      - A ``datatable`` generic warning.
-
-    * - :exc:`IOWarning`
-      - A warning regarding the input/output operation.
 
 
 Exceptions
@@ -72,6 +51,31 @@ The following exceptions may be thrown:
 
     * - :exc:`ValueError`
       - Equivalient to the built-in :py:exc:`ValueError`.
+
+
+
+Warnings
+--------
+
+Warnings are issued when it is helpful to inform the user of some condition
+in a program, that doesn't result in an exception and the program termination.
+``datatable`` may issue the following warnings:
+
+
+.. list-table::
+    :widths: auto
+    :class: api-table
+
+    * - :exc:`FutureWarning`
+      - A built-in python `warning <https://docs.python.org/3/library/exceptions.html#FutureWarning>`_
+        about deprecated features.
+
+    * - :exc:`DatatableWarning`
+      - A ``datatable`` generic warning.
+
+    * - :exc:`IOWarning`
+      - A warning regarding the input/output operation.
+
 
 
 .. toctree::
