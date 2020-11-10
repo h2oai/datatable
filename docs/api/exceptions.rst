@@ -44,40 +44,47 @@ The following exceptions may be thrown:
     :class: api-table
 
     * - :exc:`ImportError`
-      - inherited from the built-in
-        `ImportError <https://docs.python.org/3/library/exceptions.html#ImportError>`_.
+      - Equivalient to the built-in :py:exc:`ImportError`.
 
     * - :exc:`IndexError`
-      - inherited from the built-in
-        `IndexError <https://docs.python.org/3/library/exceptions.html#IndexError>`_.
+      - Equivalient to the built-in :py:exc:`IndexError`.
 
     * - :exc:`InvalidOperationError`
       - The operation requested is illegal for the given combination of parameters.
 
     * - :exc:`IOError`
-      - inherited from the built-in
-        `IOError <https://docs.python.org/3/library/exceptions.html#IOError>`_.
+      - Equivalient to the built-in :py:exc:`IOError`.
 
     * - :exc:`KeyError`
-      - inherited from the built-in
-        `KeyError <https://docs.python.org/3/library/exceptions.html#KeyError>`_.
+      - Equivalient to the built-in :py:exc:`KeyError`.
 
     * - :exc:`MemoryError`
-      - inherited from the built-in
-        `MemoryError <https://docs.python.org/3/library/exceptions.html#MemoryError>`_.
+      - Equivalient to the built-in :py:exc:`MemoryError`.
 
     * - :exc:`NotImplementedError`
-      - inherited from the built-in
-        `NotImplementedError <https://docs.python.org/3/library/exceptions.html#NotImplementedError>`_.
+      - Equivalient to the built-in :py:exc:`NotImplementedError`.
 
     * - :exc:`OverflowError`
-      - inherited from the built-in
-        `OverflowError <https://docs.python.org/3/library/exceptions.html#OverflowError>`_.
+      - Equivalient to the built-in :py:exc:`OverflowError`.
 
     * - :exc:`TypeError`
-      - inherited from the built-in
-        `TypeError <https://docs.python.org/3/library/exceptions.html#TypeError>`_.
+      - Equivalient to the built-in :py:exc:`TypeError`.
 
     * - :exc:`ValueError`
-      - inherited from the built-in
-        `ValueError <https://docs.python.org/3/library/exceptions.html#ValueError>`_.
+      - Equivalient to the built-in :py:exc:`ValueError`.
+
+
+.. toctree::
+    :hidden:
+
+    DtException            <exceptions/dtexception>
+    ImportError            <exceptions/importerror>
+    InvalidOperationError  <exceptions/invalidoperationerror>
+    IndexError             <exceptions/indexerror>
+    IOError                <exceptions/ioerror>
+    KeyError               <exceptions/keyerror>
+    MemoryError            <exceptions/memoryerror>
+    NotImplementedError    <exceptions/notimplementederror>
+    OverflowError          <exceptions/overflowerror>
+    TypeError              <exceptions/typeerror>
+    ValueError             <exceptions/valueerror>
