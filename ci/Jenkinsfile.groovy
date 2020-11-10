@@ -302,7 +302,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        podman run \
+                                        docker run \
                                             --userns=keep-id --security-opt="label=disable" \
                                             --rm --init \
                                             -v `pwd`:/dot \
