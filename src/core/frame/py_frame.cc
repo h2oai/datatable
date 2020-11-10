@@ -458,10 +458,14 @@ Frame's meta information.
 
 This property contains meta information, if any, as set by datatable
 functions and methods. It is a settable property, so that users can also
-update it with any information relevant to a particular frame. However,
-it is not guaranteed that the existing meta information will be preserved
-by the functions and methods called on the frame. The default value
-for this property is `None`.
+update it with any information relevant to a particular frame.
+
+It is not guaranteed that the existing meta information will be preserved
+by the functions and methods called on the frame. In particular,
+it is not preserved when exporting data into a Jay file or pickling the data.
+This behavior may change in the future.
+
+The default value for this property is `None`.
 
 
 Parameters
