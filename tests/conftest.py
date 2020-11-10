@@ -92,6 +92,18 @@ def numpy():
 
 
 @pytest.fixture(scope="session")
+def pyarrow():
+    """
+    This fixture returns pyarrow module, or if unavailable marks test as skipped.
+    """
+    try:
+        import pyarrow as pa
+        return pa
+    except ImportError:
+        pytest.skip("Pyarrow module is required for this test")
+
+
+@pytest.fixture(scope="session")
 def h2o():
     """
     This fixture returns h2o module, or if unavailable marks test as skipped.
