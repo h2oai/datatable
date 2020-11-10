@@ -536,7 +536,7 @@ class FrameInitializationManager {
         make_datatable(colnames);
       }
       else {
-        throw NotImplError();
+        throw NotImplError() << "Multi-batch Arrow arrays not supported yet";
       }
     }
 
