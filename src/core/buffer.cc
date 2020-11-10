@@ -830,6 +830,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   Buffer Buffer::from_arrowarray(
       const void* ptr, size_t n, std::shared_ptr<dt::OArrowArray> arr)
   {
+    if (ptr == nullptr) return Buffer();
     return Buffer(new External_BufferImpl(ptr, n,
                     std::unique_ptr<ResourceOwner>(
                       new Arrow_Resource(std::move(arr))

@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_ARROW_FW_h
-#define dt_COLUMN_ARROW_FW_h
+#ifndef dt_COLUMN_ARROW_STR_h
+#define dt_COLUMN_ARROW_STR_h
 #include "column/virtual.h"
 namespace dt {
 
@@ -28,29 +28,27 @@ namespace dt {
 /**
   * TODO: make this class material instead of virtual
   */
-class ArrowFw_ColumnImpl : public Virtual_ColumnImpl {
+template <typename T>
+class ArrowStr_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Buffer validity_;
-    Buffer data_;
+    Buffer offsets_;
+    Buffer strdata_;
 
   public:
-    ArrowFw_ColumnImpl(size_t nrows, SType stype,
-                       Buffer&& valid, Buffer&& data);
+    ArrowStr_ColumnImpl(size_t nrows, SType stype,
+                        Buffer&& valid, Buffer&& offsets, Buffer&& data);
 
     ColumnImpl* clone() const override;
     // void materialize(Column&, bool) override;
     size_t n_children() const noexcept override;
 
-    bool get_element(size_t, int8_t*)  const override;
-    bool get_element(size_t, int16_t*) const override;
-    bool get_element(size_t, int32_t*) const override;
-    bool get_element(size_t, int64_t*) const override;
-    bool get_element(size_t, float*)   const override;
-    bool get_element(size_t, double*)  const override;
-
-  private:
-    template <typename T> inline bool _get(size_t, T*) const;
+    bool get_element(size_t, CString*)  const override;
 };
+
+
+extern template class ArrowStr_ColumnImpl<uint32_t>;
+extern template class ArrowStr_ColumnImpl<uint64_t>;
 
 
 

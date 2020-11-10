@@ -22,9 +22,43 @@
 #include <memory>
 #include "column.h"
 #include "column/arrow_fw.h"
+#include "column/arrow_str.h"
 #include "stype.h"
 #include "utils/arrow_structs.h"
 
+
+/**
+  * Create a fixed-width column.
+  */
+static Column _make_fw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
+  xassert((*array)->n_buffers == 2);
+  size_t nrows = static_cast<size_t>((*array)->length);
+  size_t elemsize = stype_elemsize(stype);
+  return Column(new dt::ArrowFw_ColumnImpl(
+      nrows,
+      stype,
+      Buffer::from_arrowarray((*array)->buffers[0], (nrows + 7)/8, array),
+      Buffer::from_arrowarray((*array)->buffers[1], nrows*elemsize, array)
+  ));
+}
+
+
+/**
+  * Create a variable-width column.
+  */
+template <typename T>
+static Column _make_vw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
+  xassert((*array)->n_buffers == 3);
+  size_t nrows = static_cast<size_t>((*array)->length);
+  size_t datasize = static_cast<const T*>((*array)->buffers[1])[nrows];
+  return Column(new dt::ArrowStr_ColumnImpl<T>(
+      nrows,
+      stype,
+      Buffer::from_arrowarray((*array)->buffers[0], (nrows + 7)/8, array),
+      Buffer::from_arrowarray((*array)->buffers[1], (nrows + 1)*sizeof(T), array),
+      Buffer::from_arrowarray((*array)->buffers[2], datasize, array)
+  ));
+}
 
 
 Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
@@ -32,55 +66,42 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
 {
   const char* format = schema->format;
   size_t nrows = static_cast<size_t>((*array)->length);
-  size_t nullcount = static_cast<size_t>((*array)->null_count);
-  auto nbuffers = (*array)->n_buffers;
+  // size_t nullcount = static_cast<size_t>((*array)->null_count);
 
   switch (format[0]) {
     case 'n': {  // null
       return Column::new_na_column(nrows, dt::SType::VOID);
     }
     case 'b': {  // boolean
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::BOOL, std::move(array));
     }
     case 'c':    // int8
     case 'C': {  // uint8
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::INT8, std::move(array));
     }
     case 's':    // int16
     case 'S': {  // uint16
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::INT16, std::move(array));
     }
     case 'i':    // int32
     case 'I': {  // uint32
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::INT32, std::move(array));
     }
     case 'l':    // int64
     case 'L': {  // uint64
-      xassert(nbuffers == 2);
-      Buffer valid = Buffer::from_arrowarray((*array)->buffers[0], (nrows + 7)/8, array);
-      Buffer data = Buffer::from_arrowarray((*array)->buffers[1], nrows*sizeof(int64_t), array);
-      return Column(new dt::ArrowFw_ColumnImpl(nrows, dt::SType::INT64,
-                                               std::move(valid), std::move(data)));
+      return _make_fw(dt::SType::INT64, std::move(array));
     }
     case 'f': {  // float32
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::FLOAT32, std::move(array));
     }
     case 'g': {  // float64
-      xassert(nbuffers == 2);
-      break;
+      return _make_fw(dt::SType::FLOAT64, std::move(array));
     }
     case 'u': {  // utf-8 string
-      xassert(nbuffers == 3);
-      break;
+      return  _make_vw<uint32_t>(dt::SType::STR32, std::move(array));
     }
     case 'U': {  // large  utf-8 string
-      xassert(nbuffers == 3);
-      break;
+      return  _make_vw<uint64_t>(dt::SType::STR64, std::move(array));
     }
   }
   throw NotImplError()
