@@ -59,16 +59,15 @@ Warnings
 
 Warnings are issued when it is helpful to inform the user of some condition
 in a program, that doesn't result in an exception and the program termination.
-``datatable`` may issue the following warnings:
+We may issue the following warnings:
 
 
 .. list-table::
     :widths: auto
     :class: api-table
 
-    * - :exc:`FutureWarning`
-      - A built-in python `warning <https://docs.python.org/3/library/exceptions.html#FutureWarning>`_
-        about deprecated features.
+    * - :py:exc:`FutureWarning`
+      - A built-in python warning about deprecated features.
 
     * - :exc:`DatatableWarning`
       - A ``datatable`` generic warning.
@@ -82,10 +81,12 @@ in a program, that doesn't result in an exception and the program termination.
     :hidden:
 
     DtException            <exceptions/dtexception>
+    DtWarning              <exceptions/dtwarning>
     ImportError            <exceptions/importerror>
     InvalidOperationError  <exceptions/invalidoperationerror>
     IndexError             <exceptions/indexerror>
     IOError                <exceptions/ioerror>
+    IOWarning              <exceptions/iowarning>
     KeyError               <exceptions/keyerror>
     MemoryError            <exceptions/memoryerror>
     NotImplementedError    <exceptions/notimplementederror>
