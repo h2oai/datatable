@@ -21,10 +21,26 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column.h"
+#include "column/arrow_bool.h"
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
 #include "stype.h"
 #include "utils/arrow_structs.h"
+
+
+/**
+  * Create a boolean column.
+  * (in Arrow, boolean columns use 1 bit per value)
+  */
+static Column _make_bool(std::shared_ptr<dt::OArrowArray>&& array) {
+  xassert((*array)->n_buffers == 2);
+  size_t nrows = static_cast<size_t>((*array)->length);
+  return Column(new dt::ArrowBool_ColumnImpl(
+      nrows,
+      Buffer::from_arrowarray((*array)->buffers[0], (nrows + 7)/8, array),
+      Buffer::from_arrowarray((*array)->buffers[1], (nrows + 7)/8, array)
+  ));
+}
 
 
 /**
