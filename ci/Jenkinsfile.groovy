@@ -75,7 +75,7 @@ isMainJob       = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
-doPpcBuild        = false
+doPpcBuild        = true
 doPy38Tests       = false
 doCoverage        = false
 doPublish         = false
@@ -302,7 +302,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        docker run --rm --init \
+                                        podman run --rm --init \
                                             --userns=keep-id --security-opt="label=disable" \
                                             -v `pwd`:/dot \
                                             -e DT_RELEASE=${DT_RELEASE} \
