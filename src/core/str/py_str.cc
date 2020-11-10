@@ -60,17 +60,13 @@ return: Frame
     The labels will also become the output column names.
 
 except: ValueError | TypeError
-    .. list-table::
-        :widths: auto
-        :class: api-table
+    :exc:`dt.exceptions.ValueError`
+        Raised if the input frame is missing or it has more
+        than one column. It is also raised if `sep` is not a single-character
+        string.
 
-        * - :exc:`ValueError`
-          - raised if the input frame is missing or it has more
-            than one column. It is also raised if `sep` is not a single-character
-            string.
-
-        * - :exc:`TypeError`
-          - raised if the single column of `frame` has non-string stype.
+    :exc:`dt.exceptions.TypeError`
+        Raised if the single column of `frame` has non-string stype.
 
 
 Examples
