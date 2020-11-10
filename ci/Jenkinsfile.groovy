@@ -71,7 +71,7 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // These variables will be initialized at the <checkout> stage
 doLargeFreadTests = false
-isMainJob       = false
+isMainJob         = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
@@ -146,7 +146,7 @@ ansiColor('xterm') {
                                                   params.FORCE_ALL_TESTS)
                             doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPpcBuild         = doPpcBuild || doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
@@ -302,8 +302,8 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        docker run --rm --init \
-                                            --userns=keep-id --security-opt="label=disable" \
+                                        docker run \
+                                            --rm --init \
                                             -v `pwd`:/dot \
                                             -e DT_RELEASE=${DT_RELEASE} \
                                             -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
