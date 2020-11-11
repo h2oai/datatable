@@ -462,6 +462,7 @@ div.highlight-box button.close {
 
 table.api-table {
   border: none;
+  margin-bottom: 18px;
 }
 
 table.api-table tr td {
@@ -493,7 +494,6 @@ table.api-table td:first-child a code.literal {
 
 table.api-table td:first-child a:hover code.literal {
   color: #223d5a;
-  text-decoration: underline;
 }
 
 
