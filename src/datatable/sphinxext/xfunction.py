@@ -226,6 +226,7 @@ class XobjectDirective(SphinxDirective):
         "settable": directives.unchanged,
         "deletable": directives.unchanged,
         "noindex": directives.unchanged,
+        "qual-type": directives.unchanged,
     }
 
     def __init__(self, *args):
@@ -241,7 +242,7 @@ class XobjectDirective(SphinxDirective):
         self.test_file = None
         self.tests_github_url = None
         self.qualifier = None
-        self.qualifier_reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
+        self.qualifier_reftype = None
 
 
     def run(self):
@@ -256,6 +257,7 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_tests()
         self._parse_option_settable()
         self._parse_option_deletable()
+        self._parse_option_qualtype()
         self._register_title_override()
 
         if self.src_fnname:
@@ -476,6 +478,12 @@ class XobjectDirective(SphinxDirective):
             raise self.error("Option :deletable: is not valid for a ..%s "
                              "directive" % self.name)
 
+
+    def _parse_option_qualtype(self):
+        reftype = self.options.get("qual-type", "").strip()
+        if not reftype:
+            reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
+        self.qualifier_reftype = reftype
 
 
     #---------------------------------------------------------------------------

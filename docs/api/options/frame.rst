@@ -1,5 +1,6 @@
 
-.. xdata:: datatable.options.frame
+.. xclass:: datatable.options.frame
+    :qual-type: class
     :src: --
 
     This namespace contains the following :class:`Frame <dt.Frame>` options:
