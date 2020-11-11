@@ -5,6 +5,10 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] :attr:`.meta` property now provides access to frame's meta
+      information, if any, as set by datatable functions/methods or
+      by the user.
+
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.

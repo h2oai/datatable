@@ -143,3 +143,24 @@ def test_detect_newline8():
     assert_equals(DT, dt.Frame(a=[1, 7, 4],
                                b=[4, 99, -1],
                                c=["foo", "wha\ntt?", "nvm"]))
+
+
+
+#-------------------------------------------------------------------------------
+# Detect quote rule
+#-------------------------------------------------------------------------------
+
+def test_quotes_unescaped():
+    DT = dt.fread("""
+        Size    Width   Height  Area
+        "       "       "       sq.in.
+        32"     27.9"   15.7"   438
+        40"     34.9"   19.6"   684
+        43"     37.5"   21.1"   791
+        50"     43.6"   24.5"   1068
+        55"     47.9"   27.0"   1293
+        60"     52.3"   29.4"   1538"""
+    )
+    assert DT.shape == (7, 4)
+    assert DT.names == ("Size", "Width", "Height", "Area")
+    assert DT.to_tuples()[0] == ('"', '"', '"', 'sq.in.')

@@ -62,6 +62,7 @@ except: ValueError
 
 See Also
 --------
+<<<<<<< HEAD
 
 - `Tutorial on joins <start/quick-start.html#join>`_
 
@@ -107,6 +108,9 @@ You can access the values in the right frame in an expression, using the seconda
     3	01-04-2020	Y	200
 
 
+=======
+- `Tutorial on joins <../../start/quick-start.html#join>`_
+>>>>>>> e1a557f1daf2de51dbba014d5d396c78df0cf869
 )";
 
 static PKArgs args___init__(
