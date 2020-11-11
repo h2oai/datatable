@@ -185,7 +185,9 @@ def get_local_toc(document):
     html_text = "<div id='toc-local' class='list-group'>\n"
     html_text += " <b>Table of contents</b>\n"
     for title, node_id, level in titles:
-        html_text += f"  <a href='#{node_id}' class='list-group-item'>{title}</a>\n"
+        if level <= 1:
+            return document.reporter.error("More than one <h1> title on the page")
+        html_text += f"  <a href='#{node_id}' class='list-group-item level-{level-1}'>{title}</a>\n"
     html_text += "</div>\n"
     return html_text
 
