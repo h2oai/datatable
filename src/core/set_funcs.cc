@@ -243,10 +243,10 @@ except: ValueError | NotImplementedError
         :widths: auto
         :class: api-table
 
-        * - :exc:`ValueError`
+        * - :exc:`dt.exceptions.ValueError`
           - raised when one of the input frames has more than one column.
 
-        * - :exc:`NotImplementedError`
+        * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
 See Also
@@ -366,10 +366,10 @@ except: ValueError | NotImplementedError
         :widths: auto
         :class: api-table
 
-        * - :exc:`ValueError`
+        * - :exc:`dt.exceptions.ValueError`
           - raised when one of the input frames has more than one column.
 
-        * - :exc:`NotImplementedError`
+        * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
 See Also
@@ -465,11 +465,11 @@ except: ValueError | NotImplementedError
         :widths: auto
         :class: api-table
 
-        * - :exc:`ValueError`
+        * - :exc:`dt.exceptions.ValueError`
           - raised when one of the input frames, i.e. `frame0`
             or any one from the `frames`, has more than one column.
 
-        * - :exc:`NotImplementedError`
+        * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
 
@@ -589,10 +589,10 @@ except: ValueError | NotImplementedError
         :widths: auto
         :class: api-table
 
-        * - :exc:`ValueError`
+        * - :exc:`dt.exceptions.ValueError`
           - raised when one of the input frames has more than one column.
 
-        * - :exc:`NotImplementedError`
+        * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
 

@@ -1,5 +1,6 @@
 
-.. xdata:: datatable.options.debug
+.. xclass:: datatable.options.debug
+    :qual-type: class
     :src: --
 
     This namespace contains the following debug options:

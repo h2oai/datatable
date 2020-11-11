@@ -78,6 +78,10 @@ a {
   color: #6395d4;
 }
 
+a:hover {
+  text-decoration: none;
+}
+
 a.reference.external::after {
   content: "\f08e";
   font-family: 'FontAwesome';
@@ -299,11 +303,23 @@ div.nav-right > #toc-local {
 div.nav-right > #toc-local a.list-group-item {
   background: transparent;
   border: none;
+  border-left: 4px solid transparent;
   color: #696e8e;
   font-size: 13px;
   line-height: 1.2;
   list-style-type: none;
-  padding: 4px 0;
+  padding: 4px 0 4px 6px;
+  margin-left: -9px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-2 {
+  padding-left: 15px;
+  font-size: 12px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-3 {
+  padding-left: 25px;
+  font-size: 11px;
 }
 
 div.nav-right > #toc-local a:first-child {
@@ -320,10 +336,8 @@ div.nav-right > #toc-local a:hover {
 }
 
 div.nav-right > #toc-local a.list-group-item.active {
-  border-left: 4px solid #4684b6;
+  border-left-color: #4684b6;
   color: #212529;
-  margin-left: -9px;
-  padding-left: 5px;
 }
 
 
@@ -458,6 +472,7 @@ div.highlight-box button.close {
 
 table.api-table {
   border: none;
+  margin-bottom: 18px;
 }
 
 table.api-table tr td {
@@ -489,7 +504,6 @@ table.api-table td:first-child a code.literal {
 
 table.api-table td:first-child a:hover code.literal {
   color: #223d5a;
-  text-decoration: underline;
 }
 
 

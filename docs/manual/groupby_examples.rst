@@ -1,4 +1,4 @@
-.. py:currentmodule:: datatable
+.. _`Grouping with by`:
 
 Grouping with ``by``
 ====================

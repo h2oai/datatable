@@ -62,7 +62,7 @@ except: ValueError
 
 See Also
 --------
-- `Tutorial on joins <../../start/quick-start.html#join>`_
+- :ref:`Tutorial on joins <join tutorial>`
 )";
 
 static PKArgs args___init__(

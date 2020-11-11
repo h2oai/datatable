@@ -1,6 +1,6 @@
 
-.. xdata:: datatable.options
-    :src: src/datatable/__init__.py options
+.. xclass:: datatable.options
+    :src: src/datatable/options.py Config
 
     This namespace contains the following option groups:
 
@@ -8,19 +8,19 @@
         :widths: auto
         :class: api-table
 
-        * - :data:`.debug <datatable.options.debug>`
+        * - :class:`.debug <datatable.options.debug>`
           - Debug options.
 
-        * - :data:`.display <datatable.options.display>`
+        * - :class:`.display <datatable.options.display>`
           - Display options.
 
-        * - :data:`.frame <datatable.options.frame>`
-          - :class:`Frame` related options.
+        * - :class:`.frame <datatable.options.frame>`
+          - :class:`Frame <dt.Frame>`-related options.
 
-        * - :data:`.fread <datatable.options.fread>`
-          - :func:`fread()` related options.
+        * - :class:`.fread <datatable.options.fread>`
+          - :func:`fread() <dt.fread>`-related options.
 
-        * - :data:`.progress <datatable.options.progress>`
+        * - :class:`.progress <datatable.options.progress>`
           - Progress reporting options.
 
     It also contains the following individual options:

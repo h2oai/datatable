@@ -1,5 +1,6 @@
 
-.. xdata:: datatable.options.fread.log
+.. xclass:: datatable.options.fread.log
+    :qual-type: class
     :src: --
 
     This property controls the following logging options:
