@@ -2,4 +2,4 @@
 .. xexc:: datatable.exceptions.DatatableWarning
     :src: --
 
-    Generic warning from the datatable.
+    Generic warning from the :mod:`datatable`.

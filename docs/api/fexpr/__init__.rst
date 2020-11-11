@@ -7,7 +7,7 @@
 
     Create a new :class:`dt.FExpr` object out of ``e``.
 
-    The ``FExpr`` is serve as a simple wrapper of the underlying object,
+    The ``FExpr`` serves as a simple wrapper of the underlying object,
     allowing it to be combined with othef ``FExpr``s.
 
     This constructor almost never needs to be run manually by the user.
