@@ -55,3 +55,4 @@ src/datatable/_build_info.py
 
 # vscode settings
 .vscode/settings.json
+.vscode/c_cpp_properties.json
