@@ -118,19 +118,19 @@ In ``pandas`` every frame has a row index, and if a filtration is executed, the 
     # pandas
     df.loc[df['A']>3]
 
-    	A	B	C	D
-    3	4	7	10	9
-    4	5	8	11     -1
+        A   B   C   D
+    3   4   7   10  9
+    4   5   8   11     -1
 
 ``datatable`` has no notion of a row index; the row numbers displayed are just for convenience:
 
 .. code-block:: python
 
-    DT[f.A>3, :]
+    >>> DT[f.A>3, :]
 
-        A	B	C	D
-    0	4	7	10	9
-    1	5	8	11     −1
+        A   B   C   D
+    0   4   7   10  9
+    1   5   8   11     −1
 
 
 
@@ -139,71 +139,61 @@ In ``pandas``, the index can be numbers, or characters, or intervals, or even Mu
 .. code-block:: python
 
     # pandas
-    df1 = df.set_index(pd.Index(['a','b','c','d','e']))
+    >>> df1 = df.set_index(pd.Index(['a','b','c','d','e']))
 
-        A	B	C	D
-    a	1	4	7	5
-    b	2	5	8	7
-    c	3	6	9	2
-    d	4	7	10	9
-    e	5	8	11     -1
+        A   B   C   D
+    a   1   4   7   5
+    b   2   5   8   7
+    c   3   6   9   2
+    d   4   7   10  9
+    e   5   8   11     -1
 
-    df1.loc["a":"c"]
+    >>> df1.loc["a":"c"]
 
-
-        A	B	C	D
-    a	1	4	7	5
-    b	2	5	8	7
-    c	3	6	9	2
+        A   B   C   D
+    a   1   4   7   5
+    b   2   5   8   7
+    c   3   6   9   2
 
 ``datatable`` has the `key <https://datatable.readthedocs.io/en/latest/api/frame/key.html#datatable-frame-key>`__ property, which is meant as an equivalent of pandas indices, but its purpose at the moment is for joins, not for subsetting data:
 
 .. code-block:: python
 
-    # datatable
-    data = {"A": [1, 2, 3, 4, 5],
-            "B": [4, 5, 6, 7, 8],
-            "C": [7, 8, 9, 10, 11],
-            "D": [5, 7, 2, 9, -1],
-            "E": ['a','b','c','d','e']}
+    >>> # datatable
+    >>> data = {"A": [1, 2, 3, 4, 5],
+    ...         "B": [4, 5, 6, 7, 8],
+    ...         "C": [7, 8, 9, 10, 11],
+    ...         "D": [5, 7, 2, 9, -1],
+    ...         "E": ['a','b','c','d','e']}
+    >>> DT1 = dt.Frame(data)
+    >>> DT1.key = 'E'
+    >>> DT1
 
-    DT1 = dt.Frame(data)
+    E   A   B   C    D
+    a   1   4   7    5
+    b   2   5   8    7
+    c   3   6   9    2
+    d   4   7   10   9
+    e   5   8   11  −1
 
-    DT1.key = 'E'
-
-    DT1
-
-    E	A	B	C	D
-    a	1	4	7	5
-    b	2	5	8	7
-    c	3	6	9	2
-    d	4	7	10	9
-    e	5	8	11     −1
-
-    # this will fail
-    DT1["a":"c", :]
-
-    ---------------------------------------------------------------------------
-    TypeError                                 Traceback (most recent call last)
-    <ipython-input-98-73c453287f07> in <module>
-    ----> 1 DT["a":"c", :]
-
+    >>> # this will fail
+    >>> DT1["a":"c", :]
     TypeError: A string slice cannot be used as a row selector
 
 pandas' ``loc`` notation works on labels, while ``iloc`` works on actual position. This is noticeable during row selection.  ``datatable``, however, works only on position.
 
 .. code-block:: python
 
-    # pandas
-    df1 = df.set_index('C')
+    >>> # pandas
+    >>> df1 = df.set_index('C')
 
-        A	B	D
+        A   B   D
     C
-    7	1	4	5
-    8	2	5	7
-    9	3	6	2
-    10	4	7	9
-    11	5	8      -1
+    7   1   4   5
+    8   2   5   7
+    9   3   6   2
+    10  4   7   9
+    11  5   8  -1
 
 Selecting with loc for the row with number 7 returns no error :
 
@@ -225,8 +215,8 @@ However, selecting with ``iloc`` for the row with number 7 returns an error, bec
     df.iloc[7]
 
     ---------------------------------------------------------------------------
-   # Lots of code here related to the error message
-   .....
+    # Lots of code here related to the error message
+    .....
 
     IndexError: single positional indexer is out-of-bounds
 
@@ -234,21 +224,19 @@ As stated earlier, ``datatable`` has the `key <https://datatable.readthedocs.io/
 
 .. code-block:: python
 
-    # datatable
+    >>> # datatable
+    >>> DT.key = 'C'
+    >>> DT
 
-    DT.key = 'C'
+    C   A   B   D
+    7   1   4   5
+    8   2   5   7
+    9   3   6   2
+    10  4   7   9
+    11  5   8      −1
 
-    DT
-
-    C	A	B	D
-    7	1	4	5
-    8	2	5	7
-    9	3	6	2
-    10	4	7	9
-    11	5	8      −1
-
-    # this will fail
-    DT[7, :]
+    >>> # this will fail
+    >>> DT[7, :]
 
     ---------------------------------------------------------------------------
     ValueError                                Traceback (most recent call last)
@@ -309,15 +297,15 @@ In datatable, you can select and rename columns at the same time, by passing a d
 
 .. code-block:: python
 
-    # datatable
-    DT[:, {"A": f.A, "box": f.B, "C": f.C, "D": f.D * 2}]
+    >>> # datatable
+    >>> DT[:, {"A": f.A, "box": f.B, "C": f.C, "D": f.D * 2}]
 
-	A	box	C	D
-    0	1	4	7	10
-    1	2	5	8	14
-    2	3	6	9	4
-    3	4	7	10	18
-    4	5	8	11	−2
+    A   box C   D
+    0   1   4   7   10
+    1   2   5   8   14
+    2   3   6   9   4
+    3   4   7   10  18
+    4   5   8   11  −2
 
 
 Delete Columns
@@ -424,12 +412,12 @@ Transformations within groups in pandas is done using the `transform <https://pa
     grouping = df.groupby("a")["b"].transform("min")
     df.assign(min_b=grouping)
 
-        a	b	c	min_b
-    0	1	2	3	2
-    1	1	20	30	2
-    2	2	30	50	4
-    3	1	2	33	2
-    4	2	4	50	4
+        a   b   c   min_b
+    0   1   2   3   2
+    1   1   20  30  2
+    2   2   30  50  4
+    3   1   2   33  2
+    4   2   4   50  4
 
 In ``datatable``, transformations occur within the ``j`` section; in the presence of :func:`by()`, the computations within ``j`` are per group:
 
@@ -438,12 +426,12 @@ In ``datatable``, transformations occur within the ``j`` section; in the presenc
     # datatable
     DT[:, f[:].extend({"min_b": dt.min(f.b)}), by("a")]
 
-    	a	b	c	min_b
-    0	1	2	3	2
-    1	1	20	30	2
-    2	1	2	33	2
-    3	2	30	50	4
-    4	2	4	50	4
+        a   b   c   min_b
+    0   1   2   3   2
+    1   1   20  30  2
+    2   1   2   33  2
+    3   2   30  50  4
+    4   2   4   50  4
 
 Note that the result above is sorted by the grouping column. If you want the data to maintain the same shape as the source data, then :func:`update()` is a better option (and usually faster):
 
@@ -455,12 +443,12 @@ Note that the result above is sorted by the grouping column. If you want the dat
 
     DT
 
-        a	b	c	min_b
-    0	1	2	3	2
-    1	1	20	30	2
-    2	2	30	50	4
-    3	1	2	33	2
-    4	2	4	50	4
+        a   b   c   min_b
+    0   1   2   3   2
+    1   1   20  30  2
+    2   2   30  50  4
+    3   1   2   33  2
+    4   2   4   50  4
 
 In pandas, some computations might require creating the column first before aggregation within a groupby. Take the example below, where we need to calculate the revenue per group:
 
@@ -473,10 +461,10 @@ In pandas, some computations might require creating the column first before aggr
     df1 = pd.DataFrame(data) # pandas
     DT1 = dt.Frame(data)  # datatable
 
-    	shop	item_price	item_sold
-    0	A	    123	            1
-    1	B	    921	            2
-    2	A	    28	            4
+        shop    item_price  item_sold
+    0   A       123             1
+    1   B       921             2
+    2   A       28              4
 
 To get the total revenue, we first need to create a revenue column, then sum it in the groupby:
 
@@ -486,9 +474,9 @@ To get the total revenue, we first need to create a revenue column, then sum it 
     df1['revenue'] = df1['item_price'] * df1['item_sold']
     df1.groupby("shop")['revenue'].sum().reset_index()
 
-    	shop	revenue
-    0	A	235
-    1	B	1842
+        shop    revenue
+    0   A   235
+    1   B   1842
 
 In ``datatable``, there is no need to create a temporary column; you can easily nest your computations in the ``j`` section; the computations will be executed per group :
 
@@ -498,9 +486,9 @@ In ``datatable``, there is no need to create a temporary column; you can easily 
 
     DT1[:, {"revenue": dt.sum(f.item_price * f.item_sold)}, "shop"]
 
-        shop	revenue
-    0	A	235
-    1	B	1842
+        shop    revenue
+    0   A   235
+    1   B   1842
 
 You can learn more about the :func:`by()` function  at the `Grouping with by <https://datatable.readthedocs.io/en/latest/manual/groupby_examples.html>`__ documentation, as well as the API : :func:`by()`.
 
@@ -527,13 +515,13 @@ By default, pandas concatenates the rows, with one dataframe on top of the other
 
     pd.concat([df1, df2], axis = 0)
 
-        A	B
-    0	a	0
-    1	a	1
-    2	a	2
-    0	b	4
-    1	b	5
-    2	b	6
+        A   B
+    0   a   0
+    1   a   1
+    2   a   2
+    0   b   4
+    1   b   5
+    2   b   6
 
 The same functionality can be replicated in ``datatable`` using the `rbind <https://datatable.readthedocs.io/en/latest/api/frame/rbind.html#datatable-frame-rbind>`__ function:
 
@@ -545,13 +533,13 @@ The same functionality can be replicated in ``datatable`` using the `rbind <http
 
     dt.rbind([DT1, DT2])
 
-        A	B
-    0	a	0
-    1	a	1
-    2	a	2
-    3	b	4
-    4	b	5
-    5	b	6
+        A   B
+    0   a   0
+    1   a   1
+    2   a   2
+    3   b   4
+    4   b   5
+    5   b   6
 
 Notice how in ``pandas`` the indices are preserved (you can get rid of the indices with the `ignore_index` argument), whereas in ``datatable`` the indices are not referenced.
 
@@ -568,10 +556,10 @@ To combine data across the columns, in ``pandas``, you set the axis argument to 
 
     pd.concat([df1, df2, df3], axis = 1)
 
-    	A	B	C	D	E	F
-    0	a	0	b	4	c	7
-    1	a	1	b	5	c	8
-    2	a	2	b	6	c	9
+        A   B   C   D   E   F
+    0   a   0   b   4   c   7
+    1   a   1   b   5   c   8
+    2   a   2   b   6   c   9
 
 In ``datatable``, you combine frames along the columns using the `cbind <https://datatable.readthedocs.io/en/latest/api/frame/cbind.html#datatable-frame-cbind>`__ function :
 
@@ -585,10 +573,10 @@ In ``datatable``, you combine frames along the columns using the `cbind <https:/
 
     dt.cbind([DT1, DT2, DT3])
 
-        A	B	C	D	E	F
-    0	a	0	b	4	c	7
-    1	a	1	b	5	c	8
-    2	a	2	b	6	c	9
+        A   B   C   D   E   F
+    0   a   0   b   4   c   7
+    1   a   1   b   5   c   8
+    2   a   2   b   6   c   9
 
 In ``pandas``, if you concatenate dataframes along the rows, and the columns do not match, a dataframe of all the columns is returned, with null values for the missing rows :
 
@@ -597,16 +585,16 @@ In ``pandas``, if you concatenate dataframes along the rows, and the columns do 
     # pandas
     pd.concat([df1, df2, df3], axis = 0)
 
-        A	B	C	D	E	F
-    0	a	0.0	NaN	NaN	NaN	NaN
-    1	a	1.0	NaN	NaN	NaN	NaN
-    2	a	2.0	NaN	NaN	NaN	NaN
-    0	NaN	NaN	b	4.0	NaN	NaN
-    1	NaN	NaN	b	5.0	NaN	NaN
-    2	NaN	NaN	b	6.0	NaN	NaN
-    0	NaN	NaN	NaN	NaN	c	7.0
-    1	NaN	NaN	NaN	NaN	c	8.0
-    2	NaN	NaN	NaN	NaN	c	9.0
+        A   B   C   D   E   F
+    0   a   0.0 NaN NaN NaN NaN
+    1   a   1.0 NaN NaN NaN NaN
+    2   a   2.0 NaN NaN NaN NaN
+    0   NaN NaN b   4.0 NaN NaN
+    1   NaN NaN b   5.0 NaN NaN
+    2   NaN NaN b   6.0 NaN NaN
+    0   NaN NaN NaN NaN c   7.0
+    1   NaN NaN NaN NaN c   8.0
+    2   NaN NaN NaN NaN c   9.0
 
 In ``datatable``, if you concatenate along the rows and the columns in the frames do not match, you get an error message; you can however force the row combinations, by passing ``force=True`` :
 
@@ -615,16 +603,16 @@ In ``datatable``, if you concatenate along the rows and the columns in the frame
     # datatable
     dt.rbind([DT1, DT2, DT3], force=True)
 
-        A	B	C	D	E	F
-    0	a	0	NA	NA	NA	NA
-    1	a	1	NA	NA	NA	NA
-    2	a	2	NA	NA	NA	NA
-    3	NA	NA	b	4	NA	NA
-    4	NA	NA	b	5	NA	NA
-    5	NA	NA	b	6	NA	NA
-    6	NA	NA	NA	NA	c	7
-    7	NA	NA	NA	NA	c	8
-    8	NA	NA	NA	NA	c	9
+        A   B   C   D   E   F
+    0   a   0   NA  NA  NA  NA
+    1   a   1   NA  NA  NA  NA
+    2   a   2   NA  NA  NA  NA
+    3   NA  NA  b   4   NA  NA
+    4   NA  NA  b   5   NA  NA
+    5   NA  NA  b   6   NA  NA
+    6   NA  NA  NA  NA  c   7
+    7   NA  NA  NA  NA  c   8
+    8   NA  NA  NA  NA  c   9
 
 .. note:: :func:`rbind()` and :func:`cbind()` methods exist for the frames, and operate in-place.
 
@@ -648,16 +636,16 @@ In pandas, you can join dataframes easily with the ``merge`` method :
 
     df1.merge(df2, on="x", how="left")
 
-    	x	y	v_x	v_y	foo
-    0	b	1	1	7.0	2.0
-    1	b	3	2	7.0	2.0
-    2	b	6	3	7.0	2.0
-    3	a	1	4	NaN	NaN
-    4	a	3	5	NaN	NaN
-    5	a	6	6	NaN	NaN
-    6	c	1	7	8.0	4.0
-    7	c	3	8	8.0	4.0
-    8	c	6	9	8.0	4.0
+        x   y   v_x v_y foo
+    0   b   1   1   7.0 2.0
+    1   b   3   2   7.0 2.0
+    2   b   6   3   7.0 2.0
+    3   a   1   4   NaN NaN
+    4   a   3   5   NaN NaN
+    5   a   6   6   NaN NaN
+    6   c   1   7   8.0 4.0
+    7   c   3   8   8.0 4.0
+    8   c   6   9   8.0 4.0
 
 In datatable, there are limitations currently. First, the joining dataframe must be keyed. Second, the values in the column(s) used as the joining key(s) must be unique, otherwise the keying operation will fail. Third, the join columns must have the same name.
 
@@ -671,16 +659,16 @@ In datatable, there are limitations currently. First, the joining dataframe must
 
     DT1[:, :, join(DT2)]
 
-        x	y	v	v.0	foo
-    0	b	1	1	7	2
-    1	b	3	2	7	2
-    2	b	6	3	7	2
-    3	a	1	4	NA	NA
-    4	a	3	5	NA	NA
-    5	a	6	6	NA	NA
-    6	c	1	7	8	4
-    7	c	3	8	8	4
-    8	c	6	9	8	4
+        x   y   v   v.0 foo
+    0   b   1   1   7   2
+    1   b   3   2   7   2
+    2   b   6   3   7   2
+    3   a   1   4   NA  NA
+    4   a   3   5   NA  NA
+    5   a   6   6   NA  NA
+    6   c   1   7   8   4
+    7   c   3   8   8   4
+    8   c   6   9   8   4
 
 More details about joins in ``datatable`` can be found at the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
 
@@ -701,11 +689,11 @@ This section shows how some solutions in ``pandas`` can be translated to ``datat
 
     df
 
-    	AAA	BBB	CCC
-    0	4	10	100
-    1	5	20	50
-    2	6	30	-30
-    3	7	40	-50
+        AAA BBB CCC
+    0   4   10  100
+    1   5   20  50
+    2   6   30  -30
+    3   7   40  -50
 
 Solution in ``pandas`` ::
 
@@ -721,17 +709,15 @@ In ``datatable``, this can be solved using the :func:`ifelse()` function
 
 .. code-block:: python
 
-    # datatable
-    DT = dt.Frame(df)
-
-    DT["logic"] = DT[:, ifelse(f.AAA > 5, "high", "low")]
-
-    DT
-       AAA	BBB	CCC	logic
-    0	4	10	100	low
-    1	5	20	50	low
-    2	6	30	−30	high
-    3	7	40	−50	high
+    >>> # datatable
+    >>> DT = dt.Frame(df)
+    >>> DT["logic"] = DT[:, ifelse(f.AAA > 5, "high", "low")]
+    >>> DT
+       AAA  BBB CCC logic
+    0   4   10  100 low
+    1   5   20  50  low
+    2   6   30  −30 high
+    3   7   40  −50 high
 
 - Select rows with data closest to certain value using argsort
 
@@ -762,21 +748,21 @@ In ``datatable``, the ``newsort`` function is roughly similar to `np.argsort <ht
 
     order
 
-    	order
-    0	1
-    1	0
-    2	2
-    3	3
+        order
+    0   1
+    1   0
+    2   2
+    3   3
 
 Now, we can apply the ``order`` variable to the ``i`` section ::
 
     DT[order, :]
 
-       AAA	BBB	CCC
-    0	5	20	50
-    1	4	10	100
-    2	6	30	−30
-    3	7	40	−50
+       AAA  BBB CCC
+    0   5   20  50
+    1   4   10  100
+    2   6   30  −30
+    3   7   40  −50
 
 Of course, you can skip creating a temporary variable (at the expense of readability) ::
 
@@ -793,11 +779,11 @@ Of course, you can skip creating a temporary variable (at the expense of readabi
                        "BBB": [1, 1, 2, 2],
                        "CCC": [2, 1, 3, 1]})
 
-       AAA	BBB	CCC
-    0	1	1	2
-    1	2	1	1
-    2	1	2	3
-    3	3	2	1
+       AAA  BBB CCC
+    0   1   1   2
+    1   2   1   1
+    2   1   2   3
+    3   3   2   1
 
     source_cols = df.columns
 
@@ -833,11 +819,11 @@ We can replicate the solution above in ``datatable`` :
     for name, cond, value in conditions:
         DT[cond, f"{name}_cat"] = value
 
-        AAA	BBB	CCC	AAA_cat	BBB_cat	CCC_cat
-    0	1	1	2	Alpha	Alpha	Beta
-    1	2	1	1	Beta	Alpha	Alpha
-    2	1	2	3	Alpha	Beta	Charlie
-    3	3	2	1	Charlie	Beta	Alpha
+        AAA BBB CCC AAA_cat BBB_cat CCC_cat
+    0   1   1   2   Alpha   Alpha   Beta
+    1   2   1   1   Beta    Alpha   Alpha
+    2   1   2   3   Alpha   Beta    Charlie
+    3   3   2   1   Charlie Beta    Alpha
 
 - Keep other columns when using ``min()`` with groupby
 
@@ -878,10 +864,10 @@ In ``datatable``, you can :func:`sort()` within a group, to achieve the same res
 
     DT[0, :, by("AAA"), sort(f.BBB)]
 
-       AAA	BBB
-    0	1	1
-    1	2	1
-    2	3	2
+       AAA  BBB
+    0   1   1
+    1   2   1
+    2   3   2
 
 - Apply to different items in a group
 
@@ -938,10 +924,10 @@ In ``datatable``, we can use the :func:`ifelse()` function to replicate the solu
            "adult": True},
        by("animal")]
 
-        animal	size	avg_wt	adult
-    0	cat	L	12.4375	1
-    1	dog	L	20	1
-    2	fish	L	1.25	1
+        animal  size    avg_wt  adult
+    0   cat L   12.4375 1
+    1   dog L   20  1
+    2   fish    L   1.25    1
 
 .. note:: :func:`ifelse()` can take multiple conditions, along with a default return value.
 
@@ -957,13 +943,13 @@ In ``datatable``, we can use the :func:`ifelse()` function to replicate the solu
                        'data': [0.16, -0.21, 0.33, 0.45, -0.59, 0.62],
                        'flag': [False, True] * 3})
 
-        code	data	flag
-    0	 foo 	0.16	False
-    1	 bar   -0.21	True
-    2	 baz 	0.33	False
-    3	 foo 	0.45	True
-    4	 bar   -0.59	False
-    5	 baz	0.62	True
+        code    data    flag
+    0    foo    0.16    False
+    1    bar   -0.21    True
+    2    baz    0.33    False
+    3    foo    0.45    True
+    4    bar   -0.59    False
+    5    baz    0.62    True
 
 Solution in ``pandas`` ::
 
@@ -993,13 +979,13 @@ We can replicate this in ``datatable`` ::
 
     DT[:, :-1, sort(f.sum_data)]
 
-        code      data	    flag
-    0	bar      −0.21	     1
-    1	bar	 −0.59	     0
-    2	foo	  0.16	     0
-    3	foo	  0.45	     1
-    4	baz	  0.33	     0
-    5	baz	  0.62	     1
+        code      data      flag
+    0   bar      −0.21       1
+    1   bar  −0.59       0
+    2   foo   0.16       0
+    3   foo   0.45       1
+    4   baz   0.33       0
+    5   baz   0.62       1
 
 - Create a value counts column and reassign back to the DataFrame
 
@@ -1035,11 +1021,11 @@ In ``datatable``, you can replicate the solution above with the :func:`count()` 
 
     DT[:, update(Counts=dt.count()), by("Color")]
 
-        Color	Value	Counts
-    0	Red	100	3
-    1	Red	150	3
-    2	Red	50	3
-    3	Blue	50	1
+        Color   Value   Counts
+    0   Red 100 3
+    1   Red 150 3
+    2   Red 50  3
+    3   Blue    50  1
 
 - Shift groups of the values in a column based on the index
 
@@ -1086,13 +1072,13 @@ Solution in ``pandas`` ::
 
     DT
 
-    line_race	beyer	index	        beyer_shifted
-    0	10	99	Last Gunfighter	    NA
-    1	10	102	Last Gunfighter	    99
-    2	8	103	Last Gunfighter	    102
-    3	10	103	Paynter	            NA
-    4	10	88	Paynter	            103
-    5	8	100	Paynter	            88
+    line_race   beyer   index           beyer_shifted
+    0   10  99  Last Gunfighter     NA
+    1   10  102 Last Gunfighter     99
+    2   8   103 Last Gunfighter     102
+    3   10  103 Paynter             NA
+    4   10  88  Paynter             103
+    5   8   100 Paynter             88
 
 - Frequency table like `plyr <https://www.rdocumentation.org/packages/plyr/versions/1.8.6>`__ in R
 
@@ -1117,17 +1103,17 @@ Solution in ``pandas`` ::
 
     df
 
-        ID	Gender	ExamYear	Class	Participated	Passed	    Employed	  Grade
-    0	x0	F	2007	        algebra	    yes	        no	    True            48
-    1	x1	M	2007	        stats	    yes	        yes	    True	    99
-    2	x2	F	2007	        bio	    yes	        yes	    True	    75
-    3	x3	M	2008	        algebra	    yes	        yes	    False	    80
-    4	x4	F	2008	        algebra	    no	        no	    False	    42
-    5	x5	M	2008	        stats	    yes	        yes	    False	    80
-    6	x6	F	2008	        stats	    yes	        yes	    False	    72
-    7	x7	M	2009	        algebra	    yes	        yes	    True	    68
-    8	x8	M	2009	        bio	    yes	        no	    True	    36
-    9	x9	M	2009	        bio	    yes	        yes	    False	    78
+        ID  Gender  ExamYear    Class   Participated    Passed      Employed      Grade
+    0   x0  F   2007            algebra     yes         no      True            48
+    1   x1  M   2007            stats       yes         yes     True        99
+    2   x2  F   2007            bio     yes         yes     True        75
+    3   x3  M   2008            algebra     yes         yes     False       80
+    4   x4  F   2008            algebra     no          no      False       42
+    5   x5  M   2008            stats       yes         yes     False       80
+    6   x6  F   2008            stats       yes         yes     False       72
+    7   x7  M   2009            algebra     yes         yes     True        68
+    8   x8  M   2009            bio     yes         no      True        36
+    9   x9  M   2009            bio     yes         yes     False       78
 
 
 Solution in ``pandas`` ::
@@ -1153,10 +1139,10 @@ In ``datatable`` you can nest conditions within aggregations ::
            "Grade": dt.mean(f.Grade)},
        by("ExamYear")]
 
-        ExamYear	Participated	Passed	Employed	Grade
-    0	2007	        3	        2	     3	        74
-    1	2008	        3	        3	     0	        68.5
-    2	2009	        3	        2	     2	        60.6667
+        ExamYear    Participated    Passed  Employed    Grade
+    0   2007            3           2        3          74
+    1   2008            3           3        0          68.5
+    2   2009            3           2        2          60.6667
 
 Feel free to submit a pull request on `github <https://github.com/h2oai/datatable>`__ for examples you would like to share with the community.
 
