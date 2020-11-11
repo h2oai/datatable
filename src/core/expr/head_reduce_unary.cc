@@ -206,8 +206,6 @@ See Also
 --------
 
 - :func:`first()` -- function that returns the first row.
-
-
 )";
 
 
