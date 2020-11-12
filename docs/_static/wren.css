@@ -53,12 +53,18 @@ a.reference.external::after {
   top: -5px;
 }
 
-ul:last-child {
-  margin-bottom: 0;
+span.guilabel {
+  border: 1px solid #7fbbe3;
+  background: #e7f2fa;
+  font-size: 80%;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2.4px 6px;
+  margin: auto 2px;
 }
 
-li p {
-  margin: 0;
+table {
+  margin-bottom: 1rem;   /* same as a paragraph */
 }
 
 
@@ -116,6 +122,50 @@ h2:hover a.headerlink,
 h3:hover a.headerlink,
 h4:hover a.headerlink {
   display: initial;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Lists
+ *----------------------------------------------------------------------------*/
+
+li {
+  margin-bottom: 1rem;
+}
+
+li > p {
+  margin-bottom: 0.5rem;
+}
+
+ul:last-child,
+ol:last-child {
+  margin-bottom: 0;
+}
+
+p + .simple {
+  margin-top: -1rem;
+}
+
+li > p + .simple {
+  margin-top: -0.5rem;
+}
+
+.simple > li > p + .simple {
+  margin-top: 0;
+}
+
+.simple li {
+  margin: 0;
+}
+
+.simple li > p {
+  margin: 0;
+}
+
+/* Table of contents always display compactly */
+.toctree-wrapper > ul li {
+  margin: 0;
 }
 
 
@@ -233,6 +283,7 @@ div.nav-left > ul {
 div.nav-left li {
   list-style-type: none;
   position: relative;
+  margin: 0;
 }
 
 div.nav-left li > a {

@@ -3,6 +3,7 @@ Development
 ===========
 
 .. toctree::
+    :maxdepth: 2
 
     contrib
     documentation

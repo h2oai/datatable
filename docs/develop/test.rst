@@ -8,7 +8,40 @@ theme. For developers we recommend to visually check this page after any tweak
 to the accompanying CSS files.
 
 If you notice any visual irregularities somewhere else within the documentation,
-please add those examples to this file as a kind of manual "test".
+please add those examples to this file as a kind of "manual test".
+
+
+Inline markup
+-------------
+
+- **Bold text** is not actually corageous, it merely looks thicker.
+- **Part**ially bold text;
+- *Italic text* is still English, except the latters are slanted.
+- ``Literal text`` is no more literal than any other text, but uses the
+  monospace font.
+- ``ABC``s, or ``ABC``'s?
+- :kbd:`Ctrl+Alt+Del` is a keyboard shortcut (``:kbd:`` role)
+- :sub:`subscript text` can be used if you need to go low (``:sub:``)
+- :sup:`superscript text` but if they go low, we go high! (``:sup:``)
+- :guilabel:`label` may come in handy too (``:guilabel:``)
+
+The ``smartquotes`` Sphinx plugin is responsible for converting "straight"
+quotes (``""``) into "typographic" quotes (``“”``). Similarly for the 'single'
+quotes (``''`` into ``‘’``). Don't forget about single quotes in the middle of
+a word, or at the end' of a word. Lastly, double-dash (``--``) should be
+rendered as an n-dash -- like this, and triple-dash (``---``) as an m-dash
+--- like this.
+
+Hyperlinks may come in a variety of different flavors. In particular, links
+leading outside of this website must have clear indicator that they are
+external. The internal links should not have such an indicator:
+
+- A plain hyperlink: https://www.example.com/
+- A labeled hyperlink: `example website`_
+- Link to a PEP document: :PEP:`574` (use ``:PEP:`` role)
+- Link to a target within this page: `Bill of Rights`_
+- Link to a target on another page: :ref:`join tutorial`
+- Links to API objects: :class:`Frame`, :func:`fread`, :data:`dt.math.tau`
 
 
 Headers
@@ -24,12 +57,12 @@ Paragraph within a subheader. Please check that the spacing between the headers
 and the text looks reasonable.
 
 Sub-sub header A.1
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
 Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua.
 
 Sub-sub header A.2
-++++++++++++++++++
+^^^^^^^^^^^^^^^^^^
 Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
 aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
 voluptate velit esse cillum dolore eu fugiat nulla pariatur.
@@ -39,12 +72,12 @@ Sub-header B
 Nothing to see here, move along citizen.
 
 
-Paragraphs and lists
---------------------
+Lists
+-----
 
 Embedding lists into text may be somewhat tricky, for example here's the list
 that contains a short enumeration of items. It is supposed to be rendered in
-a "compact" style:
+a "compact" style (``.simple`` in CSS):
 
 - one
 - two
@@ -52,9 +85,90 @@ a "compact" style:
 
 Same list, but ordered:
 
-1. alpha
-2. beta
-3. gamma
+1. one
+2. two
+3. three
+
+Finally, a more complicated list that is still considered "simple" by docutils
+(see ``SimpleListChecker``: a list is simple if every list item contains either
+a single paragraph, or a paragraph followed by a simple list). Here we exhibit
+four variants of the same list, altering ordered/unordered property:
+
+.. list-table::
+
+  * -
+      - Lorem ipsum dolor sit
+
+        - amet
+        - consectetur
+        - adipiscing
+        - elit,
+
+      - sed do eiusmod
+
+      - tempor
+
+      - incididnut ut labore
+
+        - et dolore
+        - magna aliqua.
+
+      - Ut enim ad minim
+    -
+      1. Lorem ipsum dolor sit
+
+         - amet
+         - consectetur
+         - adipiscing
+         - elit,
+
+      2. sed do eiusmod
+
+      3. tempor
+
+      4. incididnut ut labore
+
+         - et dolore
+         - magna aliqua.
+
+      5. Ut enim ad minim
+    -
+      - Lorem ipsum dolor sit
+
+        1. amet
+        2. consectetur
+        3. adipiscing
+        4. elit,
+
+      - sed do eiusmod
+
+      - tempor
+
+      - incididnut ut labore
+
+        1. et dolore
+        2. magna aliqua.
+
+      - Ut enim ad minim
+    -
+      1. Lorem ipsum dolor sit
+
+         1. amet
+         2. consectetur
+         3. adipiscing
+         4. elit,
+
+      2. sed do eiusmod
+
+      3. tempor
+
+      4. incididnut ut labore
+
+         1. et dolore
+         2. magna aliqua.
+
+      5. Ut enim ad minim
+
 
 Compare this to the following list, which is supposed to be rendered with more
 spacing between the elements:
@@ -95,6 +209,9 @@ spacing between the elements:
 
 The next section demonstrates how different kinds of lists nest within each
 other.
+
+
+.. _`Bill of Rights`:
 
 Bill of Rights
 ~~~~~~~~~~~~~~
@@ -180,3 +297,7 @@ several States, pursuant to the fifth Article of the original Constitution.
 10. The powers not delegated to the United States by the Constitution, nor
     prohibited by it to the States, are reserved to the States respectively,
     or to the people.
+
+
+
+.. _`example website`: https://www.example.com/
