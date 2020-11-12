@@ -419,9 +419,12 @@ class XPythonDomain(sphinx.domains.Domain):
         print("\x1B[93mWarning\x1B[33m: " + msg + "\x1B[m")
 
     def error(self, msg, node=None):
+        doc = None
+        line = None
         if node:
             doc = node.get("refdoc")
             line = node.get("refline")
+        if doc:
             msg += f" -- at {doc}:{line}"
         else:
             msg += f" -- at {self.env.docname}"

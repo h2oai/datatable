@@ -1,5 +1,6 @@
 
-.. xdata:: datatable.options.progress
+.. xclass:: datatable.options.progress
+    :qual-type: class
     :src: --
 
     This namespace contains the following progress reporting options:
