@@ -53,6 +53,17 @@ h3 {
   font-weight: bold;
 }
 
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
+.section > .section > .section,
+.section > .section > .section > .section {
+  margin-left: 24px;
+}
+
 a.headerlink {
   display: none;
   font-size: 60%;

@@ -7,3 +7,4 @@ Development
     contrib
     documentation
     create-fexpr
+    test
