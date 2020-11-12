@@ -35,6 +35,38 @@ body {
   position: relative;
 }
 
+a {
+  color: #6395d4;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a.reference.external::after {
+  content: "\f08e";
+  font-family: 'FontAwesome';
+  font-size: 50%;
+  opacity: 60%;
+  padding-left: 2px;
+  position: relative;
+  top: -5px;
+}
+
+ul:last-child {
+  margin-bottom: 0;
+}
+
+li p {
+  margin: 0;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Headers
+ *----------------------------------------------------------------------------*/
+
 h1 {
   border-bottom: 1px solid #ccc;
   font-size: 30px;
@@ -81,34 +113,9 @@ a.headerlink::after {
 
 h1:hover a.headerlink,
 h2:hover a.headerlink,
-h3:hover a.headerlink {
+h3:hover a.headerlink,
+h4:hover a.headerlink {
   display: initial;
-}
-
-a {
-  color: #6395d4;
-}
-
-a:hover {
-  text-decoration: none;
-}
-
-a.reference.external::after {
-  content: "\f08e";
-  font-family: 'FontAwesome';
-  font-size: 50%;
-  opacity: 60%;
-  padding-left: 2px;
-  position: relative;
-  top: -5px;
-}
-
-ul:last-child {
-  margin-bottom: 0;
-}
-
-li p {
-  margin: 0;
 }
 
 
