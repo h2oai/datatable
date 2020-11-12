@@ -50,18 +50,48 @@ a "compact" style:
 - two
 - three
 
+Same list, but ordered:
+
+1. alpha
+2. beta
+3. gamma
+
 Compare this to the following list, which is supposed to be rendered with more
 spacing between the elements:
 
 - Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-  incididunt ut labore et dolore magna aliqua.
+  incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+  nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+  Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+  eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt
+  in culpa qui officia deserunt mollit anim id est laborum.
 
-- Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut
-  aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in
-  voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+- Vitae purus faucibus ornare suspendisse sed. Sit amet mauris commodo quis
+  imperdiet. Id velit ut tortor pretium viverra suspendisse potenti nullam ac.
+  Enim eu turpis egestas pretium aenean.
 
-- Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia
-  deserunt mollit anim id est laborum.
+  Neque laoreet suspendisse interdum consectetur libero. Tellus elementum
+  sagittis vitae et leo duis ut. Vel pretium lectus quam id leo. Eget nunc
+  scelerisque viverra mauris in. Integer enim neque volutpat ac tincidunt
+  vitae semper quis lectus. Urna molestie at elementum eu facilisis sed.
+
+- Molestie at elementum eu facilisis sed. Nisi vitae suscipit tellus mauris a
+  diam maecenas sed enim. Morbi tincidunt ornare massa eget egestas. Condimentum
+  lacinia quis vel eros. Viverra accumsan in nisl nisi scelerisque. Lorem sed
+  risus ultricies tristique. Phasellus egestas tellus rutrum tellus pellentesque
+  eu tincidunt tortor aliquam. Semper feugiat nibh sed pulvinar. Quis hendrerit
+  dolor magna eget est lorem ipsum dolor.
+
+  Amet commodo nulla facilisi nullam vehicula ipsum a arcu cursus. Pellentesque
+  elit eget gravida cum sociis natoque. Sit amet risus nullam eget felis eget
+  nunc lobortis mattis.
+
+  Tellus rutrum tellus pellentesque eu tincidunt tortor. Eget arcu dictum
+  varius duis. Eleifend mi in nulla posuere sollicitudin aliquam ultrices
+  sagittis orci.
+
+- Ut ornare lectus sit amet est placerat in. Leo urna molestie at elementum. At
+  auctor urna nunc id. Risus at ultrices mi tempus imperdiet nulla malesuada.
 
 The next section demonstrates how different kinds of lists nest within each
 other.
