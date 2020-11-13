@@ -13,6 +13,7 @@ jobs:
         - LD_PRELOAD=/lib/x86_64-linux-gnu/libSegFault.so
         - SEGFAULT_SIGNALS=all
         - DT_HARNESS=Travis
+        - DT_BUILD_DOCS=1
         - CXX=$LLVM7/bin/clang-7
 
     - name: "Python 3.7 on Linux with LLVM10"
@@ -56,6 +57,7 @@ script:
   - python ci/ext.py wheel
   - pip install --upgrade dist/*.whl
   - pip install -r requirements_tests.txt
+  - pip install -r requirements_docs.txt
   - pip install -r requirements_extra.txt
   - python -m pytest -ra --showlocals -Werror tests
 
