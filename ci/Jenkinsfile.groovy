@@ -303,24 +303,25 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run \
-                                            --rm --init \
-                                            -v `pwd`:/dot \
-                                            -e DT_RELEASE=${DT_RELEASE} \
-                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
-                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                            --entrypoint /bin/bash \
-                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
-                                            -c "cd /dot && \
-                                                ls -la && \
-                                                ls -la src/datatable && \
-                                                groupadd -g `id -g` jenkins && \
-                                                useradd -u `id -u` -g jenkins jenkins && \
-                                                su jenkins && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
-                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
-                                                ls -la dist"
+                                           -u `id -u`:`id -g` \
+                                           -e USER=$USER \
+                                           -v /etc/passwd:/etc/passwd:ro \
+                                           -v /etc/group:/etc/group:ro \
+                                           --rm --init \
+                                           -v `pwd`:/dot \
+                                           -e DT_RELEASE=${DT_RELEASE} \
+                                           -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                           -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                           --entrypoint /bin/bash \
+                                           ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
+                                           -c "cd /dot && \
+                                               ls -la && \
+                                               ls -la src/datatable && \
+                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
+                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                               /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                               /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
+                                               ls -la dist"
                                     """
                                     stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
                                     stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
