@@ -23,13 +23,14 @@
 #-------------------------------------------------------------------------------
 #
 # This file does some basic checks of the documentation files for
-# possible errors. However, it does not run the Sphinx framework in
-# an attempt to actually build the documentation.
+# possible errors.
 #
 #-------------------------------------------------------------------------------
+import os
 import pathlib
 import pytest
 import re
+import subprocess
 
 # First .parent removes the file name, second goes up to the root level
 ROOT_PATH = pathlib.Path(__file__).parent.parent
@@ -60,3 +61,27 @@ def test_xfunction_paths():
                     assert fullpath.is_file(), (
                            "Path %s does not exist, found on line %d of %s"
                            % (fullpath, i + 1, filepath))
+
+
+@pytest.mark.skipif("DT_BUILD_DOCS" not in os.environ,
+                    reason="Environment variable DT_BUILD_DOCS not set")
+def test_build_docs():
+    """
+    This test builds all the docs using Sphinx, and then verifies that
+    there were no errors/warnings in the process.
+
+    Since building the documentation takes a considerable amount of time
+    and requires additional libraries to be installed, this test will
+    only run if enabled via the environment variable DT_BUILD_DOCS.
+    """
+    proc = subprocess.run(
+        ["sphinx-build", "-q", "-E", ".", "_build"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd="docs")
+    assert proc.returncode == 0
+    stdout = proc.stdout.decode('utf-8')
+    stderr = proc.stderr.decode('utf-8')
+    if stderr:
+        raise RuntimeError("There were errors building the documentation:\n"
+                           + stderr)
