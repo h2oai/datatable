@@ -114,16 +114,7 @@
  *-----------------------------------------------------------------------------*/
 
 .x-function .x-function-body {
-    margin: 8pt 0 0 16pt;
-}
-
-.x-function .x-function-body p {
-    margin: 0 0 16px 0;
-    text-align: justify;
-}
-
-.x-function .x-function-body h2 {
-    font-size: 130%;
+    margin: 8pt 0 0 0;
 }
 
 

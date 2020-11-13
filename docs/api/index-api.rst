@@ -199,7 +199,7 @@ Other
     ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
-    as_type           <dt/as_type>
+    as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>

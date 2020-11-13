@@ -35,6 +35,44 @@ body {
   position: relative;
 }
 
+a {
+  color: #6395d4;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a.reference.external::after {
+  content: "\f08e";
+  font-family: 'FontAwesome';
+  font-size: 50%;
+  opacity: 60%;
+  padding-left: 2px;
+  position: relative;
+  top: -5px;
+}
+
+span.guilabel {
+  border: 1px solid #7fbbe3;
+  background: #e7f2fa;
+  font-size: 80%;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2.4px 6px;
+  margin: auto 2px;
+}
+
+table {
+  margin-bottom: 1rem;   /* same as a paragraph */
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Headers
+ *----------------------------------------------------------------------------*/
+
 h1 {
   border-bottom: 1px solid #ccc;
   font-size: 30px;
@@ -51,6 +89,17 @@ h2 {
 h3 {
   font-size: 19px;
   font-weight: bold;
+}
+
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
+.section > .section > .section,
+.section > .section > .section > .section {
+  margin-left: 24px;
 }
 
 a.headerlink {
@@ -70,33 +119,52 @@ a.headerlink::after {
 
 h1:hover a.headerlink,
 h2:hover a.headerlink,
-h3:hover a.headerlink {
+h3:hover a.headerlink,
+h4:hover a.headerlink {
   display: initial;
 }
 
-a {
-  color: #6395d4;
+
+
+/*------------------------------------------------------------------------------
+ * Lists
+ *----------------------------------------------------------------------------*/
+
+li {
+  margin-bottom: 1rem;
 }
 
-a:hover {
-  text-decoration: none;
+li > p {
+  margin-bottom: 0.5rem;
 }
 
-a.reference.external::after {
-  content: "\f08e";
-  font-family: 'FontAwesome';
-  font-size: 50%;
-  opacity: 60%;
-  padding-left: 2px;
-  position: relative;
-  top: -5px;
-}
-
-ul:last-child {
+ul:last-child,
+ol:last-child {
   margin-bottom: 0;
 }
 
-li p {
+p + .simple {
+  margin-top: -1rem;
+}
+
+li > p + .simple {
+  margin-top: -0.5rem;
+}
+
+.simple > li > p + .simple {
+  margin-top: 0;
+}
+
+.simple li {
+  margin: 0;
+}
+
+.simple li > p {
+  margin: 0;
+}
+
+/* Table of contents always display compactly */
+.toctree-wrapper > ul li {
   margin: 0;
 }
 
@@ -215,6 +283,7 @@ div.nav-left > ul {
 div.nav-left li {
   list-style-type: none;
   position: relative;
+  margin: 0;
 }
 
 div.nav-left li > a {
