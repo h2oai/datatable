@@ -375,7 +375,7 @@ class XPythonDomain(sphinx.domains.Domain):
                               childnode = childnode)
 
     def find_ref(self, node):
-        reftype = node.get("reftype")
+        reftype = self.translate_type(node.get("reftype"))
         reftarget = node.get("reftarget")
         if (reftype, reftarget) in self.refs:
             return self.refs[reftype, reftarget]
@@ -419,9 +419,12 @@ class XPythonDomain(sphinx.domains.Domain):
         print("\x1B[93mWarning\x1B[33m: " + msg + "\x1B[m")
 
     def error(self, msg, node=None):
+        doc = None
+        line = None
         if node:
             doc = node.get("refdoc")
             line = node.get("refline")
+        if doc:
             msg += f" -- at {doc}:{line}"
         else:
             msg += f" -- at {self.env.docname}"

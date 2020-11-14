@@ -181,7 +181,7 @@ Other
     * - :data:`g`
       - Secondary namespace used during :meth:`DT[..., join()] <dt.Frame.__getitem__>` call.
 
-    * - :data:`options`
+    * - :class:`options`
       - ``datatable`` options.
 
 
@@ -199,7 +199,7 @@ Other
     ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
-    as_type           <dt/as_type>
+    as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>

@@ -219,20 +219,3 @@ div.document div.notranslate.highlight-pycon div.highlight pre {
 .admonition.seealso p.first.admonition-title::after {
   content: ":";
 }
-
-
-
-/* ------- Miscellaneous ---------------------------------------------------- */
-
-/* inter-paragraph distance is reduced in a ul|ol */
-.section ol p + ul.simple,
-.section ul p + ul.simple,
-.section ol p + ol.simple,
-.section ul p + ol.simple {
-  margin-top: -6pt;
-}
-
-ul.simple li,
-ol.simple li {
-  margin-bottom: 3pt;
-}

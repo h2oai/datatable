@@ -35,6 +35,44 @@ body {
   position: relative;
 }
 
+a {
+  color: #6395d4;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a.reference.external::after {
+  content: "\f08e";
+  font-family: 'FontAwesome';
+  font-size: 50%;
+  opacity: 60%;
+  padding-left: 2px;
+  position: relative;
+  top: -5px;
+}
+
+span.guilabel {
+  border: 1px solid #7fbbe3;
+  background: #e7f2fa;
+  font-size: 80%;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2.4px 6px;
+  margin: auto 2px;
+}
+
+table {
+  margin-bottom: 1rem;   /* same as a paragraph */
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Headers
+ *----------------------------------------------------------------------------*/
+
 h1 {
   border-bottom: 1px solid #ccc;
   font-size: 30px;
@@ -51,6 +89,17 @@ h2 {
 h3 {
   font-size: 19px;
   font-weight: bold;
+}
+
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
+.section > .section > .section,
+.section > .section > .section > .section {
+  margin-left: 24px;
 }
 
 a.headerlink {
@@ -70,19 +119,52 @@ a.headerlink::after {
 
 h1:hover a.headerlink,
 h2:hover a.headerlink,
-h3:hover a.headerlink {
+h3:hover a.headerlink,
+h4:hover a.headerlink {
   display: initial;
 }
 
-a {
-  color: #6395d4;
+
+
+/*------------------------------------------------------------------------------
+ * Lists
+ *----------------------------------------------------------------------------*/
+
+li {
+  margin-bottom: 1rem;
 }
 
-ul:last-child {
+li > p {
+  margin-bottom: 0.5rem;
+}
+
+ul:last-child,
+ol:last-child {
   margin-bottom: 0;
 }
 
-li p {
+p + .simple {
+  margin-top: -1rem;
+}
+
+li > p + .simple {
+  margin-top: -0.5rem;
+}
+
+.simple > li > p + .simple {
+  margin-top: 0;
+}
+
+.simple li {
+  margin: 0;
+}
+
+.simple li > p {
+  margin: 0;
+}
+
+/* Table of contents always display compactly */
+.toctree-wrapper > ul li {
   margin: 0;
 }
 
@@ -201,6 +283,7 @@ div.nav-left > ul {
 div.nav-left li {
   list-style-type: none;
   position: relative;
+  margin: 0;
 }
 
 div.nav-left li > a {
@@ -262,19 +345,20 @@ div.nav-left li.current > ul {
 
 body > div.main-area {
   display: flex;
-  margin-top: var(--top-menu-height);
-  margin-right: 0;
-  margin-bottom: 25px;
+  margin-bottom: 0;
   margin-left: var(--left-menu-width);
+  margin-right: 0;
+  margin-top: var(--top-menu-height);
+  min-height: calc(100vh - var(--top-menu-height));
 }
 
 div.sidebar-right {
   flex: 5;
-  height: calc(100vh - 20px - var(--top-menu-height));
+  height: calc(100vh - 25px - var(--top-menu-height));
   margin-right: 20px;
   max-width: var(--right-menu-width);
   position: sticky;
-  top: calc(20px + var(--top-menu-height));
+  top: calc(25px + var(--top-menu-height));
 }
 
 div.nav-right > #toc-local {
@@ -288,11 +372,23 @@ div.nav-right > #toc-local {
 div.nav-right > #toc-local a.list-group-item {
   background: transparent;
   border: none;
+  border-left: 4px solid transparent;
   color: #696e8e;
   font-size: 13px;
   line-height: 1.2;
   list-style-type: none;
-  padding: 4px 0;
+  padding: 4px 0 4px 6px;
+  margin-left: -9px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-2 {
+  padding-left: 15px;
+  font-size: 12px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-3 {
+  padding-left: 25px;
+  font-size: 11px;
 }
 
 div.nav-right > #toc-local a:first-child {
@@ -309,10 +405,8 @@ div.nav-right > #toc-local a:hover {
 }
 
 div.nav-right > #toc-local a.list-group-item.active {
-  border-left: 4px solid #4684b6;
+  border-left-color: #4684b6;
   color: #212529;
-  margin-left: -9px;
-  padding-left: 5px;
 }
 
 
@@ -325,6 +419,7 @@ div.document-wrapper {
   flex: 25;
   max-width: var(--document-width);
   min-width: calc(var(--document-width) * 2/3);
+  margin-bottom: 25px;
   margin-left: var(--document-x-margin);
   margin-top: 25px;
 }
@@ -446,6 +541,7 @@ div.highlight-box button.close {
 
 table.api-table {
   border: none;
+  margin-bottom: 18px;
 }
 
 table.api-table tr td {
@@ -477,7 +573,6 @@ table.api-table td:first-child a code.literal {
 
 table.api-table td:first-child a:hover code.literal {
   color: #223d5a;
-  text-decoration: underline;
 }
 
 

@@ -38,6 +38,7 @@ class Frame : public XObject<Frame> {
     DataTable* dt;  // owned (cannot use unique_ptr because this class's
                     // destructor is never called by Python)
     py::oobj source_;
+    py::oobj meta_;
     mutable PyObject* stypes;  // memoized tuple of stypes
     mutable PyObject* ltypes;  // memoized tuple of ltypes
 
@@ -97,6 +98,7 @@ class Frame : public XObject<Frame> {
     // Getters/setters
     oobj get_key() const;
     oobj get_ltypes() const;
+    oobj get_meta() const;
     oobj get_names() const;
     oobj get_ncols() const;
     oobj get_ndims() const;
@@ -106,6 +108,7 @@ class Frame : public XObject<Frame> {
     oobj get_stype() const;
     oobj get_stypes() const;
     void set_key(const Arg&);
+    void set_meta(const Arg&);
     void set_names(const Arg&);
     void set_nrows(const Arg&);
     void set_source(const std::string&);  // internal use only

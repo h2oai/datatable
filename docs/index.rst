@@ -116,6 +116,9 @@
         and flexible API.
       </p></div>
       <div id="badges">
+        <a href="https://gitter.im/h2oai/datatable">
+          <img src="https://badges.gitter.im/Join%20Chat.svg">
+        </a>
         <a href="https://pypi.org/project/datatable/">
           <img src="https://img.shields.io/pypi/v/datatable.svg">
         </a>

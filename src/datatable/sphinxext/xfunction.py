@@ -226,6 +226,7 @@ class XobjectDirective(SphinxDirective):
         "settable": directives.unchanged,
         "deletable": directives.unchanged,
         "noindex": directives.unchanged,
+        "qual-type": directives.unchanged,
     }
 
     def __init__(self, *args):
@@ -241,6 +242,7 @@ class XobjectDirective(SphinxDirective):
         self.test_file = None
         self.tests_github_url = None
         self.qualifier = None
+        self.qualifier_reftype = None
 
 
     def run(self):
@@ -255,6 +257,7 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_tests()
         self._parse_option_settable()
         self._parse_option_deletable()
+        self._parse_option_qualtype()
         self._register_title_override()
 
         if self.src_fnname:
@@ -279,7 +282,7 @@ class XobjectDirective(SphinxDirective):
             sources = []
         )
         xpy = self.env.get_domain("xpy")
-        if self.name == "xclass":
+        if self.name in ["xclass", "xexc"]:
             xpy.current_context = ("class", self.qualifier + self.obj_name)
         if self.name in ["xattr", "xmethod"]:
             assert self.qualifier[-1:] == '.'
@@ -304,7 +307,7 @@ class XobjectDirective(SphinxDirective):
         qualifier. This way the most important information will
         remain visible longer.
         """
-        if self.name in ["xclass", "xdata", "xfunction"]:
+        if self.name in ["xclass", "xexc", "xdata", "xfunction"]:
             title = self.obj_name
         elif self.name == "xattr":
             title = "." + self.obj_name
@@ -476,6 +479,12 @@ class XobjectDirective(SphinxDirective):
                              "directive" % self.name)
 
 
+    def _parse_option_qualtype(self):
+        reftype = self.options.get("qual-type", "").strip()
+        if not reftype:
+            reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
+        self.qualifier_reftype = reftype
+
 
     #---------------------------------------------------------------------------
     # Processing: retrieve docstring / function source
@@ -598,7 +607,7 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
-        if (self.name in ["xdata", "xattr", "xclass"] or
+        if (self.name in ["xdata", "xattr", "xclass", "xexc"] or
                 "--" not in self.doc_lines):
             self.parsed_params = []
             self._parse_body(self.doc_lines)
@@ -901,7 +910,7 @@ class XobjectDirective(SphinxDirective):
         targetname = self.qualifier + self.obj_name
         sig_node = xnodes.div(classes=["sig-container"], ids=[targetname])
         sig_nodeL = xnodes.div(classes=["sig-body"])
-        if self.name == "xclass":
+        if self.name in ["xclass", "xexc"]:
             sig_nodeL += self._generate_signature_class()
         else:
             self._generate_sigbody(sig_nodeL, "normal")
@@ -913,12 +922,9 @@ class XobjectDirective(SphinxDirective):
         # Tell Sphinx that this is a target for `:py:obj:` references
         if "noindex" not in self.options:
             self.state.document.note_explicit_target(sig_node)
-            domain = self.env.get_domain("py")
-            domain.note_object(name=targetname,        # e.g. "datatable.Frame.cbind"
-                               objtype=self.name[1:],  # remove initial 'x'
-                               node_id=targetname)
             domain = self.env.get_domain("xpy")
-            domain.note_object(objtype=self.name[1:], objname=targetname,
+            domain.note_object(objtype=self.name[1:],  # remove initial 'x'
+                               objname=targetname,     # e.g. "datatable.Frame.cbind"
                                docname=self.env.docname)
         out = [sig_node]
         if self.name == "xattr":
@@ -954,7 +960,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_signature_class(self):
-        assert self.name == "xclass"
+        assert self.name == "xclass" or self.name == "xexc"
         body = xnodes.div(classes=["sig-main"])
         body += xnodes.div(nodes.Text("class "), classes=["keyword"])
         body += self._generate_qualifier()
@@ -978,6 +984,7 @@ class XobjectDirective(SphinxDirective):
             assert qual_parts[-1] == ""
             self.obj_name = qual_parts[-2]
             self.qualifier = ".".join(qual_parts[:-2]) + "."
+            self.qualifier_reftype = "module"
             assert self.parsed_params[0] == "self"
             del self.parsed_params[0]
 
@@ -988,11 +995,10 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_qualifier(self):
-        reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
         node = xnodes.div(classes=["sig-qualifier"])
         ref = addnodes.pending_xref("", nodes.Text(self.qualifier),
                                     reftarget=self.qualifier[:-1],
-                                    reftype=reftype, refdomain="py")
+                                    reftype=self.qualifier_reftype, refdomain="xpy")
         # Note: `ref` cannot be added directly: docutils requires that
         # <reference> nodes were nested inside <TextElement> nodes.
         node += nodes.generated("", "", ref)
@@ -1475,7 +1481,8 @@ def on_env_merge_info(app, env, docnames, other):
 def on_source_read(app, docname, source):
     assert isinstance(source, list) and len(source) == 1
     txt = source[0]
-    mm = re.match(r"\s*\.\. (xfunction|xmethod|xclass|xdata|xattr):: (.*)", txt)
+    mm = re.match(r"\s*\.\. (xfunction|xmethod|xclass|xexc|xdata|xattr):: (.*)",
+                  txt)
     if mm:
         kind = mm.group(1)
         name = mm.group(2)
@@ -1510,6 +1517,7 @@ def setup(app):
     app.add_directive("xfunction", XobjectDirective)
     app.add_directive("xmethod", XobjectDirective)
     app.add_directive("xclass", XobjectDirective)
+    app.add_directive("xexc", XobjectDirective)
     app.add_directive("xattr", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
     app.add_directive("xversionadded", XversionaddedDirective)
