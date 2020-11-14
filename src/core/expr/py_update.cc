@@ -53,11 +53,11 @@ Examples
     :types: int8, int8
     :shape: 5, 2
 
-    0,	0,	4
-    1,	1,	3
-    2,	2,	9
-    3,	3,	11
-    4,	4, −1
+    0, 0, 4
+    1, 1,	3
+    2, 2,	9
+    3, 3,	11
+    4, 4, −1
 
 
 - Create new columns and update existing columns::
@@ -72,11 +72,11 @@ Examples
     :types: int8, int8, int8, int8
     :shape: 5, 2
 
-    0,	0,	5,	0,	1
-    1,	4,	4,	2,	1
-    2,	8,	10,	4,	3
-    3,	12,	12,	6,	3
-    4,	16,	0	, 8, −1
+    0, 0, 5, 0, 1
+    1, 4, 4, 2, 1
+    2, 8, 10, 4, 3
+    3, 12, 12, 6, 3
+    4, 16, 0, 8, −1
 
 - Add new column with `unpacking <https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists>`__; this can be handy for dynamicallly adding columns with dictionary comprehensions, or if the names are not valid python keywords ::
 
@@ -88,11 +88,11 @@ Examples
     :types: int8, int8, int8, int8, int8
     :shape: 5, 3
 
-    0,	0,  5,	0,	1,	6
-    1,	4,	4,	2,	1,	11
-    2,	8,	10,	4,	3,	25
-    3,	12,	12,	6,	3,	33
-    4,	16,	0,	8, −1,	23
+    0, 0, 5, 0, 1, 6
+    1, 4, 4, 2, 1, 11
+    2, 8, 10, 4, 3, 25
+    3, 12, 12, 6, 3, 33
+    4, 16, 0, 8, −1, 23
 
 
 - You can update a subset of data ::
@@ -105,11 +105,11 @@ Examples
     :types: int8, int8, int8, int8, int8
     :shape: 5, 3
 
-    0,	0,	5,	0,	1,	6
-    1,	4,	4,	2,	1,	11
-    2,	8,	10,	4,	3,	25
-    3,	60,	12,	6,	3,	33
-    4,	80,	0,	8, −1,	23
+    0, 0, 5, 0, 1, 6
+    1, 4, 4, 2, 1, 11
+    2, 8, 10, 4, 3, 25
+    3, 60, 12, 6, 3, 33
+    4, 80, 0, 8, −1, 23
 
 
 - You can also add a new column or update an existing column in a groupby operation, similar to SQL's  `window` operation, or pandas `transform` ::
