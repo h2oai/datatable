@@ -207,18 +207,22 @@ Examples
                       B          X
                       C          Y""")
 
-    df[:, update(colour =  ifelse(f.Set=="Z",  # condition
+    df[:, update(Colour =  ifelse(f.Set=="Z",  # condition
                                   "Green",     # if condition is True
                                   "Red"))      # if condition is False
                                       ]
 
     df
 
-          Type     Set	colour
-    0	A	Z	Green
-    1	B	Z	Green
-    2	B	X	Red
-    3	C	Y	Red
+.. dtframe::
+    :names: Type,Set,Colour
+    :types: str32,str32,str32
+    :shape: 4, 3
+
+    0,A,Z,Green
+    1,B,Z,Green
+    2,B,X,Red
+    3,C,Y,Red
 
 - Multiple conditions
     - Task: Create new column ``value`` where
@@ -233,12 +237,17 @@ Examples
                    "c": [6,7,8,9]}
     df
 
-            a	b	c
-    0	0	0	6
-    1	0	3	7
-    2	1	4	8
-    3	2	5	9
+.. dtframe::
+    :names: a,b,c
+    :types: int8,int8,int8
+    :shape: 4,3
 
+    0,0,0,6
+    1,0,3,7
+    2,1,4,8
+    3,2,5,9
+
+.. code:: python
 
     df[:, update(value=ifelse(f.a>0, f.a,  # first condition and result
                               f.b>0, f.b,  # second condtion and result
@@ -247,11 +256,16 @@ Examples
 
     df
 
-            a	b	c     value
-    0	0	0	6	6
-    1	0	3	7	3
-    2	1	4	8	1
-    3	2	5	9	2
+
+.. dtframe::
+    :names: a,b,c,value
+    :types: int8,int8,int8,int8
+    :shape: 4,4
+
+    0,0,0,6,6
+    1,0,3,7,3
+    2,1,4,8,1
+    3,2,5,9,2
 )";
 
 static py::oobj ifelse(const py::XArgs& args) {
