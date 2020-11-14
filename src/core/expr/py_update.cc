@@ -53,11 +53,11 @@ Examples
     :types: int8, int8
     :shape: 5, 2
 
-    0, 0, 4
-    1, 1,	3
-    2, 2,	9
-    3, 3,	11
-    4, 4, −1
+    0,0,4
+    1,1,3
+    2,2,9
+    3,3,11
+    4,4,−1
 
 
 - Create new columns and update existing columns::
