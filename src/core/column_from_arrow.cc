@@ -89,7 +89,7 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       return Column::new_na_column(nrows, dt::SType::VOID);
     }
     case 'b': {  // boolean
-      return _make_fw(dt::SType::BOOL, std::move(array));
+      return _make_bool(std::move(array));
     }
     case 'c':    // int8
     case 'C': {  // uint8

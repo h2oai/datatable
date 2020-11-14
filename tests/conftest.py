@@ -151,3 +151,7 @@ def tempdir():
 def testname(request):
     return request.param()
 
+
+pd = pandas
+np = numpy
+pa = pyarrow

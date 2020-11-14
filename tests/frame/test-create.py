@@ -1268,6 +1268,35 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
 
 
 #-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow1(pa):
+    df = pa.Table.from_pydict({
+        "A": [3, 7, 11, 4],
+        "B": [True, False, True, False],
+        "C": [1.1, -2.5, 23, 0],
+        "D": [2, 3, 4, -1],
+        "E": ['make', 'love', 'not', 'war'],
+    }, schema = pa.schema([
+        pa.field("A", pa.int64()),
+        pa.field("B", pa.bool_()),
+        pa.field("C", pa.float64()),
+        pa.field("D", pa.int8()),
+        pa.field("E", pa.string())
+    ]))
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A=[3, 7, 11, 4] / dt.int64,
+                 B=[True, False, True, False],
+                 C=[1.1, -2.5, 23, 0],
+                 D=[2, 3, 4, -1] / dt.int8,
+                 E=['make', 'love', 'not', 'war'])
+    )
+
+
+
+#-------------------------------------------------------------------------------
 # Issues
 #-------------------------------------------------------------------------------
 
