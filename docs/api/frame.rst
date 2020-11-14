@@ -239,6 +239,7 @@
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .meta            <frame/meta>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>

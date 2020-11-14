@@ -62,7 +62,6 @@ except: ValueError
 
 See Also
 --------
-
 - `Tutorial on joins <../../start/quick-start.html#join>`_
 
 Examples

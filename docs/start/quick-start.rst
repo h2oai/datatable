@@ -246,6 +246,8 @@ This modifier controls the order of the rows in the result, much like SQL clause
 within each group.
 
 
+.. _`join tutorial`:
+
 join(...)
 ~~~~~~~~~
 
