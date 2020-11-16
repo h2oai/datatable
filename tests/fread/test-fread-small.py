@@ -1208,10 +1208,14 @@ def test_qr_bump_out_of_sample(capsys):
     pysrc[1][137] = '"This" is not funny'
     assert d0.to_list() == pysrc
 
-def test_sep_within_quoted_fields():
-    src1 = ['"abc"\n"1,000"\n"2,000"\n']
-    src2 = ['movies\n"encore, once more encore!"\n"great gatsby"']
-    d1 = dt.fread(src1)
-    d2 = dt.fread(src2)
-    assert d1.to_list() == [[1000, 2000]]
-    assert d2.to_list() == [['encore, once more encore!', 'great gatsby']]
+
+def test_sep_within_quoted_fields1():
+    assert_equals(dt.fread('"abc"\n"1,000"\n"2,000"\n'), dt.Frame(abc=[1000, 2000]))
+
+def test_sep_within_quoted_fields2():
+    assert_equals(dt.fread('movies\n"encore, once more encore!"\n"great gatsby"'),
+                  dt.Frame(movies=['encore, once more encore!', 'great gatsby']))
+
+def test_sep_within_quoted_fields3():
+    assert_equals(dt.fread('cols\n"1,\\"2"\n"3,\\"4"\n'),
+                  dt.Frame(cols=['1,"2', '3,"4']))

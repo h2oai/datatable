@@ -28,7 +28,7 @@
 #include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
-
+#include <iostream>
 #define D() if (verbose) d()
 
 
@@ -279,8 +279,8 @@ void FreadReader::detect_sep_and_qr() {
   // `numLines` has the number of lines in each group.
   int numFields[JUMPLINES+1];
   int numLines[JUMPLINES+1];
-  bool check_all_quoteRules = false;
-  for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
+  int8_t max_quoteRule = 2;
+  for (quoteRule=0; quoteRule<max_quoteRule; quoteRule++) {  // quote rule in order of preference
     for (int s=0; s<nseps; s++) {
       sep = seps[s];
       whiteChar = (sep==' ' ? '\t' : (sep=='\t' ? ' ' : 0));  // 0 means both ' ' and '\t' to be skipped
@@ -297,7 +297,7 @@ void FreadReader::detect_sep_and_qr() {
         if (thisncol < 0) {
           // invalid file with this sep and quote rule; abort
           numFields[0] = -1;
-          if (quoteRule <= 1) check_all_quoteRules = true;
+          if (quoteRule <= 1) max_quoteRule = 2+(quoteRule*2);
           break;
         }
         if (thisncol != lastncol) {  // new contiguous consistent ncols started
@@ -347,7 +347,6 @@ void FreadReader::detect_sep_and_qr() {
             << topNumFields << " fields using quote rule " << topQuoteRule;
       }
     }
-    if (!check_all_quoteRules && quoteRule == 1) break;
   }
   if (!topNumFields) topNumFields = 1;
   xassert(firstJumpEnd && topQuoteRule >= 0);
