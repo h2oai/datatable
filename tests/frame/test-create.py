@@ -1295,6 +1295,33 @@ def test_create_from_arrow1(pa):
     )
 
 
+def test_create_from_arrow2(pa):
+    df = pa.Table.from_pydict({
+        "A1": [2, None, 17, -1, 3],
+        "B2": ['what', 'if', None, 'munroe', None],
+        "C3": [2.17, math.nan, None, -math.nan, 0.1],
+        "D4": [None, None, None, True, False],
+        })
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A1=[2, None, 17, -1, 3] / dt.int64,
+                 B2=['what', 'if', None, 'munroe', None],
+                 C3=[2.17, None, None, None, 0.1],
+                 D4=[None, None, None, True, False])
+    )
+
+
+@pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),
+                                    slice(None, -1), # slice(2, 5)
+                                    slice(0, 3)])
+def test_create_from_arrow_sliced(pa, slice_):
+    src = [1, None, 2, None, 3, None, 4, 5]
+    df = pa.Table.from_pydict({"A": src})
+    assert_equals(dt.Frame(df[slice_]),
+                  dt.Frame(A=src[slice_], stype=dt.int64))
+
+
+
 
 #-------------------------------------------------------------------------------
 # Issues

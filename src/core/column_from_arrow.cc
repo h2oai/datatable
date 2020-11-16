@@ -82,6 +82,9 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
 {
   const char* format = schema->format;
   size_t nrows = static_cast<size_t>((*array)->length);
+  if ((*array)->offset) {
+    throw NotImplError() << "Arrow arrays with an offset are not supported";
+  }
   // size_t nullcount = static_cast<size_t>((*array)->null_count);
 
   switch (format[0]) {
