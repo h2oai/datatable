@@ -5,7 +5,8 @@
     -----
     .. current-class:: datatable.Frame
 
-    -[new] A Frame can now be constructed from an arrow table::
+    -[new] A Frame can now be constructed from an Arrow
+      table::
 
           DT = dt.Frame(arrow_table)
 

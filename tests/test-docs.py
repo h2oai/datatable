@@ -79,9 +79,8 @@ def test_build_docs():
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         cwd="docs")
-    assert proc.returncode == 0
     stdout = proc.stdout.decode('utf-8')
     stderr = proc.stderr.decode('utf-8')
-    if stderr:
-        raise RuntimeError("There were errors building the documentation:\n"
-                           + stderr)
+    if stderr or proc.returncode:
+        raise RuntimeError(f"There were errors building the documentation "
+                           f"(ret.code={proc.returncode}):\n{stderr}")
