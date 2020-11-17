@@ -1033,6 +1033,13 @@ following list describes possible choices:
     (however, this is subject to numpy's approval). The resulting
     frame will have a copy-on-write semantics.
 
+`pyarrow.Table`
+    An arrow table will be converted into a datatable Frame, preserving
+    column names and types.
+
+    If the arrow table has columns of types not supported by datatable
+    (for example lists or structs), an exception will be raised.
+
 `None`
     When the source is not given at all, then a 0x0 frame will be
     created; unless a `names` parameter is provided, in which

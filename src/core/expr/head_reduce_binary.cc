@@ -110,7 +110,7 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
 //------------------------------------------------------------------------------
 // cov(X, Y)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_cov =
 R"(cov(col1, col2)
 --
@@ -136,6 +136,7 @@ See Also
 - :func:`corr()` -- function to calculate correlation between two columns.
 
 )";
+#endif
 
 template <typename T>
 static bool cov_reducer(const Column& col1, const Column& col2,
@@ -190,7 +191,7 @@ static Column compute_cov(Column&& arg1, Column&& arg2, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // corr(X, Y)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_corr =
 R"(corr(col1, col2)
 --
@@ -216,7 +217,7 @@ See Also
 - :func:`cov()` -- function to calculate covariance between two columns.
 
 )";
-
+#endif
 
 template <typename T>
 static bool corr_reducer(const Column& col1, const Column& col2,

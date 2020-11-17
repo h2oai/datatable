@@ -1268,6 +1268,62 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
 
 
 #-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow1(pa):
+    df = pa.Table.from_pydict({
+        "A": [3, 7, 11, 4],
+        "B": [True, False, True, False],
+        "C": [1.1, -2.5, 23, 0],
+        "D": [2, 3, 4, -1],
+        "E": ['make', 'love', 'not', 'war'],
+    }, schema = pa.schema([
+        pa.field("A", pa.int64()),
+        pa.field("B", pa.bool_()),
+        pa.field("C", pa.float64()),
+        pa.field("D", pa.int8()),
+        pa.field("E", pa.string())
+    ]))
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A=[3, 7, 11, 4] / dt.int64,
+                 B=[True, False, True, False],
+                 C=[1.1, -2.5, 23, 0],
+                 D=[2, 3, 4, -1] / dt.int8,
+                 E=['make', 'love', 'not', 'war'])
+    )
+
+
+def test_create_from_arrow2(pa):
+    df = pa.Table.from_pydict({
+        "A1": [2, None, 17, -1, 3],
+        "B2": ['what', 'if', None, 'munroe', None],
+        "C3": [2.17, math.nan, None, -math.nan, 0.1],
+        "D4": [None, None, None, True, False],
+        })
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A1=[2, None, 17, -1, 3] / dt.int64,
+                 B2=['what', 'if', None, 'munroe', None],
+                 C3=[2.17, None, None, None, 0.1],
+                 D4=[None, None, None, True, False])
+    )
+
+
+@pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),
+                                    slice(None, -1), # slice(2, 5)
+                                    slice(0, 3)])
+def test_create_from_arrow_sliced(pa, slice_):
+    src = [1, None, 2, None, 3, None, 4, 5]
+    df = pa.Table.from_pydict({"A": src})
+    assert_equals(dt.Frame(df[slice_]),
+                  dt.Frame(A=src[slice_], stype=dt.int64))
+
+
+
+
+#-------------------------------------------------------------------------------
 # Issues
 #-------------------------------------------------------------------------------
 

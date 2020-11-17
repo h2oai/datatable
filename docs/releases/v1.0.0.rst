@@ -5,6 +5,14 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] A Frame can now be constructed from an Arrow
+      table::
+
+          DT = dt.Frame(arrow_table)
+
+      This process uses data Arrow C Data interface, and therefore does
+      not entail data copying.
+
     -[new] :attr:`.meta` property now provides access to frame's meta
       information, if any, as set by datatable functions/methods or
       by the user.

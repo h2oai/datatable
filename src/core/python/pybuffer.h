@@ -36,8 +36,7 @@ namespace py {
   * The purpose of this class is to automatically release the
   * underlying resources when this object goes out of scope.
   */
-class buffer
-{
+class buffer {
   private:
     Py_buffer* info_;  // owned
     size_t stride_;

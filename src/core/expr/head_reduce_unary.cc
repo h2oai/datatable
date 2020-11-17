@@ -110,7 +110,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 //------------------------------------------------------------------------------
 // first(A), last(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_first =
 R"(first(cols)
 --
@@ -155,7 +155,7 @@ See Also
 - :func:`first()` -- function that returns the first row.
 
 )";
-
+#endif
 
 template <bool FIRST>
 class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
@@ -231,7 +231,7 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sum(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_sum =
 R"(sum(cols)
 --
@@ -259,6 +259,7 @@ See Also
 - :func:`count()` -- function to calculate a number of non-missing values.
 
 )";
+#endif
 
 template <typename T, typename U>
 bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -344,7 +345,7 @@ static Column compute_gsum(Column&& arg, const Groupby& gby) {
 // mean(A)
 //------------------------------------------------------------------------------
 
-
+#if 0
 static const char* doc_mean =
 R"(mean(cols)
 --
@@ -372,6 +373,7 @@ See Also
 - :func:`sd()` -- function to calculate standard deviation.
 
 )";
+#endif
 
 
 template <typename T, typename U>
@@ -438,6 +440,7 @@ static Column compute_gmean(Column&& arg, const Groupby&) {
 // sd(A)
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_sd =
 R"(sd(cols)
 --
@@ -465,6 +468,7 @@ See Also
 - :func:`median()` -- function to calculate median values.
 
 )";
+#endif
 
 template <typename T, typename U>
 bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -584,6 +588,7 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
 // count(A)
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_count =
 R"(count(cols)
 --
@@ -609,6 +614,7 @@ See Also
 - :func:`sum()` -- function to calculate the sum of values.
 
 )";
+#endif
 
 template <typename T>
 bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
@@ -724,7 +730,7 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // min(A), max(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_min =
 R"(min(cols)
 --
@@ -777,6 +783,7 @@ See Also
 --------
 - :func:`min()` -- function to calculate minimum values.
 )";
+#endif
 
 template <typename T, bool MIN>
 bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
@@ -827,6 +834,7 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 // Median
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_median =
 R"(median(cols)
 --
@@ -853,6 +861,7 @@ See Also
 - :func:`sd()` -- function to calculate standard deviation.
 
 )";
+#endif
 
 
 template <typename T, typename U>

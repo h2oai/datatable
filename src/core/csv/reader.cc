@@ -921,8 +921,8 @@ void GenericReader::decode_utf16() {
 
   // `buf` is a borrowed ref, belongs to PyObject* `t`
   const char* buf = PyUnicode_AsUTF8AndSize(t, &ssize);
-  input_mbuf = Buffer::external(
-                  const_cast<void*>(static_cast<const void*>(buf)),
+  input_mbuf = Buffer::unsafe(
+                  static_cast<const void*>(buf),
                   static_cast<size_t>(ssize) + 1);
   sof = static_cast<char*>(input_mbuf.wptr());
   eof = sof + ssize + 1;

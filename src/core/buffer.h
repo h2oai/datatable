@@ -31,7 +31,6 @@
 #include "utils/exceptions.h"
 
 class BufferImpl;
-namespace py { class buffer; }
 
 
 //==============================================================================
@@ -44,10 +43,10 @@ namespace py { class buffer; }
   * Buffer objects to be copied with negligible overhead.
   *
   * The class implements Copy-on-Write semantics: if a user wants to
-  * write into the memory buffer contained in a Buffer object, and
-  * that memory buffer is currently shared with other Buffer instances,
+  * write into the memory region contained in a Buffer object, and
+  * that memory region is currently shared with other Buffer instances,
   * then the class will first replace its internal impl with a
-  * writable copy of the memory buffer.
+  * writable copy of the memory region.
   *
   * The class may also be marked as "containing PyObjects". In this
   * case the contents of the buffer will receive special treatment:
@@ -94,9 +93,8 @@ class Buffer
     // Factory constructors:
     //
     // Buffer::mem(n)
-    //   Allocate memory region of size `n` in memory (on the heap). The memory
-    //   will be freed when the Buffer object goes out of scope (assuming
-    //   no shallow copies were created).
+    //   Allocate memory region of size `n` in memory ("on the heap").
+    //   The memory will be freed when the Buffer object is destroyed.
     //
     // Buffer::copy(ptr, n)
     //   Allocate a memory region of size `n` in memory, and copy the contents
@@ -108,13 +106,13 @@ class Buffer
     //   Buffer object. In this case the `ptr` should have had been
     //   allocated using `dt::malloc`.
     //
-    // Buffer::external(ptr, n)
+    // Buffer::unsafe(ptr, n)
     //   Create Buffer from an existing pointer `ptr` to a memory buffer
     //   of size `n`, however the ownership of the pointer will not be assumed:
     //   the caller will be responsible for deallocating `ptr` when it is no
     //   longer in use, but not before the Buffer object is deleted.
     //
-    // Buffer::external(ptr, n, pybuf)
+    // Buffer::from_pybuffer(ptr, n, pybuf)
     //   Create Buffer from a pointer `ptr` to a memory buffer of size `n`
     //   and using `pybuf` as the guard for the memory buffer's lifetime. The
     //   `pybuf` here is a `Py_buffer` struct used to implement Python buffers
@@ -137,9 +135,10 @@ class Buffer
     static Buffer mem(int64_t n);
     static Buffer copy(const void* ptr, size_t n);
     static Buffer acquire(void* ptr, size_t n);
-    static Buffer external(void* ptr, size_t n);
-    static Buffer external(const void* ptr, size_t n);
-    static Buffer external(const void* ptr, size_t n, py::buffer&& pybuf);
+    static Buffer unsafe(void* ptr, size_t n);
+    static Buffer unsafe(const void* ptr, size_t n);
+    static Buffer from_pybuffer(const void* ptr, size_t n, py::buffer&& pybuf);
+    static Buffer from_arrowarray(const void* ptr, size_t n, std::shared_ptr<dt::OArrowArray> arr);
     static Buffer pybytes(const py::oobj& src);
     static Buffer view(const Buffer& src, size_t n, size_t offset);
     static Buffer mmap(const std::string& path);
