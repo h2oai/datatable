@@ -11,6 +11,7 @@
   --right-menu-width: 240px;
   --document-width: 900px;
   --document-x-margin: clamp(10px, 2.5vw, 40px);
+  --document-padding: min(40px, 4vw);
 
   --font-sans: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
   --font-mono: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
@@ -67,6 +68,9 @@ table {
   margin-bottom: 1rem;   /* same as a paragraph */
 }
 
+.list-table {
+  overflow-x: scroll;
+}
 
 
 /*------------------------------------------------------------------------------
@@ -99,7 +103,7 @@ h4 {
 /* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
 .section > .section > .section,
 .section > .section > .section > .section {
-  margin-left: 24px;
+  margin-left: calc(var(--document-padding) / 2);
 }
 
 a.headerlink {
@@ -129,6 +133,10 @@ h4:hover a.headerlink {
 /*------------------------------------------------------------------------------
  * Lists
  *----------------------------------------------------------------------------*/
+
+dl, ol, ul {
+  padding-inline-start: calc(var(--document-padding) * 0.6 + 40px * 0.4);
+}
 
 li {
   margin-bottom: 1rem;
@@ -428,7 +436,7 @@ div.document {
   background-color: white;
   border-radius: 2pt;
   box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
-  padding: min(40px, 4vw);
+  padding: var(--document-padding);
 }
 
 div.copyright {
