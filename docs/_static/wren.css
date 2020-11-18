@@ -418,7 +418,7 @@ div.nav-right > #toc-local a.list-group-item.active {
 div.document-wrapper {
   flex: 25;
   max-width: var(--document-width);
-  min-width: calc(var(--document-width) * 2/3);
+  min-width: min(100vw, calc(var(--document-width) * 2/3));
   margin-bottom: 25px;
   margin-left: var(--document-x-margin);
   margin-top: 25px;
@@ -428,7 +428,7 @@ div.document {
   background-color: white;
   border-radius: 2pt;
   box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
-  padding: 40px;
+  padding: min(40px, 4vw);
 }
 
 div.copyright {
@@ -684,6 +684,10 @@ div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
     position: absolute;
     left: calc(0px - var(--left-menu-width));
     transition: left 0.3s;
+  }
+
+  div.sidebar-left-area:not(.active) .sidebar-left-bg {
+    box-shadow: none;
   }
 
   div.sidebar-left-area.active {
