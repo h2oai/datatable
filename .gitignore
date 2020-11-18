@@ -37,17 +37,10 @@ docs/_build/
 .idea/*
 !.idea/inspectionProfiles
 *.sublime-*
-
+.DS_Store
 
 # Landfill area
 temp/
-
-
-# Microbenchmarks
-microbench/sort/sort
-microbench/writecsv/writecsv
-microbench/fread/fread
-microbench/groupby/groupby
 
 
 # Auto-generated files
