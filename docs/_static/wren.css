@@ -430,6 +430,7 @@ div.document-wrapper {
   margin-bottom: 25px;
   margin-left: var(--document-x-margin);
   margin-top: 25px;
+  overflow-x: hidden;
 }
 
 div.document {
@@ -505,7 +506,7 @@ div.highlight-box {
   border-style: none solid;
   display: flex;
   height: 100%;
-  left: calc(var(--left-menu-width) + 40px);
+  left: calc(var(--left-menu-width) + var(--document-x-margin));
   padding: 3px 8px;
   position: absolute;
   top: 0;
@@ -704,6 +705,10 @@ div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
 
   body > div.main-area {
     margin-left: 0;
+  }
+
+  div.highlight-box {
+    left: 55px;
   }
 
   body > div.main-area > div.document-wrapper {
