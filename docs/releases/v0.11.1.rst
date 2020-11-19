@@ -1,0 +1,15 @@
+
+.. changelog::
+  :version: 0.11.1
+
+  General
+  -------
+  -[fix] Fixed format of the wheel file, which caused problems when datatable
+    was installed in a conda environment.
+
+
+  .. contributors::
+
+    1   @st-pasha
+    --
+    1   @lucasjamar             <Lucas Jamar>
