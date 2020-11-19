@@ -432,23 +432,19 @@ static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
 // Parse controller
 //------------------------------------------------------------------------------
 
-static dt::SType find_next_stype(dt::SType curr_stype, int stype0) {
-  int istype = static_cast<int>(curr_stype);
-  if (stype0 > 0) {
-    return static_cast<dt::SType>(stype0);
+static dt::SType find_next_stype(dt::SType curr_stype, dt::SType stype0) {
+  if (!(stype0 == dt::SType::VOID || stype0 == dt::SType::INVALID)) {
+    return stype0;
   }
-  if (stype0 < 0) {
-    return static_cast<dt::SType>(std::min(istype + 1, -stype0));
-  }
-  if (istype == dt::STYPES_COUNT - 1) {
+  if (curr_stype == dt::SType::OBJ) {
     return curr_stype;
   }
-  return static_cast<dt::SType>((istype + 1) % int(dt::STYPES_COUNT));
+  return static_cast<dt::SType>(static_cast<int>(curr_stype) + 1);
 }
 
 
 
-static Column resolve_column(const Column& inputcol, int stype0)
+static Column resolve_column(const Column& inputcol, dt::SType stype0)
 {
   Buffer membuf;
   Buffer strbuf;
@@ -504,14 +500,14 @@ static Column resolve_column(const Column& inputcol, int stype0)
 }
 
 
-Column Column::from_pylist(const py::olist& list, int stype0) {
+Column Column::from_pylist(const py::olist& list, dt::SType stype0) {
   Column inputcol(new dt::PyList_ColumnImpl(list));
   return resolve_column(inputcol, stype0);
 }
 
 
 Column Column::from_pylist_of_tuples(
-    const py::olist& list, size_t index, int stype0)
+    const py::olist& list, size_t index, dt::SType stype0)
 {
   Column inputcol(new dt::PyTupleList_ColumnImpl(list, index));
   return resolve_column(inputcol, stype0);
@@ -519,7 +515,7 @@ Column Column::from_pylist_of_tuples(
 
 
 Column Column::from_pylist_of_dicts(
-    const py::olist& list, py::robj name, int stype0)
+    const py::olist& list, py::robj name, dt::SType stype0)
 {
   Column inputcol(new dt::PyDictList_ColumnImpl(list, name));
   return resolve_column(inputcol, stype0);
