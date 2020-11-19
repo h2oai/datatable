@@ -248,7 +248,6 @@ To get the last non-null value per row in a :func:`by()` operation, you can use 
 
     0,1,4
     1,2,3
-
 )";
 #endif
 
