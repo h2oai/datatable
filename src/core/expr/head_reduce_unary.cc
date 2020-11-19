@@ -822,6 +822,31 @@ Get the maximum from column B::
 
     0,22
 
+Get the maximum of all columns::
+
+  df[:, [dt.max(f.A), dt.max(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+Same as above, but more convenient::
+
+  df[:, dt.max(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+
 In the presence of :func:`by()`, it returns the row with the maximum value per group ::
 
     df[:, dt.max(f.B), by("A")]
