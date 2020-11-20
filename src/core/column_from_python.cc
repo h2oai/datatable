@@ -100,17 +100,18 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const Column& inputcol, Buffer& mbuf)
+static Column force_as_bool(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  mbuf.resize(nrows);
-  auto outdata = static_cast<int8_t*>(mbuf.xptr());
+  Buffer data = Buffer::mem(nrows);
+  auto outdata = static_cast<int8_t*>(data.xptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     outdata[i] = item.to_bool_force();
   }
+  return Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(data));
 }
 
 
@@ -176,11 +177,10 @@ static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const Column& inputcol, Buffer& membuf)
-{
+static Column force_as_int(const Column& inputcol) {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(T));
+  auto outdata = static_cast<T*>(databuf.wptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
@@ -192,6 +192,7 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
     py::oint litem = item.to_pyint_force();
     outdata[i] = litem.mvalue<T>();
   }
+  return Column::new_mbuf_column(nrows, dt::stype_from<T>, std::move(databuf));
 }
 
 
@@ -225,11 +226,11 @@ static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
 
 
 template <typename T>
-static void force_as_real(const Column& inputcol, Buffer& membuf)
+static Column force_as_real(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(T));
+  auto outdata = static_cast<T*>(databuf.xptr());
 
   int overflow = 0;
   py::oobj item;
@@ -249,6 +250,7 @@ static void force_as_real(const Column& inputcol, Buffer& membuf)
     outdata[i] = fitem.value<T>();
   }
   PyErr_Clear();  // in case an overflow occurred
+  return Column::new_mbuf_column(nrows, dt::stype_from<T>, std::move(databuf));
 }
 
 
@@ -339,21 +341,18 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const Column& inputcol, Buffer& offbuf,
-                         Buffer& strbuf)
+static Column force_as_str(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
       << "Cannot store " << nrows << " elements in a str32 column";
   }
-  offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
-  offsets[-1] = 0;
-  if (!strbuf) {
-    strbuf.resize(nrows * 4);
-  }
+  Buffer strbuf = Buffer::mem(nrows * 4);
+  Buffer offbuf = Buffer::mem((nrows + 1) * sizeof(T));
   char* strptr = static_cast<char*>(strbuf.xptr());
+  auto offsets = static_cast<T*>(offbuf.xptr()) + 1;
+  offsets[-1] = 0;
 
   T curr_offset = 0;
   py::oobj item;
@@ -396,6 +395,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
     }
   }
   strbuf.resize(curr_offset);
+  return Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -404,27 +404,25 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
+static Column force_as_pyobj(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(PyObject*));
-  PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(PyObject*));
+  auto out = static_cast<PyObject**>(databuf.xptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     if (item.is_float() && std::isnan(item.to_double())) {
-      outdata[i] = py::None().release();
+      out[i] = py::None().release();
     } else {
-      outdata[i] = py::oobj(item).release();
+      out[i] = std::move(item).release();
     }
   }
-  return nrows;
+  databuf.set_pyobjects(/* clear_data = */ false);
+  return Column::new_mbuf_column(nrows, dt::SType::OBJ, std::move(databuf));
 }
 
-
-// No "force" method, because `parse_as_pyobj()` is already capable of
-// processing any pylist.
 
 
 
@@ -442,10 +440,51 @@ static dt::SType find_next_stype(dt::SType curr_stype, dt::SType stype0) {
   return static_cast<dt::SType>(static_cast<int>(curr_stype) + 1);
 }
 
+#if 0
+/**
+  * Parse `inputcol`, auto-detecting its stype.
+  */
+static Column resolve_column_auto(const Column& inputcol) {
+  xassert(inputcol.stype() == dt::SType::OBJ);
+  Buffer databuf, strbuf;
+  size_t i = 0;
+  size_t nrows = inputcol.nrows();
+  auto current_stype = dt::SType::VOID;
+  while (current_stype != dt::SType::INVALID) {
+
+  }
+}
+#endif
+
+
+/**
+  * Parse `inputcol` forcing it into the specific stype.
+  */
+static Column resolve_column_specific(const Column& inputcol, dt::SType stype) {
+  switch (stype) {
+    case dt::SType::BOOL:    return force_as_bool(inputcol);
+    case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
+    case dt::SType::INT16:   return force_as_int<int16_t>(inputcol);
+    case dt::SType::INT32:   return force_as_int<int32_t>(inputcol);
+    case dt::SType::INT64:   return force_as_int<int64_t>(inputcol);
+    case dt::SType::FLOAT32: return force_as_real<float>(inputcol);
+    case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
+    case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
+    case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
+    case dt::SType::OBJ:     return force_as_pyobj(inputcol);
+    default:
+      throw ValueError() << "Unable to create Column of type `"
+                         << stype << "` from list";
+  }
+}
 
 
 static Column resolve_column(const Column& inputcol, dt::SType stype0)
 {
+  if (stype0 == dt::SType::INVALID || stype0 == dt::SType::VOID) {}
+  else {
+    return resolve_column_specific(inputcol, stype0);
+  }
   Buffer membuf;
   Buffer strbuf;
   dt::SType stype = find_next_stype(dt::SType::VOID, stype0);
@@ -455,21 +494,20 @@ static Column resolve_column(const Column& inputcol, dt::SType stype0)
     dt::SType next_stype = find_next_stype(stype, stype0);
     if (stype == next_stype) {
       switch (stype) {
-        case dt::SType::BOOL:    force_as_bool(inputcol, membuf); break;
-        case dt::SType::INT8:    force_as_int<int8_t>(inputcol, membuf); break;
-        case dt::SType::INT16:   force_as_int<int16_t>(inputcol, membuf); break;
-        case dt::SType::INT32:   force_as_int<int32_t>(inputcol, membuf); break;
-        case dt::SType::INT64:   force_as_int<int64_t>(inputcol, membuf); break;
-        case dt::SType::FLOAT32: force_as_real<float>(inputcol, membuf); break;
-        case dt::SType::FLOAT64: force_as_real<double>(inputcol, membuf); break;
-        case dt::SType::STR32:   force_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::STR64:   force_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::OBJ:     parse_as_pyobj(inputcol, membuf); break;
+        case dt::SType::BOOL:    return force_as_bool(inputcol);
+        case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
+        case dt::SType::INT16:   return force_as_int<int16_t>(inputcol);
+        case dt::SType::INT32:   return force_as_int<int32_t>(inputcol);
+        case dt::SType::INT64:   return force_as_int<int64_t>(inputcol);
+        case dt::SType::FLOAT32: return force_as_real<float>(inputcol);
+        case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
+        case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
+        case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
+        case dt::SType::OBJ:     return force_as_pyobj(inputcol);
         default:
           throw RuntimeError()
             << "Unable to create Column of type " << stype << " from list";
       }
-      break; // while(stype)
     } else {
       switch (stype) {
         case dt::SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
@@ -481,7 +519,7 @@ static Column resolve_column(const Column& inputcol, dt::SType stype0)
         case dt::SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
         case dt::SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
         case dt::SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::OBJ:     i = parse_as_pyobj(inputcol, membuf); break;
+        case dt::SType::OBJ:     return force_as_pyobj(inputcol);
         default: /* do nothing -- not all STypes are currently implemented. */ break;
       }
       if (i == nrows) break;
@@ -492,9 +530,6 @@ static Column resolve_column(const Column& inputcol, dt::SType stype0)
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
   }
   else {
-    if (stype == dt::SType::OBJ) {
-      membuf.set_pyobjects(/* clear_data = */ false);
-    }
     return Column::new_mbuf_column(nrows, stype, std::move(membuf));
   }
 }
