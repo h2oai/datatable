@@ -106,7 +106,7 @@ const char* File::cname() const {
 
 
 void File::resize(size_t newsize) {
-  int ret = FTRUNCATE(fd_, newsize);
+  int ret = FTRUNCATE(fd_, static_cast<int64_t>(newsize)) ;
   if (ret == -1) {
     throw IOError() << "Unable to truncate() file " << name_
                     << " to size " << newsize << ": " << Errno;
