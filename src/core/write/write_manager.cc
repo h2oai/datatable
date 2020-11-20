@@ -25,9 +25,11 @@
 #include "utils/assert.h"          // xassert
 #include "utils/misc.h"            // nlz
 #include "write/write_manager.h"
+
+
 namespace dt {
 namespace write {
-
+  
 
 //------------------------------------------------------------------------------
 // Construction

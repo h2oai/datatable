@@ -113,12 +113,9 @@
       const DWORD protect = __map_mmap_prot_page(prot, flags);
       const DWORD desiredAccess = __map_mmap_prot_file(prot, flags);
 
-      const off_t maxSize = off + (off_t)len;
-
-      const DWORD dwMaxSizeLow = (sizeof(off_t) <= sizeof(DWORD)) ?
-                      (DWORD)maxSize : (DWORD)(maxSize & 0xFFFFFFFFL);
-      const DWORD dwMaxSizeHigh = (sizeof(off_t) <= sizeof(DWORD)) ?
-                      (DWORD)0 : (DWORD)((maxSize >> 32) & 0xFFFFFFFFL);
+      const size_t maxSize = (size_t)off + len;
+      const DWORD dwMaxSizeLow = (DWORD)(maxSize & 0xFFFFFFFFL);
+      const DWORD dwMaxSizeHigh = (DWORD)((maxSize >> 32) & 0xFFFFFFFFL);
 
   #ifdef _MSC_VER
   #pragma warning(pop)
