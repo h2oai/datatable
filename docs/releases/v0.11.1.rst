@@ -23,6 +23,7 @@
   -[fix] Fixed format of the wheel file, which caused problems when datatable
     was installed in a conda environment.
 
+
   .. contributors::
 
     1   @st-pasha
