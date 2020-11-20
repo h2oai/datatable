@@ -37,6 +37,7 @@
   #ifndef FILE_MAP_EXECUTE
   #define FILE_MAP_EXECUTE    0x0020
   #endif /* FILE_MAP_EXECUTE */
+  static_assert(sizeof(DWORD) == 4, "DWORD should be 4-byte");
 
   static int __map_mman_error(const DWORD err, const int deferr)
   {
