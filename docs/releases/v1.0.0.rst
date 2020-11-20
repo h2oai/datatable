@@ -13,6 +13,9 @@
       can now be an unsorted list. The list can also contain duplicate
       values.
 
+    -[fix] Fix a crash when saving frames larger than 4Gb to jay or csv
+      on Windows. [#]
+
     FExpr
     -----
     .. current-module:: datatable
@@ -41,6 +44,8 @@
 
     -[fix] Fread no longer throws an exception when the list of column types
       passed to parameter ``columns=`` contains ``str64``. [#2704]
+
+    -[fix] Fix an error when reading files larger than 4Gb on Windows. [#]
 
 
     General
