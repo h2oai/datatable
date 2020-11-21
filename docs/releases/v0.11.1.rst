@@ -2,6 +2,22 @@
 .. changelog::
   :version: 0.11.1
 
+
+  Frame
+  -----
+  .. ref-context:: datatable.Frame
+
+  -[fix] Fix a crash when saving frames larger than 4Gb to jay or csv
+    on Windows. [#2754]
+
+
+  Fread
+  -----
+  .. ref-context:: datatable
+
+  -[fix] Fix an error when reading files larger than 4Gb on Windows. [#2725]
+
+
   General
   -------
   -[fix] Fixed format of the wheel file, which caused problems when datatable

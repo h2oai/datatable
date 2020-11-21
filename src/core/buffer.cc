@@ -670,11 +670,11 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
       while (attempts--) {
         int flags = create? MAP_SHARED : MAP_PRIVATE|MAP_NORESERVE;
         data_ = mmap(/* address = */ nullptr,
-                       /* length = */ size_,
-                       /* protection = */ PROT_WRITE|PROT_READ,
-                       /* flags = */ flags,
-                       /* fd = */ file.descriptor(),
-                       /* offset = */ 0);
+                     /* length = */ size_,
+                     /* protection = */ PROT_WRITE|PROT_READ,
+                     /* flags = */ flags,
+                     /* fd = */ file.descriptor(),
+                     /* offset = */ 0);
         if (data_ == MAP_FAILED) {
           data_ = nullptr;
           if (errno == 12) {  // release some memory and try again
