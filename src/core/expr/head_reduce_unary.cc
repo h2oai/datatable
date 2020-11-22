@@ -398,7 +398,7 @@ Examples
 
 Get the mean from column A::
 
-    df[:, dt.max(f.A)]
+    df[:, dt.mean(f.A)]
 
 .. dtframe::
     :names: A
