@@ -14,7 +14,7 @@ import datatable as dt
 import warnings
 import zipfile
 from datatable.internal import frame_integrity_check
-from tests import find_file
+from tests import assert_equals, find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -105,6 +105,24 @@ def f(request):
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
+
+
+# @pytest.mark.usefixtures("is_win", "is_release")
+@pytest.mark.usefixtures("is_win")
+def test_fread_4gb(tempfile):
+    size = 4 * 10**7
+    DT0 = dt.Frame([True] * size)
+    DT0.to_jay(tempfile)
+    assert(os.path.getsize(tempfile) > size)
+
+    DT1 = dt.Frame(tempfile)
+    assert_equals(DT0, DT1)
+    DT1.to_csv(tempfile)
+    assert(os.path.getsize(tempfile) > size)
+
+    DT1 = dt.fread(tempfile)
+    assert_equals(DT0, DT1)
+
 
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
                          indirect=True)
