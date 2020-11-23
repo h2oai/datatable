@@ -51,15 +51,16 @@ def is_release():
 
 
 @pytest.fixture(scope="session")
-def is_win():
-    """Helper function to determine Windows operating system"""
-    return platform.system() == "Windows"
+def winonly():
+    """Skip this test when running not on Windows"""
+    if platform.system() != "Windows":
+        pytest.skip("Enabled on Windows only")
 
 
 @pytest.fixture(scope="session")
 def nowin():
     """Skip this test when running on Windows"""
-    if is_win():
+    if platform.system() == "Windows"():
         pytest.skip("Disabled on Windows")
 
 
