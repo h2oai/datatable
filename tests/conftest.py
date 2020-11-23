@@ -60,7 +60,7 @@ def winonly():
 @pytest.fixture(scope="session")
 def nowin():
     """Skip this test when running on Windows"""
-    if platform.system() == "Windows"():
+    if platform.system() == "Windows":
         pytest.skip("Disabled on Windows")
 
 
