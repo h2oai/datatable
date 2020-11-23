@@ -42,6 +42,7 @@ static PyObject* pandas_DataFrame_type = nullptr;
 static PyObject* pandas_Series_type = nullptr;
 static PyObject* numpy_Array_type = nullptr;
 static PyObject* numpy_MaskedArray_type = nullptr;
+static PyObject* numpy_bool = nullptr;
 static PyObject* numpy_int8 = nullptr;
 static PyObject* numpy_int16 = nullptr;
 static PyObject* numpy_int32 = nullptr;
@@ -271,6 +272,13 @@ bool _obj::is_numpy_array() const noexcept {
   return PyObject_IsInstance(v, numpy_Array_type);
 }
 
+bool _obj::is_numpy_bool() const noexcept {
+  if (!numpy_bool) init_numpy();
+  if (!v || !numpy_bool) return false;
+  if (PyObject_IsInstance(v, numpy_bool)) return true;
+  return false;
+}
+
 int _obj::is_numpy_int() const noexcept {
   if (!numpy_int64) init_numpy();
   if (!v || !numpy_int64) return 0;
@@ -419,6 +427,17 @@ bool _obj::parse_int(double* out) const {
   return false;
 }
 
+
+bool _obj::parse_numpy_bool(int8_t* out) const {
+  if (!numpy_bool) init_numpy();
+  if (numpy_bool && v) {
+    if (PyObject_IsInstance(v, numpy_bool)) {
+      *out = static_cast<int8_t>(PyObject_IsTrue(v));
+      return true;
+    }
+  }
+  return false;
+}
 
 
 template <typename T>
@@ -1105,6 +1124,7 @@ static void init_numpy() {
   if (np) {
     numpy_Array_type = np.get_attr("ndarray").release();
     numpy_MaskedArray_type = np.get_attr("ma").get_attr("MaskedArray").release();
+    numpy_bool = np.get_attr("bool_").release();
     numpy_int8 = np.get_attr("int8").release();
     numpy_int16 = np.get_attr("int16").release();
     numpy_int32 = np.get_attr("int32").release();

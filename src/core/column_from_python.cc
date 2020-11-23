@@ -84,7 +84,8 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
   return parse_as_X<int8_t>(inputcol, mbuf, i0,
             [](const py::oobj& item, int8_t* out) {
               return item.parse_bool(out) ||
-                     item.parse_none(out);
+                     item.parse_none(out) ||
+                     item.parse_numpy_bool(out);
             });
 }
 

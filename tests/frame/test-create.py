@@ -1174,6 +1174,49 @@ def test_create_from_datetime_array(numpy):
     assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
 
 
+def test_create_from_numpy_bools1(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t]), dt.Frame([True]))
+    assert_equals(dt.Frame([f]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools2(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([[t]]), dt.Frame([True]))
+    assert_equals(dt.Frame([[f]]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools3(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t, f, f, t]),
+                  dt.Frame([True, False, False, True]))
+
+
+def test_create_from_numpy_bools4(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([True, t, f, False, None]),
+                  dt.Frame([True, True, False, False, None]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_create_from_numpy_bools_random(np, seed):
+    random.seed(seed)
+    src1 = [random.choice([True, False, None, np.bool_(1), np.bool_(0)])
+            for i in range(int(random.expovariate(0.1) + 1))]
+    src2 = [x if x is None else bool(x)
+            for x in src1]
+    if random.random() > 0.5:
+        src1 = [src1]
+    DT1 = dt.Frame(src1)
+    DT2 = dt.Frame(src2)
+    assert_equals(DT1, DT2)
+
+
+
 def test_create_from_numpy_ints(numpy):
     DT = dt.Frame(A=[numpy.int32(3), numpy.int32(78), numpy.int32(0)])
     frame_integrity_check(DT)
