@@ -113,7 +113,8 @@ def f(request):
 def test_fread_4gb_plus(tempfile_jay, tempfile_csv):
     print(tempfile_jay, tempfile_csv)
     size = 4 * 10**9
-    DT0 = dt.Frame([True] * size)
+    DT0 = dt.Frame([True])
+    DT0.nrows = size
     DT0.to_jay(tempfile_jay)
     assert os.path.getsize(tempfile_jay) > size
 
