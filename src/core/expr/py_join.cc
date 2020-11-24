@@ -67,9 +67,6 @@ See Also
 Examples
 --------
 
-Examples
---------
-
 .. code-block:: python
 
     df1 = dt.Frame("""    date    X1  X2
@@ -101,7 +98,7 @@ Join is now possible::
     2,01-03-2020,Y,15,10
     3,01-04-2020,Y,20,10
 
-You can access the values in the right frame in an expression, using the secondary namespace object `g  <https://datatable.readthedocs.io/en/latest/api/dt/g.html>`__::
+You can access the values in the right frame in an expression, using the secondary namespace object :data:`g <dt.g>`::
 
     df1[:, update(X2=f.X2 * g.X3), join(df2)]
     df1
