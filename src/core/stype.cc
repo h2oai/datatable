@@ -83,7 +83,7 @@ const char* stype_name(SType stype) {
     case SType::DATE32 : return "date32";
     case SType::DATE16 : return "date16";
     case SType::OBJ    : return "obj64";
-    default     : return "--";
+    default            : return "unknown";
   }
 }
 
