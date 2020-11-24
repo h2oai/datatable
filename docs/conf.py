@@ -185,7 +185,9 @@ def get_local_toc(document):
     html_text = "<div id='toc-local' class='list-group'>\n"
     html_text += " <b>Table of contents</b>\n"
     for title, node_id, level in titles:
-        html_text += f"  <a href='#{node_id}' class='list-group-item'>{title}</a>\n"
+        if level <= 1:
+            return document.reporter.error("More than one <h1> title on the page")
+        html_text += f"  <a href='#{node_id}' class='list-group-item level-{level-1}'>{title}</a>\n"
     html_text += "</div>\n"
     return html_text
 
@@ -197,10 +199,29 @@ def on_html_page_context(app, pagename, templatename, context, doctree):
     context["get_local_toc"] = lambda: get_local_toc(doctree)
 
 
+def patch_list_table():
+    """
+    Modifies docutils' builtin ListTable class so that the rendered table
+    is wrapped in a div. This is necessary in order to be able to prevent
+    a table from overflowing the width of the page.
+    """
+    from docutils.parsers.rst.directives.tables import ListTable
+    from sphinxext.xnodes import div
+
+    def new_run(self):
+        ret = self._run()
+        ret[0] = div(ret[0], classes=["list-table"])
+        return ret
+
+    ListTable._run = ListTable.run
+    ListTable.run = new_run
+
+
 
 def setup(app):
     app.add_css_file("pygments.css")
     app.add_css_file("code.css")
+    patch_list_table()
 
     if html_theme == "wren":
         app.add_css_file("bootstrap.min.css")

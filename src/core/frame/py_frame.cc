@@ -241,6 +241,7 @@ oobj Frame::copy(const PKArgs& args) {
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  newframe->meta_ = meta_;
   newframe->source_ = source_;
   return res;
 }
@@ -444,6 +445,54 @@ void Frame::materialize(const PKArgs& args) {
   dt->materialize(to_memory);
 }
 
+
+//------------------------------------------------------------------------------
+// .meta
+//------------------------------------------------------------------------------
+
+static const char* doc_meta =
+R"(
+.. xversionadded:: 1.0
+
+Frame's meta information.
+
+This property contains meta information, if any, as set by datatable
+functions and methods. It is a settable property, so that users can also
+update it with any information relevant to a particular frame.
+
+It is not guaranteed that the existing meta information will be preserved
+by the functions and methods called on the frame. In particular,
+it is not preserved when exporting data into a Jay file or pickling the data.
+This behavior may change in the future.
+
+The default value for this property is `None`.
+
+
+Parameters
+----------
+return: dict | None
+    If the frame carries any meta information, the corresponding meta
+    information dictionary is returned, `None` is returned otherwise.
+
+new_meta: dict | None
+    New meta information.
+
+)";
+
+static GSArgs args_meta("meta", doc_meta);
+
+oobj Frame::get_meta() const {
+  return meta_? meta_ : py::None();
+}
+
+
+void Frame::set_meta(const Arg& meta) {
+  if (!meta.is_dict() && !meta.is_none()) {
+    throw TypeError() << "`.meta` must be a dictionary or `None`, "
+      << "instead got: " << meta.typeobj();
+  }
+  meta_ = meta.is_none()? py::None() : meta.to_pydict();
+}
 
 
 
@@ -984,6 +1033,13 @@ following list describes possible choices:
     (however, this is subject to numpy's approval). The resulting
     frame will have a copy-on-write semantics.
 
+`pyarrow.Table`
+    An arrow table will be converted into a datatable Frame, preserving
+    column names and types.
+
+    If the arrow table has columns of types not supported by datatable
+    (for example lists or structs), an exception will be raised.
+
 `None`
     When the source is not given at all, then a 0x0 frame will be
     created; unless a `names` parameter is provided, in which
@@ -1065,6 +1121,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_topython(xt);
 
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
+  xt.add(GETSET(&Frame::get_meta, &Frame::set_meta, args_meta));
   xt.add(GETTER(&Frame::get_ncols, args_ncols));
   xt.add(GETTER(&Frame::get_ndims, args_ndims));
   xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));

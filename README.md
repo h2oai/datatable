@@ -22,6 +22,7 @@
 
 # datatable
 
+[![Gitter chat](https://badges.gitter.im/h2oai/datatable.png)](https://gitter.im/h2oai/datatable)
 [![PyPi version](https://img.shields.io/pypi/v/datatable.svg)](https://pypi.org/project/datatable/)
 [![License](https://img.shields.io/pypi/l/datatable.svg)](https://github.com/h2oai/datatable/blob/main/LICENSE)
 [![Build Status](https://travis-ci.org/h2oai/datatable.svg?branch=main)](https://travis-ci.org/h2oai/datatable)

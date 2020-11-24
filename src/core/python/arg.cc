@@ -122,6 +122,7 @@ bool Arg::is_frame()             const { return pyobj.is_frame(); }
 bool Arg::is_pandas_frame()      const { return pyobj.is_pandas_frame(); }
 bool Arg::is_pandas_series()     const { return pyobj.is_pandas_series(); }
 bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
+bool Arg::is_arrow_table()       const { return pyobj.is_arrow_table(); }
 
 bool Arg::is_auto() const {
   return pyobj.is_string() &&

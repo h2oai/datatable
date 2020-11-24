@@ -115,8 +115,9 @@ div.document div.notranslate.highlight-default {
   counter-increment: cc;
   display: flex;
   flex-direction: row;
-  padding: 0;
   margin: 0 0 24px 0;
+  overflow-x: scroll;
+  padding: 0;
 }
 
 div.document div.notranslate.highlight-python + div.highlight-pycon,
@@ -218,21 +219,4 @@ div.document div.notranslate.highlight-pycon div.highlight pre {
 
 .admonition.seealso p.first.admonition-title::after {
   content: ":";
-}
-
-
-
-/* ------- Miscellaneous ---------------------------------------------------- */
-
-/* inter-paragraph distance is reduced in a ul|ol */
-.section ol p + ul.simple,
-.section ul p + ul.simple,
-.section ol p + ol.simple,
-.section ul p + ol.simple {
-  margin-top: -6pt;
-}
-
-ul.simple li,
-ol.simple li {
-  margin-bottom: 3pt;
 }

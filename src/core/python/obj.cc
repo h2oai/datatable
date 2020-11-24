@@ -36,11 +36,13 @@
 #include "utils/macros.h"
 
 namespace py {
+static PyObject* arrow_Table_type = nullptr;
 static PyObject* pandas_Categorical_type = nullptr;
 static PyObject* pandas_DataFrame_type = nullptr;
 static PyObject* pandas_Series_type = nullptr;
 static PyObject* numpy_Array_type = nullptr;
 static PyObject* numpy_MaskedArray_type = nullptr;
+static PyObject* numpy_bool = nullptr;
 static PyObject* numpy_int8 = nullptr;
 static PyObject* numpy_int16 = nullptr;
 static PyObject* numpy_int32 = nullptr;
@@ -48,6 +50,7 @@ static PyObject* numpy_int64 = nullptr;
 static PyObject* numpy_float16 = nullptr;
 static PyObject* numpy_float32 = nullptr;
 static PyObject* numpy_float64 = nullptr;
+static void init_arrow();
 static void init_pandas();
 static void init_numpy();
 
@@ -269,6 +272,13 @@ bool _obj::is_numpy_array() const noexcept {
   return PyObject_IsInstance(v, numpy_Array_type);
 }
 
+bool _obj::is_numpy_bool() const noexcept {
+  if (!numpy_bool) init_numpy();
+  if (!v || !numpy_bool) return false;
+  if (PyObject_IsInstance(v, numpy_bool)) return true;
+  return false;
+}
+
 int _obj::is_numpy_int() const noexcept {
   if (!numpy_int64) init_numpy();
   if (!v || !numpy_int64) return 0;
@@ -292,6 +302,12 @@ bool _obj::is_numpy_marray() const noexcept {
   if (!numpy_MaskedArray_type) init_numpy();
   if (!v || !numpy_MaskedArray_type) return false;
   return PyObject_IsInstance(v, numpy_MaskedArray_type);
+}
+
+bool _obj::is_arrow_table() const noexcept {
+  if (!arrow_Table_type) init_arrow();
+  if (!v || !arrow_Table_type) return false;
+  return PyObject_IsInstance(v, arrow_Table_type);
 }
 
 bool _obj::is_dtexpr() const noexcept {
@@ -411,6 +427,17 @@ bool _obj::parse_int(double* out) const {
   return false;
 }
 
+
+bool _obj::parse_numpy_bool(int8_t* out) const {
+  if (!numpy_bool) init_numpy();
+  if (numpy_bool && v) {
+    if (PyObject_IsInstance(v, numpy_bool)) {
+      *out = static_cast<int8_t>(PyObject_IsTrue(v));
+      return true;
+    }
+  }
+  return false;
+}
 
 
 template <typename T>
@@ -1096,8 +1123,8 @@ static void init_numpy() {
   py::oobj np = get_module("numpy");
   if (np) {
     numpy_Array_type = np.get_attr("ndarray").release();
-    numpy_MaskedArray_type
-      = np.get_attr("ma").get_attr("MaskedArray").release();
+    numpy_MaskedArray_type = np.get_attr("ma").get_attr("MaskedArray").release();
+    numpy_bool = np.get_attr("bool_").release();
     numpy_int8 = np.get_attr("int8").release();
     numpy_int16 = np.get_attr("int16").release();
     numpy_int32 = np.get_attr("int32").release();
@@ -1105,6 +1132,13 @@ static void init_numpy() {
     numpy_float16 = np.get_attr("float16").release();
     numpy_float32 = np.get_attr("float32").release();
     numpy_float64 = np.get_attr("float64").release();
+  }
+}
+
+static void init_arrow() {
+  py::oobj pa = get_module("pyarrow");
+  if (pa) {
+    arrow_Table_type = pa.get_attr("Table").release();
   }
 }
 

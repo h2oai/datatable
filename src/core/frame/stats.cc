@@ -140,7 +140,7 @@ See Also
   an expression; can also be applied per-group.
 )";
 
-
+#if 0
 static const char* doc_max1 =
 R"(max1(self)
 --
@@ -168,6 +168,7 @@ See Also
 - :func:`dt.max()` -- function for counting max values in a column or
   an expression; can also be applied per-group.
 )";
+#endif
 
 
 static const char* doc_min =
@@ -194,6 +195,7 @@ See Also
 )";
 
 
+#if 0
 static const char* doc_min1 =
 R"(min1(self)
 --
@@ -221,14 +223,14 @@ See Also
 - :func:`dt.min()` -- function for counting min values in a column or
   an expression; can also be applied per-group.
 )";
-
+#endif
 
 
 
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
-static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
+static PKArgs args_max(0, 0, 0, false, false, {}, "max", doc_max);
 static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
-static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
+static PKArgs args_min(0, 0, 0, false, false, {}, "min", doc_min);
 static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
 static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);

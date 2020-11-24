@@ -501,7 +501,7 @@ def html_page_context(app, pagename, templatename, context, doctree):
         .datatable table.frame tr {
             border: none;
             max-width: none;
-            padding: 0.5em 0.5em;
+            padding: 2px 5px;
             text-align: right;
             vertical-align: middle;
         }

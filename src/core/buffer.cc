@@ -24,11 +24,12 @@
 #include <cstring>             // std::strerror, std::memcpy
 #include <mutex>               // std::mutex, std::lock_guard
 #include "buffer.h"
-#include "mmm.h"               // MemoryMapWorker, MemoryMapManager
-#include "python/pybuffer.h"   // py::buffer
-#include "utils/alloc.h"       // dt::malloc, dt::realloc
+#include "mmm.h"                  // MemoryMapWorker, MemoryMapManager
+#include "python/pybuffer.h"      // py::buffer
+#include "utils/alloc.h"          // dt::malloc, dt::realloc
+#include "utils/arrow_structs.h"  // dt::OArrowArray
 #include "utils/macros.h"
-#include "utils/misc.h"        // malloc_size
+#include "utils/misc.h"           // malloc_size
 #include "utils/temporary_file.h"
 #include "writebuf.h"
 
@@ -43,6 +44,7 @@
 #ifndef MAP_NORESERVE
 #define MAP_NORESERVE 0 // does not exist in FreeBSD 11.x
 #endif
+
 
 //------------------------------------------------------------------------------
 // BufferImpl
@@ -247,6 +249,7 @@ class BufferImpl
 const size_t BufferImpl::page_size_ = BufferImpl::calc_page_size();
 
 
+
 //------------------------------------------------------------------------------
 // Memory_BufferImpl
 //------------------------------------------------------------------------------
@@ -302,6 +305,27 @@ class Memory_BufferImpl : public BufferImpl
 // External_BufferImpl
 //------------------------------------------------------------------------------
 
+// Helper class for External_BufferImpl
+class ResourceOwner {
+  public:
+    virtual ~ResourceOwner() = default;
+};
+
+class Pybuffer_Resource : public ResourceOwner {
+  py::buffer data_;
+  public:
+    Pybuffer_Resource(py::buffer&& buf)
+      : data_(std::move(buf)) {}
+};
+
+class Arrow_Resource : public ResourceOwner {
+  std::shared_ptr<dt::OArrowArray> data_;
+  public:
+    Arrow_Resource(std::shared_ptr<dt::OArrowArray>&& parr)
+      : data_(std::move(parr)) {}
+};
+
+
 /**
   * This class represents a piece of memory owned by some external
   * entity. The lifetime of the memory region may be guarded by a
@@ -313,7 +337,7 @@ class Memory_BufferImpl : public BufferImpl
 class External_BufferImpl : public BufferImpl
 {
   private:
-    std::unique_ptr<py::buffer> pybufinfo_;
+    std::unique_ptr<ResourceOwner> owner_;
 
   public:
     External_BufferImpl(const void* ptr, size_t n) {
@@ -325,10 +349,10 @@ class External_BufferImpl : public BufferImpl
     }
 
     External_BufferImpl(const void* ptr, size_t n,
-                        std::unique_ptr<py::buffer>&& pybuf)
+                        std::unique_ptr<ResourceOwner>&& owner)
       : External_BufferImpl(ptr, n)
     {
-      pybufinfo_ = std::move(pybuf);
+      owner_ = std::move(owner);
     }
 
     External_BufferImpl(void* ptr, size_t n)
@@ -349,7 +373,7 @@ class External_BufferImpl : public BufferImpl
     }
 
     void to_memory(Buffer& out) override {
-      if (pybufinfo_) out = Buffer::copy(data_, size_);
+      if (owner_) out = Buffer::copy(data_, size_);
     }
 };
 
@@ -787,18 +811,33 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
     return Buffer(new Memory_BufferImpl(std::move(ptr), n));
   }
 
-  Buffer Buffer::external(void* ptr, size_t n) {
+  Buffer Buffer::unsafe(void* ptr, size_t n) {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n) {
+  Buffer Buffer::unsafe(const void* ptr, size_t n) {
     return Buffer(new External_BufferImpl(ptr, n));
   }
 
-  Buffer Buffer::external(const void* ptr, size_t n, py::buffer&& pb) {
-    return Buffer(new External_BufferImpl(
-              ptr, n, std::make_unique<py::buffer>(std::move(pb))));
+  Buffer Buffer::from_pybuffer(const void* ptr, size_t n, py::buffer&& pb) {
+    return Buffer(new External_BufferImpl(ptr, n,
+                    std::unique_ptr<ResourceOwner>(
+                      new Pybuffer_Resource(std::move(pb))
+                    )
+                  ));
   }
+
+  Buffer Buffer::from_arrowarray(
+      const void* ptr, size_t n, std::shared_ptr<dt::OArrowArray> arr)
+  {
+    if (ptr == nullptr) return Buffer();
+    return Buffer(new External_BufferImpl(ptr, n,
+                    std::unique_ptr<ResourceOwner>(
+                      new Arrow_Resource(std::move(arr))
+                    )
+                  ));
+  }
+
 
   Buffer Buffer::pybytes(const py::oobj& src) {
     return Buffer(new PyBytes_BufferImpl(src));

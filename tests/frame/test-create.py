@@ -1174,6 +1174,49 @@ def test_create_from_datetime_array(numpy):
     assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
 
 
+def test_create_from_numpy_bools1(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t]), dt.Frame([True]))
+    assert_equals(dt.Frame([f]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools2(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([[t]]), dt.Frame([True]))
+    assert_equals(dt.Frame([[f]]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools3(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t, f, f, t]),
+                  dt.Frame([True, False, False, True]))
+
+
+def test_create_from_numpy_bools4(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([True, t, f, False, None]),
+                  dt.Frame([True, True, False, False, None]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_create_from_numpy_bools_random(np, seed):
+    random.seed(seed)
+    src1 = [random.choice([True, False, None, np.bool_(1), np.bool_(0)])
+            for i in range(int(random.expovariate(0.1) + 1))]
+    src2 = [x if x is None else bool(x)
+            for x in src1]
+    if random.random() > 0.5:
+        src1 = [src1]
+    DT1 = dt.Frame(src1)
+    DT2 = dt.Frame(src2)
+    assert_equals(DT1, DT2)
+
+
+
 def test_create_from_numpy_ints(numpy):
     DT = dt.Frame(A=[numpy.int32(3), numpy.int32(78), numpy.int32(0)])
     frame_integrity_check(DT)
@@ -1264,6 +1307,62 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
     DT = dt.Frame(arr)
     assert_equals(DT, dt.Frame(C0=arr.tolist(), stype=dt.int64))
     assert DT.to_jay()
+
+
+
+#-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow1(pa):
+    df = pa.Table.from_pydict({
+        "A": [3, 7, 11, 4],
+        "B": [True, False, True, False],
+        "C": [1.1, -2.5, 23, 0],
+        "D": [2, 3, 4, -1],
+        "E": ['make', 'love', 'not', 'war'],
+    }, schema = pa.schema([
+        pa.field("A", pa.int64()),
+        pa.field("B", pa.bool_()),
+        pa.field("C", pa.float64()),
+        pa.field("D", pa.int8()),
+        pa.field("E", pa.string())
+    ]))
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A=[3, 7, 11, 4] / dt.int64,
+                 B=[True, False, True, False],
+                 C=[1.1, -2.5, 23, 0],
+                 D=[2, 3, 4, -1] / dt.int8,
+                 E=['make', 'love', 'not', 'war'])
+    )
+
+
+def test_create_from_arrow2(pa):
+    df = pa.Table.from_pydict({
+        "A1": [2, None, 17, -1, 3],
+        "B2": ['what', 'if', None, 'munroe', None],
+        "C3": [2.17, math.nan, None, -math.nan, 0.1],
+        "D4": [None, None, None, True, False],
+        })
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A1=[2, None, 17, -1, 3] / dt.int64,
+                 B2=['what', 'if', None, 'munroe', None],
+                 C3=[2.17, None, None, None, 0.1],
+                 D4=[None, None, None, True, False])
+    )
+
+
+@pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),
+                                    slice(None, -1), # slice(2, 5)
+                                    slice(0, 3)])
+def test_create_from_arrow_sliced(pa, slice_):
+    src = [1, None, 2, None, 3, None, 4, 5]
+    df = pa.Table.from_pydict({"A": src})
+    assert_equals(dt.Frame(df[slice_]),
+                  dt.Frame(A=src[slice_], stype=dt.int64))
+
 
 
 

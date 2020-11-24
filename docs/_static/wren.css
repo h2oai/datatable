@@ -11,6 +11,7 @@
   --right-menu-width: 240px;
   --document-width: 900px;
   --document-x-margin: clamp(10px, 2.5vw, 40px);
+  --document-padding: min(40px, 4vw);
 
   --font-sans: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
   --font-mono: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
@@ -35,6 +36,47 @@ body {
   position: relative;
 }
 
+a {
+  color: #6395d4;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a.reference.external::after {
+  content: "\f08e";
+  font-family: 'FontAwesome';
+  font-size: 50%;
+  opacity: 60%;
+  padding-left: 2px;
+  position: relative;
+  top: -5px;
+}
+
+span.guilabel {
+  border: 1px solid #7fbbe3;
+  background: #e7f2fa;
+  font-size: 80%;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2.4px 6px;
+  margin: auto 2px;
+}
+
+table {
+  margin-bottom: 1rem;   /* same as a paragraph */
+}
+
+.list-table {
+  overflow-x: scroll;
+}
+
+
+/*------------------------------------------------------------------------------
+ * Headers
+ *----------------------------------------------------------------------------*/
+
 h1 {
   border-bottom: 1px solid #ccc;
   font-size: 30px;
@@ -51,6 +93,17 @@ h2 {
 h3 {
   font-size: 19px;
   font-weight: bold;
+}
+
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
+.section > .section > .section,
+.section > .section > .section > .section {
+  margin-left: calc(var(--document-padding) / 2);
 }
 
 a.headerlink {
@@ -70,19 +123,56 @@ a.headerlink::after {
 
 h1:hover a.headerlink,
 h2:hover a.headerlink,
-h3:hover a.headerlink {
+h3:hover a.headerlink,
+h4:hover a.headerlink {
   display: initial;
 }
 
-a {
-  color: #6395d4;
+
+
+/*------------------------------------------------------------------------------
+ * Lists
+ *----------------------------------------------------------------------------*/
+
+dl, ol, ul {
+  padding-inline-start: calc(var(--document-padding) * 0.6 + 40px * 0.4);
 }
 
-ul:last-child {
+li {
+  margin-bottom: 1rem;
+}
+
+li > p {
+  margin-bottom: 0.5rem;
+}
+
+ul:last-child,
+ol:last-child {
   margin-bottom: 0;
 }
 
-li p {
+p + .simple {
+  margin-top: -1rem;
+}
+
+li > p + .simple {
+  margin-top: -0.5rem;
+}
+
+.simple > li > p + .simple {
+  margin-top: 0;
+}
+
+.simple li {
+  margin: 0;
+}
+
+.simple li > p {
+  margin: 0;
+}
+
+/* Table of contents always display compactly */
+.toctree-wrapper > ul li {
   margin: 0;
 }
 
@@ -201,6 +291,7 @@ div.nav-left > ul {
 div.nav-left li {
   list-style-type: none;
   position: relative;
+  margin: 0;
 }
 
 div.nav-left li > a {
@@ -289,11 +380,23 @@ div.nav-right > #toc-local {
 div.nav-right > #toc-local a.list-group-item {
   background: transparent;
   border: none;
+  border-left: 4px solid transparent;
   color: #696e8e;
   font-size: 13px;
   line-height: 1.2;
   list-style-type: none;
-  padding: 4px 0;
+  padding: 4px 0 4px 6px;
+  margin-left: -9px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-2 {
+  padding-left: 15px;
+  font-size: 12px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-3 {
+  padding-left: 25px;
+  font-size: 11px;
 }
 
 div.nav-right > #toc-local a:first-child {
@@ -310,10 +413,8 @@ div.nav-right > #toc-local a:hover {
 }
 
 div.nav-right > #toc-local a.list-group-item.active {
-  border-left: 4px solid #4684b6;
+  border-left-color: #4684b6;
   color: #212529;
-  margin-left: -9px;
-  padding-left: 5px;
 }
 
 
@@ -325,17 +426,18 @@ div.nav-right > #toc-local a.list-group-item.active {
 div.document-wrapper {
   flex: 25;
   max-width: var(--document-width);
-  min-width: calc(var(--document-width) * 2/3);
+  min-width: min(100vw, calc(var(--document-width) * 2/3));
   margin-bottom: 25px;
   margin-left: var(--document-x-margin);
   margin-top: 25px;
+  overflow-x: hidden;
 }
 
 div.document {
   background-color: white;
   border-radius: 2pt;
   box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
-  padding: 40px;
+  padding: var(--document-padding);
 }
 
 div.copyright {
@@ -404,7 +506,7 @@ div.highlight-box {
   border-style: none solid;
   display: flex;
   height: 100%;
-  left: calc(var(--left-menu-width) + 40px);
+  left: calc(var(--left-menu-width) + var(--document-x-margin));
   padding: 3px 8px;
   position: absolute;
   top: 0;
@@ -448,6 +550,7 @@ div.highlight-box button.close {
 
 table.api-table {
   border: none;
+  margin-bottom: 18px;
 }
 
 table.api-table tr td {
@@ -479,7 +582,6 @@ table.api-table td:first-child a code.literal {
 
 table.api-table td:first-child a:hover code.literal {
   color: #223d5a;
-  text-decoration: underline;
 }
 
 
@@ -593,12 +695,20 @@ div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
     transition: left 0.3s;
   }
 
+  div.sidebar-left-area:not(.active) .sidebar-left-bg {
+    box-shadow: none;
+  }
+
   div.sidebar-left-area.active {
     left: 0;
   }
 
   body > div.main-area {
     margin-left: 0;
+  }
+
+  div.highlight-box {
+    left: 55px;
   }
 
   body > div.main-area > div.document-wrapper {

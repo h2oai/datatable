@@ -247,11 +247,11 @@
             :widths: auto
             :class: api-table
 
-            * - :exc:`KeyError`
+            * - :exc:`KeyError <dt.exceptions.KeyError>`
               - raised if the column with the given name does not
                 exist in the frame.
 
-            * - :exc:`IndexError`
+            * - :exc:`IndexError <dt.exceptions.IndexError>`
               - raised if the column does not exist at the provided
                 index `j`.
 
