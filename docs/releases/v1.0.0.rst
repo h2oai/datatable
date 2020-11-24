@@ -21,6 +21,10 @@
       can now be an unsorted list. The list can also contain duplicate
       values.
 
+    -[fix] A Frame can now be created properly from a list of numpy bool
+      objects. [#2762]
+
+
     FExpr
     -----
     .. current-module:: datatable

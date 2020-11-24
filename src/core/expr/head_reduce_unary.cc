@@ -153,7 +153,101 @@ See Also
 --------
 
 - :func:`first()` -- function that returns the first row.
+Examples
+--------
 
+:func:`last()` returns the last column in a frame::
+
+    from datatable import dt, f, by, sort, last
+
+    df = dt.Frame({"A": [1, 1, 2, 1, 2],
+                   "B": [None, 2, 3, 4, None]})
+
+    df
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 5, 2
+
+    0,1,NA
+    1,1,2
+    2,2,3
+    3,1,4
+    4,2,NA
+
+::
+
+    dt.last(df)
+
+.. dtframe::
+    :names: B
+    :types: int8
+    :shape: 5, 1
+
+    0,NA
+    1,2
+    2,3
+    3,4
+    4,NA
+
+Within a frame, it returns the last row::
+
+    df[:, last(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 1, 2
+
+    0,2,NA
+
+The above code can be replicated by passing -1 to the ``i`` section instead::
+
+    df[-1, :]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 1, 2
+
+    0,2,NA
+
+Like :func:`first()`, :func:`last()` can be handy if you wish to get the last non null value in a column::
+
+   df[f.B != None, dt.last(f.B)]
+
+.. dtframe::
+    :names: B
+    :types: int8
+    :shape: 1,1
+
+    0,4
+
+:func:`last()` returns the last row per group in a :func:`by()` operation::
+
+    df[:, last(f[:]), by("A")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 2, 2
+
+    0,1,4
+    1,2,NA
+
+
+To get the last non-null value per row in a :func:`by()` operation, you can use the :func:`sort()` function, and set the ``na_position`` argument as ``first`` (this will move the ``NAs`` to the top of the column)::
+
+    df[:, last(f[:]), by("A"), sort("B", na_position="first")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 2, 2
+
+    0,1,4
+    1,2,3
 )";
 #endif
 
@@ -371,6 +465,89 @@ See Also
 
 - :func:`median()` -- function to calculate median values.
 - :func:`sd()` -- function to calculate standard deviation.
+
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int8, int8, int8
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Get the mean from column A::
+
+    df[:, dt.mean(f.A)]
+
+.. dtframe::
+    :names: A
+    :types: float32
+    :shape: 1, 1
+
+    0,1.4
+
+Get the mean of multiple columns::
+
+  df[:, dt.mean([f.A, f.B])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1.4,3.5
+
+
+Same as above, but more convenient::
+
+  df[:, dt.mean(f[:2])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1.4,3.5
+
+
+You can pass in a dictionary with new column names::
+
+  df[:, dt.mean({"A_mean": f.A, "C_avg": f.C})]
+
+.. dtframe::
+    :names: A_mean,C_avg
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1.4,3.5
+
+
+In the presence of :func:`by()`, it returns the average of each column per group::
+
+    df[:, dt.mean({"A_mean": f.A, "B_mean": f.B}), by("C")]
+
+.. dtframe::
+    :names: C, A_mean, B_mean
+    :types: float32, float32, float32
+    :shape: 2, 3
+
+    0,1,1.33333,3.5
+    1,2,1.5,3.5
 
 )";
 #endif
@@ -782,6 +959,85 @@ except: TypeError
 See Also
 --------
 - :func:`min()` -- function to calculate minimum values.
+
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+
+    df
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 9, 2
+
+    0,1,3
+    1,1,2
+    2,1,20
+    3,2,1
+    4,2,6
+    5,2,2
+    6,3,3
+    7,3,22
+    8,3,1
+
+
+Get the maximum from column B::
+
+    df[:, dt.max(f.B)]
+
+.. dtframe::
+    :names: B
+    :types: int8
+    :shape: 1, 1
+
+    0,22
+
+Get the maximum of all columns::
+
+  df[:, [dt.max(f.A), dt.max(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+Same as above, but more convenient::
+
+  df[:, dt.max(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+
+In the presence of :func:`by()`, it returns the row with the maximum value per group ::
+
+    df[:, dt.max(f.B), by("A")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 3, 2
+
+    0,1,20
+    1,2,6
+    2,3,22
+
+
 )";
 #endif
 
@@ -859,6 +1115,89 @@ See Also
 
 - :func:`mean()` -- function to calculate mean values.
 - :func:`sd()` -- function to calculate standard deviation.
+
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int8, int8, int8
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Get the median from column A::
+
+    df[:, dt.median(f.A)]
+
+.. dtframe::
+    :names: A
+    :types: float32
+    :shape: 1, 1
+
+    0,1
+
+Get the median of multiple columns::
+
+  df[:, dt.median([f.A, f.B])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,3.5
+
+
+Same as above, but more convenient::
+
+  df[:, dt.median(f[:2])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,3.5
+
+
+You can pass in a dictionary with new column names::
+
+  df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+
+.. dtframe::
+    :names: A_median,C_mid
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,1
+
+
+In the presence of :func:`by()`, it returns the median of each column per group::
+
+    df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
+
+.. dtframe::
+    :names: C, A_mean, B_mean
+    :types: float32, float32, float32
+    :shape: 2, 3
+
+    0,1,1,3.5
+    1,2,1.5,3.5
 
 )";
 #endif

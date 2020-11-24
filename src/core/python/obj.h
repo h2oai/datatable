@@ -179,6 +179,7 @@ class _obj {
     bool is_none()          const noexcept;
     bool is_numeric()       const noexcept;
     bool is_numpy_array()   const noexcept;
+    bool is_numpy_bool()    const noexcept;
     int  is_numpy_int()     const noexcept;
     int  is_numpy_float()   const noexcept;
     bool is_numpy_marray()  const noexcept;
@@ -214,6 +215,7 @@ class _obj {
     bool parse_int(int32_t*) const;
     bool parse_int(int64_t*) const;
     bool parse_int(double*) const;
+    bool parse_numpy_bool(int8_t*) const;
     bool parse_numpy_int(int8_t*) const;
     bool parse_numpy_int(int16_t*) const;
     bool parse_numpy_int(int32_t*) const;
