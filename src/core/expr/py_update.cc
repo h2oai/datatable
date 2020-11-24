@@ -44,9 +44,9 @@ Examples
 
 .. code-block:: python
 
-    from datatable import update
+    from datatable import dt, f, by, update
 
-    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names = ("A", "B"))
 
 .. dtframe::
     :names: A, B
@@ -97,7 +97,7 @@ Examples
 
 - You can update a subset of data ::
 
-    DT[f.A > 10, update(A=f.A * 5)]
+    DT[f.A > 10, update(A = f.A * 5)]
     DT
 
 .. dtframe::
@@ -124,7 +124,7 @@ Examples
 
     # Get the ratio for each row per group
     df[:,
-       update(ratio=sum(f.liabilities) * 100 / sum(f.assets)),
+       update(ratio = dt.sum(f.liabilities) * 100 / dt.sum(f.assets)),
        by(f.exporter)]
 
 .. dtframe::
