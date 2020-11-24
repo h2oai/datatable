@@ -860,6 +860,89 @@ See Also
 - :func:`mean()` -- function to calculate mean values.
 - :func:`sd()` -- function to calculate standard deviation.
 
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int8, int8, int8
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Get the median from column A::
+
+    df[:, dt.median(f.A)]
+
+.. dtframe::
+    :names: A
+    :types: float32
+    :shape: 1, 1
+
+    0,1
+
+Get the median of multiple columns::
+
+  df[:, dt.median([f.A, f.B])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,3.5
+
+
+Same as above, but more convenient::
+
+  df[:, dt.median(f[:2])]
+
+.. dtframe::
+    :names: A,B
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,3.5
+
+
+You can pass in a dictionary with new column names::
+
+  df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+
+.. dtframe::
+    :names: A_median,C_mid
+    :types: float32,float32
+    :shape: 1, 2
+
+    0,1,1
+
+
+In the presence of :func:`by()`, it returns the median of each column per group::
+
+    df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
+
+.. dtframe::
+    :names: C, A_mean, B_mean
+    :types: float32, float32, float32
+    :shape: 2, 3
+
+    0,1,1,3.5
+    1,2,1.5,3.5
+
 )";
 #endif
 
