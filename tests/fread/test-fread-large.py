@@ -110,21 +110,24 @@ def f(request):
 # Make sure we can read/write csv and jay files larger than 4Gb on Windows
 # @pytest.mark.usefixtures("winonly", "is_release")
 @pytest.mark.usefixtures("winonly")
-def test_fread_4gb_plus(tempfile_jay, tempfile_csv):
-    print(tempfile_jay, tempfile_csv)
+def test_fread_4gb_plus_jay(tempfile_jay):
     size = 4 * 10**9
-    DT0 = dt.Frame([True])
-    DT0.nrows = size
-    DT0.to_jay(tempfile_jay)
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_jay(tempfile_jay)
     assert os.path.getsize(tempfile_jay) > size
+    DT = dt.fread(tempfile_jay)
+    assert DT.nrows == size
 
-    DT1 = dt.Frame(tempfile_jay)
-    assert_equals(DT0, DT1)
-    DT1.to_csv(tempfile_csv)
+@pytest.mark.usefixtures("winonly")
+def test_fread_4gb_plus_csv(tempfile_csv):
+    size = 4 * 10**9
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_csv(tempfile_csv)
     assert os.path.getsize(tempfile_csv) > size
-
-    DT1 = dt.fread(tempfile_csv)
-    assert_equals(DT0, DT1)
+    DT = dt.fread(tempfile_csv)
+    assert DT.nrows == size
 
 
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
