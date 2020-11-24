@@ -493,39 +493,21 @@ static Column resolve_column(const Column& inputcol, dt::SType stype0)
   size_t i = 0;
   while (stype != dt::SType::VOID) {
     dt::SType next_stype = find_next_stype(stype, stype0);
-    if (stype == next_stype) {
-      switch (stype) {
-        case dt::SType::BOOL:    return force_as_bool(inputcol);
-        case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
-        case dt::SType::INT16:   return force_as_int<int16_t>(inputcol);
-        case dt::SType::INT32:   return force_as_int<int32_t>(inputcol);
-        case dt::SType::INT64:   return force_as_int<int64_t>(inputcol);
-        case dt::SType::FLOAT32: return force_as_real<float>(inputcol);
-        case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
-        case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
-        case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
-        case dt::SType::OBJ:     return force_as_pyobj(inputcol);
-        default:
-          throw RuntimeError()
-            << "Unable to create Column of type " << stype << " from list";
-      }
-    } else {
-      switch (stype) {
-        case dt::SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
-        case dt::SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
-        case dt::SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
-        case dt::SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
-        case dt::SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
-        case dt::SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
-        case dt::SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
-        case dt::SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::OBJ:     return force_as_pyobj(inputcol);
-        default: /* do nothing -- not all STypes are currently implemented. */ break;
-      }
-      if (i == nrows) break;
-      stype = next_stype;
+    switch (stype) {
+      case dt::SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
+      case dt::SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
+      case dt::SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
+      case dt::SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
+      case dt::SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
+      case dt::SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
+      case dt::SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
+      case dt::SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
+      case dt::SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
+      case dt::SType::OBJ:     return force_as_pyobj(inputcol);
+      default: /* do nothing -- not all STypes are currently implemented. */ break;
     }
+    if (i == nrows) break;
+    stype = next_stype;
   }
   if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
     return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
