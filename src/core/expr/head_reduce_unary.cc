@@ -782,6 +782,85 @@ except: TypeError
 See Also
 --------
 - :func:`min()` -- function to calculate minimum values.
+
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+
+    df
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 9, 2
+
+    0,1,3
+    1,1,2
+    2,1,20
+    3,2,1
+    4,2,6
+    5,2,2
+    6,3,3
+    7,3,22
+    8,3,1
+
+
+Get the maximum from column B::
+
+    df[:, dt.max(f.B)]
+
+.. dtframe::
+    :names: B
+    :types: int8
+    :shape: 1, 1
+
+    0,22
+
+Get the maximum of all columns::
+
+  df[:, [dt.max(f.A), dt.max(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+Same as above, but more convenient::
+
+  df[:, dt.max(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int8,int8
+    :shape: 1, 2
+
+    0,3,22
+
+
+
+In the presence of :func:`by()`, it returns the row with the maximum value per group ::
+
+    df[:, dt.max(f.B), by("A")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 3, 2
+
+    0,1,20
+    1,2,6
+    2,3,22
+
+
 )";
 #endif
 
