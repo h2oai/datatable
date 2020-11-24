@@ -1,6 +1,11 @@
 version: 0.10.{build}
 image: Visual Studio 2019
 
+branches:
+  only:
+    - main
+    - /rel-*/
+
 pull_requests:
   do_not_increment_build_number: true
 
