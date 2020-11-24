@@ -109,10 +109,10 @@ def f(request):
 
 # Make sure we can read/write csv and jay files larger than 4Gb on Windows
 # @pytest.mark.usefixtures("winonly", "is_release")
-# @pytest.mark.usefixtures("winonly")
+@pytest.mark.usefixtures("winonly")
 def test_fread_4gb_plus(tempfile_jay, tempfile_csv):
     print(tempfile_jay, tempfile_csv)
-    size = 5 * 10**9
+    size = 4 * 10**9
     DT0 = dt.Frame([True] * size)
     DT0.to_jay(tempfile_jay)
     assert os.path.getsize(tempfile_jay) > size
