@@ -128,7 +128,7 @@ def test_fread_4gb_csv(tempfile_csv):
     DT.nrows = size
     DT.to_csv(tempfile_csv)
     assert os.path.getsize(tempfile_csv) > size
-    DT.nrows = 0
+    del DT
     DT = dt.fread(tempfile_csv)
     frame_integrity_check(DT)
     assert DT.nrows == size
