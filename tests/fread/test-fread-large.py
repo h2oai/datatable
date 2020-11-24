@@ -112,7 +112,7 @@ def f(request):
 # @pytest.mark.usefixtures("winonly")
 def test_fread_4gb_plus(tempfile_jay, tempfile_csv):
     print(tempfile_jay, tempfile_csv)
-    size = 5 * 10**8
+    size = 5 * 10**9
     DT0 = dt.Frame([True] * size)
     DT0.to_jay(tempfile_jay)
     assert os.path.getsize(tempfile_jay) > size
