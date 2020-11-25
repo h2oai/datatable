@@ -121,6 +121,7 @@ def test_fread_4gb_jay(tempfile_jay):
     assert DT.nrows == size
     assert DT.stype == dt.bool8
 
+
 @pytest.mark.usefixtures("winonly")
 def test_fread_4gb_csv(tempfile_csv):
     size = 4 * 10**9
@@ -129,7 +130,7 @@ def test_fread_4gb_csv(tempfile_csv):
     DT.to_csv(tempfile_csv)
     assert os.path.getsize(tempfile_csv) > size
     del DT
-    DT = dt.fread(tempfile_csv, memory_limit = size)
+    DT = dt.fread(tempfile_csv, memory_limit = size // 2)
     frame_integrity_check(DT)
     assert DT.nrows == size
     assert DT.stype == dt.bool8
