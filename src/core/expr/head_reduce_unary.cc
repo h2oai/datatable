@@ -534,7 +534,7 @@ You can pass in a dictionary with new column names::
     :types: float32,float32
     :shape: 1, 2
 
-    0,1.4,3.5
+    0,1.4,1.4
 
 
 In the presence of :func:`by()`, it returns the average of each column per group::
