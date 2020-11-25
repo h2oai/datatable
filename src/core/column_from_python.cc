@@ -447,17 +447,6 @@ static Column force_as_pyobj(const Column& inputcol)
 // Parse controller
 //------------------------------------------------------------------------------
 
-// static dt::SType find_next_stype(dt::SType curr_stype, dt::SType stype0) {
-//   if (stype0 != dt::SType::INVALID) {
-//     return stype0;
-//   }
-//   if (curr_stype == dt::SType::OBJ) {
-//     return curr_stype;
-//   }
-//   return static_cast<dt::SType>(static_cast<int>(curr_stype) + 1);
-// }
-
-
 static const std::vector<dt::SType>& successors(dt::SType stype) {
   using styvec = std::vector<dt::SType>;
   static styvec s_void = {
@@ -575,14 +564,20 @@ static Column parse_column_fixed_stype(const Column& inputcol, dt::SType stype) 
 
 static Column resolve_column(const Column& inputcol, dt::SType stype0)
 {
-  if (stype0 != dt::SType::INVALID) {
-    return parse_column_fixed_stype(inputcol, stype0);
+  if (stype0 == dt::SType::AUTO) {
+    return parse_column_auto_stype(inputcol);
   }
   else {
-    return parse_column_auto_stype(inputcol);
+    return parse_column_fixed_stype(inputcol, stype0);
   }
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// Column API
+//------------------------------------------------------------------------------
 
 Column Column::from_pylist(const py::olist& list, dt::SType stype0) {
   Column inputcol(new dt::PyList_ColumnImpl(list));
@@ -605,12 +600,6 @@ Column Column::from_pylist_of_dicts(
   return resolve_column(inputcol, stype0);
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// Create from range
-//------------------------------------------------------------------------------
 
 Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, dt::SType stype)
