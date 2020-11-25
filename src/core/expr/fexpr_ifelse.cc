@@ -195,7 +195,7 @@ Examples
 --------
 
 - Single condition
-    - Task: Create a new column `colour`, where if `Set` is `Z` then its value should be `Green`, else `Red`
+    - Task: Create a new column `Colour`, where if `Set` is `Z` then its value should be `Green`, else `Red`
 
 .. code:: python
 
