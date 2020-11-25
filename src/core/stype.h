@@ -158,6 +158,12 @@ namespace dt {
  *     elem: PyObject*
  *     NA:   Py_None
  *
+ * -------------------------------------------------------------------
+ *
+ * SType::AUTO
+ *     Special stype that indicates a type that must be automatically
+ *     detected. A column with this stype cannot be created.
+ *
  */
 enum class SType : uint8_t {
   VOID    = 0,
@@ -176,11 +182,14 @@ enum class SType : uint8_t {
   DATE16  = 20,
   OBJ     = 21,
 
-  INVALID = 22,
+  AUTO    = 22,
+  INVALID = 23,
 };
 
 constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
+
 // Can stypes be used in a 64-bit bitmask?
+// XXX: which functionality relies on this assumption?
 static_assert(STYPES_COUNT <= 64, "Too many stypes");
 
 

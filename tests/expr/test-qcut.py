@@ -41,7 +41,7 @@ def test_qcut_error_noargs():
 
 
 def test_qcut_error_wrong_column_types():
-    DT = dt.Frame([[0], [dt]])
+    DT = dt.Frame([[0], [dt]/dt.obj64])
     msg = r"qcut\(\) cannot be applied to string or object columns, instead " \
            "column 1 has an stype: obj64"
     with pytest.raises(TypeError, match=msg):

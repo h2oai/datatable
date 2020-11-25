@@ -1156,13 +1156,13 @@ def test_materialize_object_col():
     class A:
         pass
 
-    DT = dt.Frame([A() for i in range(5)])
+    DT = dt.Frame([A() for i in range(5)], stype=dt.obj64)
     DT = DT[::-1, :]
     frame_integrity_check(DT)
     DT.materialize()
     frame_integrity_check(DT)
     assert DT.shape == (5, 1)
-    assert DT.stypes == (dt.obj64,)
+    assert DT.stype == dt.obj64
     assert all(isinstance(x, A) and sys.getrefcount(x) > 0
                for x in DT.to_list()[0])
 
@@ -1218,7 +1218,7 @@ def test_issue898():
     results (previously this was crashing).
     """
     class A: pass
-    f0 = dt.Frame([A() for i in range(1111)])
+    f0 = dt.Frame([A() for i in range(1111)] / dt.obj64)
     assert f0.stypes == (dt.stype.obj64, )
     f1 = f0[:-1, :]
     del f0

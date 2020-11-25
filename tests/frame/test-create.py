@@ -697,16 +697,10 @@ def test_auto_int32_2():
     assert d0.to_list()[0] == src
 
 
-def test_auto_int32_3(numpy):
-    i8 = numpy.int8
-    i16 = numpy.int16
-    i32 = numpy.int32
-    src = [None, False, 0, i8(0), i16(0), i32(0)]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list() == [[None, 0, 0, 0, 0, 0]]
-
+def test_auto_int32_3(np):
+    src = [None, 0, np.int8(0), np.int16(0), np.int32(0)]
+    DT = dt.Frame(src)
+    assert_equals(DT, dt.Frame([None, 0, 0, 0, 0] / dt.int32))
 
 
 def test_auto_int64():
@@ -732,10 +726,10 @@ def test_auto_str32_1():
 
 
 def test_auto_str32_2():
-    DT = dt.Frame([None, 1, 12, "fini"])
+    DT = dt.Frame([None, "1a", "12", "fini"])
     frame_integrity_check(DT)
     assert DT.stype == stype.str32
-    assert DT.to_list() == [[None, "1", "12", "fini"]]
+    assert DT.to_list() == [[None, "1a", "12", "fini"]]
 
 
 def test_auto_str32_3():

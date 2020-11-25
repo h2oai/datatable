@@ -61,7 +61,7 @@ LType stype_to_ltype(SType stype) {
     case SType::DATE32 : return LType::DATETIME;
     case SType::DATE16 : return LType::DATETIME;
     case SType::OBJ    : return LType::OBJECT;
-    default     : return LType::INVALID;
+    default            : return LType::INVALID;
   }
 }
 
@@ -83,6 +83,7 @@ const char* stype_name(SType stype) {
     case SType::DATE32 : return "date32";
     case SType::DATE16 : return "date16";
     case SType::OBJ    : return "obj64";
+    case SType::AUTO   : return "auto";
     default            : return "unknown";
   }
 }
@@ -105,7 +106,7 @@ size_t stype_elemsize(SType stype) {
     case SType::DATE32 : return sizeof(element_t<SType::DATE32>);
     case SType::DATE16 : return sizeof(element_t<SType::DATE16>);
     case SType::OBJ    : return sizeof(element_t<SType::OBJ>);
-    default     : return 0;
+    default            : return 0;
   }
 }
 
@@ -119,7 +120,9 @@ bool stype_is_variable_width(SType stype) {
 
 
 py::oobj stype_to_pyobj(SType stype) {
-  return py::oobj(Py_Stype_Objects[static_cast<size_t>(stype)]);
+  auto s = static_cast<size_t>(stype);
+  xassert(s < STYPES_COUNT);
+  return py::oobj(Py_Stype_Objects[s]);
 }
 
 
