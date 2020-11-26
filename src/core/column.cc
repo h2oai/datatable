@@ -252,6 +252,7 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
+    case dt::SType::VOID:    return py::None();
     case dt::SType::BOOL: {
       int8_t x;
       bool isvalid = get_element(i, &x);
@@ -270,7 +271,6 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
       bool isvalid = get_element(i, &x);
       return isvalid? x : py::None();
     }
-    case dt::SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype `"
         << stype() << "` into python objects";
