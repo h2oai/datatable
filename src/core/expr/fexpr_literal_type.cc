@@ -144,7 +144,7 @@ RiGb FExpr_Literal_Type::evaluate_iby(EvalContext&) const {
 
 static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
 {
-  *out_stype = SType::VOID;
+  *out_stype = SType::AUTO;
   *out_ltype = LType::MU;
   if (value_.is_type()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
@@ -161,7 +161,7 @@ static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
   }
   else if (value_.is_stype()) {
     auto st = value_.get_attr("value").to_size_t();
-    *out_stype = (st < STYPES_COUNT)? static_cast<SType>(st) : SType::VOID;
+    *out_stype = (st < STYPES_COUNT)? static_cast<SType>(st) : SType::INVALID;
   }
 }
 
@@ -175,16 +175,16 @@ Workframe FExpr_Literal_Type::evaluate_r(
   SType target_stype;
   LType target_ltype;
   _resolve_stype(value_, &target_stype, &target_ltype);
-  if (target_stype == SType::VOID && target_ltype == LType::MU) {
+  if (target_stype == SType::AUTO && target_ltype == LType::MU) {
     throw ValueError() << "Unknown type " << value_
                        << " used in the replacement expression";
   }
-  if (target_stype == SType::VOID) {
+  if (target_stype == SType::AUTO) {
     target_stype = (target_ltype == LType::BOOL)? SType::BOOL :
                    (target_ltype == LType::INT)? SType::INT32 :
                    (target_ltype == LType::REAL)? SType::FLOAT64 :
                    (target_ltype == LType::STRING)? SType::STR32 :
-                   (target_ltype == LType::OBJECT)? SType::OBJ : SType::VOID;
+                   (target_ltype == LType::OBJECT)? SType::OBJ : SType::INVALID;
   }
 
   auto dt0 = ctx.get_datatable(0);
@@ -197,7 +197,7 @@ Workframe FExpr_Literal_Type::evaluate_r(
         if (newcol.ltype() != target_ltype) {
           newcol.cast_inplace(target_stype);
         }
-      } else if (target_stype != SType::VOID) {
+      } else if (target_stype != SType::AUTO) {
         newcol.cast_inplace(target_stype);
       }
     }
