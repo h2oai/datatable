@@ -182,6 +182,58 @@ See Also
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`union()` -- calculate the union of values in the frames.
 
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int8, int8, int8
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Unique values in the entire frame::
+
+  dt.unique(df)
+
+.. dtframe::
+    :names: A
+    :types: int8
+    :shape: 6, 1
+
+    0,NA
+    1,1
+    2,2
+    3,3
+    4,4
+    5,5
+
+Unique values in a frame with a single column::
+
+  dt.unique(df["A"])
+
+.. dtframe::
+    :names: A
+    :types: int8
+    :shape: 2, 1
+
+    0,1
+    1,2
+
 )";
 
 static py::PKArgs args_unique(
