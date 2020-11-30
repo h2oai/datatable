@@ -90,7 +90,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -vv -s --showlocals .\tests\
+    python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals .\tests\
 
 
 
@@ -112,7 +112,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -vv -s --showlocals .\tests\
+    python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals .\tests\
 
 
 
@@ -134,4 +134,4 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -vv -s --showlocals .\tests\
+    python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals .\tests\

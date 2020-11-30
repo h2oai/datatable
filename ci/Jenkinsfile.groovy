@@ -765,6 +765,7 @@ def test_macos(String pyver) {
     try {
         def pyenv = get_env_for_macos(pyver)
         sh """
+            mkdir -p /tmp/cores
             rm -f /tmp/cores/*
             env
             . /Users/jenkins/anaconda/bin/activate ${pyenv}
