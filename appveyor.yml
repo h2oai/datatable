@@ -3,7 +3,8 @@ image: Visual Studio 2019
 
 branches:
   only:
-    - master
+    - main
+    - /rel-*/
 
 pull_requests:
   do_not_increment_build_number: true
