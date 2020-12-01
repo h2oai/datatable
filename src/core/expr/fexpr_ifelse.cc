@@ -195,11 +195,11 @@ Examples
 --------
 
 - Single condition
-    - Task: Assign `Green` if `Set` is `Z`, else `Red`
+    - Task: Create a new column `Colour`, where if `Set` is `Z` then its value should be `Green`, else `Red`
 
 .. code:: python
 
-    from datatable import dt, f, by, ifelse
+    from datatable import dt, f, by, ifelse, update
 
     df = dt.Frame("""Type       Set
                       A          Z
@@ -207,9 +207,9 @@ Examples
                       B          X
                       C          Y""")
 
-    df[:, update(Colour =  ifelse(f.Set=="Z",  # condition
-                                  "Green",     # if condition is True
-                                  "Red"))      # if condition is False
+    df[:, update(Colour = ifelse(f.Set == "Z",  # condition
+                                 "Green",       # if condition is True
+                                 "Red"))        # if condition is False
                                       ]
 
     df
@@ -249,10 +249,10 @@ Examples
 
 .. code:: python
 
-    df[:, update(value=ifelse(f.a>0, f.a,  # first condition and result
-                              f.b>0, f.b,  # second condtion and result
-                              f.c))        # default if no codition is True
-                              ]
+    df[:, update(value = ifelse(f.a > 0, f.a,  # first condition and result
+                                f.b > 0, f.b,  # second condition and result
+                                f.c))          # default if no condition is True
+                                ]
 
     df
 
