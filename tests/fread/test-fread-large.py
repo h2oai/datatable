@@ -107,7 +107,7 @@ def f(request):
 #-------------------------------------------------------------------------------
 
 
-@pytest.mark.usefixtures("winonly")
+@pytest.mark.usefixtures("winonly", "is_release")
 def test_fread_4gb_jay(tempfile_jay):
     size = 4 * 10**9
     DT = dt.Frame([True])
@@ -120,7 +120,7 @@ def test_fread_4gb_jay(tempfile_jay):
     assert DT.stype == dt.bool8
 
 
-@pytest.mark.usefixtures("winonly")
+@pytest.mark.usefixtures("winonly", "is_release")
 def test_fread_4gb_csv(tempfile_csv):
     size = 4 * 10**9
     DT = dt.Frame([True])
