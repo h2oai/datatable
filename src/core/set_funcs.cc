@@ -272,7 +272,7 @@ Examples
 
 .. dtframe::
     :names: A,B,C
-    :types: int8, int8, int8
+    :types: int32, int32, int32
     :shape: 5, 2
 
     0,1,NA,1
@@ -287,7 +287,7 @@ Union of all the columns in a frame::
 
 .. dtframe::
     :names: A
-    :types: int8
+    :types: int32
     :shape: 6, 1
 
     0,NA
@@ -303,7 +303,7 @@ Union of two frames::
 
 .. dtframe::
     :names: A
-    :types: int8
+    :types: int32
     :shape: 2, 1
 
     0,1
