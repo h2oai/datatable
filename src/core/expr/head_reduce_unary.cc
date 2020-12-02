@@ -947,7 +947,7 @@ Examples
 
 .. dtframe::
     :names: A,B
-    :types: int8, int8
+    :types: int32, int32
     :shape: 9, 2
 
     0,1,3
@@ -967,7 +967,7 @@ Get the minimum from column B::
 
 .. dtframe::
     :names: B
-    :types: int8
+    :types: int32
     :shape: 1, 1
 
     0,1
@@ -978,7 +978,7 @@ Get the minimum of all columns::
 
 .. dtframe::
     :names: A,B
-    :types: int8,int8
+    :types: int32,int32
     :shape: 1, 2
 
     0,1,1
@@ -990,7 +990,7 @@ Same as above, but more convenient::
 
 .. dtframe::
     :names: A,B
-    :types: int8,int8
+    :types: int32,int32
     :shape: 1, 2
 
     0,1,1
@@ -1003,7 +1003,7 @@ In the presence of :func:`by()`, it returns the row with the minimum value per g
 
 .. dtframe::
     :names: A,B
-    :types: int8, int8
+    :types: int32, int32
     :shape: 3, 2
 
     0,1,2
