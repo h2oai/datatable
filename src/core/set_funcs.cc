@@ -197,7 +197,7 @@ Examples
 
 .. dtframe::
     :names: A,B,C
-    :types: int8, int8, int8
+    :types: int32, int32, int32
     :shape: 5, 2
 
     0,1,NA,1
@@ -212,7 +212,7 @@ Unique values in the entire frame::
 
 .. dtframe::
     :names: A
-    :types: int8
+    :types: int32
     :shape: 6, 1
 
     0,NA
@@ -228,7 +228,7 @@ Unique values in a frame with a single column::
 
 .. dtframe::
     :names: A
-    :types: int8
+    :types: int32
     :shape: 2, 1
 
     0,1
