@@ -257,6 +257,58 @@ See Also
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`unique()` -- find unique values in a frame.
 
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int32, int32, int32
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Union of all the columns in a frame::
+
+  dt.union(*df)
+
+.. dtframe::
+    :names: A
+    :types: int32
+    :shape: 6, 1
+
+    0,NA
+    1,1
+    2,2
+    3,3
+    4,4
+    5,5
+
+Union of two frames::
+
+  dt.union(df["A"], df["C"])
+
+.. dtframe::
+    :names: A
+    :types: int32
+    :shape: 2, 1
+
+    0,1
+    1,2
+
 )";
 
 
