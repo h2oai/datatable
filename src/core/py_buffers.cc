@@ -354,8 +354,9 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     }
   }
   if (stype == dt::SType::INVALID || stype == dt::SType::AUTO ||
-      stype == dt::SType::STR32 ||
-      stype == dt::SType::STR64) stype = dt::SType::OBJ;
+      stype == dt::SType::STR32 || stype == dt::SType::STR64) {
+    stype = dt::SType::OBJ;
+  }
 
   // Allocate the final buffer
   xassert(!stype_is_variable_width(stype));

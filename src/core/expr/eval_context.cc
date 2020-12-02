@@ -443,12 +443,12 @@ void EvalContext::typecheck_for_update(
   for (size_t i = 0; i < n; ++i) {
     const Column& lcol = dt0->get_column(indices[i]);
     const Column& rcol = replframe.get_column(i);
-    if (!lcol || lcol.stype() == SType::VOID) continue;
+    if (!lcol) continue;
     if (allrows && !repl_1row) continue; // Keep rcol's type as-is
     if (lcol.stype() != rcol.stype()) {
       auto llt = lcol.ltype();
       auto rlt = rcol.ltype();
-      bool ok = (llt == rlt) ||
+      bool ok = (llt == rlt) || (llt == LType::MU) ||
                 (llt == LType::REAL && rlt == LType::INT);
       if (!ok) {
         throw TypeError() << "Cannot assign " << rlt

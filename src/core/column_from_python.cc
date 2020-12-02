@@ -489,6 +489,8 @@ static Column parse_column_auto_stype(const Column& inputcol) {
   Buffer databuf, strbuf;
   size_t nrows = inputcol.nrows();
 
+  // We start with the VOID stype, which is upwards-compatible with all other
+  // stypes.
   dt::SType stype = dt::SType::VOID;
   size_t i = parse_as_void(inputcol);
   while (i < nrows) {
