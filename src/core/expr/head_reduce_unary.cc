@@ -444,6 +444,76 @@ See Also
 
 - :func:`count()` -- function to calculate a number of non-missing values.
 
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int32, int32, int32
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Get the sum of column A::
+
+    df[:, dt.sum(f.A)]
+
+.. dtframe::
+    :names: A
+    :types: int32
+    :shape: 1, 1
+
+    0,7
+
+Get the sum of multiple columns::
+
+  df[:, [dt.sum(f.A), dt.sum(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,7,14
+
+
+Same as above, but more convenient::
+
+  df[:, dt.sum(f[:2])]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,7,14
+
+
+In the presence of :func:`by()`, it returns the sum of the specified columns per group::
+
+  df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+
+.. dtframe::
+    :names: C,A,B
+    :types: int32,int32,int32
+    :shape: 2, 3
+
+    0,1,4,7
+    1,2,3,7
 )";
 #endif
 
