@@ -71,6 +71,27 @@ build_script:
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
+    # Build and test wheel for Python 3.5
+
+    # =======================================================================
+
+    $env:PATH = "C:\Python35-x64;C:\Python35-x64\Scripts;$DEFAULT_PATH"
+
+    python ci\ext.py wheel
+
+    $datatable_wheel = ls dist\*-cp35-*.whl
+
+    echo "----- build_info 3.5 ---------------------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+
+    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
+
+
 
     # Build and test wheel for Python 3.6
 
