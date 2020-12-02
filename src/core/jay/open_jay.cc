@@ -166,7 +166,7 @@ static Column column_from_jay(
 {
   jay::Type jtype = jcol->type();
 
-  auto stype = dt::SType::VOID;
+  auto stype = dt::SType::INVALID;
   switch (jtype) {
     case jay::Type_Bool8:   stype = dt::SType::BOOL; break;
     case jay::Type_Int8:    stype = dt::SType::INT8; break;

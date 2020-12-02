@@ -130,7 +130,7 @@ class umaker1 : public umaker
     }
 
     Column compute(Column&& col) const override {
-      if (uptype_ != SType::VOID) col.cast_inplace(uptype_);
+      if (uptype_ != SType::AUTO) col.cast_inplace(uptype_);
       size_t nrows = col.nrows();
       return Column(new FuncUnary1_ColumnImpl<TX, TR>(
                         std::move(col), func_, nrows, outtype_
@@ -176,7 +176,7 @@ class umaker2 : public umaker
     }
 
     Column compute(Column&& col) const override {
-      if (uptype_ != SType::VOID) col.cast_inplace(uptype_);
+      if (uptype_ != SType::AUTO) col.cast_inplace(uptype_);
       size_t nrows = col.nrows();
       return Column(new FuncUnary2_ColumnImpl<TX, TR>(
                         std::move(col), func_, nrows, outtype_
