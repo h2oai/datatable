@@ -34,6 +34,7 @@ namespace expr {
 
 using stypevec = std::vector<SType>;
 
+static stypevec stVOID  = {SType::VOID};
 static stypevec stBOOL  = {SType::BOOL};
 static stypevec stINT   = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
 static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
@@ -110,6 +111,7 @@ Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
   }
   if (value_.is_ltype()) {
     auto lt = static_cast<LType>(value_.get_attr("value").to_size_t());
+    if (lt == LType::MU)       return _select_types(ctx, fid, stVOID);
     if (lt == LType::BOOL)     return _select_types(ctx, fid, stBOOL);
     if (lt == LType::INT)      return _select_types(ctx, fid, stINT);
     if (lt == LType::REAL)     return _select_types(ctx, fid, stFLOAT);

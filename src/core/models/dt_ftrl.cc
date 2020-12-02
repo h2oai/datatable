@@ -97,6 +97,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
   xassert(model_type_train != FtrlModelType::NONE);
   switch (model_type_train) {
     case FtrlModelType::AUTO :        switch (stype_y) {
+                                        case SType::VOID:
                                         case SType::BOOL:    res = fit_binomial(); break;
                                         case SType::INT8:    res = fit_regression<int8_t>(); break;
                                         case SType::INT16:   res = fit_regression<int16_t>(); break;
@@ -112,6 +113,7 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
                                       break;
 
     case FtrlModelType::REGRESSION :  switch (stype_y) {
+                                        case SType::VOID:
                                         case SType::BOOL:    res = fit_regression<int8_t>(); break;
                                         case SType::INT8:    res = fit_regression<int8_t>(); break;
                                         case SType::INT16:   res = fit_regression<int16_t>(); break;
@@ -314,6 +316,7 @@ FtrlFitOutput Ftrl<T>::fit_regression() {
     // the validation target column and make an appropriate call to `.fit()`.
     SType stype_y_val = dt_y_val->get_column(0).stype();
     switch (stype_y_val) {
+      case SType::VOID:
       case SType::BOOL:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
       case SType::INT8:    res = fit<U, int8_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
       case SType::INT16:   res = fit<U, int16_t>(identity<T>, targetfn, targetfn, squared_loss<T>); break;
@@ -1138,6 +1141,7 @@ template <typename T>
 hasherptr Ftrl<T>::create_hasher(const Column& col) {
   int shift_nbits = DOUBLE_MANTISSA_NBITS - params.mantissa_nbits;
   switch (col.stype()) {
+    case SType::VOID:
     case SType::BOOL:
     case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));

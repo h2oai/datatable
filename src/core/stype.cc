@@ -143,7 +143,7 @@ void init_py_stype_objs(PyObject* stype_enum) {
   Py_Stype = reinterpret_cast<PyTypeObject*>(stype_enum);
   Py_INCREF(stype_enum);
 
-  // _init_py_stype(SType::VOID);
+  _init_py_stype(SType::VOID);
   _init_py_stype(SType::BOOL);
   _init_py_stype(SType::INT8);
   _init_py_stype(SType::INT16);

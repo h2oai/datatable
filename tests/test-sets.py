@@ -97,7 +97,7 @@ def test_setfns_between_empty_frames1(fn):
 def test_setfns_between_empty_frames2(fn):
     DT = dt.Frame(A=[])
     res = fn(DT, DT)
-    assert_equals(res, DT)
+    assert_equals(res, dt.Frame(A=[], stype=bool))
 
 
 def test_union_badargs():

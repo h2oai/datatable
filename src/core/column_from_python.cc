@@ -533,8 +533,7 @@ static Column parse_column_auto_stype(const Column& inputcol) {
     return Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
   }
   else if (stype == dt::SType::VOID) {
-    // TODO: return a VOID column here
-    return Column::new_na_column(nrows, dt::SType::BOOL);
+    return Column::new_na_column(nrows, dt::SType::VOID);
   }
   else {
     return Column::new_mbuf_column(nrows, stype, std::move(databuf));
@@ -547,6 +546,7 @@ static Column parse_column_auto_stype(const Column& inputcol) {
   */
 static Column parse_column_fixed_stype(const Column& inputcol, dt::SType stype) {
   switch (stype) {
+    case dt::SType::VOID:    return Column::new_na_column(inputcol.nrows(), dt::SType::VOID);
     case dt::SType::BOOL:    return force_as_bool(inputcol);
     case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
     case dt::SType::INT16:   return force_as_int<int16_t>(inputcol);

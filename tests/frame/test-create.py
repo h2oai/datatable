@@ -266,7 +266,7 @@ def test_create_from_empty_list_of_lists():
     frame_integrity_check(d6)
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
-    assert d6.ltypes == (ltype.bool, )
+    assert d6.ltypes == (ltype.void, )
 
 
 
@@ -574,7 +574,7 @@ def test_create_from_list_of_dicts_with_names1():
     frame_integrity_check(d0)
     assert d0.shape == (5, 4)
     assert d0.names == ("c", "a", "d", "e")
-    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.void)
     assert d0.to_list() == [["Rose", None, "Lily", None, None],
                             [12, 37, 80, None, None],
                             [None, None, 3.14159, 1.7e10, None],
@@ -762,7 +762,7 @@ def test_create_large_string_column():
 def test_create_from_nones():
     d0 = dt.Frame([None, None, None])
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.bool8, )
+    assert d0.stypes == (stype.void, )
     assert d0.shape == (3, 1)
 
 

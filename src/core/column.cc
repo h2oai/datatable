@@ -279,6 +279,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 
 bool Column::get_element_isvalid(size_t i) const {
   switch (stype()) {
+    case dt::SType::VOID: return false;
     case dt::SType::BOOL:
     case dt::SType::INT8: {
       int8_t x;

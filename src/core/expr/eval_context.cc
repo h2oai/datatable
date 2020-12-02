@@ -497,6 +497,7 @@ static void _vivify_workframe(const Workframe& wf) {
   for (size_t i = 0; i < wf.ncols(); ++i) {
     const Column& col = wf.get_column(i);
     switch (col.stype()) {
+      case SType::VOID:
       case SType::BOOL:
       case SType::INT8:    _vivify_column<int8_t>(col); break;
       case SType::INT16:   _vivify_column<int16_t>(col); break;

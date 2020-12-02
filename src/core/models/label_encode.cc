@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2020 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,6 +32,7 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
 
   SType stype = col.stype();
   switch (stype) {
+    case SType::VOID:
     case SType::BOOL:    label_encode_bool(col, dt_labels, dt_encoded);
                          break;
     case SType::INT8:    label_encode_fw<SType::INT8>(
