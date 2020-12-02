@@ -367,7 +367,7 @@ Examples
 
 .. dtframe::
     :names: A,B,C
-    :types: int8, int8, int8
+    :types: int32, int32, int32
     :shape: 5, 2
 
     0,1,NA,1
@@ -382,7 +382,7 @@ Get the sum of column A::
 
 .. dtframe::
     :names: A
-    :types: int8
+    :types: int32
     :shape: 1, 1
 
     0,7
@@ -393,7 +393,7 @@ Get the sum of multiple columns::
 
 .. dtframe::
     :names: A,B
-    :types: int8,int8
+    :types: int32,int32
     :shape: 1, 2
 
     0,7,14
@@ -405,7 +405,7 @@ Same as above, but more convenient::
 
 .. dtframe::
     :names: A,B
-    :types: int8,int8
+    :types: int32,int32
     :shape: 1, 2
 
     0,7,14
@@ -417,22 +417,11 @@ In the presence of :func:`by()`, it returns the sum of the specified columns per
 
 .. dtframe::
     :names: C,A,B
-    :types: int8,int8,int8
+    :types: int32,int32,int32
     :shape: 2, 3
 
     0,1,4,7
     1,2,3,7
-
-
-
-:func:`sum()` acts like python's built-in ``sum`` function if the value is not a :ref:`f-expressions`::
-
-    dt.sum([2, 3, 4])
-    9
-
-    dt.sum([2, 3, 4], start = 4)
-    13
-
 )";
 #endif
 
