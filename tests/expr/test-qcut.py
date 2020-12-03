@@ -220,8 +220,8 @@ def test_qcut_random(pandas, seed):
     DT_nunique = DT.nunique()
 
     frame_integrity_check(DT_qcut)
-    assert(DT_qcut.names == names)
-    assert(DT_qcut.stypes == tuple(stype.int32 for _ in range(ncols)))
+    assert DT_qcut.names == names
+    assert DT_qcut.stypes == tuple(stype.int32 for _ in range(ncols))
 
     for j in range(ncols):
         if DT_nunique[0, j] == 1:

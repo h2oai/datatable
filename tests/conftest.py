@@ -45,6 +45,19 @@ def noppc64():
 
 
 @pytest.fixture(scope="session")
+def is_release():
+    """Helper function to determine the release mode"""
+    return os.environ.get("DT_RELEASE")
+
+
+@pytest.fixture(scope="session")
+def winonly():
+    """Skip this test when running not on Windows"""
+    if platform.system() != "Windows":
+        pytest.skip("Enabled on Windows only")
+
+
+@pytest.fixture(scope="session")
 def nowin():
     """Skip this test when running on Windows"""
     if platform.system() == "Windows":
@@ -128,6 +141,15 @@ def tempfile():
 @pytest.fixture(scope="function")
 def tempfile_jay():
     fd, fname = mod_tempfile.mkstemp(suffix=".jay")
+    os.close(fd)
+    yield fname
+    if os.path.exists(fname):
+        os.unlink(fname)
+
+
+@pytest.fixture(scope="function")
+def tempfile_csv():
+    fd, fname = mod_tempfile.mkstemp(suffix=".csv")
     os.close(fd)
     yield fname
     if os.path.exists(fname):

@@ -14,7 +14,7 @@ import datatable as dt
 import warnings
 import zipfile
 from datatable.internal import frame_integrity_check
-from tests import find_file
+from tests import assert_equals, find_file
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -105,6 +105,36 @@ def f(request):
 #-------------------------------------------------------------------------------
 # Run the tests
 #-------------------------------------------------------------------------------
+
+
+@pytest.mark.usefixtures("winonly", "is_release")
+def test_fread_4gb_jay(tempfile_jay):
+    size = 4 * 10**9
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_jay(tempfile_jay)
+    assert os.path.getsize(tempfile_jay) > size
+    DT = dt.fread(tempfile_jay)
+    frame_integrity_check(DT)
+    assert DT.nrows == size
+    assert DT.stype == dt.bool8
+
+
+@pytest.mark.usefixtures("winonly", "is_release")
+def test_fread_4gb_csv(tempfile_csv):
+    size = 4 * 10**9
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_csv(tempfile_csv)
+    assert os.path.getsize(tempfile_csv) > size
+    # This part of the test fails with the "bad allocation" exception
+    # on AppVeyor, because its nodes only have 6 Gb's of RAM.
+    # del DT
+    # DT = dt.fread(tempfile_csv)
+    # frame_integrity_check(DT)
+    # assert DT.nrows == size
+    # assert DT.stype == dt.bool8
+
 
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
                          indirect=True)
