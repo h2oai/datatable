@@ -158,7 +158,7 @@ Return grouping result without the grouping column(s) by setting the ``add_colum
 
 :ref:`f-expressions` can be passed to :func:`by()`::
 
-  df[:, count(), by(f.var1 < 400)]
+  df[:, dt.count(), by(f.var1 < 400)]
 
 .. dtframe::
   :names: C0,count
@@ -170,7 +170,7 @@ Return grouping result without the grouping column(s) by setting the ``add_colum
 
 By default, the groups are sorted in ascending order. The inverse is possible by negating the :ref:`f-expressions` in :func:`by()`::
 
-  df[:, count(), by(-f.group1)]
+  df[:, dt.count(), by(-f.group1)]
 
 .. dtframe::
   :names: group1,count
