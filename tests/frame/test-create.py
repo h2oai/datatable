@@ -1348,6 +1348,14 @@ def test_create_from_arrow2(pa):
     )
 
 
+def test_create_from_arrow_null(pa):
+    tbl = pa.Table.from_arrays(
+            [pa.array([None] * 5)],
+            names=["A"])
+    assert_equals(dt.Frame(tbl),
+                  dt.Frame(A = [None] * 5))
+
+
 @pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),
                                     slice(None, -1), # slice(2, 5)
                                     slice(0, 3)])
