@@ -131,6 +131,97 @@ See Also
 
 - :func:`last()` -- function that returns the last row.
 
+Examples
+--------
+:func:`first()` returns the first column in a frame::
+
+    from datatable import dt, f, by, sort, first
+    df = dt.Frame({"A": [1, 1, 2, 1, 2], 
+                   "B": [None, 2, 3, 4, 5]})
+    df 
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 5, 2
+
+    0,1,NA
+    1,1,2
+    2,2,3
+    3,1,4
+    4,2,5
+
+::
+
+    dt.first(df)
+
+.. dtframe::
+    :names: A
+    :types: int8
+    :shape: 5, 1
+
+    0,1
+    1,1
+    2,2
+    3,1
+    4,2
+
+Within a frame, it returns the first row::
+
+    df[:, first(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 1, 2
+
+    0,1,NA
+
+Of course, you can replicate this by passing 0 to the ``i`` section instead::
+
+    df[0, :]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 1, 2
+
+    0,1,NA
+
+:func:`first()` comes in handy if you wish to get the first non null value in a column::
+
+    df[f.B != None, first(f.B)]
+
+.. dtframe::
+    :names: B
+    :types: int8
+    :shape: 1,1
+
+    0,2
+
+:func:`first()` returns the first row per group in a :func:`by()` operation::
+
+    df[:, first(f[:]), by("A")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 2, 2
+
+    0,1,NA
+    1,2,3
+
+To get the first non-null value per row in a :func:`by()` operation, you can use the :func:`sort()` function, and set the ``na_position`` argument as ``last``::
+
+    df[:, first(f[:]), by("A"), sort("B", na_position="last")]
+
+.. dtframe::
+    :names: A,B
+    :types: int8, int8
+    :shape: 2, 2
+
+    0,1,2
+    1,2,3
 )";
 
 
@@ -153,6 +244,7 @@ See Also
 --------
 
 - :func:`first()` -- function that returns the first row.
+
 Examples
 --------
 
@@ -352,6 +444,76 @@ See Also
 
 - :func:`count()` -- function to calculate a number of non-missing values.
 
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 2, 1, 2],
+                   'B': [None, 2, 3,4, 5],
+                   'C': [1, 2, 1, 1, 2]})
+
+    df
+
+.. dtframe::
+    :names: A,B,C
+    :types: int32, int32, int32
+    :shape: 5, 2
+
+    0,1,NA,1
+    1,1,2,2
+    2,2,3,1
+    3,1,4,1
+    4,2,5,2
+
+Get the sum of column A::
+
+    df[:, dt.sum(f.A)]
+
+.. dtframe::
+    :names: A
+    :types: int32
+    :shape: 1, 1
+
+    0,7
+
+Get the sum of multiple columns::
+
+  df[:, [dt.sum(f.A), dt.sum(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,7,14
+
+
+Same as above, but more convenient::
+
+  df[:, dt.sum(f[:2])]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,7,14
+
+
+In the presence of :func:`by()`, it returns the sum of the specified columns per group::
+
+  df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+
+.. dtframe::
+    :names: C,A,B
+    :types: int32,int32,int32
+    :shape: 2, 3
+
+    0,1,4,7
+    1,2,3,7
 )";
 #endif
 
@@ -534,7 +696,7 @@ You can pass in a dictionary with new column names::
     :types: float32,float32
     :shape: 1, 2
 
-    0,1.4,3.5
+    0,1.4,1.4
 
 
 In the presence of :func:`by()`, it returns the average of each column per group::
@@ -932,6 +1094,84 @@ except: TypeError
 See Also
 --------
 - :func:`max()` -- function to calculate maxium values.
+
+Examples
+--------
+
+::
+
+    from datatable import dt, f, by
+
+    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+
+    df
+
+.. dtframe::
+    :names: A,B
+    :types: int32, int32
+    :shape: 9, 2
+
+    0,1,3
+    1,1,2
+    2,1,20
+    3,2,1
+    4,2,6
+    5,2,2
+    6,3,3
+    7,3,22
+    8,3,1
+
+
+Get the minimum from column B::
+
+    df[:, dt.min(f.B)]
+
+.. dtframe::
+    :names: B
+    :types: int32
+    :shape: 1, 1
+
+    0,1
+
+Get the minimum of all columns::
+
+  df[:, [dt.min(f.A), dt.min(f.B)]]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,1,1
+
+
+Same as above, but more convenient::
+
+  df[:, dt.min(f[:])]
+
+.. dtframe::
+    :names: A,B
+    :types: int32,int32
+    :shape: 1, 2
+
+    0,1,1
+
+
+
+In the presence of :func:`by()`, it returns the row with the minimum value per group ::
+
+    df[:, dt.min(f.B), by("A")]
+
+.. dtframe::
+    :names: A,B
+    :types: int32, int32
+    :shape: 3, 2
+
+    0,1,2
+    1,2,1
+    2,3,1
+
 )";
 
 
