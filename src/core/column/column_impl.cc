@@ -170,6 +170,10 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
     return;
   }
   switch (stype_) {
+    case SType::VOID: {
+      std::fill(outmask + row0, outmask + row1, true);
+      break;
+    }
     case SType::BOOL:
     case SType::INT8:    _fill_npmask<int8_t> (outmask, row0, row1); break;
     case SType::INT16:   _fill_npmask<int16_t>(outmask, row0, row1); break;
