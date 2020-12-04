@@ -432,7 +432,7 @@ def on_doctree_resolved(app, doctree, docname):
 #-------------------------------------------------------------------------------
 
 def setup(app):
-    app.setup_extension("sphinxext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.add_directive("contributors", XContributorsDirective)
     app.add_directive("contributors-grid", XContributorsGridDirective)
     app.connect("env-purge-doc", on_env_purge_doc)

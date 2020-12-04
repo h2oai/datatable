@@ -164,7 +164,7 @@ class XcodeDirective(SphinxDirective):
 #-------------------------------------------------------------------------------
 
 def setup(app):
-    app.setup_extension("sphinxext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.add_css_file("xcode.css")
     app.add_directive("xcode", XcodeDirective)
     app.add_node(XcodeRootElement, html=(xnodes.visit_div, xnodes.depart_div))

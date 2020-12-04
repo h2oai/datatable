@@ -542,7 +542,7 @@ def html_page_context(app, pagename, templatename, context, doctree):
 
 
 def setup(app):
-    app.setup_extension("sphinxext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.add_directive("dtframe", DtframeDirective)
     app.connect('html-page-context', html_page_context)
     return {"parallel_read_safe": True, "parallel_write_safe": True}

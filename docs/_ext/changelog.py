@@ -427,7 +427,7 @@ def on_doctree_resolved(app, doctree, docname):
 def setup(app):
     # TODO: consider creating a domain for easier referencing the versions
     #       https://www.sphinx-doc.org/en/master/development/tutorials/recipe.html
-    app.setup_extension("sphinxext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.connect("env-purge-doc", on_env_purge_doc)
     app.connect("env-merge-info", on_env_merge_info)
     app.connect("doctree-resolved", on_doctree_resolved)

@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../src/datatable'))
 
 
 # -- Project information -----------------------------------------------------
@@ -50,12 +49,12 @@ needs_sphinx = '1.8'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxext.dtframe_directive',
-    'sphinxext.xcode',
-    'sphinxext.xcontributors',
-    'sphinxext.xfunction',
-    'sphinxext.xpython',
-    'sphinxext.dt_changelog',
+    '_ext.dtframe_directive',
+    '_ext.xcode',
+    '_ext.xcontributors',
+    '_ext.xfunction',
+    '_ext.xpython',
+    '_ext.changelog',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',  # links to external documentation
@@ -206,7 +205,7 @@ def patch_list_table():
     a table from overflowing the width of the page.
     """
     from docutils.parsers.rst.directives.tables import ListTable
-    from sphinxext.xnodes import div
+    from _ext.xnodes import div
 
     def new_run(self):
         ret = self._run()
