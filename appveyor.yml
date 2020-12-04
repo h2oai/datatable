@@ -35,7 +35,11 @@ build_script:
     $BRANCH_BUILD_ID = (git rev-list --count $env:APPVEYOR_REPO_BRANCH..) - 1
 
     if ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
-      $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+      if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
+        $env:DT_RELEASE = "True"
+      } else {
+        $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+      }
     }
     elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
       $env:DT_BUILD_NUMBER = $MAIN_BUILD_ID
