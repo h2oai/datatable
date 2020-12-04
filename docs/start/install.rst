@@ -61,7 +61,7 @@ The following platforms are supported:
   We produce binary wheels that are tagged as ``manylinux2010`` (for ``x86_64``
   architecture) and ``manylinux2014`` (for ppc64le). Consequently, they will
   work with your Linux distribution if it is compatible with one of these tags.
-  Please refer to `PEP-513`_ and `PEP-599`_ for details.
+  Please refer to :pep:`513` and :pep:`599` for details.
 
 - **Windows**
 
@@ -211,6 +211,10 @@ know how to resolve them. If none of these help you, please ask a question on
 `StackOverflow`_ (tagging with ``[py-datatable]``), or file an issue on
 `GitHub`_.
 
+``pip._vendor.pep517.wrappers.BackendUnavailable``
+  This error occurs when you have an old version of ``pip`` in your environment.
+  Please upgrade ``pip`` to the version 20.0+, and the error should disappear.
+
 ``ImportError: cannot import name '_datatable'``
   This means the internal core library ``_datatable.*.so`` is either missing
   entirely, is in a wrong location, or has the wrong name. The first step
@@ -262,10 +266,6 @@ know how to resolve them. If none of these help you, please ask a question on
 .. Other links
 
 .. _`PyPI`: https://pypi.org/
-
-.. _`PEP-513`: https://www.python.org/dev/peps/pep-0513/
-
-.. _`PEP-599`: https://www.python.org/dev/peps/pep-0599/
 
 .. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/history
 
