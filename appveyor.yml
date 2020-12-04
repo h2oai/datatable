@@ -32,7 +32,7 @@ build_script:
 
     # Do not take into account the AppVeyor's additional merge commit
 
-    $BRANCH_BUILD_ID = (git rev-list --count $env:APPVEYOR_REPO_BRANCH..) - 1
+    $BRANCH_BUILD_ID = (git rev-list --count main) - 1
 
     if ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
       if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
