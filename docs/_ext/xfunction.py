@@ -1506,7 +1506,7 @@ def on_html_page_context(app, pagename, templatename, context, doctree):
 #-------------------------------------------------------------------------------
 
 def setup(app):
-    app.setup_extension("sphinxext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.add_config_value("xf_module_name", None, "env")
     app.add_config_value("xf_project_root", "..", "env")
     app.add_config_value("xf_permalink_url0", "", "env")

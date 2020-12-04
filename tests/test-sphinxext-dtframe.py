@@ -22,7 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
-import datatable.sphinxext.dtframe_directive as dd
+import docs._ext.dtframe_directive as dd
 
 
 def test_comma_separated():
