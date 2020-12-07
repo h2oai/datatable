@@ -31,7 +31,7 @@ import datatable as dt
 import warnings
 import zipfile
 from datatable.internal import frame_integrity_check
-from tests import assert_equals, find_file
+from tests import assert_equals, find_file, is_ppc64
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -166,7 +166,7 @@ def test_h2oai_benchmarks(f):
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "smalldata"),
                          indirect=True)
-def test_h2o3_smalldata(f, is_ppc64):
+def test_h2o3_smalldata(f):
     ignored_files = {
         # Zip files containing >1 files
         os.path.join("gbm_test", "bank-full.csv.zip"),
@@ -192,7 +192,7 @@ def test_h2o3_smalldata(f, is_ppc64):
         pytest.skip("On the ignored files list")
     else:
         params = {}
-        if is_ppc64:
+        if is_ppc64():
             params["nthreads"] = 8
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
@@ -206,7 +206,7 @@ def test_h2o3_smalldata(f, is_ppc64):
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
                          indirect=True)
-def test_h2o3_bigdata(f, is_ppc64):
+def test_h2o3_bigdata(f):
     ignored_files = {
         # Feather files
         os.path.join("ipums_feather.gz"),
@@ -256,7 +256,7 @@ def test_h2o3_bigdata(f, is_ppc64):
         return
 
     params = {"memory_limit": MEMORY_LIMIT}
-    if is_ppc64:
+    if is_ppc64():
         params["nthreads"] = 8
     if any(ff in f for ff in filledna_files):
         params["fill"] = True
