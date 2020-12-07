@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import math
 import os
+import platform
 import pytest
 import random
 import sys
