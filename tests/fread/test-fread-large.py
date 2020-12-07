@@ -166,7 +166,7 @@ def test_h2oai_benchmarks(f):
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "smalldata"),
                          indirect=True)
-def test_h2o3_smalldata(f):
+def test_h2o3_smalldata(f, is_ppc64):
     ignored_files = {
         # Zip files containing >1 files
         os.path.join("gbm_test", "bank-full.csv.zip"),
@@ -192,6 +192,8 @@ def test_h2o3_smalldata(f):
         pytest.skip("On the ignored files list")
     else:
         params = {}
+        if is_ppc64:
+            params["nthreads"] = 8
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
         if "single_quotes_mixed.csv" in f:
@@ -204,7 +206,7 @@ def test_h2o3_smalldata(f):
 
 @pytest.mark.parametrize("f", get_file_list("h2o-3", "bigdata", "laptop"),
                          indirect=True)
-def test_h2o3_bigdata(f):
+def test_h2o3_bigdata(f, is_ppc64):
     ignored_files = {
         # Feather files
         os.path.join("ipums_feather.gz"),
@@ -254,6 +256,8 @@ def test_h2o3_bigdata(f):
         return
 
     params = {"memory_limit": MEMORY_LIMIT}
+    if is_ppc64:
+        params["nthreads"] = 8
     if any(ff in f for ff in filledna_files):
         params["fill"] = True
     if "imagenet/cat_dog_mouse.tgz" in f:
