@@ -194,6 +194,8 @@ def test_h2o3_smalldata(f):
         params = {}
         if is_ppc64():
             params["nthreads"] = 8
+            pytest.skip("Fread tests disabled on PPC64")
+            return
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
         if "single_quotes_mixed.csv" in f:
@@ -258,6 +260,8 @@ def test_h2o3_bigdata(f):
     params = {"memory_limit": MEMORY_LIMIT}
     if is_ppc64():
         params["nthreads"] = 8
+        pytest.skip("Fread tests disabled on PPC64")
+        return
     if any(ff in f for ff in filledna_files):
         params["fill"] = True
     if "imagenet/cat_dog_mouse.tgz" in f:
