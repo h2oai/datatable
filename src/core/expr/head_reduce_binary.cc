@@ -239,7 +239,7 @@ Examples
 
 ::
 
-  DT[:, dt.cov(f.A, f.B)]
+  DT[:, dt.corr(f.A, f.B)]
 
 .. dtframe::
     :names: C0
