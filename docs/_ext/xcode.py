@@ -20,6 +20,7 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+import docutils
 import pygments
 import pygments.formatter
 import pygments.token as tok
@@ -160,10 +161,48 @@ class XcodeDirective(SphinxDirective):
 
 
 #-------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+
+def codeblock_newrun(self):
+    self.assert_has_content()
+    language = self.arguments[0] if self.arguments else \
+               'python'
+    classes = ['code', language]
+    content = '\n'.join(self.content)
+
+    if 'class' in self.options:
+        classes.append(self.options['class'])
+    elif 'classes' in self.options:
+        classes.extend(self.options['classes'])
+
+    # set up lexical analyzer
+    try:
+        tokens = docutils.utils.code_analyzer.Lexer(content, language, 'long')
+    except Error as error:
+        raise self.warning(error)
+
+    node = nodes.literal_block(content, classes=classes)
+    self.add_name(node)
+
+    # analyze content and add nodes for every token
+    for classes, value in tokens:
+        if classes:
+            node += nodes.inline(value, value, classes=classes)
+        else:
+            # insert as Text to decrease the verbosity of the output
+            node += nodes.Text(value)
+
+    return [node]
+
+
+#-------------------------------------------------------------------------------
 # Extension setup
 #-------------------------------------------------------------------------------
 
 def setup(app):
+    from docutils.parsers.rst.directives.body import CodeBlock
+    CodeBlock.run = codeblock_newrun
+
     app.setup_extension("_ext.xnodes")
     app.add_css_file("xcode.css")
     app.add_directive("xcode", XcodeDirective)
