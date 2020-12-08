@@ -223,6 +223,7 @@ def isview(frame):
     return any(frame_columns_virtual(frame))
 
 
+
 def is_ppc64():
     """Helper function to determine ppc64 platform"""
     platform_hardware = [platform.machine(), platform.processor()]
