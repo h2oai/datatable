@@ -246,7 +246,7 @@ Examples
     :types: float64
     :shape: 1,1
 
-    0,3.33333
+    0,1
 
 )";
 #endif
