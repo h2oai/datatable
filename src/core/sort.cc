@@ -585,6 +585,7 @@ class SortContext {
 
 
   void continue_sort(const Column& col, bool desc, bool make_groups) {
+    xassert(!col.is_virtual());
     column = col;
     nradixes = gg.size();
     descending = desc;
@@ -1504,6 +1505,7 @@ void dt::ArrayView_ColumnImpl<T>::sort_grouped(
     const Groupby& grps, Column& out)
 {
   (void) out.stats();
+  arg.materialize();
   SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
   sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
   if (sizeof(T) == 4) {
