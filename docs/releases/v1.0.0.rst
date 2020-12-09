@@ -45,6 +45,10 @@
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
 
+    -[fix] Fix a crash that occurred when using `median()` on virtual
+      columns of type ArrayView64. [#2802]
+
+
     fread
     -----
 
