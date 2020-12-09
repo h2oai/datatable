@@ -88,13 +88,13 @@ ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(
   : Virtual_ColumnImpl(nrows, col.stype()),
     arg(std::move(col))
 {
-  xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
-  xassert(ri.max() < arg.nrows());
   set_rowindex(ri);
 }
 
 template <typename T>
 void ArrayView_ColumnImpl<T>::set_rowindex(const RowIndex& ri) {
+  xassert((std::is_same<T, int32_t>::value? ri.isarr32() : ri.isarr64()));
+  xassert(ri.max() < arg.nrows());
   rowindex_container = ri;
   indices = get_indices<T>(ri);
 }
