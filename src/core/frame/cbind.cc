@@ -202,6 +202,85 @@ See also
 - :func:`rbind()` -- function for row-binding several frames.
 - :meth:`dt.Frame.cbind()` -- Frame method for cbinding some frames to
   another.
+
+Examples
+--------
+
+::
+
+  from datatable import dt, f
+
+  DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+
+  DT
+
+.. dtframe::
+    :names: A,B
+    :types: int32, int32
+    :shape: 3, 2
+
+    0,1,4
+    1,2,7
+    2,3,0
+
+::
+
+  frame1 = dt.Frame(N=[-1, -2, -5])
+
+  frame1
+
+.. dtframe::
+    :names: N
+    :types: int32
+    :shape: 3, 1
+
+    0,-1
+    1,-2
+    2,-5
+
+::
+
+  dt.cbind([DT, frame1])
+
+.. dtframe::
+    :names: A,B,N
+    :types: int32,int32,int32
+    :shape: 3,3
+
+    0,1,4,-1
+    1,2,7,-2
+    2,3,0,-5
+
+If the number of rows are not equal, you can force the binding by setting the `force` parameter to `True`::
+
+  frame2 = dt.Frame(N=[-1, -2, -5, -20])
+
+  frame2
+
+.. dtframe::
+    :names: N
+    :types: int32
+    :shape: 4,1
+
+    0,-1
+    1,-2
+    2,-5
+    3,20
+
+::
+
+  dt.cbind([DT, frame2], force=True)
+
+.. dtframe::
+    :names: A,B,N
+    :types: int32,int32,int32
+    :shape: 4,3
+
+    0,1,4,-1
+    1,2,7,-2
+    2,3,0,-5
+    3,NA,NA,20
+
 )";
 
 static PKArgs args_py_cbind(
