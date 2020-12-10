@@ -1478,7 +1478,7 @@ In the presence of :func:`by()`, it returns the median of each column per group:
     df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
 
 .. dtframe::
-    :names: C, A_mean, B_mean
+    :names: C, A_median, B_median
     :types: float32, float32, float32
     :shape: 2, 3
 
