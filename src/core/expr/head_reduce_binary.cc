@@ -135,6 +135,38 @@ See Also
 
 - :func:`corr()` -- function to calculate correlation between two columns.
 
+Examples
+--------
+
+::
+
+  from datatable import dt, f
+
+  DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
+
+  DT
+
+.. dtframe::
+    :names: A,B
+    :types: int32, int32
+    :shape: 4, 2
+
+    0,0,0
+    1,1,2
+    2,2,4
+    3,3,6
+
+::
+
+  DT[:, dt.cov(f.A, f.B)]
+
+.. dtframe::
+    :names: C0
+    :types: float64
+    :shape: 1,1
+
+    0,3.33333
+
 )";
 #endif
 
