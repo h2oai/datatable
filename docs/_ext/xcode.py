@@ -164,6 +164,8 @@ class XcodeDirective(SphinxDirective):
 #-------------------------------------------------------------------------------
 
 def codeblock_newrun(self):
+    # FIXME: this code never runs
+    print(" ==== codeblock_newrun ===== ")
     self.assert_has_content()
     language = self.arguments[0] if self.arguments else \
                'python'
