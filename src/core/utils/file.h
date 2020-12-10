@@ -7,21 +7,24 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_FILE_h
 #define dt_UTILS_FILE_h
-#include <sys/stat.h>  // fstat
-#include <string>      // std::string
+#include <string>          // std::string
+#include <sys/stat.h>      // fstat
+#include "utils/macros.h"
 
-#ifdef _WIN32
-  // mode_t is not defined on Windows
-  typedef int mode_t;
+#if DT_OS_WINDOWS
+  #define STAT __stat64
+  typedef int mode_t;      // mode_t is not defined on Windows 
+#else
+  #define STAT stat
 #endif
 
 
 class File
 {
-  std::string name;
-  mutable struct stat statbuf;
-  int fd;
-  int flags;
+  std::string name_;
+  mutable struct STAT statbuf_;
+  int fd_;
+  int flags_;
 
 public:
   static const int APPEND;

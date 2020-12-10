@@ -19,14 +19,9 @@ a JupyterLab notebook or in a Python console:
 
 ::
 
-  import datatable as dt
-  print(dt.__version__)
-
-.. raw:: html
-
-  <div class="output-cell"><div class='highlight'>
-    <pre>0.11.0</pre>
-  </div></div>
+  >>> import datatable as dt
+  >>> print(dt.__version__)
+  0.11.1
 
 
 
