@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2020 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 # Optional tests (enabled only if DT_LARGE_TESTS_ROOT environment variable is
 # defined): read a large number of external files of various sizes, including
@@ -14,7 +31,7 @@ import datatable as dt
 import warnings
 import zipfile
 from datatable.internal import frame_integrity_check
-from tests import find_file
+from tests import assert_equals, find_file, is_ppc64
 
 env_coverage = "DTCOVERAGE"
 root_env_name = "DT_LARGE_TESTS_ROOT"
@@ -106,6 +123,36 @@ def f(request):
 # Run the tests
 #-------------------------------------------------------------------------------
 
+
+@pytest.mark.usefixtures("winonly", "is_release")
+def test_fread_4gb_jay(tempfile_jay):
+    size = 4 * 10**9
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_jay(tempfile_jay)
+    assert os.path.getsize(tempfile_jay) > size
+    DT = dt.fread(tempfile_jay)
+    frame_integrity_check(DT)
+    assert DT.nrows == size
+    assert DT.stype == dt.bool8
+
+
+@pytest.mark.usefixtures("winonly", "is_release")
+def test_fread_4gb_csv(tempfile_csv):
+    size = 4 * 10**9
+    DT = dt.Frame([True])
+    DT.nrows = size
+    DT.to_csv(tempfile_csv)
+    assert os.path.getsize(tempfile_csv) > size
+    # This part of the test fails with the "bad allocation" exception
+    # on AppVeyor, because its nodes only have 6 Gb's of RAM.
+    # del DT
+    # DT = dt.fread(tempfile_csv)
+    # frame_integrity_check(DT)
+    # assert DT.nrows == size
+    # assert DT.stype == dt.bool8
+
+
 @pytest.mark.parametrize("f", get_file_list("h2oai-benchmarks", "Data"),
                          indirect=True)
 def test_h2oai_benchmarks(f):
@@ -145,8 +192,14 @@ def test_h2o3_smalldata(f):
         pytest.skip("On the ignored files list")
     else:
         params = {}
+        if is_ppc64():
+            params["nthreads"] = 8
+            pytest.skip("Fread tests disabled on PPC64")
+            return
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
+        if "single_quotes_mixed.csv" in f:
+            params["quotechar"] = "'"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             DT = dt.fread(f, **params)
@@ -205,6 +258,10 @@ def test_h2o3_bigdata(f):
         return
 
     params = {"memory_limit": MEMORY_LIMIT}
+    if is_ppc64():
+        params["nthreads"] = 8
+        pytest.skip("Fread tests disabled on PPC64")
+        return
     if any(ff in f for ff in filledna_files):
         params["fill"] = True
     if "imagenet/cat_dog_mouse.tgz" in f:

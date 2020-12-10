@@ -25,6 +25,7 @@
 #include "python/string.h"
 #include "write/csv_writer.h"
 #include "options.h"
+
 namespace py {
 
 static void change_to_lowercase(std::string& str) {
