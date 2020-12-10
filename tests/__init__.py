@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import math
 import os
+import platform
 import pytest
 import random
 import sys
@@ -220,6 +221,12 @@ def assert_value_error(f, msg):
 
 def isview(frame):
     return any(frame_columns_virtual(frame))
+
+
+def is_ppc64():
+    """Helper function to determine ppc64 platform"""
+    platform_hardware = [platform.machine(), platform.processor()]
+    return platform.system() == "Linux" and "ppc64le" in platform_hardware
 
 
 def get_core_tests(suite):
