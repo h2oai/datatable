@@ -148,7 +148,7 @@ The exact dtype can be specified::
 
 Convert multiple columns to different types::
 
-  df[:, [astype(f.A, int), as_type(f.C, dt.str32)]]
+  df[:, [as_type(f.A, int), as_type(f.C, dt.str32)]]
 
 .. dtframe::
     :names: A,C
