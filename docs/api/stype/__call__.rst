@@ -52,7 +52,7 @@
         3,1,4,1
         4,2,5,2
 
-    Convert column A from string to integer type::
+    Convert column A from string stype to integer stype::
 
         df[:, dt.int32(f.A)]
 
@@ -67,7 +67,7 @@
         3,1
         4,2
 
-    Convert multiple columns to different types::
+    Convert multiple columns to different stypes::
 
         df[:, [dt.int32(f.A), dt.str32(f.C)]]
 
