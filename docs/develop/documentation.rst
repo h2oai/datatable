@@ -10,7 +10,7 @@ The basic workflow for developing documentation, after
 :ref:`setting up a local datatable repository <local-setup>`, is to go into
 the ``docs/`` directory and run
 
-.. xcode:: shell
+.. code-block:: console
 
     $ make html
 
@@ -26,7 +26,9 @@ Basic formatting
 ----------------
 
 At the most basic level, RST document is a plain text, where paragraphs are
-separated with empty lines::
+separated with empty lines:
+
+.. code-block:: rst
 
     Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
     tempor incididunt ut labore et dolore magna aliqua.
@@ -41,7 +43,9 @@ ask to avoid lines that are longer than 80 characters in width, if possible.
 This makes it much easier to work with code on small screen devices.
 
 
-Page headings are a simple line of underlined text::
+Page headings are a simple line of underlined text:
+
+.. code-block:: rst
 
     Heading Level 1
     ===============
@@ -58,14 +62,18 @@ not render properly.
 
 Basic **bold text**, *italic text* and ``literal text`` is written as follows.
 (Note that literals use double backticks, which is a frequent cause of
-formatting errors.)::
+formatting errors.):
+
+.. code-block:: rst
 
     **bold text**
     *italic text*
     ``literal text``
 
 
-Bulleted and ordered lists are done similarly to Markdown::
+Bulleted and ordered lists are done similarly to Markdown:
+
+.. code-block:: rst
 
     - list item 1;
     - list item 2;
@@ -89,22 +97,26 @@ Code blocks
 
 There are two main ways to format a block of code. The simplest way is to finish
 the previous paragraph with a double-colon ``::`` and then start the next
-paragraph (code) indented with 4 spaces::
+paragraph (code) indented with 4 spaces:
+
+.. code-block:: rst
 
     Here is a code example::
 
         print("Hello, world!", flush=True)
 
 
-A slightly more advanced method is to use an explicit ``xcode`` directive::
+A slightly more advanced method is to use an explicit ``code-block`` directive:
 
-    .. xcode:: shell
+.. code-block:: rst
+
+    .. code-block:: shell
 
         $ pip install datatable
 
 This directive allows you to explicitly select the language of your code snippet,
-which will affect how it is highlighted. The code inside ``xcode`` must be
-indented, and there has to be an empty line between the ``.. xcode::``
+which will affect how it is highlighted. The code inside ``code-block`` must be
+indented, and there has to be an empty line between the ``.. code-block::``
 declaration and the actual code.
 
 
@@ -114,7 +126,9 @@ Hyperlinks
 If you want to create a link to an external website, then you would do it in
 two parts. First, the text of the link should be surrounded by backticks and
 followed by an underscore. Second, the URL of the link is declared at
-the bottom of the page (or section) via a special directive::
+the bottom of the page (or section) via a special directive:
+
+.. code-block:: rst
 
     Say you want to create a link to an `example website`_. The text "example
     website" in the previous sentence will be turned into a link, whose URL is
@@ -132,7 +146,9 @@ target within the document.
 Creating the target is done similarly to how we declared an external URL, only
 this time you simply omit the URL. The RST engine will then assume that the
 target points to the following element on the page (which should usually be a
-section heading, an image, a table, etc)::
+section heading, an image, a table, etc):
+
+.. code-block:: rst
 
     .. _`hello world`:
 
@@ -142,7 +158,9 @@ section heading, an image, a table, etc)::
 Then you can refer to this target the same way that you referred to an external
 URL in the previous example. However, this would only work if you refer to this
 anchor within the same page. If you want to refer to this anchor within another
-rst document, then you would need to use the ``:ref:`` role::
+rst document, then you would need to use the ``:ref:`` role:
+
+.. code-block:: rst
 
     We can refer to "hello world example" even from a different document
     like this: :ref:`hello world`. Also, you can use the following syntax to
@@ -153,7 +171,9 @@ rst document, then you would need to use the ``:ref:`` role::
 Lastly, there are also special auto-generated targets in the API Reference
 part of the documentation. These targets describe each class, function, method,
 and other exported symbols of the ``datatable`` module. In order to refer to
-these targets, special syntax is used::
+these targets, special syntax is used:
+
+.. code-block:: rst
 
     :mod:`datatable`
     :class:`datatable.Frame`
@@ -163,12 +183,16 @@ these targets, special syntax is used::
 which will be rendered as :mod:`datatable`, :class:`datatable.Frame`,
 :meth:`datatable.Frame.to_csv`, :func:`datatable.fread`.
 
-The "renamed link" syntax can also be used::
+The "renamed link" syntax can also be used:
+
+.. code-block:: rst
 
     :func:`fread(input) <datatable.fread>`
 
 If repeating the ``datatable.`` part is tedious, then you can add the following
-declaration at the top of the page::
+declaration at the top of the page:
+
+.. code-block:: rst
 
     .. py:currentmodule:: datatable
 
@@ -182,7 +206,9 @@ Advanced directives
 -------------------
 
 All rst documents are arranged into a tree. All non-leaf nodes of this tree
-must include a ``.. toctree::`` directive, which may also be declared hidden::
+must include a ``.. toctree::`` directive, which may also be declared hidden:
+
+.. code-block:: rst
 
     .. toctree::
         :hidden:
@@ -192,14 +218,18 @@ must include a ``.. toctree::`` directive, which may also be declared hidden::
 
 
 The ``.. image::`` directive can be used to insert an image, which may also be
-a link::
+a link:
+
+.. code-block:: rst
 
     .. image:: <image URL>
         :target: <target URL if the image is a link>
 
 
 In order to note that some functionality was added or changed in a specific
-version, use::
+version, use:
+
+.. code-block:: rst
 
     .. xversionadded:: 0.10.0
 
@@ -209,7 +239,9 @@ version, use::
 The ``.. seealso::`` directive adds a Wikipedia-style "see also:" entry at the
 beginning of a section. The argument of this directive should contain a link
 to the content that you want the user to see. This directive is best to include
-immeditately after a heading::
+immeditately after a heading:
+
+.. code-block:: rst
 
     .. seealso:: :ref:`columnsets`
 
@@ -221,7 +253,9 @@ Changelog support
 RST is language that supports extensions. One of the custom extensions that we
 use supports maintaining a changelog. First, the ``.. changelog::`` directive
 which is used in ``releases/vN.N.N.rst`` files declares that each of those
-files describes a particular release of datatable. The format is as follows::
+files describes a particular release of datatable. The format is as follows:
+
+.. code-block:: rst
 
     .. changelog::
         :version: <version number>
@@ -283,7 +317,9 @@ documentation is declared within the C++ code, so that it can be available
 from within a regular python session.
 
 Inside the documentation tree, each function/method/etc that has to be
-documented is declared as follows::
+documented is declared as follows:
+
+.. code-block:: rst
 
     .. xfunction:: datatable.rbind
         :src: src/core/frame/rbind.cc py_rbind
@@ -302,7 +338,9 @@ this function are located. This will be included as a link in the rendered
 output.
 
 
-In order to document a getter/setter property of a class, use the following::
+In order to document a getter/setter property of a class, use the following:
+
+.. code-block:: rst
 
     .. xdata:: datatable.Frame.key
         :src: src/core/frame/key.cc Frame::get_key Frame::set_key

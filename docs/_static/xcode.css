@@ -1,50 +1,104 @@
 
-.xcode {
+div.xcode {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
     font-size: 12px;
     line-height: 1.4;
-    margin: 0 0 12pt 36pt;
-    overflow-x: auto;
-    padding: 8px 12px;
+    margin: 0 0 1rem 2rem;
+    /*overflow-x: auto;*/
     white-space: pre;
 }
 
-div.document p + .xcode {
-    margin-top: -12px;
+
+div.xcode code {
+    color: inherit;
+    display: block;
+    font-size: inherit;
+    overflow: auto;
+    padding: 8px 12px;
 }
 
-.section ol li>p + .xcode,
-.section ul li>p + .xcode,
-.section dl dd>p + .xcode {
-    margin-left: 24px;
-    margin-top: 0;
+p + div.notranslate div.xcode {
+    margin-top: -0.8rem;
+}
+
+li > p + div.notranslate div.xcode {
+    margin-top: -0.3rem;
 }
 
 
 /*------------------------------------------------------------------------------
- * console
+ * python
  *-----------------------------------------------------------------------------*/
 
-.xcode.console {
+.xcode code.python.input {
+    background: whitesmoke;
+    border: 1px solid #e0e0e0;
+    counter-increment: cc;
+    display: block;
+    overflow: visible;  /* FIXME */
+    padding: 4px 8px;
+    position: relative;
+}
+
+.xcode code.python.input::before {
+    color: #ccc;
+    content: "[" counter(cc) "]:";
+    font-family: "Source Code Pro", monospace;
+    font-size: 80%;
+    left: -30px;
+    line-height: 24px;
+    position: absolute;
+    top: 0;
+}
+
+.xcode div.output {
+    margin-bottom: 0.5rem;
+    padding: 4px 8px;
+    white-space: pre;
+}
+
+.xcode code.python .kn {
+    color: #339cf9;
+    font-weight: bold;
+}
+
+.xcode code.python .s2,
+.xcode code.python .s1 {
+    color: #d48a02;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * bash
+ *-----------------------------------------------------------------------------*/
+
+.xcode code.bash {
     background-color: #444;
     border: none;
     color: #dadada;
 }
 
-.xcode.console .prompt {
+.xcode code.bash .gp {  /* prompt */
     color: #ffdd77;
     user-select: none;
 }
 
-.xcode.console .program {
-    color: #ffffae;
-}
-
-.xcode.console .comment {
+.xcode code.bash .c1 {  /* comments */
     color: #558080;
     font-style: italic;
 }
 
-.xcode.console .output {
+.xcode code.bash .go {  /* output */
     opacity: 0.6;
+}
+
+.xcode code.bash .s2,
+.xcode code.bash .s1 {  /* strings */
+    color: #ffae19;
+}
+
+.xcode code.bash .si,
+.xcode code.bash .nv {  /* variables */
+    color: #6f6;
 }

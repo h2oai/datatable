@@ -20,6 +20,32 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+#
+# When docutils encounters '::' at the end of a paragraph, it converts the
+# following paragraph into a literal block, i.e. a nodes.literal_block is
+# inserted into the doctree (see docutils/parsers/rst/states.py:L2791).
+#
+# Similarly, the Sphinx' `.. code-block::` directive inserts a single
+# nodes.literal_block into the doctree (possibly wrapped in a container if
+# there is a caption). The node will also have a 'language' attribute (see
+# sphinx/directives/code.py::CodeBlock class).
+#
+# When Sphinx renders `literal_block`s into HTML (see
+# sphinx/writers/html5.py::HTML5Translator.visit_literal_block), the content
+# of the block is highlighted via
+#
+#     highlighted = self.highlighter.highlight_block(
+#         node.rawsource, lang, opts=opts, linenos=linenos,
+#         location=(self.builder.current_docname, node.line), **highlight_args
+#     )
+#
+# where `self.highlighter = PygmentsBridge('html', style)`, and `style` is
+# taken from the configuration options or from the theme. The PygmentsBridge
+# class (sphinx/highlighting.py::PygmentsBridge) allows to set a custom html
+# formatter to use in `pygments.highlight(source, lexer, formatter)`, as well
+# as custom lexer for every language.
+#
+#-------------------------------------------------------------------------------
 import docutils
 import pygments
 import pygments.formatter
@@ -27,6 +53,7 @@ import pygments.token as tok
 import re
 from docutils import nodes
 from sphinx.util.docutils import SphinxDirective
+from pygments.formatters.html import escape_html
 from . import xnodes
 
 
@@ -161,49 +188,109 @@ class XcodeDirective(SphinxDirective):
 
 
 #-------------------------------------------------------------------------------
+# XHtmlFormatter
 #-------------------------------------------------------------------------------
 
-def codeblock_newrun(self):
-    # FIXME: this code never runs
-    print(" ==== codeblock_newrun ===== ")
-    self.assert_has_content()
-    language = self.arguments[0] if self.arguments else \
-               'python'
-    classes = ['code', language]
-    content = '\n'.join(self.content)
+class XHtmlFormatter(pygments.formatter.Formatter):
 
-    if 'class' in self.options:
-        classes.append(self.options['class'])
-    elif 'classes' in self.options:
-        classes.extend(self.options['classes'])
+    def __init__(self, lang='default', **kwargs):
+        super().__init__(**kwargs)
+        self._lang = lang.lower()
+        if 'msdos' in self._lang:
+            self._lang += " bash"
 
-    # set up lexical analyzer
-    try:
-        tokens = docutils.utils.code_analyzer.Lexer(content, language, 'long')
-    except Error as error:
-        raise self.warning(error)
-
-    node = nodes.literal_block(content, classes=classes)
-    self.add_name(node)
-
-    # analyze content and add nodes for every token
-    for classes, value in tokens:
-        if classes:
-            node += nodes.inline(value, value, classes=classes)
+    def filter(self, tokens):
+        if 'python' in self._lang:
+            yield from self.python_filter(tokens)
         else:
-            # insert as Text to decrease the verbosity of the output
-            node += nodes.Text(value)
+            yield from self.default_filter(tokens)
 
-    return [node]
+    def default_filter(self, tokens):
+        yield ("Code:start", None)
+        for ttype, tvalue in tokens:
+            if tvalue:
+                yield (ttype, tvalue)
+        yield ("Code:end", None)
+
+    def python_filter(self, tokens):
+        mode = None
+        output = []
+        for ttype, tvalue in tokens:
+            if ttype == tok.Token.Generic.Prompt:
+                if mode == "input_block":
+                    continue
+                if mode == "output_block":
+                    yield ("Output:start", None)
+                    yield (tok.Token.Text, "\n".join(output))
+                    yield ("Output:end", None)
+                    output = []
+                mode = "input_block"
+                yield ("Input:start", None)
+            elif ttype == tok.Token.Generic.Output:
+                if mode == "input_block":
+                    yield ("Input:end", None)
+                mode = "output_block"
+                output.append(tvalue)
+            elif mode is None and not tvalue:
+                continue
+            else:
+                if mode is None:
+                    mode = "code_block"
+                    yield ("Code:start", None)
+                yield (ttype, tvalue)
+        if mode == "input_block":
+            yield ("Input:end", None)
+        if mode == "output_block":
+            yield ("Output:start", None)
+            yield (tok.Token.Text, "\n".join(output))
+            yield ("Output:end", None)
+        if mode == "code_block":
+            yield ("Code:end", None)
+
+
+    def format_unencoded(self, tokenstream, outfile):
+        MAP = tok.STANDARD_TYPES
+        outfile.write("<div class='xcode'>")
+        for ttype, tvalue in self.filter(tokenstream):
+            if isinstance(ttype, str):
+                if ttype == "Code:start":
+                    outfile.write("<code class='%s'>" % self._lang)
+                if ttype == "Code:end":
+                    outfile.write("</code>")
+                if ttype == "Input:start":
+                    outfile.write("<code class='%s input'>" % self._lang)
+                if ttype == "Input:end":
+                    outfile.write("</code>")
+                if ttype == "Output:start":
+                    outfile.write("<div class='output'>")
+                if ttype == "Output:end":
+                    outfile.write("</div>")
+            else:
+                cls = MAP[ttype]
+                tvalue = escape_html(tvalue)
+                if cls:
+                    outfile.write("<span class=%s>%s</span>" % (cls, tvalue))
+                else:
+                    outfile.write(tvalue)
+        outfile.write("</div>")
+        # self._original_formatter.format(tokens, outfile)
+
 
 
 #-------------------------------------------------------------------------------
 # Extension setup
 #-------------------------------------------------------------------------------
 
+def my_get_lexer(self, source, lang, opts=None, force=False, location=None):
+    lexer = self._get_lexer(source, lang, opts, force, location)
+    self.formatter_args["lang"] = lexer.name
+    return lexer
+
 def setup(app):
-    from docutils.parsers.rst.directives.body import CodeBlock
-    CodeBlock.run = codeblock_newrun
+    from sphinx.highlighting import PygmentsBridge
+    PygmentsBridge.html_formatter = XHtmlFormatter
+    PygmentsBridge._get_lexer = PygmentsBridge.get_lexer
+    PygmentsBridge.get_lexer = my_get_lexer
 
     app.setup_extension("_ext.xnodes")
     app.add_css_file("xcode.css")

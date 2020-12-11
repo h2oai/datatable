@@ -430,7 +430,6 @@ div.document-wrapper {
   margin-bottom: 25px;
   margin-left: var(--document-x-margin);
   margin-top: 25px;
-  overflow-x: hidden;
 }
 
 div.document {
