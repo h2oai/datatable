@@ -113,7 +113,7 @@ li > p + div.notranslate div.xcode {
 
 .xcode code.python .o,    /* Operator */
 .xcode code.python .ow {  /* Operator.Word */
-    color: #b1c1d1;
+    color: #5fa5dc;
 }
 
 .xcode code.python .c1,   /* Comment.Single */

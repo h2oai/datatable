@@ -338,11 +338,11 @@ sections):
             print(str(cls) + " likes " + item)
 
     if __name__ == "__main__":
-        data = []
-        data += [1, 123, -14]
+        data = [MyClass('abc', 2)]
+        data += [1, 123, -14, +297, 2_300_000]
         data += [True, False, None]
         data += [0x123, 0o123, 0b111]
-        data += [2.71, 1.23e+45, -1.0001e-11]
+        data += [2.71, 1.23e+45, -1.0001e-11, -math.inf]
         data += ['abc', "def", """ghijk""", b"lmnop"]
         data += [f"This is an f-string {len(data)}.\n"]
         data += [r"\w+\n?\x0280\\ [abc123]+$",

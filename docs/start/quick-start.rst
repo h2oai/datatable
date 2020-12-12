@@ -7,7 +7,7 @@ Install datatable
 
 Let's begin by installing the latest stable version of ``datatable`` from PyPI:
 
-.. xcode:: shell
+.. code-block:: console
 
     $ pip install datatable
 
@@ -15,18 +15,11 @@ If this didn't work for you, or if you want to install the bleeding edge
 version of the library, please check the :doc:`Installation <install>` page.
 
 Assuming the installation was successful, you can now import the library in
-a JupyterLab notebook or in a Python console:
+a JupyterLab notebook or in a Python console::
 
-::
-
-  import datatable as dt
-  print(dt.__version__)
-
-.. raw:: html
-
-  <div class="output-cell"><div class='highlight'>
-    <pre>0.11.0</pre>
-  </div></div>
+  >>> import datatable as dt
+  >>> print(dt.__version__)
+  0.11.1
 
 
 

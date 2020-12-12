@@ -251,17 +251,17 @@ class XHtmlFormatter(pygments.formatter.Formatter):
         for tt, tv in self.merge_tokens(tokens):
             if stored:
                 if (stored[0] == tok.Token.String.Affix and tt in tok.Token.String) or \
-                   (stored == (tok.Token.Operator, '-') and tt in tok.Token.Number):
+                   (stored[0] == tok.Token.Operator and stored[1] in '+-' and tt in tok.Token.Number):
                     tv = stored[1] + tv
-                    stored = None
                 else:
                     yield stored
+                stored = None
             if (tt, tv) == (tok.Token.Name.Builtin.Pseudo, "Ellipsis"):
                 tt = tok.Token.Keyword.Constant
             elif (tt, tv) == (tok.Token.Operator, "..."):
                 tt = tok.Token.Keyword.Constant
             elif (tt == tok.Token.String.Affix or
-                  (tt, tv) == (tok.Token.Operator, '-')):
+                  (tt == tok.Token.Operator and tv in '+-')):
                 stored = tt, tv
                 continue
             yield (tt, tv)
@@ -318,9 +318,14 @@ class XHtmlFormatter(pygments.formatter.Formatter):
 #-------------------------------------------------------------------------------
 
 def my_get_lexer(self, source, lang, opts=None, force=False, location=None):
+    """
+    Replacement method for PygmentsBridge.get_lexer, which supplies
+    argument `lang` to the html formatter.
+    """
     lexer = self._get_lexer(source, lang, opts, force, location)
     self.formatter_args["lang"] = lexer.name
     return lexer
+
 
 def setup(app):
     from sphinx.highlighting import PygmentsBridge
@@ -330,6 +335,6 @@ def setup(app):
 
     app.setup_extension("_ext.xnodes")
     app.add_css_file("xcode.css")
-    app.add_directive("xcode", XcodeDirective)
+    # app.add_directive("xcode", XcodeDirective)
     app.add_node(XcodeRootElement, html=(xnodes.visit_div, xnodes.depart_div))
     return {"parallel_read_safe": True, "parallel_write_safe": True}
