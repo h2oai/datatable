@@ -353,5 +353,29 @@ sections):
         if data and not data:
             assert AssertionError
 
+Languages other than python are also supported. For example, the following
+is a shell code sample (``console`` "language"):
+
+.. code-block:: console
+
+    $ # list all files in a directory
+    $ ls -l
+    total 48
+    -rw-r--r--   1 pasha  staff   804B Dec 10 09:14 Makefile
+    drwxr-xr-x  24 pasha  staff   768B Dec 10 09:14 api/
+    -rw-r--r--   1 pasha  staff   7.1K Dec 11 14:10 conf.py
+    drwxr-xr-x   7 pasha  staff   224B Dec 10 09:14 develop/
+    -rw-r--r--   1 pasha  staff    62B Jul 29 14:02 docutils.conf
+    -rw-r--r--   1 pasha  staff   4.2K Dec 10 09:14 index.rst
+    drwxr-xr-x  12 pasha  staff   384B Dec 10 09:14 manual/
+    drwxr-xr-x  19 pasha  staff   608B Dec 10 13:19 releases/
+    drwxr-xr-x   6 pasha  staff   192B Dec 10 13:19 start/
+
+    $ # Here are some more advanced syntax elements:
+    $ echo "PYTHONHOME = $PYTHONHOME"
+    $ export TMP=/tmp
+    $ docker run -it --init -v `pwd`:/cwd ${DOCKER_CONTAINER}
+
+
 
 .. _`example website`: https://www.example.com/

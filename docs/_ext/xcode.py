@@ -207,7 +207,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
 
     def default_filter(self, tokens):
         yield ("Code:start", None)
-        for ttype, tvalue in tokens:
+        for ttype, tvalue in self.mend_tokens(tokens):
             if tvalue:
                 yield (ttype, tvalue)
         yield ("Code:end", None)
@@ -215,18 +215,18 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def python_filter(self, tokens):
         mode = None
         output = []
-        for ttype, tvalue in self.python_mend_tokens(tokens):
-            if ttype == tok.Token.Generic.Prompt:
+        for ttype, tvalue in self.mend_tokens(tokens):
+            if ttype == tok.Generic.Prompt:
                 if mode == "input_block":
                     continue
                 if mode == "output_block":
                     yield ("Output:start", None)
-                    yield (tok.Token.Text, "\n".join(output))
+                    yield (tok.Text, "\n".join(output))
                     yield ("Output:end", None)
                     output = []
                 mode = "input_block"
                 yield ("Input:start", None)
-            elif ttype == tok.Token.Generic.Output:
+            elif ttype == tok.Generic.Output:
                 if mode == "input_block":
                     yield ("Input:end", None)
                 mode = "output_block"
@@ -240,28 +240,28 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             yield ("Input:end", None)
         if mode == "output_block":
             yield ("Output:start", None)
-            yield (tok.Token.Text, "\n".join(output))
+            yield (tok.Text, "\n".join(output))
             yield ("Output:end", None)
         if mode == "code_block":
             yield ("Code:end", None)
 
 
-    def python_mend_tokens(self, tokens):
+    def mend_tokens(self, tokens):
         stored = None
         for tt, tv in self.merge_tokens(tokens):
             if stored:
-                if (stored[0] == tok.Token.String.Affix and tt in tok.Token.String) or \
-                   (stored[0] == tok.Token.Operator and stored[1] in '+-' and tt in tok.Token.Number):
+                if (stored[0] == tok.String.Affix and tt in tok.String) or \
+                   (stored[0] == tok.Operator and stored[1] in '+-' and tt in tok.Number):
                     tv = stored[1] + tv
                 else:
                     yield stored
                 stored = None
-            if (tt, tv) == (tok.Token.Name.Builtin.Pseudo, "Ellipsis"):
-                tt = tok.Token.Keyword.Constant
-            elif (tt, tv) == (tok.Token.Operator, "..."):
-                tt = tok.Token.Keyword.Constant
-            elif (tt == tok.Token.String.Affix or
-                  (tt == tok.Token.Operator and tv in '+-')):
+            if (tt, tv) == (tok.Name.Builtin.Pseudo, "Ellipsis"):
+                tt = tok.Keyword.Constant
+            elif (tt, tv) == (tok.Operator, "..."):
+                tt = tok.Keyword.Constant
+            elif (tt == tok.String.Affix or
+                  (tt == tok.Operator and tv in '+-')):
                 stored = tt, tv
                 continue
             yield (tt, tv)
@@ -273,6 +273,11 @@ class XHtmlFormatter(pygments.formatter.Formatter):
         last_ttype = None
         last_tvalue = ''
         for ttype, tvalue in tokens:
+            if ttype in [tok.String.Affix, tok.String.Delimiter,
+                         tok.String.Single, tok.String.Double,
+                         tok.String.Char, tok.String.Backtick,
+                         tok.String.Symbol]:
+                ttype = tok.String
             if ttype == last_ttype:
                 last_tvalue += tvalue
             else:

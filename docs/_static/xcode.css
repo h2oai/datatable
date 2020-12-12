@@ -29,6 +29,111 @@ li > p + div.notranslate div.xcode {
 
 
 /*------------------------------------------------------------------------------
+ * Generic styles (apply to all languages)
+ *-----------------------------------------------------------------------------*/
+
+.xcode .kn,   /* Keyword.Namespace */
+.xcode .k {   /* Keyword */
+    color: #5fa5dc;
+    font-weight: bold;
+}
+
+.xcode .kc {  /* Keyword.Constant */
+    color: green;
+    font-weight: bold;
+}
+
+
+.xcode .s,    /* String */
+.xcode .s1,   /* String.Single */
+.xcode .s2 {  /* String.Double */
+    color: #d48a02;
+}
+
+.xcode .se,   /* String.Escape */
+.xcode .si {  /* String.Interpol */
+    color: #d48a0244;
+}
+
+.xcode .sd {  /* String.Doc */
+    color: #7dbfbf;
+}
+
+
+.xcode .na {  /* Name.Attribute */
+    color: orange;
+}
+
+.xcode .nb {  /* Name.Builtin */
+    font-weight: bold;
+}
+
+.xcode .bp {  /* Name.Builtin.Pseudo */
+    font-style: italic;
+}
+
+.xcode .ne {  /* Name.Exception */
+    color: #e62222;
+    font-weight: bold;
+}
+
+.xcode .fm,   /* Name.Function.Magic */
+.xcode .vm {  /* Name.Variable.Magic */
+    color: #e24aac;
+}
+
+.xcode .nf,   /* Name.Function */
+.xcode .nc {  /* Name.Class */
+}
+
+.xcode .nd {  /* Name.Decorator */
+    color: #829ee0;
+}
+
+.xcode .nt {  /* Name.Tag */
+    color: blue;
+}
+
+.xcode .nv {  /* Name.Variable */
+    color: #c17d00;
+}
+
+
+.xcode .o,    /* Operator */
+.xcode .ow {  /* Operator.Word */
+    color: #5fa5dc;
+}
+
+.xcode .c1,   /* Comment.Single */
+.xcode .ch {  /* Comment.Hashbang */
+    color: #bbb;
+    font-style: italic;
+}
+
+.xcode .m,    /* Number */
+.xcode .mi,   /* Number.Integer */
+.xcode .mf,   /* Number.Float */
+.xcode .mo,   /* Number.Octal */
+.xcode .mh,   /* Number.Hex */
+.xcode .mb {  /* Number.Bin */
+    color: #2db533;
+}
+
+.xcode .gh {  /* Generic.Heading */
+    color: #8340d8;
+    font-weight: bold;
+}
+
+.xcode .gs {  /* Generic.Strong */
+    font-weight: bold;
+}
+
+.xcode .ge {  /* Generic.Emphasis */
+    font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
  * python
  *-----------------------------------------------------------------------------*/
 
@@ -57,78 +162,6 @@ li > p + div.notranslate div.xcode {
     white-space: pre;
 }
 
-.xcode code.python .kn,   /* Keyword.Namespace */
-.xcode code.python .k {   /* Keyword */
-    color: #5fa5dc;
-    font-weight: bold;
-}
-
-.xcode code.python .kc {  /* Keyword.Constant */
-    color: green;
-    font-weight: bold;
-}
-
-
-.xcode code.python .s2,   /* String.Double */
-.xcode code.python .s1 {  /* String.Single */
-    color: #d48a02;
-}
-
-.xcode code.python .se,   /* String.Escape */
-.xcode code.python .si {  /* String.Interpol */
-    color: #d48a0244;
-}
-
-.xcode code.python .sd {  /* String.Doc */
-    color: #7dbfbf;
-}
-
-
-.xcode code.python .nb {  /* Name.Builtin */
-    font-weight: bold;
-}
-
-.xcode code.python .bp {  /* Name.Builtin.Pseudo */
-    font-style: italic;
-}
-
-.xcode code.python .ne {  /* Name.Exception */
-    color: #e62222;
-    font-weight: bold;
-}
-
-.xcode code.python .fm,   /* Name.Function.Magic */
-.xcode code.python .vm {  /* Name.Variable.Magic */
-    color: #e24aac;
-}
-
-.xcode code.python .nf,   /* Name.Function */
-.xcode code.python .nc {  /* Name.Class */
-}
-
-.xcode code.python .nd {  /* Name.Decorator */
-    color: #829ee0;
-}
-
-
-.xcode code.python .o,    /* Operator */
-.xcode code.python .ow {  /* Operator.Word */
-    color: #5fa5dc;
-}
-
-.xcode code.python .c1,   /* Comment.Single */
-.xcode code.python .ch {  /* Comment.Hashbang */
-    color: #bbb;
-    font-style: italic;
-}
-
-.xcode code.python .mi,   /* Number.Integer */
-.xcode code.python .mf,   /* Number.Float */
-.xcode code.python .mo,   /* Number.Octal */
-.xcode code.python .mh,   /* Number.Hex */
-.xcode code.python .mb {  /* Number.Bin */
-    color: #2db533;
-}
 
 
 /*------------------------------------------------------------------------------
@@ -163,4 +196,14 @@ li > p + div.notranslate div.xcode {
 .xcode code.bash .si,
 .xcode code.bash .nv {  /* variables */
     color: #6f6;
+}
+
+
+/*------------------------------------------------------------------------------
+ * restructuredtext
+ *-----------------------------------------------------------------------------*/
+
+.xcode code.restructuredtext .na,
+.xcode code.restructuredtext .nc {  /* Name.Class */
+    color: orange;
 }
