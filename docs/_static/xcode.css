@@ -3,13 +3,15 @@ div.xcode {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
     font-size: 12px;
     line-height: 1.4;
-    margin: 0 0 1rem 2rem;
+    margin: 0 0 1rem 3rem;
     /*overflow-x: auto;*/
     white-space: pre;
 }
 
 
 div.xcode code {
+    background: whitesmoke;
+    border: 1px solid #e0e0e0;
     color: inherit;
     display: block;
     font-size: inherit;
@@ -18,7 +20,7 @@ div.xcode code {
 }
 
 p + div.notranslate div.xcode {
-    margin-top: -0.8rem;
+    margin-top: -0.5rem;
 }
 
 li > p + div.notranslate div.xcode {
@@ -31,8 +33,6 @@ li > p + div.notranslate div.xcode {
  *-----------------------------------------------------------------------------*/
 
 .xcode code.python.input {
-    background: whitesmoke;
-    border: 1px solid #e0e0e0;
     counter-increment: cc;
     display: block;
     overflow: visible;  /* FIXME */
@@ -57,16 +57,78 @@ li > p + div.notranslate div.xcode {
     white-space: pre;
 }
 
-.xcode code.python .kn {
-    color: #339cf9;
+.xcode code.python .kn,   /* Keyword.Namespace */
+.xcode code.python .k {   /* Keyword */
+    color: #5fa5dc;
     font-weight: bold;
 }
 
-.xcode code.python .s2,
-.xcode code.python .s1 {
+.xcode code.python .kc {  /* Keyword.Constant */
+    color: green;
+    font-weight: bold;
+}
+
+
+.xcode code.python .s2,   /* String.Double */
+.xcode code.python .s1 {  /* String.Single */
     color: #d48a02;
 }
 
+.xcode code.python .se,   /* String.Escape */
+.xcode code.python .si {  /* String.Interpol */
+    color: #d48a0244;
+}
+
+.xcode code.python .sd {  /* String.Doc */
+    color: #7dbfbf;
+}
+
+
+.xcode code.python .nb {  /* Name.Builtin */
+    font-weight: bold;
+}
+
+.xcode code.python .bp {  /* Name.Builtin.Pseudo */
+    font-style: italic;
+}
+
+.xcode code.python .ne {  /* Name.Exception */
+    color: #e62222;
+    font-weight: bold;
+}
+
+.xcode code.python .fm,   /* Name.Function.Magic */
+.xcode code.python .vm {  /* Name.Variable.Magic */
+    color: #e24aac;
+}
+
+.xcode code.python .nf,   /* Name.Function */
+.xcode code.python .nc {  /* Name.Class */
+}
+
+.xcode code.python .nd {  /* Name.Decorator */
+    color: #829ee0;
+}
+
+
+.xcode code.python .o,    /* Operator */
+.xcode code.python .ow {  /* Operator.Word */
+    color: #b1c1d1;
+}
+
+.xcode code.python .c1,   /* Comment.Single */
+.xcode code.python .ch {  /* Comment.Hashbang */
+    color: #bbb;
+    font-style: italic;
+}
+
+.xcode code.python .mi,   /* Number.Integer */
+.xcode code.python .mf,   /* Number.Float */
+.xcode code.python .mo,   /* Number.Octal */
+.xcode code.python .mh,   /* Number.Hex */
+.xcode code.python .mb {  /* Number.Bin */
+    color: #2db533;
+}
 
 
 /*------------------------------------------------------------------------------

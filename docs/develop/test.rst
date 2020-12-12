@@ -299,5 +299,59 @@ several States, pursuant to the fifth Article of the original Constitution.
     or to the people.
 
 
+Code samples
+------------
+
+Literal block after a paragraph. The spacing between this text and the code
+block below should be small, similar to regular spacing between lines::
+
+    >>> import datatable as dt
+    >>> DT = dt.Frame(A = [3, 1, 4, 1, 5])
+    >>> DT.shape
+    (5, 1)
+    >>> repr(DT)
+    '<Frame#7fe06e063ca8 5x1>'
+
+This is a paragraph after the code block. The spacing should be roughly the
+same as between regular paragraphs.
+
+The following is a plain piece of python code (i.e. without input/output
+sections):
+
+.. code-block:: python
+
+    #!/usr/bin/python
+    import everything as nothing
+
+    class MyClass(object):
+        r"""
+        Just some sample code
+        """
+
+        def __init__(self, param1, param2):
+            assert isinstance(param1, str)
+            self.x = param1.lower() + "!!!"
+            self.y = param2
+
+        @classmethod
+        def enjoy(cls, item):
+            print(str(cls) + " likes " + item)
+
+    if __name__ == "__main__":
+        data = []
+        data += [1, 123, -14]
+        data += [True, False, None]
+        data += [0x123, 0o123, 0b111]
+        data += [2.71, 1.23e+45, -1.0001e-11]
+        data += ['abc', "def", """ghijk""", b"lmnop"]
+        data += [f"This is an f-string {len(data)}.\n"]
+        data += [r"\w+\n?\x0280\\ [abc123]+$",
+                 "\w+\n?\x0280\\ [abc123]+$",]
+        data += [..., Ellipsis]
+
+        # This cannot happen:
+        if data and not data:
+            assert AssertionError
+
 
 .. _`example website`: https://www.example.com/

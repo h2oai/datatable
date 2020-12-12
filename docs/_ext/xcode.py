@@ -215,7 +215,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def python_filter(self, tokens):
         mode = None
         output = []
-        for ttype, tvalue in tokens:
+        for ttype, tvalue in self.python_mend_tokens(tokens):
             if ttype == tok.Token.Generic.Prompt:
                 if mode == "input_block":
                     continue
@@ -231,8 +231,6 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                     yield ("Input:end", None)
                 mode = "output_block"
                 output.append(tvalue)
-            elif mode is None and not tvalue:
-                continue
             else:
                 if mode is None:
                     mode = "code_block"
@@ -246,6 +244,44 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             yield ("Output:end", None)
         if mode == "code_block":
             yield ("Code:end", None)
+
+
+    def python_mend_tokens(self, tokens):
+        stored = None
+        for tt, tv in self.merge_tokens(tokens):
+            if stored:
+                if (stored[0] == tok.Token.String.Affix and tt in tok.Token.String) or \
+                   (stored == (tok.Token.Operator, '-') and tt in tok.Token.Number):
+                    tv = stored[1] + tv
+                    stored = None
+                else:
+                    yield stored
+            if (tt, tv) == (tok.Token.Name.Builtin.Pseudo, "Ellipsis"):
+                tt = tok.Token.Keyword.Constant
+            elif (tt, tv) == (tok.Token.Operator, "..."):
+                tt = tok.Token.Keyword.Constant
+            elif (tt == tok.Token.String.Affix or
+                  (tt, tv) == (tok.Token.Operator, '-')):
+                stored = tt, tv
+                continue
+            yield (tt, tv)
+        if stored:
+            yield stored
+
+
+    def merge_tokens(self, tokens):
+        last_ttype = None
+        last_tvalue = ''
+        for ttype, tvalue in tokens:
+            if ttype == last_ttype:
+                last_tvalue += tvalue
+            else:
+                if last_tvalue:
+                    yield last_ttype, last_tvalue
+                last_ttype = ttype
+                last_tvalue = tvalue
+        if last_tvalue:
+            yield last_ttype, last_tvalue
 
 
     def format_unencoded(self, tokenstream, outfile):
