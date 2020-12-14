@@ -51,139 +51,7 @@ import pygments
 import pygments.formatter
 import pygments.token as tok
 import re
-from docutils import nodes
-from sphinx.util.docutils import SphinxDirective
 from pygments.formatters.html import escape_html
-from . import xnodes
-
-
-class XcodeRootElement(xnodes.div, nodes.FixedTextElement):
-    """
-    Inherit from FixedTextElement so that 'smartquotes' utility
-    wouldn't try to convert quotation marks and such.
-    """
-    def __init__(self, cls):
-        super().__init__(classes=["xcode", cls])
-
-
-
-
-class SphinxFormatter(pygments.formatter.Formatter):
-
-    _shell_token_map = {
-        tok.Comment.Hashbang: tok.Comment,
-        tok.Comment.Single:   tok.Comment,
-        tok.Generic.Output:   tok.Generic.Output,
-        tok.Generic.Prompt:   tok.Generic.Prompt,
-        tok.Keyword:          tok.Keyword,
-        tok.Name.Builtin:     tok.Keyword,
-        tok.Name.Variable:    tok.Name.Variable,
-        tok.Number:           tok.Text,
-        tok.Operator:         tok.Text,
-        tok.Punctuation:      tok.Text,
-        tok.String.Backtick:  tok.String,
-        tok.String.Double:    tok.String,
-        tok.String.Escape:    tok.String,
-        tok.String.Interpol:  tok.Name.Variable,
-        tok.String.Single:    tok.String,
-        tok.String:           tok.String,
-        tok.Text:             tok.Text,
-    }
-
-    def __init__(self, lang):
-        super().__init__()
-        self._lang = lang
-        if lang == "console":
-            self._token_map = SphinxFormatter._shell_token_map
-        else:
-            raise ValueError("Unknown lex language %r" % (lang,))
-        self._nodegen = self.build_node_generator()
-
-
-    def build_node_generator(self):
-        def class_applicator(cls):
-            return lambda v: nodes.inline("", v, classes=[cls])
-
-        nodegen = {tok.Text: nodes.Text}
-        for ttype in self._token_map.values():
-            if ttype in nodegen: continue
-            cls = str(ttype).split('.')[-1].lower()
-            nodegen[ttype] = class_applicator(cls)
-        return nodegen
-
-
-    def merge_tokens(self, tokenstream):
-        tokmap = self._token_map
-        last_value = None
-        last_ttype = None
-        for ttype, value in tokenstream:
-            if ttype in tokmap:
-                ttype = tokmap[ttype]
-                if ttype == last_ttype:
-                    last_value += value
-                else:
-                    if last_value:
-                        yield last_ttype, last_value
-                    last_ttype = ttype
-                    last_value = value
-            else:
-                raise ValueError("Unknown token type %r in %r formatter"
-                                 % (ttype, self._lang))
-        if last_value:
-            yield last_ttype, last_value
-
-
-    def format(self, tokenstream, outfile):
-        out = XcodeRootElement(self._lang)
-        for ttype, value in self.merge_tokens(tokenstream):
-            out += self._nodegen[ttype](value)
-        outfile.result = out
-
-
-
-
-#-------------------------------------------------------------------------------
-# Xcode Directive
-#-------------------------------------------------------------------------------
-
-class XcodeDirective(SphinxDirective):
-    has_content = True
-    required_arguments = 0
-    optional_arguments = 1
-    final_argument_whitespace = False
-    option_spec = {}
-
-    def run(self):
-        self.parse_arguments()
-        lang = self._lang
-        code = "\n".join(self.content.data)
-        if lang in ["shell", "console", "bash"]:
-            lexer = pygments.lexers.get_lexer_by_name("console")
-            lang = "console"
-        elif lang in ["winshell", "shell-windows", "winconsole", "doscon"]:
-            lexer = pygments.lexers.get_lexer_by_name("doscon")
-            lang = "console"
-        else:
-            lexer = pygments.lexers.get_lexer_by_name(lang)
-
-        if lang == "console":
-            formatter = SphinxFormatter("console")
-            # Update prompt regexp so that it would include the whitespace too
-            tail = r")(.*\n?)"
-            ps1 = lexer._ps1rgx.pattern
-            assert ps1.endswith(tail)
-            lexer._ps1rgx = re.compile(ps1[:-len(tail)] + r"\s*" + tail)
-
-        outfile = type("", (object,), dict(result=None))()
-        pygments.highlight(code, lexer, formatter, outfile)
-        return [outfile.result]
-
-
-    def parse_arguments(self):
-        assert len(self.arguments) <= 1
-        lang = self.arguments[0] if self.arguments else "python"
-        self._lang = lang
-
 
 
 
@@ -322,24 +190,39 @@ class XHtmlFormatter(pygments.formatter.Formatter):
 # Extension setup
 #-------------------------------------------------------------------------------
 
-def my_get_lexer(self, source, lang, opts=None, force=False, location=None):
+def patch_pygments_bridge():
     """
-    Replacement method for PygmentsBridge.get_lexer, which supplies
-    argument `lang` to the html formatter.
+    Replace method PygmentsBridge.get_lexer, with the one supplying
+    argument `lang` to the html formatter. After that, install
+    XHtmlFormatter as the main formatter for the PygmentsBridge.
     """
-    lexer = self._get_lexer(source, lang, opts, force, location)
-    self.formatter_args["lang"] = lexer.name
-    return lexer
+    def my_get_lexer(self, source, lang, opts=None, force=False, location=None):
+        lexer = self._get_lexer(source, lang, opts, force, location)
+        self.formatter_args["lang"] = lexer.name
+        return lexer
 
-
-def setup(app):
     from sphinx.highlighting import PygmentsBridge
     PygmentsBridge.html_formatter = XHtmlFormatter
     PygmentsBridge._get_lexer = PygmentsBridge.get_lexer
     PygmentsBridge.get_lexer = my_get_lexer
 
-    app.setup_extension("_ext.xnodes")
+
+def patch_bash_session_lexer():
+    """
+    Fix the regular expression for bash lexer so that the "prompt"
+    token also consumes the following space(s). This allows us to
+    style that prompt as 'user-select:none'.
+    """
+    from pygments.lexers import BashSessionLexer
+    ps1 = BashSessionLexer._ps1rgx.pattern
+    tail = r")(.*\n?)"
+    if ps1.endswith(tail):
+        BashSessionLexer._ps1rgx = re.compile(ps1[:-len(tail)] + r"\s*" + tail)
+
+
+def setup(app):
+    patch_pygments_bridge()
+    patch_bash_session_lexer()
+
     app.add_css_file("xcode.css")
-    # app.add_directive("xcode", XcodeDirective)
-    app.add_node(XcodeRootElement, html=(xnodes.visit_div, xnodes.depart_div))
     return {"parallel_read_safe": True, "parallel_write_safe": True}
