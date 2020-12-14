@@ -53,6 +53,7 @@ import pygments.token as tok
 import re
 from pygments.formatters.html import escape_html
 
+rx_error = re.compile(r"(\w*Error): ")
 
 
 #-------------------------------------------------------------------------------
@@ -73,12 +74,14 @@ class XHtmlFormatter(pygments.formatter.Formatter):
         else:
             yield from self.default_filter(tokens)
 
+
     def default_filter(self, tokens):
         yield ("Code:start", None)
         for ttype, tvalue in self.mend_tokens(tokens):
             if tvalue:
                 yield (ttype, tvalue)
         yield ("Code:end", None)
+
 
     def python_filter(self, tokens):
         mode = None
@@ -89,7 +92,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                     continue
                 if mode == "output_block":
                     yield ("Output:start", None)
-                    yield (tok.Text, "\n".join(output))
+                    yield from self.process_python_output(output)
                     yield ("Output:end", None)
                     output = []
                 mode = "input_block"
@@ -108,10 +111,24 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             yield ("Input:end", None)
         if mode == "output_block":
             yield ("Output:start", None)
-            yield (tok.Text, "\n".join(output))
+            yield from self.process_python_output(output)
             yield ("Output:end", None)
         if mode == "code_block":
             yield ("Code:end", None)
+
+
+    def process_python_output(self, lines):
+        lines = "\n".join(lines).splitlines(keepends=True)
+        for line in lines:
+            mm_error = re.match(rx_error, line)
+            if mm_error:
+                name = mm_error.group(1)
+                yield ("Exception:start", None)
+                yield (tok.Name.Exception, name)
+                yield (tok.Text, line[len(name):])
+                yield ("Exception:end", None)
+            else:
+                yield (tok.Text, line)
 
 
     def mend_tokens(self, tokens):
@@ -157,6 +174,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             yield last_ttype, last_tvalue
 
 
+    # overridden from the parent class
     def format_unencoded(self, tokenstream, outfile):
         MAP = tok.STANDARD_TYPES
         outfile.write("<div class='xcode'>")
@@ -175,6 +193,10 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                 if ttype == "Output:start":
                     outfile.write("<div class='output'>")
                 if ttype == "Output:end":
+                    outfile.write("</div>")
+                if ttype == "Exception:start":
+                    outfile.write("<div class='exception'>")
+                if ttype == "Exception:end":
                     outfile.write("</div>")
             else:
                 cls = MAP[ttype]

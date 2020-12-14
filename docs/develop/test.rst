@@ -317,6 +317,16 @@ block below should be small, similar to regular spacing between lines::
 This is a paragraph after the code block. The spacing should be roughly the
 same as between regular paragraphs.
 
+The following is a test for multi-line output from code samples::
+
+    >>> for i in range(5):
+    ...     print(1/(4 - i))
+    0.25
+    0.3333333333333333
+    0.5
+    1.0
+    ZeroDivisionError: division by zero
+
 The following is a plain piece of python code (i.e. without input/output
 sections):
 

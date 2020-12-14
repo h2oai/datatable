@@ -171,6 +171,16 @@ li > p + div.notranslate div.xcode {
     white-space: pre;
 }
 
+.xcode div.output div.exception {
+    background-color: #fdd;
+    border-radius: 5px;
+    border: 1px solid #faa;
+    color: #b33;
+    margin: 0 -8px;
+    padding: 4px 8px;
+    white-space: break-spaces;
+}
+
 
 
 /*------------------------------------------------------------------------------
