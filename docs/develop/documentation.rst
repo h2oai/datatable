@@ -262,17 +262,15 @@ files describes a particular release of datatable. The format is as follows:
         :released: <release date>
         :wheels: URL1
                  URL2
-                 ...
+                 etc.
 
         changelog content...
 
         .. contributors::
 
             N @username <full name>
-            ...
             --
             N @username <full name>
-            ...
 
 
 The effect of this declaration is the following:

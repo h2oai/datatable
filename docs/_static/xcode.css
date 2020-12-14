@@ -212,3 +212,9 @@ li > p + div.notranslate div.xcode {
 .xcode code.restructuredtext .nc {  /* Name.Class */
     color: orange;
 }
+
+/* Regular comments in RST are emitted as "preprocessor" */
+.xcode code.restructuredtext .cp {  /* Comment.Preproc */
+    color: #bbb;
+    font-style: italic;
+}

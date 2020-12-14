@@ -376,6 +376,39 @@ is a shell code sample (``console`` "language"):
     $ export TMP=/tmp
     $ docker run -it --init -v `pwd`:/cwd ${DOCKER_CONTAINER}
 
+RST code sample:
+
+.. code-block:: rst
+
+    Heading
+    +++++++
+
+    Da-da-da-daaaaa, **BOOM**.
+    Da-da-da-da-da-dA-da-da-da-da-da-da-da-da,
+    DA-DA-DA-DA, DA-DA DA Da, BOOM,
+    DAA-DA-DA-*DAAAAAAAAAAAA*, ty-dum
+
+    - item 1 (:func:`foo() <dt.foo>`);
+    - item 2;
+    - ``item 3`` is a :ref:`reference`.
+
+    .. custom-directive-here:: not ok
+        :option1: value1
+        :option2: value2
+
+        Here be dragons
+
+    .. _`plain target`:
+
+    There could be other |markup| elements too, such as `links`_, and
+    various inline roles, eg :sup:`what's up!`. Plain URLs probably
+    won't be highlighted: http://datatable.com/.
+
+    ..
+        just a comment |here|
+        .. yep:: still a comment
+
+    .. _`example website`: https://example.com/
 
 
 .. _`example website`: https://www.example.com/
