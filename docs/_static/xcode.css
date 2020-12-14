@@ -110,6 +110,11 @@ li > p + div.notranslate div.xcode {
     font-style: italic;
 }
 
+.xcode .cpf,  /* Comment.PreprocFile */
+.xcode .cp {  /* Comment.Preproc */
+    color: #00a500;
+}
+
 .xcode .m,    /* Number */
 .xcode .mi,   /* Number.Integer */
 .xcode .mf,   /* Number.Float */
