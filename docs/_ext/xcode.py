@@ -167,9 +167,11 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                 if ttype == "Code:end":
                     outfile.write("</code>")
                 if ttype == "Input:start":
+                    outfile.write("<div class='input-numbered-block'>")
                     outfile.write("<code class='%s input'>" % self._lang)
                 if ttype == "Input:end":
                     outfile.write("</code>")
+                    outfile.write("</div>")
                 if ttype == "Output:start":
                     outfile.write("<div class='output'>")
                 if ttype == "Output:end":

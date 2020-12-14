@@ -311,6 +311,8 @@ block below should be small, similar to regular spacing between lines::
     (5, 1)
     >>> repr(DT)
     '<Frame#7fe06e063ca8 5x1>'
+    >>> DT + DT
+    TypeError: unsupported operand type(s) for +: 'datatable.Frame' and 'datatable.Frame'
 
 This is a paragraph after the code block. The spacing should be roughly the
 same as between regular paragraphs.
@@ -409,6 +411,25 @@ RST code sample:
         .. yep:: still a comment
 
     .. _`example website`: https://example.com/
+
+
+Special care must be taken in case the code in the samples has very long line
+lengths. Generally, the code should not overflow its container block, or
+make the page wider than normal. Instead, the code block should get a
+horizontal scroll bar::
+
+    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    >>> print(days * 2)
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+Same, but for a non-python code:
+
+.. code-block:: rst
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+    nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
 
 
 .. _`example website`: https://www.example.com/

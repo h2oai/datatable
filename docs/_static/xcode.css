@@ -3,8 +3,8 @@ div.xcode {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
     font-size: 12px;
     line-height: 1.4;
-    margin: 0 0 1rem 3rem;
-    /*overflow-x: auto;*/
+    margin-bottom: 1rem;
+    position: relative;
     white-space: pre;
 }
 
@@ -15,6 +15,7 @@ div.xcode code {
     color: inherit;
     display: block;
     font-size: inherit;
+    margin-left: 2rem;
     overflow: auto;
     padding: 8px 12px;
 }
@@ -142,27 +143,30 @@ li > p + div.notranslate div.xcode {
  * python
  *-----------------------------------------------------------------------------*/
 
-.xcode code.python.input {
-    counter-increment: cc;
-    display: block;
-    overflow: visible;  /* FIXME */
-    padding: 4px 8px;
-    position: relative;
-}
-
-.xcode code.python.input::before {
+.xcode .input-numbered-block::before {
     color: #ccc;
     content: "[" counter(cc) "]:";
     font-family: "Source Code Pro", monospace;
     font-size: 80%;
-    left: -30px;
     line-height: 24px;
+    padding-right: 6px;
     position: absolute;
-    top: 0;
+    text-align: right;
+    width: 3rem;
+}
+
+.xcode code.python.input {
+    counter-increment: cc;
+    display: block;
+    margin-left: 3rem;
+    padding: 4px 8px;
+    position: relative;
 }
 
 .xcode div.output {
     margin-bottom: 0.5rem;
+    margin-left: 3rem;
+    overflow-x: auto;
     padding: 4px 8px;
     white-space: pre;
 }
