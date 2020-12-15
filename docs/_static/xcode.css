@@ -143,6 +143,10 @@ li > p + div.notranslate div.xcode {
  * python
  *-----------------------------------------------------------------------------*/
 
+.xcode .input-numbered-block {
+    counter-increment: cc;
+}
+
 .xcode .input-numbered-block::before {
     color: #ccc;
     content: "[" counter(cc) "]:";
@@ -156,7 +160,6 @@ li > p + div.notranslate div.xcode {
 }
 
 .xcode code.python.input {
-    counter-increment: cc;
     display: block;
     margin-left: 3rem;
     padding: 4px 8px;

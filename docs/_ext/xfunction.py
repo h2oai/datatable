@@ -684,8 +684,8 @@ class XobjectDirective(SphinxDirective):
             self._transform_codeblocks(section)
             if header == "Parameters":
                 self._transform_parameters(section, linenos)
-            if header == "Examples":
-                self._transform_examples(section, linenos)
+            # if header == "Examples":
+            #     self._transform_examples(section, linenos)
 
 
     def _split_into_sections(self, body, line0):

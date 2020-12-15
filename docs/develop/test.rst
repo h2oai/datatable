@@ -311,6 +311,17 @@ block below should be small, similar to regular spacing between lines::
     (5, 1)
     >>> repr(DT)
     '<Frame#7fe06e063ca8 5x1>'
+    >>> # This is how a simple frame would be rendered:
+    >>> DT
+       |  A
+    -- + --
+     0 |  3
+     1 |  1
+     2 |  4
+     3 |  1
+     4 |  5
+
+    [5 rows x 1 column]
     >>> DT + DT
     TypeError: unsupported operand type(s) for +: 'datatable.Frame' and 'datatable.Frame'
 
