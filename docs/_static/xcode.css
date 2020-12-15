@@ -270,6 +270,7 @@ li > p + div.notranslate div.xcode {
 }
 
 .dtframe tr.colnames th:last-child {
+    min-width: 0;
     width: 100%;
 }
 
