@@ -250,6 +250,7 @@ li > p + div.notranslate div.xcode {
 }
 
 .dtframe table {
+    font-size: 11px;
     margin: 0;
 }
 
@@ -273,9 +274,10 @@ li > p + div.notranslate div.xcode {
 }
 
 .dtframe tr.coltypes th {
-    background: #ccd3e0;
+    background: #aaa4;
     color: #0006;
     font-size: 70%;
+    font-style: italic;
     font-weight: normal;
     padding: 2px .5em 0 .5em;
     text-align: right;
@@ -292,7 +294,7 @@ li > p + div.notranslate div.xcode {
 
 .dtframe td.row_index {
     background-color: #3331;
-    font-size: 75%;
+    font-size: 80%;
     color: #aaa;
 }
 
