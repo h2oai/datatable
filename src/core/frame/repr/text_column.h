@@ -85,7 +85,7 @@ class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
     tstring name_;
-    std::string type_;
+    tstring type_;
     int max_width_;
     int : 32;
 

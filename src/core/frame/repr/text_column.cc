@@ -88,8 +88,10 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
   name_ = _escape_string(CString(name));
-  type_ = stype_name(col.stype());
-  width_ = std::max(std::max(width_, name_.size()), type_.size());
+  type_ = _escape_string(CString::from_null_terminated_string(
+                            stype_name(col.stype())));
+  width_ = std::max(std::max(width_, name_.size()),
+                    name_.empty()? 0 : type_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::MU) ||
                  (ltype == LType::BOOL) ||
@@ -110,7 +112,7 @@ void Data_TextColumn::print_type(TerminalStream& out) const {
   if (name_.empty()) {
     out << std::string(margin_left_ + margin_right_ + width_, ' ');
   } else {
-    _print_aligned_value(out, tstring(type_));
+    _print_aligned_value(out, type_);
   }
 }
 
