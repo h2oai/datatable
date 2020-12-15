@@ -17,9 +17,9 @@ version of the library, please check the :doc:`Installation <install>` page.
 Assuming the installation was successful, you can now import the library in
 a JupyterLab notebook or in a Python console::
 
-  >>> import datatable as dt
-  >>> print(dt.__version__)
-  0.11.1
+    >>> import datatable as dt
+    >>> print(dt.__version__)
+    0.11.1
 
 
 
@@ -31,22 +31,18 @@ same notion as a pandas DataFrame or SQL table: data arranged in a
 two-dimensional array with rows and columns.
 
 You can create a ``Frame`` object from a variety of data sources: from a python
-list or dictionary, from a numpy array, or from a pandas DataFrame.
+list or dictionary, from a numpy array, or from a pandas DataFrame::
 
-::
-
-  DT1 = dt.Frame(A=range(5), B=[1.7, 3.4, 0, None, -math.inf],
-                 stypes={"A": dt.int64})
-  DT2 = dt.Frame(pandas_dataframe)
-  DT3 = dt.Frame(numpy_array)
+    >>> DT1 = dt.Frame(A=range(5), B=[1.7, 3.4, 0, None, -math.inf],
+    ...                stypes={"A": dt.int64})
+    >>> DT2 = dt.Frame(pandas_dataframe)
+    >>> DT3 = dt.Frame(numpy_array)
 
 You can also load a CSV/text/Excel file, or open a previously saved binary
-``.jay`` file:
+``.jay`` file::
 
-::
-
-  DT4 = dt.fread("~/Downloads/dataset_01.csv")
-  DT5 = dt.open("data.jay")
+    >>> DT4 = dt.fread("~/Downloads/dataset_01.csv")
+    >>> DT5 = dt.open("data.jay")
 
 The ``fread()`` function shown above is both powerful and extremely fast. It can
 automatically detect parse parameters for the majority of text files, load data
@@ -120,12 +116,10 @@ expression can even be a python type (such as ``int`` or ``dt.float32``),
 selecting all columns matching that type.
 
 In addition to the selector expression shown above, we support the update and
-delete statements too:
+delete statements too::
 
-::
-
-  DT[i, j] = r
-  del DT[i, j]
+    >>> DT[i, j] = r
+    >>> del DT[i, j]
 
 The first expression will replace values in the subset ``[i, j]`` of Frame
 ``DT`` with the values from ``r``, which could be either a constant, or a
@@ -150,34 +144,30 @@ an expression looks like
 
 ::
 
-  f.ColA
+    >>> f.ColA
 
 which indicates a column ``ColA`` in some Frame. Here ``f`` is a variable that
 has to be imported from the datatable module. This variable provides a convenient
 way to reference any column in a Frame. In addition to the notation above, the
-following is also supported:
+following is also supported::
 
-::
-
-  f[3]
-  f["ColB"]
+    >>> f[3]
+    >>> f["ColB"]
 
 denoting the fourth column and the column ``ColB`` respectively.
 
 These f-expression support arithmetic operations as well as various mathematical and
 aggregate functions. For example, in order to select the values from column
-``A`` normalized to range ``[0; 1]`` we can write the following:
+``A`` normalized to range ``[0; 1]`` we can write the following::
 
-::
-
-  from datatable import f, min, max
-  DT[:, (f.A - min(f.A))/(max(f.A) - min(f.A))]
+    >>> from datatable import f, min, max
+    >>> DT[:, (f.A - min(f.A))/(max(f.A) - min(f.A))]
 
 This is equivalent to the following SQL query:
 
 .. code:: SQL
 
-  SELECT (f.A - MIN(f.A))/(MAX(f.A) - MIN(f.A)) FROM DT AS f
+    SELECT (f.A - MIN(f.A))/(MAX(f.A) - MIN(f.A)) FROM DT AS f
 
 So, what exactly is ``f``? We call it a "frame proxy", as it becomes a
 simple way to refer to the Frame that we currently operate on. More precisely,
@@ -225,10 +215,10 @@ each group.
 
 For example, in order to find the total amount of each product sold, write::
 
-    from datatable import f, by, sum
-    DT = dt.fread("transactions.csv")
-
-    DT[:, sum(f.quantity), by(f.product_id)]
+    >>> from datatable import f, by, sum
+    >>> DT = dt.fread("transactions.csv")
+    >>>
+    >>> DT[:, sum(f.quantity), by(f.product_id)]
 
 
 sort(...)
@@ -252,12 +242,12 @@ In order to join frame ``X``, it must be keyed. A keyed frame is conceptually
 similar to a SQL table with a unique primary key. This key may be either a
 single column, or several columns::
 
-    X.key = "id"
+    >>> X.key = "id"
 
 Once a frame is keyed, it can be joined to another frame ``DT``, provided that
 ``DT`` has the column(s) with the same name(s) as the key in ``X``::
 
-    DT[:, :, join(X)]
+    >>> DT[:, :, join(X)]
 
 This has the semantics of a natural left outer join. The ``X`` frame can be
 considered as a dictionary, where the key column contains the keys, and all
@@ -268,7 +258,7 @@ key column, and if there are no such value in ``X``, with an all-NA row.
 The columns of the joined frame can be used in expressions using the ``g.``
 prefix, for example::
 
-    DT[:, sum(f.quantity * g.price), join(products)]
+    >>> DT[:, sum(f.quantity * g.price), join(products)]
 
 .. note:: In the future, we will expand the syntax of the join operator to
           allow other kinds of joins and also to remove the limitation that
@@ -286,18 +276,18 @@ support multiple mechanisms for this.
 First, the data can be converted into a pandas DataFrame or into a numpy array.
 (Obviously, you have to have pandas or numpy libraries installed.)::
 
-    DT.to_pandas()
-    DT.to_numpy()
+    >>> DT.to_pandas()
+    >>> DT.to_numpy()
 
 A frame can also be converted into python native data structures: a dictionary,
 keyed by the column names; a list of columns, where each column is itself a
 list of values; or a list of rows, where each row is a tuple of values::
 
-    DT.to_dict()
-    DT.to_list()
-    DT.to_tuples()
+    >>> DT.to_dict()
+    >>> DT.to_list()
+    >>> DT.to_tuples()
 
 You can also save a frame into a CSV file, or into a binary .jay file::
 
-    DT.to_csv("out.csv")
-    DT.to_jay("data.jay")
+    >>> DT.to_csv("out.csv")
+    >>> DT.to_jay("data.jay")
