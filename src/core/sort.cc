@@ -585,6 +585,7 @@ class SortContext {
 
 
   void continue_sort(const Column& col, bool desc, bool make_groups) {
+    xassert(!col.is_virtual());
     column = col;
     nradixes = gg.size();
     descending = desc;
@@ -1504,9 +1505,18 @@ void dt::ArrayView_ColumnImpl<T>::sort_grouped(
     const Groupby& grps, Column& out)
 {
   (void) out.stats();
+  arg.materialize();
   SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
   sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
-  set_rowindex(sc.get_result_rowindex());
+  if (sizeof(T) == 4) {
+    set_rowindex(sc.get_result_rowindex());
+  } else {
+    // Since SortContext produces an ARR32 rowindex, and the current
+    // ArrayView_ColumnImpl is int64, we need to replace the column
+    // with the new which uses int32s.
+    out = Column(new dt::ArrayView_ColumnImpl<int32_t>(
+                  std::move(arg), sc.get_result_rowindex(), nrows_));
+  }
 }
 
 template class dt::ArrayView_ColumnImpl<int32_t>;
