@@ -96,17 +96,18 @@ Code blocks
 -----------
 
 There are two main ways to format a block of code. The simplest way is to finish
-the previous paragraph with a double-colon ``::`` and then start the next
-paragraph (code) indented with 4 spaces:
+a paragraph with a double-colon ``::`` and then start the next paragraph (code)
+indented with 4 spaces:
 
 .. code-block:: rst
 
     Here is a code example::
 
-        print("Hello, world!", flush=True)
+        >>> print("Hello, world!", flush=True)
 
-
-A slightly more advanced method is to use an explicit ``code-block`` directive:
+In this case the code will be highlighted assuming it is a python sample. If the
+code corresponds to some other language, you'll need to use an explicit
+``code-block`` directive:
 
 .. code-block:: rst
 
@@ -118,6 +119,34 @@ This directive allows you to explicitly select the language of your code snippet
 which will affect how it is highlighted. The code inside ``code-block`` must be
 indented, and there has to be an empty line between the ``.. code-block::``
 declaration and the actual code.
+
+When writing python code examples, the best practice is to use python console
+format, i.e. prepend all input lines with ``>>>``, and all output lines will
+have no prefix. For example:
+
+.. code-block:: rst
+
+    >>> import datatable as dt
+    >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
+    >>> DT
+       |  A   B  D
+    -- + --  --  ----
+     0 |  5  17  zelo
+
+    [1 row x 3 columns]
+
+This code snippet will be rendered as follows:
+
+.. code-block:: python
+
+    >>> import datatable as dt
+    >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
+    >>> DT
+       |  A   B  D
+    -- + --  --  ----
+     0 |  5  17  zelo
+
+    [1 row x 3 columns]
 
 
 Hyperlinks
