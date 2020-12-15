@@ -306,6 +306,7 @@ Literal block after a paragraph. The spacing between this text and the code
 block below should be small, similar to regular spacing between lines::
 
     >>> import datatable as dt
+    >>>
     >>> DT = dt.Frame(A = [3, 1, 4, 1, 5])
     >>> DT.shape
     (5, 1)

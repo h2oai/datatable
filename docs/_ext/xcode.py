@@ -213,6 +213,10 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                 tt = tok.Keyword.Constant
             elif (tt, tv) == (tok.Operator, "..."):
                 tt = tok.Keyword.Constant
+            elif (tt, tv) == (tok.Generic.Output, ">>>\n"):
+                yield (tok.Generic.Prompt, ">>>")
+                yield (tok.Text, "\n")
+                continue
             elif (tt == tok.String.Affix or
                   (tt == tok.Operator and tv in '+-')):
                 stored = tt, tv
