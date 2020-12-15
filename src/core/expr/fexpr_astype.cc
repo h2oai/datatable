@@ -90,6 +90,78 @@ new_type: stype
 return: FExpr
     The output will have the same number of rows and columns as the
     input; column names will be preserved too.
+
+
+Examples
+--------
+
+::
+
+  from datatable import dt, f, as_type
+
+  df = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+                 'B': [None, '2', '3', '4', '5'],
+                 'C': [1, 2, 1, 1, 2]})
+
+  df
+
+.. dtframe::
+  :names: A,B,C
+  :types: str32, str32, int32
+  :shape: 5, 2
+
+  0,1,NA,1
+  1,1,2,2
+  2,2,3,1
+  3,1,4,1
+  4,2,5,2
+
+Convert column A from string to integer type::
+
+  df[:, as_type(f.A, int)]
+
+.. dtframe::
+    :names: A
+    :types: int64
+    :shape: 5, 1
+
+    0,1
+    1,1
+    2,2
+    3,1
+    4,2
+
+The exact dtype can be specified::
+
+  df[:, as_type(f.A, dt.int32)]
+
+.. dtframe::
+    :names: A
+    :types: int32
+    :shape: 5, 1
+
+    0,1
+    1,1
+    2,2
+    3,1
+    4,2
+
+Convert multiple columns to different types::
+
+  df[:, [as_type(f.A, int), as_type(f.C, dt.str32)]]
+
+.. dtframe::
+    :names: A,C
+    :types: int64,str32
+    :shape: 5, 2
+
+    0,1,1
+    1,1,2
+    2,2,1
+    3,1,1
+    4,2,2
+
+
 )";
 
 static py::oobj pyfn_astype(const py::XArgs& args) {
