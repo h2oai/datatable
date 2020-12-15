@@ -235,3 +235,70 @@ li > p + div.notranslate div.xcode {
     color: #bbb;
     font-style: italic;
 }
+
+
+/*------------------------------------------------------------------------------
+ * datatable frame
+ *-----------------------------------------------------------------------------*/
+
+.dtframe {
+    background: #eff5ff;
+    border: 1px solid #bec4cc;
+    border-radius: 5px;
+    display: inline-block;
+    margin: 0 -8px;
+}
+
+.dtframe table {
+    margin: 0;
+}
+
+.dtframe table thead {
+    border-bottom: 1px solid #95a8bf;
+}
+
+.dtframe tr.colnames th {
+    background: #aaa4;
+    min-width: 35px;
+    text-align: right;
+    padding: .2em .5em;
+}
+
+.dtframe tr.colnames th.row_index {
+    min-width: 25px;
+}
+
+.dtframe tr.colnames th:last-child {
+    width: 100%;
+}
+
+.dtframe tr.coltypes th {
+    background: #ccd3e0;
+    color: #0006;
+    font-size: 70%;
+    font-weight: normal;
+    padding: 2px .5em 0 .5em;
+    text-align: right;
+}
+
+.dtframe tbody {
+    background: linear-gradient(#0004, #0001 3px, #0000 6px);
+}
+
+.dtframe td {
+    padding: .2em .5em;
+    text-align: right;
+}
+
+.dtframe td.row_index {
+    background-color: #3331;
+    font-size: 75%;
+    color: #aaa;
+}
+
+.dtframe .dtframe-footer {
+    color: #789;
+    padding: 3px 8px;
+    font-size: 80%;
+    background: linear-gradient(#9caebf, #d1deea 25%);
+}

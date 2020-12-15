@@ -54,6 +54,8 @@ import re
 from pygments.formatters.html import escape_html
 
 rx_error = re.compile(r"(\w*Error): ")
+rx_table_header = re.compile(r"[\-\+ ]+\n?")
+rx_table_footer = re.compile(r"\[(\d+) rows? x (\d+) columns?\]\n?")
 
 
 #-------------------------------------------------------------------------------
@@ -119,7 +121,10 @@ class XHtmlFormatter(pygments.formatter.Formatter):
 
     def process_python_output(self, lines):
         lines = "\n".join(lines).splitlines(keepends=True)
-        for line in lines:
+        skip_to_line = None
+        for i, line in enumerate(lines):
+            if skip_to_line and i < skip_to_line:
+                continue
             mm_error = re.match(rx_error, line)
             if mm_error:
                 name = mm_error.group(1)
@@ -127,8 +132,71 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                 yield (tok.Name.Exception, name)
                 yield (tok.Text, line[len(name):])
                 yield ("Exception:end", None)
-            else:
-                yield (tok.Text, line)
+                continue
+            if line.count('|') == 1:
+                # import pdb; pdb.set_trace()
+                sep = line.find('|')
+                # First, we want to find the line that separates the header of
+                # the table from its body
+                ihr = i
+                while ihr < len(lines) and (lines[ihr][sep:sep+1] == '|' and
+                                            lines[ihr].count('|') == 1):
+                    ihr += 1
+                # Check whether `ihr` is a valid separator line
+                if (ihr < len(lines) and lines[ihr][sep:sep+1] == '+' and
+                        lines[ihr].count('+') == 1 and
+                        re.fullmatch(rx_table_header, lines[ihr])):
+                    # Now, find where the end of the table is
+                    iend = ihr + 1
+                    while iend < len(lines) and lines[iend][sep:sep+1] == '|':
+                        iend += 1
+                    # Finally, process the footer
+                    ift = iend
+                    if ift < len(lines) and lines[ift].strip() == '':
+                        ift += 1
+                    if ift < len(lines):
+                        mm = re.fullmatch(rx_table_footer, lines[ift])
+                        if mm:
+                            nrows, ncols = mm.groups()
+                            yield from self.process_dtframe(lines[i:ihr],
+                                                            lines[ihr],
+                                                            lines[ihr+1:iend],
+                                                            int(nrows),
+                                                            int(ncols))
+                            skip_to_line = ift + 1
+                            continue
+            yield (tok.Text, line)
+
+    def process_dtframe(self, header_lines, sep_line, body_lines,
+                        nrows, ncols):
+        sep = sep_line.find('+')
+        columns = [mm.span() for mm in re.finditer('-+', sep_line)]
+        out = "<div class='dtframe'><table>"
+        out += "<thead>"
+        for line in header_lines:
+            cls = "colnames" if line == header_lines[0] else "coltypes"
+            out += f"<tr class={cls}>"
+            for i, j in columns:
+                out += "<th class=row_index>" if j < sep else "<th>"
+                out += line[i:j].strip()
+                out += "</th>"
+            out += "<th></th></tr>"
+        out += "</thead>"
+        out += "<tbody>"
+        for line in body_lines:
+            out += "<tr>"
+            for i, j in columns:
+                out += "<td class=row_index>" if j < sep else "<td>"
+                out += line[i:j].strip()
+                out += "</td>"
+            out += "<td></td></tr>"
+        out += "</tbody>"
+        out += "</table>"
+        rows = f"{nrows} row{'' if nrows == 1 else 's'}"
+        cols = f"{ncols} column{'' if ncols == 1 else 's'}"
+        out += f"<div class='dtframe-footer'>{rows} &times; {cols}</div>"
+        out += '</div>'
+        yield ("raw", out)
 
 
     def mend_tokens(self, tokens):
@@ -182,22 +250,25 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             if isinstance(ttype, str):
                 if ttype == "Code:start":
                     outfile.write("<code class='%s'>" % self._lang)
-                if ttype == "Code:end":
+                elif ttype == "Code:end":
                     outfile.write("</code>")
-                if ttype == "Input:start":
+                elif ttype == "Input:start":
                     outfile.write("<div class='input-numbered-block'>")
                     outfile.write("<code class='%s input'>" % self._lang)
-                if ttype == "Input:end":
+                elif ttype == "Input:end":
                     outfile.write("</code>")
                     outfile.write("</div>")
-                if ttype == "Output:start":
+                elif ttype == "Output:start":
                     outfile.write("<div class='output'>")
-                if ttype == "Output:end":
+                elif ttype == "Output:end":
                     outfile.write("</div>")
-                if ttype == "Exception:start":
+                elif ttype == "Exception:start":
                     outfile.write("<div class='exception'>")
-                if ttype == "Exception:end":
+                elif ttype == "Exception:end":
                     outfile.write("</div>")
+                elif ttype == "raw":
+                    assert isinstance(tvalue, str)
+                    outfile.write(tvalue)
             else:
                 cls = MAP[ttype]
                 tvalue = escape_html(tvalue)
