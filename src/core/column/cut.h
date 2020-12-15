@@ -95,6 +95,7 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
       double min, max;
 
       switch (col.ltype()) {
+        case dt::LType::MU:
         case dt::LType::BOOL:
         case dt::LType::INT:   {
                                  int64_t min_int, max_int;

@@ -354,6 +354,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       const Column& col = dt->get_column(i);
       dt::SType col_stype = col.stype();
       switch (col_stype) {
+        case dt::SType::VOID:
         case dt::SType::BOOL:
         case dt::SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
         case dt::SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;

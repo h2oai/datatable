@@ -69,7 +69,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
           FALLTHROUGH;
 
         case SType::FLOAT64:
-        case SType::VOID:
+        case SType::AUTO:
           return SType::FLOAT64;
 
         default:

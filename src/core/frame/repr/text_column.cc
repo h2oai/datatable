@@ -90,7 +90,8 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   name_ = _escape_string(CString(name));
   width_ = std::max(width_, name_.size());
   LType ltype = col.ltype();
-  align_right_ = (ltype == LType::BOOL) ||
+  align_right_ = (ltype == LType::MU) ||
+                 (ltype == LType::BOOL) ||
                  (ltype == LType::INT) ||
                  (ltype == LType::REAL);
   margin_left_ = true;
@@ -290,6 +291,7 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 
 tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
+    case SType::VOID:    return na_value_;
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
     case SType::INT16:   return _render_value_int<int16_t>(col, i);

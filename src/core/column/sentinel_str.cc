@@ -26,7 +26,7 @@
 #include "utils/misc.h"
 namespace dt {
 
-template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <typename T> constexpr SType stype_for() { return SType::INVALID; }
 template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
 template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 

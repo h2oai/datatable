@@ -46,6 +46,7 @@ class stype(enum.Enum):
     Notably, :mod:`datatable` does not support arbitrary structures as
     elements of a Column, so the set of stypes is small.
     """
+    void = 0
     bool8 = 1
     int8 = 2
     int16 = 3
@@ -148,6 +149,7 @@ class ltype(enum.Enum):
     ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
     between ltypes and stypes.
     """
+    void = 0
     bool = 1
     int = 2
     real = 3
@@ -198,6 +200,7 @@ setattr(ltype, "__new__", ___new___)
 
 
 _stype_2_short = {
+    stype.void: "n0",
     stype.bool8: "b1",
     stype.int8: "i1",
     stype.int16: "i2",
@@ -211,6 +214,7 @@ _stype_2_short = {
 }
 
 _stype_2_ltype = {
+    stype.void: ltype.void,
     stype.bool8: ltype.bool,
     stype.int8: ltype.int,
     stype.int16: ltype.int,
@@ -224,6 +228,7 @@ _stype_2_ltype = {
 }
 
 _stype_2_ctype = {
+    stype.void: None,
     stype.bool8: ctypes.c_int8,
     stype.int8: ctypes.c_int8,
     stype.int16: ctypes.c_int16,
@@ -258,6 +263,7 @@ def _init_numpy_transforms():
     try:
         import numpy as np
         _stype_2_dtype = {
+            stype.void: np.dtype("void"),
             stype.bool8: np.dtype("bool"),
             stype.int8: np.dtype("int8"),
             stype.int16: np.dtype("int16"),
@@ -270,6 +276,7 @@ def _init_numpy_transforms():
             stype.obj64: np.dtype("object"),
         }
         _init_value2members_from([
+            (np.dtype("void"), stype.void),
             (np.dtype("bool"), stype.bool8),
             (np.dtype("int8"), stype.int8),
             (np.dtype("int16"), stype.int16),
@@ -285,6 +292,7 @@ def _init_numpy_transforms():
 
 
 _stype_2_struct = {
+    stype.void: "",
     stype.bool8: "b",
     stype.int8: "b",
     stype.int16: "=h",

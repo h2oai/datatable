@@ -132,8 +132,8 @@ def test_jay_unicode_names(tempfile_jay):
 
 def test_jay_object_columns(tempfile_jay):
     src1 = [1, 2, 3, 4]
-    src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}]
-    d0 = dt.Frame([src1, src2], names=["A", "B"])
+    src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}] / dt.obj64
+    d0 = dt.Frame(A=src1, B=src2)
     assert d0.stypes == (dt.int32, dt.obj64)
     with pytest.warns(DatatableWarning) as ws:
         d0.to_jay(tempfile_jay)

@@ -50,12 +50,12 @@ srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
 srcs_str = [["foo", None, "bar", "baaz", None],
             ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
             ["leeeeeroy!"],
-            (dt.str64, ["abc", None, "def", "abc", "a", None, "a", "ab"]),
-            (dt.str64, [None, "integrity", None, None, None, None, None]),
-            (dt.str64, ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"])]
+            ["abc", None, "def", "abc", "a", None, "a", "ab"] / dt.str64,
+            [None, "integrity", None, None, None, None, None] / dt.str64,
+            ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"] / dt.str64]
 
-srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)],
-            ["a", "bc", "def", None, -2.5, 3.7]]
+srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)] / dt.obj64,
+            ["a", "bc", "def", None, -2.5, 3.7] / dt.obj64]
 
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
@@ -247,12 +247,8 @@ def t_count_na(arr):
 
 @pytest.mark.parametrize("src", srcs_all + srcs_obj)
 def test_dt_count_na(src):
-    if isinstance(src, tuple):
-        dt0 = dt.Frame(src[1], stype=src[0])
-        ans = t_count_na(src[1])
-    else:
-        dt0 = dt.Frame(src)
-        ans = t_count_na(src)
+    dt0 = dt.Frame(src)
+    ans = t_count_na(src)
     dtr = dt0.countna()
     frame_integrity_check(dtr)
     assert dtr.stypes == (stype.int64, )
@@ -321,8 +317,9 @@ def test_mode(src):
     frame_integrity_check(dtn)
     assert dtm.shape == dtn.shape == (1, 1)
     assert dtm.names == dtn.names == f0.names
-    assert dtm.stypes == f0.stypes
-    assert dtn.stypes == (stype.int64, )
+    assert dtm.stype == f0.stype or \
+           (dtm.stype == dt.str32 and f0.stype == dt.str64)
+    assert dtn.stype == stype.int64
     if modal_count:
         assert dtm[0, 0] in modal_values
         assert dtm[0, 0] == f0.mode1()
@@ -397,7 +394,7 @@ def test_empty_frame(st):
 
 
 def test_object_column():
-    df = dt.Frame([None, nan, 3, [], "srsh"])
+    df = dt.Frame([None, nan, 3, [], "srsh"], stype=dt.obj64)
     frame_integrity_check(df)
     assert df.countna1() == 2
     assert df.min1() is None
@@ -411,7 +408,7 @@ def test_object_column():
 
 
 def test_object_column2():
-    df = dt.Frame([None, nan, 3, [], "srsh"])
+    df = dt.Frame([None, nan, 3, [], "srsh"] / dt.obj64)
 
     f0 = df.countna()
     frame_integrity_check(f0)
