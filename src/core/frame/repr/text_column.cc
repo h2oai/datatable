@@ -88,7 +88,8 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
   name_ = _escape_string(CString(name));
-  width_ = std::max(width_, name_.size());
+  type_ = stype_name(col.stype());
+  width_ = std::max(std::max(width_, name_.size()), type_.size());
   LType ltype = col.ltype();
   align_right_ = (ltype == LType::MU) ||
                  (ltype == LType::BOOL) ||
@@ -102,6 +103,15 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 
 void Data_TextColumn::print_name(TerminalStream& out) const {
   _print_aligned_value(out, name_);
+}
+
+
+void Data_TextColumn::print_type(TerminalStream& out) const {
+  if (name_.empty()) {
+    out << std::string(margin_left_ + margin_right_ + width_, ' ');
+  } else {
+    _print_aligned_value(out, tstring(type_));
+  }
 }
 
 
@@ -374,6 +384,10 @@ void VSep_TextColumn::print_name(TerminalStream& out) const {
   out << tstring("|", style::nobold|style::grey);
 }
 
+void VSep_TextColumn::print_type(TerminalStream& out) const {
+  out << tstring("|", style::nobold|style::nodim|style::noitalic|style::grey);
+}
+
 void VSep_TextColumn::print_separator(TerminalStream& out) const {
   out << '+';
 }
@@ -402,6 +416,12 @@ void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
   out << ell_;
   out << std::string(margin_right_, ' ');
 }
+
+
+void Ellipsis_TextColumn::print_type(TerminalStream& out) const {
+  out << std::string(margin_left_ + margin_right_ + width_, ' ');
+}
+
 
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
   out << std::string(margin_left_, ' ');

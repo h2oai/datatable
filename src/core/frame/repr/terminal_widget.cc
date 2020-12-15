@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -67,6 +67,7 @@ void TerminalWidget::_render() {
   const TerminalSize ts = terminal_->get_size();
   _prerender_columns(ts.width);
   _render_column_names();
+  _render_column_types();
   _render_header_separator();
   _render_data();
   _render_footer();
@@ -80,8 +81,9 @@ void TerminalWidget::_prerender_columns(int terminal_width)
   size_t nkeys = dt_->nkeys();
   const auto& names = dt_->get_names();
 
-  // +2 for row indices and the vertical separator
-  text_columns_.resize(colindices_.size() + 2);
+  // +1 for the vertical separator
+  // +1 for row indices, but only if there are no key columns
+  text_columns_.resize(colindices_.size() + 1 + (nkeys?0:1));
 
   // how many extra columns were added into `text_columns_`
   size_t k0 = 0;
@@ -140,8 +142,7 @@ void TerminalWidget::_prerender_columns(int terminal_width)
     remaining_width -= text_columns_[k]->get_width();
 
     if (nkeys && j == nkeys-1) {
-      // NB: cannot use .cbegin() here because of gcc4.8
-      text_columns_.insert(text_columns_.begin() + static_cast<long>(k) + 1,
+      text_columns_.insert(text_columns_.cbegin() + static_cast<long>(k) + 1,
                            text_column(new VSep_TextColumn()));
       k0++;
       remaining_width -= text_columns_[k+1]->get_width();
@@ -242,6 +243,16 @@ void TerminalWidget::_render_column_names() {
 }
 
 
+void TerminalWidget::_render_column_types() {
+  out_ << (style::italic | style::dim);
+  for (const auto& col : text_columns_) {
+    col->print_type(out_);
+  }
+  out_ << style::end;
+  out_ << '\n';
+}
+
+
 void TerminalWidget::_render_header_separator() {
   out_ << style::grey;
   for (const auto& col : text_columns_) {
@@ -270,7 +281,6 @@ void TerminalWidget::_render_data() {
 void TerminalWidget::_render_footer() {
   size_t nrows = dt_->nrows();
   size_t ncols = dt_->ncols();
-  out_ << '\n';
   out_ << style::dim;
   out_ << "[" << nrows << " row" << (nrows==1? "" : "s") << " x ";
   out_ << ncols << " column" << (ncols==1? "" : "s") << "]";
