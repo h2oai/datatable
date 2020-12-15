@@ -94,6 +94,120 @@ case, if you group by an expression ``-f.A``, then it will be
 treated as if you requested to group by the column "A" sorting it in
 the descending order. This will work even with column types that are
 not arithmetic, for example "A" could be a string column here.
+
+Examples
+--------
+
+::
+
+  from datatable import dt, f, by
+
+  df = dt.Frame({"group1": ["A", "A", "B", "B", "A"],
+                 "group2": [1, 0, 1, 1, 1],
+                 "var1": [343, 345, 567, 345, 212]})
+  df
+
+.. dtframe::
+  :names: group1,group2,var1
+  :types: str32, int8, int32
+  :shape: 5, 3
+
+  0,A,1,343
+  1,A,0,345
+  2,B,1,567
+  3,B,1,345
+  4,A,1,212
+
+Group by a single column::
+
+  df[:, dt.count(), by("group1")]
+
+.. dtframe::
+  :names: group1,count
+  :types: str32,int64
+  :shape: 2,2
+
+  0,A,3
+  1,B,2
+
+Group by multiple columns::
+
+  df[:, dt.sum(f.var1), by("group1", "group2")]
+
+.. dtframe::
+  :names: group1,group2,var1
+  :types: str32,int8,int64
+  :shape: 3,3
+
+  0,A,0,345
+  1,A,1,555
+  2,B,1,912
+
+Return grouping result without the grouping column(s) by setting the ``add_columns`` parameter to ``False``::
+
+  df[:, dt.sum(f.var1), by("group1", "group2", add_columns=False)]
+
+.. dtframe::
+  :names: var1
+  :types: int64
+  :shape: 3,1
+
+  0,345
+  1,555
+  2,912
+
+:ref:`f-expressions` can be passed to :func:`by()`::
+
+  df[:, dt.count(), by(f.var1 < 400)]
+
+.. dtframe::
+  :names: C0,count
+  :types: bool8, int64
+  :shape: 2,2
+
+  0,0,1
+  1,1,4
+
+By default, the groups are sorted in ascending order. The inverse is possible by negating the :ref:`f-expressions` in :func:`by()`::
+
+  df[:, dt.count(), by(-f.group1)]
+
+.. dtframe::
+  :names: group1,count
+  :types: str32, int64
+  :shape: 2,2
+
+  0,B,2
+  1,A,3
+
+An integer can be passed to the ``i`` section::
+
+  df[0, :, by("group1")]
+
+.. dtframe::
+  :names: group1,group2,var1
+  :types: str32,int8,int64
+  :shape: 2,3
+
+  0,A,1,343
+  1,B,1,567
+
+A slice is also acceptable within the ``i`` section::
+
+  df[-1:, :, by("group1")]
+
+.. dtframe::
+  :names: group1,group2,var1
+  :types: str32,int8,int64
+  :shape: 2,3
+
+  0,A,1,212
+  1,B,1,345
+
+.. note::  :ref:`f-expressions` is not implemented yet for the ``i`` section in a groupby. Also, a sequence cannot be passed to the ``i`` section in the presence of :func:`by()`.
+
+See :ref:`Grouping with by` user guide for more examples.
+
 )";
 
 
