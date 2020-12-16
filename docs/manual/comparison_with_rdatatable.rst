@@ -1,23 +1,19 @@
-.. py:currentmodule:: datatable
-
-.. raw:: html
-
-    <style>
-    .wy-nav-content { max-width: 100%; }
-    </style>
 
 Comparison with R's data.table
 ==============================
 
-``datatable`` is closely related to R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ and attempts to mimic its core algorithms and API; however, there are differences due to language constraints.
+``datatable`` is closely related to R's `data.table`_ and attempts to mimic
+its API; however, there are differences due to language constraints.
 
-This page shows how to perform similar basic operations in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__  versus ``datatable``.
+This page shows how to perform similar basic operations in R's ``data.table``
+versus ``datatable``.
+
 
 Subsetting Rows
 ---------------
-The examples used here are from the `examples <https://rdatatable.gitlab.io/data.table/reference/data.table.html#examples>`__ data in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__.
+The examples used here are from the `examples`_ data in R's ``data.table``.
 
-``data.table``::
+.. code-block:: R
 
     library(data.table)
 
@@ -25,13 +21,28 @@ The examples used here are from the `examples <https://rdatatable.gitlab.io/data
                     y=c(1,3,6), v=1:9)
 
 
-``datatable``::
+.. code-block:: python
 
-    from datatable import dt, f, g, by, update, join, sort
+    >>> from datatable import dt, f, g, by, update, join, sort
+    >>>
+    >>> DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+    ...               y = [1, 3, 6] * 3,
+    ...               v = range(1, 10))
+    >>> DT
+       | x          y      v
+       | str32  int32  int32
+    -- + -----  -----  -----
+     0 | b          1      1
+     1 | b          3      2
+     2 | b          6      3
+     3 | a          1      4
+     4 | a          3      5
+     5 | a          6      6
+     6 | c          1      7
+     7 | c          3      8
+     8 | c          6      9
+    [9 rows x 3 columns]
 
-    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
-              y = [1, 3, 6] * 3,
-              v = range(1, 10))
 
 =================================================  ============================================ =====================================
 Action                                                data.table                                   datatable
@@ -54,11 +65,19 @@ Sort by column ``x`` ascending, ``y`` descending     ``DT[order(x, -y)]``       
                                                                                                   | ``DT[:, :, sort(f.x, -f.y)]``
 =================================================  ============================================ =====================================
 
-.. note:: Note the use of the ``f`` symbol when performing computations or sorting in descending order. You can read more about :ref:`f-expressions`.
+.. note::
 
-In ``data.table``, ``DT[2]`` would mean ``2nd row``, whereas in ``datatable``, ``DT[2]`` would select the 3rd column.
+    Note the use of the ``f`` symbol when performing computations or
+    sorting in descending order. You can read more about :ref:`f-expressions`.
 
-In ``data.table``, when selecting rows you do not need to indicate the columns. So, something like the code below works fine:
+.. note::
+
+    In R, ``DT[2]`` would mean **2nd row**, whereas in python ``DT[2]`` would
+    select the **3rd column**.
+
+
+In ``data.table``, when selecting rows you do not need to indicate the columns.
+So, something like the code below works fine:
 
 .. code-block:: R
 
@@ -70,46 +89,43 @@ In ``data.table``, when selecting rows you do not need to indicate the columns. 
     2: a 3 5
     3: c 3 8
 
-In ``datatable`` however, when selecting rows, there has to be a column selector, or you get an error:
+In ``datatable``, however, when selecting rows there has to be a column
+selector, or you get an error::
 
-.. code-block:: python
+    >>> DT[f.y == 3]
+    TypeError: Column selector must be an integer or a string, not <class 'datatable.FExpr'>
 
-    # datatable
-    DT[f.y==3]
-    # TypeError: Column selector must be an integer or a string, not <class 'datatable.FExpr'>
+The code above fails because ``datatable`` only allows single-column selection
+using the style above::
 
-The code above fails because ``datatable`` only allows single column selection using the style above:
+    >>> DT['y']
+       |     y
+       | int32
+    -- + -----
+     0 |     1
+     1 |     3
+     2 |     6
+     3 |     1
+     4 |     3
+     5 |     6
+     6 |     1
+     7 |     3
+     8 |     6
+    [9 rows x 1 column]
 
-.. code-block:: python
-
-    DT['y']
-
-    	y
-    0	1
-    1	3
-    2	6
-    3	1
-    4	3
-    5	6
-    6	1
-    7	3
-    8	6
-
-As such, when ``datatable`` sees an :ref:`f-expressions`, it thinks you are selecting a column, and appropriately errors out.
+As such, when ``datatable`` sees an :ref:`f-expressions`, it thinks you are
+selecting a column, and appropriately errors out.
 
 
-Since, in this case, we are selecting all columns, we can use either a colon (``:``), or ``None`` or the Ellipsis symbol(``...``):
+Since, in this case, we are selecting all columns, we can use either a colon
+(``:``) or the Ellipsis symbol(``...``)::
 
-.. code-block:: python
-
-    # datatable
-    DT[f.y==3, :]
-    # or DT[f.y==3, None]
-    # or DT[f.y==3, ...]
+    >>> DT[f.y==3, :]
+    >>> DT[f.y==3, ...]
 
 
 
-Selecting Columns
+Selecting columns
 -----------------
 
 ============================================= =============================================== ==============================================
@@ -130,21 +146,34 @@ Select columns that start with ``x`` or ``v``   ``DT[ , .SD, .SDcols = patterns(
                                                                                                |          ``for name in DT.names]]``
 ============================================= =============================================== ==============================================
 
-In ``data.table``, you can select a column by using a variable name with the double dots prefix
+In ``data.table``, you can select a column by using a variable name with the
+double dots prefix:
 
 .. code-block:: R
 
-    cols = 'v'
-    DT[, ..cols]
+    col = 'v'
+    DT[, ..col]
 
-In ``datatable``, you do not need the prefix
+In ``datatable``, you do not need the prefix::
 
-.. code-block:: python
+    >>> col = 'v'
+    >>> DT[:, col]  # or DT[col]
+       |       v
+       | float64
+    -- + -------
+     0 | 1
+     1 | 1.41421
+     2 | 1.73205
+     3 | 2
+     4 | 2.23607
+     5 | 2.44949
+     6 | 2.64575
+     7 | 2.82843
+     8 | 3
+    [9 rows x 1 column]
 
-    cols = 'v'
-    DT[cols] # or  DT[:, cols]
-
-If the column names are stored in a character vector, the double dots prefix also works
+If the column names are stored in a character vector, the double dots prefix
+also works:
 
 .. code-block:: R
 
@@ -155,8 +184,21 @@ In ``datatable``, you can store the list/tuple of column names in a variable
 
 .. code-block:: python
 
-    cols = ('v', 'y')
-    DT[:, cols]
+    >>> cols = ['v', 'y']
+    >>> DT[:, cols]
+       |       v        y
+       | float64  float64
+    -- + -------  -------
+     0 | 1        1
+     1 | 1.41421  1.73205
+     2 | 1.73205  2.44949
+     3 | 2        1
+     4 | 2.23607  1.73205
+     5 | 2.44949  2.44949
+     6 | 2.64575  1
+     7 | 2.82843  1.73205
+     8 | 3        2.44949
+    [9 rows x 2 columns]
 
 
 
@@ -172,36 +214,38 @@ Filter in ``i`` and aggregate in ``j``              ``DT[x=="b", .(sum(v*y))]`` 
 Same as above, return as scalar                     ``DT[x=="b", sum(v*y)]``                          ``DT[f.x=="b", dt.sum(f.v * f.y)][0, 0]``
 ======================================           ==========================================          ==============================================
 
-In `R <https://www.r-project.org/about.html>`_, indexing starts at 1 and when slicing, the first and last items are included. However, in `Python <https://www.python.org/>`_, indexing starts at 0, and when slicing, all items except the last are included.
+In R indexing starts at 1 and when slicing, the first and the last items are
+both included. However, in Python, indexing starts at 0, and when slicing all
+items except the last are included.
 
-Some ``SD``(Subset of Data) operations can be replicated in ``datatable``
+Some ``SD`` (Subset of Data) operations can be replicated in ``datatable``
 
-- Aggregate several columns
+Aggregate several columns
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: R
 
-    # data.table
-    DT[, lapply(.SD, mean),
-       .SDcols = c("y","v")]
+    DT[, lapply(.SD, mean), .SDcols = c("y","v")]
 
               y v
     1: 3.333333 5
 
 .. code-block:: python
 
-    # datatable
-    DT[:, dt.mean([f.y,f.v])]
+    >>> DT[:, dt.mean([f.y,f.v])]
+       |       y        v
+       | float64  float64
+    -- + -------  -------
+     0 | 3.33333        5
+    [1 row x 2 columns]
 
-            y	v
-    0	3.33333	5
 
-- Modify columns using a condition
+Modify columns using a condition
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: R
 
-    # data.table
-    DT[, .SD - 1,
-       .SDcols = is.numeric]
+    DT[, .SD - 1, .SDcols = is.numeric]
 
        y v
     1: 0 0
@@ -216,27 +260,28 @@ Some ``SD``(Subset of Data) operations can be replicated in ``datatable``
 
 .. code-block:: python
 
-    # datatable
-    DT[:, f[int]-1]
+    >>> DT[:, f[int] - 1]
+       |    C0     C1
+       | int32  int32
+    -- + -----  -----
+     0 |     0      0
+     1 |     2      1
+     2 |     5      2
+     3 |     0      3
+     4 |     2      4
+     5 |     5      5
+     6 |     0      6
+     7 |     2      7
+     8 |     5      8
+    [9 rows x 2 columns]
 
-        C0	C1
-    0	0	0
-    1	2	1
-    2	5	2
-    3	0	3
-    4	2	4
-    5	5	5
-    6	0	6
-    7	2	7
-    8	5	8
-
-- Modify several columns and keep others unchanged
+Modify several columns and keep others unchanged
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: R
 
-    #data.table
     DT[, c("y", "v") := lapply(.SD, sqrt),
-       .SDcols = c("y", "v")]
+         .SDcols = c("y", "v")]
 
        x        y        v
     1: b 1.000000 1.000000
@@ -251,20 +296,24 @@ Some ``SD``(Subset of Data) operations can be replicated in ``datatable``
 
 .. code-block:: python
 
-    #datatable
-    # there is a square root function the datatable math module
-    DT[:, update(**{name:f[name]**0.5 for name in ("y","v")})]
+    >>> # there is a square root function the datatable math module
+    >>> DT[:, update(**{name:f[name]**0.5 for name in ("y","v")})]
+    >>> DT
+       | x            y        v
+       | str32  float64  float64
+    -- + -----  -------  -------
+     0 | b      1        1
+     1 | b      1.73205  1.41421
+     2 | b      2.44949  1.73205
+     3 | a      1        2
+     4 | a      1.73205  2.23607
+     5 | a      2.44949  2.44949
+     6 | c      1        2.64575
+     7 | c      1.73205  2.82843
+     8 | c      2.44949  3
+    [9 rows x 3 columns]
 
-        x	y	v
-    0	b	1	1
-    1	b	1.73205	1.41421
-    2	b	2.44949	1.73205
-    3	a	1	2
-    4	a	1.73205	2.23607
-    5	a	2.44949	2.44949
-    6	c	1	2.64575
-    7	c	1.73205	2.82843
-    8	c	2.44949	3
+
 
 Grouping with :func:`by()`
 --------------------------
@@ -291,25 +340,36 @@ First 2 rows of each group                                      ``DT[, head(.SD,
 Last 2 rows of each group                                       ``DT[, tail(.SD,2), by=x]``                         ``DT[-2:, :, by("x")]``
 ===========================================================   ==============================================   ============================================================
 
-In R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__, the order of the groupings is preserved; in ``datatable``, the returned dataframe is sorted on the grouping column. ``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by column ``x``.
+In R's ``data.table``, the order of the groupings is preserved; in
+``datatable``, the returned dataframe is sorted on the grouping column.
+``DT[, sum(v), keyby=x]`` in data.table returns a dataframe ordered by
+column ``x``.
 
-In ``data.table``, ``i`` is executed before the grouping, while in ``datatable``, ``i`` is executed after the grouping.
+In ``data.table``, ``i`` is executed before the grouping, while in
+``datatable``, ``i`` is executed after the grouping.
 
-Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a groupby is not yet implemented, hence the chaining method to get the sum of column ``v`` where ``x!=a``.
+Also, in ``datatable``, :ref:`f-expressions` in the ``i`` section of a
+groupby is not yet implemented, hence the chaining method to get the sum of
+column ``v`` where ``x!=a``.
 
-Multiple aggregations within a group can be executed in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`__ with the syntax below ::
+Multiple aggregations within a group can be executed in R's ``data.table``
+with the syntax below:
+
+.. code-block:: R
 
     DT[, list(MySum=sum(v),
               MyMin=min(v),
               MyMax=max(v)),
        by=.(x, y%%2)]
 
-The same can be replicated in ``datatable`` by using a dictionary ::
+The same can be replicated in ``datatable`` by using a dictionary::
 
-    DT[:, {'MySum': dt.sum(f.v),
-           'MyMin': dt.min(f.v),
-           'MyMax': dt.max(f.v)},
-       by(f.x, f.y%2)]
+    >>> DT[:, {'MySum': dt.sum(f.v),
+    ...        'MyMin': dt.min(f.v),
+    ...        'MyMax': dt.max(f.v)},
+    ...    by(f.x, f.y%2)]
+
+
 
 Add/Update/Delete Columns
 -------------------------
@@ -337,26 +397,37 @@ In ``data.table``, you can create a new column with a variable
 
 .. code-block:: R
 
-    cols = 'rar'
-    DT[, ..cols:=4242]
+    col = 'rar'
+    DT[, ..col:=4242]
 
-Similar operation for the above in ``datatable``
+Similar operation for the above in ``datatable``::
 
-.. code-block:: python
+    >>> col = 'rar'
+    >>> DT[col] = 4242
+    >>> # or DT[:, update(col = 4242)]
 
-    cols = 'rar'
-    DT[cols] = 4242
-    # or  DT[:, update(cols=4242)]
+.. note::
 
-.. note:: The :func:`update` function, as well as the ``del`` function (a `python keyword <https://docs.python.org/3/reference/lexical_analysis.html#keywords>`__) operates in-place; there is no need for reassignment.  Another advantage of the :func:`update` method is that the row order of the dataframe is not changed, even in a groupby; this comes in handy in a lot of transformation operations.
+    The :func:`update` function, as well as the ``del`` operator operate
+    in-place; there is no need for reassignment. Another advantage of the
+    :func:`update` method is that the row order of the dataframe is not
+    changed, even in a groupby; this comes in handy in a lot of
+    transformation operations.
 
 
 Joins
-------
+-----
 
-At the moment, only the left outer join is implemented in ``datatable``. Another aspect is that the dataframe being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both dataframes. You can read more about the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+At the moment, only the left outer join is implemented in ``datatable``.
+Another aspect is that the dataframe being joined must be keyed, the column or
+columns to be keyed must not have duplicates, and the joining column has to
+have the same name in both dataframes. You can read more about the
+:func:`join()` API and have a look at the :ref:`Tutorial on join operators
+<join tutorial>`.
 
-Left join in R's `data.table <https://data.table.gitlab.io/data.table/index.html>`_::
+Left join in R's ``data.table``:
+
+.. code-block:: R
 
     DT = data.table(x=rep(c("b","a","c"),each=3), y=c(1,3,6), v=1:9)
     X = data.table(x=c("c","b"), v=8:7, foo=c(4,2))
@@ -376,34 +447,34 @@ Left join in R's `data.table <https://data.table.gitlab.io/data.table/index.html
 
 Join in ``datatable``::
 
-    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
-              y = [1, 3, 6] * 3,
-              v = range(1, 10))
+    >>> DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+    ...               y = [1, 3, 6] * 3,
+    ...               v = range(1, 10))
+    >>> X = dt.Frame({"x":('c','b'),
+    ...               "v":(8,7),
+    ...               "foo":(4,2)})
+    >>> X.key = "x"
+    >>>
+    >>> DT[:, :, join(X)]
+       | x          y      v    v.0    foo
+       | str32  int32  int32  int32  int32
+    -- + -----  -----  -----  -----  -----
+     0 | b          1      1      7      2
+     1 | b          3      2      7      2
+     2 | b          6      3      7      2
+     3 | a          1      4     NA     NA
+     4 | a          3      5     NA     NA
+     5 | a          6      6     NA     NA
+     6 | c          1      7      8      4
+     7 | c          3      8      8      4
+     8 | c          6      9      8      4
+    [9 rows x 5 columns]
 
-    X = dt.Frame({"x":('c','b'),
-                  "v":(8,7),
-                  "foo":(4,2)})
-
-    X.key="x" # key the ``x`` column
-
-    DT[:, :, join(X)]
-
-        x	y	v	v.0	foo
-    0	b	1	1	7	2
-    1	b	3	2	7	2
-    2	b	6	3	7	2
-    3	a	1	4	NA	NA
-    4	a	3	5	NA	NA
-    5	a	6	6	NA	NA
-    6	c	1	7	8	4
-    7	c	3	8	8	4
-    8	c	6	9	8	4
-
-- An inner join could be simulated by removing the nulls. Again, a :func:`join` only works if the joining dataframe is keyed.
+An inner join could be simulated by removing the nulls. Again, a :func:`join`
+only works if the joining dataframe is keyed.
 
 .. code-block:: R
 
-    # data.table
     DT[X, on="x", nomatch=NULL]
 
        x y v i.v foo
@@ -416,22 +487,22 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[g[-1]!=None, :, join(X)] # g refers to the joining dataframe X
+    >>> DT[g[-1] != None, :, join(X)]  # g refers to the joining dataframe X
+       | x          y      v    v.0    foo
+       | str32  int32  int32  int32  int32
+    -- + -----  -----  -----  -----  -----
+     0 | b          1      1      7      2
+     1 | b          3      2      7      2
+     2 | b          6      3      7      2
+     3 | c          1      7      8      4
+     4 | c          3      8      8      4
+     5 | c          6      9      8      4
+    [6 rows x 5 columns]
 
-        x	y	v	v.0	foo
-    0	b	1	1	7	2
-    1	b	3	2	7	2
-    2	b	6	3	7	2
-    3	c	1	7	8	4
-    4	c	3	8	8	4
-    5	c	6	9	8	4
-
-- A `not join` can be simulated as well.
+A *not join* can be simulated as well:
 
 .. code-block:: R
 
-    # data.table
     DT[!X, on="x"]
 
        x y v
@@ -441,19 +512,19 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[g[-1]==None, f[:], join(X)]
+    >>> DT[g[-1]==None, f[:], join(X)]
+       | x          y      v
+       | str32  int32  int32
+    -- + -----  -----  -----
+     0 | a          1      4
+     1 | a          3      5
+     2 | a          6      6
+    [3 rows x 3 columns]
 
-        x	y	v
-    0	a	1	4
-    1	a	3	5
-    2	a	6	6
-
-- Select the first row for each group
+Select the first row for each group:
 
 .. code-block:: R
 
-    # data.table
     DT[X, on="x", mult="first"]
 
        x y v i.v foo
@@ -462,19 +533,19 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[g[-1]!=None, :, join(X)][0, :, by('x')] # chaining comes in handy here
+    >>> DT[g[-1] != None, :, join(X)][0, :, by('x')]  # chaining comes in handy here
+       | x          y      v    v.0    foo
+       | str32  int32  int32  int32  int32
+    -- + -----  -----  -----  -----  -----
+     0 | b          1      1      7      2
+     1 | c          1      7      8      4
+    [2 rows x 5 columns]
 
-        x	y	v	v.0	foo
-    0	b	1	1	7	2
-    1	c	1	7	8	4
 
-
-- Select the last row for each group
+Select the last row for each group:
 
 .. code-block:: R
 
-    # data.table
     DT[X, on="x", mult="last"]
 
        x y v i.v foo
@@ -483,18 +554,19 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[g[-1]!=None, :, join(X)][-1, :, by('x')]
+    >>> DT[g[-1]!=None, :, join(X)][-1, :, by('x')]
+       | x          y      v    v.0    foo
+       | str32  int32  int32  int32  int32
+    -- + -----  -----  -----  -----  -----
+     0 | b          6      3      7      2
+     1 | c          6      9      8      4
+    [2 rows x 5 columns]
 
-        x	y	v	v.0	foo
-    0	b	6	3	7	2
-    1	c	6	9	8	4
 
-- Join and evaluate ``j`` for each row in ``i``
+Join and evaluate ``j`` for each row in ``i``:
 
 .. code-block:: R
 
-    # data.table
     DT[X, sum(v), by=.EACHI, on="x"]
 
        x V1
@@ -503,18 +575,18 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[g[-1]!=None, :, join(X)][:, dt.sum(f.v), by("x")]
+    >>> DT[g[-1]!=None, :, join(X)][:, dt.sum(f.v), by("x")]
+       | x          v
+       | str32  int64
+    -- + -----  -----
+     0 | b          6
+     1 | c         24
+    [2 rows x 2 columns]
 
-        x	v
-    0	b	6
-    1	c	24
-
-- Aggregate on columns from both dataframes in ``j``
+Aggregate on columns from both dataframes in ``j``:
 
 .. code-block:: R
 
-    # data.table
     DT[X, sum(v)*foo, by=.EACHI, on="x"]
 
        x V1
@@ -523,18 +595,18 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[:, dt.sum(f.v*g.foo), join(X), by(f.x)][f[-1]!=0, :]
+    >>> DT[:, dt.sum(f.v*g.foo), join(X), by(f.x)][f[-1]!=0, :]
+       | x         C0
+       | str32  int64
+    -- + -----  -----
+     0 | b         12
+     1 | c         96
+    [2 rows x 2 columns]
 
-        x	C0
-    0	b	12
-    1	c	96
-
-- Aggregate on columns with same name from both dataframes in ``j``
+Aggregate on columns with same name from both dataframes in ``j``:
 
 .. code-block:: R
 
-    # data.table
     DT[X, sum(v)*i.v, by=.EACHI, on="x"]
 
        x  V1
@@ -543,50 +615,71 @@ Join in ``datatable``::
 
 .. code-block:: python
 
-    # datatable
-    DT[:, dt.sum(f.v*g.v), join(X), by(f.x)][f[-1]!=0, :]
+    >>> DT[:, dt.sum(f.v*g.v), join(X), by(f.x)][f[-1]!=0, :]
+       | x         C0
+       | str32  int64
+    -- + -----  -----
+     0 | b         42
+     1 | c        192
+    [2 rows x 2 columns]
 
-        x	C0
-    0	b	42
-    1	c	192
+Expect significant improvement in join functionality, with more concise syntax,
+as well as additions of more features in the future.
 
-Expect significant improvement in join functionality, with more concise syntax, as well as additions of more features, as ``datatable`` matures.
+
 
 Functions in R/data.table not yet implemented
 ---------------------------------------------
 
-This is a list of some functions in ``data.table`` that do not have an equivalent in ``datatable`` yet, that we would likely implement
+This is a list of some functions in ``data.table`` that do not have an
+equivalent in ``datatable`` yet, that we would likely implement
 
 - Reshaping functions
-   - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__
-   - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__
+
+  - `melt <https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html>`__
+  - `dcast <https://rdatatable.gitlab.io/data.table/reference/dcast.data.table.html>`__
 
 - Convenience functions for filtering and subsetting
-   - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__
-   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
-   - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
-   - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
-   - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__
+
+  - `like <https://rdatatable.gitlab.io/data.table/reference/like.html>`__
+  - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+  - `inrange <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+  - `between <https://rdatatable.gitlab.io/data.table/reference/between.html>`__
+  - `%chin% <https://rdatatable.gitlab.io/data.table/reference/chmatch.html>`__
 
 - Duplicate functions
-   - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__
-   - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__  in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable`` returns a single column of unique values in the entire dataframe.
+
+  - `duplicated <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__
+  - `unique <https://rdatatable.gitlab.io/data.table/reference/duplicated.html>`__
+    in ``data.table`` returns unique rows, while :func:`unique()` in ``datatable``
+    returns a single column of unique values in the entire dataframe.
 
 - Aggregation functions
-   - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__
-   - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
-   - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
-   - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
-   - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
-   - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
-   - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
+
+  - `frank <https://rdatatable.gitlab.io/data.table/reference/frank.html>`__
+  - `frollmean <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+  - `frollsum <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+  - `frollapply <https://rdatatable.gitlab.io/data.table/reference/froll.html>`__
+  - `rollup <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
+  - `cube <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
+  - `groupingsets <https://rdatatable.gitlab.io/data.table/reference/groupingsets.html>`__
 
 - Missing values functions
-   - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__
-   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__
 
-Also, at the moment, custom aggregations in the ``j`` section are not supported in ``datatable``- we intend to implement that at some point.
+  - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__
+  - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__
 
-There are no datetime functions in ``datatable``, and string operations are limited as well.
+Also, at the moment, custom aggregations in the ``j`` section are not supported
+in ``datatable`` -- we intend to implement that at some point.
 
-If there are any functions that you would like to see in ``datatable``, please head over to `github <https://github.com/h2oai/datatable/issues>`__ and raise a feature request.
+There are no datetime functions in ``datatable``, and string operations are
+limited as well.
+
+If there are any functions that you would like to see in ``datatable``, please
+head over to `github`_ and raise a feature request.
+
+
+.. _`data.table` : https://data.table.gitlab.io/data.table/index.html
+.. _`examples` : https://rdatatable.gitlab.io/data.table/reference/data.table.html#examples
+.. _`R` : https://www.r-project.org/about.html
+.. _`github` : https://github.com/h2oai/datatable/issues
