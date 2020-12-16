@@ -434,6 +434,22 @@ RST code sample:
 
     .. _`example website`: https://example.com/
 
+C++ code sample:
+
+.. code-block:: C++
+
+    #include <cstring>
+
+    int main() {
+        return 0;
+    }
+
+SQL code sample:
+
+.. code-block:: SQL
+
+    SELECT * FROM students WHERE name='Robert'; DROP TABLE students; --'
+
 
 Special care must be taken in case the code in the samples has very long line
 lengths. Generally, the code should not overflow its container block, or

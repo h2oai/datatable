@@ -67,6 +67,8 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def __init__(self, lang='default', **kwargs):
         super().__init__(**kwargs)
         self._lang = lang.lower()
+        if self._lang == "c++":
+            self._lang = "cpp"
         if 'msdos' in self._lang:
             self._lang += " bash"
 

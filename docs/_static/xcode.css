@@ -12,12 +12,26 @@ div.xcode {
 div.xcode code {
     background: #fffdf6;
     border: 1px solid #f3e6ca;
+    border-top-right-radius: 5px;
     color: inherit;
     display: block;
     font-size: inherit;
     margin-left: 3rem;
     overflow: auto;
     padding: 8px 12px;
+}
+
+div.xcode code:before {
+    background: #eae2c2;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    box-shadow: 0 0 2px #a58a26 inset;
+    color: #a58a26;
+    font-size: 80%;
+    padding: 1px 8px;
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 
 p + div.notranslate div.xcode {
@@ -45,9 +59,9 @@ li > p + div.notranslate div.xcode {
 }
 
 
-.xcode .s,    /* String */
-.xcode .s1,   /* String.Single */
-.xcode .s2 {  /* String.Double */
+.xcode code .s,    /* String */
+.xcode code .s1,   /* String.Single */
+.xcode code .s2 {  /* String.Double */
     color: #d48a02;
 }
 
@@ -162,6 +176,7 @@ li > p + div.notranslate div.xcode {
 .xcode code.python {
     background: whitesmoke;
     border: 1px solid #e0e0e0;
+    border-top-right-radius: 0;
 }
 
 .xcode code.python.input {
@@ -193,6 +208,13 @@ li > p + div.notranslate div.xcode {
 /*------------------------------------------------------------------------------
  * bash
  *-----------------------------------------------------------------------------*/
+
+div.xcode > code.bash:before {
+    background: #222;
+    box-shadow: 0 0 2px #000 inset;
+    color: #ccc;
+    content: "bash";
+}
 
 .xcode code.bash {
     background-color: #444;
@@ -229,6 +251,10 @@ li > p + div.notranslate div.xcode {
  * restructuredtext
  *-----------------------------------------------------------------------------*/
 
+div.xcode > code.restructuredtext:before {
+    content: "RST";
+}
+
 .xcode code.restructuredtext .na,
 .xcode code.restructuredtext .nc {  /* Name.Class */
     color: orange;
@@ -238,6 +264,33 @@ li > p + div.notranslate div.xcode {
 .xcode code.restructuredtext .cp {  /* Comment.Preproc */
     color: #bbb;
     font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
+ * R
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.s:before {
+    content: "R";
+}
+
+
+/*------------------------------------------------------------------------------
+ * C++
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.cpp:before {
+    content: "C++";
+}
+
+
+/*------------------------------------------------------------------------------
+ * SQL
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.sql:before {
+    content: "SQL";
 }
 
 
