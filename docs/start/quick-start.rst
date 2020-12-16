@@ -152,7 +152,7 @@ used to refer to the columns of the joined frame.
 
 
 Groupbys/joins
-----------------
+--------------
 
 In the `Data Manipulation`_ section we mentioned that the ``DT[i, j, ...]`` selector
 can take zero or more modifiers, which we denoted as "``...``". The available
