@@ -454,4 +454,37 @@ Same, but for a non-python code:
 
 
 
+Admonitions
+-----------
+
+First, the ``.. note::`` block, which should display in a prominent box:
+
+.. note::
+
+    Please pay attention!
+
+There's usually some other content coming after the note. It should be properly
+spaced from the admonition.
+
+.. note::
+
+    Here's a node with more content. Why does it have so much content? Nobody
+    knows. In theory admonitions should be short and to the point, but this one
+    is not playing by the rules. It just goes on and on and on and on,
+    and it seems like it would never end. Even as you think that maybe at last
+    the end is near, a new paragraph suddenly appears:
+
+    And that new paragraph just repeats the same nonsense all over again.
+    Really, there is no any good reason for it to keep going, but it does
+    nevertheless, as if trying to stretch the limits of how many words can be
+    spilled without any of them making any sense.
+
+.. note::
+
+    - First, this is a note with a list
+    - Second, it may contain several list items
+    - Third is here just to make things look more impressive
+    - Fourth is the last one (or is it?)
+
+
 .. _`example website`: https://www.example.com/

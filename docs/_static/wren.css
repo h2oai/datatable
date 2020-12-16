@@ -600,6 +600,46 @@ table.api-table td:first-child a:hover code.literal {
 
 
 /*------------------------------------------------------------------------------
+ * admonitions
+ *----------------------------------------------------------------------------*/
+
+.admonition {
+    margin-bottom: 1rem;
+    padding: .5rem 1rem .5rem 2.7rem;
+    position: relative;
+}
+
+.admonition.note:before {
+    content: "\f05a";
+    font-family: 'FontAwesome';
+    left: 0;
+    padding: 0.5rem 1rem;
+    position: absolute;
+    top: 1px;
+}
+
+.admonition.note {
+    background: #dbf8ff;
+    border: 1px solid #ccdddd;
+    color: #055160;
+}
+
+.admonition .admonition-title {
+    display: none;
+}
+
+.admonition > p:last-child {
+    margin-bottom: 0;
+}
+
+p.admonition-title + .simple {
+    padding-inline-start: 20px;
+    margin-top: 0;
+}
+
+
+
+/*------------------------------------------------------------------------------
  * Footnotes
  *----------------------------------------------------------------------------*/
 
