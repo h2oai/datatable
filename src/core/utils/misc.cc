@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <chrono>
+#include <chrono>           // std::chrono::steady_clock
 #include <cstring>          // std::memcpy
 #include <stdint.h>
 #include <type_traits>      // std::is_unsigned
@@ -136,9 +136,10 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count) {
   */
 double wallclock() {
   using T = std::chrono::time_point<std::chrono::steady_clock>;
+  using D = std::chrono::duration<double>;
   static T time0 = std::chrono::steady_clock::now();
   T time1 = std::chrono::steady_clock::now();
-  std::chrono::duration<double> diff = (time1 - time0);
+  D diff = (time1 - time0);
   return diff.count();
 }
 
