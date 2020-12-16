@@ -186,8 +186,19 @@ class XHtmlFormatter(pygments.formatter.Formatter):
         for line in body_lines:
             out += "<tr>"
             for i, j in columns:
-                out += "<td class=row_index>" if j < sep else "<td>"
-                out += line[i:j].strip()
+                classes = []
+                value = escape_html(line[i:j].strip())
+                if j < sep:
+                    classes.append("row_index")
+                if value == '…':
+                    classes.append("etc")
+                if value == 'NA':
+                    classes.append("NA")
+                if classes:
+                    out += f"<td class='{' '.join(classes)}'>"
+                else:
+                    out += "<td>"
+                out += value
                 out += "</td>"
             out += "<td></td></tr>"
         out += "</tbody>"

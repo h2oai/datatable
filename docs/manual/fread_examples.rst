@@ -18,9 +18,9 @@ Read data
 Read from a text file::
 
     >>> from datatable import dt, fread
-    >>> result = fread('iris.csv')
-    >>> result
+    >>> fread('iris.csv')
         | sepal_length  sepal_width  petal_length  petal_width  species
+        |      float64      float64       float64      float64  str32
     --- + ------------  -----------  ------------  -----------  ---------
       0 |          5.1          3.5           1.4          0.2  setosa
       1 |          4.9          3             1.4          0.2  setosa
@@ -43,7 +43,6 @@ Read from a text file::
     147 |          6.5          3             5.2          2    virginica
     148 |          6.2          3.4           5.4          2.3  virginica
     149 |          5.9          3             5.1          1.8  virginica
-
     [150 rows x 5 columns]
 
 Read text data directly::
@@ -53,42 +52,42 @@ Read text data directly::
     ...         'a,b,2\n'
     ...         'c,d,3')
     >>> fread(data)
-       | col1  col2  col3
-    -- + ----  ----  ----
-     0 | a     b        1
-     1 | a     b        2
-     2 | c     d        3
-
+       | col1   col2    col3
+       | str32  str32  int32
+    -- + -----  -----  -----
+     0 | a      b          1
+     1 | a      b          2
+     2 | c      d          3
     [3 rows x 3 columns]
 
 Read from a url::
 
     >>> url = "https://raw.githubusercontent.com/Rdatatable/data.table/master/vignettes/flights14.csv"
     >>> fread(url)
-           | year  month  day  dep_delay  arr_delay  carrier  origin  dest  air_time  distance  hour
-    ------ + ----  -----  ---  ---------  ---------  -------  ------  ----  --------  --------  ----
-         0 | 2014      1    1         14         13  AA       JFK     LAX        359      2475     9
-         1 | 2014      1    1         -3         13  AA       JFK     LAX        363      2475    11
-         2 | 2014      1    1          2          9  AA       JFK     LAX        351      2475    19
-         3 | 2014      1    1         -8        -26  AA       LGA     PBI        157      1035     7
-         4 | 2014      1    1          2          1  AA       JFK     LAX        350      2475    13
-         5 | 2014      1    1          4          0  AA       EWR     LAX        339      2454    18
-         6 | 2014      1    1         -2        -18  AA       JFK     LAX        338      2475    21
-         7 | 2014      1    1         -3        -14  AA       JFK     LAX        356      2475    15
-         8 | 2014      1    1         -1        -17  AA       JFK     MIA        161      1089    15
-         9 | 2014      1    1         -2        -14  AA       JFK     SEA        349      2422    18
-        10 | 2014      1    1         -5        -17  AA       EWR     MIA        161      1085    16
-        11 | 2014      1    1          7         -5  AA       JFK     SFO        365      2586    17
-        12 | 2014      1    1          3          1  AA       JFK     BOS         39       187    12
-        13 | 2014      1    1        142        133  AA       JFK     LAX        345      2475    19
-        14 | 2014      1    1         -5        -26  AA       JFK     BOS         35       187    17
-         … |    …      …    …          …          …  …        …       …            …         …     …
-    253311 | 2014     10   31          1        -30  UA       LGA     IAH        201      1416    14
-    253312 | 2014     10   31         -5        -14  UA       EWR     IAH        189      1400     8
-    253313 | 2014     10   31         -8         16  MQ       LGA     RDU         83       431    11
-    253314 | 2014     10   31         -4         15  MQ       LGA     DTW         75       502    11
-    253315 | 2014     10   31         -5          1  MQ       LGA     SDF        110       659     8
-
+           |  year  month    day  dep_delay  arr_delay  carrier  origin  dest   air_time  distance   hour
+           | int32  int32  int32      int32      int32  str32    str32   str32     int32     int32  int32
+    ------ + -----  -----  -----  ---------  ---------  -------  ------  -----  --------  --------  -----
+         0 |  2014      1      1         14         13  AA       JFK     LAX         359      2475      9
+         1 |  2014      1      1         -3         13  AA       JFK     LAX         363      2475     11
+         2 |  2014      1      1          2          9  AA       JFK     LAX         351      2475     19
+         3 |  2014      1      1         -8        -26  AA       LGA     PBI         157      1035      7
+         4 |  2014      1      1          2          1  AA       JFK     LAX         350      2475     13
+         5 |  2014      1      1          4          0  AA       EWR     LAX         339      2454     18
+         6 |  2014      1      1         -2        -18  AA       JFK     LAX         338      2475     21
+         7 |  2014      1      1         -3        -14  AA       JFK     LAX         356      2475     15
+         8 |  2014      1      1         -1        -17  AA       JFK     MIA         161      1089     15
+         9 |  2014      1      1         -2        -14  AA       JFK     SEA         349      2422     18
+        10 |  2014      1      1         -5        -17  AA       EWR     MIA         161      1085     16
+        11 |  2014      1      1          7         -5  AA       JFK     SFO         365      2586     17
+        12 |  2014      1      1          3          1  AA       JFK     BOS          39       187     12
+        13 |  2014      1      1        142        133  AA       JFK     LAX         345      2475     19
+        14 |  2014      1      1         -5        -26  AA       JFK     BOS          35       187     17
+         … |     …      …      …          …          …  …        …       …             …         …      …
+    253311 |  2014     10     31          1        -30  UA       LGA     IAH         201      1416     14
+    253312 |  2014     10     31         -5        -14  UA       EWR     IAH         189      1400      8
+    253313 |  2014     10     31         -8         16  MQ       LGA     RDU          83       431     11
+    253314 |  2014     10     31         -4         15  MQ       LGA     DTW          75       502     11
+    253315 |  2014     10     31         -5          1  MQ       LGA     SDF         110       659      8
     [253316 rows x 11 columns]
 
 Read from an archive (if there are multiple files, only the first will be read;
@@ -135,11 +134,11 @@ is a ``,``::
     ...         Ragnar|1,000,000|conqueror
     ...           Loki|250360|trickster""")
        | Name     Salary  Position
+       | str32     int32  str32
     -- + ------  -------  ----------
      0 | James    256000  evangelist
      1 | Ragnar  1000000  conqueror
      2 | Loki     250360  trickster
-
     [3 rows x 3 columns]
 
 
@@ -155,13 +154,13 @@ Note that the  separator must be a single character string; non-ASCII characters
     ...        9:10:11:12
     ...        """
     >>>
-    >>> fread(data, sep=":")
-       | C0  C1  C2  C3
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  12
-
+        >>> fread(data, sep=":")
+       |    C0     C1     C2     C3
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     12
     [3 rows x 4 columns]
 
 
@@ -181,13 +180,13 @@ You can pass a list of values to be treated as null, via the ``na_strings`` para
     >>>
     >>> fread(data, na_strings=['--', ''])
        | ID       Charges  Payment_Method
+       | str32    float64  str32
     -- + -------  -------  --------------
      0 | 634-VHG     28    Cheque
      1 | 365-DQC     33.5  Credit card
      2 | 264-PPR    631    NA
      3 | 845-AJO     42.3  NA
      4 | 789-KPO     56.9  Bank Transfer
-
     [5 rows x 3 columns]
 
 For rows with less values than in other rows,  you can set ``fill=True``; ``fread`` will fill with ``NA``::
@@ -198,14 +197,13 @@ For rows with less values than in other rows,  you can set ``fill=True``; ``frea
     ...         '9,10,11')
     >>>
     >>> fread(data, fill=True)
-       |  a   b   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  NA
-
+       |     a      b      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     NA
     [3 rows x 4 columns]
-
 
 You can skip empty lines::
 
@@ -217,12 +215,12 @@ You can skip empty lines::
     ...         '9,10,11,12')
     >>>
     >>> fread(data, skip_blank_lines=True)
-       |  a   b   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  12
-
+       |     a      b      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     12
     [3 rows x 4 columns]
 
 
@@ -234,21 +232,21 @@ If the data has no headers, ``fread`` will assign default column names::
     >>> data = ('1,2\n'
     ...         '3,4\n')
     >>> fread(data)
-       | C0  C1
-    -- + --  --
-     0 |  1   2
-     1 |  3   4
-
+       |    C0     C1
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     3      4
     [2 rows x 2 columns]
 
 You can pass in column names via the ``columns`` parameter::
 
     >>> fread(data, columns=['A','B'])
-       |  A   B
-    -- + --  --
-     0 |  1   2
-     1 |  3   4
-
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     3      4
     [2 rows x 2 columns]
 
 You can change column names::
@@ -259,47 +257,49 @@ You can change column names::
     ...         '9,10,11,12')
     >>>
     >>> fread(data, columns=["A","B","C","D"])
-       |  A   B   C   D
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  12
-
+       |     A      B      C      D
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     12
     [3 rows x 4 columns]
 
 You can change *some* of the column names via a dictionary::
 
     >>> fread(data, columns={"a":"A", "b":"B"})
-       |  A   B   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  12
-
+       |     A      B      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     12
     [3 rows x 4 columns]
 
-``Fread`` uses heuristics to determine whether the first row is data or not; occasionally it may guess incorrectly, in which case, you can set the ``header`` parameter to *False*::
+``Fread`` uses heuristics to determine whether the first row is data or not;
+occasionally it may guess incorrectly, in which case, you can set the
+``header`` parameter to *False*::
 
     >>> fread(data,  header=False)
-       | C0  C1  C2  C3
-    -- + --  --  --  --
-     0 | a   b   c   d
-     1 | 1   2   3   4
-     2 | 5   6   7   8
-     3 | 9   10  11  12
-
+       | C0     C1     C2     C3
+       | str32  str32  str32  str32
+    -- + -----  -----  -----  -----
+     0 | a      b      c      d
+     1 | 1      2      3      4
+     2 | 5      6      7      8
+     3 | 9      10     11     12
     [4 rows x 4 columns]
 
 You can pass a new list of column names as well::
 
     >>> fread(data,  header=False, columns=["A","B","C","D"])
-       | A   B   C   D
-    -- + --  --  --  --
-     0 | a   b   c   d
-     1 | 1   2   3   4
-     2 | 5   6   7   8
-     3 | 9   10  11  12
-
+       | A      B      C      D
+       | str32  str32  str32  str32
+    -- + -----  -----  -----  -----
+     0 | a      b      c      d
+     1 | 1      2      3      4
+     2 | 5      6      7      8
+     3 | 9      10     11     12
     [4 rows x 4 columns]
 
 
@@ -316,12 +316,12 @@ read the data from::
     ...         '9,10,11,12')
     >>>
     >>> fread(data, skip_to_line=2)
-       |  a   b   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-     2 |  9  10  11  12
-
+       |     a      b      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
+     2 |     9     10     11     12
     [3 rows x 4 columns]
 
 You can also skip to a line containing a particular string with the
@@ -337,14 +337,13 @@ one::
     ...         '9,10,11,12')
     >>>
     >>> fread(data, skip_to_string='first')
-       | first  second  third  last
-    -- + -----  ------  -----  ----
-     0 |     1       2      3     4
-     1 |     5       6      7     8
-     2 |     9      10     11    12
-
+       | first  second  third   last
+       | int32   int32  int32  int32
+    -- + -----  ------  -----  -----
+     0 |     1       2      3      4
+     1 |     5       6      7      8
+     2 |     9      10     11     12
     [3 rows x 4 columns]
-
 
 You can set the maximum number of rows to read with the ``max_nrows`` parameter::
 
@@ -354,12 +353,13 @@ You can set the maximum number of rows to read with the ``max_nrows`` parameter:
     ...         '9,10,11,12')
     >>>
     >>> fread(data, max_nrows=2)
-       |  a   b   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-
+       |     a      b      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
     [2 rows x 4 columns]
+
     >>> data = ('skip this line\n'
     ...         'a,b,c,d\n'
     ...         '1,2,3,4\n'
@@ -367,11 +367,11 @@ You can set the maximum number of rows to read with the ``max_nrows`` parameter:
     ...         '9,10,11,12')
     >>>
     >>> fread(data, skip_to_line=2, max_nrows=2)
-       |  a   b   c   d
-    -- + --  --  --  --
-     0 |  1   2   3   4
-     1 |  5   6   7   8
-
+       |     a      b      c      d
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      2      3      4
+     1 |     5      6      7      8
     [2 rows x 4 columns]
 
 
@@ -387,30 +387,49 @@ You can determine the data types via the ``columns`` parameter::
     >>>
     >>> # this is useful when you are interested in only a subset of the columns
     ... fread(data, columns={"a":dt.float32, "b":dt.str32})
-       |  a  b    c   d
-    -- + --  --  --  --
-     0 |  1  2    3   4
-     1 |  5  6    7   8
-     2 |  9  10  11  12
-
+       |       a  b          c      d
+       | float64  str32  int32  int32
+    -- + -------  -----  -----  -----
+     0 |       1  2          3      4
+     1 |       5  6          7      8
+     2 |       9  10        11     12
     [3 rows x 4 columns]
 
 You can also pass in the data types by *position*::
 
-    >>> fread(data, columns = (stype.int32, stype.str32, stype.float32))
+    >>> fread(data, columns = [dt.int32, dt.str32, None, dt.float32])
+       |     a  b            d
+       | int32  str32  float64
+    -- + -----  -----  -------
+     0 |     1  2            4
+     1 |     5  6            8
+     2 |     9  10          12
+    [3 rows x 3 columns]
 
 You can also change *all* the column data types with a single assignment::
 
     >>> fread(data, columns = dt.float32)
+       |       a        b        c        d
+       | float64  float64  float64  float64
+    -- + -------  -------  -------  -------
+     0 |       1        2        3        4
+     1 |       5        6        7        8
+     2 |       9       10       11       12
+    [3 rows x 4 columns]
 
-You can change the data type for a *slice* of the columns::
+You can change the data type for a *slice* of the columns (here ``slice(3)``
+is equivalent to ``[:3]``)::
 
     >>> # this changes the data type to float for the first three columns
     ... fread(data, columns={float:slice(3)})
+       |       a        b        c      d
+       | float64  float64  float64  int32
+    -- + -------  -------  -------  -----
+     0 |       1        2        3      4
+     1 |       5        6        7      8
+     2 |       9       10       11     12
+    [3 rows x 4 columns]
 
-Note that there are a small number of stypes within ``datatable``
-(*int8*, *int16*, *int32*, *int64*, *float32*, *float64*, *str32*, *str64*,
-*obj64*, *bool8*)
 
 
 Selecting Columns
@@ -428,12 +447,12 @@ There are various ways to select columns in ``fread`` :
     >>> # pass ``Ellipsis : None`` or ``... : None``,
     >>> # to discard any columns that are not needed
     >>> fread(data, columns={"a":"a", ... : None})
-       |  a
-    -- + --
-     0 |  1
-     1 |  5
-     2 |  9
-
+       |     a
+       | int32
+    -- + -----
+     0 |     1
+     1 |     5
+     2 |     9
     [3 rows x 1 column]
 
 Selecting via a dictionary makes more sense when selecting and renaming columns at the same time.
@@ -442,91 +461,91 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
 - Select columns with a *set*::
 
     >>> fread(data, columns={"a","b"})
-       |  a   b
-    -- + --  --
-     0 |  1   2
-     1 |  5   6
-     2 |  9  10
-
+       |     a      b
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     5      6
+     2 |     9     10
     [3 rows x 2 columns]
 
 - Select range of columns with *slice*::
 
     >>> # select the second and third column
     >>> fread(data, columns=slice(1,3))
-       |  b   c
-    -- + --  --
-     0 |  2   3
-     1 |  6   7
-     2 | 10  11
-
+       |     b      c
+       | int32  int32
+    -- + -----  -----
+     0 |     2      3
+     1 |     6      7
+     2 |    10     11
     [3 rows x 2 columns]
 
     >>> # select the first column
     >>> # jump two hoops and
     >>> # select the third column
     >>> fread(data, columns = slice(None,3,2))
-       |  a   c
-    -- + --  --
-     0 |  1   3
-     1 |  5   7
-     2 |  9  11
-
+       |     a      c
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     5      7
+     2 |     9     11
     [3 rows x 2 columns]
 
 - Select range of columns with *range*::
 
     >>> fread(data, columns = range(1,3))
-       |  b   c
-    -- + --  --
-     0 |  2   3
-     1 |  6   7
-     2 | 10  11
-
+       |     b      c
+       | int32  int32
+    -- + -----  -----
+     0 |     2      3
+     1 |     6      7
+     2 |    10     11
     [3 rows x 2 columns]
 
 - Boolean Selection::
 
     >>> fread(data, columns=[False, False, True, True])
-       |  c   d
-    -- + --  --
-     0 |  3   4
-     1 |  7   8
-     2 | 11  12
-
+       |     c      d
+       | int32  int32
+    -- + -----  -----
+     0 |     3      4
+     1 |     7      8
+     2 |    11     12
     [3 rows x 2 columns]
 
 - Select with a list comprehension::
 
     >>> fread(data, columns=lambda cols:[col.name in ("a","c") for col in cols])
-       |  a   c
-    -- + --  --
-     0 |  1   3
-     1 |  5   7
-     2 |  9  11
-
+       |     a      c
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     5      7
+     2 |     9     11
     [3 rows x 2 columns]
 
 - Exclude columns with *None*::
 
     >>> fread(data, columns = ['a',None,None,'d'])
-       |  a   d
-    -- + --  --
-     0 |  1   4
-     1 |  5   8
-     2 |  9  12
-
+       |     a      d
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     5      8
+     2 |     9     12
     [3 rows x 2 columns]
 
 - Exclude columns with list comprehension::
 
     >>> fread(data, columns=lambda cols:[col.name not in ("a","c") for col in cols])
-       |  b   d
-    -- + --  --
-     0 |  2   4
-     1 |  6   8
-     2 | 10  12
-
+       |     b      d
+       | int32  int32
+    -- + -----  -----
+     0 |     2      4
+     1 |     6      8
+     2 |    10     12
     [3 rows x 2 columns]
 
 - Drop columns by assigning *None* to the columns via a dictionary::
@@ -536,21 +555,21 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     ...         "2,4,6,8\n")
     >>>
     >>> fread(data, columns={"B":None,"D":None})
-       |  A   C
-    -- + --  --
-     0 |  1   5
-     1 |  2   6
-
+       |     A      C
+       | int32  int32
+    -- + -----  -----
+     0 |     1      5
+     1 |     2      6
     [2 rows x 2 columns]
 
 - Drop a column and change data type::
 
     >>> fread(data, columns={"B":None, "C":str})
-       |  A  C    D
-    -- + --  --  --
-     0 |  1  5    7
-     1 |  2  6    8
-
+       |     A  C          D
+       | int32  str32  int32
+    -- + -----  -----  -----
+     0 |     1  5          7
+     1 |     2  6          8
     [2 rows x 3 columns]
 
 - Change column name and type, and drop a column::
@@ -558,11 +577,11 @@ Selecting via a dictionary makes more sense when selecting and renaming columns 
     >>> # pass a tuple, where the first item in the tuple is the new column name,
     >>> # and the other item is the new data type.
     >>> fread(data, columns={"A":("first", float), "B":None,"D":None})
-       | first   C
-    -- + -----  --
-     0 |     1   5
-     1 |     2   6
-
+       |   first      C
+       | float64  int32
+    -- + -------  -----
+     0 |       1      5
+     1 |       2      6
     [2 rows x 2 columns]
 
 You can also select which columns to read dynamically, based on the names/types
@@ -574,13 +593,13 @@ of the columns in the file::
     ...
     >>> fread('iris.csv', columns=colfilter, max_nrows=5)
        | sepal_length  petal_length  species
+       |      float64       float64  str32
     -- + ------------  ------------  -------
      0 |          5.1           1.4  setosa
      1 |          4.9           1.4  setosa
      2 |          4.7           1.3  setosa
      3 |          4.6           1.5  setosa
      4 |          5             1.4  setosa
-
     [5 rows x 3 columns]
 
 The same approach can be used to auto-rename columns as they are read from
@@ -589,13 +608,13 @@ the file::
     >>> def rename(columns):
     ...     return [col.name.upper() for col in columns]
     ...
-    >>> fread(irisfile, columns=rename, max_nrows=5)
+    >>> fread('iris.csv', columns=rename, max_nrows=5)
        | SEPAL_LENGTH  SEPAL_WIDTH  PETAL_LENGTH  PETAL_WIDTH  SPECIES
+       |      float64      float64       float64      float64  str32
     -- + ------------  -----------  ------------  -----------  -------
      0 |          5.1          3.5           1.4          0.2  setosa
      1 |          4.9          3             1.4          0.2  setosa
      2 |          4.7          3.2           1.3          0.2  setosa
      3 |          4.6          3.1           1.5          0.2  setosa
      4 |          5            3.6           1.4          0.2  setosa
-
     [5 rows x 5 columns]

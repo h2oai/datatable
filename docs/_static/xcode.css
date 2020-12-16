@@ -280,7 +280,7 @@ li > p + div.notranslate div.xcode {
     font-size: 70%;
     font-style: italic;
     font-weight: normal;
-    padding: 2px .5em 0 .5em;
+    padding: 2px .7em 0 .7em;
     text-align: right;
 }
 
@@ -297,6 +297,14 @@ li > p + div.notranslate div.xcode {
     background-color: #3331;
     font-size: 80%;
     color: #aaa;
+}
+
+.dtframe td.etc {
+    color: #0003;
+}
+
+.dtframe td.NA {
+    color: #0003;
 }
 
 .dtframe .dtframe-footer {
