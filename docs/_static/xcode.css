@@ -10,12 +10,12 @@ div.xcode {
 
 
 div.xcode code {
-    background: whitesmoke;
-    border: 1px solid #e0e0e0;
+    background: #fffdf6;
+    border: 1px solid #f3e6ca;
     color: inherit;
     display: block;
     font-size: inherit;
-    margin-left: 2rem;
+    margin-left: 3rem;
     overflow: auto;
     padding: 8px 12px;
 }
@@ -159,9 +159,13 @@ li > p + div.notranslate div.xcode {
     width: 3rem;
 }
 
+.xcode code.python {
+    background: whitesmoke;
+    border: 1px solid #e0e0e0;
+}
+
 .xcode code.python.input {
     display: block;
-    margin-left: 3rem;
     padding: 4px 8px;
     position: relative;
 }
