@@ -584,6 +584,20 @@ table.api-table td:first-child a:hover code.literal {
 }
 
 
+/*------------------------------------------------------------------------------
+ * x-version
+ *----------------------------------------------------------------------------*/
+
+.x-version-added {
+    padding: 4px 8px;
+    display: inline-block;
+    background: #356ae414;
+    color: #888;
+    font-size: 80%;
+    border-left: 4px solid #68a;
+}
+
+
 
 /*------------------------------------------------------------------------------
  * Footnotes
