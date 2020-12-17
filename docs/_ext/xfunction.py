@@ -1394,8 +1394,11 @@ class XversionActionDirective(SphinxDirective):
 
         assert self.name.startswith("x-version-")
         action = self.name[10:]
+        text = "Deprecated since version " if action == "deprecated" else \
+               "Added in version " if action == "added" else \
+               "Changed in version " if action == "changed" else "?????"
         node = xnodes.div()
-        node += nodes.Text(action.title() + " in version ")
+        node += nodes.Text(text)
         node += nodes.inline("", "",
             addnodes.pending_xref("", nodes.Text(version),
                 refdomain="std", reftype="doc", refexplicit=True,
