@@ -62,64 +62,34 @@ and is the main axis of intersection between these two libraries).
 
 In short, almost all operations with a Frame can be expressed as
 
-.. raw:: html
+.. code-block:: python
 
-    <style>
-    .sqbrak {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 16pt;
-        color: #9AA;  /* whitespace color */
-    }
-    .sqbrak, .i, .j {
-        font-family: Menlo, Consolas, Monaco, monospace;
-        font-weight: bold;
-    }
-    .sqbrak div {
-        font-size: 160%;
-        margin: 0;
-    }
-    .dt { color: #000; }
-    .i  { color: #36AA36; }
-    .j  { color: #E03636; }
-    .by { color: #33A; }
-    .jn { color: #A3A; }
-    .s  { color: #3AA; }
-    </style>
-    <div class="sqbrak">
-      <div>
-        <b class=dt>DT</b>[<b class=i>i</b>, <b class=j>j</b>, ...]
-      </div>
-    </div>
+    DT[i, j, ...]
 
-.. role:: raw-html(raw)
-   :format: html
-
-where :raw-html:`<b class="i">i</b>` is the row selector,
-:raw-html:`<b class="j">j</b>` is the column selector, and ``...`` indicates
+where ``i`` is the row selector, ``j`` is the column selector, and ``...`` indicates
 that additional modifiers might be added. If this looks familiar to you,
 that's because it is. Exactly the same ``DT[i, j]`` notation is used in
 mathematics when indexing matrices, in C/C++, in R, in pandas, in numpy, etc.
 The only difference that datatable introduces is that it allows
-:raw-html:`<b class="i">i</b>` to be anything that can conceivably be
+``i`` to be anything that can conceivably be
 interpreted as a row selector: an integer to select just one row, a slice,
 a range, a list of integers, a list of slices, an expression, a boolean-valued
 Frame, an integer-valued Frame, an integer numpy array, a generator, and so on.
 
-The :raw-html:`<b class="j">j</b>` column selector is even more versatile.
+The ``j`` column selector is even more versatile.
 In the simplest case, you can select just a single column by its index or name. But
 also accepted are a list of columns, a slice, a string slice (of the form ``"A":"Z"``), a
 list of booleans indicating which columns to pick, an expression, a list of
 expressions, and a dictionary of expressions. (The keys will be used as new names
-for the columns being selected.) The :raw-html:`<b class="j">j</b>`
+for the columns being selected.) The ``j``
 expression can even be a python type (such as ``int`` or ``dt.float32``),
 selecting all columns matching that type.
 
 In addition to the selector expression shown above, we support the update and
 delete statements too::
 
-    >>> DT[i, j] = r
-    >>> del DT[i, j]
+    DT[i, j] = r
+    del DT[i, j]
 
 The first expression will replace values in the subset ``[i, j]`` of Frame
 ``DT`` with the values from ``r``, which could be either a constant, or a
@@ -138,11 +108,8 @@ What the f.?
 ------------
 
 You may have noticed already that we mentioned several times the possibility
-of using expressions in :raw-html:`<span class="i">i</span>` or
-:raw-html:`<span class="j">j</span>` and in other places. In the simplest form
-an expression looks like
-
-::
+of using expressions in ``i`` or ``j`` and in other places. In the simplest form
+an expression looks like::
 
     >>> f.ColA
 
@@ -185,31 +152,24 @@ used to refer to the columns of the joined frame.
 
 
 Groupbys/joins
-----------------
+--------------
 
 In the `Data Manipulation`_ section we mentioned that the ``DT[i, j, ...]`` selector
-can take zero or more modifiers, which we denoted as ``...``. The available
+can take zero or more modifiers, which we denoted as "``...``". The available
 modifiers are ``by()``, ``join()`` and ``sort()``. Thus, the full form of the
-square-bracket selector is:
+square-bracket selector is::
 
-.. raw:: html
-
-    <div class="sqbrak">
-      <div>
-        <b class=dt>DT</b>[<b class=i>i</b>, <b class=j>j</b>,
-        <b class=by>by()</b>, <b class=s>sort()</b>, <b class=jn>join()</b>]
-      </div>
-    </div>
+    DT[i, j, by(), sort(), join()]
 
 
 by(...)
 ~~~~~~~
 
 This modifier splits the frame into groups by the provided column(s), and then
-applies :raw-html:`<b class="i">i</b>` and :raw-html:`<b class="j">j</b>` within
+applies ``i`` and ``j`` within
 each group. This mostly affects aggregator functions such as ``sum()``,
 ``min()`` or ``sd()``, but may also apply in other circumstances. For example,
-if :raw-html:`<b class="i">i</b>` is a slice that takes the first 5 rows of a frame,
+if ``i`` is a slice that takes the first 5 rows of a frame,
 then in the presence of the ``by()`` modifier it will take the first 5 rows of
 each group.
 

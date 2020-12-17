@@ -329,6 +329,26 @@ block below should be small, similar to regular spacing between lines::
 This is a paragraph after the code block. The spacing should be roughly the
 same as between regular paragraphs.
 
+And here's an example with a keyed frame::
+
+    >>> DT = dt.Frame({"A": [1, 2, 3, 4, 5],
+    ...         "B": [4, 5, 6, 7, 8],
+    ...         "C": [7, 8, 9, 10, 11],
+    ...         "D": [5, 7, 2, 9, -1],
+    ...         "E": ['a','b','c','d','e']})
+    >>> DT.key = ['E', 'D']
+    >>> DT
+    E          D |     A      B      C
+    str32  int32 | int32  int32  int32
+    -----  ----- + -----  -----  -----
+    a          5 |     1      4      7
+    b          7 |     2      5      8
+    c          2 |     3      6      9
+    d          9 |     4      7     10
+    e         -1 |     5      8     11
+    [5 rows x 5 columns]
+
+
 The following is a test for multi-line output from code samples::
 
     >>> for i in range(5):
@@ -434,6 +454,22 @@ RST code sample:
 
     .. _`example website`: https://example.com/
 
+C++ code sample:
+
+.. code-block:: C++
+
+    #include <cstring>
+
+    int main() {
+        return 0;
+    }
+
+SQL code sample:
+
+.. code-block:: SQL
+
+    SELECT * FROM students WHERE name='Robert'; DROP TABLE students; --'
+
 
 Special care must be taken in case the code in the samples has very long line
 lengths. Generally, the code should not overflow its container block, or
@@ -452,6 +488,39 @@ Same, but for a non-python code:
     nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
     Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
 
+
+
+Admonitions
+-----------
+
+First, the ``.. note::`` block, which should display in a prominent box:
+
+.. note::
+
+    Please pay attention!
+
+There's usually some other content coming after the note. It should be properly
+spaced from the admonition.
+
+.. note::
+
+    Here's a node with more content. Why does it have so much content? Nobody
+    knows. In theory admonitions should be short and to the point, but this one
+    is not playing by the rules. It just goes on and on and on and on,
+    and it seems like it would never end. Even as you think that maybe at last
+    the end is near, a new paragraph suddenly appears:
+
+    And that new paragraph just repeats the same nonsense all over again.
+    Really, there is no any good reason for it to keep going, but it does
+    nevertheless, as if trying to stretch the limits of how many words can be
+    spilled without any of them making any sense.
+
+.. note::
+
+    - First, this is a note with a list
+    - Second, it may contain several list items
+    - Third is here just to make things look more impressive
+    - Fourth is the last one (or is it?)
 
 
 .. _`example website`: https://www.example.com/

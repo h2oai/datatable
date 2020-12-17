@@ -10,14 +10,28 @@ div.xcode {
 
 
 div.xcode code {
-    background: whitesmoke;
-    border: 1px solid #e0e0e0;
+    background: #fffdf6;
+    border: 1px solid #f3e6ca;
+    border-top-right-radius: 5px;
     color: inherit;
     display: block;
     font-size: inherit;
-    margin-left: 2rem;
+    margin-left: 3rem;
     overflow: auto;
     padding: 8px 12px;
+}
+
+div.xcode code:before {
+    background: #eae2c2;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    box-shadow: 0 0 2px #a58a26 inset;
+    color: #a58a26;
+    font-size: 80%;
+    padding: 1px 8px;
+    position: absolute;
+    right: 0;
+    top: 0;
 }
 
 p + div.notranslate div.xcode {
@@ -45,9 +59,9 @@ li > p + div.notranslate div.xcode {
 }
 
 
-.xcode .s,    /* String */
-.xcode .s1,   /* String.Single */
-.xcode .s2 {  /* String.Double */
+.xcode code .s,    /* String */
+.xcode code .s1,   /* String.Single */
+.xcode code .s2 {  /* String.Double */
     color: #d48a02;
 }
 
@@ -159,9 +173,14 @@ li > p + div.notranslate div.xcode {
     width: 3rem;
 }
 
+.xcode code.python {
+    background: whitesmoke;
+    border: 1px solid #e0e0e0;
+    border-top-right-radius: 0;
+}
+
 .xcode code.python.input {
     display: block;
-    margin-left: 3rem;
     padding: 4px 8px;
     position: relative;
 }
@@ -189,6 +208,13 @@ li > p + div.notranslate div.xcode {
 /*------------------------------------------------------------------------------
  * bash
  *-----------------------------------------------------------------------------*/
+
+div.xcode > code.bash:before {
+    background: #222;
+    box-shadow: 0 0 2px #000 inset;
+    color: #ccc;
+    content: "bash";
+}
 
 .xcode code.bash {
     background-color: #444;
@@ -225,6 +251,10 @@ li > p + div.notranslate div.xcode {
  * restructuredtext
  *-----------------------------------------------------------------------------*/
 
+div.xcode > code.restructuredtext:before {
+    content: "RST";
+}
+
 .xcode code.restructuredtext .na,
 .xcode code.restructuredtext .nc {  /* Name.Class */
     color: orange;
@@ -234,6 +264,33 @@ li > p + div.notranslate div.xcode {
 .xcode code.restructuredtext .cp {  /* Comment.Preproc */
     color: #bbb;
     font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
+ * R
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.s:before {
+    content: "R";
+}
+
+
+/*------------------------------------------------------------------------------
+ * C++
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.cpp:before {
+    content: "C++";
+}
+
+
+/*------------------------------------------------------------------------------
+ * SQL
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.sql:before {
+    content: "SQL";
 }
 
 
@@ -265,12 +322,15 @@ li > p + div.notranslate div.xcode {
     padding: .2em .5em;
 }
 
-.dtframe tr.colnames th.row_index {
+.dtframe tr.colnames th.key,
+.dtframe tr.coltypes th.key {
+    background: #3333;
     min-width: 25px;
 }
 
-.dtframe tr.colnames th:last-child {
+.dtframe thead tr th:last-child {
     min-width: 0;
+    padding: 0;
     width: 100%;
 }
 
@@ -280,12 +340,16 @@ li > p + div.notranslate div.xcode {
     font-size: 70%;
     font-style: italic;
     font-weight: normal;
-    padding: 2px .5em 0 .5em;
+    padding: 2px .7em 0 .7em;
     text-align: right;
 }
 
 .dtframe tbody {
     background: linear-gradient(#0004, #0001 3px, #0000 6px);
+}
+
+.dtframe tbody tr:hover {
+    background: #fff9;
 }
 
 .dtframe td {
@@ -297,6 +361,27 @@ li > p + div.notranslate div.xcode {
     background-color: #3331;
     font-size: 80%;
     color: #aaa;
+}
+
+.dtframe td.key {
+    background-color: #3331;
+}
+
+.dtframe td.key + td:not(.key),
+.dtframe th.key + th:not(.key) {
+    border-left: 1px solid #0003;
+}
+
+.dtframe td.etc {
+    color: #0003;
+}
+
+.dtframe td.NA {
+    color: #0003;
+}
+
+.dtframe td:last-child {
+    padding: 0;
 }
 
 .dtframe .dtframe-footer {

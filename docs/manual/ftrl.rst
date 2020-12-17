@@ -1,8 +1,11 @@
 
+.. current-module:: datatable.models
+
 FTRL Model
 ==========
 
-This section describes the FTRL (Follow the Regularized Leader) model as implemented in datatable.
+This section describes the FTRL (Follow the Regularized Leader) model as
+implemented in datatable.
 
 FTRL Model Information
 ----------------------
@@ -21,18 +24,14 @@ targets are implemented experimentally.
 Create an FTRL Model
 --------------------
 
-The FTRL model is implemented as the ``Ftrl`` Python class, which is a part of
-``datatable.models``, so to use the model you should first do
+The FTRL model is implemented as the :class:`Ftrl` Python class, which is a
+part of :mod:`dt.models`, so to use the model you should first do::
 
-::
+    >>> from datatable.models import Ftrl
 
-  from datatable.models import Ftrl
+and then create a model as::
 
-and then create a model as
-
-::
-
-  ftrl_model = Ftrl()
+    >>> ftrl_model = Ftrl()
 
 
 FTRL Model Parameters
@@ -59,19 +58,19 @@ namely:
   for binomial classification, "``multinomial``" for multinomial classification
   or "``regression``" for continuous targets. Defaults to ``"auto"``.
 
-If some parameters need to be changed from their default values, this can be done either
-when creating the model, as
+If some parameters need to be changed from their default values, this can be
+done either when creating the model, as
 
 ::
 
-  ftrl_model = Ftrl(alpha = 0.1, nbins = 100)
+    >>> ftrl_model = Ftrl(alpha = 0.1, nbins = 100)
 
 or, if the model already exists, as
 
 ::
 
-  ftrl_model.alpha = 0.1
-  ftrl_model.nbins = 100
+    >>> ftrl_model.alpha = 0.1
+    >>> ftrl_model.nbins = 100
 
 If some parameters were not set explicitely, they will be assigned the default
 values.
@@ -80,11 +79,9 @@ values.
 Training a Model
 ----------------
 
-Use the ``fit()`` method to train a model:
+Use the ``fit()`` method to train a model::
 
-::
-
-  ftrl_model.fit(X_train, y_train)
+    >>> ftrl_model.fit(X_train, y_train)
 
 where ``X_train`` is a frame of shape ``(nrows, ncols)`` to be trained on,
 and ``y_train`` is a target frame of shape ``(nrows, 1)``. The following
@@ -97,9 +94,9 @@ not improve. For this the model should be fit as
 
 ::
 
-  res = ftrl_model.fit(X_train, y_train, X_validation, y_validation,
-                       nepochs_validation, validation_error,
-                       validation_average_niterations)
+    >>> res = ftrl_model.fit(X_train, y_train, X_validation, y_validation,
+    ...                      nepochs_validation, validation_error,
+    ...                      validation_average_niterations)
 
 
 where ``X_train`` and ``y_train`` are training and target frames,
@@ -116,28 +113,25 @@ tuple contains epoch at which training stopped and the corresponding loss.
 Resetting a Model
 -----------------
 
-Use the ``reset()`` method to reset a model:
+Use the ``reset()`` method to reset a model::
 
-::
-
-  ftrl_model.reset()
+    >>> ftrl_model.reset()
 
 This will reset model weights, but it will not affect learning parameters.
 To reset parameters to default values, you can do
 
 ::
 
-  ftrl_model.params = Ftrl().params
+    >>> ftrl_model.params = Ftrl().params
+
 
 
 Making Predictions
 ------------------
 
-Use the ``predict()`` method to make predictions:
+Use the ``predict()`` method to make predictions::
 
-::
-
-  targets = ftrl_model.predict(X)
+    >>> targets = ftrl_model.predict(X)
 
 where ``X`` is a frame of shape ``(nrows, ncols)`` to make predictions for.
 ``X`` should have the same number of columns as the training frame.
@@ -154,7 +148,7 @@ can be accessed as
 
 ::
 
-  fi = ftrl_model.feature_importances
+    >>> fi = ftrl_model.feature_importances
 
 where ``fi`` will be a frame of shape ``(nfeatures, 2)`` containing
 feature names and their importances, that are normalized to [0; 1] range.
@@ -169,16 +163,10 @@ a list or a tuple of feature interactions, for instance as
 
 ::
 
-  ftrl_model.interactions = [["C0", "C1", "C3"], ["C2", "C5"]]
+    >>> ftrl_model.interactions = [["C0", "C1", "C3"], ["C2", "C5"]]
 
 where ``C*`` are column names from a training dataset. In the above example
 two additional features, namely, ``C0:C1:C3`` and ``C2:C5``, are created.
 
 ``interactions`` should be set before a call to ``fit()`` method, and can not be
 changed once the model is trained.
-
-
-Further Reading
----------------
-
-For detailed help, please also refer to ``help(Ftrl)``.

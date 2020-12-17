@@ -67,6 +67,8 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def __init__(self, lang='default', **kwargs):
         super().__init__(**kwargs)
         self._lang = lang.lower()
+        if self._lang == "c++":
+            self._lang = "cpp"
         if 'msdos' in self._lang:
             self._lang += " bash"
 
@@ -170,6 +172,8 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def process_dtframe(self, header_lines, sep_line, body_lines,
                         nrows, ncols):
         sep = sep_line.find('+')
+        key_class = "row_index" if header_lines[0][:sep].strip() == '' else \
+                    "key"
         columns = [mm.span() for mm in re.finditer('-+', sep_line)]
         out = "<div class='dtframe'><table>"
         out += "<thead>"
@@ -177,7 +181,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             cls = "colnames" if line == header_lines[0] else "coltypes"
             out += f"<tr class={cls}>"
             for i, j in columns:
-                out += "<th class=row_index>" if j < sep else "<th>"
+                out += f"<th class={key_class}>" if j < sep else "<th>"
                 out += line[i:j].strip()
                 out += "</th>"
             out += "<th></th></tr>"
@@ -186,8 +190,19 @@ class XHtmlFormatter(pygments.formatter.Formatter):
         for line in body_lines:
             out += "<tr>"
             for i, j in columns:
-                out += "<td class=row_index>" if j < sep else "<td>"
-                out += line[i:j].strip()
+                classes = []
+                value = escape_html(line[i:j].strip())
+                if j < sep:
+                    classes.append(key_class)
+                if value == '…':
+                    classes.append("etc")
+                if value == 'NA':
+                    classes.append("NA")
+                if classes:
+                    out += f"<td class='{' '.join(classes)}'>"
+                else:
+                    out += "<td>"
+                out += value
                 out += "</td>"
             out += "<td></td></tr>"
         out += "</tbody>"
