@@ -302,7 +302,7 @@ class FExpr_Round : public FExpr_FuncUnary {
 static const char* doc_round =
 R"(round(cols, ndigits=None)
 --
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 Round the values in `cols` up to the specified number of the digits
 of precision `ndigits`. If the number of digits is omitted, rounds

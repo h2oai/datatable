@@ -284,7 +284,7 @@ size_t Frame::m__len__() const {
 static const char* doc_export_names =
 R"(export_names(self)
 --
-.. xversionadded:: 0.10
+.. x-version-added:: 0.10
 
 Return a tuple of :ref:`f-expressions` for all columns of the frame.
 
@@ -452,7 +452,7 @@ void Frame::materialize(const PKArgs& args) {
 
 static const char* doc_meta =
 R"(
-.. xversionadded:: 1.0
+.. x-version-added:: 1.0
 
 Frame's meta information.
 
@@ -620,7 +620,7 @@ oobj Frame::get_ndims() const {
 
 static const char* doc_source =
 R"(
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 The name of the file where this frame was loaded from.
 
@@ -701,7 +701,7 @@ oobj Frame::get_stypes() const {
 
 static const char* doc_stype =
 R"(
-.. xversionadded:: v0.10.0
+.. x-version-added:: v0.10.0
 
 The common :class:`dt.stype` for all columns.
 

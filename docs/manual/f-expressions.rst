@@ -141,7 +141,7 @@ such as:
     >>> sum(f[:])       # equivalent to [sum(f[i]) for i in range(DT.ncols)]
     >>> f[:3] + f[-3:]  # same as [f[0]+f[-3], f[1]+f[-2], f[2]+f[-1]]
 
-.. xversionadded:: 0.10.0
+.. x-version-added:: 0.10.0
 
 
 Modifying a columnset
@@ -200,5 +200,5 @@ will be thrown if the argument of ``.remove()`` contains any transformed
 columns.
 
 
-.. xversionadded:: 0.10.0
+.. x-version-added:: 0.10.0
 

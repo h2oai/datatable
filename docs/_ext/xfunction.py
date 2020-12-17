@@ -1371,11 +1371,14 @@ class XparamDirective(SphinxDirective):
 
 
 #-------------------------------------------------------------------------------
-# XversionaddedDirective
+# XversionActionDirective
 #-------------------------------------------------------------------------------
 
-class XversionaddedDirective(SphinxDirective):
-    has_content = False
+class XversionActionDirective(SphinxDirective):
+    #
+    #  TODO: add this to 'xversion' domain
+    #
+    has_content = True
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = False
@@ -1389,12 +1392,17 @@ class XversionaddedDirective(SphinxDirective):
         if len(version.split('.')) <= 2:
             target += ".0"
 
-        node = xnodes.div(classes=["x-version-added"])
-        node += nodes.Text("New in version ")
+        assert self.name.startswith("x-version-")
+        action = self.name[10:]
+        node = xnodes.div()
+        node += nodes.Text(action.title() + " in version ")
         node += nodes.inline("", "",
             addnodes.pending_xref("", nodes.Text(version),
                 refdomain="std", reftype="doc", refexplicit=True,
                 reftarget=target))
+        node = xnodes.div(node, classes=["x-version", action])
+
+        self.state.nested_parse(self.content, self.content_offset, node)
         return [node]
 
 
@@ -1512,6 +1520,7 @@ def setup(app):
     app.add_config_value("xf_permalink_url0", "", "env")
     app.add_config_value("xf_permalink_url2", "", "env")
     app.add_css_file("xfunction.css")
+    app.add_css_file("xversion.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
     app.add_directive("xdata", XobjectDirective)
     app.add_directive("xfunction", XobjectDirective)
@@ -1520,7 +1529,9 @@ def setup(app):
     app.add_directive("xexc", XobjectDirective)
     app.add_directive("xattr", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
-    app.add_directive("xversionadded", XversionaddedDirective)
+    app.add_directive("x-version-added", XversionActionDirective)
+    app.add_directive("x-version-changed", XversionActionDirective)
+    app.add_directive("x-version-deprecated", XversionActionDirective)
 
     app.connect("env-get-outdated", on_env_get_outdated)
     app.connect("env-purge-doc", on_env_purge_doc)

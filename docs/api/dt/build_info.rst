@@ -50,14 +50,14 @@
 
     .. xparam:: .git_date: str
 
-        .. xversionadded:: 0.11
+        .. x-version-added:: 0.11
 
         Timestamp of the git commit from which the build was made.
 
 
     .. xparam:: .git_diff: str
 
-        .. xversionadded:: 0.11
+        .. x-version-added:: 0.11
 
         If the source tree contains any uncommitted changes (compared
         to the checked out git revision), then the summary of these

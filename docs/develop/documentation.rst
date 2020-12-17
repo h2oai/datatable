@@ -260,9 +260,11 @@ version, use:
 
 .. code-block:: rst
 
-    .. xversionadded:: 0.10.0
+    .. x-version-added:: 0.10.0
 
-    .. versionchanged:: 0.11.0
+    .. x-version-changed:: 0.11.0
+
+    .. x-version-deprecated:: 1.0.0
 
 
 The ``.. seealso::`` directive adds a Wikipedia-style "see also:" entry at the
