@@ -4,8 +4,10 @@
 datatable.internal
 ==================
 
-The functions in this sub-module are considered to be "internal" and
-not useful for day-to-day work with :mod:`datatable` module.
+.. warning::
+
+    The functions in this sub-module are considered to be "internal" and
+    not useful for day-to-day work with :mod:`datatable` module.
 
 .. list-table::
     :widths: auto
