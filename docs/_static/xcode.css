@@ -322,12 +322,15 @@ div.xcode > code.sql:before {
     padding: .2em .5em;
 }
 
-.dtframe tr.colnames th.row_index {
+.dtframe tr.colnames th.key,
+.dtframe tr.coltypes th.key {
+    background: #3333;
     min-width: 25px;
 }
 
-.dtframe tr.colnames th:last-child {
+.dtframe thead tr th:last-child {
     min-width: 0;
+    padding: 0;
     width: 100%;
 }
 
@@ -345,6 +348,10 @@ div.xcode > code.sql:before {
     background: linear-gradient(#0004, #0001 3px, #0000 6px);
 }
 
+.dtframe tbody tr:hover {
+    background: #fff9;
+}
+
 .dtframe td {
     padding: .2em .5em;
     text-align: right;
@@ -356,12 +363,25 @@ div.xcode > code.sql:before {
     color: #aaa;
 }
 
+.dtframe td.key {
+    background-color: #3331;
+}
+
+.dtframe td.key + td:not(.key),
+.dtframe th.key + th:not(.key) {
+    border-left: 1px solid #0003;
+}
+
 .dtframe td.etc {
     color: #0003;
 }
 
 .dtframe td.NA {
     color: #0003;
+}
+
+.dtframe td:last-child {
+    padding: 0;
 }
 
 .dtframe .dtframe-footer {

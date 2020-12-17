@@ -172,6 +172,8 @@ class XHtmlFormatter(pygments.formatter.Formatter):
     def process_dtframe(self, header_lines, sep_line, body_lines,
                         nrows, ncols):
         sep = sep_line.find('+')
+        key_class = "row_index" if header_lines[0][:sep].strip() == '' else \
+                    "key"
         columns = [mm.span() for mm in re.finditer('-+', sep_line)]
         out = "<div class='dtframe'><table>"
         out += "<thead>"
@@ -179,7 +181,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             cls = "colnames" if line == header_lines[0] else "coltypes"
             out += f"<tr class={cls}>"
             for i, j in columns:
-                out += "<th class=row_index>" if j < sep else "<th>"
+                out += f"<th class={key_class}>" if j < sep else "<th>"
                 out += line[i:j].strip()
                 out += "</th>"
             out += "<th></th></tr>"
@@ -191,7 +193,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                 classes = []
                 value = escape_html(line[i:j].strip())
                 if j < sep:
-                    classes.append("row_index")
+                    classes.append(key_class)
                 if value == '…':
                     classes.append("etc")
                 if value == 'NA':
