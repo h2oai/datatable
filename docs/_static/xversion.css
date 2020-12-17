@@ -36,6 +36,12 @@
     content: "\f055";
 }
 
+.x-version.added > div:first-child a {
+    color: #0a6d0a;
+    font-weight: bold;
+}
+
+
 
 /*------------------------------------------------------------------------------
  * x-version-deprecated
@@ -54,6 +60,12 @@
 .x-version.deprecated > div:first-child:before {
     content: "\f071";
 }
+
+div.x-version.deprecated > div:first-child a {
+    color: #d07617;
+    font-weight: bold;
+}
+
 
 
 /*------------------------------------------------------------------------------
@@ -77,6 +89,11 @@
     content: "\f0aa";
     position: absolute;
     left: -18px;
+}
+
+.x-version.changed > div:first-child a {
+    font-weight: bold;
+    color: #155d69;
 }
 
 .x-version.changed > p:last-child {

@@ -523,4 +523,30 @@ spaced from the admonition.
     - Fourth is the last one (or is it?)
 
 
+
+X-versions
+----------
+
+.. x-version-added:: 0.8.0
+
+The ``..x-version-added`` directive usually comes as a first item after a
+header, so it has reduced margins from the top, and has to have adequate
+margins on the bottom to compensate.
+
+.. x-version-deprecated:: 0.10.0
+
+The ``..x-version-changed`` directive is a paragraph-level, and it usually has
+some additional content describing what exactly has changed.
+
+.. x-version-changed:: 0.9.0
+
+    Nobody knows what exactly changed, but most observers agree that
+    *something* did.
+
+    While we're trying to figure out what it was, please visit the release
+    notes (linked above) and see if it makes sense to you.
+
+
+
+
 .. _`example website`: https://www.example.com/
