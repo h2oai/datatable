@@ -310,7 +310,7 @@ to the nearest integer.
 
 Generally, this operation is equivalent to::
 
-    rint(col * 10**ndigits) / 10**ndigits
+    >>> rint(col * 10**ndigits) / 10**ndigits
 
 where function `rint()` rounds to the nearest integer.
 

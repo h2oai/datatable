@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,23 +57,20 @@ Examples
 
 .. code-block::
 
-    DT = dt.Frame(A=[-3, 2, 4, -17, 0])
-    DT[:, abs(f.A)]
-
-.. dtframe::
-    :names: C0
-    :types: int8
-    :shape: 5, 1
-
-    0,   3
-    1,   2
-    2,   4
-    3,  17
-    4,   0
+    >>> DT = dt.Frame(A=[-3, 2, 4, -17, 0])
+    >>> DT[:, abs(f.A)]
+       |     A
+       | int32
+    -- + -----
+     0 |     3
+     1 |     2
+     2 |     4
+     3 |    17
+     4 |     0
+    [5 rows x 1 column]
 
 See also
 --------
-
 - :func:`fabs()`
 )";
 
