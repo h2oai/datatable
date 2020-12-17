@@ -125,7 +125,7 @@ return: List[bool]
 
 Notes
 -----
-.. deprecated:: 0.11.0
+.. x-version-deprecated:: 0.11.0
 
 This function will be expanded and moved into the main :class:`dt.Frame` class.
 )";
@@ -217,7 +217,7 @@ static const char* doc_in_debug_mode =
 R"(
 Return `True` if :mod:`datatable` was compiled in debug mode.
 
-.. deprecated:: 0.11.0
+.. x-version-deprecated:: 0.11.0
 )";
 
 static py::PKArgs args_in_debug_mode(
@@ -301,7 +301,7 @@ static const char* doc_compiler_version =
 R"(
 Return the version of the C++ compiler used to compile this module.
 
-.. deprecated:: 0.11.0
+.. x-version-deprecated:: 0.11.0
 )";
 
 static py::PKArgs args_compiler_version(
@@ -339,7 +339,7 @@ static const char* doc_regex_supported =
 R"(
 Was the datatable built with regular expression support?
 
-.. deprecated:: 0.11.0
+.. x-version-deprecated:: 0.11.0
 )";
 
 static py::PKArgs args_regex_supported(

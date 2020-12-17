@@ -144,7 +144,7 @@ std::string FExpr_IfElse::repr() const {
 static const char* doc_ifelse =
 R"(ifelse(condition1, value1, condition2, value2, ..., default)
 --
-.. xversionadded:: 0.11.0
+.. x-version-added:: 0.11.0
 
 An expression that chooses its value based on one or more
 conditions.
@@ -187,7 +187,7 @@ return: FExpr
 
 Notes
 -----
-.. versionchanged:: 1.0.0
+.. x-version-changed:: 1.0.0
 
     Earlier this function accepted a single condition only.
 
@@ -203,7 +203,7 @@ Examples
 
     df = dt.Frame("""Type       Set
                       A          Z
-                      B          Z           
+                      B          Z
                       B          X
                       C          Y""")
 

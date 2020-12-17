@@ -5,7 +5,7 @@
     len(self)
     --
 
-    .. deprecated:: 0.11
+    .. x-version-deprecated:: 0.11
 
     Return the string length for a string column. This method can only
     be applied to string columns, and it returns an integer column as a

@@ -71,7 +71,7 @@ class FExpr_AsType : public FExpr_FuncUnary {
 static const char* doc_astype =
 R"(as_type(cols, new_type)
 --
-.. xversionadded:: 1.0
+.. x-version-added:: 1.0
 
 Convert columns `cols` into the prescribed stype.
 

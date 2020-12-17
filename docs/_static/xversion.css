@@ -1,0 +1,101 @@
+
+/*------------------------------------------------------------------------------
+ * x-version (common)
+ *-----------------------------------------------------------------------------*/
+
+.x-version > div:first-child {
+    display: inline-block;
+    padding: 3px 8px;
+    font-style: italic;
+    font-size: 90%;
+}
+
+.x-version > div:first-child:before {
+    font-family: 'FontAwesome';
+    font-style: normal;
+    padding-right: 8px;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * x-version-added
+ *-----------------------------------------------------------------------------*/
+
+.x-version.added {
+    margin: -7px 0 8px 32px;
+    text-align: right;
+}
+
+.x-version.added > div {
+    background: #e0f8e0;
+    color: #007700;
+}
+
+.x-version.added > div:first-child:before {
+    content: "\f055";
+}
+
+.x-version.added > div:first-child a {
+    color: #0a6d0a;
+    font-weight: bold;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * x-version-deprecated
+ *-----------------------------------------------------------------------------*/
+
+.x-version.deprecated {
+    margin: -7px 0 8px 32px;
+    text-align: right;
+}
+
+.x-version.deprecated > div {
+    background: #fcf2e4;
+    color: #ff7700;
+}
+
+.x-version.deprecated > div:first-child:before {
+    content: "\f071";
+}
+
+div.x-version.deprecated > div:first-child a {
+    color: #d07617;
+    font-weight: bold;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * x-version-changed
+ *-----------------------------------------------------------------------------*/
+
+.x-version.changed {
+    border: 1px solid #82dbef;
+    padding: 4px 8px 4px 30px;
+    background: #f3f9ff;
+}
+
+.x-version.changed > div:first-child {
+    color: #1c6c79;
+    margin-bottom: .5rem;
+    padding: 0;
+    position: relative;
+}
+
+.x-version.changed > div:first-child:before {
+    content: "\f0aa";
+    position: absolute;
+    left: -18px;
+}
+
+.x-version.changed > div:first-child a {
+    font-weight: bold;
+    color: #155d69;
+}
+
+.x-version.changed > p:last-child {
+    margin-bottom: 0;
+}

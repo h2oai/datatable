@@ -139,7 +139,7 @@ class FExpr_Qcut : public FExpr_Func {
 static const char* doc_qcut =
 R"(qcut(cols, nquantiles=10)
 --
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 Bin all the columns from `cols` into intervals with approximately
 equal populations. Thus, the intervals are chosen according to
