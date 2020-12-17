@@ -10,7 +10,7 @@
 
     The returned string has the following format::
 
-        "FExpr<...>"
+        >>> "FExpr<...>"
 
     where ``...`` will attempt to match the expression used to construct
     this ``FExpr``.
