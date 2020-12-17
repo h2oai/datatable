@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -59,6 +59,7 @@ class TerminalWidget : public Widget {
     std::vector<size_t> _order_colindices() const;
 
     void _render_column_names();
+    void _render_column_types();
     void _render_header_separator();
     void _render_data();
     void _render_footer();

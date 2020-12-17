@@ -39,13 +39,17 @@ def color_header(s):
                   re.sub("…", "\x1b[0;2m…\x1b[0;1m", s))
 
 
-def check_colored_output(actual, header, separator, *body, keyed=False):
+def check_colored_output(actual, header, types, separator, *body, keyed=False):
     header1, header2 = color_header(header).split('|', 2)
+    types1, types2 = types.split('|', 2)
     footer = body[-1]
     out = ''
     out += "\x1b[1m" + header1
     out += "\x1b[0;90m" + "|"
     out += "\x1b[0;1m" + header2 + "\x1b[0m" + '\n'
+    out += "\x1b[2;3m" + types1
+    out += "\x1b[0;90m" + "|"
+    out += "\x1b[0;2;3m" + types2 + "\x1b[0m" + '\n'
     out += "\x1b[90m" + separator + "\x1b[0m" + '\n'
     for line in body[:-1]:
         line1, line2 = color_line(line).split('|', 2)
@@ -54,7 +58,6 @@ def check_colored_output(actual, header, separator, *body, keyed=False):
         else:
             out += "\x1b[90m" + line1 + '|'
         out += "\x1b[0m" + line2 + '\n'
-    out += '\n'
     out += "\x1b[2m" + footer + "\x1b[0m\n"
     if out != actual:
         raise AssertionError("Invalid Frame display:\n"
@@ -77,13 +80,13 @@ def test_dt_view(capsys):
         [0, 0, 0, 0],
         ["1", "2", "hello", "world"],
     ], names=list("ABCDEFG"))
-    dt0_str = ("   |  A   B   C     D   E   F  G    \n"
-               "-- + --  --  --  ----  --  --  -----\n"
-               " 0 |  2   1   1   0.1  NA   0  1    \n"
-               " 1 |  7   0   1   2    NA   0  2    \n"
-               " 2 |  0   0   1  -4    NA   0  hello\n"
-               " 3 |  0   1   1   4.4  NA   0  world\n"
-               "\n"
+    dt0_str = ("   |     A      B     C        D     E     F  G    \n"
+               "   | int32  bool8  int8  float64  void  int8  str32\n"
+               "-- + -----  -----  ----  -------  ----  ----  -----\n"
+               " 0 |     2      1     1      0.1    NA     0  1    \n"
+               " 1 |     7      0     1      2      NA     0  2    \n"
+               " 2 |     0      0     1     -4      NA     0  hello\n"
+               " 3 |     0      1     1      4.4    NA     0  world\n"
                "[4 rows x 7 columns]\n")
     dt0.view(interactive=False, plain=True)
     out, err = capsys.readouterr()
@@ -98,14 +101,14 @@ def test_dt_view_keyed(capsys):
     DT.view(interactive=False, plain=True)
     out, err = capsys.readouterr()
     assert not err
-    assert ("B  |  A\n"
-            "-- + --\n"
-            "a  |  4\n"
-            "b  |  2\n"
-            "c  |  0\n"
-            "d  |  1\n"
-            "g  |  3\n"
-            "\n"
+    assert ("B     |     A\n"
+            "str32 | int32\n"
+            "----- + -----\n"
+            "a     |     4\n"
+            "b     |     2\n"
+            "c     |     0\n"
+            "d     |     1\n"
+            "g     |     3\n"
             "[5 rows x 2 columns]\n"
             in out)
 
@@ -116,30 +119,30 @@ def test_long_frame():
     assert dt.options.display.head_nrows == 15
     assert dt.options.display.tail_nrows == 5
     assert str(DT) == (
-        "    | A   \n"
-        "--- + ----\n"
-        "  0 | A001\n"
-        "  1 | A002\n"
-        "  2 | A003\n"
-        "  3 | A004\n"
-        "  4 | A005\n"
-        "  5 | A006\n"
-        "  6 | A007\n"
-        "  7 | A008\n"
-        "  8 | A009\n"
-        "  9 | A010\n"
-        " 10 | A011\n"
-        " 11 | A012\n"
-        " 12 | A013\n"
-        " 13 | A014\n"
-        " 14 | A015\n"
-        "  … | …   \n"
-        "195 | A196\n"
-        "196 | A197\n"
-        "197 | A198\n"
-        "198 | A199\n"
-        "199 | A200\n"
-        "\n"
+        "    | A    \n"
+        "    | str32\n"
+        "--- + -----\n"
+        "  0 | A001 \n"
+        "  1 | A002 \n"
+        "  2 | A003 \n"
+        "  3 | A004 \n"
+        "  4 | A005 \n"
+        "  5 | A006 \n"
+        "  6 | A007 \n"
+        "  7 | A008 \n"
+        "  8 | A009 \n"
+        "  9 | A010 \n"
+        " 10 | A011 \n"
+        " 11 | A012 \n"
+        " 12 | A013 \n"
+        " 13 | A014 \n"
+        " 14 | A015 \n"
+        "  … | …    \n"
+        "195 | A196 \n"
+        "196 | A197 \n"
+        "197 | A198 \n"
+        "198 | A199 \n"
+        "199 | A200 \n"
         "[200 rows x 1 column]\n")
 
 
@@ -147,14 +150,14 @@ def test_str_after_resize():
     # See issue #1527
     DT = dt.Frame(A=[])
     DT.nrows = 5
-    assert ("   |  A\n"
-            "-- + --\n"
-            " 0 | NA\n"
-            " 1 | NA\n"
-            " 2 | NA\n"
-            " 3 | NA\n"
-            " 4 | NA\n"
-            "\n"
+    assert ("   |    A\n"
+            "   | void\n"
+            "-- + ----\n"
+            " 0 |   NA\n"
+            " 1 |   NA\n"
+            " 2 |   NA\n"
+            " 3 |   NA\n"
+            " 4 |   NA\n"
             "[5 rows x 1 column]\n"
             == str(DT))
 
@@ -162,10 +165,10 @@ def test_str_after_resize():
 def test_str_unicode():
     DT = dt.Frame([["møøse"], ["𝔘𝔫𝔦𝔠𝔬𝔡𝔢"], ["J̲o̲s̲é̲"], ["🚑🐧💚💥✅"]])
     assert str(DT) == (
-        "   | C0     C1       C2    C3        \n"
-        "-- + -----  -------  ----  ----------\n"
-        " 0 | møøse  𝔘𝔫𝔦𝔠𝔬𝔡𝔢  J̲o̲s̲é̲  🚑🐧💚💥✅\n"
-        "\n"
+        "   | C0     C1       C2     C3        \n"
+        "   | str32  str32    str32  str32     \n"
+        "-- + -----  -------  -----  ----------\n"
+        " 0 | møøse  𝔘𝔫𝔦𝔠𝔬𝔡𝔢  J̲o̲s̲é̲   🚑🐧💚💥✅\n"
         "[1 row x 4 columns]\n")
 
 
@@ -179,16 +182,16 @@ def test_str_sanitize():
         ["|"] * 7
     ], names=["тиждень", "numbers", "random", "*"])
     assert str(DT) == "\n".join([
-        r"   | тиждень    numbers  random                * ",
-        r"-- + ---------  -------  --------------------  --",
-        r" 0 | понеділок        3  NA                    | ",
-        r" 1 | вівторок        15  Ab\ncd                | ",
-        r" 2 | середа          NA  \x00\x01\x02\x03\x04  | ",
-        r" 3 | четвер          77  one\ttwo              | ",
-        r" 4 | п'ятниця      -444  365                   | ",
-        r" 5 | субота           0  🎁                    | ",
-        r" 6 | неділя          55  the end.              | ",
-        r"",
+        r"   | тиждень    numbers  random                *    ",
+        r"   | str32        int32  str32                 str32",
+        r"-- + ---------  -------  --------------------  -----",
+        r" 0 | понеділок        3  NA                    |    ",
+        r" 1 | вівторок        15  Ab\ncd                |    ",
+        r" 2 | середа          NA  \x00\x01\x02\x03\x04  |    ",
+        r" 3 | четвер          77  one\ttwo              |    ",
+        r" 4 | п'ятниця      -444  365                   |    ",
+        r" 5 | субота           0  🎁                    |    ",
+        r" 6 | неділя          55  the end.              |    ",
         r"[7 rows x 4 columns]",
         r""
     ])
@@ -198,25 +201,27 @@ def test_str_sanitize_C0():
     DT = dt.Frame(C0=[chr(i) for i in range(32)])
     with dt.options.context(**{"display.max_nrows": 40}):
         assert str(DT) == "".join(
-            ["   | C0  \n",
-             "-- + ----\n"] +
-            [" 9 | \\t  \n" if i == 9 else
-             "10 | \\n  \n" if i == 10 else
-             "13 | \\r  \n" if i == 13 else
-             "%2d | \\x%02X\n" % (i, i)
+            ["   | C0   \n",
+             "   | str32\n"
+             "-- + -----\n"] +
+            [" 9 | \\t   \n" if i == 9 else
+             "10 | \\n   \n" if i == 10 else
+             "13 | \\r   \n" if i == 13 else
+             "%2d | \\x%02X \n" % (i, i)
              for i in range(32)] +
-            ["\n[32 rows x 1 column]\n"])
+            ["[32 rows x 1 column]\n"])
 
 
 def test_str_sanitize_C1():
     DT = dt.Frame(C1=[chr(i) for i in range(0x7F, 0xA0)])
     with dt.options.context(**{"display.max_nrows": 40}):
         assert str(DT) == "".join(
-            ["   | C1  \n",
-             "-- + ----\n"] +
-            ["%2d | \\x%2X\n" % (i - 0x7F, i)
+            ["   | C1   \n",
+             "   | str32\n",
+             "-- + -----\n"] +
+            ["%2d | \\x%2X \n" % (i - 0x7F, i)
              for i in range(0x7F, 0xA0)] +
-            ["\n[33 rows x 1 column]\n"])
+            ["[33 rows x 1 column]\n"])
 
 
 def test_tamil_script():
@@ -227,12 +232,13 @@ def test_tamil_script():
                   names=["தமிழ் வாக்கியங்கள்", "#"])
     # Despite how it might look in a text editor, these align well in a console
     assert str(DT) == (
-        "   | தமிழ் வாக்கியங்கள்         # \n"
-        "-- + -------------------  --\n"
-        " 0 | உங்களுக்கு வணக்கம்         # \n"
-        " 1 | நீங்கள் எப்படி இருக்கிறீர்கள்?  # \n"
-        " 2 | நல்வரவு                # \n"
-        "\n[3 rows x 2 columns]\n")
+        "   | தமிழ் வாக்கியங்கள்         #    \n"
+        "   | str32                str32\n"
+        "-- + -------------------  -----\n"
+        " 0 | உங்களுக்கு வணக்கம்         #    \n"
+        " 1 | நீங்கள் எப்படி இருக்கிறீர்கள்?  #    \n"
+        " 2 | நல்வரவு                #    \n"
+        "[3 rows x 2 columns]\n")
 
 
 def test_chinese():
@@ -243,13 +249,14 @@ def test_chinese():
                    ["#"] * 4],
                   names=["中文", "#"])
     assert str(DT) == (
-        "   | 中文                            # \n"
-        "-- + ------------------------------  --\n"
-        " 0 | 蒙蒂·蟒蛇                       # \n"
-        " 1 | 小洞不补，大洞吃苦              # \n"
-        " 2 | 風向轉變時,有人築牆,有人造風車  # \n"
-        " 3 | 師傅領進門，修行在個人          # \n"
-        "\n[4 rows x 2 columns]\n")
+        "   | 中文                            #    \n"
+        "   | str32                           str32\n"
+        "-- + ------------------------------  -----\n"
+        " 0 | 蒙蒂·蟒蛇                       #    \n"
+        " 1 | 小洞不补，大洞吃苦              #    \n"
+        " 2 | 風向轉變時,有人築牆,有人造風車  #    \n"
+        " 3 | 師傅領進門，修行在個人          #    \n"
+        "[4 rows x 2 columns]\n")
 
 
 def test_colored_output(capsys):
@@ -261,12 +268,13 @@ def test_colored_output(capsys):
         out, err = capsys.readouterr()
         assert not err
     check_colored_output(out,
-        "   | int  str   ",
-        "-- + ---  ------",
-        " 0 |   2  cogito",
-        " 1 |   7  ergo  ",
-        " 2 |   0  sum   ",
-        " 3 |   0  NA    ",
+        "   |   int  str   ",
+        "   | int32  str32 ",
+        "-- + -----  ------",
+        " 0 |     2  cogito",
+        " 1 |     7  ergo  ",
+        " 2 |     0  sum   ",
+        " 3 |     0  NA    ",
         "[4 rows x 2 columns]")
 
 
@@ -277,13 +285,13 @@ def test_option_use_colors(capsys):
         out, err = capsys.readouterr()
         assert err == ''
         assert out == (
-            "   |  A\n"
-            "-- + --\n"
-            " 0 |  0\n"
-            " 1 |  1\n"
-            " 2 |  2\n"
-            " 3 |  3\n"
-            "\n"
+            "   |     A\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " 0 |     0\n"
+            " 1 |     1\n"
+            " 2 |     2\n"
+            " 3 |     3\n"
             "[4 rows x 1 column]\n")
 
 
@@ -295,11 +303,12 @@ def test_colored_keyed(capsys):
         out, err = capsys.readouterr()
         assert not err
     check_colored_output(out,
-        " A  B  |    C",
-        "--  -- + ----",
-        " 1  NA |  3.2",
-        " 1  a  | 14.1",
-        " 2  d  | -7.7",
+        "    A  B     |       C",
+        "int32  str32 | float64",
+        "-----  ----- + -------",
+        "    1  NA    |     3.2",
+        "    1  a     |    14.1",
+        "    2  d     |    -7.7",
         "[3 rows x 3 columns]",
         keyed=True)
 
@@ -312,6 +321,7 @@ def test_colored_escaped_name(capsys):
         assert not err
     check_colored_output(out,
         "   | #(\\x80)#",
+        "   |     void",
         "-- + --------",
         "[0 rows x 1 column]")
 
@@ -335,11 +345,10 @@ def test_horizontal_elision(capsys):
         # Normally the output is truncated to 120 width (default terminal width for non-tty)
         check_colored_output(out,
             "   | C0                              C1                              C2                …  C19                           ",
+            "   | str32                           str32                           str32                str32                         ",
             "-- + ------------------------------  ------------------------------  ----------------     ------------------------------",
             " 0 | 123456789012345678901234567890  123456789012345678901234567890  123456789012345…  …  123456789012345678901234567890",
             "[1 row x 20 columns]")
-
-
 
 
 
@@ -356,6 +365,7 @@ def test_option_allow_unicode(capsys):
     assert not err
     check_colored_output(out,
         "   | uni" + ' '*67,
+        "   | str32" + ' '*65,
         "-- + ---" + '-'*67,
         " 0 | m" + "\\xF8"*2 + "se" + " "*59,
         " 1 | " + "".join("\\U%08X" % ord(c) for c in '𝔘𝔫𝔦𝔠𝔬𝔡𝔢'),
@@ -371,12 +381,12 @@ def test_option_allow_unicode_long_frame(capsys):
     out, err = capsys.readouterr()
     assert not err
     assert out == (
-        "    |   A\n"
-        "--- + ---\n" +
-        "".join(" %2d |  %2d\n" % (i, i) for i in range(15)) +
-        "... | ...\n" +
-        "".join(" %2d |  %2d\n" % (i, i) for i in range(95, 100)) +
-        "\n" +
+        "    |     A\n"
+        "    | int32\n"
+        "--- + -----\n" +
+        "".join(" %2d |    %2d\n" % (i, i) for i in range(15)) +
+        "... |   ...\n" +
+        "".join(" %2d |    %2d\n" % (i, i) for i in range(95, 100)) +
         "[100 rows x 1 column]\n")
 
 
@@ -389,8 +399,9 @@ def test_allow_unicode_column_name(capsys):
     assert not err
     assert out == (
         "   | \\u0442\\u0435\\u0441\\u0442\n"
+        "   |                     void\n"
         "-- + ------------------------\n"
-        "\n[0 rows x 1 column]\n")
+        "[0 rows x 1 column]\n")
 
 
 
@@ -404,10 +415,10 @@ def test_max_nrows_large():
     DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
     with dt.options.display.context(max_nrows=None):
         assert str(DT) == (
-            "    | A   \n" +
-            "--- + ----\n" +
-            "".join("%3d | %s\n" % (i, DT[i, 0]) for i in range(200)) +
-            "\n" +
+            "    | A    \n" +
+            "    | str32\n" +
+            "--- + -----\n" +
+            "".join("%3d | %s \n" % (i, DT[i, 0]) for i in range(200)) +
             "[200 rows x 1 column]\n")
 
 
@@ -417,19 +428,20 @@ def test_max_nrows_exact():
     DT = dt.Frame(R=range(17))
     with dt.options.display.context(head_nrows=1, tail_nrows=1, max_nrows=16):
         assert str(DT) == (
-            "   |  R\n"
-            "-- + --\n"
-            " 0 |  0\n"
-            " … |  …\n"
-            "16 | 16\n"
-            "\n[17 rows x 1 column]\n")
+            "   |     R\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " 0 |     0\n"
+            " … |     …\n"
+            "16 |    16\n"
+            "[17 rows x 1 column]\n")
 
         assert str(DT[:-1, :]) == (
-            "   |  R\n" +
-            "-- + --\n" +
-            "".join("%2d | %2d\n" % (i, i) for i in range(16)) +
-            "\n[16 rows x 1 column]\n")
-
+            "   |     R\n" +
+            "   | int32\n" +
+            "-- + -----\n" +
+            "".join("%2d |    %2d\n" % (i, i) for i in range(16)) +
+            "[16 rows x 1 column]\n")
 
 
 def test_max_nrows_small():
@@ -441,14 +453,15 @@ def test_max_nrows_small():
     with dt.options.display.context(max_nrows=0):
         assert dt.options.display.max_nrows == 0
         assert str(DT) == (
-            "   |  A\n"
-            "-- + --\n"
-            " 0 |  0\n"
-            " 1 |  1\n"
-            " 2 |  2\n"
-            " 3 |  3\n"
-            " 4 |  4\n"
-            "\n[5 rows x 1 column]\n")
+            "   |     A\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " 0 |     0\n"
+            " 1 |     1\n"
+            " 2 |     2\n"
+            " 3 |     3\n"
+            " 4 |     4\n"
+            "[5 rows x 1 column]\n")
 
 
 def test_max_nrows_negative():
@@ -474,18 +487,18 @@ def test_long_frame_head_tail():
     DT = dt.Frame(A=["A%03d" % (i+1) for i in range(200)])
     with dt.options.display.context(head_nrows=5, tail_nrows=3):
         assert str(DT) == (
-            "    | A   \n"
-            "--- + ----\n"
-            "  0 | A001\n"
-            "  1 | A002\n"
-            "  2 | A003\n"
-            "  3 | A004\n"
-            "  4 | A005\n"
-            "  … | …   \n"
-            "197 | A198\n"
-            "198 | A199\n"
-            "199 | A200\n"
-            "\n"
+            "    | A    \n"
+            "    | str32\n"
+            "--- + -----\n"
+            "  0 | A001 \n"
+            "  1 | A002 \n"
+            "  2 | A003 \n"
+            "  3 | A004 \n"
+            "  4 | A005 \n"
+            "  … | …    \n"
+            "197 | A198 \n"
+            "198 | A199 \n"
+            "199 | A200 \n"
             "[200 rows x 1 column]\n")
 
 
@@ -493,12 +506,12 @@ def test_small_head_tail():
     DT = dt.Frame(boo=range(10))
     with dt.options.display.context(head_nrows=1, tail_nrows=1, max_nrows=1):
         assert str(DT) == (
-            "   | boo\n"
-            "-- + ---\n"
-            " 0 |   0\n"
-            " … |   …\n"
-            " 9 |   9\n"
-            "\n"
+            "   |   boo\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " 0 |     0\n"
+            " … |     …\n"
+            " 9 |     9\n"
             "[10 rows x 1 column]\n")
 
 
@@ -506,13 +519,13 @@ def test_head_0():
     DT = dt.Frame(T1=range(100))
     with dt.options.display.context(head_nrows=0, tail_nrows=3):
         assert str(DT) == (
-            "   | T1\n"
-            "-- + --\n"
-            " … |  …\n"
-            "97 | 97\n"
-            "98 | 98\n"
-            "99 | 99\n"
-            "\n"
+            "   |    T1\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " … |     …\n"
+            "97 |    97\n"
+            "98 |    98\n"
+            "99 |    99\n"
             "[100 rows x 1 column]\n")
 
 
@@ -520,13 +533,13 @@ def test_tail_0():
     DT = dt.Frame(T2=range(100))
     with dt.options.display.context(head_nrows=3, tail_nrows=0):
         assert str(DT) == (
-            "   | T2\n"
-            "-- + --\n"
-            " 0 |  0\n"
-            " 1 |  1\n"
-            " 2 |  2\n"
-            " … |  …\n"
-            "\n"
+            "   |    T2\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " 0 |     0\n"
+            " 1 |     1\n"
+            " 2 |     2\n"
+            " … |     …\n"
             "[100 rows x 1 column]\n")
 
 
@@ -534,10 +547,10 @@ def test_headtail_0():
     DT = dt.Frame(T3=range(100))
     with dt.options.display.context(head_nrows=0, tail_nrows=0):
         assert str(DT) == (
-            "   | T3\n"
-            "-- + --\n"
-            " … |  …\n"
-            "\n"
+            "   |    T3\n"
+            "   | int32\n"
+            "-- + -----\n"
+            " … |     …\n"
             "[100 rows x 1 column]\n")
 
 
@@ -562,8 +575,9 @@ def test_max_width_name():
     DT = dt.Frame(names=["a" * 1234])
     assert str(DT) == (
         "   | " + "a" * 99 + "…\n" +
+        "   | " + " " * 96 + "void\n" +
         "-- + " + "-" * 100 + "\n" +
-        "\n[0 rows x 1 column]\n")
+        "[0 rows x 1 column]\n")
 
 
 def test_max_width_data():
@@ -571,13 +585,14 @@ def test_max_width_data():
     with dt.options.display.context(max_column_width=5):
         assert str(DT) == (
             "   | A    \n"
+            "   | str32\n"
             "-- + -----\n"
             " 0 | foo  \n"
             " 1 | NA   \n"
             " 2 | bazi…\n"
             " 3 |      \n"
             " 4 | 12345\n"
-            "\n[5 rows x 1 column]\n")
+            "[5 rows x 1 column]\n")
 
 
 @pytest.mark.parametrize('uni', [True, False])
@@ -591,6 +606,7 @@ def test_max_width_colored(capsys, uni):
         assert not err
         check_colored_output(out,
             "   | S   ",
+            "   | str" + symbol,
             "-- + ----",
             " 0 | abc" + symbol,
             "[1 row x 1 column]")
@@ -607,11 +623,12 @@ def test_max_width1():
         assert dt.options.display.max_column_width == 2
         assert str(DT) == (
             "   | A \n"
+            "   | s…\n"
             "-- + --\n"
             " 0 | f…\n"
             " 1 | NA\n"
             " 2 | z \n"
-            "\n[3 rows x 1 column]\n")
+            "[3 rows x 1 column]\n")
 
 
 def test_max_width_unicode():
@@ -624,28 +641,31 @@ def test_max_width_unicode():
     with dt.options.display.context(max_column_width=6):
         assert str(DT) == (
             "   | A     \n"
+            "   | str32 \n"
             "-- + ------\n"
             " 0 | 👽👽👽\n"
-            "\n[1 row x 1 column]\n")
+            "[1 row x 1 column]\n")
 
     # Under the width of 5 the last character doesn't fit, so it is
     # replaced with a single-width ellipsis character
     with dt.options.display.context(max_column_width=5):
         assert str(DT) == (
             "   | A    \n"
+            "   | str32\n"
             "-- + -----\n"
             " 0 | 👽👽…\n"
-            "\n[1 row x 1 column]\n")
+            "[1 row x 1 column]\n")
 
     # If max_column_width is 4 then we must truncate after the first
     # character, since truncating after the second and adding the
     # ellipsis makes the string of length 5.
     with dt.options.display.context(max_column_width=4):
         assert str(DT) == (
-            "   | A  \n"
-            "-- + ---\n"
-            " 0 | 👽…\n"
-            "\n[1 row x 1 column]\n")
+            "   | A   \n"
+            "   | str…\n"
+            "-- + ----\n"
+            " 0 | 👽… \n"
+            "[1 row x 1 column]\n")
 
 
 def test_max_width_invalid():
@@ -662,9 +682,10 @@ def test_max_width_none():
         DT = dt.Frame(Long=["a" * 12321])
         assert str(DT) == (
             "   | Long" + " "*12317 + "\n" +
+            "   | str32" + " "*12316 + "\n" +
             "-- + " + "-" * 12321 + "\n" +
             " 0 | " + "a" * 12321 + "\n" +
-            "\n[1 row x 1 column]\n")
+            "[1 row x 1 column]\n")
     assert dt.options.display.max_column_width == 100
 
 
@@ -675,28 +696,31 @@ def test_max_width_nounicode(capsys):
             DT.view(interactive=False)
             out, _ = capsys.readouterr()
             assert out == (
-                "   | A \n"
-                "-- + --\n"
-                " 0 | ~ \n"
-                "\n[1 row x 1 column]\n")
+                "   | A    \n"
+                "   | str32\n"
+                "-- + -----\n"
+                " 0 | ~    \n"
+                "[1 row x 1 column]\n")
 
         with dt.options.display.context(max_column_width=15):
             DT.view(interactive=False)
             out, _ = capsys.readouterr()
             assert out == (
                 "   | A          \n"
+                "   | str32      \n"
                 "-- + -----------\n"
                 " 0 | \\U0001F47D~\n"
-                "\n[1 row x 1 column]\n")
+                "[1 row x 1 column]\n")
 
         with dt.options.display.context(max_column_width=20):
             DT.view(interactive=False)
             out, _ = capsys.readouterr()
             assert out == (
                 "   | A                   \n"
+                "   | str32               \n"
                 "-- + --------------------\n"
                 " 0 | \\U0001F47D\\U0001F47D\n"
-                "\n[1 row x 1 column]\n")
+                "[1 row x 1 column]\n")
 
 
 
@@ -721,6 +745,7 @@ def test_encoding_autodetection(tempfile):
     with open(tempfile, "r", encoding='ascii') as f:
         out = f.read()
         assert out == ("   | A     \n"
+                       "   | str32 \n"
                        "-- + ------\n"
                        " 0 | \\u2728\n"
-                       "\n[1 row x 1 column]\n")
+                       "[1 row x 1 column]\n")
