@@ -81,8 +81,10 @@ static const char* doc_view =
 R"(view(self, interactive=None, plain=False)
 --
 
-**Warning: This function is currently not working properly**
-`[#2669] <https://github.com/h2oai/datatable/issues/2669>`_
+.. warning::
+
+    This function is currently not working properly.
+    `[#2669] <https://github.com/h2oai/datatable/issues/2669>`_
 
 )";
 

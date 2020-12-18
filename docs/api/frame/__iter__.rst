@@ -18,9 +18,9 @@
     invoked by Python runtime either when you call :ext-func:`iter() <iter>`,
     or when you use the frame in a loop::
 
-        for column in frame:
-            # column is a Frame of shape (frame.nrows, 1)
-            ...
+        >>> for column in frame:
+        ...     # column is a Frame of shape (frame.nrows, 1)
+        ...     ...
 
 
     See Also

@@ -92,11 +92,11 @@ instead of cbinding them one-by-one.
 
 It is possible to cbind frames using the standard `DT[i,j]` syntax::
 
-    df[:, update(**frame1, **frame2, ...)]
+    >>> df[:, update(**frame1, **frame2, ...)]
 
 Or, if you need to append just a single column::
 
-    df["newcol"] = frame1
+    >>> df["newcol"] = frame1
 
 
 Examples
@@ -105,12 +105,12 @@ Examples
 >>> frame1 = dt.Frame(N=[-1, -2, -5])
 >>> DT.cbind(frame1)
 >>> DT
-   |  A   B   N
--- + --  --  --
- 0 |  1   4  -1
- 1 |  2   7  -2
- 2 |  3   0  -5
---
+   |     A      B      N
+   | int32  int32  int32
+-- + -----  -----  -----
+ 0 |     1      4     -1
+ 1 |     2      7     -2
+ 2 |     3      0     -5
 [3 rows x 3 columns]
 
 
