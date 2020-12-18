@@ -52,9 +52,9 @@ sorting are commutative: the result of applying groupby and then sort
 is the same as the result of sorting first and then doing groupby.
 
 When used together with ``i`` (row filter), the ``i`` filter is
-applied after the sorting. For example,::
+applied after the sorting. For example::
 
-  DT[:10, :, sort(f.Highscore, reverse=True)]
+    >>> DT[:10, :, sort(f.Highscore, reverse=True)]
 
 will select the first 10 records from the frame ``DT`` ordered by
 the Highscore column.

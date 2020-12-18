@@ -413,81 +413,69 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
---------
-
-- :func:`count()` -- function to calculate a number of non-missing values.
 
 Examples
 --------
 
-::
+.. code-block:: python
 
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int32, int32, int32
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
 
 Get the sum of column A::
 
-    df[:, dt.sum(f.A)]
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 1, 1
-
-    0,7
+    >>> df[:, dt.sum(f.A)]
+       |     A
+       | int64
+    -- + -----
+     0 |     7
+    [1 row x 1 column]
 
 Get the sum of multiple columns::
 
-  df[:, [dt.sum(f.A), dt.sum(f.B)]]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,7,14
-
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)]]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
 
 Same as above, but more convenient::
 
-  df[:, dt.sum(f[:2])]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,7,14
-
+    >>> df[:, dt.sum(f[:2])]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
 
 In the presence of :func:`by()`, it returns the sum of the specified columns per group::
 
-  df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+       |     C      A      B
+       | int32  int64  int64
+    -- + -----  -----  -----
+     0 |     1      4      7
+     1 |     2      3      7
+    [2 rows x 3 columns]
 
-.. dtframe::
-    :names: C,A,B
-    :types: int32,int32,int32
-    :shape: 2, 3
 
-    0,1,4,7
-    1,2,3,7
+See Also
+--------
+- :func:`count()` -- function to calculate a number of non-missing values.
 )";
 #endif
 
@@ -1088,87 +1076,74 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
---------
-- :func:`max()` -- function to calculate maxium values.
 
 Examples
 --------
+.. code-block:: python
 
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
-
-    df
-
-.. dtframe::
-    :names: A,B
-    :types: int32, int32
-    :shape: 9, 2
-
-    0,1,3
-    1,1,2
-    2,1,20
-    3,2,1
-    4,2,6
-    5,2,2
-    6,3,3
-    7,3,22
-    8,3,1
-
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+    >>>
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     1      2
+     2 |     1     20
+     3 |     2      1
+     4 |     2      6
+     5 |     2      2
+     6 |     3      3
+     7 |     3     22
+     8 |     3      1
+    [9 rows x 2 columns]
 
 Get the minimum from column B::
 
-    df[:, dt.min(f.B)]
-
-.. dtframe::
-    :names: B
-    :types: int32
-    :shape: 1, 1
-
-    0,1
+    >>> df[:, dt.min(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |     1
+    [1 row x 1 column]
 
 Get the minimum of all columns::
 
-  df[:, [dt.min(f.A), dt.min(f.B)]]
+    >>> df[:, [dt.min(f.A), dt.min(f.B)]]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
+Same as above, but using the slice notation::
 
-    0,1,1
+    >>> df[:, dt.min(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the row with the minimum value
+per group::
+
+    >>> df[:, dt.min(f.B), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     2      1
+     2 |     3      1
+    [3 rows x 2 columns]
 
 
-Same as above, but more convenient::
-
-  df[:, dt.min(f[:])]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,1,1
-
-
-
-In the presence of :func:`by()`, it returns the row with the minimum value per group ::
-
-    df[:, dt.min(f.B), by("A")]
-
-.. dtframe::
-    :names: A,B
-    :types: int32, int32
-    :shape: 3, 2
-
-    0,1,2
-    1,2,1
-    2,3,1
-
+See Also
+--------
+- :func:`max()` -- function to calculate maxium values.
 )";
 
 
@@ -1340,87 +1315,71 @@ See Also
 
 Examples
 --------
+.. code-block:: python
 
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int8, int8, int8
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>>
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
 
 Get the median from column A::
 
-    df[:, dt.median(f.A)]
-
-.. dtframe::
-    :names: A
-    :types: float32
-    :shape: 1, 1
-
-    0,1
+    >>> df[:, dt.median(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 |       1
+    [1 row x 1 column]
 
 Get the median of multiple columns::
 
-  df[:, dt.median([f.A, f.B])]
-
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1,3.5
-
+    >>> df[:, dt.median([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
 
 Same as above, but more convenient::
 
-  df[:, dt.median(f[:2])]
-
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1,3.5
-
+    >>> df[:, dt.median(f[:2])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
 
 You can pass in a dictionary with new column names::
 
-  df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+    >>> df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+       | A_median    C_mid
+       |  float64  float64
+    -- + --------  -------
+     0 |        1        1
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A_median,C_mid
-    :types: float32,float32
-    :shape: 1, 2
+In the presence of :func:`by()`, it returns the median of each column
+per group::
 
-    0,1,1
-
-
-In the presence of :func:`by()`, it returns the median of each column per group::
-
-    df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
-
-.. dtframe::
-    :names: C, A_median, B_median
-    :types: float32, float32, float32
-    :shape: 2, 3
-
-    0,1,1,3.5
-    1,2,1.5,3.5
-
+    >>> df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
+       |     C  A_median  B_median
+       | int32   float64   float64
+    -- + -----  --------  --------
+     0 |     1       1         3.5
+     1 |     2       1.5       3.5
+    [2 rows x 3 columns]
 )";
 #endif
 
