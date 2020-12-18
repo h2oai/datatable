@@ -504,7 +504,7 @@ spaced from the admonition.
 
 .. note::
 
-    Here's a node with more content. Why does it have so much content? Nobody
+    Here's a note with more content. Why does it have so much content? Nobody
     knows. In theory admonitions should be short and to the point, but this one
     is not playing by the rules. It just goes on and on and on and on,
     and it seems like it would never end. Even as you think that maybe at last

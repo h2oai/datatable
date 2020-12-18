@@ -1098,7 +1098,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_body(self):
-        out = xnodes.div(classes=["x-function-body"])
+        out = xnodes.div(classes=["x-function-body", "section"])
         for head, lines, linenos in self.parsed_body:
             if head:
                 lines = [head, "-"*len(head), ""] + lines

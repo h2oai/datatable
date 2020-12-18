@@ -94,74 +94,65 @@ return: FExpr
 
 Examples
 --------
+.. code-block:: python
 
-::
+    >>> from datatable import dt, f, as_type
+    >>>
+    >>> df = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+    ...                'B': [None, '2', '3', '4', '5'],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       | A      B          C
+       | str32  str32  int32
+    -- + -----  -----  -----
+     0 | 1      NA         1
+     1 | 1      2          2
+     2 | 2      3          1
+     3 | 1      4          1
+     4 | 2      5          2
+    [5 rows x 3 columns]
 
-  from datatable import dt, f, as_type
-
-  df = dt.Frame({'A': ['1', '1', '2', '1', '2'],
-                 'B': [None, '2', '3', '4', '5'],
-                 'C': [1, 2, 1, 1, 2]})
-
-  df
-
-.. dtframe::
-  :names: A,B,C
-  :types: str32, str32, int32
-  :shape: 5, 2
-
-  0,1,NA,1
-  1,1,2,2
-  2,2,3,1
-  3,1,4,1
-  4,2,5,2
 
 Convert column A from string to integer type::
 
-  df[:, as_type(f.A, int)]
+    >>> df[:, as_type(f.A, int)]
+       |     A
+       | int64
+    -- + -----
+     0 |     1
+     1 |     1
+     2 |     2
+     3 |     1
+     4 |     2
+    [5 rows x 1 column]
 
-.. dtframe::
-    :names: A
-    :types: int64
-    :shape: 5, 1
-
-    0,1
-    1,1
-    2,2
-    3,1
-    4,2
 
 The exact dtype can be specified::
 
-  df[:, as_type(f.A, dt.int32)]
+    >>> df[:, as_type(f.A, dt.int32)]
+       |     A
+       | int32
+    -- + -----
+     0 |     1
+     1 |     1
+     2 |     2
+     3 |     1
+     4 |     2
+    [5 rows x 1 column]
 
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 5, 1
-
-    0,1
-    1,1
-    2,2
-    3,1
-    4,2
 
 Convert multiple columns to different types::
 
-  df[:, [as_type(f.A, int), as_type(f.C, dt.str32)]]
-
-.. dtframe::
-    :names: A,C
-    :types: int64,str32
-    :shape: 5, 2
-
-    0,1,1
-    1,1,2
-    2,2,1
-    3,1,1
-    4,2,2
-
-
+    >>> df[:, [as_type(f.A, int), as_type(f.C, dt.str32)]]
+       |     A  C
+       | int64  str32
+    -- + -----  -----
+     0 |     1  1
+     1 |     1  2
+     2 |     2  1
+     3 |     1  1
+     4 |     2  2
+    [5 rows x 2 columns]
 )";
 
 static py::oobj pyfn_astype(const py::XArgs& args) {
