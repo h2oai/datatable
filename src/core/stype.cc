@@ -113,10 +113,10 @@ size_t stype_elemsize(SType stype) {
 bool stype_is_fixed_width(SType stype) {
   return !stype_is_variable_width(stype);
 }
+
 bool stype_is_variable_width(SType stype) {
   return (stype == SType::STR32 || stype == SType::STR64);
 }
-
 
 py::oobj stype_to_pyobj(SType stype) {
   return py::oobj(Py_Stype_Objects[static_cast<size_t>(stype)]);

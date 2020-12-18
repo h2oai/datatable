@@ -80,7 +80,7 @@ namespace dt {
   *            positive bin ids.
   *
   */
-class Cut_ColumnImpl : public Virtual_ColumnImpl {
+class CutNbins_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     double a_, b_;
@@ -88,8 +88,9 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
     size_t: 32;
 
   public:
-    static ColumnImpl* make(Column&& col, size_t icol, int32_t nbins, bool right_closed) {
+    static ColumnImpl* make(Column&& col, int32_t nbins, bool right_closed) {
       xassert(nbins > 0);
+      xassert(ltype_is_numeric(col.ltype()));
 
       bool min_valid, max_valid;
       double min, max;
@@ -113,8 +114,7 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
                                break;
 
         default:  throw TypeError() << "cut() can only be applied to numeric "
-                    << "columns, instead column `" << icol << "` has an stype: `"
-                    << col.stype() << "`";
+                    << "columns, instead got an stype: `" << col.stype() << "`";
       }
 
 
@@ -128,12 +128,12 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
         col.cast_inplace(SType::FLOAT64);
         compute_cut_coeffs(a, b, shift, min, max, nbins, right_closed);
 
-        return new Cut_ColumnImpl(std::move(col), a, b, shift);
+        return new CutNbins_ColumnImpl(std::move(col), a, b, shift);
       }
     }
 
     ColumnImpl* clone() const override {
-      return new Cut_ColumnImpl(Column(col_), a_, b_, shift_);
+      return new CutNbins_ColumnImpl(Column(col_), a_, b_, shift_);
     }
 
     size_t n_children() const noexcept override {
@@ -183,7 +183,7 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
 
 
   private:
-    Cut_ColumnImpl(Column&& col, double a, double b, int32_t shift)
+    CutNbins_ColumnImpl(Column&& col, double a, double b, int32_t shift)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
         a_(a),
         b_(b),
@@ -195,6 +195,87 @@ class Cut_ColumnImpl : public Virtual_ColumnImpl {
 
 };
 
+
+template <bool RIGHT_CLOSED>
+class CutBins_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column col_values_, col_bins_;
+    const double* bins_data_;
+
+  public:
+
+    ColumnImpl* clone() const override {
+      return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_values_), Column(col_bins_));
+    }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return col_values_;
+    }
+
+    inline bool gt(double v1, double v2) const {
+      if (RIGHT_CLOSED) {
+        return v1 > v2;
+      } else {
+        return v1 >= v2;
+      }
+    }
+
+    inline bool lt(double v1, double v2) const {
+      if (RIGHT_CLOSED) {
+        return v1 <= v2;
+      } else {
+        return v1 < v2;
+      }
+    }
+
+
+    bool get_element(size_t i, int32_t* out) const override {
+      double value;
+      bool is_valid = col_values_.get_element(i, &value);
+
+      if (is_valid) {
+        size_t nbins = col_bins_.nrows();
+        is_valid = false;
+
+        if (gt(value, bins_data_[0]) && lt(value, bins_data_[nbins - 1])) {
+          is_valid = true;
+          *out = static_cast<int32_t>(find_bin(value, 0, nbins - 1));
+        }
+
+      }
+      return is_valid;
+    }
+
+
+    size_t find_bin(double value, size_t left, size_t right) const {
+      if (right == left + 1) {
+        return left;
+      }
+
+      size_t middle = (left + right) / 2;
+
+      if (gt(value, bins_data_[middle])) {
+        return find_bin(value, middle, right);
+      } else {
+        return find_bin(value, left, middle);
+      }
+
+    }
+
+  private:
+    CutBins_ColumnImpl(Column&& col, Column&& bins)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
+        col_values_(std::move(col)),
+        col_bins_(std::move(bins)),
+        bins_data_(static_cast<const double*>(col_bins_.get_data_readonly()))
+    {}
+
+};
 
 
 }  // namespace dt

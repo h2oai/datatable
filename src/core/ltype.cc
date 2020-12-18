@@ -98,6 +98,11 @@ bool is_ltype_object(PyObject* v) {
 }
 
 
+bool ltype_is_numeric(LType ltype) {
+  return ltype == LType::BOOL || ltype == LType::INT || ltype == LType::REAL;
+}
+
+
 
 
 }  // namespace dt

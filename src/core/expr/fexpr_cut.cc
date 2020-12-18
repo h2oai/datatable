@@ -38,13 +38,15 @@ class FExpr_Cut : public FExpr_Func {
   private:
     ptrExpr arg_;
     py::oobj py_nbins_;
+    py::oobj py_bins_;
     bool right_closed_;
     size_t: 56;
 
   public:
-    FExpr_Cut(py::robj arg, py::robj py_nbins, bool right_closed)
+    FExpr_Cut(py::robj arg, py::robj py_nbins, py::robj py_bins, bool right_closed)
       : arg_(as_fexpr(arg)),
         py_nbins_(py_nbins),
+        py_bins_(py_bins),
         right_closed_(right_closed)
     {}
 
@@ -71,52 +73,122 @@ class FExpr_Cut : public FExpr_Func {
       Workframe wf = arg_->evaluate_n(ctx);
       const size_t ncols = wf.ncols();
 
-      int32vec nbins(ncols);
+      bool defined_bins = !py_bins_.is_none();
       bool defined_nbins = !py_nbins_.is_none();
-      bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
 
-      if (nbins_list_or_tuple) {
-        py::oiter py_nbins = py_nbins_.to_oiter();
-        if (py_nbins.size() != ncols) {
-          throw ValueError() << "When `nbins` is a list or a tuple, its length must be "
+      if (defined_bins && defined_nbins) {
+        throw ValueError() << "`bins` and `nbins` cannot be both set at the same time";
+      }
+
+      if (defined_bins) {
+        // list of dt
+        py::oiter py_bins = py_bins_.to_oiter();
+
+        if (py_bins.size() != ncols) {
+          throw ValueError() << "`bins` length must be "
             << "the same as the number of columns in the frame/expression, i.e. `"
-            << ncols << "`, instead got: `" << py_nbins.size() << "`";
-
+            << ncols << "`, instead got: `" << py_bins.size() << "`";
         }
 
         size_t i = 0;
-        for (auto py_nbin : py_nbins) {
-          int32_t nbin = py_nbin.to_int32_strict();
-          if (nbin <= 0) {
-            throw ValueError() << "All elements in `nbins` must be positive, "
-                                  "got `nbins[" << i << "`]: `" << nbin << "`";
+        for (auto py_bin : py_bins) {
+          DataTable* dt = py_bin.to_datatable();
+          if (dt->ncols() != 1) {
+            throw ValueError() << "binning datatables must have one column only, "
+              << "instead for bins[" << i << "] got number of columns: `" << dt->ncols() << "`";
           }
 
-          nbins[i++] = nbin;
+          if (dt->nrows() < 2) {
+            throw ValueError() << "binning columns must contain at least two points, "
+              << "instead for bins[" << i << "] got number of points: `" << dt->nrows() << "`";
+          }
+
+          // Retrieve bins
+          Column bins = dt->get_column(0);
+          if (!ltype_is_numeric(bins.ltype())) {
+            throw TypeError() << "cut() can only bin data based on the numeric bins, "
+              << "instead bins for the column `" << i << "` has an stype: `"
+              << bins.stype() << "`";
+          }
+          bins.cast_inplace(SType::FLOAT64);
+          bins.materialize();
+
+          // Retrieve actual data
+          Column col = wf.retrieve_column(i);
+          if (!ltype_is_numeric(col.ltype())) {
+            throw TypeError() << "cut() can only be applied to numeric "
+              << "columns, instead column `" << i << "` has an stype: `"
+              << col.stype() << "`";
+
+          }
+          col.cast_inplace(SType::FLOAT64);
+
+          // Bin column in-place
+          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins)))
+                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins)));
+
+          wf.replace_column(i, std::move(col));
+
+          i++;
         }
-        xassert(i == ncols);
 
       } else {
-        if (defined_nbins) {
-          nbins_default = py_nbins_.to_int32_strict();
-          if (nbins_default <= 0) {
-            throw ValueError() << "Number of bins must be positive, "
-                                  "instead got: `" << nbins_default << "`";
+
+        int32vec nbins(ncols);
+        bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
+
+        if (nbins_list_or_tuple) {
+          py::oiter py_nbins = py_nbins_.to_oiter();
+          if (py_nbins.size() != ncols) {
+            throw ValueError() << "When `nbins` is a list or a tuple, its length must be "
+              << "the same as the number of columns in the frame/expression, i.e. `"
+              << ncols << "`, instead got: `" << py_nbins.size() << "`";
+
+          }
+
+          size_t i = 0;
+          for (auto py_nbin : py_nbins) {
+            int32_t nbin = py_nbin.to_int32_strict();
+            if (nbin <= 0) {
+              throw ValueError() << "All elements in `nbins` must be positive, "
+                                    "got `nbins[" << i << "`]: `" << nbin << "`";
+            }
+
+            nbins[i++] = nbin;
+          }
+          xassert(i == ncols);
+
+        } else {
+          if (defined_nbins) {
+            nbins_default = py_nbins_.to_int32_strict();
+            if (nbins_default <= 0) {
+              throw ValueError() << "Number of bins must be positive, instead got: `"
+                << nbins_default << "`";
+            }
+          }
+
+          for (size_t i = 0; i < ncols; ++i) {
+            nbins[i] = nbins_default;
           }
         }
 
+        // Bin columns in-place
         for (size_t i = 0; i < ncols; ++i) {
-          nbins[i] = nbins_default;
-        }
-      }
+          Column col = wf.retrieve_column(i);
 
-      // Cut workframe in-place
-      for (size_t i = 0; i < ncols; ++i) {
-        Column coli = wf.retrieve_column(i);
-        coli = Column(Cut_ColumnImpl::make(
-                 std::move(coli), i, nbins[i], right_closed_
-               ));
-        wf.replace_column(i, std::move(coli));
+          if (!ltype_is_numeric(col.ltype())) {
+
+            throw TypeError() << "cut() can only be applied to numeric "
+              << "columns, instead column `" << i << "` has an stype: `"
+              << col.stype() << "`";
+
+          }
+
+          col = Column(CutNbins_ColumnImpl::make(
+                  std::move(col), nbins[i], right_closed_
+                ));
+          wf.replace_column(i, std::move(col));
+        }
       }
 
       return wf;
@@ -151,9 +223,14 @@ nbins: int | List[int]
     the list/tuple length must be equal to the number of columns
     in `cols`.
 
+bins: List[Frame]
+    List/tuple of single-column frames with the sorted bin edges used for
+    the binning of the corresponding column from `cols`. The list/tuple
+    length must be equal to the number of columns in `cols`.
+
 right_closed: bool
-    Each binning interval is `half-open`_. This flag indicates which
-    side of the interval is closed.
+    Each binning interval is `half-open`_. This flag indicates whether
+    the right edge of the interval is closed, or not.
 
 return: FExpr
     f-expression that converts input columns into the columns filled
@@ -170,18 +247,18 @@ See also
 static py::oobj pyfn_cut(const py::XArgs& args) {
   auto arg0         = args[0].to_oobj();
   auto nbins        = args[1].to<py::oobj>(py::None());
-  auto right_closed = args[2].to<bool>(true);
-  return PyFExpr::make(new FExpr_Cut(arg0, nbins, right_closed));
+  auto bins         = args[2].to<py::oobj>(py::None());
+  auto right_closed = args[3].to<bool>(true);
+  return PyFExpr::make(new FExpr_Cut(arg0, nbins, bins, right_closed));
 }
 
 DECLARE_PYFN(&pyfn_cut)
     ->name("cut")
     ->docs(doc_cut)
-    ->arg_names({"cols", "nbins", "right_closed"})
+    ->arg_names({"cols", "nbins", "bins", "right_closed"})
     ->n_positional_args(1)
-    ->n_keyword_args(2)
+    ->n_keyword_args(3)
     ->n_required_args(1);
-
 
 
 }}  // dt::expr
