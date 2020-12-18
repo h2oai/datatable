@@ -8,7 +8,7 @@
     -[new] A Frame can now be constructed from an Arrow
       table::
 
-          DT = dt.Frame(arrow_table)
+          >>> DT = dt.Frame(arrow_table)
 
       This process uses data Arrow C Data interface, and therefore does
       not entail data copying.

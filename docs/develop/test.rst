@@ -476,9 +476,9 @@ lengths. Generally, the code should not overflow its container block, or
 make the page wider than normal. Instead, the code block should get a
 horizontal scroll bar::
 
-    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Extra Sunday", "Fourth Weekend"]
     >>> print(days * 2)
-    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend']
 
 Same, but for a non-python code:
 

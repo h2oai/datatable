@@ -46,7 +46,7 @@
     or not. [#1503] This can be used to implement a simple column filter, for
     example::
 
-      del DT[:, (name.endswith("_tmp") for name in DT.names)]
+        >>> del DT[:, (name.endswith("_tmp") for name in DT.names)]
 
   -[enh] A slice-valued ``i`` expression can now be combined with a :func:`dt.by()`
     operator in ``DT[i, j, by]``. The result is that the slice ``i`` is applied

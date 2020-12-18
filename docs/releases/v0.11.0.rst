@@ -59,8 +59,8 @@
     explicitly specify the stype of the resulting column by "dividing" the
     list by the type you need::
 
-        dt.Frame(A=[1, 5, 10] / dt.int64,
-                 B=[0, 0, 0] / dt.float64)
+        >>> dt.Frame(A=[1, 5, 10] / dt.int64,
+        ...          B=[0, 0, 0] / dt.float64)
 
   -[enh] Added new argument ``bom=False`` to the :meth:`.to_csv()` method.
     If set to ``True``, it will add the Byte-Order Mark (BOM) to the output
@@ -205,7 +205,7 @@
   -[new] Function ``ifelse(cond, expr_if_true, expr_if_false)`` can return
     one of the two values based on the condition. [#2411] ::
 
-        DT["max(x,y)"] = ifelse(f.x >= f.y, f.x, f.y)
+        >>> DT["max(x,y)"] = ifelse(f.x >= f.y, f.x, f.y)
 
   -[enh] datatable no longer has modules ``blessed`` and ``typesentry`` as
     dependencies. [#1677] [#1535]
