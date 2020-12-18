@@ -57,6 +57,20 @@ rx_error = re.compile(r"(\w*Error): ")
 rx_table_header = re.compile(r"[\-\+ ]+\n?")
 rx_table_footer = re.compile(r"\[(\d+) rows? x (\d+) columns?\]\n?")
 
+def comma_separated(n):
+    """Render number `n` as a comma-separated string"""
+    if n < 0:
+        return "-" + comma_separated(-n)
+    if n < 10000:
+        return str(n)
+    else:
+        nstr = ""
+        while n >= 1000:
+            nstr = ",%03d%s" % (n % 1000, nstr)
+            n = n // 1000
+        return str(n) + nstr
+
+
 
 #-------------------------------------------------------------------------------
 # XHtmlFormatter
@@ -207,8 +221,8 @@ class XHtmlFormatter(pygments.formatter.Formatter):
             out += "<td></td></tr>"
         out += "</tbody>"
         out += "</table>"
-        rows = f"{nrows} row{'' if nrows == 1 else 's'}"
-        cols = f"{ncols} column{'' if ncols == 1 else 's'}"
+        rows = f"{comma_separated(nrows)} row{'' if nrows == 1 else 's'}"
+        cols = f"{comma_separated(ncols)} column{'' if ncols == 1 else 's'}"
         out += f"<div class='dtframe-footer'>{rows} &times; {cols}</div>"
         out += '</div>'
         yield ("raw", out)
