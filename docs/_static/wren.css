@@ -609,19 +609,12 @@ table.api-table td:first-child a:hover code.literal {
     position: relative;
 }
 
-.admonition.note:before {
-    content: "\f05a";
+.admonition:before {
     font-family: 'FontAwesome';
     left: 0;
     padding: 0.5rem 1rem;
     position: absolute;
     top: 1px;
-}
-
-.admonition.note {
-    background: #dbf8ff;
-    border: 1px solid #ccdddd;
-    color: #055160;
 }
 
 .admonition .admonition-title {
@@ -635,6 +628,29 @@ table.api-table td:first-child a:hover code.literal {
 p.admonition-title + .simple {
     padding-inline-start: 20px;
     margin-top: 0;
+}
+
+
+.admonition.note {
+    background: #dbf8ff;
+    border: 1px solid #ccdddd;
+    color: #055160;
+}
+
+.admonition.note:before {
+    content: "\f05a";
+}
+
+
+.admonition.warning {
+    background-color: #fff3cd;
+    border: 1px solid #edb;
+    color: #856404;
+}
+
+.admonition.warning:before {
+    content: "\f071";
+    color: darkred;
 }
 
 

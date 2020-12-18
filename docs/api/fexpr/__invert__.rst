@@ -29,7 +29,7 @@
     Notes
     -----
 
-    .. warning::
+    .. note::
 
         Use ``~x`` in order to negate a boolean FExpr. Using standard Python
         keyword ``not`` will result in an error.

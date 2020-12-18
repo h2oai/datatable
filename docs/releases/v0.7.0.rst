@@ -21,7 +21,7 @@
   -[enh] Frames can now be constructed via the keyword-args list of
     columns::
 
-        Frame(A=..., B=...)
+        >>> Frame(A=..., B=...)
 
   -[enh] Frame constructor now accepts a list of tuples, which it treats as
     rows when creating the frame.

@@ -174,66 +174,58 @@ return: Frame
 except: NotImplementedError
     The exception is raised when one of the frame columns has stype `obj64`.
 
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Unique values in the entire frame::
+
+    >>> dt.unique(df)
+       |    C0
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     1
+     2 |     2
+     3 |     3
+     4 |     4
+     5 |     5
+    [6 rows x 1 column]
+
+Unique values in a frame with a single column::
+
+    >>> dt.unique(df["A"])
+       |     A
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+    [2 rows x 1 column]
+
+
 See Also
 --------
-
 - :func:`intersect()` -- calculate the set intersection of values in the frames.
 - :func:`setdiff()` -- calculate the set difference between the frames.
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`union()` -- calculate the union of values in the frames.
-
-Examples
---------
-
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int32, int32, int32
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
-
-Unique values in the entire frame::
-
-  dt.unique(df)
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 6, 1
-
-    0,NA
-    1,1
-    2,2
-    3,3
-    4,4
-    5,5
-
-Unique values in a frame with a single column::
-
-  dt.unique(df["A"])
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 2, 1
-
-    0,1
-    1,2
-
 )";
 
 static py::PKArgs args_unique(
@@ -301,66 +293,58 @@ except: ValueError | NotImplementedError
         * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Union of all the columns in a frame::
+
+    >>> dt.union(*df)
+       |     A
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     1
+     2 |     2
+     3 |     3
+     4 |     4
+     5 |     5
+    [6 rows x 1 column]
+
+Union of two frames::
+
+    >>> dt.union(df["A"], df["C"])
+       |     A
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+    [2 rows x 1 column]
+
+
 See Also
 --------
-
 - :func:`intersect()` -- calculate the set intersection of values in the frames.
 - :func:`setdiff()` -- calculate the set difference between the frames.
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`unique()` -- find unique values in a frame.
-
-Examples
---------
-
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int32, int32, int32
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
-
-Union of all the columns in a frame::
-
-  dt.union(*df)
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 6, 1
-
-    0,NA
-    1,1
-    2,2
-    3,3
-    4,4
-    5,5
-
-Union of two frames::
-
-  dt.union(df["A"], df["C"])
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 2, 1
-
-    0,1
-    1,2
-
 )";
 
 
@@ -478,12 +462,10 @@ except: ValueError | NotImplementedError
 
 See Also
 --------
-
 - :func:`setdiff()` -- calculate the set difference between the frames.
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`union()` -- calculate the union of values in the frames.
 - :func:`unique()` -- find unique values in a frame.
-
 )";
 
 static py::PKArgs args_intersect(
@@ -579,12 +561,10 @@ except: ValueError | NotImplementedError
 
 See Also
 --------
-
 - :func:`intersect()` -- calculate the set intersection of values in the frames.
 - :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
 - :func:`union()` -- calculate the union of values in the frames.
 - :func:`unique()` -- find unique values in a frame.
-
 )";
 
 static py::PKArgs args_setdiff(
@@ -702,12 +682,10 @@ except: ValueError | NotImplementedError
 
 See Also
 --------
-
 - :func:`intersect()` -- calculate the set intersection of values in the frames.
 - :func:`setdiff()` -- calculate the set difference between the frames.
 - :func:`union()` -- calculate the union of values in the frames.
 - :func:`unique()` -- find unique values in a frame.
-
 )";
 
 static py::PKArgs args_symdiff(

@@ -20,10 +20,10 @@
     column supply a list of Trues and Falses, or force the boolean stype with
     the constructor parameter ``stype=bool``::
 
-        assert dt.Frame([False, True]) == dt.bool8
-        assert dt.Frame([0, 1]).stype == dt.int8
-        assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
-        assert dt.Frame([0, 1, 2]).stype == dt.int32
+        >>> assert dt.Frame([False, True]) == dt.bool8
+        >>> assert dt.Frame([0, 1]).stype == dt.int8
+        >>> assert dt.Frame([0, 1], stype=bool).stype == dt.bool8
+        >>> assert dt.Frame([0, 1, 2]).stype == dt.int32
 
   -[fix] A list of frames now displays properly in Jupyter Lab. (#2222)
 

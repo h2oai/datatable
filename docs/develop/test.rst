@@ -332,10 +332,10 @@ same as between regular paragraphs.
 And here's an example with a keyed frame::
 
     >>> DT = dt.Frame({"A": [1, 2, 3, 4, 5],
-    ...         "B": [4, 5, 6, 7, 8],
-    ...         "C": [7, 8, 9, 10, 11],
-    ...         "D": [5, 7, 2, 9, -1],
-    ...         "E": ['a','b','c','d','e']})
+    ...                "B": [4, 5, 6, 7, 8],
+    ...                "C": [7, 8, 9, 10, 11],
+    ...                "D": [5, 7, 2, 9, -1],
+    ...                "E": ['a','b','c','d','e']})
     >>> DT.key = ['E', 'D']
     >>> DT
     E          D |     A      B      C
@@ -476,9 +476,9 @@ lengths. Generally, the code should not overflow its container block, or
 make the page wider than normal. Instead, the code block should get a
 horizontal scroll bar::
 
-    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Extra Sunday", "Fourth Weekend"]
     >>> print(days * 2)
-    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend']
 
 Same, but for a non-python code:
 
@@ -504,7 +504,7 @@ spaced from the admonition.
 
 .. note::
 
-    Here's a node with more content. Why does it have so much content? Nobody
+    Here's a note with more content. Why does it have so much content? Nobody
     knows. In theory admonitions should be short and to the point, but this one
     is not playing by the rules. It just goes on and on and on and on,
     and it seems like it would never end. Even as you think that maybe at last

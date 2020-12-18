@@ -74,34 +74,28 @@ Examples
 
 .. code-block:: python
 
-    DT = dt.Frame(["cat,dog", "mouse", "cat,mouse", "dog,rooster", "mouse,dog,cat"])
+    >>> DT = dt.Frame(["cat,dog", "mouse", "cat,mouse", "dog,rooster", "mouse,dog,cat"])
+    >>> DT
+       | C0
+       | str32
+    -- + -------------
+     0 | cat,dog
+     1 | mouse
+     2 | cat,mouse
+     3 | dog,rooster
+     4 | mouse,dog,cat
+    [5 rows x 1 column]
 
-.. dtframe::
-    :names: C0
-    :types: str32
-    :shape: 5, 1
-
-    0,   "cat,dog"
-    1,   "mouse"
-    2,   "cat,mouse"
-    3,   "dog,rooster"
-    4,   "mouse,dog,cat"
-
-.. code-block:: python
-
-    split_into_nhot(DT)
-
-.. dtframe::
-    :names: cat, dog, mouse, rooster
-    :types: bool8, bool8, bool8, bool8
-    :shape: 5, 4
-
-    0,   1, 1, 0, 0
-    1,   0, 0, 1, 0
-    2,   1, 0, 1, 0
-    3,   0, 1, 0, 1
-    4,   1, 1, 1, 0
-
+    >>> dt.split_into_nhot(DT)
+       |   cat    dog  mouse  rooster
+       | bool8  bool8  bool8    bool8
+    -- + -----  -----  -----  -------
+     0 |     1      1      0        0
+     1 |     0      0      1        0
+     2 |     1      0      1        0
+     3 |     0      1      0        1
+     4 |     1      1      1        0
+    [5 rows x 4 columns]
 )";
 
 

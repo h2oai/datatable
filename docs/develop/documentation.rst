@@ -317,7 +317,9 @@ The effect of this declaration is the following:
   be included as one of the "wheels".
 
 - Within the ``.. changelog::`` directive, a special form of list items is
-  supported::
+  supported:
+
+  .. code-block:: rst
 
       -[new] New feature that was added
 
