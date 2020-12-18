@@ -217,7 +217,6 @@ def patch_list_table():
 
 
 def setup(app):
-    app.add_css_file("pygments.css")
     patch_list_table()
 
     if html_theme == "wren":

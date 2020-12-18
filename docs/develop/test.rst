@@ -332,10 +332,10 @@ same as between regular paragraphs.
 And here's an example with a keyed frame::
 
     >>> DT = dt.Frame({"A": [1, 2, 3, 4, 5],
-    ...         "B": [4, 5, 6, 7, 8],
-    ...         "C": [7, 8, 9, 10, 11],
-    ...         "D": [5, 7, 2, 9, -1],
-    ...         "E": ['a','b','c','d','e']})
+    ...                "B": [4, 5, 6, 7, 8],
+    ...                "C": [7, 8, 9, 10, 11],
+    ...                "D": [5, 7, 2, 9, -1],
+    ...                "E": ['a','b','c','d','e']})
     >>> DT.key = ['E', 'D']
     >>> DT
     E          D |     A      B      C
