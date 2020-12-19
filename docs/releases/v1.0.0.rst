@@ -41,7 +41,7 @@
       a different stype. This function is an alternative to the already
       existing functionality of using the stype itself as a cast function.
 
-    -[enh] Function :func:`sort()` can now accept argument ``na_positon=``.
+    -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after
       sorting. [#793]
