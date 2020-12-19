@@ -50,6 +50,10 @@
       ``"remove"``. The values describe the position assigned to NAs after
       sorting. [#793]
 
+    -[enh] Function :func:`cut()` can now accept argument ``bins``, that
+     is a list or a tuple of frames containing edges of the binning
+     intervals. [#2819]
+
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
 
