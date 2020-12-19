@@ -85,8 +85,8 @@ class FExpr_Cut : public FExpr_Func {
         py::oiter py_bins = py_bins_.to_oiter();
 
         if (py_bins.size() != ncols) {
-          throw ValueError() << "`bins` length must be "
-            << "the same as the number of columns in the frame/expression, i.e. `"
+          throw ValueError() << "Number of frames in `bins` must equal to "
+            << "the number of columns in the frame/expression, i.e. `"
             << ncols << "`, instead got: `" << py_bins.size() << "`";
         }
 
@@ -94,20 +94,21 @@ class FExpr_Cut : public FExpr_Func {
         for (auto py_bin : py_bins) {
           DataTable* dt = py_bin.to_datatable();
           if (dt->ncols() != 1) {
-            throw ValueError() << "binning datatables must have one column only, "
-              << "instead for bins[" << i << "] got number of columns: `" << dt->ncols() << "`";
+            throw ValueError() << "All frames from `bins` must have "
+              << "one column only, instead for the frame `" << i << "` got: "
+              << dt->ncols() << "`";
           }
 
           if (dt->nrows() < 2) {
-            throw ValueError() << "binning columns must contain at least two points, "
-              << "instead for bins[" << i << "] got number of points: `" << dt->nrows() << "`";
+            throw ValueError() << "All frames from `bins` must contain at least two edges, "
+              << "instead for the frame `" << i << "` got: `" << dt->nrows() << "`";
           }
 
           // Retrieve bins
           Column bins = dt->get_column(0);
           if (!ltype_is_numeric(bins.ltype())) {
-            throw TypeError() << "cut() can only bin data based on the numeric bins, "
-              << "instead bins for the column `" << i << "` has an stype: `"
+            throw TypeError() << "All frames from `bins` must contain numeric columns only, "
+              << "instead for the frame `" << i << "` the column stype is `"
               << bins.stype() << "`";
           }
           bins.cast_inplace(SType::FLOAT64);
