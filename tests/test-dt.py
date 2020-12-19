@@ -183,9 +183,9 @@ def test_dt_properties(dt0):
     assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.int, ltype.real,
-                          ltype.bool, ltype.int, ltype.str)
+                          ltype.void, ltype.int, ltype.str)
     assert dt0.stypes == (stype.int32, stype.bool8, stype.int8, stype.float64,
-                          stype.bool8, stype.int8, stype.str32)
+                          stype.void, stype.int8, stype.str32)
     assert sys.getsizeof(dt0) > 500
 
 
@@ -381,7 +381,7 @@ def test_random_attack():
 def test_dt_stype(dt0):
     assert dt0[0].stype == stype.int32
     assert dt0[1].stype == stype.bool8
-    assert dt0[:, [1, 4]].stype == stype.bool8
+    assert dt0[:, [2, 5]].stype == stype.int8
     assert dt0[-1].stype == stype.str32
 
 
@@ -1061,7 +1061,7 @@ def test_single_element_all_stypes(st):
         x = df[i, 0]
         y = df[i, "A"]
         assert x == y
-        if item is None:
+        if item is None or st == dt.stype.void:
             assert x is None
         else:
             assert isinstance(x, pt)
@@ -1156,13 +1156,13 @@ def test_materialize_object_col():
     class A:
         pass
 
-    DT = dt.Frame([A() for i in range(5)])
+    DT = dt.Frame([A() for i in range(5)], stype=dt.obj64)
     DT = DT[::-1, :]
     frame_integrity_check(DT)
     DT.materialize()
     frame_integrity_check(DT)
     assert DT.shape == (5, 1)
-    assert DT.stypes == (dt.obj64,)
+    assert DT.stype == dt.obj64
     assert all(isinstance(x, A) and sys.getrefcount(x) > 0
                for x in DT.to_list()[0])
 
@@ -1218,7 +1218,7 @@ def test_issue898():
     results (previously this was crashing).
     """
     class A: pass
-    f0 = dt.Frame([A() for i in range(1111)])
+    f0 = dt.Frame([A() for i in range(1111)] / dt.obj64)
     assert f0.stypes == (dt.stype.obj64, )
     f1 = f0[:-1, :]
     del f0

@@ -8,7 +8,7 @@
     -[new] A Frame can now be constructed from an Arrow
       table::
 
-          DT = dt.Frame(arrow_table)
+          >>> DT = dt.Frame(arrow_table)
 
       This process uses data Arrow C Data interface, and therefore does
       not entail data copying.
@@ -20,6 +20,10 @@
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.
+
+    -[enh] When a Frame is shown in a python console, it will now display
+      the stype of each column, as a second line under the column names.
+      [#2810]
 
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
@@ -44,6 +48,10 @@
 
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
+
+    -[fix] Fix a crash that occurred when using `median()` on virtual
+      columns of type ArrayView64. [#2802]
+
 
     fread
     -----

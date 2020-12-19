@@ -40,7 +40,7 @@ static size_t compute_nrows(int64_t start, int64_t stop, int64_t step) {
 }
 
 static SType compute_stype(int64_t start, int64_t stop, SType stype) {
-  if (stype == SType::VOID) {
+  if (stype == SType::AUTO) {
     bool start_is_int32 = (start == static_cast<int32_t>(start));
     bool stop_is_int32  = (stop == static_cast<int32_t>(stop));
     return (start_is_int32 && stop_is_int32) ? SType::INT32 : SType::INT64;

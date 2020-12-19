@@ -114,6 +114,7 @@ _unpack_frame_column_args(const py::PKArgs& args)
 static const char* doc_frame_columns_virtual =
 R"(frame_columns_virtual(frame)
 --
+.. x-version-deprecated:: 0.11.0
 
 Return the list indicating which columns in the `frame` are virtual.
 
@@ -125,7 +126,6 @@ return: List[bool]
 
 Notes
 -----
-.. deprecated:: 0.11.0
 
 This function will be expanded and moved into the main :class:`dt.Frame` class.
 )";
@@ -215,9 +215,9 @@ static void frame_integrity_check(const py::PKArgs& args) {
 
 static const char* doc_in_debug_mode =
 R"(
-Return `True` if :mod:`datatable` was compiled in debug mode.
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Return `True` if :mod:`datatable` was compiled in debug mode.
 )";
 
 static py::PKArgs args_in_debug_mode(
@@ -299,9 +299,9 @@ static void _register_function(const py::PKArgs& args) {
 
 static const char* doc_compiler_version =
 R"(
-Return the version of the C++ compiler used to compile this module.
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Return the version of the C++ compiler used to compile this module.
 )";
 
 static py::PKArgs args_compiler_version(
@@ -337,9 +337,9 @@ static py::oobj compiler_version(const py::PKArgs&) {
 
 static const char* doc_regex_supported =
 R"(
-Was the datatable built with regular expression support?
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Was the datatable built with regular expression support?
 )";
 
 static py::PKArgs args_regex_supported(

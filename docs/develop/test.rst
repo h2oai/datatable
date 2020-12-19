@@ -299,5 +299,254 @@ several States, pursuant to the fifth Article of the original Constitution.
     or to the people.
 
 
+Code samples
+------------
+
+Literal block after a paragraph. The spacing between this text and the code
+block below should be small, similar to regular spacing between lines::
+
+    >>> import datatable as dt
+    >>>
+    >>> DT = dt.Frame(A = [3, 1, 4, 1, 5])
+    >>> DT.shape
+    (5, 1)
+    >>> repr(DT)
+    '<Frame#7fe06e063ca8 5x1>'
+    >>> # This is how a simple frame would be rendered:
+    >>> DT
+       |  A
+    -- + --
+     0 |  3
+     1 |  1
+     2 |  4
+     3 |  1
+     4 |  5
+
+    [5 rows x 1 column]
+    >>> DT + DT
+    TypeError: unsupported operand type(s) for +: 'datatable.Frame' and 'datatable.Frame'
+
+This is a paragraph after the code block. The spacing should be roughly the
+same as between regular paragraphs.
+
+And here's an example with a keyed frame::
+
+    >>> DT = dt.Frame({"A": [1, 2, 3, 4, 5],
+    ...                "B": [4, 5, 6, 7, 8],
+    ...                "C": [7, 8, 9, 10, 11],
+    ...                "D": [5, 7, 2, 9, -1],
+    ...                "E": ['a','b','c','d','e']})
+    >>> DT.key = ['E', 'D']
+    >>> DT
+    E          D |     A      B      C
+    str32  int32 | int32  int32  int32
+    -----  ----- + -----  -----  -----
+    a          5 |     1      4      7
+    b          7 |     2      5      8
+    c          2 |     3      6      9
+    d          9 |     4      7     10
+    e         -1 |     5      8     11
+    [5 rows x 5 columns]
+
+
+The following is a test for multi-line output from code samples::
+
+    >>> for i in range(5):
+    ...     print(1/(4 - i))
+    0.25
+    0.3333333333333333
+    0.5
+    1.0
+    ZeroDivisionError: division by zero
+
+The following is a plain piece of python code (i.e. without input/output
+sections):
+
+.. code-block:: python
+
+    #!/usr/bin/python
+    import everything as nothing
+
+    class MyClass(object):
+        r"""
+        Just some sample code
+        """
+
+        def __init__(self, param1, param2):
+            assert isinstance(param1, str)
+            self.x = param1.lower() + "!!!"
+            self.y = param2
+
+        @classmethod
+        def enjoy(cls, item):
+            print(str(cls) + " likes " + item)
+
+    if __name__ == "__main__":
+        data = [MyClass('abc', 2)]
+        data += [1, 123, -14, +297, 2_300_000]
+        data += [True, False, None]
+        data += [0x123, 0o123, 0b111]
+        data += [2.71, 1.23e+45, -1.0001e-11, -math.inf]
+        data += ['abc', "def", """ghijk""", b"lmnop"]
+        data += [f"This is an f-string {len(data)}.\n"]
+        data += [r"\w+\n?\x0280\\ [abc123]+$",
+                 "\w+\n?\x0280\\ [abc123]+$",]
+        data += [..., Ellipsis]
+
+        # This cannot happen:
+        if data and not data:
+            assert AssertionError
+
+Languages other than python are also supported. For example, the following
+is a shell code sample (``console`` "language"):
+
+.. code-block:: console
+
+    $ # list all files in a directory
+    $ ls -l
+    total 48
+    -rw-r--r--   1 pasha  staff   804B Dec 10 09:14 Makefile
+    drwxr-xr-x  24 pasha  staff   768B Dec 10 09:14 api/
+    -rw-r--r--   1 pasha  staff   7.1K Dec 11 14:10 conf.py
+    drwxr-xr-x   7 pasha  staff   224B Dec 10 09:14 develop/
+    -rw-r--r--   1 pasha  staff    62B Jul 29 14:02 docutils.conf
+    -rw-r--r--   1 pasha  staff   4.2K Dec 10 09:14 index.rst
+    drwxr-xr-x  12 pasha  staff   384B Dec 10 09:14 manual/
+    drwxr-xr-x  19 pasha  staff   608B Dec 10 13:19 releases/
+    drwxr-xr-x   6 pasha  staff   192B Dec 10 13:19 start/
+
+    $ # Here are some more advanced syntax elements:
+    $ echo "PYTHONHOME = $PYTHONHOME"
+    $ export TMP=/tmp
+    $ docker run -it --init -v `pwd`:/cwd ${DOCKER_CONTAINER}
+
+RST code sample:
+
+.. code-block:: rst
+
+    Heading
+    +++++++
+
+    Da-da-da-daaaaa, **BOOM**.
+    Da-da-da-da-da-dA-da-da-da-da-da-da-da-da,
+    DA-DA-DA-DA, DA-DA DA Da, BOOM,
+    DAA-DA-DA-*DAAAAAAAAAAAA*, ty-dum
+
+    - item 1 (:func:`foo() <dt.foo>`);
+    - item 2;
+    - ``item 3`` is a :ref:`reference`.
+
+    .. custom-directive-here:: not ok
+        :option1: value1
+        :option2: value2
+
+        Here be dragons
+
+    .. _`plain target`:
+
+    There could be other |markup| elements too, such as `links`_, and
+    various inline roles, eg :sup:`what's up!`. Plain URLs probably
+    won't be highlighted: http://datatable.com/.
+
+    ..
+        just a comment |here|
+        .. yep:: still a comment
+
+    .. _`example website`: https://example.com/
+
+C++ code sample:
+
+.. code-block:: C++
+
+    #include <cstring>
+
+    int main() {
+        return 0;
+    }
+
+SQL code sample:
+
+.. code-block:: SQL
+
+    SELECT * FROM students WHERE name='Robert'; DROP TABLE students; --'
+
+
+Special care must be taken in case the code in the samples has very long line
+lengths. Generally, the code should not overflow its container block, or
+make the page wider than normal. Instead, the code block should get a
+horizontal scroll bar::
+
+    >>> days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "Extra Sunday", "Fourth Weekend"]
+    >>> print(days * 2)
+    ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'Extra Sunday', 'Fourth Weekend']
+
+Same, but for a non-python code:
+
+.. code-block:: rst
+
+    Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis
+    nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+    Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+
+
+Admonitions
+-----------
+
+First, the ``.. note::`` block, which should display in a prominent box:
+
+.. note::
+
+    Please pay attention!
+
+There's usually some other content coming after the note. It should be properly
+spaced from the admonition.
+
+.. note::
+
+    Here's a note with more content. Why does it have so much content? Nobody
+    knows. In theory admonitions should be short and to the point, but this one
+    is not playing by the rules. It just goes on and on and on and on,
+    and it seems like it would never end. Even as you think that maybe at last
+    the end is near, a new paragraph suddenly appears:
+
+    And that new paragraph just repeats the same nonsense all over again.
+    Really, there is no any good reason for it to keep going, but it does
+    nevertheless, as if trying to stretch the limits of how many words can be
+    spilled without any of them making any sense.
+
+.. note::
+
+    - First, this is a note with a list
+    - Second, it may contain several list items
+    - Third is here just to make things look more impressive
+    - Fourth is the last one (or is it?)
+
+
+
+X-versions
+----------
+
+.. x-version-added:: 0.8.0
+
+The ``..x-version-added`` directive usually comes as a first item after a
+header, so it has reduced margins from the top, and has to have adequate
+margins on the bottom to compensate.
+
+.. x-version-deprecated:: 0.10.0
+
+The ``..x-version-changed`` directive is a paragraph-level, and it usually has
+some additional content describing what exactly has changed.
+
+.. x-version-changed:: 0.9.0
+
+    Nobody knows what exactly changed, but most observers agree that
+    *something* did.
+
+    While we're trying to figure out what it was, please visit the release
+    notes (linked above) and see if it makes sense to you.
+
+
+
 
 .. _`example website`: https://www.example.com/

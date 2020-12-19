@@ -70,7 +70,7 @@ Workframe FExpr_Literal_Float::evaluate_r(
       const Column& col = dt0->get_column(i);
       stype = (col.ltype() == LType::REAL)? col.stype() : SType::FLOAT64;
     } else {
-      stype = SType::VOID;
+      stype = SType::AUTO;
     }
 
     outputs.add_column(

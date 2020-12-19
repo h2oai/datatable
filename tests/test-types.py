@@ -16,6 +16,7 @@ import datatable as dt
 
 def test_stype():
     from datatable import stype
+    assert stype.void
     assert stype.bool8
     assert stype.int8
     assert stype.int16
@@ -27,11 +28,12 @@ def test_stype():
     assert stype.str64
     assert stype.obj64
     # When new stypes are added, don't forget to update this test suite
-    assert len(stype) == 10
+    assert len(stype) == 11
 
 
 def test_stype_names():
     from datatable import stype
+    assert stype.void.name == "void"
     assert stype.bool8.name == "bool8"
     assert stype.int8.name == "int8"
     assert stype.int16.name == "int16"
@@ -67,6 +69,7 @@ def test_stype_codes():
 def test_stype_ctypes():
     from datatable import stype
     import ctypes
+    assert stype.void.ctype == None
     assert stype.bool8.ctype == ctypes.c_int8
     assert stype.int8.ctype == ctypes.c_int8
     assert stype.int16.ctype == ctypes.c_int16
@@ -127,6 +130,7 @@ def test_stype_instantiate():
 
 def test_stype_instantiate_from_numpy(numpy):
     from datatable import stype
+    assert stype(numpy.dtype("void")) is stype.void
     assert stype(numpy.dtype("bool")) is stype.bool8
     assert stype(numpy.dtype("int8")) is stype.int8
     assert stype(numpy.dtype("int16")) is stype.int16
@@ -143,7 +147,7 @@ def test_stype_instantiate_bad():
     with pytest.raises(dt.exceptions.ValueError):
         print(stype(-1))
     with pytest.raises(dt.exceptions.ValueError):
-        print(stype(0))
+        print(stype(0.01))
     with pytest.raises(dt.exceptions.ValueError):
         print(stype(["i", "4"]))
     with pytest.raises(dt.exceptions.ValueError):
@@ -156,7 +160,7 @@ def test_stype_instantiate_bad():
 @pytest.mark.parametrize("st", list(dt.stype))
 def test_stype_minmax(st):
     from datatable import stype, ltype
-    if st in (stype.str32, stype.str64, stype.obj64):
+    if st in (stype.void, stype.str32, stype.str64, stype.obj64):
         assert st.min is None
         assert st.max is None
     else:
@@ -192,6 +196,7 @@ def test_stype_minmax(st):
 
 def test_ltype():
     from datatable import ltype
+    assert ltype.void
     assert ltype.bool
     assert ltype.int
     assert ltype.real
@@ -199,11 +204,12 @@ def test_ltype():
     assert ltype.str
     assert ltype.obj
     # When new stypes are added, don't forget to update this test suite
-    assert len(ltype) == 6
+    assert len(ltype) == 7
 
 
 def test_ltype_names():
     from datatable import ltype
+    assert ltype.void.name is "void"
     assert ltype.bool.name is "bool"
     assert ltype.int.name is "int"
     assert ltype.real.name is "real"
@@ -220,6 +226,7 @@ def test_ltype_repr():
 
 def test_ltype_stypes():
     from datatable import stype, ltype
+    assert ltype.void.stypes == [stype.void]
     assert ltype.bool.stypes == [stype.bool8]
     assert set(ltype.int.stypes) == {stype.int8, stype.int16, stype.int32,
                                      stype.int64}

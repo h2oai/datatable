@@ -285,7 +285,7 @@ static const char* doc_re_match =
 R"(re_match(self, pattern, flags=None)
 --
 
-.. deprecated:: 0.11
+.. x-version-deprecated:: 0.11
 
 Test whether values in a string column match a regular expression.
 

@@ -302,7 +302,7 @@ class FExpr_Round : public FExpr_FuncUnary {
 static const char* doc_round =
 R"(round(cols, ndigits=None)
 --
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 Round the values in `cols` up to the specified number of the digits
 of precision `ndigits`. If the number of digits is omitted, rounds
@@ -310,7 +310,7 @@ to the nearest integer.
 
 Generally, this operation is equivalent to::
 
-    rint(col * 10**ndigits) / 10**ndigits
+    >>> rint(col * 10**ndigits) / 10**ndigits
 
 where function `rint()` rounds to the nearest integer.
 

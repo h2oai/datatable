@@ -155,7 +155,7 @@ dt.lib._datatable.initialize_final()
 
 def open(path):
     """
-    .. deprecated:: 0.10.0
+    .. x-version-deprecated:: 0.10.0
         Use :func:`fread` instead.
     """
     import warnings

@@ -212,8 +212,8 @@ Other
     first()           <dt/first>
     fread()           <dt/fread>
     g                 <dt/g>
-    init_styles()     <dt/init_styles>
     ifelse()          <dt/ifelse>
+    init_styles()     <dt/init_styles>
     intersect()       <dt/intersect>
     iread()           <dt/iread>
     join()            <dt/join>
@@ -223,6 +223,8 @@ Other
     median()          <dt/median>
     min()             <dt/min>
     qcut()            <dt/qcut>
+    rbind()           <dt/rbind>
+    repeat()          <dt/repeat>
     rowall()          <dt/rowall>
     rowany()          <dt/rowany>
     rowcount()        <dt/rowcount>
@@ -233,15 +235,13 @@ Other
     rowmin()          <dt/rowmin>
     rowsd()           <dt/rowsd>
     rowsum()          <dt/rowsum>
-    rbind()           <dt/rbind>
-    repeat()          <dt/repeat>
     sd()              <dt/sd>
     setdiff()         <dt/setdiff>
     shift()           <dt/shift>
     sort()            <dt/sort>
     split_into_nhot() <dt/split_into_nhot>
-    symdiff()         <dt/symdiff>
     sum()             <dt/sum>
+    symdiff()         <dt/symdiff>
     union()           <dt/union>
     unique()          <dt/unique>
     update()          <dt/update>

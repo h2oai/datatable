@@ -30,6 +30,7 @@
 // - added an operating system check, so that this code only builds on Windows;
 // - added MAP_NORESERVE;
 // - added MAP_PRIVATE handling to page and file protection routines;
+// - modified `dwMaxSizeLow` and `dwMaxSizeHigh` calculation;
 // - minor changes to code format.
 //
 //------------------------------------------------------------------------------

@@ -144,17 +144,17 @@ std::string FExpr_IfElse::repr() const {
 static const char* doc_ifelse =
 R"(ifelse(condition1, value1, condition2, value2, ..., default)
 --
-.. xversionadded:: 0.11.0
+.. x-version-added:: 0.11.0
 
 An expression that chooses its value based on one or more
 conditions.
 
 This is roughly equivalent to the following Python code::
 
-    result = value1 if condition1 else \
-             value2 if condition2 else \
-             ...                  else \
-             default
+    >>> result = value1 if condition1 else \
+    ...          value2 if condition2 else \
+    ...          ...                  else \
+    ...          default
 
 For every row this function evaluates the smallest number of expressions
 necessary to get the result. Thus, it evaluates `condition1`, `condition2`,
@@ -187,85 +187,70 @@ return: FExpr
 
 Notes
 -----
-.. versionchanged:: 1.0.0
+.. x-version-changed:: 1.0.0
 
     Earlier this function accepted a single condition only.
 
 Examples
 --------
 
-- Single condition
-    - Task: Create a new column `Colour`, where if `Set` is `Z` then its value should be `Green`, else `Red`
+Single condition
+~~~~~~~~~~~~~~~~
+Task: Create a new column `Colour`, where if `Set` is `'Z'` then the
+value should be `'Green'`, else `'Red'`::
 
-.. code:: python
-
-    from datatable import dt, f, by, ifelse, update
-
-    df = dt.Frame("""Type       Set
-                      A          Z
-                      B          Z           
-                      B          X
-                      C          Y""")
-
-    df[:, update(Colour = ifelse(f.Set == "Z",  # condition
-                                 "Green",       # if condition is True
-                                 "Red"))        # if condition is False
-                                      ]
-
-    df
-
-.. dtframe::
-    :names: Type,Set,Colour
-    :types: str32,str32,str32
-    :shape: 4, 3
-
-    0,A,Z,Green
-    1,B,Z,Green
-    2,B,X,Red
-    3,C,Y,Red
-
-- Multiple conditions
-    - Task: Create new column ``value`` where
-         | if ``a`` > 0 then ``a``,
-         | else if ``b`` > 0 then ``b``,
-         | else ``c``
-
-.. code:: python
-
-    df = dt.Frame({"a": [0,0,1,2],
-                   "b": [0,3,4,5],
-                   "c": [6,7,8,9]}
-    df
-
-.. dtframe::
-    :names: a,b,c
-    :types: int8,int8,int8
-    :shape: 4,3
-
-    0,0,0,6
-    1,0,3,7
-    2,1,4,8
-    3,2,5,9
-
-.. code:: python
-
-    df[:, update(value = ifelse(f.a > 0, f.a,  # first condition and result
-                                f.b > 0, f.b,  # second condition and result
-                                f.c))          # default if no condition is True
-                                ]
-
-    df
+    >>> from datatable import dt, f, by, ifelse, update
+    >>>
+    >>> df = dt.Frame("""Type       Set
+    ...                   A          Z
+    ...                   B          Z
+    ...                   B          X
+    ...                   C          Y""")
+    >>> df[:, update(Colour = ifelse(f.Set == "Z",  # condition
+    ...                              "Green",       # if condition is True
+    ...                              "Red"))        # if condition is False
+    ... ]
+    >>> df
+       | Type   Set    Colour
+       | str32  str32  str32
+    -- + -----  -----  ------
+     0 | A      Z      Green
+     1 | B      Z      Green
+     2 | B      X      Red
+     3 | C      Y      Red
+    [4 rows x 3 columns]
 
 
-.. dtframe::
-    :names: a,b,c,value
-    :types: int8,int8,int8,int8
-    :shape: 4,4
+Multiple conditions
+~~~~~~~~~~~~~~~~~~~
+Task: Create new column ``value`` whose value is taken from columns ``a``,
+``b``, or ``c`` -- whichever is nonzero first::
 
-    0,0,0,6,6
-    1,0,3,7,3
-    2,1,4,8,1
-    3,2,5,9,2
+    >>> df = dt.Frame({"a": [0,0,1,2],
+    ...                "b": [0,3,4,5],
+    ...                "c": [6,7,8,9]})
+    >>> df
+       |     a      b      c
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     0      0      6
+     1 |     0      3      7
+     2 |     1      4      8
+     3 |     2      5      9
+    [4 rows x 3 columns]
+
+    >>> df['value'] = ifelse(f.a > 0, f.a,  # first condition and result
+    ...                      f.b > 0, f.b,  # second condition and result
+    ...                      f.c)           # default if no condition is True
+    >>> df
+       |     a      b      c  value
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     0      0      6      6
+     1 |     0      3      7      3
+     2 |     1      4      8      1
+     3 |     2      5      9      2
+    [4 rows x 4 columns]
 )";
 
 static py::oobj ifelse(const py::XArgs& args) {

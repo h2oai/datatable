@@ -266,7 +266,7 @@ def test_create_from_empty_list_of_lists():
     frame_integrity_check(d6)
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
-    assert d6.ltypes == (ltype.bool, )
+    assert d6.ltypes == (ltype.void, )
 
 
 
@@ -574,7 +574,7 @@ def test_create_from_list_of_dicts_with_names1():
     frame_integrity_check(d0)
     assert d0.shape == (5, 4)
     assert d0.names == ("c", "a", "d", "e")
-    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.void)
     assert d0.to_list() == [["Rose", None, "Lily", None, None],
                             [12, 37, 80, None, None],
                             [None, None, 3.14159, 1.7e10, None],
@@ -697,16 +697,10 @@ def test_auto_int32_2():
     assert d0.to_list()[0] == src
 
 
-def test_auto_int32_3(numpy):
-    i8 = numpy.int8
-    i16 = numpy.int16
-    i32 = numpy.int32
-    src = [None, False, 0, i8(0), i16(0), i32(0)]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list() == [[None, 0, 0, 0, 0, 0]]
-
+def test_auto_int32_3(np):
+    src = [None, 0, np.int8(0), np.int16(0), np.int32(0)]
+    DT = dt.Frame(src)
+    assert_equals(DT, dt.Frame([None, 0, 0, 0, 0] / dt.int32))
 
 
 def test_auto_int64():
@@ -732,10 +726,10 @@ def test_auto_str32_1():
 
 
 def test_auto_str32_2():
-    DT = dt.Frame([None, 1, 12, "fini"])
+    DT = dt.Frame([None, "1a", "12", "fini"])
     frame_integrity_check(DT)
     assert DT.stype == stype.str32
-    assert DT.to_list() == [[None, "1", "12", "fini"]]
+    assert DT.to_list() == [[None, "1a", "12", "fini"]]
 
 
 def test_auto_str32_3():
@@ -768,7 +762,7 @@ def test_create_large_string_column():
 def test_create_from_nones():
     d0 = dt.Frame([None, None, None])
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.bool8, )
+    assert d0.stypes == (stype.void, )
     assert d0.shape == (3, 1)
 
 
@@ -1352,6 +1346,14 @@ def test_create_from_arrow2(pa):
                  C3=[2.17, None, None, None, 0.1],
                  D4=[None, None, None, True, False])
     )
+
+
+def test_create_from_arrow_null(pa):
+    tbl = pa.Table.from_arrays(
+            [pa.array([None] * 5)],
+            names=["A"])
+    assert_equals(dt.Frame(tbl),
+                  dt.Frame(A = [None] * 5))
 
 
 @pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),

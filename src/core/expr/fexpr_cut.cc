@@ -251,7 +251,7 @@ class FExpr_Cut : public FExpr_Func {
 static const char* doc_cut =
 R"(cut(cols, nbins=10, right_closed=True)
 --
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 Cut all the columns from `cols` by binning their values into
 equal-width discrete intervals.

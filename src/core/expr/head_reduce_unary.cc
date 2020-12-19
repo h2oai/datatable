@@ -126,102 +126,89 @@ return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
 
-See Also
---------
-
-- :func:`last()` -- function that returns the last row.
 
 Examples
 --------
 :func:`first()` returns the first column in a frame::
 
-    from datatable import dt, f, by, sort, first
-    df = dt.Frame({"A": [1, 1, 2, 1, 2], 
-                   "B": [None, 2, 3, 4, 5]})
-    df 
+    >>> from datatable import dt, f, by, sort, first
+    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, 5]})
+    >>> df
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+     1 |  1   2
+     2 |  2   3
+     3 |  1   4
+     4 |  2   5
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 5, 2
+    [5 rows x 2 columns]
+    >>> dt.first(df)
+       |  A
+    -- + --
+     0 |  1
+     1 |  1
+     2 |  2
+     3 |  1
+     4 |  2
 
-    0,1,NA
-    1,1,2
-    2,2,3
-    3,1,4
-    4,2,5
-
-::
-
-    dt.first(df)
-
-.. dtframe::
-    :names: A
-    :types: int8
-    :shape: 5, 1
-
-    0,1
-    1,1
-    2,2
-    3,1
-    4,2
+    [5 rows x 1 column]
 
 Within a frame, it returns the first row::
 
-    df[:, first(f[:])]
+    >>> df[:, first(f[:])]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 1, 2
-
-    0,1,NA
+    [1 row x 2 columns]
 
 Of course, you can replicate this by passing 0 to the ``i`` section instead::
 
-    df[0, :]
+    >>> df[0, :]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 1, 2
+    [1 row x 2 columns]
 
-    0,1,NA
+:func:`first()` comes in handy if you wish to get the first non null value in a
+column::
 
-:func:`first()` comes in handy if you wish to get the first non null value in a column::
+    >>> df[f.B != None, first(f.B)]
+       |  B
+    -- + --
+     0 |  2
 
-    df[f.B != None, first(f.B)]
-
-.. dtframe::
-    :names: B
-    :types: int8
-    :shape: 1,1
-
-    0,2
+    [1 row x 1 column]
 
 :func:`first()` returns the first row per group in a :func:`by()` operation::
 
-    df[:, first(f[:]), by("A")]
+    >>> df[:, first(f[:]), by("A")]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+     1 |  2   3
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 2, 2
+    [2 rows x 2 columns]
 
-    0,1,NA
-    1,2,3
+To get the first non-null value per row in a :func:`by()` operation, you can
+use the :func:`sort()` function, and set the ``na_position`` argument as
+``last``::
 
-To get the first non-null value per row in a :func:`by()` operation, you can use the :func:`sort()` function, and set the ``na_position`` argument as ``last``::
+    >>> df[:, first(f[:]), by("A"), sort("B", na_position="last")]
+       |  A   B
+    -- + --  --
+     0 |  1   2
+     1 |  2   3
 
-    df[:, first(f[:]), by("A"), sort("B", na_position="last")]
+    [2 rows x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 2, 2
 
-    0,1,2
-    1,2,3
+See Also
+--------
+- :func:`last()` -- function that returns the last row.
 )";
 
 
@@ -240,106 +227,93 @@ return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
 
-See Also
---------
-
-- :func:`first()` -- function that returns the first row.
 
 Examples
 --------
 
-:func:`last()` returns the last column in a frame::
+``last()`` returns the last column in a frame::
 
-    from datatable import dt, f, by, sort, last
+    >>> from datatable import dt, f, by, sort, last
+    >>>
+    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None]})
+    >>>
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1     NA
+     1 |     1      2
+     2 |     2      3
+     3 |     1      4
+     4 |     2     NA
+    [5 rows x 2 columns]
 
-    df = dt.Frame({"A": [1, 1, 2, 1, 2],
-                   "B": [None, 2, 3, 4, None]})
-
-    df
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 5, 2
-
-    0,1,NA
-    1,1,2
-    2,2,3
-    3,1,4
-    4,2,NA
-
-::
-
-    dt.last(df)
-
-.. dtframe::
-    :names: B
-    :types: int8
-    :shape: 5, 1
-
-    0,NA
-    1,2
-    2,3
-    3,4
-    4,NA
+    >>> dt.last(df)
+       |     B
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     2
+     2 |     3
+     3 |     4
+     4 |    NA
+    [5 rows x 1 column]
 
 Within a frame, it returns the last row::
 
-    df[:, last(f[:])]
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 1, 2
-
-    0,2,NA
+    >>> df[:, last(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     2     NA
+    [1 row x 2 columns]
 
 The above code can be replicated by passing -1 to the ``i`` section instead::
 
-    df[-1, :]
+    >>> df[-1, :]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     2     NA
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 1, 2
+Like ``first()``, ``last()`` can be handy if you wish to get the last
+non null value in a column::
 
-    0,2,NA
+    >>> df[f.B != None, dt.last(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |     4
+    [1 row x 1 column]
 
-Like :func:`first()`, :func:`last()` can be handy if you wish to get the last non null value in a column::
+``last()`` returns the last row per group in a :func:`by()` operation::
 
-   df[f.B != None, dt.last(f.B)]
+    >>> df[:, last(f[:]), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     2     NA
+    [2 rows x 2 columns]
 
-.. dtframe::
-    :names: B
-    :types: int8
-    :shape: 1,1
+To get the last non-null value per row in a :func:`by()` operation, you can
+use the :func:`sort()` function, and set the ``na_position`` argument as
+``first`` (this will move the ``NAs`` to the top of the column)::
 
-    0,4
-
-:func:`last()` returns the last row per group in a :func:`by()` operation::
-
-    df[:, last(f[:]), by("A")]
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 2, 2
-
-    0,1,4
-    1,2,NA
+    >>> df[:, last(f[:]), by("A"), sort("B", na_position="first")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     2      3
+    [2 rows x 2 columns]
 
 
-To get the last non-null value per row in a :func:`by()` operation, you can use the :func:`sort()` function, and set the ``na_position`` argument as ``first`` (this will move the ``NAs`` to the top of the column)::
-
-    df[:, last(f[:]), by("A"), sort("B", na_position="first")]
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 2, 2
-
-    0,1,4
-    1,2,3
+See Also
+--------
+- :func:`first()` -- function that returns the first row.
 )";
 #endif
 
@@ -439,81 +413,69 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
---------
-
-- :func:`count()` -- function to calculate a number of non-missing values.
 
 Examples
 --------
 
-::
+.. code-block:: python
 
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int32, int32, int32
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
 
 Get the sum of column A::
 
-    df[:, dt.sum(f.A)]
-
-.. dtframe::
-    :names: A
-    :types: int32
-    :shape: 1, 1
-
-    0,7
+    >>> df[:, dt.sum(f.A)]
+       |     A
+       | int64
+    -- + -----
+     0 |     7
+    [1 row x 1 column]
 
 Get the sum of multiple columns::
 
-  df[:, [dt.sum(f.A), dt.sum(f.B)]]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,7,14
-
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)]]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
 
 Same as above, but more convenient::
 
-  df[:, dt.sum(f[:2])]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,7,14
-
+    >>> df[:, dt.sum(f[:2])]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
 
 In the presence of :func:`by()`, it returns the sum of the specified columns per group::
 
-  df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+       |     C      A      B
+       | int32  int64  int64
+    -- + -----  -----  -----
+     0 |     1      4      7
+     1 |     2      3      7
+    [2 rows x 3 columns]
 
-.. dtframe::
-    :names: C,A,B
-    :types: int32,int32,int32
-    :shape: 2, 3
 
-    0,1,4,7
-    1,2,3,7
+See Also
+--------
+- :func:`count()` -- function to calculate a number of non-missing values.
 )";
 #endif
 
@@ -630,87 +592,71 @@ See Also
 
 Examples
 --------
+.. code-block:: python
 
-::
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>>
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
 
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int8, int8, int8
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
 
 Get the mean from column A::
 
-    df[:, dt.mean(f.A)]
-
-.. dtframe::
-    :names: A
-    :types: float32
-    :shape: 1, 1
-
-    0,1.4
+    >>> df[:, dt.mean(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 |     1.4
+    [1 row x 1 column]
 
 Get the mean of multiple columns::
 
-  df[:, dt.mean([f.A, f.B])]
+    >>> df[:, dt.mean([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      3.5
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
+Same as above, but applying to a column slice::
 
-    0,1.4,3.5
-
-
-Same as above, but more convenient::
-
-  df[:, dt.mean(f[:2])]
-
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1.4,3.5
-
+    >>> df[:, dt.mean(f[:2])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      3.5
+    [1 row x 2 columns]
 
 You can pass in a dictionary with new column names::
 
-  df[:, dt.mean({"A_mean": f.A, "C_avg": f.C})]
-
-.. dtframe::
-    :names: A_mean,C_avg
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1.4,1.4
-
+    >>> df[:, dt.mean({"A_mean": f.A, "C_avg": f.C})]
+       |  A_mean    C_avg
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      1.4
+    [1 row x 2 columns]
 
 In the presence of :func:`by()`, it returns the average of each column per group::
 
-    df[:, dt.mean({"A_mean": f.A, "B_mean": f.B}), by("C")]
-
-.. dtframe::
-    :names: C, A_mean, B_mean
-    :types: float32, float32, float32
-    :shape: 2, 3
-
-    0,1,1.33333,3.5
-    1,2,1.5,3.5
-
+    >>> df[:, dt.mean({"A_mean": f.A, "B_mean": f.B}), by("C")]
+       |     C   A_mean   B_mean
+       | int32  float64  float64
+    -- + -----  -------  -------
+     0 |     1  1.33333      3.5
+     1 |     2  1.5          3.5
+    [2 rows x 3 columns]
 )";
 #endif
 
@@ -952,6 +898,45 @@ See Also
 
 - :func:`sum()` -- function to calculate the sum of values.
 
+Examples
+--------
+
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Get the count of all rows::
+
+    >>> df[:, dt.count()]
+       | count
+       | int32
+    -- + -----
+     0 |     5
+    [1 row x 1 column]
+
+Get the count of column `B` (note how the null row is excluded from the
+count result)::
+
+    >>> df[:, dt.count(f.B)]
+       |     B
+       | int64
+    -- + -----
+     0 |     4
+    [1 row x 1 column]
 )";
 #endif
 
@@ -1091,87 +1076,74 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
---------
-- :func:`max()` -- function to calculate maxium values.
 
 Examples
 --------
+.. code-block:: python
 
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
-
-    df
-
-.. dtframe::
-    :names: A,B
-    :types: int32, int32
-    :shape: 9, 2
-
-    0,1,3
-    1,1,2
-    2,1,20
-    3,2,1
-    4,2,6
-    5,2,2
-    6,3,3
-    7,3,22
-    8,3,1
-
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+    >>>
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     1      2
+     2 |     1     20
+     3 |     2      1
+     4 |     2      6
+     5 |     2      2
+     6 |     3      3
+     7 |     3     22
+     8 |     3      1
+    [9 rows x 2 columns]
 
 Get the minimum from column B::
 
-    df[:, dt.min(f.B)]
-
-.. dtframe::
-    :names: B
-    :types: int32
-    :shape: 1, 1
-
-    0,1
+    >>> df[:, dt.min(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |     1
+    [1 row x 1 column]
 
 Get the minimum of all columns::
 
-  df[:, [dt.min(f.A), dt.min(f.B)]]
+    >>> df[:, [dt.min(f.A), dt.min(f.B)]]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
+Same as above, but using the slice notation::
 
-    0,1,1
+    >>> df[:, dt.min(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the row with the minimum value
+per group::
+
+    >>> df[:, dt.min(f.B), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     2      1
+     2 |     3      1
+    [3 rows x 2 columns]
 
 
-Same as above, but more convenient::
-
-  df[:, dt.min(f[:])]
-
-.. dtframe::
-    :names: A,B
-    :types: int32,int32
-    :shape: 1, 2
-
-    0,1,1
-
-
-
-In the presence of :func:`by()`, it returns the row with the minimum value per group ::
-
-    df[:, dt.min(f.B), by("A")]
-
-.. dtframe::
-    :names: A,B
-    :types: int32, int32
-    :shape: 3, 2
-
-    0,1,2
-    1,2,1
-    2,3,1
-
+See Also
+--------
+- :func:`max()` -- function to calculate maxium values.
 )";
 
 
@@ -1196,88 +1168,73 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
---------
-- :func:`min()` -- function to calculate minimum values.
 
 Examples
 --------
+.. code-block:: python
 
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-                   'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
-
-    df
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 9, 2
-
-    0,1,3
-    1,1,2
-    2,1,20
-    3,2,1
-    4,2,6
-    5,2,2
-    6,3,3
-    7,3,22
-    8,3,1
-
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     1      2
+     2 |     1     20
+     3 |     2      1
+     4 |     2      6
+     5 |     2      2
+     6 |     3      3
+     7 |     3     22
+     8 |     3      1
+    [9 rows x 2 columns]
 
 Get the maximum from column B::
 
-    df[:, dt.max(f.B)]
-
-.. dtframe::
-    :names: B
-    :types: int8
-    :shape: 1, 1
-
-    0,22
+    >>> df[:, dt.max(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |    22
+    [1 row x 1 column]
 
 Get the maximum of all columns::
 
-  df[:, [dt.max(f.A), dt.max(f.B)]]
-
-.. dtframe::
-    :names: A,B
-    :types: int8,int8
-    :shape: 1, 2
-
-    0,3,22
-
+    >>> df[:, [dt.max(f.A), dt.max(f.B)]]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     3     22
+    [1 row x 2 columns]
 
 Same as above, but more convenient::
 
-  df[:, dt.max(f[:])]
+    >>> df[:, dt.max(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     3     22
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A,B
-    :types: int8,int8
-    :shape: 1, 2
+In the presence of :func:`by()`, it returns the row with the maximum
+value per group::
 
-    0,3,22
-
-
-
-In the presence of :func:`by()`, it returns the row with the maximum value per group ::
-
-    df[:, dt.max(f.B), by("A")]
-
-.. dtframe::
-    :names: A,B
-    :types: int8, int8
-    :shape: 3, 2
-
-    0,1,20
-    1,2,6
-    2,3,22
+    >>> df[:, dt.max(f.B), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1     20
+     1 |     2      6
+     2 |     3     22
+    [3 rows x 2 columns]
 
 
+See Also
+--------
+- :func:`min()` -- function to calculate minimum values.
 )";
 #endif
 
@@ -1358,87 +1315,71 @@ See Also
 
 Examples
 --------
+.. code-block:: python
 
-::
-
-    from datatable import dt, f, by
-
-    df = dt.Frame({'A': [1, 1, 2, 1, 2],
-                   'B': [None, 2, 3,4, 5],
-                   'C': [1, 2, 1, 1, 2]})
-
-    df
-
-.. dtframe::
-    :names: A,B,C
-    :types: int8, int8, int8
-    :shape: 5, 2
-
-    0,1,NA,1
-    1,1,2,2
-    2,2,3,1
-    3,1,4,1
-    4,2,5,2
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>>
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
 
 Get the median from column A::
 
-    df[:, dt.median(f.A)]
-
-.. dtframe::
-    :names: A
-    :types: float32
-    :shape: 1, 1
-
-    0,1
+    >>> df[:, dt.median(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 |       1
+    [1 row x 1 column]
 
 Get the median of multiple columns::
 
-  df[:, dt.median([f.A, f.B])]
-
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1,3.5
-
+    >>> df[:, dt.median([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
 
 Same as above, but more convenient::
 
-  df[:, dt.median(f[:2])]
-
-.. dtframe::
-    :names: A,B
-    :types: float32,float32
-    :shape: 1, 2
-
-    0,1,3.5
-
+    >>> df[:, dt.median(f[:2])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
 
 You can pass in a dictionary with new column names::
 
-  df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+    >>> df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+       | A_median    C_mid
+       |  float64  float64
+    -- + --------  -------
+     0 |        1        1
+    [1 row x 2 columns]
 
-.. dtframe::
-    :names: A_median,C_mid
-    :types: float32,float32
-    :shape: 1, 2
+In the presence of :func:`by()`, it returns the median of each column
+per group::
 
-    0,1,1
-
-
-In the presence of :func:`by()`, it returns the median of each column per group::
-
-    df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
-
-.. dtframe::
-    :names: C, A_mean, B_mean
-    :types: float32, float32, float32
-    :shape: 2, 3
-
-    0,1,1,3.5
-    1,2,1.5,3.5
-
+    >>> df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
+       |     C  A_median  B_median
+       | int32   float64   float64
+    -- + -----  --------  --------
+     0 |     1       1         3.5
+     1 |     2       1.5       3.5
+    [2 rows x 3 columns]
 )";
 #endif
 

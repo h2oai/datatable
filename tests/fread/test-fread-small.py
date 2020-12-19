@@ -548,7 +548,7 @@ def test_comments_only_file():
             "#~~~~~~~~~~\n")
     DT = dt.fread(text)
     # Not clear why it has 1 column instead of 0
-    assert_equals(DT, dt.Frame([[]]))
+    assert_equals(DT, dt.Frame([[]], stype=bool))
 
 
 def test_runaway_quote():
@@ -828,7 +828,7 @@ def test_whitespace_nas(tol):
 
 def test_default_na_strings():
     DT = dt.fread("A,B\nNA,3\n")
-    assert_equals(DT, dt.Frame(A=[None], B=[3]))
+    assert_equals(DT, dt.Frame(A=[None]/dt.bool8, B=[3]))
 
 
 def test_simple_na_strings():

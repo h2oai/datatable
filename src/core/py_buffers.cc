@@ -258,7 +258,7 @@ struct XInfo {
   XInfo() {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
-    stype = dt::SType::VOID;
+    stype = dt::SType::AUTO;
   }
 };
 
@@ -333,7 +333,7 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   // by-reference instead of copying the data into an intermediate buffer.
   const Column& col_i0 = dt->get_column(i0);
   if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
-      col_i0.is_fixedwidth() && pybuffers::force_stype == dt::SType::VOID)
+      col_i0.is_fixedwidth() && pybuffers::force_stype == dt::SType::AUTO)
   {
     return getbuffer_1_col(this, view, flags);
   }
@@ -345,16 +345,19 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
 
   // First, find the common stype for all columns in the DataTable.
   dt::SType stype = pybuffers::force_stype;
-  if (stype == dt::SType::VOID) {
+  if (stype == dt::SType::AUTO) {
     // Auto-detect common stype
+    stype = dt::SType::VOID;
     for (size_t i = 0; i < ncols; ++i) {
       dt::SType next_stype = dt->get_column(i + i0).stype();
       stype = common_stype(stype, next_stype);
     }
   }
-  if (stype == dt::SType::INVALID ||
-      stype == dt::SType::STR32 ||
-      stype == dt::SType::STR64) stype = dt::SType::OBJ;
+  if (stype == dt::SType::INVALID || stype == dt::SType::AUTO ||
+      stype == dt::SType::VOID ||
+      stype == dt::SType::STR32 || stype == dt::SType::STR64) {
+    stype = dt::SType::OBJ;
+  }
 
   // Allocate the final buffer
   xassert(!stype_is_variable_width(stype));
@@ -442,7 +445,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 void py::DatatableModule::init_methods_buffers() {
   ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
   pybuffers::single_col = size_t(-1);
-  pybuffers::force_stype = dt::SType::VOID;
+  pybuffers::force_stype = dt::SType::AUTO;
 }
 
 

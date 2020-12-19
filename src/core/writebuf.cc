@@ -19,10 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <algorithm>       // std::min
-#include <cstring>         // std::memcpy
-#include <errno.h>         // errno
-#include "utils/alloc.h"   // dt::realloc
+#include <algorithm>         // std::min
+#include <cstring>           // std::memcpy
+#include <errno.h>           // errno
+#include "utils/alloc.h"     // dt::realloc
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "utils/misc.h"

@@ -97,6 +97,10 @@ void Stats::set_valid(Stat stat, bool isvalid) {
 }
 
 
+size_t VoidStats::memory_footprint() const noexcept {
+  return sizeof(VoidStats);
+}
+
 template <typename T>
 size_t NumericStats<T>::memory_footprint() const noexcept {
   return sizeof(NumericStats<T>);
@@ -607,6 +611,7 @@ void Stats::compute_nunique() {
   set_valid(Stat::NUnique, false);
 }
 
+
 template <typename T>
 void NumericStats<T>::compute_nunique() {
   compute_sorted_stats();
@@ -1088,6 +1093,32 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 
 
 
+//------------------------------------------------------------------------------
+// VoidStats: compute all
+//------------------------------------------------------------------------------
+
+double VoidStats::sum(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+size_t VoidStats::nacount(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return column->nrows();
+}
+
+size_t VoidStats::nunique(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+size_t VoidStats::nmodal(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Column's API
@@ -1096,6 +1127,7 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
+    case dt::SType::VOID:    return StatsPtr(new VoidStats(col));
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
     case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
@@ -1169,6 +1201,7 @@ std::unique_ptr<Stats> Stats::_clone(const S* inp) const {
 }
 
 
+std::unique_ptr<Stats> VoidStats::clone()       const { return this->_clone(this); }
 template <typename T>
 std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this); }
 template <typename T>
@@ -1229,6 +1262,7 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
 void Stats::verify_integrity(const dt::ColumnImpl* col) {
   XAssert(column == col);
   switch (col->stype()) {
+    case dt::SType::VOID:    XAssert(dynamic_cast<VoidStats*>(this)); break;
     case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
     case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;

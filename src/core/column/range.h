@@ -44,7 +44,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     Range_ColumnImpl(int64_t start, int64_t stop, int64_t step,
-                     SType stype = SType::VOID);
+                     SType stype = SType::AUTO);
 
     ColumnImpl* clone() const override;
     size_t n_children() const noexcept override;

@@ -684,8 +684,8 @@ class XobjectDirective(SphinxDirective):
             self._transform_codeblocks(section)
             if header == "Parameters":
                 self._transform_parameters(section, linenos)
-            if header == "Examples":
-                self._transform_examples(section, linenos)
+            # if header == "Examples":
+            #     self._transform_examples(section, linenos)
 
 
     def _split_into_sections(self, body, line0):
@@ -820,63 +820,7 @@ class XobjectDirective(SphinxDirective):
                 break
             out.append("    " + shortline)
             i += 1
-        if re.fullmatch(r"\s*\[\d+ rows? x \d+ columns?\]", out[-1]):
-            frame_lines = [oline[4:] for oline in out[out0+2:]]
-            out[out0:] = self._parse_dtframe(frame_lines)
         return i
-
-
-    def _parse_dtframe(self, lines):
-        assert len(lines) >= 4
-        if lines[1][0] == "-":
-            sep_line = 1
-        elif lines[2][0] == "-":
-            sep_line = 2
-        else:
-            raise self.error("Unrecognized format of dtframe")
-        # Parse the line that separates the headers from the body of the table.
-        # Runs of '-----'s will tell where the boundary of each column is.
-        slices = [slice(*match.span())
-                   for match in re.finditer(r"(\-+|\+|\.{3}|…)",
-                                            lines[sep_line])]
-        # Find the index of the "vertical separator" column
-        vsep_index = [lines[sep_line][s] for s in slices].index('+')
-        nkeys = 0
-        if vsep_index > 1 or lines[0][slices[0]].strip():
-            nkeys = vsep_index
-
-        # Parse the column names
-        row0 = [lines[0][s] for s in slices]
-        assert row0[vsep_index] == '|'
-        column_names = [name.strip() for name in row0[:nkeys] +
-                                                 row0[vsep_index+1:]]
-
-        # Parse the column types
-        if sep_line == 2:
-            row1 = [lines[1][s] for s in slices]
-            assert row1[vsep_index] == '|'
-            column_types = [typ.strip(" <>") for typ in row1[:nkeys] +
-                                                        row1[vsep_index+1:]]
-        else:
-            column_types = ["int32"] * len(column_names)
-
-        mm = re.fullmatch(r"\[(\d+) rows? x (\d+) columns?\]", lines[-1])
-        nrows = mm.group(1)
-        ncols = mm.group(2)
-        out = []
-        out.append(".. dtframe::")
-        out.append("    :names: %r" % (column_names,))
-        out.append("    :types: %r" % (column_types,))
-        out.append("    :shape: (%s, %s)" % (nrows, ncols))
-        out.append("    :nkeys: %d" % nkeys)
-        out.append("")
-        for line in lines[sep_line+1:-2]:
-            rowi = [line[s] for s in slices]
-            assert rowi[vsep_index] == '|'
-            del rowi[vsep_index]
-            out.append("    " + ",".join(x.strip() for x in rowi))
-        return out
-
 
 
     #---------------------------------------------------------------------------
@@ -1098,7 +1042,7 @@ class XobjectDirective(SphinxDirective):
 
 
     def _generate_body(self):
-        out = xnodes.div(classes=["x-function-body"])
+        out = xnodes.div(classes=["x-function-body", "section"])
         for head, lines, linenos in self.parsed_body:
             if head:
                 lines = [head, "-"*len(head), ""] + lines
@@ -1371,11 +1315,14 @@ class XparamDirective(SphinxDirective):
 
 
 #-------------------------------------------------------------------------------
-# XversionaddedDirective
+# XversionActionDirective
 #-------------------------------------------------------------------------------
 
-class XversionaddedDirective(SphinxDirective):
-    has_content = False
+class XversionActionDirective(SphinxDirective):
+    #
+    #  TODO: add this to 'xversion' domain
+    #
+    has_content = True
     required_arguments = 1
     optional_arguments = 0
     final_argument_whitespace = False
@@ -1389,12 +1336,20 @@ class XversionaddedDirective(SphinxDirective):
         if len(version.split('.')) <= 2:
             target += ".0"
 
-        node = xnodes.div(classes=["x-version-added"])
-        node += nodes.Text("New in version ")
+        assert self.name.startswith("x-version-")
+        action = self.name[10:]
+        text = "Deprecated since version " if action == "deprecated" else \
+               "Added in version " if action == "added" else \
+               "Changed in version " if action == "changed" else "?????"
+        node = xnodes.div()
+        node += nodes.Text(text)
         node += nodes.inline("", "",
             addnodes.pending_xref("", nodes.Text(version),
                 refdomain="std", reftype="doc", refexplicit=True,
                 reftarget=target))
+        node = xnodes.div(node, classes=["x-version", action])
+
+        self.state.nested_parse(self.content, self.content_offset, node)
         return [node]
 
 
@@ -1512,6 +1467,7 @@ def setup(app):
     app.add_config_value("xf_permalink_url0", "", "env")
     app.add_config_value("xf_permalink_url2", "", "env")
     app.add_css_file("xfunction.css")
+    app.add_css_file("xversion.css")
     app.add_js_file("https://use.fontawesome.com/0f455d5fb2.js")
     app.add_directive("xdata", XobjectDirective)
     app.add_directive("xfunction", XobjectDirective)
@@ -1520,7 +1476,9 @@ def setup(app):
     app.add_directive("xexc", XobjectDirective)
     app.add_directive("xattr", XobjectDirective)
     app.add_directive("xparam", XparamDirective)
-    app.add_directive("xversionadded", XversionaddedDirective)
+    app.add_directive("x-version-added", XversionActionDirective)
+    app.add_directive("x-version-changed", XversionActionDirective)
+    app.add_directive("x-version-deprecated", XversionActionDirective)
 
     app.connect("env-get-outdated", on_env_get_outdated)
     app.connect("env-purge-doc", on_env_purge_doc)

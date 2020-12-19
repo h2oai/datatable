@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,23 +57,20 @@ Examples
 
 .. code-block::
 
-    DT = dt.Frame(A=[-3, 2, 4, -17, 0])
-    DT[:, abs(f.A)]
-
-.. dtframe::
-    :names: C0
-    :types: int8
-    :shape: 5, 1
-
-    0,   3
-    1,   2
-    2,   4
-    3,  17
-    4,   0
+    >>> DT = dt.Frame(A=[-3, 2, 4, -17, 0])
+    >>> DT[:, abs(f.A)]
+       |     A
+       | int32
+    -- + -----
+     0 |     3
+     1 |     2
+     2 |     4
+     3 |    17
+     4 |     0
+    [5 rows x 1 column]
 
 See also
 --------
-
 - :func:`fabs()`
 )";
 
@@ -85,7 +82,7 @@ static T op_abs(T x) {
 }
 
 template <typename T>
-static inline umaker_ptr _abs(SType uptype = SType::VOID) {
+static inline umaker_ptr _abs(SType uptype = SType::AUTO) {
   return umaker1<T, T>::make(op_abs<T>, uptype, stype_from<T>);
 }
 
@@ -165,7 +162,7 @@ static T op_sign(T x) {
 }
 
 template <typename T>
-static inline umaker_ptr _sign(SType uptype = SType::VOID) {
+static inline umaker_ptr _sign(SType uptype = SType::AUTO) {
   return umaker1<T, T>::make(op_sign<T>, uptype, stype_from<T>);
 }
 
@@ -258,7 +255,7 @@ static bool op_isinf(T x, bool isvalid, int8_t* out) {
 
 template <typename T>
 static inline umaker_ptr _isinf() {
-  return umaker2<T, int8_t>::make(op_isinf<T>, SType::VOID, SType::BOOL);
+  return umaker2<T, int8_t>::make(op_isinf<T>, SType::AUTO, SType::BOOL);
 }
 
 umaker_ptr resolve_op_isinf(SType stype) {
@@ -317,13 +314,13 @@ static bool op_notna(T, bool xvalid, int8_t* out) {
 
 
 template <typename T>
-static umaker_ptr _isfinite_int(SType uptype = SType::VOID) {
+static umaker_ptr _isfinite_int(SType uptype = SType::AUTO) {
   return umaker2<T, int8_t>::make(op_notna<T>, uptype, SType::BOOL);
 }
 
 template <typename T>
 static umaker_ptr _isfinite_float() {
-  return umaker2<T, int8_t>::make(op_isfinite<T>, SType::VOID, SType::BOOL);
+  return umaker2<T, int8_t>::make(op_isfinite<T>, SType::AUTO, SType::BOOL);
 }
 
 
@@ -378,7 +375,7 @@ py::PKArgs args_ceil(1, 0, 0, false, false, {"x"}, "ceil", doc_ceil);
 
 template <typename T>
 static umaker_ptr _ceil() {
-  return umaker1<T, T>::make(std::ceil, SType::VOID, stype_from<T>);
+  return umaker1<T, T>::make(std::ceil, SType::AUTO, stype_from<T>);
 }
 
 umaker_ptr resolve_op_ceil(SType stype) {
@@ -429,7 +426,7 @@ py::PKArgs args_floor(1, 0, 0, false, false, {"x"}, "floor", doc_floor);
 
 template <typename T>
 static umaker_ptr _floor() {
-  return umaker1<T, T>::make(std::floor, SType::VOID, stype_from<T>);
+  return umaker1<T, T>::make(std::floor, SType::AUTO, stype_from<T>);
 }
 
 umaker_ptr resolve_op_floor(SType stype) {
@@ -467,7 +464,7 @@ py::PKArgs args_rint(1, 0, 0, false, false, {"x"}, "rint", doc_rint);
 
 template <typename T>
 static umaker_ptr _rint() {
-  return umaker1<T, T>::make(std::rint, SType::VOID, stype_from<T>);
+  return umaker1<T, T>::make(std::rint, SType::AUTO, stype_from<T>);
 }
 
 umaker_ptr resolve_op_rint(SType stype) {
@@ -510,7 +507,7 @@ py::PKArgs args_trunc(1, 0, 0, false, false, {"x"}, "trunc", doc_trunc);
 
 template <typename T>
 static umaker_ptr _trunc() {
-  return umaker1<T, T>::make(std::trunc, SType::VOID, stype_from<T>);
+  return umaker1<T, T>::make(std::trunc, SType::AUTO, stype_from<T>);
 }
 
 umaker_ptr resolve_op_trunc(SType stype) {
@@ -553,7 +550,7 @@ template <typename T>
 static int8_t op_signbit(T x) { return std::signbit(x); }
 
 template <typename T>
-static umaker_ptr _signbit(SType uptype = SType::VOID) {
+static umaker_ptr _signbit(SType uptype = SType::AUTO) {
   return umaker1<T, int8_t>::make(op_signbit<T>, uptype, SType::BOOL);
 }
 

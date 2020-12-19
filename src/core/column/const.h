@@ -31,7 +31,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
     using Virtual_ColumnImpl::Virtual_ColumnImpl;
     static Column make_na_column(size_t nrows);
     static Column make_bool_column(size_t nrows, bool value);
-    static Column make_int_column(size_t nrows, int64_t value, SType stype = SType::VOID);
+    static Column make_int_column(size_t nrows, int64_t value, SType stype = SType::AUTO);
     static Column make_float_column(size_t nrows, double value, SType stype = SType::FLOAT64);
     static Column make_string_column(size_t nrows, const CString& value, SType stype = SType::STR32);
     static Column from_1row_column(const Column& col);
@@ -66,6 +66,8 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
 };
 
 
+
+
 //------------------------------------------------------------------------------
 // ConstInt_ColumnImpl
 //------------------------------------------------------------------------------
@@ -87,7 +89,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
     ConstInt_ColumnImpl(size_t nrows, int32_t x, SType stype)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
-    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype = SType::VOID)
+    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype = SType::AUTO)
       : Const_ColumnImpl(nrows, normalize_stype(stype, x)),
         value(x) {}
 
@@ -138,7 +140,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
           FALLTHROUGH;
 
         case SType::INT32:
-        case SType::VOID:
+        case SType::AUTO:
           if (x == static_cast<int32_t>(x)) return SType::INT32;
           return SType::INT64;
 

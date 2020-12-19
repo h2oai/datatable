@@ -23,7 +23,7 @@
     operator ``xor``). Beware, however, that ``^`` has higher precedence
     than ``xor``, so it is advisable to always use parentheses::
 
-        DT[(f.x == 0) ^ (f.y == 0), :]
+        >>> DT[(f.x == 0) ^ (f.y == 0), :]
 
     Parameters
     ----------

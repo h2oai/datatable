@@ -88,9 +88,13 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
   name_ = _escape_string(CString(name));
-  width_ = std::max(width_, name_.size());
+  type_ = _escape_string(CString::from_null_terminated_string(
+                            stype_name(col.stype())));
+  width_ = std::max(std::max(width_, name_.size()),
+                    name_.empty()? 0 : type_.size());
   LType ltype = col.ltype();
-  align_right_ = (ltype == LType::BOOL) ||
+  align_right_ = (ltype == LType::MU) ||
+                 (ltype == LType::BOOL) ||
                  (ltype == LType::INT) ||
                  (ltype == LType::REAL);
   margin_left_ = true;
@@ -101,6 +105,15 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 
 void Data_TextColumn::print_name(TerminalStream& out) const {
   _print_aligned_value(out, name_);
+}
+
+
+void Data_TextColumn::print_type(TerminalStream& out) const {
+  if (name_.empty()) {
+    out << std::string(margin_left_ + margin_right_ + width_, ' ');
+  } else {
+    _print_aligned_value(out, type_);
+  }
 }
 
 
@@ -290,6 +303,7 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 
 tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
+    case SType::VOID:    return na_value_;
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
     case SType::INT16:   return _render_value_int<int16_t>(col, i);
@@ -372,6 +386,10 @@ void VSep_TextColumn::print_name(TerminalStream& out) const {
   out << tstring("|", style::nobold|style::grey);
 }
 
+void VSep_TextColumn::print_type(TerminalStream& out) const {
+  out << tstring("|", style::nobold|style::nodim|style::noitalic|style::grey);
+}
+
 void VSep_TextColumn::print_separator(TerminalStream& out) const {
   out << '+';
 }
@@ -400,6 +418,12 @@ void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
   out << ell_;
   out << std::string(margin_right_, ' ');
 }
+
+
+void Ellipsis_TextColumn::print_type(TerminalStream& out) const {
+  out << std::string(margin_left_ + margin_right_ + width_, ' ');
+}
+
 
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
   out << std::string(margin_left_, ' ');

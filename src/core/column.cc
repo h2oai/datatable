@@ -252,6 +252,7 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
   switch (stype()) {
+    case dt::SType::VOID:    return py::None();
     case dt::SType::BOOL: {
       int8_t x;
       bool isvalid = get_element(i, &x);
@@ -270,7 +271,6 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
       bool isvalid = get_element(i, &x);
       return isvalid? x : py::None();
     }
-    case dt::SType::VOID:    return py::None();
     default:
       throw NotImplError() << "Unable to convert elements of stype `"
         << stype() << "` into python objects";
@@ -279,6 +279,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 
 bool Column::get_element_isvalid(size_t i) const {
   switch (stype()) {
+    case dt::SType::VOID: return false;
     case dt::SType::BOOL:
     case dt::SType::INT8: {
       int8_t x;
@@ -424,7 +425,7 @@ void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
 
 
 void Column::cast_inplace(dt::SType new_stype) {
-  if (new_stype == stype()) return;
+  if (new_stype == stype() || new_stype == dt::SType::AUTO) return;
   bool done = impl_->cast_const(new_stype, *this);
   if (!done) {
     _get_mutable_impl()->cast_mutate(new_stype);

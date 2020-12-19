@@ -39,8 +39,8 @@ static SType _resolve_math_stypes(SType stype1, SType stype2,
   if (stype0 == SType::BOOL || stype_to_ltype(stype0) == LType::INT) {
     stype0 = SType::FLOAT64;
   }
-  *uptype1 = (stype0 == stype1)? SType::VOID : stype0;
-  *uptype2 = (stype0 == stype2)? SType::VOID : stype0;
+  *uptype1 = (stype0 == stype1)? SType::AUTO : stype0;
+  *uptype2 = (stype0 == stype2)? SType::AUTO : stype0;
   return stype0;
 }
 
@@ -367,8 +367,8 @@ bimaker_ptr resolve_fn_ldexp(SType stype1, SType stype2) {
   SType out_stype = stype1;
   if (stype_to_ltype(out_stype) == LType::INT) out_stype = SType::FLOAT64;
   if (stype_to_ltype(stype2) != LType::INT)    out_stype = SType::INVALID;
-  SType uptype1 = (stype1 == out_stype)? SType::VOID : out_stype;
-  SType uptype2 = (stype2 == SType::INT32)? SType::VOID : SType::INT32;
+  SType uptype1 = (stype1 == out_stype)? SType::AUTO : out_stype;
+  SType uptype2 = (stype2 == SType::INT32)? SType::AUTO : SType::INT32;
 
   switch (out_stype) {
     case SType::FLOAT32:  return _ldexp<float>(uptype1, uptype2, out_stype);

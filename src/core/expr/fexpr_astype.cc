@@ -71,7 +71,7 @@ class FExpr_AsType : public FExpr_FuncUnary {
 static const char* doc_astype =
 R"(as_type(cols, new_type)
 --
-.. xversionadded:: 1.0
+.. x-version-added:: 1.0
 
 Convert columns `cols` into the prescribed stype.
 
@@ -90,6 +90,69 @@ new_type: stype
 return: FExpr
     The output will have the same number of rows and columns as the
     input; column names will be preserved too.
+
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, as_type
+    >>>
+    >>> df = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+    ...                'B': [None, '2', '3', '4', '5'],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       | A      B          C
+       | str32  str32  int32
+    -- + -----  -----  -----
+     0 | 1      NA         1
+     1 | 1      2          2
+     2 | 2      3          1
+     3 | 1      4          1
+     4 | 2      5          2
+    [5 rows x 3 columns]
+
+
+Convert column A from string to integer type::
+
+    >>> df[:, as_type(f.A, int)]
+       |     A
+       | int64
+    -- + -----
+     0 |     1
+     1 |     1
+     2 |     2
+     3 |     1
+     4 |     2
+    [5 rows x 1 column]
+
+
+The exact dtype can be specified::
+
+    >>> df[:, as_type(f.A, dt.int32)]
+       |     A
+       | int32
+    -- + -----
+     0 |     1
+     1 |     1
+     2 |     2
+     3 |     1
+     4 |     2
+    [5 rows x 1 column]
+
+
+Convert multiple columns to different types::
+
+    >>> df[:, [as_type(f.A, int), as_type(f.C, dt.str32)]]
+       |     A  C
+       | int64  str32
+    -- + -----  -----
+     0 |     1  1
+     1 |     1  2
+     2 |     2  1
+     3 |     1  1
+     4 |     2  2
+    [5 rows x 2 columns]
 )";
 
 static py::oobj pyfn_astype(const py::XArgs& args) {

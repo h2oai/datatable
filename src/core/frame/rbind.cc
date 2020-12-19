@@ -253,7 +253,7 @@ Produce a new frame by appending rows of `frames`.
 
 This function is equivalent to::
 
-  dt.Frame().rbind(*frames, force=force, by_names=by_names)
+    >>> dt.Frame().rbind(*frames, force=force, by_names=by_names)
 
 
 Parameters
@@ -264,7 +264,7 @@ force: bool
 
 by_names: bool
 
-(return): Frame
+return: Frame
 
 
 See also

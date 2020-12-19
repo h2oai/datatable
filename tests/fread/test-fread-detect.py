@@ -135,7 +135,7 @@ def test_detect_newlines6():
 def test_detect_newlines7():
     # No newlines found
     DT = dt.fread(text="A,B")
-    assert_equals(DT, dt.Frame(A=[], B=[]))
+    assert_equals(DT, dt.Frame(A=[], B=[], stype=bool))
 
 
 def test_detect_newline8():

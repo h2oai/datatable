@@ -11,7 +11,7 @@ Prerequisites
 
 Python 3.6+ is required. You can check your python version via
 
-.. xcode:: shell
+.. code-block:: console
 
     $ python --version
     Python 3.6.6
@@ -20,7 +20,7 @@ Python 3.6+ is required. You can check your python version via
 In addition, we recommend using ``pip`` version 20.0+, especially if you're
 planning to install datatable from the source, or if you are on a Unix machine.
 
-.. xcode:: shell
+.. code-block:: console
 
     $ pip --version
     pip 19.3.1 from /home/pasha/py36/lib/python3.6/site-packages/pip (python 3.6)
@@ -45,7 +45,7 @@ Basic installation
 On most platforms ``datatable`` can be installed directly from `PyPI`_ using
 ``pip``:
 
-.. xcode:: shell
+.. code-block:: console
 
     $ pip install datatable
 
@@ -54,12 +54,12 @@ The following platforms are supported:
 - **macOS**
 
   Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
-  (High Sierra), and macOS 10.15.2 (Catalina).
+  (High Sierra), and macOS 10.15.7 (Catalina).
 
 - **Linux x86_64 / ppc64le**
 
   We produce binary wheels that are tagged as ``manylinux2010`` (for ``x86_64``
-  architecture) and ``manylinux2014`` (for ppc64le). Consequently, they will
+  architecture) and ``manylinux2014`` (for ``ppc64le``). Consequently, they will
   work with your Linux distribution if it is compatible with one of these tags.
   Please refer to :pep:`513` and :pep:`599` for details.
 
@@ -81,7 +81,7 @@ Click on a green main build of your choice, then navigate to the "Artifacts"
 tab, copy the wheel URL that corresponds to your Python version, and finally
 install it as:
 
-.. xcode:: winshell
+.. code-block:: doscon
 
     C:\> pip install YOUR_WHEEL_URL
 
@@ -90,14 +90,14 @@ Scroll to the bottom of the page to find the latest links, and then download
 or copy the URL of a wheel that corresponds to your Python version and
 platform. This wheel can be installed with ``pip`` as usual:
 
-.. xcode:: shell
+.. code-block:: console
 
     $ pip install YOUR_WHEEL_URL
 
 Alternatively, you can instruct ``pip`` to go to that repository directly
 and find the latest version automatically:
 
-.. xcode:: shell
+.. code-block:: console
 
     $ pip install --trusted-host h2o-release.s3-website-us-east-1.amazonaws.com \
           -i http://h2o-release.s3-website-us-east-1.amazonaws.com/  datatable
@@ -109,7 +109,7 @@ Build from source
 In order to build and install the latest development version of ``datatable``
 directly from GitHub, run the following command:
 
-.. xcode:: shell
+.. code-block:: console
 
    $ pip install git+https://github.com/h2oai/datatable
 
@@ -139,14 +139,14 @@ to install datatable for development process.
 1. First, you need to fork the repository and then :ref:`clone it locally
    <local-setup>`:
 
-   .. xcode:: shell
+   .. code-block:: console
 
       $ git clone https://github.com/your_user_name/datatable
       $ cd datatable
 
 2. Build ``_datatable`` core library. The two most common options are:
 
-   .. xcode:: shell
+   .. code-block:: console
 
       $ # build a "production mode" datatable
       $ make build
@@ -169,7 +169,7 @@ to install datatable for development process.
    in the ``src/datatable/lib`` folder. Now, in order to make ``datatable``
    usable from Python, run
 
-   .. xcode:: shell
+   .. code-block:: console
 
       $ echo "`pwd`/src" >> ${VIRTUAL_ENV}/lib/python*/site-packages/easy-install.pth
 
@@ -179,7 +179,7 @@ to install datatable for development process.
 
 4. Install additional libraries that are needed to test datatable:
 
-   .. xcode:: shell
+   .. code-block:: console
 
        $ pip install -r requirements_tests.txt
        $ pip install -r requirements_extra.txt
@@ -187,7 +187,7 @@ to install datatable for development process.
 
 5. Check that everything works correctly by running the test suite:
 
-   .. xcode:: shell
+   .. code-block:: console
 
        $ make test
 
@@ -247,7 +247,7 @@ know how to resolve them. If none of these help you, please ask a question on
   In order to compile from source on mac computers, you need to have Xcode
   Command Line Tools installed. Run:
 
-  .. xcode:: shell
+  .. code-block:: console
 
      $ xcode-select --install
 

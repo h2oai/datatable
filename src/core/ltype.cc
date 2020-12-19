@@ -65,6 +65,7 @@ void init_py_ltype_objs(PyObject* ltype_enum) {
   Py_Ltype = reinterpret_cast<PyTypeObject*>(ltype_enum);
   Py_INCREF(ltype_enum);
 
+  _init_py_ltype(LType::MU);
   _init_py_ltype(LType::BOOL);
   _init_py_ltype(LType::INT);
   _init_py_ltype(LType::REAL);
