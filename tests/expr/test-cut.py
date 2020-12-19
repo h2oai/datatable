@@ -63,10 +63,17 @@ def test_cut_error_float_nbins():
 
 
 def test_cut_error_noniterable_bins():
-    msg = "Expected an iterable, instead got <class 'float'>"
+    msg = "bins parameter must be a list or a tuple, instead got <class 'float'>"
     DT = dt.Frame(range(10))
     with pytest.raises(TypeError, match=msg):
         DT[:, cut(DT, bins = 1.5)]
+
+
+def test_cut_error_string_bins():
+    msg = "bins parameter must be a list or a tuple, instead got <class 'str'>"
+    DT = dt.Frame(range(10))
+    with pytest.raises(TypeError, match=msg):
+        DT[:, cut(DT, bins = "bin1")]
 
 
 def test_cut_error_zero_nbins():
@@ -80,21 +87,21 @@ def test_cut_error_one_bin_edge():
     msg = "To bin data at least two edges are required, instead for the frame 0 got: 1"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, bins = dt.Frame([1]))]
+        DT[:, cut(DT, bins = [dt.Frame([1])])]
 
 
 def test_cut_error_none_bin_edge():
     msg = "Bin edges must be numeric values only, instead for the frame 0 got None at row 2"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, bins = dt.Frame([1, 2, None, 3]))]
+        DT[:, cut(DT, bins = [dt.Frame([1, 2, None, 3])])]
 
 
 def test_cut_error_bin_edges_not_increasing():
     msg = "Bin edges must be strictly increasing, instead for the frame 0 at rows 2 and 3 the values are 4 and 3.99"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, bins = dt.Frame([1, 2, 4.0, 3.99]))]
+        DT[:, cut(DT, bins = [dt.Frame([1, 2, 4.0, 3.99])])]
 
 
 def test_cut_error_negative_nbins():
@@ -120,11 +127,11 @@ def test_cut_error_inconsistent_nbins():
 
 
 def test_cut_error_inconsistent_bins():
-    msg = ("Number of frames in bins must be equal to the number of columns "
+    msg = ("Number of elements in bins must be equal to the number of columns "
            "in the frame/expression, i.e. 2, instead got: 1")
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, bins = dt.Frame([1, 2]))]
+        DT[:, cut(DT, bins = [dt.Frame([1, 2])])]
 
 
 def test_cut_error_wrong_right():

@@ -69,9 +69,7 @@ class FExpr_Cut : public FExpr_Func {
         throw NotImplError() << "cut() cannot be used in a groupby context";
       }
 
-      int32_t nbins_default = 10;
       Workframe wf = arg_->evaluate_n(ctx);
-      const size_t ncols = wf.ncols();
 
       bool defined_bins = !py_bins_.is_none();
       bool defined_nbins = !py_nbins_.is_none();
@@ -81,122 +79,141 @@ class FExpr_Cut : public FExpr_Func {
       }
 
       if (defined_bins) {
-        py::oiter py_bins = py_bins_.to_oiter();
-
-        if (py_bins.size() != ncols) {
-          throw ValueError() << "Number of frames in `bins` must be equal to "
-            << "the number of columns in the frame/expression, i.e. `"
-            << ncols << "`, instead got: `" << py_bins.size() << "`";
-        }
-
-        size_t i = 0;
-        for (auto py_bin : py_bins) {
-          DataTable* dt = py_bin.to_datatable();
-          if (dt->ncols() != 1) {
-            throw ValueError() << "To bin a column `cut()` needs exactly one column "
-              << "with the bin edges, instead for the frame `" << i << "` got: "
-              << dt->ncols() << "`";
-          }
-
-          if (dt->nrows() < 2) {
-            throw ValueError() << "To bin data at least two edges are required, "
-              << "instead for the frame `" << i << "` got: `" << dt->nrows() << "`";
-          }
-
-          // Retrieve bins
-          Column bins = dt->get_column(0);
-          if (!ltype_is_numeric(bins.ltype())) {
-            throw TypeError() << "Bin edges must be provided as the numeric columns only, "
-              << "instead for the frame `" << i << "` the column stype is `"
-              << bins.stype() << "`";
-          }
-          bins.cast_inplace(SType::FLOAT64);
-          validate_bins(bins, i);
-          bins.materialize();
-
-          // Retrieve actual data
-          Column col = wf.retrieve_column(i);
-          if (!ltype_is_numeric(col.ltype())) {
-            throw TypeError() << "cut() can only be applied to numeric "
-              << "columns, instead column `" << i << "` has an stype: `"
-              << col.stype() << "`";
-
-          }
-          col.cast_inplace(SType::FLOAT64);
-
-          // Bin column in-place
-          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins)))
-                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins)));
-
-          wf.replace_column(i, std::move(col));
-
-          i++;
-        }
-
+        cut_bins(wf);
       } else {
-
-        int32vec nbins(ncols);
-        bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
-
-        if (nbins_list_or_tuple) {
-          py::oiter py_nbins = py_nbins_.to_oiter();
-          if (py_nbins.size() != ncols) {
-            throw ValueError() << "When `nbins` is a list or a tuple, its length must be "
-              << "the same as the number of columns in the frame/expression, i.e. `"
-              << ncols << "`, instead got: `" << py_nbins.size() << "`";
-
-          }
-
-          size_t i = 0;
-          for (auto py_nbin : py_nbins) {
-            int32_t nbin = py_nbin.to_int32_strict();
-            if (nbin <= 0) {
-              throw ValueError() << "All elements in `nbins` must be positive, "
-                                    "got `nbins[" << i << "`]: `" << nbin << "`";
-            }
-
-            nbins[i++] = nbin;
-          }
-          xassert(i == ncols);
-
-        } else {
-          if (defined_nbins) {
-            nbins_default = py_nbins_.to_int32_strict();
-            if (nbins_default <= 0) {
-              throw ValueError() << "Number of bins must be positive, instead got: `"
-                << nbins_default << "`";
-            }
-          }
-
-          for (size_t i = 0; i < ncols; ++i) {
-            nbins[i] = nbins_default;
-          }
-        }
-
-        // Bin columns in-place
-        for (size_t i = 0; i < ncols; ++i) {
-          Column col = wf.retrieve_column(i);
-
-          if (!ltype_is_numeric(col.ltype())) {
-
-            throw TypeError() << "cut() can only be applied to numeric "
-              << "columns, instead column `" << i << "` has an stype: `"
-              << col.stype() << "`";
-
-          }
-
-          col = Column(CutNbins_ColumnImpl::make(
-                  std::move(col), nbins[i], right_closed_
-                ));
-          wf.replace_column(i, std::move(col));
-        }
+        cut_nbins(wf);
       }
 
       return wf;
     }
 
 
-    // Ensure that bin edges are numeric values and are strictly increasing.
+    // Bin data based on the provided number of intevals.
+    void cut_nbins(Workframe& wf) const {
+      int32_t nbins_default = 10;
+      const size_t ncols = wf.ncols();
+
+      int32vec nbins(ncols);
+      bool nbins_list_or_tuple = py_nbins_.is_list_or_tuple();
+
+      if (nbins_list_or_tuple) {
+        py::oiter py_nbins = py_nbins_.to_oiter();
+        if (py_nbins.size() != ncols) {
+          throw ValueError() << "When `nbins` is a list or a tuple, its length must be "
+            << "the same as the number of columns in the frame/expression, i.e. `"
+            << ncols << "`, instead got: `" << py_nbins.size() << "`";
+        }
+
+        size_t i = 0;
+        for (auto py_nbin : py_nbins) {
+          int32_t nbin = py_nbin.to_int32_strict();
+          if (nbin <= 0) {
+            throw ValueError() << "All elements in `nbins` must be positive, "
+              << "got `nbins[" << i << "`]: `" << nbin << "`";
+          }
+
+          nbins[i++] = nbin;
+        }
+        xassert(i == ncols);
+
+      } else {
+        if (!py_nbins_.is_none()) {
+          nbins_default = py_nbins_.to_int32_strict();
+          if (nbins_default <= 0) {
+            throw ValueError() << "Number of bins must be positive, instead got: `"
+              << nbins_default << "`";
+          }
+        }
+
+        for (size_t i = 0; i < ncols; ++i) {
+          nbins[i] = nbins_default;
+        }
+      }
+
+      // Bin columns in-place
+      for (size_t i = 0; i < ncols; ++i) {
+        Column col = wf.retrieve_column(i);
+
+        if (!ltype_is_numeric(col.ltype())) {
+
+          throw TypeError() << "cut() can only be applied to numeric "
+            << "columns, instead column `" << i << "` has an stype: `"
+            << col.stype() << "`";
+
+        }
+
+        col = Column(CutNbins_ColumnImpl::make(
+                std::move(col), nbins[i], right_closed_
+              ));
+        wf.replace_column(i, std::move(col));
+      }
+    }
+
+
+    // Bin data based on the provided interval edges.
+    void cut_bins(Workframe& wf) const {
+      const size_t ncols = wf.ncols();
+
+      if (!py_bins_.is_list_or_tuple()) {
+        throw TypeError() << "`bins` parameter must be a list or a tuple, "
+          << "instead got `" << py_bins_.typeobj() << "`";
+      }
+
+      py::oiter py_bins = py_bins_.to_oiter();
+
+      if (py_bins.size() != ncols) {
+        throw ValueError() << "Number of elements in `bins` must be equal to "
+          << "the number of columns in the frame/expression, i.e. `"
+          << ncols << "`, instead got: `" << py_bins.size() << "`";
+      }
+
+      size_t i = 0;
+      for (auto py_bin : py_bins) {
+        DataTable* dt = py_bin.to_datatable();
+        if (dt->ncols() != 1) {
+          throw ValueError() << "To bin a column `cut()` needs exactly one column "
+            << "with the bin edges, instead for the frame `" << i << "` got: "
+            << dt->ncols() << "`";
+        }
+
+        if (dt->nrows() < 2) {
+          throw ValueError() << "To bin data at least two edges are required, "
+            << "instead for the frame `" << i << "` got: `" << dt->nrows() << "`";
+        }
+
+        // Retrieve bins
+        Column bins = dt->get_column(0);
+        if (!ltype_is_numeric(bins.ltype())) {
+          throw TypeError() << "Bin edges must be provided as the numeric columns only, "
+            << "instead for the frame `" << i << "` the column stype is `"
+            << bins.stype() << "`";
+        }
+        bins.cast_inplace(SType::FLOAT64);
+        validate_bins(bins, i);
+        bins.materialize();
+
+        // Retrieve actual data
+        Column col = wf.retrieve_column(i);
+        if (!ltype_is_numeric(col.ltype())) {
+          throw TypeError() << "cut() can only be applied to numeric "
+            << "columns, instead column `" << i << "` has an stype: `"
+            << col.stype() << "`";
+
+        }
+        col.cast_inplace(SType::FLOAT64);
+
+        // Bin column in-place
+        col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins)))
+                           : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins)));
+
+        wf.replace_column(i, std::move(col));
+
+        i++;
+      }
+    }
+
+
+    // Ensure that interval edges are numeric values and are strictly increasing.
     void validate_bins(const Column& bins, size_t frame_id) const {
       double val1;
       bool is_valid = bins.get_element(0, &val1);
@@ -253,8 +270,9 @@ nbins: int | List[int]
     in `cols`.
 
 bins: List[Frame]
-    List/tuple of single-column frames with the sorted bin edges used for
-    the binning of the corresponding column from `cols`. The list/tuple
+    List/tuple of single-column frames containing interval edges
+    in strictly increasing order, that will be used for binning
+    of the corresponding columns from `cols`. The list/tuple
     length must be equal to the number of columns in `cols`.
 
 right_closed: bool
