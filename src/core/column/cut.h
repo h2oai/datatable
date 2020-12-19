@@ -204,6 +204,16 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
 
+    CutBins_ColumnImpl(Column&& col, Column&& bins)
+      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
+        col_values_(std::move(col)),
+        col_bins_(std::move(bins)),
+        bins_data_(static_cast<const double*>(col_bins_.get_data_readonly()))
+    {
+      xassert(ltype_is_numeric(col_values_.ltype()));
+      xassert(ltype_is_numeric(col_bins_.ltype()));
+    }
+
     ColumnImpl* clone() const override {
       return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_values_), Column(col_bins_));
     }
@@ -265,17 +275,6 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
         return find_bin(value, left, middle);
       }
 
-    }
-
-  private:
-    CutBins_ColumnImpl(Column&& col, Column&& bins)
-      : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        col_values_(std::move(col)),
-        col_bins_(std::move(bins)),
-        bins_data_(static_cast<const double*>(col_bins_.get_data_readonly()))
-    {
-      xassert(ltype_is_numeric(col_values_.ltype()));
-      xassert(ltype_is_numeric(col_bins_.ltype()));
     }
 
 };
