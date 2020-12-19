@@ -25,10 +25,6 @@
       the stype of each column, as a second line under the column names.
       [#2810]
 
-    -[enh] When a Frame is shown in a python console, it will now display
-      the stype of each column, as a second line under the column names.
-      [#2810]
-
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
 
