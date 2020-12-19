@@ -258,7 +258,7 @@ class FExpr_Cut : public FExpr_Func {
 //------------------------------------------------------------------------------
 
 static const char* doc_cut =
-R"(cut(cols, nbins=10, right_closed=True)
+R"(cut(cols, nbins=10, bins=None, right_closed=True)
 --
 .. x-version-added:: 0.11
 
