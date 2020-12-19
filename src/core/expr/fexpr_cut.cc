@@ -58,6 +58,8 @@ class FExpr_Cut : public FExpr_Func {
       if (!py_nbins_.is_none()) {
         out += ", nbins=";
         out += py_nbins_.repr().to_string();
+        out += ", bins=";
+        out += py_bins_.repr().to_string();
         out += ", right_closed=";
         out += right_closed_? "True" : "False";
       }
@@ -90,7 +92,7 @@ class FExpr_Cut : public FExpr_Func {
     }
 
 
-    // Bin data based on the provided number of intevals.
+    // Bin data based on the provided number of binning intervals.
     void cut_nbins(Workframe& wf) const {
       int32_t nbins_default = 10;
       const size_t ncols = wf.ncols();
@@ -137,17 +139,12 @@ class FExpr_Cut : public FExpr_Func {
         Column col = wf.retrieve_column(i);
 
         if (col.ltype() == LType::MU) {
-
           col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
-
         } else {
-
           if (!ltype_is_numeric(col.ltype())) {
-
             throw TypeError() << "cut() can only be applied to numeric or void "
               << "columns, instead column `" << i << "` has an stype: `"
               << col.stype() << "`";
-
           }
 
           col = Column(CutNbins_ColumnImpl::make(
@@ -205,11 +202,8 @@ class FExpr_Cut : public FExpr_Func {
         Column col = wf.retrieve_column(i);
 
         if (col.ltype() == LType::MU) {
-
           col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
-
         } else {
-
           if (!ltype_is_numeric(col.ltype())) {
             throw TypeError() << "cut() can only be applied to numeric or void "
               << "columns, instead column `" << i << "` has an stype: `"
