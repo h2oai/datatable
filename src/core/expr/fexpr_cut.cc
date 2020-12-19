@@ -25,6 +25,8 @@
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
 #include "python/xargs.h"
+
+
 namespace dt {
 namespace expr {
 
@@ -134,17 +136,24 @@ class FExpr_Cut : public FExpr_Func {
       for (size_t i = 0; i < ncols; ++i) {
         Column col = wf.retrieve_column(i);
 
-        if (!ltype_is_numeric(col.ltype())) {
+        if (col.ltype() == LType::MU) {
 
-          throw TypeError() << "cut() can only be applied to numeric "
-            << "columns, instead column `" << i << "` has an stype: `"
-            << col.stype() << "`";
+          col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
 
+        } else {
+
+          if (!ltype_is_numeric(col.ltype())) {
+
+            throw TypeError() << "cut() can only be applied to numeric or void "
+              << "columns, instead column `" << i << "` has an stype: `"
+              << col.stype() << "`";
+
+          }
+
+          col = Column(CutNbins_ColumnImpl::make(
+                  std::move(col), nbins[i], right_closed_
+                ));
         }
-
-        col = Column(CutNbins_ColumnImpl::make(
-                std::move(col), nbins[i], right_closed_
-              ));
         wf.replace_column(i, std::move(col));
       }
     }
@@ -194,20 +203,26 @@ class FExpr_Cut : public FExpr_Func {
 
         // Retrieve actual data
         Column col = wf.retrieve_column(i);
-        if (!ltype_is_numeric(col.ltype())) {
-          throw TypeError() << "cut() can only be applied to numeric "
-            << "columns, instead column `" << i << "` has an stype: `"
-            << col.stype() << "`";
 
+        if (col.ltype() == LType::MU) {
+
+          col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
+
+        } else {
+
+          if (!ltype_is_numeric(col.ltype())) {
+            throw TypeError() << "cut() can only be applied to numeric or void "
+              << "columns, instead column `" << i << "` has an stype: `"
+              << col.stype() << "`";
+
+          }
+          col.cast_inplace(SType::FLOAT64);
+
+          // Bin column in-place
+          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins)))
+                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins)));
         }
-        col.cast_inplace(SType::FLOAT64);
-
-        // Bin column in-place
-        col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins)))
-                           : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins)));
-
         wf.replace_column(i, std::move(col));
-
         i++;
       }
     }

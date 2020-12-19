@@ -96,7 +96,6 @@ class CutNbins_ColumnImpl : public Virtual_ColumnImpl {
       double min, max;
 
       switch (col.ltype()) {
-        case dt::LType::MU:
         case dt::LType::BOOL:
         case dt::LType::INT:   {
                                  int64_t min_int, max_int;
@@ -114,7 +113,7 @@ class CutNbins_ColumnImpl : public Virtual_ColumnImpl {
                                }
                                break;
 
-        default:  throw TypeError() << "cut() can only be applied to numeric "
+        default:  throw TypeError() << "cut() can only be applied to numeric or void "
                     << "columns, instead got an stype: `" << col.stype() << "`";
       }
 
@@ -274,7 +273,10 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
         col_values_(std::move(col)),
         col_bins_(std::move(bins)),
         bins_data_(static_cast<const double*>(col_bins_.get_data_readonly()))
-    {}
+    {
+      xassert(ltype_is_numeric(col_values_.ltype()));
+      xassert(ltype_is_numeric(col_bins_.ltype()));
+    }
 
 };
 
