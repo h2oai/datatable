@@ -81,11 +81,10 @@ class FExpr_Cut : public FExpr_Func {
       }
 
       if (defined_bins) {
-        // list of dt
         py::oiter py_bins = py_bins_.to_oiter();
 
         if (py_bins.size() != ncols) {
-          throw ValueError() << "Number of frames in `bins` must equal to "
+          throw ValueError() << "Number of frames in `bins` must be equal to "
             << "the number of columns in the frame/expression, i.e. `"
             << ncols << "`, instead got: `" << py_bins.size() << "`";
         }
@@ -94,24 +93,25 @@ class FExpr_Cut : public FExpr_Func {
         for (auto py_bin : py_bins) {
           DataTable* dt = py_bin.to_datatable();
           if (dt->ncols() != 1) {
-            throw ValueError() << "All frames from `bins` must have "
-              << "one column only, instead for the frame `" << i << "` got: "
+            throw ValueError() << "To bin a column `cut()` needs exactly one column "
+              << "with the bin edges, instead for the frame `" << i << "` got: "
               << dt->ncols() << "`";
           }
 
           if (dt->nrows() < 2) {
-            throw ValueError() << "All frames from `bins` must contain at least two edges, "
+            throw ValueError() << "To bin data at least two edges are required, "
               << "instead for the frame `" << i << "` got: `" << dt->nrows() << "`";
           }
 
           // Retrieve bins
           Column bins = dt->get_column(0);
           if (!ltype_is_numeric(bins.ltype())) {
-            throw TypeError() << "All frames from `bins` must contain numeric columns only, "
+            throw TypeError() << "Bin edges must be provided as the numeric columns only, "
               << "instead for the frame `" << i << "` the column stype is `"
               << bins.stype() << "`";
           }
           bins.cast_inplace(SType::FLOAT64);
+          validate_bins(bins, i);
           bins.materialize();
 
           // Retrieve actual data
@@ -194,6 +194,34 @@ class FExpr_Cut : public FExpr_Func {
 
       return wf;
     }
+
+
+    // Ensure that bin edges are numeric values and are strictly increasing.
+    void validate_bins(const Column& bins, size_t frame_id) const {
+      double val1;
+      bool is_valid = bins.get_element(0, &val1);
+
+      if (!is_valid) {
+        throw ValueError() << "Bin edges must be numeric values only, "
+          << "instead for the frame `" << frame_id << "`" << " got `None` at row `0`";
+      }
+
+      for (size_t i = 1; i < bins.nrows(); ++i) {
+        double val2;
+        is_valid = bins.get_element(i, &val2);
+        if (!is_valid) {
+          throw ValueError() << "Bin edges must be numeric values only, "
+            << "instead for the frame `" << frame_id << "`" << " got `None` at row `" << i << "`";
+        }
+        if (val2 <= val1) {
+          throw ValueError() << "Bin edges must be strictly increasing, "
+            << "instead for the frame `" << frame_id << "`" << " at rows `" << i - 1 << "` "
+            << "and `" << i << "` the values are `" << val1 << "` and `" << val2<< "`";
+        }
+        val1 = val2;
+      }
+    }
+
 };
 
 
