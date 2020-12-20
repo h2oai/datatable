@@ -254,7 +254,7 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
         if (gt(value, bins_data_[0]) && lt(value, bins_data_[nbins - 1])) {
           is_valid = true;
-          *out = static_cast<int32_t>(find_bin(value, 0, nbins - 1));
+          *out = static_cast<int32_t>(bin_value(value, 0, nbins - 1));
         }
 
       }
@@ -262,7 +262,7 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
     }
 
 
-    size_t find_bin(double value, size_t left, size_t right) const {
+    size_t bin_value(double value, size_t left, size_t right) const {
       if (right == left + 1) {
         return left;
       }
@@ -270,9 +270,9 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
       size_t middle = (left + right) / 2;
 
       if (gt(value, bins_data_[middle])) {
-        return find_bin(value, middle, right);
+        return bin_value(value, middle, right);
       } else {
-        return find_bin(value, left, middle);
+        return bin_value(value, left, middle);
       }
 
     }
