@@ -58,11 +58,13 @@ class FExpr_Cut : public FExpr_Func {
       if (!py_nbins_.is_none()) {
         out += ", nbins=";
         out += py_nbins_.repr().to_string();
+      }
+      if (!py_bins_.is_none()) {
         out += ", bins=";
         out += py_bins_.repr().to_string();
-        out += ", right_closed=";
-        out += right_closed_? "True" : "False";
       }
+      out += ", right_closed=";
+      out += right_closed_? "True" : "False";
       out += ")";
       return out;
     }
@@ -75,17 +77,10 @@ class FExpr_Cut : public FExpr_Func {
 
       Workframe wf = arg_->evaluate_n(ctx);
 
-      bool defined_bins = !py_bins_.is_none();
-      bool defined_nbins = !py_nbins_.is_none();
-
-      if (defined_bins && defined_nbins) {
-        throw ValueError() << "`bins` and `nbins` cannot be both set at the same time";
-      }
-
-      if (defined_bins) {
-        cut_bins(wf);
-      } else {
+      if (py_bins_.is_none()) {
         cut_nbins(wf);
+      } else {
+        cut_bins(wf);
       }
 
       return wf;
@@ -142,7 +137,7 @@ class FExpr_Cut : public FExpr_Func {
           col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
         } else {
           if (!ltype_is_numeric(col.ltype())) {
-            throw TypeError() << "cut() can only be applied to numeric or void "
+            throw TypeError() << "cut() can only be applied to numeric "
               << "columns, instead column `" << i << "` has an stype: `"
               << col.stype() << "`";
           }
@@ -262,8 +257,9 @@ R"(cut(cols, nbins=10, bins=None, right_closed=True)
 --
 .. x-version-added:: 0.11
 
-Cut all the columns from `cols` by binning their values into
-equal-width discrete intervals.
+For each column from `cols` bin its values into equal-width intervals,
+when `nbins` is specified, or into arbitrary-width intervals,
+when interval edges are provided as `bins`.
 
 Parameters
 ----------
@@ -305,6 +301,11 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
   auto nbins        = args[1].to<py::oobj>(py::None());
   auto bins         = args[2].to<py::oobj>(py::None());
   auto right_closed = args[3].to<bool>(true);
+
+  if (!bins.is_none() && !nbins.is_none()) {
+    throw ValueError() << "`bins` and `nbins` cannot be both set at the same time";
+  }
+
   return PyFExpr::make(new FExpr_Cut(arg0, nbins, bins, right_closed));
 }
 
