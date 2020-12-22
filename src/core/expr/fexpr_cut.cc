@@ -200,7 +200,7 @@ class FExpr_Cut : public FExpr_Func {
           col = Column(new ConstNa_ColumnImpl(col.nrows(), dt::SType::INT32));
         } else {
           if (!ltype_is_numeric(col.ltype())) {
-            throw TypeError() << "cut() can only be applied to numeric or void "
+            throw TypeError() << "cut() can only be applied to numeric"
               << "columns, instead column `" << i << "` has an stype: `"
               << col.stype() << "`";
 
