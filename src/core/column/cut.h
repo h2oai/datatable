@@ -199,23 +199,21 @@ class CutNbins_ColumnImpl : public Virtual_ColumnImpl {
 template <bool RIGHT_CLOSED>
 class CutBins_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    Column col_values_, col_bins_;
-    const double* bins_data_;
+    Column col_;
+    dblvec bins_;
 
   public:
 
-    CutBins_ColumnImpl(Column&& col, Column&& bins)
+    CutBins_ColumnImpl(Column&& col, dblvec&& bins)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        col_values_(std::move(col)),
-        col_bins_(std::move(bins)),
-        bins_data_(static_cast<const double*>(col_bins_.get_data_readonly()))
+        col_(std::move(col)),
+        bins_(std::move(bins))
     {
-      xassert(ltype_is_numeric(col_values_.ltype()));
-      xassert(ltype_is_numeric(col_bins_.ltype()));
+      xassert(ltype_is_numeric(col_.ltype()));
     }
 
     ColumnImpl* clone() const override {
-      return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_values_), Column(col_bins_));
+      return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_), dblvec(bins_));
     }
 
     size_t n_children() const noexcept override {
@@ -224,7 +222,7 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
-      return col_values_;
+      return col_;
     }
 
     inline bool gt(double v1, double v2) const {
@@ -246,13 +244,13 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
     bool get_element(size_t i, int32_t* out) const override {
       double value;
-      bool is_valid = col_values_.get_element(i, &value);
+      bool is_valid = col_.get_element(i, &value);
 
       if (is_valid) {
-        size_t nbins = col_bins_.nrows();
+        size_t nbins = bins_.size();
         is_valid = false;
 
-        if (gt(value, bins_data_[0]) && lt(value, bins_data_[nbins - 1])) {
+        if (gt(value, bins_[0]) && lt(value, bins_[nbins - 1])) {
           is_valid = true;
           *out = static_cast<int32_t>(bin_value(value, 0, nbins - 1));
         }
@@ -269,7 +267,7 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
       size_t middle = (left + right) / 2;
 
-      if (gt(value, bins_data_[middle])) {
+      if (gt(value, bins_[middle])) {
         return bin_value(value, middle, right);
       } else {
         return bin_value(value, left, middle);

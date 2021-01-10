@@ -119,11 +119,11 @@ def test_cut_error_negative_nbins_list():
 
 
 def test_cut_error_inconsistent_nbins():
-    msg = ("When nbins is a list or a tuple, its length must be the same as "
-           "the number of columns in the frame/expression, i.e. 2, instead got: 1")
+    msg = ("When nbins has more than one element, its length must be the same as "
+           "the number of columns in the frame/expression, i.e. 2, instead got: 3")
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, nbins = [10])]
+        DT[:, cut(DT, nbins = [10, 11, 12])]
 
 
 def test_cut_error_inconsistent_bins():
