@@ -43,3 +43,11 @@
     See also
     --------
     - :ref:`f-expressions` -- user guide on using f-expressions.
+
+    Notes
+    -----
+    .. x-version-changed:: 1.0.0
+
+        :ref:`f-expressions` containing a list/tuple of
+        column names/column positions/column types are
+        accepted within the `j` selector.

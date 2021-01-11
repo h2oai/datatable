@@ -117,9 +117,9 @@ def test_j_f_sequence():
 )
 
     # multiple column selection by label
-    assert frame[:, f['value', 'id']].to_list()[0] == frame[:, ['value', 'id']].to_list()[0]
+    assert_equals(frame[:, f['value', 'id']], frame[:, ['value', 'id']])
     # multiple column selection by position
-    assert frame[:, f[-1, 0]].to_list()[0] == frame[:, ['value', 'id']].to_list()[0]
+    assert_equals(frame[:, f[-1, 0]], frame[:, ['value', 'id']])
 
 #-------------------------------------------------------------------------------
 # Integer-valued `j`
