@@ -125,9 +125,9 @@ class FExpr_Cut : public FExpr_Func {
           }
 
           // When `nbins_` has only one element we bin all data by using `nbins_[0]`
-          size_t nbins_id = i % nbins_.size();
+          size_t nbins_i = i % nbins_.size();
           col = Column(CutNbins_ColumnImpl::make(
-                  std::move(col), nbins_[nbins_id], right_closed_
+                  std::move(col), nbins_[nbins_i], right_closed_
                 ));
         }
         wf.replace_column(i, std::move(col));
