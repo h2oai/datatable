@@ -200,20 +200,20 @@ template <bool RIGHT_CLOSED>
 class CutBins_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    dblvec bins_;
+    dblvec bin_edges_;
 
   public:
 
-    CutBins_ColumnImpl(Column&& col, dblvec&& bins)
+    CutBins_ColumnImpl(Column&& col, dblvec&& bin_edges)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
         col_(std::move(col)),
-        bins_(std::move(bins))
+        bin_edges_(std::move(bin_edges))
     {
       xassert(ltype_is_numeric(col_.ltype()));
     }
 
     ColumnImpl* clone() const override {
-      return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_), dblvec(bins_));
+      return new CutBins_ColumnImpl<RIGHT_CLOSED>(Column(col_), dblvec(bin_edges_));
     }
 
     size_t n_children() const noexcept override {
@@ -247,12 +247,12 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
       bool is_valid = col_.get_element(i, &value);
 
       if (is_valid) {
-        size_t nbins = bins_.size();
+        size_t nbin_edges = bin_edges_.size();
         is_valid = false;
 
-        if (gt(value, bins_[0]) && lt(value, bins_[nbins - 1])) {
+        if (gt(value, bin_edges_[0]) && lt(value, bin_edges_[nbin_edges - 1])) {
           is_valid = true;
-          *out = static_cast<int32_t>(bin_value(value, 0, nbins - 1));
+          *out = static_cast<int32_t>(bin_value(value, 0, nbin_edges - 1));
         }
 
       }
@@ -261,13 +261,15 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
 
 
     size_t bin_value(double value, size_t left, size_t right) const {
+      xassert(right > left);
+
       if (right == left + 1) {
         return left;
       }
 
       size_t middle = (left + right) / 2;
 
-      if (gt(value, bins_[middle])) {
+      if (gt(value, bin_edges_[middle])) {
         return bin_value(value, middle, right);
       } else {
         return bin_value(value, left, middle);

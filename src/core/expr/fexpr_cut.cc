@@ -40,15 +40,15 @@ class FExpr_Cut : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32vec nbins_;
-    std::vector<dblvec> bins_;
+    std::vector<dblvec> bin_edges_;
     bool right_closed_;
     size_t: 56;
 
   public:
-    FExpr_Cut(py::robj arg, int32vec nbins, std::vector<dblvec> bins, bool right_closed)
+    FExpr_Cut(py::robj arg, int32vec&& nbins, std::vector<dblvec>&& bin_edges, bool right_closed)
       : arg_(as_fexpr(arg)),
-        nbins_(nbins),
-        bins_(bins),
+        nbins_(std::move(nbins)),
+        bin_edges_(std::move(bin_edges)),
         right_closed_(right_closed)
     {}
 
@@ -65,12 +65,12 @@ class FExpr_Cut : public FExpr_Func {
         out += "]";
       }
 
-      if (bins_.size()) {
+      if (bin_edges_.size()) {
         out += ", bins=[";
-        for (size_t i = 0; i < bins_.size(); ++i) {
+        for (size_t i = 0; i < bin_edges_.size(); ++i) {
           out += "[";
-          for (size_t j = 0; j < bins_[i].size(); ++j) {
-            out += std::to_string(bins_[i][j]);
+          for (size_t j = 0; j < bin_edges_[i].size(); ++j) {
+            out += std::to_string(bin_edges_[i][j]);
             out += ",";
           }
           out += "],";
@@ -91,7 +91,7 @@ class FExpr_Cut : public FExpr_Func {
 
       Workframe wf = arg_->evaluate_n(ctx);
 
-      if (bins_.size()) {
+      if (bin_edges_.size()) {
         cut_bins(wf);
       } else {
         cut_nbins(wf);
@@ -139,10 +139,10 @@ class FExpr_Cut : public FExpr_Func {
     void cut_bins(Workframe& wf) const {
       const size_t ncols = wf.ncols();
 
-      if (bins_.size() != ncols) {
+      if (bin_edges_.size() != ncols) {
         throw ValueError() << "Number of elements in `bins` must be equal to "
           << "the number of columns in the frame/expression, i.e. `"
-          << ncols << "`, instead got: `" << bins_.size() << "`";
+          << ncols << "`, instead got: `" << bin_edges_.size() << "`";
       }
 
       for (size_t i = 0; i < ncols; ++i) {
@@ -161,9 +161,9 @@ class FExpr_Cut : public FExpr_Func {
           col.cast_inplace(SType::FLOAT64);
 
           // Bin column in-place
-          dblvec bins_i = std::move(bins_[i]);
-          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(bins_i)))
-                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(bins_i)));
+          dblvec tmp = std::move(bin_edges_[i]);
+          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(tmp)))
+                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(tmp)));
         }
         wf.replace_column(i, std::move(col));
       }
@@ -181,28 +181,28 @@ class FExpr_Cut : public FExpr_Func {
         }
       };
 
-      dblvec bins_vec;
-      bins_vec.reserve(col.nrows());
+      dblvec bin_edges_vec;
+      bin_edges_vec.reserve(col.nrows());
 
       double val;
       bool is_valid = col.get_element(0, &val);
       validate_bin(is_valid, 0);
-      bins_vec.push_back(val);
+      bin_edges_vec.push_back(val);
 
       for (size_t i = 1; i < col.nrows(); ++i) {
         is_valid = col.get_element(i, &val);
         validate_bin(is_valid, i);
 
-        if (val <= bins_vec[i - 1]) {
+        if (val <= bin_edges_vec[i - 1]) {
           throw ValueError() << "Bin edges must be strictly increasing, "
             << "instead for the frame `" << frame_id << "`" << " at rows `"
             << i - 1 << "` " << "and `" << i << "` the values are `"
-            << bins_vec[i - 1] << "` and `" << val<< "`";
+            << bin_edges_vec[i - 1] << "` and `" << val<< "`";
         }
-        bins_vec.push_back(val);
+        bin_edges_vec.push_back(val);
       }
 
-      return bins_vec;
+      return bin_edges_vec;
     }
 
 };
@@ -260,25 +260,25 @@ See also
 
 static py::oobj pyfn_cut(const py::XArgs& args) {
   auto arg0         = args[0].to_oobj();
-  auto arg_nbins     = args[1].to<py::oobj>(py::None());
-  auto arg_bins      = args[2].to<py::oobj>(py::None());
-  auto right_closed = args[3].to<bool>(true);
-  std::vector<dblvec> bins_vec;
+  auto nbins_arg     = args[1].to<py::oobj>(py::None());
+  auto bins_arg      = args[2].to<py::oobj>(py::None());
+  auto right_closed  = args[3].to<bool>(true);
+  std::vector<dblvec> bin_edges_vec;
   int32_t nbins_default = 10;
   int32vec nbins_vec;
 
-  if (!arg_bins.is_none() && !arg_nbins.is_none()) {
+  if (!bins_arg.is_none() && !nbins_arg.is_none()) {
     throw ValueError() << "`bins` and `nbins` cannot be both set at the same time";
   }
 
-  if (!arg_bins.is_none()) {
-    if (!arg_bins.is_list_or_tuple()) {
+  if (!bins_arg.is_none()) {
+    if (!bins_arg.is_list_or_tuple()) {
       throw TypeError() << "`bins` parameter must be a list or a tuple, "
-        << "instead got `" << arg_bins.typeobj() << "`";
+        << "instead got `" << bins_arg.typeobj() << "`";
     }
 
     size_t i = 0;
-    py::oiter bins_iter = arg_bins.to_oiter();
+    py::oiter bins_iter = bins_arg.to_oiter();
 
     for (auto bins_frame : bins_iter) {
       DataTable* dt = bins_frame.to_datatable();
@@ -301,14 +301,14 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
           << col.stype() << "`";
       }
       col.cast_inplace(SType::FLOAT64);
-      bins_vec.push_back(FExpr_Cut::bins_to_vector(col, i));
+      bin_edges_vec.push_back(FExpr_Cut::bins_to_vector(col, i));
       i++;
     }
   } else {
-    bool nbins_list_or_tuple = arg_nbins.is_list_or_tuple();
+    bool nbins_list_or_tuple = nbins_arg.is_list_or_tuple();
 
     if (nbins_list_or_tuple) {
-      py::oiter nbins_iter = arg_nbins.to_oiter();
+      py::oiter nbins_iter = nbins_arg.to_oiter();
       nbins_vec.reserve(nbins_iter.size());
       size_t i = 0;
       for (auto nbins_val : nbins_iter) {
@@ -323,8 +323,8 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
       }
 
     } else {
-      if (!arg_nbins.is_none()) {
-        nbins_default = arg_nbins.to_int32_strict();
+      if (!nbins_arg.is_none()) {
+        nbins_default = nbins_arg.to_int32_strict();
         if (nbins_default <= 0) {
           throw ValueError() << "Number of bins must be positive, instead got: `"
             << nbins_default << "`";
@@ -334,7 +334,7 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
     }
   }
 
-  return PyFExpr::make(new FExpr_Cut(arg0, nbins_vec, bins_vec, right_closed));
+  return PyFExpr::make(new FExpr_Cut(arg0, std::move(nbins_vec), std::move(bin_edges_vec), right_closed));
 }
 
 DECLARE_PYFN(&pyfn_cut)
