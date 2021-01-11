@@ -1,0 +1,3 @@
+[console_scripts]
+snooty=snooty.main:main
+

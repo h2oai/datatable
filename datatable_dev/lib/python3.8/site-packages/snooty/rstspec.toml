@@ -1,0 +1,1703 @@
+[meta]
+version = 0
+
+[enum]
+user_level = ["beginner", "intermediate", "advanced"]
+backlinks = ["entry", "top", "none"]
+guide_categories = ["Getting Started"]
+alignment = ["left", "center", "right"]
+card_type = ["small", "large"]
+output_format = ["html"]
+devhub_type = ["article", "quickstart", "how-to", "video", "live"]
+charts_theme = ["light", "dark"]
+mws_version = ["3.4", "3.6", "4.0", "4.2", "4.4", "latest"]
+
+[directive.default-domain]
+argument_type = "string"
+
+[directive.div]
+deprecated = true
+argument_type = "string"
+content_type = "block"
+
+[directive.container]
+deprecated = true
+argument_type = "string"
+content_type = "block"
+
+[directive.list-table]
+help = """Define a table using nested lists."""
+content_type = "list_table"
+argument_type = "string"
+options.align = "alignment"
+options.width = "string"
+options.widths = "string"
+options.class = "string"
+options.header-rows = "nonnegative_integer"
+options.stub-columns = "nonnegative_integer"
+example = """.. list-table::
+   :header-rows: ${1:1 (Optional)}
+   :stub-columns: ${2:1 (Optional)}
+   :widths: ${3:10 10 20 (Optional)}
+${4:   :align:
+   :width:
+   :class:}
+
+   * - ${5:Row 1, column 1}
+     -
+     -
+   * -
+     -
+     -
+
+"""
+
+[directive."ecosystem:landing-page-tiles"]
+
+[directive."landing:deprecated-version-selector"]
+
+[directive.admonition]
+content_type = "block"
+argument_type = "string"
+options.class = "string"
+deprecated = true
+example = """.. admonition:: ${1:Title}
+
+   ${2:Admonition content}
+"""
+
+[directive.note]
+inherit = "admonition"
+example = """.. note:: ${1:Title}
+
+   ${2:Note block content}
+"""
+
+[directive.warning]
+inherit = "admonition"
+example = """.. warning:: ${1:Title}
+
+   ${2:Warning block content}
+"""
+
+[directive.important]
+inherit = "admonition"
+example = """.. important:: ${1:Title}
+
+   ${2:Important block content}
+"""
+
+[directive.danger]
+inherit = "admonition"
+deprecated = true
+example = """.. danger::
+
+   ${1:Danger block content}
+"""
+
+[directive.caution]
+inherit = "admonition"
+deprecated = true
+example = """.. caution:: ${1:Title}
+
+   ${2:Caution block content}
+"""
+
+[directive.tip]
+inherit = "admonition"
+example = """.. tip:: ${1:Title}
+
+   ${2:Tip content}
+"""
+
+[directive._baseversiondirective]
+argument_type = {type = "string", required = true}
+content_type = "block"
+
+[directive.versionchanged]
+inherit = "_baseversiondirective"
+example = """.. versionchanged:: ${1:v1.0}
+   ${2:Describe what changed in that version. Description is optional.}
+"""
+
+[directive.versionadded]
+inherit = "_baseversiondirective"
+example = """.. versionadded:: ${1:v1.0}
+   ${2:Describe what was added in that version. Description is optional.}
+"""
+[directive.deprecated]
+argument_type = {type = "string", required = false}
+content_type = "block"
+example = """.. deprecated:: ${1:v1.0 (Optional)}
+   ${2:Explanation to inform the reader what should be used instead. Explanation is optional.}
+"""
+
+[directive.see]
+inherit = "admonition"
+example = """.. see:: ${1:Title}
+
+   ${2:String}
+"""
+
+[directive.seealso]
+inherit = "admonition"
+example = """.. seealso:: ${1:Title}
+
+   ${2:String}
+"""
+
+[directive.todo]
+help = """Describes a task to be completed by a writer in the future."""
+argument_type = "string"
+content_type = "string"
+example = """.. todo::"""
+
+[directive.contents]
+argument_type = "string"
+options.local = "flag"
+options.backlinks = "backlinks"
+options.depth = "nonnegative_integer"
+options.class = "string"
+example = """.. contents:: ${1:string}
+   ${2::local: (Optional)}
+   :backlinks: ${3|entry,top,none}
+   :depth: ${4:1 (Optional)}
+   :class: ${5:Fancy (Optional)}
+"""
+
+[directive.include]
+help = """Include a reStructuredText file's contents."""
+argument_type = ["path", "uri"]
+options.start-after = "string"
+options.end-before = "string"
+example = """.. include:: ${1:/includes/file.rst}
+   :start-after: ${2:text to start after (Optional}}
+   :end-before: ${3:text to end before (Optional}}
+"""
+
+[directive.literalinclude]
+help = """Include a file as a block of code."""
+inherit = "include"
+options.start-after = "string"
+options.end-before = "string"
+options.linenos = "flag"
+options.caption = "string"
+options.copyable = "boolean"
+options.language = "string"
+options.dedent = ["nonnegative_integer", "flag"]
+options.emphasize-lines = "linenos"
+options.lines = "linenos"
+example = """..literalinclude:: ${1:/path/to/file.js}
+   :start-after: ${2:text to start after (Optional}}
+   :end-before: ${3:text to end before (Optional}}
+   :language: ${4:language for syntax highlighting}
+   ${5::copyable:
+   :caption:
+   :dedent:
+   :emphasize-lines:
+   :lines:}
+"""
+
+[directive.figure]
+help = """Include an image file."""
+argument_type = ["path", "uri"]
+content_type = "block"
+example = """.. figure:: ${1:/path or uri.png}
+   :alt: ${2:Alt text for the image}
+   ${3::figwidth:
+   :width:
+   :scale:
+   :align:
+   :lightbox:
+   :class:
+   :border:}
+
+   ${0: Optional caption for the figure.}
+"""
+options.alt = {type = "string", required = true}
+options.figwidth = "length"
+options.scale = "string"
+options.width = "length"
+options.align = "alignment"
+options.lightbox = "flag"
+options.class = "string"
+options.border = "flag"
+
+
+[directive.image]
+inherit = "figure"
+example = """.. image:: ${1:/path or uri.png}
+   :alt: ${2: Alt text for the image}
+   #{3::figwidth:
+   :width:
+   :scale:
+   :align:
+   :lightbox:
+   :class:
+   :border:}
+
+   ${0: Optional caption for the figure.}
+"""
+
+[directive.example]
+help = """A section providing an example related to the surrounding text."""
+inherit = "admonition"
+example = """.. example::
+
+   ${0:Example}
+"""
+
+[directive.optional]
+help = """A section of optional information or steps."""
+content_type = "block"
+example = """.. optional::
+
+   ${0:Optional content}
+"""
+
+[directive.cond]
+help = """Only parse a chunk of content if the condition in the argument is true."""
+argument_type = "string"
+content_type = "block"
+example = """.. cond:: ${1: string}
+
+   ${0:Content block}
+"""
+
+[directive.only]
+inherit = "cond"
+deprecated = true
+
+[directive.role]
+deprecated = true
+argument_type = "string"
+
+[directive.class]
+help = """Set a class on the next element."""
+deprecated = true
+argument_type = "string"
+content_type = "block"
+
+[directive.sidebar]
+help = """A nested document providing related or reference material."""
+argument_type = "string"
+options.subtitle = "string"
+content_type = "block"
+example = """.. sidebar:: ${1:string}
+   :subtitle: ${2:string}
+
+   ${3:Content block}
+"""
+
+[directive.toctree]
+help = """List pages to treat as children of this page."""
+content_type = "block"
+example = """.. toctree::
+   :maxdepth: ${1:int}
+   ${2::titlesonly:}
+   ${3::hidden:}
+   ${4::caption:
+   :includehidden:
+   :reversed:
+   :numbered:
+   :glob:}
+
+   ${0:/path-to-first-page
+   /path-to-second-page}
+"""
+options.caption = "string"
+options.titlesonly = "flag"
+options.hidden = "flag"
+options.maxdepth = "nonnegative_integer"
+options.includehidden = "flag"
+options.reversed = "flag"
+options.numbered = "flag"
+options.glob = "flag"
+
+[directive.tabs-selector]
+help = """Add dropdown selector used to select the specified tabset."""
+argument_type = "string"
+
+[directive.tabs-pillstrip]
+deprecated = true
+inherit = "tabs-selector"
+
+[directive.tabs-top]
+deprecated = true
+
+[directive.tabs]
+content_type = "block"
+argument_type = "string"
+options.hidden = "boolean"
+options.tabset = "string"
+example = """.. tabs:: ${1: string}
+   :hidden: ${2|true,false|}
+   :tabset: ${3:string}
+
+   ${0:Content block}
+"""
+
+[directive.tabs-cloud]
+inherit = "tabs"
+
+[directive.tabs-platforms]
+inherit = "tabs"
+
+[directive.tabs-drivers]
+inherit = "tabs"
+
+[directive.tabs-auth]
+inherit = "tabs"
+
+[directive.tabs-stitch-auth-providers]
+inherit = "tabs"
+
+[directive.tabs-deployments]
+inherit = "tabs"
+
+[directive.tabs-cloud-providers]
+inherit = "tabs"
+
+[directive.tabs-stitch-sdks]
+inherit = "tabs"
+
+[directive.tabs-stitch-interfaces]
+inherit = "tabs"
+
+[directive.tabs-realm-languages]
+inherit = "tabs"
+
+[directive.tabs-realm-sdks]
+inherit = "tabs"
+
+[directive.tabs-realm-admin-interfaces]
+inherit = "tabs"
+
+[directive.tabs-realm-auth-providers]
+inherit = "tabs"
+
+[directive.tab]
+argument_type = "string"
+content_type = "block"
+options.tabid = {type = "string", required = true}
+example = """.. tab:: ${1:Tab Title}
+   :tabid: ${2:id of the tab}
+
+   ${0: Tab content.}
+"""
+
+[directive.index]
+argument_type = "string"
+
+[directive.describe]
+argument_type = "string"
+content_type = "block"
+
+[directive.glossary]
+content_type = "block"
+options.sorted = "flag"
+example = """.. glossary::
+
+   ${1:Term}
+      ${0:Term's definition}
+"""
+
+[directive.rubric]
+argument_type = "string"
+example = """.. rubric:: ${1:Paragraph heading that is not used to create a TOC node}
+
+   $0
+"""
+
+[directive.code-block]
+help = """A block of code to show the user."""
+argument_type = "string"
+content_type = "raw"
+options.caption = "string"
+options.copyable = "boolean"
+options.emphasize-lines = "string"
+options.class = "string"
+options.linenos = "flag"
+example = """.. code-block:: ${1:language}
+   ${2::copyable: (bool)
+   :caption: (string)
+   :emphasize-lines: (string)
+   :class: (string)
+   :linenos: (flag)}
+
+   ${0:code content}
+"""
+
+[directive.code]
+help = """A block of code to show the user."""
+inherit = "code-block"
+example = """.. code:: ${1:language}
+   ${2::copyable: (bool)
+   :caption: (string)
+   :emphasize-lines: (string)
+   :class: (string)
+   :linenos: (flag)}
+
+   ${0:code content}
+"""
+
+[directive.cssclass]
+help = """Add the given CSS class name to generated HTML of the contained (if content is given) or
+          following (if not) page element."""
+argument_type = "string"
+content_type = "block"
+example = """.. cssclass:: ${1:class name}
+
+   ${0:Optional content to which class will apply. If no content given, class applies to following page element.}
+"""
+
+[directive.uriwriter]
+
+[directive.card-group]
+options.type = "card_type"
+content_type = "block"
+example = """.. card-group::
+   :card_type: ${1:small or large}
+
+   ${0:Card content}
+"""
+
+###### Guides
+# Examples commented out to avoid confusion with similar devhub directives;
+# can be used for workspace-specific snippets in future.
+[directive.card]
+help = """A single-page card."""
+argument_type = "string"
+
+[directive.multi-card]
+help = """A card with multiple pages."""
+# example = """.. multi-card:: ${1:Card Title}
+
+#    * ${0:/path-to-included-article
+#    * }
+# """
+argument_type = "string"
+content_type = "path-list"
+
+[directive.guide-index]
+help = """Render the guide landing page, using the cards listed in this directive."""
+content_type = ["directive.card", "directive.multi-card"]
+
+[directive.guide]
+help = """Legacy guide definition."""
+content_type = "block"
+deprecated = true
+
+[directive._guides-base]
+required_context = "guide"
+argument_type = "string"
+content_type = "block"
+
+[directive.category]
+help = """The guide's type."""
+inherit = "_guides-base"
+argument_type = "guide_categories"
+# example = """.. category:: ${1:Getting Started}
+# """
+
+[directive.level]
+help = """The expected level of user experience for this guide."""
+inherit = "_guides-base"
+argument_type = "user_level"
+# example = """.. level:: ${0|beginner,intermediate,advanced|}
+# """
+
+[directive.author]
+help = """The author of this guide."""
+inherit = "_guides-base"
+# example = """.. author:: ${0: Author of the guide}
+# """
+
+[directive.product_version]
+help = """The version of product to which this guide applies."""
+inherit = "_guides-base"
+# example = """.. product_version:: ${0:v4.4}
+# """
+
+[directive.hlist]
+content_type = "list"
+options.columns = "nonnegative_integer"
+
+[directive.blockquote]
+help = """A block of content which is quoted from another source."""
+content_type = "block"
+# example = """.. blockquote::
+#    ${0: quoted content}
+# """
+
+[directive.languages]
+help = """A list of languages that this guide supports."""
+# example = """.. languages::
+
+#    * ${0:shell
+#    * compass
+#    * python}
+# """
+inherit = "_guides-base"
+content_type = "list"
+
+[directive.deployments]
+help = """Lists the expected types of MongoDB deployments for this guide."""
+inherit = "_guides-base"
+# example = """.. deployments::
+
+#    * ${0:standalone
+#    * replica set}
+# """
+
+[directive.result_description]
+help = """Describes the end result that the user should have once they have finished this guide."""
+inherit = "_guides-base"
+example = """.. result_description::
+
+   ${0:End result user should reach when they've finished the guide}
+"""
+
+[directive.prerequisites]
+help = """The prerequisites to start this guide."""
+inherit = "_guides-base"
+# example = """.. prerequisites::
+
+#    ${0:List of prerequisites required before starting the guide's procedure}
+# """
+
+[directive.check_your_environment]
+help = """Checks the user should perform before starting this guide."""
+inherit = "_guides-base"
+# example = """.. check_your_environment::
+
+#    ${0:Verifications user should perform to ensure they're ready to
+#    do the procedure}
+# """
+
+[directive.time]
+help = """Shows the time expected for this guide."""
+inherit = "_guides-base"
+# example = """.. time:: ${0:20 minutes}
+# """
+
+[directive.procedure]
+help = """This guide's main procedure."""
+inherit = "_guides-base"
+# example = """.. procedure::
+
+#    ${0:Main container for the procedure}
+# """
+
+[directive.summary]
+inherit = "_guides-base"
+# example = """.. summary::
+
+#    ${0:In this guide, you will…}
+# """
+[directive.whats_next]
+help = """What the user should do next. Typically a brief paragraph, followed by a list of articles."""
+inherit = "_guides-base"
+# example = """.. whats_next::
+
+#    ${1:Brief paragraph indicating what the user should do next.}
+
+#    ${0:* article example 1
+#    * article example 2}
+# """
+
+[directive."guide:seealso"]
+help = """Related pages. Typically a list."""
+inherit = "_guides-base"
+# example = """.. seealso::
+
+#    ${0:- first related page
+#    - second related page}
+# """
+
+[directive."mongodb:mongo-web-shell"]
+help = """An instance of the web version of a Mongo shell"""
+options.version = "mws_version"
+example = """.. mongo-web-shell::
+   ${1::version: (string)}
+"""
+
+[directive."mongodb:openapi"]
+help = """Include a reStructuredText file's contents."""
+argument_type = ["path", "uri"]
+
+[directive."mongodb:operation"]
+content_type = "block"
+options.hash = "string"
+options.method = "string"
+options.path = "string"
+
+[role."mongodb:required"]
+type = "explicit_title"
+
+###### DevHub
+[directive._devhub-base]
+required_context = "devhub"
+
+[directive._devhub-inline]
+inherit = "_devhub-base"
+argument_type = "string"
+
+[directive._devhub-block]
+inherit = "_devhub-base"
+content_type = "block"
+
+[directive."devhub:meta-description"]
+help = "Short and simple explanation of what the page is about. Try to include a target keyword and call to action. 125–155 Characters."
+inherit = "_devhub-block"
+example = """.. meta-description::
+
+   ${0:Short and simple explanation of what the page is about. Try to
+   include a target keyword and call to action. 125–155 Characters.}
+"""
+
+[directive."devhub:author"]
+help = "Author profile for the byline."
+example = """.. author::
+   :name: ${1:Eliot Horowitz}
+   :image: ${2:/path/to/image.jpg}
+   :location: ${3:New York, NY}
+   :company: ${4:MongoDB Inc.}
+   :title: ${5:Co-founder}
+   :website: ${6:http://www.example.com}
+   :twitter: ${7:https://twitter.com/eliothorowitz}
+   :github: ${8:https://github.com/erh}
+   :linkedin: ${9:https://www.linkedin.com/in/eliothorowitz/}
+
+   ${0:Author bio goes here.}
+"""
+inherit = "_devhub-block"
+options.name = "string"
+options.image = ["path", "uri"]
+options.location = "string"
+options.company = "string"
+options.title = "string"
+options.website = "uri"
+options.twitter = "uri"
+options.github = "uri"
+options.linkedin = "uri"
+
+
+[directive."devhub:type"]
+help = "Specify the type of document"
+inherit = "_devhub-inline"
+argument_type = "devhub_type"
+example = """.. type:: ${1|article,quickstart,how-to,video,live|}
+"""
+
+[directive."devhub:level"]
+help = "Specify the experience level of the audience: beginner, intermediate, or advanced"
+inherit = "_devhub-inline"
+argument_type = "user_level"
+example = """.. level:: ${1|beginner,intermediate,advanced|}
+"""
+
+[directive."devhub:tags"]
+help = "User-specified tags."
+example = """.. tags::
+
+   * ${0:first tag
+   * second tag
+   * third tag}
+"""
+inherit = "_devhub-block"
+content_type = "list"
+
+[directive."devhub:products"]
+help = "MongoDB products discussed in the article"
+example = """.. products::
+
+   * ${0:Realm
+   * MongoDB Atlas}
+"""
+inherit = "_devhub-block"
+content_type = "list"
+
+[directive."devhub:callout"]
+help = "Call out a specific University course, blog post, event, etc."
+inherit = "_devhub-block"
+example = """.. callout::
+   ${0:Call out specific content, such as an event, University course, etc.}
+"""
+
+[directive."devhub:introduction"]
+help = "Capture the reader's attention, offer the reason for the article's existence, and explain how the content will address the problem. Use the target keyword in the first 100 words."
+inherit = "_devhub-block"
+example = """.. introduction::
+
+   ${0:Capture the reader's attention, offer the reason for the article's existence,
+   and explain how the content will address the problem.
+   Use the target keyword in the first 100 words.}
+"""
+
+[directive."devhub:prerequisites"]
+help = "If your content has prerequisites, describe them here."
+inherit = "_devhub-block"
+example = """.. prerequisites::
+
+   ${0:If your content has prerequisites, describe them here}
+"""
+
+[directive."devhub:content"]
+help = "Body of the article. Use headers, links, lists, etc."
+inherit = "_devhub-block"
+example = """.. content::
+
+   ${0:Article content}
+"""
+
+[directive."devhub:summary"]
+help = "Summarize or conclude the article. Include a relevant call to action."
+inherit = "_devhub-block"
+example = """.. summary::
+
+   ${0:Summarize or conclude the article. Include a relevant call to action.}
+"""
+
+[directive."devhub:related"]
+help = "List of related articles."
+inherit = "_devhub-block"
+content_type = "list"
+example = """.. related::
+
+   * ${0: /path-to-first-related-article
+   * https://url-of-related-article}
+"""
+
+##### Landing Pages
+[directive._landing-base]
+required_context = "landing"
+
+[directive._landing-inline]
+inherit = "_landing-base"
+argument_type = "string"
+
+[directive._landing-block]
+inherit = "_landing-base"
+content_type = "block"
+
+[directive."landing:introduction"]
+inherit = "_landing-block"
+
+[directive."landing:cta"]
+help = "Call to action directing users to a new part of the site"
+example = """..cta::
+
+   ${0::manual:`Read the Introduction to MongoDB </introduction>`}
+"""
+inherit = "_landing-block"
+
+[directive."landing:card-group"]
+inherit = "_landing-block"
+help = """Container to hold a group of cards"""
+options.columns = "nonnegative_integer"
+example = """.. card-group::
+   ${1::columns: 2}
+
+   $0
+"""
+
+[directive."landing:card"]
+example = """.. card::
+   :headline: ${1:Run a self-managed database}
+   :cta: ${2:Get started with MongoDB}
+   :url: {$3:url-card-should-link-to}
+   ${4::icon: /path-to-icon.svg
+   :icon-alt: Icon's alt text
+   :tag: server}
+
+   ${0:Card content.}
+"""
+help = """Card in a card-group. Each card links to the specified URI, and can include an icon, as well as a call-to-action string"""
+inherit = "_landing-block"
+options.headline = "string"
+options.cta = "string"
+options.url = "uri"
+options.icon = ["path", "uri"]
+options.icon-alt = "string"
+options.tag = "string"
+
+###### Misc.
+[directive.atf-image]
+help = "Path to the image to use for the above-the-fold header image"
+argument_type = ["path", "uri"]
+example = """.. atf-image:: ${0:/path-or-url-to-image.png}"""
+
+[directive.pubdate]
+help = "Date the article was published. Format: YYYY-MM-DD"
+argument_type = "iso_8601"
+example = """.. pubdate:: ${0:YYYY-MM-DD}"""
+
+[directive.updated-date]
+help = "Date the post was most recently updated. Format: YYYY-MM-DD"
+argument_type = "iso_8601"
+example = """.. updated-date:: ${0:YYYY-MM-DD}"""
+
+[directive.twitter]
+help = """Provide the metadata required to automatically generate a card when posting the link to twitter."""
+example = """.. twitter::
+   :site: ${1:Corporate twitter @username to which the card should be attributed}
+   :creator: ${2:Human twitter @username of the person who wrote the article}
+   :title: ${3:Concise title of the article. Truncated to one line on web and two on mobile.}
+   :image: ${4:Path to a unique image representing the content of the page. Aspect ration 2:1, must be JPG, PNG, WEBP, or GIF}
+   :image-alt: ${5:Text description of the image conveying the essential nature of the image to users who are visually impaired.}
+
+   ${0:Concise summary of the content. Do not re-use the title of the document.
+   Truncated to three lines on web; not displayed on mobile.
+   Max 200 characters.}
+"""
+content_type = "block"
+options.site = "string"
+options.creator = {type = "string", required = true}
+options.title = {type = "string", required = true}
+options.image = {type = ["path", "uri"], required = true}
+options.image-alt = {type = "string", required = true}
+
+[directive.og]
+help="""Provide the metadata required to automatically generate a card when posting to OG social-using sites, such as Facebook."""
+example= """.. og::
+   :url: ${1:Canonical URL of the page without any session variables, params, etc.}
+   :type: ${2:article}
+   :title: ${3:Title of article without any branding}
+   :image: ${4:URL of image that should appear when someone shares the content}
+
+   ${0:A brief description of the content, usually between 2 and 4
+   sentences. This will displayed below the title of the post on
+   Facebook.}
+"""
+content_type = "block"
+options.url = "string"
+options.title = {required = true, type = "string"}
+options.image = {required = true, type = ["path", "uri"]}
+options.type = "string"
+
+[directive.youtube]
+help = "Embed a video from YouTube in your article"
+argument_type = "string"
+content_type = "block"
+example = """.. youtube:: ${0:H3P0lW94L2Q}
+"""
+
+[directive.twitch]
+help = "Embed a Twitch stream in your article"
+argument_type = "string"
+content_type = "block"
+
+[directive.charts]
+help = """Embed a chart from MongoDB Charts in your article."""
+example= """.. charts::
+   :url: ${1:https://charts.mongodb.com/charts-coronavirus-lwlvn (url of your charts dashboard)}
+   :id: ${2:6f921f0c-a1ee-4106-839c-412fad3c64e7 (id of the chart)}
+   :autorefresh: ${3:3600 (time in seconds to refresh. default is no refresh)}
+   :theme: ${4:dark (light or dark theme)}
+   :width: ${5:760 (width of embedded frame)}
+   :height: ${6:570 (height of embedded frame)}
+   :align: ${7:right (left, right, or center)}
+"""
+options.url = "uri"
+options.id = "string"
+options.autorefresh = "nonnegative_integer"
+options.theme = "charts_theme"
+options.width = "length"
+options.height = "length"
+options.align = "alignment"
+
+[directive.meta]
+help = """Add metadata to the site for SEO."""
+options.keywords = "string"
+options.description = "string"
+options.robots = "string"
+example = """.. meta::
+   :keywords: ${1:string}
+   :description: ${2:string}
+   :robots: ${3:string}
+"""
+
+[directive.topic]
+help = """A block with a self-contained chunk of information."""
+argument_type = "string"
+content_type = "block"
+deprecated = true
+example = """.. topic:: ${1:Title of block}
+
+   ${0:Content}
+"""
+
+[directive.search-results]
+help = """Shows search results from browser query params (no arguments)."""
+
+###### Roles
+[role.kbd]
+help = """Mark a sequence of keystrokes."""
+type = "text"
+
+[role."highlight-red"]
+help = """Highlight text with a red background"""
+type = "text"
+
+[role."highlight-yellow"]
+help = """Highlight text with a yellow background"""
+type = "text"
+
+[role."highlight-green"]
+help = """Highlight text with a green background"""
+type = "text"
+
+[role."highlight-blue"]
+help = """Highlight text with a blue background"""
+type = "text"
+
+[role.sub]
+help = """Used to denote subscript text."""
+type = "text"
+
+[role.superscript]
+help = """Used to denote superscript text."""
+type = "text"
+
+[role.sup]
+inherit = "superscript"
+
+[role.samp]
+help = """Literal text where you may use curly braces to denote a "variable". For example, "samp:`print(1+{x})`"."""
+type = "text"
+
+[role.guilabel]
+help = """Used to specify a label or button in a GUI."""
+type = "text"
+
+[role.abbr]
+help = """Abbreviation with hover text."""
+type = "text"
+
+[role.file]
+help = """Show a file path."""
+type = "text"
+
+[role.command]
+deprecated = true
+type = "text"
+
+[role.red]
+type = "text"
+
+[role.icon-fa5]
+help = """Show a FontAwesome 5 Solid icon."""
+type = "explicit_title"
+
+[role.icon]
+inherit = "icon-fa5"
+type = "explicit_title"
+
+[role.icon-fa5-brands]
+help = """Show a FontAwesome 5 Brand icon."""
+type = "explicit_title"
+
+[role.iconb]
+inherit = "icon-fa5-brands"
+
+[role.icon-mms]
+help = """Show an MMS icon."""
+type = "explicit_title"
+
+[role.icon-mms-org]
+help = """Show an MMS-org icon."""
+type = "explicit_title"
+
+[role.icon-charts]
+help = """Show a MongoDB Charts icon."""
+type = "explicit_title"
+
+[role.icon-fa4]
+help = """Show a FontAwesome 4 icon."""
+type = "explicit_title"
+
+[role.xml]
+help = """Use XML to create reStructuredText nodes."""
+type = "text"
+
+[role.rfc]
+help = """Reference an IETF RFC."""
+type = {link = "https://tools.ietf.org/html/%s"}
+
+[role.wikipedia]
+help = """Reference a Wikipedia page."""
+type = {link = "https://en.wikipedia.org/wiki/%s"}
+
+[role.hardlink]
+help = """Link to a URL in the current project."""
+type = "explicit_title"
+
+[role."std:doc"]
+help = """Link to a page in the current project."""
+type = "explicit_title"
+
+[role.api]
+help = """Link to the api.mongodb.com API index."""
+type = {link = "https://api.mongodb.com/%s"}
+
+[role.aws]
+help = """Link to the Amazon AWS documentation."""
+type = {link = "http://docs.aws.amazon.com%s"}
+
+[role.gcp]
+help = "Link to the Google Cloud Platform documentation"
+type = {link = "https://cloud.google.com%s"}
+
+[role.azure]
+help = "Link to the Microsoft Azure documentation"
+type = {link = "https://docs.microsoft.com/en-us/azure%s"}
+
+[role.gettingstarted]
+help = """Link to the MongoDB Getting Started guide."""
+type = {link = "https://docs.mongodb.org/getting-started%s"}
+
+[role.master]
+help = """Link to a path in the master branch of the current project."""
+type = "explicit_title"
+
+[role.docsgithub]
+help = """Link to a MongoDB Manual GitHub path."""
+type = {link = "http://github.com/mongodb/docs/blob/master/%s"}
+
+[role.guides]
+help = """Link to a page in the MongoDB Guides site."""
+type = {link = "https://docs.mongodb.com/guides%s"}
+
+[role.mms-docs]
+help = """Link to a page in the Cloud Manager documentation."""
+type = {link = "https://docs.cloud.mongodb.com%s"}
+
+[role.mms-home]
+help = """Link to a MongoDB Cloud Services page."""
+type = {link = "https://cloud.mongodb.com%s"}
+
+[role.osb]
+help = """Link to a page in the Atlas Open Service Broker documentation."""
+type = {link = "https://docs.mongodb.com/atlas-open-service-broker/current%s"}
+
+[role.adl]
+help = """Link to a page in the Atlas Data Lake documentation."""
+type = {link = "https://docs.mongodb.com/datalake%s"}
+
+[role.dochub]
+help = """Specify a dochub link."""
+type = {link = "https://dochub.mongodb.org/core/%s"}
+
+[role.mongo-spark]
+help = """Link to a page in the MongoDB Spark Connector GitHub project."""
+type = {link = "https://github.com/mongodb/mongo-spark%s"}
+
+[role.source]
+help = """Link to a file in the MongoDB server GitHub project."""
+type = {link = "https://github.com/mongodb/mongo/blob/master/%s"}
+
+[role.ref]
+help = """Link to a named target."""
+type = {domain = "std", name = "label", format = []}
+
+[role."mongodb:ref"]
+inherit = "ref"
+
+[role.term]
+help = """Link to a term in the glossary."""
+type = {domain = "std", name = "term", format = []}
+
+[role.issue]
+help = """Link to a JIRA ticket."""
+type = {link = "https://jira.mongodb.org/browse/%s"}
+
+[role.technical-support]
+help = "Link to the MongoDB support site."
+type = {link = "https://docs.mongodb.com/manual/support%s"}
+
+[role.contact]
+help = """Link to the MongoDB contact page."""
+type = {link = "https://www.mongodb.com/contact%s"}
+
+[role.mdbacct]
+help = """Link to the MongoDB Account page."""
+type = {link = "https://account.mongodb.com/account%s"}
+
+[role.community-forum]
+help = "Link to the MongoDB Community Forums page."
+type = {link = "https://community.mongodb.com/%s"}
+
+[role.perl-api]
+help = "Link to a page in the Perl driver's CPAN API reference."
+type = {link = "https://metacpan.org/pod/MongoDB::%s"}
+
+[role.node-docs]
+help = """Link to a page in the Node.js driver's documentation."""
+type = {link = "http://mongodb.github.io/node-mongodb-native/3.6/%s"}
+
+[role.node-api]
+help = """Link to a page in the Node.js driver's API reference."""
+type = {link = "http://mongodb.github.io/node-mongodb-native/3.6/api/%s"}
+
+[role.ruby-api]
+help = """Link to a page in the Ruby driver's API reference."""
+type = {link = "http://api.mongodb.com/ruby/current/Mongo/%s"}
+
+[role.ruby]
+help = """Link to a page in the Ruby driver's documentation."""
+type = {link = "https://docs.mongodb.com/ruby-driver/current%s"}
+
+[role.scala-docs]
+help = "Link to a page in the Scala driver's documentation"
+type = {link = "http://mongodb.github.io/mongo-scala-driver/2.9%s"}
+
+[role.scala-api]
+help = """Link to a page in the Scala driver's API reference."""
+type = {link = "http://mongodb.github.io/mongo-scala-driver/2.9/scaladoc/org/mongodb/scala/MongoCollection.html#%s"}
+
+[role.csharp-docs]
+help = """Link to a page in the C# driver's documentation."""
+type = {link = "https://mongodb.github.io/mongo-csharp-driver/2.10/%s"}
+
+[role.csharp-api]
+help = """Link to a page in the C# driver's API reference."""
+type = {link = "https://mongodb.github.io/mongo-csharp-driver/2.10/apidocs/html/%s.htm"}
+
+[role.java-docs]
+help = """Link to the Java driver's documentation."""
+type = {link = "http://mongodb.github.io/mongo-java-driver/4.1/%s"}
+
+[role.java-async-docs]
+help = """Link to the async Java driver's documentation."""
+type = {link = "https://mongodb.github.io/mongo-java-driver/4.1/driver-reactive/%s"}
+
+[role.java-async-api]
+help = """Link to the async Java driver's API reference."""
+type = {link = "http://mongodb.github.io/mongo-java-driver/4.1/apidocs/mongodb-driver-reactivestreams/%s"}
+
+[role.java-sync-api]
+help = """Link to the synchronous Java driver's API reference."""
+type = {link = "http://mongodb.github.io/mongo-java-driver/4.1/apidocs/mongodb-driver-sync/%s"}
+
+[role.go-api]
+help = """Link to the Go driver's API reference."""
+type = {link = "https://godoc.org/github.com/mongodb/mongo-go-driver/%s"}
+
+[role.atlas]
+help = """Link to the synchronous Atlas documentation."""
+type = {link = "https://docs.atlas.mongodb.com%s"}
+
+[role."v2.2"]
+type = {link = "https://docs.mongodb.com/v2.2%s"}
+
+[role."v2.4"]
+type = {link = "https://docs.mongodb.com/v2.4%s"}
+
+[role."v2.6"]
+type = {link = "https://docs.mongodb.com/v2.6%s"}
+
+[role."v3.0"]
+type = {link = "https://docs.mongodb.com/v3.0%s"}
+
+[role."v3.2"]
+type = {link = "https://docs.mongodb.com/v3.2%s"}
+
+[role."v3.4"]
+type = {link = "https://docs.mongodb.com/v3.4%s"}
+
+[role."v3.6"]
+type = {link = "https://docs.mongodb.com/v3.6%s"}
+
+[role."v4.0"]
+type = {link = "https://docs.mongodb.com/v4.0%s"}
+
+[role."v4.2"]
+type = {link = "https://docs.mongodb.com/v4.2%s"}
+
+[role.website]
+help = """Link to a page in the MongoDB website."""
+type = {link = "https://www.mongodb.com%s?tck=docs"}
+
+[role.legal]
+help = """Link to mongodb.com/legal/whatever"""
+type = {link = "https://www.mongodb.com/legal%s?tck=docs_atlas"}
+
+[role.manual]
+help = """Link to a page in the latest stable version of the MongoDB manual."""
+type = {link = "https://docs.mongodb.com/manual%s"}
+
+[role.cloudmgr]
+help = """Link to a page in the Cloud Manager docs."""
+type = {link = "https://docs.cloudmanager.mongodb.com%s"}
+
+[role.opsmgr]
+help = """Link to a page in the MMS Ops Manager documentation."""
+type = {link = "https://docs.opsmanager.mongodb.com/current%s"}
+
+[role.realm]
+help = """Link to a page in the Realm docs."""
+type = {link = "https://docs.mongodb.com/realm%s"}
+
+[role.stitch]
+inherit = "realm"
+
+[role.mdb-shell]
+help = """Link to a page in the MongoDB Shell docs."""
+type = {link = "https://docs.mongodb.com/mongodb-shell%s"}
+
+[role.mongosh]
+inherit = "mdb-shell"
+
+[role.charts]
+help = """Link to a page in the Charts docs."""
+type = {link = "https://docs.mongodb.com/charts/saas%s"}
+
+[role."charts-v0.10"]
+help = """Link to a page in v0.10 of the Charts docs."""
+type = {link = "https://docs.mongodb.com/charts/v0.10%s"}
+
+[role."charts-v0.9"]
+help = """Link to a page in v0.9 of the Charts docs."""
+type = {link = "https://docs.mongodb.com/charts/v0.9%s"}
+
+[role."charts-onprem"]
+help = """Link to a page in the newest edition of Charts onprem docs."""
+type = {link = "https://docs.mongodb.com/charts/onprem%s"}
+
+[role."v0.10"]
+deprecated = true
+inherit = "charts-v0.10"
+
+[role."v0.9"]
+deprecated = true
+inherit = "charts-v0.9"
+
+[role.compass]
+help = """Link to a page in the Compass docs."""
+type = {link = "https://docs.mongodb.com/compass/current%s"}
+
+[role."dotnet-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/dotnet/10.0.0-beta.1/%s"}
+
+[role.ecosystem]
+help = """Link to a page in the Ecosystem docs."""
+type = {link = "https://docs.mongodb.com/drivers%s"}
+
+[role.driver]
+help = """Link to a driver's page in the Ecosystem docs."""
+type = {link = "https://docs.mongodb.com/drivers%s"}
+
+[role.products]
+help = """Link to a page in the MongoDB Products site."""
+type = {link = "https://www.mongodb.com/products%s"}
+
+[role.bic]
+type = {link = "https://docs.mongodb.com/bi-connector/current%s"}
+
+[role."bic-v2.10"]
+type = {link = "https://docs.mongodb.com/bi-connector/v2.10%s"}
+
+[role.dbtools]
+type = {link = "https://docs.mongodb.com/database-tools%s"}
+
+[role.k8s]
+type = {link = "https://docs.mongodb.com/kubernetes-operator/stable%s"}
+
+[role.product]
+type = {link = "http://www.mongodb.com/products/%s?tck=docs"}
+
+[role.dl]
+type = {link = "http://www.mongodb.com/download-center/%s?tck=docs"}
+
+[role.wtdocs]
+type = {link = "http://source.wiredtiger.com/mongodb-3.4%s"}
+
+[role.spec]
+type = {link = "https://github.com/mongodb/specifications/blob/master/source%s"}
+
+[role."js-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/js/latest/%s"}
+
+[role."facebook"]
+type = {link = "https://developers.facebook.com/%s"}
+
+[role."fcm"]
+type = {link = "https://firebase.google.com/docs/%s"}
+
+[role."git-scm"]
+type = {link = "https://git-scm.com/%s"}
+
+[role."google"]
+type = {link = "https://developers.google.com/%s"}
+
+[role."github"]
+type = {link = "https://github.com/%s"}
+
+[role."github-dev"]
+type = {link = "https://developer.github.com/%s"}
+
+[role."twilio"]
+type = {link = "https://www.twilio.com/%s"}
+
+[role."mdn"]
+type = {link = "https://developer.mozilla.org/en-US/docs/%s"}
+
+[role."apollo"]
+type = {link = "https://www.apollographql.com/%s"}
+
+[role."aws-docs"]
+type = {link = "https://docs.aws.amazon.com/%s"}
+
+[role."aws-go"]
+type = {link = "https://docs.aws.amazon.com/sdk-for-go/api/service/%s"}
+
+[role."aws-iam"]
+type = {link = "https://docs.aws.amazon.com/IAM/latest/%s"}
+
+[role."aws-reference"]
+type = {link = "https://docs.aws.amazon.com/general/latest/%s"}
+
+[role."reactjs"]
+type = {link = "https://reactjs.org/%s"}
+
+[role."jwt-io"]
+type = {link = "https://jwt.io/%s"}
+
+[role."android"]
+type = {link = "https://developer.android.com/%s"}
+
+[role."apple"]
+type = {link = "https://developer.apple.com/%s"}
+
+[role."admin-api-endpoint"]
+type = {link = "https://docs.mongodb.com/realm/admin/api/v3/#%s"}
+
+[role."java-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/java/latest/%s"}
+
+[role."kotlin-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/kotlin/latest/%s"}
+
+[role."swift-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/swift/latest/%s"}
+
+[role."objc-sdk"]
+type = {link = "https://docs.mongodb.com/realm-sdks/objc/latest/%s"}
+
+[role."codesandbox"]
+type = {link = "https://codesandbox.io/%s"}
+
+[role."graphql"]
+type = {link = "https://graphql.org/%s"}
+
+[role."nodejs"]
+type = {link = "https://nodejs.org/%s"}
+
+[role."npm"]
+type = {link = "https://www.npmjs.com/%s"}
+
+[role."rubygems"]
+type = {link = "https://rubygems.org/%s"}
+
+[role."kafka-21-javadoc"]
+type = {link = "https://kafka.apache.org/21/javadoc/org/apache/kafka%s"}
+
+[role."typescript"]
+type = {link = "https://www.typescriptlang.org/%s"}
+
+[role."node-driver"]
+type = {link = "https://mongodb.github.io/node-mongodb-native/3.6/api/%s"}
+
+[role."xamarin"]
+type = {link = "https://docs.microsoft.com/en-us/xamarin/%s"}
+
+### Types of objects (directive & role pairs)
+[rstobject."py:class"]
+
+[rstobject."py:meth"]
+type = "callable"
+
+[rstobject."js:func"]
+[rstobject."mongodb:httpaction"]
+[rstobject."mongodb:mailgunaction"]
+[rstobject.mongodb]
+[rstobject."std:option"]
+type = "cmdline_option"
+
+[rstobject."mongomirror:option"]
+[rstobject."std:program"]
+[rstobject."mongodb:s3action"]
+[rstobject."mongodb:sesaction"]
+[rstobject."mongodb:slackaction"]
+[rstobject."mongodb:twilioaction"]
+[rstobject."std:envvar"]
+
+# mongodb_conf.py
+[rstobject."mongodb:binary"]
+prefix = "bin"
+
+[rstobject."mongodb:dbcommand"]
+prefix = "dbcmd"
+fields = [["returns", "Returns"]]
+
+[rstobject."mongodb:expression"]
+help = """aggregation framework transformation expression"""
+prefix = "exp"
+
+[rstobject."mongodb:group"]
+help = """aggregation framework group expression"""
+prefix = "grp"
+
+[rstobject."mongodb:operator"]
+prefix = "metaOp"
+
+[rstobject."mongodb:query"]
+prefix = "op"
+
+[rstobject."mongodb:update"]
+prefix = "up"
+
+[rstobject."mongodb:parameter"]
+help = """setParameter option"""
+prefix = "param"
+
+[rstobject."mongodb:pipeline"]
+help = """aggregation framework pipeline operator"""
+prefix = "pipe"
+
+[rstobject."mongodb:projection"]
+prefix = "proj"
+
+[rstobject."mongodb:method"]
+type = "callable"
+fields = [["returns", "Returns"]]
+
+[rstobject."mongodb:authrole"]
+[rstobject."mongodb:authaction"]
+[rstobject."mongodb:bsontype"]
+[rstobject."mongodb:collflag"]
+[rstobject."mongodb:data"]
+help = """MongoDB reporting output"""
+
+[rstobject."mongodb:error"]
+[rstobject."mongodb:limit"]
+help = """MongoDB system limit"""
+
+[rstobject."mongodb:macro"]
+help = """JavaScript shell macro"""
+
+[rstobject."mongodb:readmode"]
+[rstobject."mongodb:setting"]
+
+[rstobject."mongodb:replstate"]
+prefix = "replstate"
+
+[rstobject."mongodb:variable"]
+help = """system variable available in aggregation"""
+prefix = "variable"
+
+[rstobject."mongodb:writeconcern"]
+prefix = "writeconcern"
+
+[rstobject."mongodb:readconcern"]
+prefix = "readconcern"
+
+[rstobject."mongodb:alert"]
+help = """system alert"""
+
+[rstobject."mongodb:alert-type"]
+inherit = "mongodb:alert"
+
+[rstobject."mongodb:event"]
+help = """system event"""
+
+[rstobject."mongodb:rsconf"]
+help = """replica set configuration setting"""
+prefix = "rsconf"
+
+[rstobject."mongodb:serverstatus"]
+prefix = "serverstatus"
+
+[rstobject."mongodb:urioption"]
+prefix = "urioption"
+
+[rstobject."mongodb:configexpansion"]
+help = """expansion directive for mongod/s configuration file"""
+prefix = "configexpansion"
+
+[rstobject."mongodb:toolcommand"]
+help = """mongo tool command"""
+prefix = "toolcommand"
+
+[rstobject."mongodb:commandoption"]
+help = """mongo tool command-specific option"""
+prefix = "commandoption"
+
+[rstobject."mongodb:msetting"]
+prefix = "msetting"
+help = "Monitoring Agent Setting"
+
+[rstobject."mongodb:bsetting"]
+prefix = "bsetting"
+help = "Backup Agent Setting"
+
+[rstobject."mongodb:asetting"]
+help = """Automation Agent Setting"""
+prefix = "asetting"
+
+[rstobject."mongodb:apierror"]
+help = """Error Code for Public API"""
+
+[rstobject.phpclass]
+help = """PHP Library class"""
+prefix = "phpclass"
+
+[rstobject.phpmethod]
+help = """PHP Library method"""
+prefix = "phpmethod"
+
+[rstobject."mongodb:atlasrole"]
+help = """Atlas user role"""
+
+[rstobject."mongodb:json-expansion"]
+help = """JSON Expression Expansion"""
+
+[rstobject."mongodb:json-operator"]
+help = """JSON Expression Operator"""
+
+[rstobject."mongodb:sync-client-message"]
+help = """Realm Sync Protocol Client->Server Request"""
+
+[rstobject."mongodb:sync-server-message"]
+help = """Realm Sync Protocol Server->Client Request"""
+
+[rstobject."mongodb:action"]
+help = """Service Actions"""
+prefix = "action"
+
+[rstobject."mongodb:fn-context"]
+help = """Stitch Function Context"""
+
+[rstobject."mongodb:datalakeconf"]
+help = """Data Lake Configuration Object"""
+prefix = "datalakeconf"
+
+[rstobject."mongodb:opsmgrkube"]
+help = """Kubernetes Operator Ops Manager Resource Setting"""
+prefix = "opsmgrkube"
+
+[rstobject."mongodb:autoencryptkeyword"]
+help = "Automatic Client-Side Field Level Encrytion Rules Keyword"
+prefix = "autoencryptkeyword"
+
+[tabs]
+cloud-providers = [
+  {id = "aws", title = "AWS"},
+  {id = "azure", title = "Azure"},
+  {id = "gcp", title = "GCP"},
+]
+k8s-orchestrator = [
+  {id = "k8s", title = "Kubernetes"},
+  {id = "openshift", title = "OpenShift"},
+]
+cloud = [
+  {id = "cloud", title = "Cloud (Atlas)"},
+  {id = "local", title = "Local Instance"},
+]
+platforms = [
+  {id = "windows", title = "Windows"},
+  {id = "macos", title = "macOS"},
+  {id = "debian", title = "Ubuntu/Debian"},
+  {id = "rhel", title = "RHEL/CentOS/SLES/AMZ"},
+  {id = "linux", title = "Linux"},
+]
+drivers = [
+  {id = "shell", title = "Mongo Shell"},
+  {id = "compass", title = "Compass"},
+  {id = "python", title = "Python"},
+  {id = "java-sync", title = "Java (Sync)"},
+  {id = "nodejs", title = "Node.js"},
+  {id = "php", title = "PHP"},
+  {id = "motor", title = "Motor"},
+  {id = "java-async", title = "Java (Async)"},
+  {id = "c", title = "C"},
+  {id = "cpp", title = "C++11"},
+  {id = "csharp", title = "C#"},
+  {id = "perl", title = "Perl"},
+  {id = "ruby", title = "Ruby"},
+  {id = "scala", title = "Scala"},
+  {id = "go", title = "Go"},
+  {id = "swift-sync", title = "Swift (Sync)"},
+  {id = "swift-async", title = "Swift (Async)"},
+]
+auth = [
+  {id = "uidpwd", title = "Username and Password"},
+  {id = "ldap", title = "LDAP"},
+  {id = "kerberos", title = "Kerberos"},
+]
+stitch-auth-providers = [
+  {id = "anon-user", title = "Anonymous"},
+  {id = "local-userpass", title = "Email/Password"},
+  {id = "oauth2-google", title = "Google"},
+  {id = "oauth2-facebook", title = "Facebook"},
+  {id = "api-key", title = "API Key Authentication"},
+  {id = "custom-token", title = "Custom"},
+]
+deployments = [
+  {id = "standalone", title = "Standalone"},
+  {id = "repl", title = "Replica Set"},
+  {id = "shard", title = "Sharded Cluster"},
+]
+stitch-sdks = [
+  {id = "functions", title = "afaunctions"},
+  {id = "json-expressions", title = "Json Expressions"},
+  {id = "javascript", title = "JavaScript SDK"},
+  {id = "android", title = "Android SDK"},
+  {id = "ios", title = "iOS SDK"},
+]
+stitch-interfaces = [
+  {id = "stitch-ui", title = "Stitch UI"},
+  {id = "import-export", title = "Import/Export"},
+]
+realm-languages = [
+  {id = "swift", title = "Swift"},
+  {id = "kotlin", title = "Kotlin"},
+  {id = "typescript", title = "TypeScript"},
+  {id = "java", title = "Java"},
+  {id = "objective-c", title = "Objective C"},
+  {id = "javascript", title = "JavaScript"},
+  {id = "c-sharp", title = "C#"},
+]
+realm-sdks = [
+  {id = "functions", title = "Functions"},
+  {id = "json-expressions", title = "JSON Expressions"},
+  {id = "graphql", title = "GraphQL"},
+  {id = "ios", title = "iOS SDK"},
+  {id = "android", title = "Android SDK"},
+  {id = "dotnet", title = ".NET SDK"},
+  {id = "xamarin", title = "Xamarin SDK"},
+  {id = "javascript", title = "JavaScript SDKs"},
+  {id = "node", title = "Node.js SDK"},
+  {id = "react-native", title = "React Native SDK"},
+  {id = "web", title = "Web SDK"},
+]
+
+realm-admin-interfaces = [
+  {id = "ui", title = "Realm UI"},
+  {id = "cli", title = "Realm CLI"},
+  {id = "api", title = "Admin API"},
+  {id = "github", title = "GitHub Deploy"},
+  {id = "code-deploy", title = "Code Deploy"},
+]
+
+realm-auth-providers = [
+  {id = "anon-user", title = "Anonymous"},
+  {id = "local-userpass", title = "Email/Password"},
+  {id = "oauth2-apple", title = "Apple ID"},
+  {id = "oauth2-google", title = "Google"},
+  {id = "oauth2-facebook", title = "Facebook"},
+  {id = "api-key", title = "API Key"},
+  {id = "custom-token", title = "Custom JWT"},
+  {id = "custom-function", title = "Custom Function"},
+]

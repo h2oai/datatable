@@ -108,6 +108,20 @@ def test_j_function(dt0):
         "An object of type <class 'function'> cannot be used in an FExpr")
 
 
+def test_sammy():
+    frame = dt.Frame(
+    {
+        "id": ["a", "a", "a", "b", "b"],
+        "type": ["in_scope", "in_scope", "exclude", "in_scope", "exclude"],
+        "value": [5, 5, 99, 20, 99],
+    }
+)
+
+    # multiple column selection by label
+    assert frame[:, f['value', 'id']].to_list()[0] == frame[:, ['value', 'id']].to_list()[0]
+    # multiple column selection by position
+    assert frame[:, f[-1, 0]].to_list()[0] == frame[:, ['value', 'id']].to_list()[0]
+
 
 #-------------------------------------------------------------------------------
 # Integer-valued `j`

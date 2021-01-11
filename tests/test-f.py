@@ -89,15 +89,14 @@ def test_f_col_selector_invalid():
     with pytest.raises(TypeError) as e:
         noop(f[2.5])
     assert str(e.value) == ("Column selector should be an integer, string, or "
-                            "slice, not <class 'float'>")
+                            "slice, or list/tuple, not <class 'float'>")
     # Note: at some point we may start supporting all the expressions below:
-    with pytest.raises(TypeError):
-        noop(f[[7, 4]])
-    with pytest.raises(TypeError):
-        noop(f[("A", "B", "C")])
     with pytest.raises(TypeError):
         noop(f[lambda: 1])
 
+def test_f_col_selector_list_tuple():
+    assert str(f[[7, 4]]) == "FExpr<f[[7, 4]]>"
+    assert str(f[("A", "B", "C")]) == "FExpr<f[['A', 'B', 'C']]>"
 
 def test_f_expressions():
     assert str(f.C1 < f.C2) == "FExpr<f.C1 < f.C2>"
@@ -120,6 +119,9 @@ def test_f_columnset_str():
     assert str(f[dt.int32]) == "FExpr<f[stype.int32]>"
     assert str(f[dt.float64]) == "FExpr<f[stype.float64]>"
     assert str(f[dt.ltype.int]) == "FExpr<f[ltype.int]>"
+    assert str(f[int, float]) == "FExpr<f[[int, float]]>"
+    assert str(f[dt.int32, dt.float64, dt.str32]) == \
+        "FExpr<f[[stype.int32, stype.float64, stype.str32]]>"
 
 
 def test_f_columnset_extend():
@@ -127,11 +129,15 @@ def test_f_columnset_extend():
         "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].extend(f[str])) == \
         "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
+    assert str(f.A.extend(f['B','C'])) == \
+        "Expr:setplus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
 
 
 def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
+    assert str(f.A.remove(f['B','C'])) == \
+        "Expr:setminus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
 
 
 
@@ -199,6 +205,7 @@ def test_f_columnset_ltypes(DT):
 def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
+    assert_equals( DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
     assert_equals(DT[:, f.A.extend(f.B)], DT[:, ['A', 'B']])
     assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
                   dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
