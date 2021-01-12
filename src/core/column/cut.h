@@ -210,6 +210,7 @@ class CutBins_ColumnImpl : public Virtual_ColumnImpl {
         bin_edges_(std::move(bin_edges))
     {
       xassert(ltype_is_numeric(col_.ltype()));
+      xassert(bin_edges_.size() >= 2);
     }
 
     ColumnImpl* clone() const override {

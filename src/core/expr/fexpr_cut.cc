@@ -40,7 +40,7 @@ class FExpr_Cut : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32vec nbins_;
-    std::vector<dblvec> bin_edges_;
+    mutable std::vector<dblvec> bin_edges_;
     bool right_closed_;
     size_t: 56;
 
