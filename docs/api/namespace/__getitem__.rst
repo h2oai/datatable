@@ -7,6 +7,10 @@
 
     Retrieve column(s) by their indices/names/types.
 
+    Also retrieve column(s) via :ref:`f-expressions`
+    containing a list/tuple of
+    column names/column positions/column types.
+
     By "retrieve" we actually mean that an expression is created
     such that when that expression is used within the
     :meth:`DT[i,j] <dt.Frame.__getitem__>` call, it would locate and
@@ -15,7 +19,7 @@
 
     Parameters
     ----------
-    item: int | str | slice | None | type | stype | ltype
+    item: int | str | slice | None | type | stype | ltype | Expr
         The column selector:
 
         ``int``
@@ -35,6 +39,11 @@
 
         ``type`` | ``stype`` | ``ltype``
             Retrieve columns matching the specified type.
+
+        ``Expr``
+            Retrieve columns matching the column names/column positions/column types
+            within the list/tuple.  For example, ``f[0, -1]`` will return the first and
+            last columns.
 
     return: FExpr
         An expression that selects the specified column from a frame.
