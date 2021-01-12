@@ -89,7 +89,6 @@ enum class LType : uint8_t {
   DATETIME = 5,
   DURATION = 6,
   OBJECT   = 7,
-
   INVALID  = 8
 };
 
@@ -109,6 +108,7 @@ int ltype_from_pyobject(PyObject*);
 void init_py_ltype_objs(PyObject* ltype_enum);
 
 
+bool ltype_is_numeric(LType);
 
 
 }  // namespace dt
