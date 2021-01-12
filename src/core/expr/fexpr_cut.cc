@@ -40,13 +40,15 @@ class FExpr_Cut : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32vec nbins_;
-    mutable std::vector<dblvec> bin_edges_;
+    std::vector<std::shared_ptr<dblvec>> bin_edges_;
     bool right_closed_;
     size_t: 56;
 
   public:
-    FExpr_Cut(py::robj arg, int32vec&& nbins, std::vector<dblvec>&& bin_edges, bool right_closed)
-      : arg_(as_fexpr(arg)),
+    FExpr_Cut(py::robj arg, int32vec&& nbins,
+              std::vector<std::shared_ptr<dblvec>>&& bin_edges,
+              bool right_closed
+    ) : arg_(as_fexpr(arg)),
         nbins_(std::move(nbins)),
         bin_edges_(std::move(bin_edges)),
         right_closed_(right_closed)
@@ -69,8 +71,8 @@ class FExpr_Cut : public FExpr_Func {
         out += ", bins=[";
         for (size_t i = 0; i < bin_edges_.size(); ++i) {
           out += "[";
-          for (size_t j = 0; j < bin_edges_[i].size(); ++j) {
-            out += std::to_string(bin_edges_[i][j]);
+          for (size_t j = 0; j < bin_edges_[i]->size(); ++j) {
+            out += std::to_string((*bin_edges_[i])[j]);
             out += ",";
           }
           out += "],";
@@ -161,9 +163,8 @@ class FExpr_Cut : public FExpr_Func {
           col.cast_inplace(SType::FLOAT64);
 
           // Bin column in-place
-          dblvec tmp = std::move(bin_edges_[i]);
-          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), std::move(tmp)))
-                             : Column(new CutBins_ColumnImpl<false>(std::move(col), std::move(tmp)));
+          col = right_closed_? Column(new CutBins_ColumnImpl<true>(std::move(col), bin_edges_[i]))
+                             : Column(new CutBins_ColumnImpl<false>(std::move(col), bin_edges_[i]));
         }
         wf.replace_column(i, std::move(col));
       }
@@ -171,7 +172,7 @@ class FExpr_Cut : public FExpr_Func {
 
 
     // Validate bins and convert them to vector
-    static dblvec bins_to_vector(const Column& col, size_t frame_id) {
+    static std::shared_ptr<dblvec> bins_to_vector(const Column& col, size_t frame_id) {
 
       auto validate_bin = [&] (bool bin_valid, size_t row) {
         if (!bin_valid) {
@@ -181,25 +182,25 @@ class FExpr_Cut : public FExpr_Func {
         }
       };
 
-      dblvec bin_edges_vec;
-      bin_edges_vec.reserve(col.nrows());
+      auto bin_edges_vec = std::make_shared<dblvec>();
+      bin_edges_vec->reserve(col.nrows());
 
       double val;
       bool is_valid = col.get_element(0, &val);
       validate_bin(is_valid, 0);
-      bin_edges_vec.push_back(val);
+      bin_edges_vec->push_back(val);
 
       for (size_t i = 1; i < col.nrows(); ++i) {
         is_valid = col.get_element(i, &val);
         validate_bin(is_valid, i);
 
-        if (val <= bin_edges_vec[i - 1]) {
+        if (val <= (*bin_edges_vec)[i - 1]) {
           throw ValueError() << "Bin edges must be strictly increasing, "
             << "instead for the frame `" << frame_id << "`" << " at rows `"
             << i - 1 << "` " << "and `" << i << "` the values are `"
-            << bin_edges_vec[i - 1] << "` and `" << val<< "`";
+            << (*bin_edges_vec)[i - 1] << "` and `" << val<< "`";
         }
-        bin_edges_vec.push_back(val);
+        (*bin_edges_vec).push_back(val);
       }
 
       return bin_edges_vec;
@@ -263,7 +264,7 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
   auto nbins_arg     = args[1].to<py::oobj>(py::None());
   auto bins_arg      = args[2].to<py::oobj>(py::None());
   auto right_closed  = args[3].to<bool>(true);
-  std::vector<dblvec> bin_edges_vec;
+  std::vector<std::shared_ptr<dblvec>> bin_edges_vec;
   int32_t nbins_default = 10;
   int32vec nbins_vec;
 
