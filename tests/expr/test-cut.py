@@ -172,10 +172,12 @@ def test_cut_default_nbins():
 def test_cut_trivial_bins():
     DT_data = dt.Frame({"data": range(10)})
     DT_bins = dt.Frame({"bins": range(-1, 10)})
-    DT_cut = DT_data[:, cut(f[:], bins = [DT_bins])]
-    expr_cut = cut(DT_data, bins = [DT_bins])
-    assert isinstance(expr_cut, FExpr)
-    assert_equals(DT_data, DT_cut)
+    cut_fexpr = cut(f[:], bins = [DT_bins])
+    for i in range(5):
+      DT_cut = DT_data[:, cut_fexpr]
+      expr_cut = cut(DT_data, bins = [DT_bins])
+      assert isinstance(expr_cut, FExpr)
+      assert_equals(DT_data, DT_cut)
 
 
 def test_cut_expr():
