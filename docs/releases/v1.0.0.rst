@@ -53,7 +53,7 @@
       columns of type ArrayView64. [#2802]
 
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
-      column names/column positions/column types in the ``j`` section.
+      column names/column positions/column types in the ``j`` section. [#2797]
 
 
     fread
