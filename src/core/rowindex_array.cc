@@ -140,13 +140,15 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     return;
   }
   int8_t value;
+  Column colcopy = col;
+  colcopy.materialize();
   if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
     auto ind32 = static_cast<int32_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind32[k++] = static_cast<int32_t>(i);
       }
@@ -157,7 +159,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     auto ind64 = static_cast<int64_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind64[k++] = static_cast<int64_t>(i);
       }
