@@ -57,6 +57,7 @@ class Frame : public XObject<Frame> {
     static void _init_sort(XTypeMaker&);
     static void _init_newsort(XTypeMaker&);
     static void _init_stats(XTypeMaker&);
+    static void _init_toarrow(XTypeMaker&);
     static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
     static void _init_topython(XTypeMaker&);
@@ -127,6 +128,7 @@ class Frame : public XObject<Frame> {
     oobj export_names(const PKArgs&);
 
     // Conversion methods
+    oobj to_arrow(const PKArgs&);
     oobj to_csv(const PKArgs&);
     oobj to_dict(const PKArgs&);
     oobj to_jay(const PKArgs&);  // See jay/save_jay.cc

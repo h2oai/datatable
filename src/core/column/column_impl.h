@@ -155,6 +155,8 @@ class ColumnImpl
     virtual bool cast_const(SType new_stype, Column& thiscol) const;
     virtual void cast_mutate(SType new_stype);
 
+    virtual Column as_arrow() const;
+
 
   //------------------------------------
   // Private helpers

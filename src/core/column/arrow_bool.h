@@ -21,14 +21,14 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_ARROW_BOOL_h
 #define dt_COLUMN_ARROW_BOOL_h
-#include "column/virtual.h"
+#include "column/arrow.h"
 namespace dt {
 
 
 /**
   * TODO: make this class material instead of virtual
   */
-class ArrowBool_ColumnImpl : public Virtual_ColumnImpl {
+class ArrowBool_ColumnImpl : public Arrow_ColumnImpl {
   private:
     Buffer validity_;
     Buffer data_;
@@ -38,7 +38,9 @@ class ArrowBool_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     // void materialize(Column&, bool) override;
-    size_t n_children() const noexcept override;
+    size_t num_buffers() const noexcept override;
+    const void* get_buffer(size_t i) const override;
+
     bool get_element(size_t, int8_t*)  const override;
 };
 

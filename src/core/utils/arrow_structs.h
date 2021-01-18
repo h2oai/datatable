@@ -118,11 +118,36 @@ class OArrowSchema {
 };
 
 
+class OArrowArray;
+class ArrowArrayData {
+  private:
+    Column column_;
+    std::unique_ptr<OArrowArray> root_;
+    std::vector<void*> buffers_;
+
+  public:
+    ArrowArrayData(Column&& column)
+      : column_(std::move(column)) {}
+
+    void store(std::unique_ptr<OArrowArray>&& ptr) {
+      root_ = std::move(ptr);
+    }
+
+    Column& column() const { return column_; }
+    std::vector<void*>& buffers() const { return buffers_; }
+};
+
+
 
 /**
   * Simple wrapper around the ArrowArray structure that ensures
   * the .release() callback is automatically called when the object
-  * falls out of scope.
+  * is deleted.
+  *
+  * This class is used both when we ingest data from an external
+  * arrow object, and when when we send our data into arrow.
+  *
+  * When ingesting data from arrow, a pointern ArrowArray* struct
   */
 class OArrowArray {
   private:
@@ -180,6 +205,20 @@ class OArrowArray {
       xassert(i < static_cast<size_t>(array_.n_children));
       auto ptr = array_.children[i];
       return std::shared_ptr<OArrowArray>(new OArrowArray(ptr));
+    }
+
+    /**
+      * Store the pointer to `this` object inside its ArrowArrayData*
+      * structure. Effectively, after this call, `this` will be owned
+      * by itself.
+      *
+      * This method can only be called when there established a
+      * promise that its `->release()` callback will be called at a
+      * future time.
+      */
+    void ouroboros() && {
+      auto data = dynamic_cast<ArrowArrayData*>(array_.private_data);
+      data->store(std::unique_ptr<OArrowArray>(std::move(this)));
     }
 };
 

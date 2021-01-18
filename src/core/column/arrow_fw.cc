@@ -28,7 +28,7 @@ namespace dt {
 
 ArrowFw_ColumnImpl::ArrowFw_ColumnImpl(size_t nrows, SType stype,
                                        Buffer&& valid, Buffer&& data)
-  : Virtual_ColumnImpl(nrows, stype),
+  : Arrow_ColumnImpl(nrows, stype),
     validity_(std::move(valid)),
     data_(std::move(data))
 {
@@ -43,8 +43,13 @@ ColumnImpl* ArrowFw_ColumnImpl::clone() const {
 }
 
 
-size_t ArrowFw_ColumnImpl::n_children() const noexcept {
-  return 0;
+size_t ArrowFw_ColumnImpl::num_buffers() const noexcept {
+  return 2;
+}
+
+const void* ArrowFw_ColumnImpl::get_buffer(size_t i) const {
+  return (i == 0)? validity_.rptr() :
+         (i == 1)? data_.rptr() : nullptr;
 }
 
 
