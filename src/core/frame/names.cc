@@ -533,6 +533,7 @@ void DataTable::set_names(const strvec& names_list, bool warn) {
 
 void DataTable::replace_names(py::odict replacements, bool warn) {
   py::olist newnames(ncols_);
+  if (!py_names_) _init_pynames();
 
   for (size_t i = 0; i < ncols_; ++i) {
     newnames.set(i, py_names_[i]);
