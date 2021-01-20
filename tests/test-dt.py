@@ -652,6 +652,16 @@ def test_rename_dict():
     assert d0.colindex("z") == 2
 
 
+def test_rename_dict_after_del():
+    d0 = dt.Frame([[1], [2], ["hello"]])
+    del d0["C1"]
+    d0.names = {"C0": "x", "C2": "C1"}
+    frame_integrity_check(d0)
+    assert d0.names == ("x", "C1")
+    assert d0.colindex("x") == 0
+    assert d0.colindex("C1") == 1
+
+
 def test_rename_bad1():
     d0 = dt.Frame([[1], [2], ["hello"]], names=("a", "b", "c"))
     with pytest.raises(TypeError):
