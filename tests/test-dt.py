@@ -745,76 +745,8 @@ def test_to_dict():
 
 
 #-------------------------------------------------------------------------------
-# Test conversions into Pandas / Numpy
+# Test conversions into Numpy
 #-------------------------------------------------------------------------------
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas():
-    d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
-    p0 = d0.to_pandas()
-    assert p0.shape == (2, 3)
-    assert list_equals(p0.columns.tolist(), ["A", "B", "C"])
-    assert p0["A"].values.tolist() == [1, 5]
-    assert p0["B"].values.tolist() == ["hello", "you"]
-    assert p0["C"].values.tolist() == [True, False]
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_view():
-    d0 = dt.Frame([[1, 5, 2, 0, 199, -12],
-                   ["alpha", "beta", None, "delta", "epsilon", "zeta"],
-                   [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
-    d1 = d0[::-2, :]
-    p1 = d1.to_pandas()
-    assert p1.shape == d1.shape
-    assert p1.columns.tolist() == ["A", "b", "c"]
-    assert p1.values.T.tolist() == d1.to_list()
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_nas():
-    d0 = dt.Frame([[True, None, None, None, False],
-                   [1, 5, None, -16, 100],
-                   [249, None, 30000, 1, None],
-                   [4587074, None, 109348, 1394, -343],
-                   [None, None, None, None, 134918374091834]])
-    frame_integrity_check(d0)
-    assert d0.stypes == (dt.bool8, dt.int32, dt.int32, dt.int32, dt.int64)
-    p0 = d0.to_pandas()
-    # Check that each column in Pandas DataFrame has the correct number of NAs
-    assert p0.count().tolist() == [2, 4, 3, 4, 1]
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_view_mixed():
-    d0 = dt.Frame(A=range(100))
-    d1 = d0[7:17, :]
-    d2 = dt.Frame(B=['foo', 'bar', 'buzz'] * 3 + ['finale'])
-    d3 = dt.Frame(V=[2.2222])
-    d3.nrows = 10
-    dd = dt.cbind(d1, d2, d3)
-    pp = dd.to_pandas()
-    assert pp.columns.tolist() == ["A", "B", "V"]
-    assert pp["A"].tolist() == list(range(7, 17))
-    assert pp["B"].tolist() == d2.to_list()[0]
-    assert pp["V"].tolist()[0] == 2.2222
-    assert all(math.isnan(x) for x in pp["V"].tolist()[1:])
-
-
-@pytest.mark.usefixtures("pandas", "numpy")
-def test_topandas_bool_nas():
-    d0 = dt.Frame(A=[True, False, None, True])
-    pf = d0.to_pandas()
-    pf_values = pf["A"].values.tolist()
-    assert pf_values[0] is True
-    assert pf_values[1] is False
-    assert pf_values[2] is None or (isinstance(pf_values[2], float) and
-                                    math.isnan(pf_values[2]))
-    d1 = dt.Frame(pf)
-    assert_equals(d0, d1)
-    d2 = dt.Frame(d0.to_numpy(), names=["A"])
-    assert_equals(d0, d2)
-
 
 def test_tonumpy0(numpy):
     d0 = dt.Frame([1, 3, 5, 7, 9])
