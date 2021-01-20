@@ -630,6 +630,7 @@ def test_repeat_empty_frame2():
 
 def test_rename_list():
     d0 = dt.Frame([[7], [2], [5]])
+    assert d0.names == ("C0", "C1", "C2")
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
     frame_integrity_check(d0)
@@ -641,7 +642,7 @@ def test_rename_list():
 
 def test_rename_dict():
     d0 = dt.Frame([[1], [2], ["hello"]])
-    assert d0.names == ("C0", "C1", "C2")
+    # Do not access `.names` before renaming (even with `assert`), see #2829.
     d0.names = {"C0": "x", "C2": "z"}
     d0.names = {"C1": "y"}
     frame_integrity_check(d0)
@@ -649,6 +650,16 @@ def test_rename_dict():
     assert d0.colindex("x") == 0
     assert d0.colindex("y") == 1
     assert d0.colindex("z") == 2
+
+
+def test_rename_dict_after_del():
+    d0 = dt.Frame([[1], [2], ["hello"]])
+    del d0["C1"]
+    d0.names = {"C0": "x", "C2": "C1"}
+    frame_integrity_check(d0)
+    assert d0.names == ("x", "C1")
+    assert d0.colindex("x") == 0
+    assert d0.colindex("C1") == 1
 
 
 def test_rename_bad1():
