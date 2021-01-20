@@ -178,8 +178,10 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
 
 Column dt::ColumnImpl::_as_arrow_bool() const {
   xassert(stype_ == SType::BOOL);
-  Buffer validity_buffer = Buffer::mem((nrows_ + 7) / 8);
-  Buffer data_buffer = Buffer::mem((nrows_ + 7) / 8);
+  // The buffers must be aligned at 8-bytes boundary
+  size_t bufsize = (nrows_ + 63)/64 * 8;
+  Buffer validity_buffer = Buffer::mem(bufsize);
+  Buffer data_buffer = Buffer::mem(bufsize);
   auto validity = static_cast<uint8_t*>(validity_buffer.xptr());
   auto data = static_cast<uint8_t*>(data_buffer.xptr());
 

@@ -92,7 +92,15 @@ class OArrowSchema {
 
   public:
     OArrowSchema() {
+      schema_.format = nullptr;
+      schema_.name = nullptr;
+      schema_.metadata = nullptr;
+      schema_.flags = 0;
+      schema_.n_children = 0;
+      schema_.children = nullptr;
+      schema_.dictionary = nullptr;
       schema_.release = nullptr;
+      schema_.private_data = nullptr;
     }
     OArrowSchema(const OArrowSchema&) = delete;
     OArrowSchema(OArrowSchema&&) = delete;
@@ -170,7 +178,16 @@ class OArrowArray {
 
   public:
     OArrowArray() {
+      array_.length = 0;
+      array_.null_count = 0;
+      array_.offset = 0;
+      array_.n_buffers = 0;
+      array_.n_children = 0;
+      array_.buffers = nullptr;
+      array_.children = nullptr;
+      array_.dictionary = nullptr;
       array_.release = nullptr;
+      array_.private_data = nullptr;
     }
     OArrowArray(const OArrowArray&) = delete;
     OArrowArray(OArrowArray&& other) noexcept
