@@ -123,7 +123,7 @@ class ArrowArrayData {
   private:
     Column column_;
     std::unique_ptr<OArrowArray> root_;
-    std::vector<void*> buffers_;
+    std::vector<const void*> buffers_;
 
   public:
     ArrowArrayData(Column&& column)
@@ -133,8 +133,8 @@ class ArrowArrayData {
       root_ = std::move(ptr);
     }
 
-    Column& column() const { return column_; }
-    std::vector<void*>& buffers() const { return buffers_; }
+    const Column& column() const { return column_; }
+    std::vector<const void*>& buffers() { return buffers_; }
 };
 
 
@@ -216,9 +216,9 @@ class OArrowArray {
       * promise that its `->release()` callback will be called at a
       * future time.
       */
-    void ouroboros() && {
-      auto data = dynamic_cast<ArrowArrayData*>(array_.private_data);
-      data->store(std::unique_ptr<OArrowArray>(std::move(this)));
+    void ouroboros() {
+      auto data = static_cast<ArrowArrayData*>(array_.private_data);
+      data->store(std::unique_ptr<OArrowArray>(this));
     }
 };
 

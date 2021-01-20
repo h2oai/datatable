@@ -44,7 +44,7 @@ class ArrowStr_ColumnImpl : public Arrow_ColumnImpl {
     size_t num_buffers() const noexcept override;
     const void* get_buffer(size_t i) const override;
 
-    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, CString*) const override;
 };
 
 

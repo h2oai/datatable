@@ -42,7 +42,7 @@ ColumnImpl* ArrowBool_ColumnImpl::clone() const {
 }
 
 
-size_t ArrowBool_ColumnImpl::num_buffers() const {
+size_t ArrowBool_ColumnImpl::num_buffers() const noexcept {
   return 2;
 }
 

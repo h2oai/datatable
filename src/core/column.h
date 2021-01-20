@@ -277,7 +277,8 @@ class Column
     void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
 
     // See frame/to_arrow.cc
-    std::unique_ptr<OArrowArray> to_arrow() const;
+    std::unique_ptr<dt::OArrowArray> to_arrow() const;
+    std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

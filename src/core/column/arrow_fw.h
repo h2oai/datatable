@@ -47,9 +47,7 @@ class ArrowFw_ColumnImpl : public Arrow_ColumnImpl {
     bool get_element(size_t, float*)   const override;
     bool get_element(size_t, double*)  const override;
 
-    Column as_arrow() const override;
-
-    size_t num_buffers() const override;
+    size_t num_buffers() const noexcept override;
     const void* get_buffer(size_t i) const override;
 
   private:
