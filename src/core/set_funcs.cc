@@ -465,7 +465,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f
+    >>> from datatable import dt
     >>>
     >>> s1 = dt.Frame([4, 5, 6, 20, 42])
     >>> s2 = dt.Frame([1, 2, 3, 5, 42])
