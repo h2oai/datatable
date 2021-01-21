@@ -179,7 +179,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f, by
+    >>> from datatable import dt
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
     ...                'B': [None, 2, 3,4, 5],
@@ -298,7 +298,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f, by
+    >>> from datatable import dt
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
     ...                'B': [None, 2, 3,4, 5],
@@ -562,7 +562,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f
+    >>> from datatable import dt
     >>>
     >>> s1 = dt.Frame([4, 5, 6, 20, 42])
     >>> s2 = dt.Frame([1, 2, 3, 5, 42])
