@@ -875,7 +875,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
  *  Normalize predictions, so that their values sum up to `1` row-wise.
  *  To prevent overflow when calculating the softmax function,
  *  we multiply its numerator and denominator by `std::exp(-max)`,
- *  where `max` is the maximum value of prediction for a given row.
+ *  where `max` is the maximum value of predictions for a given row.
  */
 template <typename T>
 void Ftrl<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
