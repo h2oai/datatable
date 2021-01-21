@@ -306,7 +306,7 @@ Examples
     [6 rows x 2 columns]
 
 
-If the number of columns are not equal, you can force the row binding by setting
+If the number of columns are not equal or the column names are different, you can force the row binding by setting
 the `force` parameter to `True`::
 
     >>> DT2["Age"] = dt.Frame([25, 50, 67])
