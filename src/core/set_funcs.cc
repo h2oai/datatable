@@ -686,7 +686,7 @@ Examples
     >>> from datatable import dt, f
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
+    ...                'B': [None, 2, 3, 4, 5],
     ...                'C': [1, 2, 1, 1, 2]})
     >>> df
        |     A      B      C
@@ -699,7 +699,7 @@ Examples
      4 |     2      5      2
     [5 rows x 3 columns]
 
-Symmetric difference of all values in the entire frame::
+Symmetric difference of all the columns in the entire frame; Note that each column is treated as a frame::
 
     >>> dt.symdiff(*df)
        |     A
