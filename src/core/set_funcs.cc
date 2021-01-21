@@ -683,7 +683,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f
+    >>> from datatable import dt
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
     ...                'B': [None, 2, 3, 4, 5],
