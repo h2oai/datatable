@@ -699,7 +699,7 @@ Examples
      4 |     2      5      2
     [5 rows x 3 columns]
 
-Symmetric difference of all the columns in the entire frame; Note that each column is treated as a frame::
+Symmetric difference of all the columns in the entire frame; Note that each column is treated as a separate frame::
 
     >>> dt.symdiff(*df)
        |     A
