@@ -816,7 +816,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
-                                                     linkfn = std::exp;
+                                                     linkfn = identity<T>;
                                       break;
     default : throw ValueError() << "Cannot do any predictions, "
                                  << "the model was trained in an unknown mode";
@@ -862,31 +862,30 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     });
   }
 
-  // For multinomial case, when there is two labels, we match binomial
+  // For multinomial case, when there is only two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
-  // than two labels, we use `std::exp` link function, and do normalization,
-  // so that predictions sum up to 1, effectively doing `softmax` linking.
-  if (nlabels > 2) normalize_rows(dt_p);
+  // than two labels, we first employ `identity` linking, and do `softmax`
+  // normalization at the end.
+  if (nlabels > 2) softmax_rows(data_p, dt_p->nrows());
   return dt_p;
 }
 
 
 /**
- *  Normalize rows in a datatable, so that their values sum up to 1.
+ *  Normalize predictions, so that their values sum up to 1.
  */
 template <typename T>
-void Ftrl<T>::normalize_rows(dtptr& dt) {
-  size_t nrows = dt->nrows();
-  size_t ncols = dt->ncols();
-
-  std::vector<T*> data(ncols);
-  for (size_t j = 0; j < ncols; ++j) {
-    data[j] = static_cast<T*>(dt->get_column(j).get_data_editable());
-  }
+void Ftrl<T>::softmax_rows(std::vector<T*>& data, const size_t nrows) {
+  size_t ncols = data.size();
 
   dt::parallel_for_static(nrows, [&](size_t i){
     T sum = T(0);
+    T max = data[0][i];
+    for (size_t j = 1; j < ncols; ++j) {
+      if (data[j][i] > max) max = data[j][i];
+    }
     for (size_t j = 0; j < ncols; ++j) {
+      data[j][i] = std::exp(data[j][i] - max);
       sum += data[j][i];
     }
     for (size_t j = 0; j < ncols; ++j) {
