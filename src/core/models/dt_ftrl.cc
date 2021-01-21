@@ -872,24 +872,28 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
 
 
 /**
- *  Normalize predictions, so that their values sum up to 1.
+ *  Normalize predictions, so that their values sum up to `1` row-wise.
+ *  To prevent overflow when calculating the softmax function,
+ *  we multiply its numerator and denominator by `std::exp(-max)`,
+ *  where `max` is the maximum value of prediction for a given row.
  */
 template <typename T>
-void Ftrl<T>::softmax_rows(std::vector<T*>& data, const size_t nrows) {
-  size_t ncols = data.size();
+void Ftrl<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
+  size_t ncols = data_p.size();
 
   dt::parallel_for_static(nrows, [&](size_t i){
     T sum = T(0);
-    T max = data[0][i];
+    T max = data_p[0][i];
     for (size_t j = 1; j < ncols; ++j) {
-      if (data[j][i] > max) max = data[j][i];
+      if (data_p[j][i] > max) max = data_p[j][i];
+    }
+
+    for (size_t j = 0; j < ncols; ++j) {
+      data_p[j][i] = std::exp(data_p[j][i] - max);
+      sum += data_p[j][i];
     }
     for (size_t j = 0; j < ncols; ++j) {
-      data[j][i] = std::exp(data[j][i] - max);
-      sum += data[j][i];
-    }
-    for (size_t j = 0; j < ncols; ++j) {
-      data[j][i] /= sum;
+      data_p[j][i] /= sum;
     }
   });
 }
