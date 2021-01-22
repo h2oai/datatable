@@ -62,15 +62,9 @@ oobj Frame::to_arrow(const PKArgs&) {
     std::unique_ptr<dt::OArrowSchema> osch = col.to_arrow_schema();
     arrays.set(i,
       pa_Array.invoke("_import_from_c", {
-          oint(aarr->intptr()),
-          oint(osch->intptr())
+          oint(aarr.release()->intptr()),
+          oint(osch.release()->intptr())
         }));
-    // At this point ownership of the ArrowArray* struct produced by
-    // the call col.to_arrow() belongs to the pa.Array object in the
-    // list `arrays`. We therefore need to release the unique_ptr so
-    // that the object wouldn't be deleted prematurely.
-    aarr.release()->ouroboros();
-    osch.release();
   }
 
   otuple names = dt->get_pynames();
@@ -142,7 +136,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   }
   (*aarr)->private_data = data.release();
   (*aarr)->release = release_arrow_array;
-
+  aarr->ouroboros();
   return aarr;
 }
 
@@ -175,6 +169,9 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
 }
 
 
+static void _clear_validity_buffer(size_t n, size_t* data) {
+  dt::parallel_for_static(n, [=](size_t i){ data[i] = 0; });
+}
 
 Column dt::ColumnImpl::_as_arrow_bool() const {
   xassert(stype_ == SType::BOOL);
@@ -184,8 +181,12 @@ Column dt::ColumnImpl::_as_arrow_bool() const {
   Buffer data_buffer = Buffer::mem(bufsize);
   auto validity = static_cast<uint8_t*>(validity_buffer.xptr());
   auto data = static_cast<uint8_t*>(data_buffer.xptr());
+  _clear_validity_buffer(bufsize/8, reinterpret_cast<size_t*>(validity));
+  _clear_validity_buffer(bufsize/8, reinterpret_cast<size_t*>(data));
 
-  parallel_for_static(nrows_, dt::NThreads(allow_parallel_access()),
+  parallel_for_static(nrows_,
+    dt::ChunkSize(64),
+    dt::NThreads(allow_parallel_access()),
     [=](size_t i) {
       int8_t value;
       bool isvalid = this->get_element(i, &value);
@@ -203,12 +204,16 @@ Column dt::ColumnImpl::_as_arrow_bool() const {
 
 template <typename T>
 Column dt::ColumnImpl::_as_arrow_fw() const {
-  Buffer validity_buffer = Buffer::mem((nrows_ + 7) / 8);
+  size_t validity_bufsize = (nrows_ + 63)/64 * 8;
+  Buffer validity_buffer = Buffer::mem(validity_bufsize);
   Buffer data_buffer = Buffer::mem(nrows_ * sizeof(T));
   auto validity = static_cast<uint8_t*>(validity_buffer.xptr());
   auto data = static_cast<T*>(data_buffer.xptr());
+  _clear_validity_buffer(validity_bufsize/8, reinterpret_cast<size_t*>(validity));
 
-  parallel_for_static(nrows_, dt::NThreads(allow_parallel_access()),
+  parallel_for_static(nrows_,
+    dt::ChunkSize(64),
+    dt::NThreads(allow_parallel_access()),
     [=](size_t i) {
       bool isvalid = this->get_element(i, &data[i]);
       if (isvalid) {

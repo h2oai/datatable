@@ -23,15 +23,60 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
+import random
 
 pyarrow_test = pytest.mark.usefixtures("pyarrow")
 
 
 
 @pyarrow_test
-def test_convert_bool_1(pa):
+def test_convert_bool_0(pa):
+    DT = dt.Frame(x = [], stype=bool)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"x": []}
+
+
+@pyarrow_test
+@pytest.mark.parametrize('v', [True, False, None])
+def test_convert_bool_1(pa, v):
+    DT = dt.Frame(y = [v], stype=bool)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"y": [v]}
+
+
+@pyarrow_test
+def test_convert_bool_2(pa):
     DT = dt.Frame(Nm = [False, True, True, None, False])
     tbl = DT.to_arrow()
     assert isinstance(tbl, pa.Table)
     assert tbl.column_names == ['Nm']
     assert tbl.to_pydict() == {"Nm": [False, True, True, None, False]}
+
+
+
+@pyarrow_test
+def test_convert_bool_3(pa):
+    src = [False, False, True, True, None] * 105
+    DT = dt.Frame(R = src)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.column_names == ['R']
+    assert tbl.shape == (len(src), 1)
+    assert tbl.to_pydict()['R'] == src
+
+
+@pyarrow_test
+@pytest.mark.parametrize('seed', [random.getrandbits(64)])
+def test_convert_bool_4(pa, seed):
+    random.seed(seed)
+    src = [random.choice([True, False, None])
+           for i in range(random.randint(3, 12))] \
+           * int(random.expovariate(0.01) + 1)
+    DT = dt.Frame(col=src, stype=bool)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.column_names == ['col']
+    assert tbl.shape == (len(src), 1)
+    assert tbl.to_pydict()['col'] == src
