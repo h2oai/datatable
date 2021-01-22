@@ -132,7 +132,7 @@ class Ftrl : public dt::FtrlBase {
     void create_fi();
     void init_fi();
     void define_features();
-    void normalize_rows(dtptr&);
+    void softmax_rows(std::vector<T*>&, const size_t);
 
     // Parameter helper methods.
     void init_helper_params();

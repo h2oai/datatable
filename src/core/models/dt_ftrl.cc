@@ -816,7 +816,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     case FtrlModelType::REGRESSION  : linkfn = identity<T>; break;
     case FtrlModelType::BINOMIAL    : linkfn = sigmoid<T>; break;
     case FtrlModelType::MULTINOMIAL : (nlabels < 3)? linkfn = sigmoid<T> :
-                                                     linkfn = std::exp;
+                                                     linkfn = identity<T>;
                                       break;
     default : throw ValueError() << "Cannot do any predictions, "
                                  << "the model was trained in an unknown mode";
@@ -862,35 +862,38 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
     });
   }
 
-  // For multinomial case, when there is two labels, we match binomial
+  // For multinomial case, when there is only two labels, we match binomial
   // classifier by using `sigmoid` link function. When there is more
-  // than two labels, we use `std::exp` link function, and do normalization,
-  // so that predictions sum up to 1, effectively doing `softmax` linking.
-  if (nlabels > 2) normalize_rows(dt_p);
+  // than two labels, we first employ `identity` linking, and do `softmax`
+  // normalization at the end.
+  if (nlabels > 2) softmax_rows(data_p, dt_p->nrows());
   return dt_p;
 }
 
 
 /**
- *  Normalize rows in a datatable, so that their values sum up to 1.
+ *  Normalize predictions, so that their values sum up to `1` row-wise.
+ *  To prevent overflow when calculating the softmax function,
+ *  we multiply its numerator and denominator by `std::exp(-max)`,
+ *  where `max` is the maximum value of predictions for a given row.
  */
 template <typename T>
-void Ftrl<T>::normalize_rows(dtptr& dt) {
-  size_t nrows = dt->nrows();
-  size_t ncols = dt->ncols();
-
-  std::vector<T*> data(ncols);
-  for (size_t j = 0; j < ncols; ++j) {
-    data[j] = static_cast<T*>(dt->get_column(j).get_data_editable());
-  }
+void Ftrl<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
+  size_t ncols = data_p.size();
 
   dt::parallel_for_static(nrows, [&](size_t i){
     T sum = T(0);
+    T max = data_p[0][i];
+    for (size_t j = 1; j < ncols; ++j) {
+      if (data_p[j][i] > max) max = data_p[j][i];
+    }
+
     for (size_t j = 0; j < ncols; ++j) {
-      sum += data[j][i];
+      data_p[j][i] = std::exp(data_p[j][i] - max);
+      sum += data_p[j][i];
     }
     for (size_t j = 0; j < ncols; ++j) {
-      data[j][i] /= sum;
+      data_p[j][i] /= sum;
     }
   });
 }
