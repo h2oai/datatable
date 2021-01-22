@@ -32,7 +32,7 @@ ArrowFw_ColumnImpl::ArrowFw_ColumnImpl(size_t nrows, SType stype,
     validity_(std::move(valid)),
     data_(std::move(data))
 {
-  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
   xassert(data_.size() == stype_elemsize(stype) * nrows);
 }
 

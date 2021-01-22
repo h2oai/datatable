@@ -29,6 +29,10 @@ pyarrow_test = pytest.mark.usefixtures("pyarrow")
 
 
 
+#-------------------------------------------------------------------------------
+# Booleans
+#-------------------------------------------------------------------------------
+
 @pyarrow_test
 def test_convert_bool_0(pa):
     DT = dt.Frame(x = [], stype=bool)
@@ -80,3 +84,90 @@ def test_convert_bool_4(pa, seed):
     assert tbl.column_names == ['col']
     assert tbl.shape == (len(src), 1)
     assert tbl.to_pydict()['col'] == src
+
+
+
+#-------------------------------------------------------------------------------
+# Integers
+#-------------------------------------------------------------------------------
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.int8, dt.int16, dt.int32, dt.int64])
+def test_convert_int_0(pa, stype):
+    DT = dt.Frame([[]], stype=stype)
+    assert DT.shape == (0, 1)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.shape == (0, 1)
+    assert tbl.to_pydict() == {"C0": []}
+
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.int8, dt.int16, dt.int32, dt.int64])
+def test_convert_int_1(pa, stype):
+    src = [3, 17, None, -1]
+    DT = dt.Frame(src, stype=stype)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"C0": src}
+
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.int8, dt.int16, dt.int32, dt.int64])
+def test_convert_int_2(pa, stype):
+    src = [None] * 12000
+    src[33] = -1
+    src[178] = 29
+    src[5555:6666] = [0]*1111
+    DT = dt.Frame(DATA=src, stype=stype)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.shape == (len(src), 1)
+    assert tbl.to_pydict() == {"DATA": src}
+
+
+@pyarrow_test
+@pytest.mark.parametrize('seed', [random.getrandbits(64)])
+def test_convert_int_3(pa, seed):
+    random.seed(seed)
+    src = [random.randint(-1000, 10000) for i in range(10)] \
+          * int(random.expovariate(0.001) + 1)
+    DT = dt.Frame(iii=src)
+    tbl = DT.to_arrow()
+    assert tbl.to_pydict() == {"iii": src}
+
+
+
+#-------------------------------------------------------------------------------
+# Floats
+#-------------------------------------------------------------------------------
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.float32, dt.float64])
+def test_convert_float_0(pa, stype):
+    DT = dt.Frame(D=[], stype=stype)
+    assert DT.shape == (0, 1)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.shape == (0, 1)
+    assert tbl.to_pydict() == {"D": []}
+
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.float32, dt.float64])
+def test_convert_float_1(pa, stype):
+    src = [1.4, 1.56, -2.2, 3.14, 9.99999]
+    DT = dt.Frame({"my perfect data": src}, stype=stype)
+    tbl = DT.to_arrow()
+    assert tbl.to_pydict() == DT.to_dict()
+
+
+@pyarrow_test
+@pytest.mark.parametrize('seed', [random.getrandbits(64)])
+def test_convert_float_2(pa, seed):
+    random.seed(seed)
+    src = [random.random() * 10000 for i in range(10)] \
+          * int(random.expovariate(0.001) + 1)
+    DT = dt.Frame(dddd=src)
+    tbl = DT.to_arrow()
+    assert tbl.to_pydict() == {"dddd": src}
