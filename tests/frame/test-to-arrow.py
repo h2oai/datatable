@@ -30,6 +30,29 @@ pyarrow_test = pytest.mark.usefixtures("pyarrow")
 
 
 #-------------------------------------------------------------------------------
+# Void
+#-------------------------------------------------------------------------------
+
+@pyarrow_test
+def test_convert_void_0(pa):
+    DT = dt.Frame(A=[])
+    assert DT.stype == dt.stype.void
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"A": []}
+
+
+@pyarrow_test
+def test_convert_void_1(pa):
+    DT = dt.Frame(A=[None] * 12345)
+    assert DT.stype == dt.stype.void
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"A": [None]*12345}
+
+
+
+#-------------------------------------------------------------------------------
 # Booleans
 #-------------------------------------------------------------------------------
 

@@ -173,6 +173,7 @@ class ColumnImpl
     template <typename T>
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
 
+    Column _as_arrow_void() const;
     Column _as_arrow_bool() const;
     template <typename T> Column _as_arrow_fw() const;
 

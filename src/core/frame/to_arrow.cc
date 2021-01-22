@@ -24,6 +24,7 @@
 #include "column/arrow_bool.h"
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
+#include "column/arrow_void.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -173,6 +174,17 @@ static void _clear_validity_buffer(size_t n, size_t* data) {
   dt::parallel_for_static(n, [=](size_t i){ data[i] = 0; });
 }
 
+
+Column dt::ColumnImpl::_as_arrow_void() const {
+  xassert(stype_ == SType::VOID);
+  size_t bufsize = (nrows_ + 63)/64 * 8;
+  Buffer validity_buffer = Buffer::mem(bufsize);
+  auto validity_data = static_cast<size_t*>(validity_buffer.xptr());
+  _clear_validity_buffer(bufsize/8, validity_data);
+  return Column(new ArrowVoid_ColumnImpl(nrows_, std::move(validity_buffer)));
+}
+
+
 Column dt::ColumnImpl::_as_arrow_bool() const {
   xassert(stype_ == SType::BOOL);
   // The buffers must be aligned at 8-bytes boundary
@@ -239,6 +251,7 @@ Column dt::ColumnImpl::_as_arrow_fw() const {
   */
 Column dt::ColumnImpl::as_arrow() const {
   switch (stype_) {
+    case SType::VOID: return _as_arrow_void();
     case SType::BOOL: return _as_arrow_bool();
     case SType::INT8: return _as_arrow_fw<int8_t>();
     case SType::INT16: return _as_arrow_fw<int16_t>();
