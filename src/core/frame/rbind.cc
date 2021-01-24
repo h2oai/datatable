@@ -246,7 +246,7 @@ void Frame::rbind(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_py_rbind =
-R"(rbind(*frames, force=False, by_names=True)
+R"(rbind(*frames, force=False, bynames=True)
 --
 
 Produce a new frame by appending rows of `frames`.
@@ -262,7 +262,7 @@ frames: Frame | List[Frame] | None
 
 force: bool
 
-by_names: bool
+bynames: bool
 
 return: Frame
 
@@ -283,7 +283,7 @@ Examples
      2 |      6     180
     [3 rows x 2 columns]
 
-    >>> DT2 = df2 = dt.Frame({"Weight": [4, 4, 5], "Height": [180, 181, 169]})
+    >>> DT2 = dt.Frame({"Height": [180, 181, 169], "Weight": [4, 4, 5]})
     >>> DT2
        | Weight  Height
        |  int32   int32
@@ -293,7 +293,7 @@ Examples
      2 |      5     169
     [3 rows x 2 columns]
 
-    >>> dt.rbind([DT1, DT2])
+    >>> dt.rbind(DT1, DT2)
        | Weight  Height
        |  int32   int32
     -- + ------  ------
@@ -303,6 +303,20 @@ Examples
      3 |      4     180
      4 |      4     181
      5 |      5     169
+    [6 rows x 2 columns]
+
+:func:`rbind()` by default combines frames by names. The frames can also be bound by column position by setting the `bynames` parameter to ``False``::
+
+    >>> dt.rbind(DT1, DT2, bynames = False)
+       | Weight  Height
+       |  int32   int32
+    -- + ------  ------
+     0 |      5     170
+     1 |      4     172
+     2 |      6     180
+     3 |    180       4
+     4 |    181       4
+     5 |    169       5
     [6 rows x 2 columns]
 
 
@@ -319,7 +333,7 @@ the `force` parameter to `True`::
      2 |      5     169     67
     [3 rows x 3 columns]
 
-    >>> dt.rbind([DT1, DT2], force=True)
+    >>> dt.rbind(DT1, DT2, force = True)
        | Weight  Height    Age
        |  int32   int32  int32
     -- + ------  ------  -----
