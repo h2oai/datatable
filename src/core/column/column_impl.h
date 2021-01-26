@@ -176,6 +176,7 @@ class ColumnImpl
     Column _as_arrow_void() const;
     Column _as_arrow_bool() const;
     template <typename T> Column _as_arrow_fw() const;
+    template <typename T> Column _as_arrow_str() const;
 
     friend class ::Column;
 };

@@ -239,10 +239,82 @@ Column dt::ColumnImpl::_as_arrow_fw() const {
 }
 
 
-// template <typename T>
-// Column dt::ColumnImpl::_as_arrow_str() const {
 
-// }
+template <typename T>
+Column dt::ColumnImpl::_as_arrow_str() const {
+  size_t validity_bufsize = (nrows_ + 63)/64 * 8;
+  Buffer validity_buffer = Buffer::mem(validity_bufsize);
+  auto validity_data = static_cast<uint8_t*>(validity_buffer.xptr());
+
+  Buffer offsets_buffer = Buffer::mem((nrows_ + 1) * sizeof(T));
+  auto offsets_data = static_cast<T*>(offsets_buffer.xptr());
+  *offsets_data++ = 0;
+
+  constexpr size_t chunk_size = 64;  // must be a multiple of 64
+  size_t nchunks = (nrows_ + chunk_size - 1)/chunk_size;
+  std::vector<Buffer> strdata_chunks(nchunks);
+  std::vector<size_t> chunk_sizes(nchunks + 1);
+
+  dt::parallel_for_dynamic(nchunks,
+    [&](size_t ichunk){
+      size_t i0 = ichunk * chunk_size;
+      size_t local_chunk_size = std::min(chunk_size, nrows_ - i0);
+      auto local_offsets_data = offsets_data + i0;
+      auto local_validity_data = validity_data + (i0 / 8);
+      for (size_t k = 0; k < chunk_size / 64; k++) {
+        (reinterpret_cast<uint64_t*>(local_validity_data))[k] = 0;
+      }
+      Buffer strbuffer = Buffer::mem(chunk_size * 8);
+      size_t current_offset = 0;
+      CString str_value;
+      for (size_t j = 0; j < local_chunk_size; j++) {
+        bool isvalid = get_element(j + i0, &str_value);
+        if (isvalid) {
+          local_validity_data[j/8] |= 1 << (j&7);
+          strbuffer.ensuresize(current_offset + str_value.size());
+          std::memcpy(static_cast<char*>(strbuffer.xptr()) + current_offset,
+                      str_value.data(), str_value.size());
+          current_offset += str_value.size();
+          local_offsets_data[j] = static_cast<T>(current_offset);
+        }
+      }
+      strdata_chunks[ichunk] = std::move(strbuffer);
+      chunk_sizes[ichunk] = current_offset;
+    });
+
+  size_t total_size = 0;
+  for (size_t i = 0; i < nchunks; i++) {
+    auto sz = chunk_sizes[i];
+    chunk_sizes[i] = total_size;
+    total_size += sz;
+  }
+  chunk_sizes[nchunks] = total_size;
+  if (sizeof(T) == 4 && total_size > std::numeric_limits<T>::max()) {
+    throw NotImplError() << "Buffer overflow when materializing a string column";
+  }
+
+  Buffer strdata_buffer = Buffer::mem(total_size);
+  auto strdata = static_cast<char*>(strdata_buffer.xptr());
+  dt::parallel_for_dynamic(nchunks,
+    [&](size_t ichunk) {
+      size_t local_chunk_offset = chunk_sizes[ichunk];
+      size_t local_chunk_size = chunk_sizes[ichunk+1] - chunk_sizes[ichunk];
+      std::memcpy(strdata + local_chunk_offset,
+                  strdata_chunks[ichunk].rptr(),
+                  local_chunk_size);
+      size_t i0 = ichunk * chunk_size;
+      size_t i1 = std::min(i0 + chunk_size, nrows_);
+      for (size_t i = i0; i < i1; i++) {
+        offsets_data[i] += local_chunk_offset;
+      }
+    }
+  );
+
+  return Column(new dt::ArrowStr_ColumnImpl<T>(
+      nrows_, stype_, std::move(validity_buffer),
+      std::move(offsets_buffer), std::move(strdata_buffer))
+  );
+}
 
 
 /**
@@ -259,6 +331,8 @@ Column dt::ColumnImpl::as_arrow() const {
     case SType::INT64: return _as_arrow_fw<int64_t>();
     case SType::FLOAT32: return _as_arrow_fw<float>();
     case SType::FLOAT64: return _as_arrow_fw<double>();
+    case SType::STR32: return _as_arrow_str<uint32_t>();
+    case SType::STR64: return _as_arrow_str<uint64_t>();
     default: break;
   }
   throw NotImplError() << "Cannot convert column of type " << stype_ << " into arrow";
