@@ -13,6 +13,11 @@
       This process uses data Arrow C Data interface, and therefore does
       not entail data copying.
 
+    -[new] A Frame can now be converted into an Arrow table, using the
+      :meth:`.to_arrow()` method::
+
+          >>> pa_table = DT.to_arrow()
+
     -[new] :attr:`.meta` property now provides access to frame's meta
       information, if any, as set by datatable functions/methods or
       by the user.
