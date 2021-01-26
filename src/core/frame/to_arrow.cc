@@ -246,7 +246,9 @@ Column dt::ColumnImpl::_as_arrow_str() const {
   Buffer validity_buffer = Buffer::mem(validity_bufsize);
   auto validity_data = static_cast<uint8_t*>(validity_buffer.xptr());
 
-  Buffer offsets_buffer = Buffer::mem((nrows_ + 1) * sizeof(T));
+  size_t offsets_bufsize = (sizeof(T) == 8)? (nrows_ + 1)*8
+                                           : (nrows_ + 2 - (nrows_&1))*4;
+  Buffer offsets_buffer = Buffer::mem(offsets_bufsize);
   auto offsets_data = static_cast<T*>(offsets_buffer.xptr());
   *offsets_data++ = 0;
 
@@ -275,8 +277,8 @@ Column dt::ColumnImpl::_as_arrow_str() const {
           std::memcpy(static_cast<char*>(strbuffer.xptr()) + current_offset,
                       str_value.data(), str_value.size());
           current_offset += str_value.size();
-          local_offsets_data[j] = static_cast<T>(current_offset);
         }
+        local_offsets_data[j] = static_cast<T>(current_offset);
       }
       strdata_chunks[ichunk] = std::move(strbuffer);
       chunk_sizes[ichunk] = current_offset;
@@ -293,6 +295,8 @@ Column dt::ColumnImpl::_as_arrow_str() const {
     throw NotImplError() << "Buffer overflow when materializing a string column";
   }
 
+  total_size = (total_size + 7)/8 * 8;
+  if (total_size == 0) total_size = 8;
   Buffer strdata_buffer = Buffer::mem(total_size);
   auto strdata = static_cast<char*>(strdata_buffer.xptr());
   dt::parallel_for_dynamic(nchunks,
@@ -302,10 +306,12 @@ Column dt::ColumnImpl::_as_arrow_str() const {
       std::memcpy(strdata + local_chunk_offset,
                   strdata_chunks[ichunk].rptr(),
                   local_chunk_size);
-      size_t i0 = ichunk * chunk_size;
-      size_t i1 = std::min(i0 + chunk_size, nrows_);
-      for (size_t i = i0; i < i1; i++) {
-        offsets_data[i] += local_chunk_offset;
+      if (local_chunk_offset > 0) {
+        size_t i0 = ichunk * chunk_size;
+        size_t i1 = std::min(i0 + chunk_size, nrows_);
+        for (size_t i = i0; i < i1; i++) {
+          offsets_data[i] += local_chunk_offset;
+        }
       }
     }
   );

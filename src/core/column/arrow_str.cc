@@ -35,8 +35,8 @@ ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
     offsets_(std::move(offsets)),
     strdata_(std::move(data))
 {
-  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
-  xassert(offsets_.size() == stype_elemsize(stype) * (nrows + 1));
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
+  xassert(offsets_.size() >= stype_elemsize(stype) * (nrows + 1));
   xassert(stype_elemsize(stype_) == sizeof(T));
 }
 

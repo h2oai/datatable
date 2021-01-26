@@ -201,3 +201,42 @@ def test_convert_float_2(pa, seed):
 # String
 #-------------------------------------------------------------------------------
 
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.str32, dt.str64])
+def test_convert_string_0(pa, stype):
+    DT = dt.Frame(S=[], stype=stype)
+    assert DT.shape == (0, 1)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.shape == (0, 1)
+    assert tbl.to_pydict() == {"S": []}
+
+
+@pyarrow_test
+@pytest.mark.parametrize("stype", [dt.str32, dt.str64])
+def test_convert_string_1(pa, stype):
+    src = ["ice cream", "macaron", None, "tiramisu", "velvet cake"]
+    DT = dt.Frame(SS=src, stype=stype)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == DT.to_dict()
+
+
+@pyarrow_test
+@pytest.mark.parametrize('stype', [dt.str32, dt.str64])
+def test_convert_string_2(pa, stype):
+    src = ["", "", "", "", None, ""] * 97
+    DT = dt.Frame(P=src, stype=stype)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == DT.to_dict()
+
+
+@pyarrow_test
+@pytest.mark.parametrize('stype', [dt.str32, dt.str64])
+def test_convert_string_3(pa, stype):
+    src = ["So", "long", "and", "thanks", "for", "the", "fish"] * 1001
+    DT = dt.Frame({"Last message": src}, stype=stype)
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == DT.to_dict()
