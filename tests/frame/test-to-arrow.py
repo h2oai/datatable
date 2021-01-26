@@ -240,3 +240,27 @@ def test_convert_string_3(pa, stype):
     tbl = DT.to_arrow()
     assert isinstance(tbl, pa.Table)
     assert tbl.to_pydict() == DT.to_dict()
+
+
+
+#-------------------------------------------------------------------------------
+# Everything else
+#-------------------------------------------------------------------------------
+
+@pyarrow_test
+def test_convert_all(pa):
+    DT = dt.Frame(A=[3, 45, 8909, -21, 0, 222],
+                  B=[0.1, 0.00001, 13.443, None, 1.29e+45, -3.77e-13],
+                  C=[1, 22, 333, 4444, 55555, 666666],
+                  D=['a', None, 'c', None, 'e', 'fghij'],
+                  E=[True, False, None, True, None, False])
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == DT.to_dict()
+
+
+@pyarrow_test
+def test_convert_view():
+    DT = dt.Frame(A=range(1000))[::-2, :]
+    tbl = DT.to_arrow()
+    assert tbl.to_pydict() == DT.to_dict()
