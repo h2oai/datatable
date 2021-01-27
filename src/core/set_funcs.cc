@@ -722,6 +722,53 @@ except: ValueError | NotImplementedError
         * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
 
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3, 4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Symmetric difference of all the columns in the entire frame; Note that each column is treated as a separate frame::
+
+    >>> dt.symdiff(*df)
+       |     A
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     2
+     2 |     3
+     3 |     4
+     4 |     5
+    [5 rows x 1 column]
+
+
+Symmetric difference between two frames::
+
+    >>> dt.symdiff(df["A"], df["B"])
+       |     A
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     1
+     2 |     3
+     3 |     4
+     4 |     5
+    [5 rows x 1 column]
+
 
 See Also
 --------
