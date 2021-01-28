@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -275,6 +275,10 @@ class Column
         flatbuffers::FlatBufferBuilder&,
         WritableBuffer*);
     void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
+
+    // See frame/to_arrow.cc
+    std::unique_ptr<dt::OArrowArray> to_arrow() const;
+    std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

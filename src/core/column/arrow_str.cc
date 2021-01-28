@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,13 +30,13 @@ template <typename T>
 ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
     size_t nrows, SType stype, Buffer&& valid, Buffer&& offsets, Buffer&& data
 )
-  : Virtual_ColumnImpl(nrows, stype),
+  : Arrow_ColumnImpl(nrows, stype),
     validity_(std::move(valid)),
     offsets_(std::move(offsets)),
     strdata_(std::move(data))
 {
-  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
-  xassert(offsets_.size() == stype_elemsize(stype) * (nrows + 1));
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
+  xassert(offsets_.size() >= stype_elemsize(stype) * (nrows + 1));
   xassert(stype_elemsize(stype_) == sizeof(T));
 }
 
@@ -47,12 +47,18 @@ ColumnImpl* ArrowStr_ColumnImpl<T>::clone() const {
       nrows_, stype_, Buffer(validity_), Buffer(offsets_), Buffer(strdata_));
 }
 
-
 template <typename T>
-size_t ArrowStr_ColumnImpl<T>::n_children() const noexcept {
-  return 0;
+size_t ArrowStr_ColumnImpl<T>::num_buffers() const noexcept {
+  return 3;
 }
 
+template <typename T>
+const void* ArrowStr_ColumnImpl<T>::get_buffer(size_t i) const {
+  xassert(i < 3);
+  return (i == 0)? validity_.rptr() :
+         (i == 1)? offsets_.rptr() :
+         (i == 2)? strdata_.rptr() : nullptr;
+}
 
 
 

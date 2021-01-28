@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,37 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_ARROW_STR_h
-#define dt_COLUMN_ARROW_STR_h
-#include "column/arrow.h"
+#ifndef dt_COLUMN_ARROW_h
+#define dt_COLUMN_ARROW_h
+#include "column/virtual.h"
 namespace dt {
 
 
-/**
-  * TODO: make this class material instead of virtual
-  */
-template <typename T>
-class ArrowStr_ColumnImpl : public Arrow_ColumnImpl {
-  private:
-    Buffer validity_;
-    Buffer offsets_;
-    Buffer strdata_;
-
+class Arrow_ColumnImpl : public Virtual_ColumnImpl {
   public:
-    ArrowStr_ColumnImpl(size_t nrows, SType stype,
-                        Buffer&& valid, Buffer&& offsets, Buffer&& data);
+    using Virtual_ColumnImpl::Virtual_ColumnImpl;
 
-    ColumnImpl* clone() const override;
-    // void materialize(Column&, bool) override;
-    size_t num_buffers() const noexcept override;
-    const void* get_buffer(size_t i) const override;
+    size_t n_children() const noexcept override {
+      return 0;
+    }
 
-    bool get_element(size_t, CString*) const override;
+    Column as_arrow() const override {
+      ++refcount_;
+      ColumnImpl* self = const_cast<Arrow_ColumnImpl*>(this);
+      return Column(std::move(self));
+    }
+
+    virtual size_t num_buffers() const noexcept = 0;
+    virtual const void* get_buffer(size_t i) const = 0;
+
+    virtual size_t num_children() const noexcept { return 0; }
 };
-
-
-extern template class ArrowStr_ColumnImpl<uint32_t>;
-extern template class ArrowStr_ColumnImpl<uint64_t>;
 
 
 

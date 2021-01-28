@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,12 +28,14 @@ namespace dt {
 
 ArrowBool_ColumnImpl::ArrowBool_ColumnImpl(size_t nrows,
                                            Buffer&& valid, Buffer&& data)
-  : Virtual_ColumnImpl(nrows, dt::SType::BOOL),
+  : Arrow_ColumnImpl(nrows, dt::SType::BOOL),
     validity_(std::move(valid)),
     data_(std::move(data))
 {
-  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
-  xassert(data_.size() == (nrows + 7) / 8);
+  // Buffer can be padded to 8-byte boundary, causing its size to be
+  // slightly bigger than necessary.
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
+  xassert(data_.size() >= (nrows + 7) / 8);
 }
 
 
@@ -42,8 +44,13 @@ ColumnImpl* ArrowBool_ColumnImpl::clone() const {
 }
 
 
-size_t ArrowBool_ColumnImpl::n_children() const noexcept {
-  return 0;
+size_t ArrowBool_ColumnImpl::num_buffers() const noexcept {
+  return 2;
+}
+
+const void* ArrowBool_ColumnImpl::get_buffer(size_t i) const {
+  return (i == 0)? validity_.rptr() :
+         (i == 1)? data_.rptr() : nullptr;
 }
 
 

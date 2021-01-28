@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -155,6 +155,8 @@ class ColumnImpl
     virtual bool cast_const(SType new_stype, Column& thiscol) const;
     virtual void cast_mutate(SType new_stype);
 
+    virtual Column as_arrow() const;
+
 
   //------------------------------------
   // Private helpers
@@ -170,6 +172,11 @@ class ColumnImpl
 
     template <typename T>
     void _fill_npmask(bool* outmask, size_t row0, size_t row1) const;
+
+    Column _as_arrow_void() const;
+    Column _as_arrow_bool() const;
+    template <typename T> Column _as_arrow_fw() const;
+    template <typename T> Column _as_arrow_str() const;
 
     friend class ::Column;
 };

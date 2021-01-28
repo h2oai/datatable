@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,40 +19,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_ARROW_STR_h
-#define dt_COLUMN_ARROW_STR_h
-#include "column/arrow.h"
+#include "column/arrow_void.h"
+#include "stype.h"
 namespace dt {
 
 
-/**
-  * TODO: make this class material instead of virtual
-  */
-template <typename T>
-class ArrowStr_ColumnImpl : public Arrow_ColumnImpl {
-  private:
-    Buffer validity_;
-    Buffer offsets_;
-    Buffer strdata_;
-
-  public:
-    ArrowStr_ColumnImpl(size_t nrows, SType stype,
-                        Buffer&& valid, Buffer&& offsets, Buffer&& data);
-
-    ColumnImpl* clone() const override;
-    // void materialize(Column&, bool) override;
-    size_t num_buffers() const noexcept override;
-    const void* get_buffer(size_t i) const override;
-
-    bool get_element(size_t, CString*) const override;
-};
+ArrowVoid_ColumnImpl::ArrowVoid_ColumnImpl(size_t nrows, Buffer&& valid)
+  : Arrow_ColumnImpl(nrows, SType::VOID),
+    validity_(std::move(valid)) {}
 
 
-extern template class ArrowStr_ColumnImpl<uint32_t>;
-extern template class ArrowStr_ColumnImpl<uint64_t>;
+ColumnImpl* ArrowVoid_ColumnImpl::clone() const {
+  return new ArrowVoid_ColumnImpl(nrows_, Buffer(validity_));
+}
+
+
+size_t ArrowVoid_ColumnImpl::num_buffers() const noexcept {
+  return 1;
+}
+
+const void* ArrowVoid_ColumnImpl::get_buffer(size_t) const {
+  return validity_.rptr();
+}
+
+
+bool ArrowVoid_ColumnImpl::get_element(size_t, int8_t*) const {
+  return false;
+}
 
 
 
 
 }  // namespace dt
-#endif

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -1149,6 +1149,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_stats(xt);
   _init_sort(xt);
   _init_newsort(xt);
+  _init_toarrow(xt);
   _init_tocsv(xt);
   _init_tonumpy(xt);
   _init_topython(xt);
