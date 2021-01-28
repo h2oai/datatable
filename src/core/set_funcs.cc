@@ -179,7 +179,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f
+    >>> from datatable import dt
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
     ...                'B': [None, 2, 3,4, 5],
@@ -298,7 +298,7 @@ Examples
 --------
 .. code-block:: python
 
-    >>> from datatable import dt, f, by
+    >>> from datatable import dt
     >>>
     >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
     ...                'B': [None, 2, 3,4, 5],
@@ -557,6 +557,49 @@ except: ValueError | NotImplementedError
 
         * - :exc:`dt.exceptions.NotImplementedError`
           - raised when one of the columns has stype `obj64`.
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt
+    >>>
+    >>> s1 = dt.Frame([4, 5, 6, 20, 42])
+    >>> s2 = dt.Frame([1, 2, 3, 5, 42])
+    >>>
+    >>> s1
+       |    C0
+       | int32
+    -- + -----
+     0 |     4
+     1 |     5
+     2 |     6
+     3 |    20
+     4 |    42
+    [5 rows x 1 column]
+
+    >>> s2
+       |    C0
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+     2 |     3
+     3 |     5
+     4 |    42
+    [5 rows x 1 column]
+
+Set difference of the two frames::
+
+    >>> dt.setdiff(s1, s2)
+       |    C0
+       | int32
+    -- + -----
+     0 |     4
+     1 |     6
+     2 |    20
+    [3 rows x 1 column]
+
 
 
 See Also
