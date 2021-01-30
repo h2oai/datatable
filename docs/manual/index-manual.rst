@@ -12,4 +12,5 @@ User Guide
     comparison_with_pandas
     comparison_with_rdatatable
     comparison_with_sql
+    datetime
     ftrl
