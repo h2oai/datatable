@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -61,7 +61,7 @@ void NpMasked_ColumnImpl::materialize(Column& out, bool to_memory) {
       arg_.is_fixedwidth() &&
       arg_.is_data_editable())
   {
-    switch (stype_) {
+    switch (stype()) {
       case SType::BOOL:
       case SType::INT8:    return _apply_mask<int8_t>(out);
       case SType::INT16:   return _apply_mask<int16_t>(out);

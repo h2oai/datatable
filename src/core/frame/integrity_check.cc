@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -153,8 +153,8 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 void ColumnImpl::verify_integrity() const {
-  XAssert(static_cast<int64_t>(nrows_) >= 0);
-  XAssert(static_cast<size_t>(stype_) < dt::STYPES_COUNT);
+  XAssert(static_cast<int64_t>(nrows()) >= 0);
+  XAssert(static_cast<size_t>(stype()) < dt::STYPES_COUNT);
   XAssert(refcount_ > 0 && refcount_ < uint32_t(-100));
   if (stats_) { // Stats are allowed to be null
     stats_->verify_integrity(this);
@@ -171,7 +171,7 @@ void ColumnImpl::verify_integrity() const {
 template <typename T>
 void SentinelFw_ColumnImpl<T>::verify_integrity() const {
   ColumnImpl::verify_integrity();
-  xassert(compatible_type<T>(stype_));
+  xassert(compatible_type<T>(stype()));
   XAssert(mbuf_.size() >= sizeof(T) * nrows_);
   mbuf_.verify_integrity();
 }
@@ -185,7 +185,7 @@ void SentinelFw_ColumnImpl<T>::verify_integrity() const {
 
 void SentinelBool_ColumnImpl::verify_integrity() const {
   SentinelFw_ColumnImpl<int8_t>::verify_integrity();
-  XAssert(stype_ == dt::SType::BOOL);
+  XAssert(stype() == dt::SType::BOOL);
 
   // Check that all elements in column are either 0, 1, or NA_I1
   size_t mbuf_nrows = mbuf_.size();

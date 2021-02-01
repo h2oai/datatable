@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -500,7 +500,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
     Column& col = columns[i];
     if (col.stype() == dt::SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
-      col.cast_inplace(stype_);
+      col.cast_inplace(stype());
       col.materialize();
     }
     new_strbuf_size += col.get_data_size(1);
@@ -611,8 +611,8 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col.stype() != stype_) {
-        col.cast_inplace(stype_);
+      if (col.stype() != stype()) {
+        col.cast_inplace(stype());
         col.materialize();
       }
       size_t col_data_size = sizeof(T) * col.nrows();

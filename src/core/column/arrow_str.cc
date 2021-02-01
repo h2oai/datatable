@@ -37,14 +37,14 @@ ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
 {
   xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
   xassert(offsets_.size() >= stype_elemsize(stype) * (nrows + 1));
-  xassert(stype_elemsize(stype_) == sizeof(T));
+  xassert(stype_elemsize(stype) == sizeof(T));
 }
 
 
 template <typename T>
 ColumnImpl* ArrowStr_ColumnImpl<T>::clone() const {
   return new ArrowStr_ColumnImpl(
-      nrows_, stype_, Buffer(validity_), Buffer(offsets_), Buffer(strdata_));
+      nrows(), stype(), Buffer(validity_), Buffer(offsets_), Buffer(strdata_));
 }
 
 template <typename T>

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,7 +27,7 @@ namespace dt {
 
 
 ColumnImpl* CastObject_ColumnImpl::clone() const {
-  return new CastObject_ColumnImpl(stype_, Column(arg_));
+  return new CastObject_ColumnImpl(stype(), Column(arg_));
 }
 
 bool CastObject_ColumnImpl::allow_parallel_access() const {

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -213,9 +213,9 @@ const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
 
 Column ArrayRowIndexImpl::as_column() const {
   if (type == RowIndexType::ARR32) {
-    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, dt::SType::INT32, Buffer(buf_)));
   } else {
-    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, dt::SType::INT64, Buffer(buf_)));
   }
 }
 

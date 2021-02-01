@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -52,29 +52,26 @@ SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(ColumnImpl*&& other)
 
 
 template <typename T>
-SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>)
+SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, SType stype)
+  : Sentinel_ColumnImpl(nrows, stype)  // stype_from<T>
 {
   mbuf_.resize(sizeof(T) * nrows);
 }
 
 SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows)
-  : SentinelFw_ColumnImpl<int8_t>(nrows)
-{
-  stype_ = SType::BOOL;
-}
+  : SentinelFw_ColumnImpl<int8_t>(nrows, SType::BOOL)
+{}
 
 SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows)
-  : SentinelFw_ColumnImpl<py::oobj>(nrows)
+  : SentinelFw_ColumnImpl<py::oobj>(nrows, SType::OBJ)
 {
-  stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ true);
 }
 
 
 template <typename T>
-SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
-  : Sentinel_ColumnImpl(nrows, stype_from<T>)
+SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, SType stype, Buffer&& mr)
+  : Sentinel_ColumnImpl(nrows, stype)  // stype_from<T>
 {
   size_t req_size = sizeof(T) * nrows;
   if (mr) {
@@ -86,15 +83,12 @@ SentinelFw_ColumnImpl<T>::SentinelFw_ColumnImpl(size_t nrows, Buffer&& mr)
 }
 
 SentinelBool_ColumnImpl::SentinelBool_ColumnImpl(size_t nrows, Buffer&& mem)
-  : SentinelFw_ColumnImpl<int8_t>(nrows, std::move(mem))
-{
-  stype_ = SType::BOOL;
-}
+  : SentinelFw_ColumnImpl<int8_t>(nrows, SType::BOOL, std::move(mem))
+{}
 
 SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows, Buffer&& mem)
-    : SentinelFw_ColumnImpl<py::oobj>(nrows, std::move(mem))
+    : SentinelFw_ColumnImpl<py::oobj>(nrows, SType::OBJ, std::move(mem))
 {
-  stype_ = SType::OBJ;
   mbuf_.set_pyobjects(/*clear_data = */ false);
 }
 
@@ -103,7 +97,7 @@ SentinelObj_ColumnImpl::SentinelObj_ColumnImpl(size_t nrows, Buffer&& mem)
 
 template <typename T>
 ColumnImpl* SentinelFw_ColumnImpl<T>::clone() const {
-  return new SentinelFw_ColumnImpl<T>(nrows_, Buffer(mbuf_));
+  return new SentinelFw_ColumnImpl<T>(nrows_, stype(), Buffer(mbuf_));
 }
 
 ColumnImpl* SentinelBool_ColumnImpl::clone() const {
@@ -276,9 +270,9 @@ void SentinelFw_ColumnImpl<T>::replace_values(
   if (!replace_with) {
     return replace_values(replace_at, GETNA<T>());
   }
-  Column with = (replace_with.stype() == stype_)
+  Column with = (replace_with.stype() == stype())
                     ? replace_with  // copy
-                    : replace_with.cast(stype_);
+                    : replace_with.cast(stype());
 
   if (with.nrows() == 1) {
     T replace_value;

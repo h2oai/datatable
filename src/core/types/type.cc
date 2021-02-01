@@ -99,6 +99,7 @@ Type Type::from_stype(SType stype) {
 }
 
 
+SType Type::stype() const { return impl_->stype_; }
 
 bool Type::is_boolean() const { return impl_->is_boolean(); }
 bool Type::is_integer() const { return impl_->is_integer(); }

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -170,7 +170,7 @@ void SentinelStr_ColumnImpl<T>::replace_values(
   Column with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != stype_) with = with.cast(stype_);
+    if (with.stype() != stype()) with = with.cast(stype());
   }
 
   if (!with || with.nrows() == 1) {
