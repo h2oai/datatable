@@ -27,6 +27,7 @@
 #include "groupby.h"     // Groupby
 #include "buffer.h"      // Buffer
 #include "stats.h"       // Stats
+#include "types/type.h"
 namespace dt {
 
 
