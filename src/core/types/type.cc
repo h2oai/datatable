@@ -69,17 +69,17 @@ Type::~Type() {
 
 
 
-Type Type::void0()   { return Type(new Type_Void()); }
-Type Type::bool8()   { return Type(new Type_Bool8()); }
-Type Type::int8()    { return Type(new Type_Int(SType::INT8)); }
-Type Type::int16()   { return Type(new Type_Int(SType::INT16)); }
-Type Type::int32()   { return Type(new Type_Int(SType::INT32)); }
-Type Type::int64()   { return Type(new Type_Int(SType::INT64)); }
-Type Type::float32() { return Type(new Type_Float32()); }
-Type Type::float64() { return Type(new Type_Float64()); }
-Type Type::str32()   { return Type(new Type_String(SType::STR32)); }
-Type Type::str64()   { return Type(new Type_String(SType::STR64)); }
-Type Type::obj64()   { return Type(new Type_Object()); }
+Type Type::void0()   { return Type(new Type_Void); }
+Type Type::bool8()   { return Type(new Type_Bool8); }
+Type Type::int8()    { return Type(new Type_Int8); }
+Type Type::int16()   { return Type(new Type_Int16); }
+Type Type::int32()   { return Type(new Type_Int32); }
+Type Type::int64()   { return Type(new Type_Int64); }
+Type Type::float32() { return Type(new Type_Float32); }
+Type Type::float64() { return Type(new Type_Float64); }
+Type Type::str32()   { return Type(new Type_String32); }
+Type Type::str64()   { return Type(new Type_String64); }
+Type Type::obj64()   { return Type(new Type_Object); }
 
 Type Type::from_stype(SType stype) {
   switch (stype) {

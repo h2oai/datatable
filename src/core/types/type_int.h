@@ -28,20 +28,42 @@ namespace dt {
 
 
 class Type_Int : public TypeImpl {
-  public:
-    Type_Int(SType stype) : TypeImpl(stype) {
-      xassert(stype == SType::INT8 || stype == SType::INT16 ||
-              stype == SType::INT32 || stype == SType::INT64);
-    }
+  protected:
+    using TypeImpl::TypeImpl;
 
+  public:
     bool is_integer() const override { return true; }
     bool is_numeric() const override { return true; }
-
-    bool can_be_read_as_int8()  const override { return stype() == SType::INT8; }
-    bool can_be_read_as_int16() const override { return stype() == SType::INT16; }
-    bool can_be_read_as_int32() const override { return stype() == SType::INT32; }
-    bool can_be_read_as_int64() const override { return stype() == SType::INT64; }
 };
+
+
+class Type_Int8 : public Type_Int {
+  public:
+    Type_Int8() : Type_Int(SType::INT8) {}
+    bool can_be_read_as_int8()  const override { return true; }
+};
+
+
+class Type_Int16 : public Type_Int {
+  public:
+    Type_Int16() : Type_Int(SType::INT16) {}
+    bool can_be_read_as_int16()  const override { return true; }
+};
+
+
+class Type_Int32 : public Type_Int {
+  public:
+    Type_Int32() : Type_Int(SType::INT32) {}
+    bool can_be_read_as_int32()  const override { return true; }
+};
+
+
+class Type_Int64 : public Type_Int {
+  public:
+    Type_Int64() : Type_Int(SType::INT64) {}
+    bool can_be_read_as_int64()  const override { return true; }
+};
+
 
 
 

@@ -28,14 +28,26 @@ namespace dt {
 
 
 class Type_String : public TypeImpl {
-  public:
-    Type_String(SType stype) : TypeImpl(stype) {
-      xassert(stype == SType::STR32 || stype == SType::STR64);
-    }
+  protected:
+    using TypeImpl::TypeImpl;
 
+  public:
     bool is_string() const override { return true; }
     bool can_be_read_as_cstring() const override { return true; }
 };
+
+
+class Type_String32 : public Type_String {
+  public:
+    Type_String32() : Type_String(SType::STR32) {}
+};
+
+
+class Type_String64 : public Type_String {
+  public:
+    Type_String64() : Type_String(SType::STR64) {}
+};
+
 
 
 
