@@ -31,6 +31,7 @@ class Type_Object : public TypeImpl {
     Type_Object() : TypeImpl(SType::OBJ) {}
 
     bool is_object() const override { return true; }
+    bool can_be_read_as_pyobject() const override { return true; }
 };
 
 

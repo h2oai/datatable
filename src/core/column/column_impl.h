@@ -92,6 +92,7 @@ class ColumnImpl
   public:
     size_t nrows() const noexcept { return nrows_; }
     SType  stype() const { return type_.stype(); }
+    const Type& type() const { return type_; }
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;

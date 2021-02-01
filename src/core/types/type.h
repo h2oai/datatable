@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_h
 #define dt_TYPES_TYPE_h
-#include "stype.h"
+#include "_dt.h"
 namespace dt {
 
 class TypeImpl;
@@ -45,6 +45,9 @@ class Type {
     TypeImpl* impl_;   // owned
 
   public:
+    //--------------------------------------------------------------------------
+    // Constructors
+    //--------------------------------------------------------------------------
     Type() noexcept;
     Type(const Type& other) noexcept;
     Type(Type&& other) noexcept;
@@ -65,6 +68,10 @@ class Type {
     static Type obj64();
     static Type from_stype(SType);
 
+
+    //--------------------------------------------------------------------------
+    // Properties
+    //--------------------------------------------------------------------------
     SType stype() const;
     bool is_boolean() const;
     bool is_integer() const;
@@ -73,11 +80,23 @@ class Type {
     bool is_string() const;
     bool is_object() const;
 
+    template<typename T>
+    bool can_be_read_as() const;
+
+
   private:
     Type(TypeImpl*&&) noexcept;
 };
 
 
+template<> bool Type::can_be_read_as<int8_t>() const;
+template<> bool Type::can_be_read_as<int16_t>() const;
+template<> bool Type::can_be_read_as<int32_t>() const;
+template<> bool Type::can_be_read_as<int64_t>() const;
+template<> bool Type::can_be_read_as<float>() const;
+template<> bool Type::can_be_read_as<double>() const;
+template<> bool Type::can_be_read_as<CString>() const;
+template<> bool Type::can_be_read_as<py::oobj>() const;
 
 
 

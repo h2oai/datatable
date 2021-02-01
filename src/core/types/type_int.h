@@ -36,6 +36,11 @@ class Type_Int : public TypeImpl {
 
     bool is_integer() const override { return true; }
     bool is_numeric() const override { return true; }
+
+    bool can_be_read_as_int8()  const override { return stype() == SType::INT8; }
+    bool can_be_read_as_int16() const override { return stype() == SType::INT16; }
+    bool can_be_read_as_int32() const override { return stype() == SType::INT32; }
+    bool can_be_read_as_int64() const override { return stype() == SType::INT64; }
 };
 
 

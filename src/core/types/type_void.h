@@ -34,6 +34,9 @@ class Type_Void : public TypeImpl {
     bool is_integer() const override { return true; }
     bool is_float()   const override { return true; }
     bool is_numeric() const override { return true; }
+
+    // [FIXME]
+    bool can_be_read_as_int8() const override { return true; }
 };
 
 

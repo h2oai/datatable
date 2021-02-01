@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "python/obj.h"
 #include "stype.h"
 #include "types/type.h"
 #include "types/type_bool.h"
@@ -74,8 +75,8 @@ Type Type::int8()    { return Type(new Type_Int(SType::INT8)); }
 Type Type::int16()   { return Type(new Type_Int(SType::INT16)); }
 Type Type::int32()   { return Type(new Type_Int(SType::INT32)); }
 Type Type::int64()   { return Type(new Type_Int(SType::INT64)); }
-Type Type::float32() { return Type(new Type_Float(SType::FLOAT32)); }
-Type Type::float64() { return Type(new Type_Float(SType::FLOAT64)); }
+Type Type::float32() { return Type(new Type_Float32()); }
+Type Type::float64() { return Type(new Type_Float64()); }
 Type Type::str32()   { return Type(new Type_String(SType::STR32)); }
 Type Type::str64()   { return Type(new Type_String(SType::STR64)); }
 Type Type::obj64()   { return Type(new Type_Object()); }
@@ -108,6 +109,16 @@ bool Type::is_numeric() const { return impl_->is_numeric(); }
 bool Type::is_string()  const { return impl_->is_string(); }
 bool Type::is_object()  const { return impl_->is_object(); }
 
+
+template<typename T> bool Type::can_be_read_as() const { return false; }
+template<> bool Type::can_be_read_as<int8_t>()   const { return impl_->can_be_read_as_int8(); }
+template<> bool Type::can_be_read_as<int16_t>()  const { return impl_->can_be_read_as_int16(); }
+template<> bool Type::can_be_read_as<int32_t>()  const { return impl_->can_be_read_as_int32(); }
+template<> bool Type::can_be_read_as<int64_t>()  const { return impl_->can_be_read_as_int64(); }
+template<> bool Type::can_be_read_as<float>()    const { return impl_->can_be_read_as_float32(); }
+template<> bool Type::can_be_read_as<double>()   const { return impl_->can_be_read_as_float64(); }
+template<> bool Type::can_be_read_as<CString>()  const { return impl_->can_be_read_as_cstring(); }
+template<> bool Type::can_be_read_as<py::oobj>() const { return impl_->can_be_read_as_pyobject(); }
 
 
 

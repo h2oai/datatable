@@ -50,6 +50,15 @@ bool TypeImpl::is_time()    const { return false; }
 bool TypeImpl::is_object()  const { return false; }
 
 
+bool TypeImpl::can_be_read_as_int8()     const { return false; }
+bool TypeImpl::can_be_read_as_int16()    const { return false; }
+bool TypeImpl::can_be_read_as_int32()    const { return false; }
+bool TypeImpl::can_be_read_as_int64()    const { return false; }
+bool TypeImpl::can_be_read_as_float32()  const { return false; }
+bool TypeImpl::can_be_read_as_float64()  const { return false; }
+bool TypeImpl::can_be_read_as_cstring()  const { return false; }
+bool TypeImpl::can_be_read_as_pyobject() const { return false; }
+
 
 
 }  // namespace dt

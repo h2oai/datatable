@@ -28,14 +28,29 @@ namespace dt {
 
 
 class Type_Float : public TypeImpl {
-  public:
-    Type_Float(SType stype) : TypeImpl(stype) {
-      xassert(stype == SType::FLOAT32 || stype == SType::FLOAT64);
-    }
+  protected:
+    using TypeImpl::TypeImpl;
 
+  public:
     bool is_float()   const override { return true; }
     bool is_numeric() const override { return true; }
 };
+
+
+
+class Type_Float32 : public Type_Float {
+  public:
+    Type_Float32() : Type_Float(SType::FLOAT32) {}
+    bool can_be_read_as_float32() const override { return true; }
+};
+
+
+class Type_Float64 : public Type_Float {
+  public:
+    Type_Float64() : Type_Float(SType::FLOAT64) {}
+    bool can_be_read_as_float64() const override { return true; }
+};
+
 
 
 

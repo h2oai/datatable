@@ -39,6 +39,8 @@ class TypeImpl {
     TypeImpl();
     virtual ~TypeImpl();
 
+    SType stype() const { return stype_; }
+
     virtual bool is_boolean() const;
     virtual bool is_integer() const;
     virtual bool is_float() const;
@@ -46,6 +48,16 @@ class TypeImpl {
     virtual bool is_string() const;
     virtual bool is_time() const;
     virtual bool is_object() const;
+
+    virtual bool can_be_read_as_int8() const;
+    virtual bool can_be_read_as_int16() const;
+    virtual bool can_be_read_as_int32() const;
+    virtual bool can_be_read_as_int64() const;
+    virtual bool can_be_read_as_float32() const;
+    virtual bool can_be_read_as_float64() const;
+    virtual bool can_be_read_as_cstring() const;
+    virtual bool can_be_read_as_pyobject() const;
+
 
   protected:
     TypeImpl(SType stype);
