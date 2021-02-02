@@ -197,9 +197,9 @@ template <typename T1, typename T2, typename TO>
 void FuncBinary2_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   arg1_.verify_integrity();
   arg2_.verify_integrity();
-  xassert(compatible_type<TO>(stype()));
-  xassert(compatible_type<T1>(arg1_.stype()));
-  xassert(compatible_type<T2>(arg2_.stype()));
+  xassert(type_.can_be_read_as<TO>());
+  xassert(arg1_.type().can_be_read_as<T1>());
+  xassert(arg2_.type().can_be_read_as<T2>());
   XAssert(nrows_ <= arg2_.nrows());
   XAssert(nrows_ <= arg1_.nrows());
   XAssert(func_ != nullptr);

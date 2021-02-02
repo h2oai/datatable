@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,6 +27,7 @@
 #include "cstring.h"
 #include "python/obj.h"
 #include "python/python.h"
+#include "types/type.h"
 namespace dt {
 
 
@@ -292,15 +293,9 @@ using ref_t = typename _ref<T>::t;
   * reading values from a column of the given stype.
   */
 template<typename T>
-inline bool compatible_type(SType) { return false; }
-template<> inline bool compatible_type<int8_t>(SType s)   { return (s == SType::VOID || s == SType::INT8 || s == SType::BOOL); }
-template<> inline bool compatible_type<int16_t>(SType s)  { return (s == SType::INT16); }
-template<> inline bool compatible_type<int32_t>(SType s)  { return (s == SType::INT32); }
-template<> inline bool compatible_type<int64_t>(SType s)  { return (s == SType::INT64); }
-template<> inline bool compatible_type<float>(SType s)    { return (s == SType::FLOAT32); }
-template<> inline bool compatible_type<double>(SType s)   { return (s == SType::FLOAT64); }
-template<> inline bool compatible_type<CString>(SType s)  { return (s == SType::STR32 || s == SType::STR64); }
-template<> inline bool compatible_type<py::oobj>(SType s) { return (s == SType::OBJ); }
+inline bool compatible_type(SType stype) {
+  return Type::from_stype(stype).can_be_read_as<T>();
+}
 
 
 

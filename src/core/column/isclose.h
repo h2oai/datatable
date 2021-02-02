@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -48,8 +48,8 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
         rtol_(rtol),
         atol_(atol)
     {
-      xassert(compatible_type<T>(argx_.stype()));
-      xassert(compatible_type<T>(argy_.stype()));
+      xassert(argx_.type().can_be_read_as<T>());
+      xassert(argy_.type().can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {

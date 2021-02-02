@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -471,7 +471,7 @@ static const char* format_from_stype(dt::SType stype)
 
 template <typename T>
 static void _copy_column_fw(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<T>(col.stype()));
+  xassert(col.type().can_be_read_as<T>());
   xassert(buf.size() == col.nrows() * sizeof(T));
   auto nthreads = dt::NThreads(col.allow_parallel_access());
   auto out_data = static_cast<T*>(buf.wptr());
@@ -485,7 +485,7 @@ static void _copy_column_fw(const Column& col, Buffer& buf) {
 }
 
 static void _copy_column_obj(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<py::oobj>(col.stype()));
+  xassert(col.type().can_be_read_as<py::oobj>());
   xassert(buf.size() == col.nrows() * sizeof(py::oobj));
   xassert(!buf.is_pyobjects());
   auto out_data = reinterpret_cast<PyObject**>(buf.wptr());

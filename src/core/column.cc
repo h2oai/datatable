@@ -159,6 +159,10 @@ size_t Column::na_count() const {
   return stats()->nacount();
 }
 
+const dt::Type& Column::type() const noexcept {
+  return impl_->type_;
+}
+
 dt::SType Column::stype() const noexcept {
   return impl_->type_.stype();
 }
