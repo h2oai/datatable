@@ -19,51 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "types/type_impl.h"
+#ifndef dt_TYPES_PY_TYPE_h
+#define dt_TYPES_PY_TYPE_h
+#include "types/type.h"
+#include "python/xobject.h"
 namespace dt {
 
 
-TypeImpl::TypeImpl(SType stype)
-  : stype_(stype),
-    refcount_(1) {}
+class PyType : public py::XObject<PyType> {
+  private:
+    Type type_;
 
-TypeImpl::~TypeImpl() {}
+  public:
+    void m__init__(const py::PKArgs&);
+    void m__dealloc__();
+    py::oobj m__repr__() const;
+
+    static py::oobj m__compare__(py::robj, py::robj, int op);
+
+    static void impl_init_type(py::XTypeMaker& xt);
+};
 
 
 
-void TypeImpl::acquire() noexcept {
-  refcount_++;
 }
-
-void TypeImpl::release() noexcept {
-  refcount_--;
-  if (refcount_ == 0) delete this;
-}
-
-
-bool TypeImpl::is_boolean() const { return false; }
-bool TypeImpl::is_integer() const { return false; }
-bool TypeImpl::is_float()   const { return false; }
-bool TypeImpl::is_numeric() const { return false; }
-bool TypeImpl::is_string()  const { return false; }
-bool TypeImpl::is_time()    const { return false; }
-bool TypeImpl::is_object()  const { return false; }
-
-
-bool TypeImpl::can_be_read_as_int8()     const { return false; }
-bool TypeImpl::can_be_read_as_int16()    const { return false; }
-bool TypeImpl::can_be_read_as_int32()    const { return false; }
-bool TypeImpl::can_be_read_as_int64()    const { return false; }
-bool TypeImpl::can_be_read_as_float32()  const { return false; }
-bool TypeImpl::can_be_read_as_float64()  const { return false; }
-bool TypeImpl::can_be_read_as_cstring()  const { return false; }
-bool TypeImpl::can_be_read_as_pyobject() const { return false; }
-
-bool TypeImpl::equals(const TypeImpl* other) const {
-  return stype_ == other->stype_;
-}
-
-
-
-
-}  // namespace dt
+#endif

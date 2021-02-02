@@ -121,5 +121,11 @@ template<> bool Type::can_be_read_as<CString>()  const { return impl_->can_be_re
 template<> bool Type::can_be_read_as<py::oobj>() const { return impl_->can_be_read_as_pyobject(); }
 
 
+bool Type::operator==(const Type& other) const {
+  return (impl_ == other.impl_) || (impl_->equals(other.impl_));
+}
+
+
+
 
 }  // namespace dt

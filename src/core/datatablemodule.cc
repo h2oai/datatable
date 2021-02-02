@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,6 +53,7 @@
 #include "python/xargs.h"
 #include "read/py_read_iterator.h"
 #include "sort.h"
+#include "types/py_type.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
@@ -490,6 +491,7 @@ extern "C" {
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
       dt::expr::PyFExpr::init_type(m);
+      dt::PyType::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);

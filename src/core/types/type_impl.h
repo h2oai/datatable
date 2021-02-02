@@ -58,6 +58,9 @@ class TypeImpl {
     virtual bool can_be_read_as_cstring() const;
     virtual bool can_be_read_as_pyobject() const;
 
+    // Default implementation only checks the equality of stypes.
+    // Override if your TypeImpl contains more information.
+    virtual bool equals(const TypeImpl* other) const;
 
   protected:
     TypeImpl(SType stype);

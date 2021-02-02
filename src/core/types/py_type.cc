@@ -19,51 +19,52 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "types/type_impl.h"
+#include "types/py_type.h"
+#include "python/_all.h"
 namespace dt {
 
 
-TypeImpl::TypeImpl(SType stype)
-  : stype_(stype),
-    refcount_(1) {}
-
-TypeImpl::~TypeImpl() {}
+static py::PKArgs args___init__(0, 0, 0, false, false, {}, "__init__", nullptr);
 
 
+void PyType::m__init__(const py::PKArgs&) {}
 
-void TypeImpl::acquire() noexcept {
-  refcount_++;
-}
 
-void TypeImpl::release() noexcept {
-  refcount_--;
-  if (refcount_ == 0) delete this;
+void PyType::m__dealloc__() {
+  type_ = Type();
 }
 
 
-bool TypeImpl::is_boolean() const { return false; }
-bool TypeImpl::is_integer() const { return false; }
-bool TypeImpl::is_float()   const { return false; }
-bool TypeImpl::is_numeric() const { return false; }
-bool TypeImpl::is_string()  const { return false; }
-bool TypeImpl::is_time()    const { return false; }
-bool TypeImpl::is_object()  const { return false; }
+py::oobj PyType::m__repr__() const {
+  return py::ostring("Type.");
+}
 
 
-bool TypeImpl::can_be_read_as_int8()     const { return false; }
-bool TypeImpl::can_be_read_as_int16()    const { return false; }
-bool TypeImpl::can_be_read_as_int32()    const { return false; }
-bool TypeImpl::can_be_read_as_int64()    const { return false; }
-bool TypeImpl::can_be_read_as_float32()  const { return false; }
-bool TypeImpl::can_be_read_as_float64()  const { return false; }
-bool TypeImpl::can_be_read_as_cstring()  const { return false; }
-bool TypeImpl::can_be_read_as_pyobject() const { return false; }
+py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
 
-bool TypeImpl::equals(const TypeImpl* other) const {
-  return stype_ == other->stype_;
+  if (op == Py_EQ) {
+    return py::obool();
+  }
+  return py::False();
 }
 
 
 
+static const char* doc_Type =
+R"(
+Type of data in a column.
+)";
 
-}  // namespace dt
+void PyType::impl_init_type(py::XTypeMaker& xt) {
+  xt.set_class_name("datatable.Type");
+  xt.set_class_doc(doc_Type);
+  xt.set_subclassable(false);
+  xt.add(CONSTRUCTOR(&PyType::m__init__, args___init__));
+  xt.add(DESTRUCTOR(&PyType::m__dealloc__));
+  xt.add(METHOD__REPR__(&PyType::m__repr__));
+  xt.add(METHOD__CMP__(&PyType::m__compare__));
+}
+
+
+
+}

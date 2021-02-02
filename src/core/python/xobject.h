@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -595,7 +595,7 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 // FIXME: this does not report function's name to the CallLogger
 #define METHOD0(METH, NAME)                                                    \
-    _safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
+    py::_safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
 
 
 #define BUFFERS(GETMETH, DELMETH)                                              \
@@ -605,31 +605,31 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__REPR__(METH)                                                   \
-    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::repr_tag
+    py::_safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::repr_tag
 
 
 #define METHOD__STR__(METH)                                                    \
-    _safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::str_tag
+    py::_safe_repr<CLASS_OF(METH), METH>, py::XTypeMaker::str_tag
 
 
 #define METHOD__LEN__(METH)                                                    \
-    _safe_len<CLASS_OF(METH), METH>, py::XTypeMaker::length_tag
+    py::_safe_len<CLASS_OF(METH), METH>, py::XTypeMaker::length_tag
 
 
 #define METHOD__GETATTR__(METH)                                                \
-    _safe_getattr<CLASS_OF(METH), METH>, py::XTypeMaker::getattr_tag
+    py::_safe_getattr<CLASS_OF(METH), METH>, py::XTypeMaker::getattr_tag
 
 
 #define METHOD__GETITEM__(METH)                                                \
-    _safe_getitem<CLASS_OF(METH), METH>, py::XTypeMaker::getitem_tag
+    py::_safe_getitem<CLASS_OF(METH), METH>, py::XTypeMaker::getitem_tag
 
 
 #define METHOD__SETITEM__(METH)                                                \
-    _safe_setitem<CLASS_OF(METH), METH>, py::XTypeMaker::setitem_tag
+    py::_safe_setitem<CLASS_OF(METH), METH>, py::XTypeMaker::setitem_tag
 
 
 #define METHOD__ITER__(METH)                                                   \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__iter__>,           \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__iter__>,       \
     py::XTypeMaker::iter_tag
 
 
@@ -638,7 +638,7 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__NEXT__(METH)                                                   \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__next__>,           \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__next__>,       \
     py::XTypeMaker::next_tag
 
 
@@ -653,7 +653,7 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__CMP__(METH)                                                    \
-    _safe_cmp<METH>, py::XTypeMaker::rich_compare_tag
+    py::_safe_cmp<METH>, py::XTypeMaker::rich_compare_tag
 
 
 /**
@@ -666,27 +666,27 @@ RESTORE_CLANG_WARNING("-Wunused-template")
   */
 
 #define METHOD__ADD__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__add__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__add__>,                       \
     py::XTypeMaker::nb_add_tag
 
 
 #define METHOD__SUB__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__sub__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__sub__>,                       \
     py::XTypeMaker::nb_subtract_tag
 
 
 #define METHOD__MUL__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__mul__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__mul__>,                       \
     py::XTypeMaker::nb_multiply_tag
 
 
 #define METHOD__MOD__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__mod__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__mod__>,                       \
     py::XTypeMaker::nb_remainder_tag
 
 
 #define METHOD__DIVMOD__(METH)                                                 \
-    _safe_binary<METH, dt::CallLogger::Op::__divmod__>,                        \
+    py::_safe_binary<METH, dt::CallLogger::Op::__divmod__>,                    \
     py::XTypeMaker::nb_divmod_tag
 
 
@@ -696,37 +696,37 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define METHOD__LSHIFT__(METH)                                                 \
-    _safe_binary<METH, dt::CallLogger::Op::__lshift__>,                        \
+    py::_safe_binary<METH, dt::CallLogger::Op::__lshift__>,                    \
     py::XTypeMaker::nb_lshift_tag
 
 
 #define METHOD__RSHIFT__(METH)                                                 \
-    _safe_binary<METH, dt::CallLogger::Op::__rshift__>,                        \
+    py::_safe_binary<METH, dt::CallLogger::Op::__rshift__>,                    \
     py::XTypeMaker::nb_rshift_tag
 
 
 #define METHOD__AND__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__and__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__and__>,                       \
     py::XTypeMaker::nb_and_tag
 
 
 #define METHOD__XOR__(METH)                                                    \
-    _safe_binary<METH, dt::CallLogger::Op::__xor__>,                           \
+    py::_safe_binary<METH, dt::CallLogger::Op::__xor__>,                       \
     py::XTypeMaker::nb_xor_tag
 
 
 #define METHOD__OR__(METH)                                                     \
-    _safe_binary<METH, dt::CallLogger::Op::__or__>,                            \
+    py::_safe_binary<METH, dt::CallLogger::Op::__or__>,                        \
     py::XTypeMaker::nb_or_tag
 
 
 #define METHOD__FLOORDIV__(METH)                                               \
-    _safe_binary<METH, dt::CallLogger::Op::__floordiv__>,                      \
+    py::_safe_binary<METH, dt::CallLogger::Op::__floordiv__>,                  \
     py::XTypeMaker::nb_floordivide_tag
 
 
 #define METHOD__TRUEDIV__(METH)                                                \
-    _safe_binary<METH, dt::CallLogger::Op::__truediv__>,                       \
+    py::_safe_binary<METH, dt::CallLogger::Op::__truediv__>,                   \
     py::XTypeMaker::nb_truedivide_tag
 
 
@@ -735,36 +735,36 @@ RESTORE_CLANG_WARNING("-Wunused-template")
   */
 
 #define METHOD__NEG__(METH)                                                    \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__neg__>,            \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__neg__>,        \
     py::XTypeMaker::nb_negative_tag
 
 
 #define METHOD__POS__(METH)                                                    \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__pos__>,            \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__pos__>,        \
     py::XTypeMaker::nb_positive_tag
 
 
 #define METHOD__ABS__(METH)                                                    \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__abs__>,            \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__abs__>,        \
     py::XTypeMaker::nb_absolute_tag
 
 
 #define METHOD__INVERT__(METH)                                                 \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__invert__>,         \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__invert__>,     \
     py::XTypeMaker::nb_invert_tag
 
 
 #define METHOD__BOOL__(METH)                                                   \
-    _safe_bool<CLASS_OF(METH), METH>, py::XTypeMaker::nb_bool_tag
+    py::_safe_bool<CLASS_OF(METH), METH>, py::XTypeMaker::nb_bool_tag
 
 
 #define METHOD__INT__(METH)                                                    \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__int__>,            \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__int__>,        \
     py::XTypeMaker::nb_int_tag
 
 
 #define METHOD__FLOAT__(METH)                                                  \
-    _safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__float__>,          \
+    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__float__>,      \
     py::XTypeMaker::nb_float_tag
 
 

@@ -83,6 +83,7 @@ class Type {
     template<typename T>
     bool can_be_read_as() const;
 
+    bool operator==(const Type& other) const;
 
   private:
     Type(TypeImpl*&&) noexcept;
