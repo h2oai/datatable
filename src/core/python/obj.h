@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -193,7 +193,7 @@ class _obj {
     bool is_stype()         const noexcept;
     bool is_true()          const noexcept;
     bool is_tuple()         const noexcept;
-    bool is_type()          const noexcept;
+    bool is_pytype()        const noexcept;
     bool is_undefined()     const noexcept;
     bool is_update_node()   const noexcept;
 

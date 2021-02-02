@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -96,7 +96,7 @@ oobj Namespace::m__getattr__(robj attr) {
 
 oobj Namespace::m__getitem__(robj item) {
   if (!(item.is_int() || item.is_string() || item.is_slice() ||
-        item.is_none() || item.is_type() || item.is_stype() || item.is_ltype()))
+        item.is_none() || item.is_pytype() || item.is_stype() || item.is_ltype()))
   {
     throw TypeError() << "Column selector should be an integer, string, "
                          "or slice, not " << item.typeobj();
