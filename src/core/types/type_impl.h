@@ -62,6 +62,9 @@ class TypeImpl {
     // Override if your TypeImpl contains more information.
     virtual bool equals(const TypeImpl* other) const;
 
+    // This method must be implemented by each subclass
+    virtual std::string to_string() const = 0;
+
   protected:
     TypeImpl(SType stype);
 };

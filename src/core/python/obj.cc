@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,7 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "stype.h"
+#include "types/py_type.h"
 #include "utils/macros.h"
 
 namespace py {
@@ -215,6 +216,7 @@ bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
 bool _obj::is_pytype()        const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && dt::is_ltype_object(v); }
 bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
+bool _obj::is_type()          const noexcept { return dt::PyType::check(v); }
 bool _obj::is_anytype()       const noexcept { return is_pytype() || is_stype() || is_ltype(); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
@@ -848,6 +850,15 @@ dt::SType _obj::to_stype(const error_manager& em) const {
 }
 
 
+dt::Type _obj::to_type(const error_manager& em) const {
+  dt::PyType* typePtr = dt::PyType::cast_from(robj(v));
+  if (typePtr == nullptr) {
+    throw em.error_not_type(v);
+  }
+  return typePtr->get_type();
+}
+
+
 py::ojoin _obj::to_ojoin_lax() const {
   if (is_join_node()) {
     return ojoin(robj(v));
@@ -1258,6 +1269,10 @@ Error _obj::error_manager::error_not_slice(PyObject* o) const {
 
 Error _obj::error_manager::error_not_stype(PyObject* o) const {
   return TypeError() << "Expected an stype, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_type(PyObject* o) const {
+  return TypeError() << "Expected a Type, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

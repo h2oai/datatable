@@ -186,6 +186,7 @@ class _obj {
     bool is_pandas_categorical() const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
+    bool is_pytype()        const noexcept;
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
     bool is_sort_node()     const noexcept;
@@ -193,7 +194,7 @@ class _obj {
     bool is_stype()         const noexcept;
     bool is_true()          const noexcept;
     bool is_tuple()         const noexcept;
-    bool is_pytype()        const noexcept;
+    bool is_type()          const noexcept;
     bool is_undefined()     const noexcept;
     bool is_update_node()   const noexcept;
 
@@ -259,6 +260,7 @@ class _obj {
     DataTable*  to_datatable      (const error_manager& = _em0) const;
     py::Frame*  to_pyframe        (const error_manager& = _em0) const;
     dt::SType   to_stype          (const error_manager& = _em0) const;
+    dt::Type    to_type           (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
@@ -290,6 +292,7 @@ class _obj {
       virtual Error error_not_range          (PyObject*) const;
       virtual Error error_not_slice          (PyObject*) const;
       virtual Error error_not_stype          (PyObject*) const;
+      virtual Error error_not_type           (PyObject*) const;
       virtual Error error_not_iterable       (PyObject*) const;
       virtual Error error_int32_overflow     (PyObject*) const;
       virtual Error error_int64_overflow     (PyObject*) const;

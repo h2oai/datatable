@@ -24,6 +24,14 @@
 namespace dt {
 
 
+py::oobj PyType::make(Type type) {
+  py::oobj res = py::robj(reinterpret_cast<PyObject*>(&PyType::type)).call();
+  PyType* typed = reinterpret_cast<PyType*>(res.to_borrowed_ref());
+  typed->type_ = std::move(type);
+  return res;
+}
+
+
 static py::PKArgs args___init__(0, 0, 0, false, false, {}, "__init__", nullptr);
 
 
@@ -36,14 +44,16 @@ void PyType::m__dealloc__() {
 
 
 py::oobj PyType::m__repr__() const {
-  return py::ostring("Type.");
+  return py::ostring("Type." + type_.to_string());
 }
 
 
 py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
-
-  if (op == Py_EQ) {
-    return py::obool();
+  if (x.is_type() && y.is_type()) {
+    dt::Type xtype = x.to_type();
+    dt::Type ytype = y.to_type();
+    if (op == Py_EQ) return py::obool(xtype == ytype);
+    if (op == Py_NE) return py::obool(!(xtype == ytype));
   }
   return py::False();
 }

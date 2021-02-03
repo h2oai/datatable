@@ -32,6 +32,7 @@ class Type_Object : public TypeImpl {
 
     bool is_object() const override { return true; }
     bool can_be_read_as_pyobject() const override { return true; }
+    std::string to_string() const override { return "obj64"; }
 };
 
 

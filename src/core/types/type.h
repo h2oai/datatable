@@ -84,6 +84,7 @@ class Type {
     bool can_be_read_as() const;
 
     bool operator==(const Type& other) const;
+    std::string to_string() const;
 
   private:
     Type(TypeImpl*&&) noexcept;

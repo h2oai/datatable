@@ -31,9 +31,12 @@ class PyType : public py::XObject<PyType> {
     Type type_;
 
   public:
+    static py::oobj make(Type);
+
     void m__init__(const py::PKArgs&);
     void m__dealloc__();
     py::oobj m__repr__() const;
+    Type get_type() const { return type_; }
 
     static py::oobj m__compare__(py::robj, py::robj, int op);
 

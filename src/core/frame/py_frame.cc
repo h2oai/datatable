@@ -26,6 +26,7 @@
 #include "python/_all.h"
 #include "python/string.h"
 #include "stype.h"
+#include "types/py_type.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -674,6 +675,37 @@ void Frame::set_source(const std::string& src) {
 
 
 //------------------------------------------------------------------------------
+// .types
+//------------------------------------------------------------------------------
+
+static const char* doc_types =
+R"(
+The list of `Type`s for each column of the frame.
+
+Parameters
+----------
+return: List[Type]
+    The length of the list is the same as the number of columns in the frame.
+
+
+See also
+--------
+- :attr:`.stypes` -- old interface for column types
+)";
+
+static GSArgs args_types("types", doc_types);
+
+oobj Frame::get_types() const {
+  py::olist result(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); i++) {
+    result.set(i, dt::PyType::make(dt->get_column(i).type()));
+  }
+  return std::move(result);
+}
+
+
+
+//------------------------------------------------------------------------------
 // .stypes
 //------------------------------------------------------------------------------
 
@@ -1163,6 +1195,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_source, args_source));
   xt.add(GETTER(&Frame::get_stype,  args_stype));
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_types, args_types));
 
   xt.add(METHOD(&Frame::head, args_head));
   xt.add(METHOD(&Frame::tail, args_tail));

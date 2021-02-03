@@ -40,12 +40,14 @@ class Type_String : public TypeImpl {
 class Type_String32 : public Type_String {
   public:
     Type_String32() : Type_String(SType::STR32) {}
+    std::string to_string() const override { return "str32"; }
 };
 
 
 class Type_String64 : public Type_String {
   public:
     Type_String64() : Type_String(SType::STR64) {}
+    std::string to_string() const override { return "str64"; }
 };
 
 

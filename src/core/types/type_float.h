@@ -42,6 +42,7 @@ class Type_Float32 : public Type_Float {
   public:
     Type_Float32() : Type_Float(SType::FLOAT32) {}
     bool can_be_read_as_float32() const override { return true; }
+    std::string to_string() const override { return "float32"; }
 };
 
 
@@ -49,6 +50,7 @@ class Type_Float64 : public Type_Float {
   public:
     Type_Float64() : Type_Float(SType::FLOAT64) {}
     bool can_be_read_as_float64() const override { return true; }
+    std::string to_string() const override { return "float64"; }
 };
 
 

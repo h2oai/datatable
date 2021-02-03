@@ -125,6 +125,9 @@ bool Type::operator==(const Type& other) const {
   return (impl_ == other.impl_) || (impl_->equals(other.impl_));
 }
 
+std::string Type::to_string() const {
+  return impl_->to_string();
+}
 
 
 

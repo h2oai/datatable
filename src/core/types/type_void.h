@@ -37,6 +37,8 @@ class Type_Void : public TypeImpl {
 
     // [FIXME]
     bool can_be_read_as_int8() const override { return true; }
+
+    std::string to_string() const override { return "void"; }
 };
 
 

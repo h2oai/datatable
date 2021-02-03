@@ -33,6 +33,8 @@ class Type_Bool8 : public TypeImpl {
     bool is_boolean() const override { return true; }
     bool is_numeric() const override { return true; }
     bool can_be_read_as_int8() const override { return true; }
+
+    std::string to_string() const override { return "bool8"; }
 };
 
 
