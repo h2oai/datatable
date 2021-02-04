@@ -113,6 +113,12 @@ void XTypeMaker::set_base_class(PyTypeObject* base_type) {
 }
 
 
+void XTypeMaker::set_meta_class(PyTypeObject* meta_type) {
+  xassert(meta_type->tp_base == &PyType_Type);
+  type->ob_base.ob_base.ob_type = meta_type;
+}
+
+
 void XTypeMaker::set_subclassable(bool flag /* = true */) {
   if (flag) {
     type->tp_flags |= Py_TPFLAGS_BASETYPE;

@@ -91,6 +91,7 @@ class XTypeMaker {
     void set_class_name(const char* name);
     void set_class_doc(const char* doc);
     void set_base_class(PyTypeObject* base_type);
+    void set_meta_class(PyTypeObject* meta_type);
     void set_subclassable(bool flag = true);
 
     // initproc = int(*)(PyObject*, PyObject*, PyObject*)

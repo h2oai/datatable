@@ -1088,6 +1088,17 @@ PyObject* oobj::release() && {
 }
 
 
+bool is_python_system_attr(py::robj attr) {
+  return is_python_system_attr(attr.to_cstring());
+}
+bool is_python_system_attr(const dt::CString& attr) {
+  auto a = attr.data();
+  auto n = attr.size();
+  return (n > 4 && a[0] == '_' && a[1] == '_' &&
+                   a[n-1] == '_' && a[n-2] == '_');
+}
+
+
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
   #if PY_VERSION_HEX >= 0x03070000

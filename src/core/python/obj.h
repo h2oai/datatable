@@ -386,6 +386,9 @@ robj rnone();
 void write_to_stdout(const std::string& str);
 
 
+bool is_python_system_attr(py::robj attr);
+bool is_python_system_attr(const dt::CString& attr);
+
 oobj get_module(const char* name);
 
 

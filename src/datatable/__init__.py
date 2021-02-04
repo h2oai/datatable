@@ -53,6 +53,7 @@ from .lib._datatable import (
     shift,
     sort,
     symdiff,
+    Type,
     union,
     unique,
     update,
@@ -129,6 +130,7 @@ __all__ = (
     "str64",
     "stype",
     "symdiff",
+    "Type",
     "union",
     "unique",
 )

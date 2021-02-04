@@ -66,18 +66,11 @@ oobj Namespace::m__repr__() const {
 // __getattr__()
 //------------------------------------------------------------------------------
 
-static bool is_system_attr(robj attr) {
-  auto a = attr.to_cstring();
-  auto n = a.size();
-  return (n > 4 && a[0] == '_' && a[1] == '_' &&
-                   a[n-1] == '_' && a[n-2] == '_');
-}
-
 oobj Namespace::m__getattr__(robj attr) {
   // For system attributes such as `__module__`, `__class__`,
   // `__doc__`, etc, use the standard object.__getattribute__()
   // method.
-  if (is_system_attr(attr)) {
+  if (is_python_system_attr(attr)) {
     return oobj::from_new_reference(
         PyObject_GenericGetAttr(
           reinterpret_cast<PyObject*>(this),

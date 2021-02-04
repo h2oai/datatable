@@ -44,6 +44,17 @@ class PyType : public py::XObject<PyType> {
 };
 
 
+class PyTypeMeta : public py::XObject<PyTypeMeta> {
+  public:
+    void m__init__(const py::PKArgs&);
+    void m__dealloc__();
+    py::oobj m__repr__() const;
+    py::oobj m__getattr__(py::robj attr);
+    static void impl_init_type(py::XTypeMaker& xt);
+};
+
+
+
 
 }
 #endif
