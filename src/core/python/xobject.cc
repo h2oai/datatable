@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -62,6 +62,7 @@ XTypeMaker::NbTrueDivideTag  XTypeMaker::nb_truedivide_tag;
 
 
 XTypeMaker::XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
+  if (objsize == 0) return;
   std::memset(type, 0, sizeof(PyTypeObject));
   Py_INCREF(type);
   type->tp_basicsize = static_cast<Py_ssize_t>(objsize);
@@ -113,6 +114,7 @@ void XTypeMaker::set_base_class(PyTypeObject* base_type) {
 }
 
 
+// It's unclear whether this could actually work
 void XTypeMaker::set_meta_class(PyTypeObject* meta_type) {
   xassert(meta_type->tp_base == &PyType_Type);
   type->ob_base.ob_base.ob_type = meta_type;
