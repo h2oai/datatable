@@ -334,7 +334,9 @@ class robj : public _obj {
 class oobj : public _obj {
   public:
     oobj();
+    oobj(std::nullptr_t);
     oobj(PyObject* p);
+    oobj(PyTypeObject* p);
     oobj(const oobj&);
     oobj(const robj&);
     oobj(oobj&&);

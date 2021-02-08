@@ -114,9 +114,18 @@ oobj::oobj() {
   v = nullptr;
 }
 
+oobj::oobj(std::nullptr_t) {
+  v = nullptr;
+}
+
 oobj::oobj(PyObject* p) {
   v = p;
-  if (p) Py_INCREF(p);
+  Py_XINCREF(v);
+}
+
+oobj::oobj(PyTypeObject* p) {
+  v = reinterpret_cast<PyObject*>(p);
+  Py_XINCREF(v);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
