@@ -216,7 +216,18 @@ py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
 
 static const char* doc_Type =
 R"(
-Type of data in a column.
+.. x-version-added:: 1.0.0
+
+Type of data stored in a single column of a Frame.
+
+The type describes both the logical meaning of the data (i.e. an integer,
+a floating point number, a string, etc.), as well as storage requirement
+of that data (the number of bits per element). Some types may carry
+additional properties, such as a timezone  or precision.
+
+.. note::
+
+    This property replaces previous :class:`dt.stype` and :class:`dt.ltype`.
 )";
 
 // This can only be called after python datatable module has been initialized
