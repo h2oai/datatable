@@ -24,6 +24,7 @@
 #include "python/_all.h"
 namespace dt {
 
+// Pointer to the `class Type` that was created from python.
 static PyTypeObject* pythonType = nullptr;
 
 py::oobj PyType::make(Type type) {
@@ -104,7 +105,7 @@ static bool stypes_imported = false;
 static void init_src_store_from_stypes() {
   if (stypes_imported) return;
   stypes_imported = true;
-  auto stype = oobj::import("datatable", "stype");
+  auto stype = py::oobj::import("datatable", "stype");
 
   src_store->set(stype.get_attr("void"), PyType::make(Type::void0()));
   src_store->set(stype.get_attr("bool8"), PyType::make(Type::bool8()));
