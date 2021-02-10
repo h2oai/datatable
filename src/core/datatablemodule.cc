@@ -415,7 +415,6 @@ static void initialize_options(const py::PKArgs& args) {
 
 static py::oobj initialize_final(const py::XArgs&) {
   init_exceptions();
-  dt::PyType::init();
   return py::None();
 }
 DECLARE_PYFN(&initialize_final)
@@ -494,6 +493,7 @@ extern "C" {
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
       dt::expr::PyFExpr::init_type(m);
+      dt::PyType::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);

@@ -43,27 +43,23 @@ namespace dt {
   * This is why methods `init()`, `check()` and `cast_from()` has to
   * be redefined.
   */
-class PyType : public py::XObject<PyType> {
+class PyType : public py::XObject<PyType, true> {
   private:
-    size_t : 64;  // __dict__
-    size_t : 64;  // __weakref__
     Type type_;
 
   public:
     static py::oobj make(Type);
+    static py::oobj m__compare__(py::robj, py::robj, int op);
 
     void m__init__(const py::PKArgs&);
     void m__dealloc__();
     py::oobj m__repr__() const;
+
+    py::oobj get_name() const;
+
     Type get_type() const { return type_; }
 
-    static py::oobj m__compare__(py::robj, py::robj, int op);
-
-    // Redefine these methods from py::XObject, because this type
-    // does not undergo "normal" initialization process.
-    static void init();
-    static bool check(PyObject*);
-    static PyType* cast_from(py::robj obj);
+    static void impl_init_type(py::XTypeMaker& xt);
 };
 
 

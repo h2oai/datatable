@@ -369,6 +369,7 @@ bool Frame::internal_construction = false;
 
 
 oobj Frame::oframe(DataTable* dt) {
+  xassert(Frame_Type);
   Frame::internal_construction = true;
   PyObject* res = PyObject_CallObject(Frame_Type, nullptr);
   Frame::internal_construction = false;
@@ -1166,7 +1167,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
-  Frame_Type = reinterpret_cast<PyObject*>(&Frame::type);
+  Frame_Type = xt.get_type_object();
 
   _init_cbind(xt);
   _init_key(xt);

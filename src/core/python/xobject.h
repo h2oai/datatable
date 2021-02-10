@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #ifndef dt_PYTHON_XOBJECT_h
 #define dt_PYTHON_XOBJECT_h
 #include <cstring>    // std::memcpy, std::memset, std::strrchr
@@ -45,6 +46,10 @@ namespace py {
 class XTypeMaker {
   private:
     PyTypeObject* type;
+    size_t object_size;
+    const char* class_name_;
+    bool dynamic_type_;
+    size_t : 56;
     std::vector<PyGetSetDef> get_defs;
     std::vector<PyMethodDef> meth_defs;
 
@@ -86,13 +91,15 @@ class XTypeMaker {
     static struct NbFloorDivideTag {} nb_floordivide_tag;
     static struct NbTrueDivideTag {}  nb_truedivide_tag;
 
-    XTypeMaker(PyTypeObject* t, size_t objsize);
+    XTypeMaker(size_t objsize, bool dynamic);
+    void initialize_type();
     void attach_to_module(PyObject* module);
     void set_class_name(const char* name);
     void set_class_doc(const char* doc);
     void set_base_class(PyTypeObject* base_type);
-    void set_meta_class(PyTypeObject* meta_type);
     void set_subclassable(bool flag = true);
+
+    void add_attr(const char* name, py::oobj value);
 
     // initproc = int(*)(PyObject*, PyObject*, PyObject*)
     void add(initproc _init, PKArgs& args, ConstructorTag);
@@ -172,9 +179,13 @@ class XTypeMaker {
     // inquiry = int(*)(void*)
     void add(inquiry meth, NbBoolTag);
 
+    void finalize();
+    void finalize_getsets();
+    void finalize_methods();
+
+    PyObject* get_type_object() const;
+
   private:
-    PyGetSetDef* finalize_getsets();
-    PyMethodDef* finalize_methods();
     void init_tp_as_mapping();
     PyNumberMethods* tp_as_number();
 };
@@ -221,23 +232,27 @@ class XTypeMaker {
  * shown in the example above are required, all other are optional.
  *
  */
-template <typename Derived>
+template <typename Derived, bool DYNAMIC = false>
 struct XObject : public PyObject {
-  static PyTypeObject type;
+  static PyObject* typePtr;
+  size_t : 64 * DYNAMIC;  // __dict__
+  size_t : 64 * DYNAMIC;  // __weakref__
 
   static void init_type(PyObject* module = nullptr) {
-    static bool initalized = false;
-    if (initalized) return;
-    XTypeMaker xt(&type, sizeof(Derived));
-    Derived::impl_init_type(xt);
-    xt.attach_to_module(module);
-    initalized = true;
+    static bool initialized = false;
+    if (!initialized) {
+      XTypeMaker xt(sizeof(Derived), DYNAMIC);
+      Derived::impl_init_type(xt);
+      xt.finalize();
+      xt.attach_to_module(module);
+      typePtr = xt.get_type_object();
+      initialized = true;
+    }
   }
 
   static bool check(PyObject* v) {
     if (!v) return false;
-    auto typeptr = reinterpret_cast<PyObject*>(&type);
-    int ret = PyObject_IsInstance(v, typeptr);
+    int ret = PyObject_IsInstance(v, typePtr);
     if (ret == -1) PyErr_Clear();
     return (ret == 1);
   }
@@ -251,14 +266,13 @@ struct XObject : public PyObject {
 
   template <typename... Args>
   static oobj make(Args... args) {
-    robj rtype(reinterpret_cast<PyObject*>(&type));
-    return rtype.call({args...});
+    return robj(typePtr).call({args...});
   }
 };
 
 
-template <typename D>
-PyTypeObject XObject<D>::type;
+template <typename Derived, bool DYNAMIC>
+PyObject* XObject<Derived, DYNAMIC>::typePtr;
 
 
 
@@ -576,12 +590,12 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 
 #define GETTER(GETFN, ARGS)                                                    \
-    _safe_getter<CLASS_OF(GETFN), GETFN>, nullptr,                             \
+    py::_safe_getter<CLASS_OF(GETFN), GETFN>, nullptr,                         \
     ARGS, py::XTypeMaker::getset_tag
 
 
 #define GETSET(GETFN, SETFN, ARGS)                                             \
-    _safe_getter<CLASS_OF(GETFN), GETFN>,                                      \
+    py::_safe_getter<CLASS_OF(GETFN), GETFN>,                                  \
     [](PyObject* self, PyObject* value, void* closure) noexcept -> int {       \
       return _call_setter(SETFN, ARGS._arg, self, value, closure);             \
     },                                                                         \

@@ -429,7 +429,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 {
   PyObject* obj = args[0].to_borrowed_ref();
   if (obj) {
-    auto frame_type = reinterpret_cast<PyObject*>(&py::Frame::type);
+    auto frame_type = py::Frame::typePtr;
     int ret = PyObject_IsSubclass(obj, frame_type);
     if (ret == -1) throw PyError();
     if (ret == 0) {
@@ -437,7 +437,8 @@ static void _install_buffer_hooks(const py::PKArgs& args)
           "applied to subclasses of core.Frame";
     }
     auto type = reinterpret_cast<PyTypeObject*>(obj);
-    type->tp_as_buffer = py::Frame::type.tp_as_buffer;
+    type->tp_as_buffer =
+        reinterpret_cast<PyTypeObject*>(frame_type)->tp_as_buffer;
   }
 }
 

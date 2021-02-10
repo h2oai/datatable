@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -170,8 +170,8 @@ osort::osort(const robj& src) : oobj(src) {}
 osort::osort(const oobj& src) : oobj(src) {}
 
 osort::osort(const otuple& cols) {
-  PyObject* cls = reinterpret_cast<PyObject*>(&osort::osort_pyobject::type);
-  v = PyObject_CallObject(cls, cols.to_borrowed_ref());
+  v = PyObject_CallObject(osort::osort_pyobject::typePtr,
+                          cols.to_borrowed_ref());
   if (!v) throw PyError();
 }
 

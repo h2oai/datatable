@@ -25,29 +25,21 @@
 namespace dt {
 
 // Pointer to the `class Type` that was created from python.
-static PyTypeObject* pythonType = nullptr;
+static PyObject* pythonType = nullptr;
 
 py::oobj PyType::make(Type type) {
   xassert(pythonType);
-  py::oobj res = py::robj(reinterpret_cast<PyObject*>(pythonType)).call();
+  py::oobj res = py::robj(pythonType).call();
   PyType* typed = reinterpret_cast<PyType*>(res.to_borrowed_ref());
   typed->type_ = std::move(type);
   return res;
 }
 
-bool PyType::check(PyObject* v) {
-  if (!v) return false;
-  auto typeptr = reinterpret_cast<PyObject*>(pythonType);
-  int ret = PyObject_IsInstance(v, typeptr);
-  if (ret == -1) PyErr_Clear();
-  return (ret == 1);
-}
 
-PyType* PyType::cast_from(py::robj obj) {
-  PyObject* v = obj.to_borrowed_ref();
-  return PyType::check(v)? reinterpret_cast<PyType*>(v) : nullptr;
-}
 
+//------------------------------------------------------------------------------
+// Initialization
+//------------------------------------------------------------------------------
 
 static py::odict* src_store = nullptr;
 static void init_src_store_basic() {
@@ -199,6 +191,11 @@ void PyType::m__dealloc__() {
 }
 
 
+
+//------------------------------------------------------------------------------
+// Basic properties
+//------------------------------------------------------------------------------
+
 py::oobj PyType::m__repr__() const {
   return py::ostring("Type." + type_.to_string());
 }
@@ -214,6 +211,19 @@ py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
   return py::False();
 }
 
+
+static py::GSArgs args_get_name("name", "The name of the type");
+
+py::oobj PyType::get_name() const {
+  return py::ostring(type_.to_string());
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Class declaration
+//------------------------------------------------------------------------------
 
 static const char* doc_Type =
 R"(
@@ -231,33 +241,27 @@ additional properties, such as a timezone  or precision.
     This property replaces previous :class:`dt.stype` and :class:`dt.ltype`.
 )";
 
-// This can only be called after python datatable module has been initialized
-void PyType::init() {
-  py::oobj pydtType = py::oobj::import("datatable", "Type");
-  pythonType = reinterpret_cast<PyTypeObject*>(pydtType.to_borrowed_ref());
-  xassert(pythonType->tp_basicsize == sizeof(PyType) - sizeof(dt::Type));
-  pythonType->tp_basicsize = sizeof(PyType);
-
-  py::XTypeMaker xt(pythonType, 0);
+void PyType::impl_init_type(py::XTypeMaker& xt) {
+  xt.set_class_name("datatable.Type");
+  xt.set_class_doc(doc_Type);
   xt.add(CONSTRUCTOR(&PyType::m__init__, args___init__));
   xt.add(DESTRUCTOR(&PyType::m__dealloc__));
   xt.add(METHOD__REPR__(&PyType::m__repr__));
   xt.add(METHOD__CMP__(&PyType::m__compare__));
+  // xt.add(GETTER(&PyType::get_name, args_get_name));
+  pythonType = xt.get_type_object();
 
-  pydtType.set_attr("void",    PyType::make(Type::void0()));
-  pydtType.set_attr("bool8",   PyType::make(Type::bool8()));
-  pydtType.set_attr("int8",    PyType::make(Type::int8()));
-  pydtType.set_attr("int16",   PyType::make(Type::int16()));
-  pydtType.set_attr("int32",   PyType::make(Type::int32()));
-  pydtType.set_attr("int64",   PyType::make(Type::int64()));
-  pydtType.set_attr("float32", PyType::make(Type::float32()));
-  pydtType.set_attr("float64", PyType::make(Type::float64()));
-  pydtType.set_attr("str32",   PyType::make(Type::str32()));
-  pydtType.set_attr("str64",   PyType::make(Type::str64()));
-  pydtType.set_attr("obj64",   PyType::make(Type::obj64()));
-
-  // Python ignores tp_doc on heap-allocated types
-  pydtType.set_attr("__doc__", py::ostring(doc_Type));
+  xt.add_attr("void",    PyType::make(Type::void0()));
+  xt.add_attr("bool8",   PyType::make(Type::bool8()));
+  xt.add_attr("int8",    PyType::make(Type::int8()));
+  xt.add_attr("int16",   PyType::make(Type::int16()));
+  xt.add_attr("int32",   PyType::make(Type::int32()));
+  xt.add_attr("int64",   PyType::make(Type::int64()));
+  xt.add_attr("float32", PyType::make(Type::float32()));
+  xt.add_attr("float64", PyType::make(Type::float64()));
+  xt.add_attr("str32",   PyType::make(Type::str32()));
+  xt.add_attr("str64",   PyType::make(Type::str64()));
+  xt.add_attr("obj64",   PyType::make(Type::obj64()));
 }
 
 

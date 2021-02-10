@@ -53,6 +53,7 @@ from .lib._datatable import (
     shift,
     sort,
     symdiff,
+    Type,
     union,
     unique,
     update,
@@ -133,9 +134,6 @@ __all__ = (
     "union",
     "unique",
 )
-
-class Type:
-    pass
 
 bool8 = stype.bool8
 int8 = stype.int8

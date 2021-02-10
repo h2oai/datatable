@@ -60,7 +60,7 @@ static void init_numpy();
 PyObject* Expr_Type = nullptr;
 
 // Set from expr/fexpr.cc
-PyTypeObject* FExpr_Type = nullptr;
+PyObject* FExpr_Type = nullptr;
 
 // `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
 // a designated initializer, that is not supported by the C++14 standard.
@@ -327,7 +327,7 @@ bool _obj::is_dtexpr() const noexcept {
 }
 
 bool _obj::is_fexpr() const noexcept {
-  return v && Py_TYPE(v) == FExpr_Type;
+  return v && reinterpret_cast<PyObject*>(Py_TYPE(v)) == FExpr_Type;
 }
 
 

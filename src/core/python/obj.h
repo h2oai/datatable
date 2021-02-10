@@ -395,7 +395,7 @@ oobj get_module(const char* name);
 
 
 extern PyObject* Expr_Type;
-extern PyTypeObject* FExpr_Type;
+extern PyObject* FExpr_Type;
 
 
 }  // namespace py
