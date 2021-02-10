@@ -146,6 +146,32 @@ def test_type_create_from_python_types():
     assert Type(object) == Type.obj64
 
 
+def test_type_create_from_numpy_classes(np):
+    assert Type(np.void) == Type.void
+    assert Type(np.bool_) == Type.bool8
+    assert Type(np.int8) == Type.int8
+    assert Type(np.int16) == Type.int16
+    assert Type(np.int32) == Type.int32
+    assert Type(np.int64) == Type.int64
+    assert Type(np.float16) == Type.float32
+    assert Type(np.float32) == Type.float32
+    assert Type(np.float64) == Type.float64
+    assert Type(np.str_) == Type.str32
+
+
+def test_type_create_from_numpy_dtypes(np):
+    assert Type(np.dtype("void")) == Type.void
+    assert Type(np.dtype("bool")) == Type.bool8
+    assert Type(np.dtype("int8")) == Type.int8
+    assert Type(np.dtype("int16")) == Type.int16
+    assert Type(np.dtype("int32")) == Type.int32
+    assert Type(np.dtype("int64")) == Type.int64
+    assert Type(np.dtype("float16")) == Type.float32
+    assert Type(np.dtype("float32")) == Type.float32
+    assert Type(np.dtype("float64")) == Type.float64
+    assert Type(np.dtype("str")) == Type.str32
+
+
 def test_type_create_invalid():
     msg = "Cannot create Type object from"
     with pytest.raises(ValueError, match=msg):
