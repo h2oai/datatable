@@ -98,9 +98,12 @@ Workframe FExpr_List::evaluate_r(
 
 
 
-Workframe FExpr_List::evaluate_f(EvalContext&, size_t) const {
-  throw TypeError()
-      << "A list or a sequence cannot be used inside an f-selector";
+Workframe FExpr_List::evaluate_f(EvalContext& ctx, size_t i) const {
+  Workframe outputs(ctx);
+  for (const auto& arg : args_) {
+    outputs.cbind( arg->evaluate_f(ctx, i) );
+  }
+  return outputs;
 }
 
 
