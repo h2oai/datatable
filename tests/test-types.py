@@ -59,7 +59,6 @@ def test_type_repr():
 
 
 def test_type_names():
-    return
     assert Type.void.name == "void"
     assert Type.bool8.name == "bool8"
     assert Type.int8.name == "int8"

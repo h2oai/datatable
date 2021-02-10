@@ -100,11 +100,8 @@ void XTypeMaker::finalize() {
   xassert(type->tp_dealloc);
   xassert(type->tp_init);
   xassert(type->tp_name);
-  if (dynamic_type_) {
-
-  }
-  else {
-    finalize_getsets();
+  finalize_getsets();
+  if (!dynamic_type_) {
     finalize_methods();
     int r = PyType_Ready(type);
     if (r < 0) throw PyError();
@@ -173,6 +170,7 @@ void XTypeMaker::add_attr(const char* name, py::oobj value) {
   xassert(dynamic_type_);
   py::robj(type).set_attr(name, value);
 }
+
 
 // initproc = int(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(initproc _init, PKArgs& args, ConstructorTag) {
@@ -338,14 +336,35 @@ void XTypeMaker::add(inquiry fn, NbBoolTag)           { tp_as_number()->nb_bool 
 void XTypeMaker::add(ternaryfunc fn, NbPowerTag)      { tp_as_number()->nb_power = fn; }
 
 
-
 void XTypeMaker::finalize_getsets() {
   size_t n = get_defs.size();
-  if (n) {
-    PyGetSetDef* res = new PyGetSetDef[n + 1];
-    std::memcpy(res, get_defs.data(), n * sizeof(PyGetSetDef));
-    std::memset(res + n, 0, sizeof(PyGetSetDef));
-    type->tp_getset = res;
+  size_t n0 = 0;
+  if (!n) return;
+  if (type->tp_getset) {
+    while ((type->tp_getset)[n0].name != nullptr) n0++;
+  }
+  PyGetSetDef* res = new PyGetSetDef[n + n0 + 1];
+  if (n0) {
+    std::memcpy(res, type->tp_getset, n0 * sizeof(PyGetSetDef));
+    // type->tp_getset is allocated statically in typeobject.c, so
+    // it doesn't need to be freed. It also means that the pointer `res` will
+    // never be freed either (but that's ok since we want our types to live
+    // forever anyways).
+  }
+  std::memcpy(res + n0, get_defs.data(), n * sizeof(PyGetSetDef));
+  std::memset(res + n0 + n, 0, sizeof(PyGetSetDef));
+  type->tp_getset = res;
+
+  if (dynamic_type_) {
+    // See CPython:typeobject.cc:add_getset()
+    for (size_t i = n0; i < n + n0; i++) {
+      PyObject* descr = PyDescr_NewGetSet(type, type->tp_getset + i);
+      if (!descr) throw PyError();
+      py::rdict(type->tp_dict).set(
+          py::robj(PyDescr_NAME(descr)),
+          py::oobj::from_new_reference(descr)
+      );
+    }
   }
 }
 

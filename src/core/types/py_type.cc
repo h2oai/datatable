@@ -248,7 +248,7 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(DESTRUCTOR(&PyType::m__dealloc__));
   xt.add(METHOD__REPR__(&PyType::m__repr__));
   xt.add(METHOD__CMP__(&PyType::m__compare__));
-  // xt.add(GETTER(&PyType::get_name, args_get_name));
+  xt.add(GETTER(&PyType::get_name, args_get_name));
   pythonType = xt.get_type_object();
 
   xt.add_attr("void",    PyType::make(Type::void0()));
