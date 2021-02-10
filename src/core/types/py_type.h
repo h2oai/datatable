@@ -30,13 +30,11 @@ namespace dt {
   * This class corresponds is python-visible `dt.Type`: it describes
   * a type of a single column.
   *
-  * This class uses non-standard initialization mechanism: originally
-  * it is defined in python (see "__init__.py"), and then we patch
-  * that python class so that its definition would match that of
-  * PyType. This approach is used in order to allow the class to
-  * carry class attributes `.int32`, `.float64`, etc. Regular
-  * extension classes do not support class attributes, nor proper
-  * metatypes.
+  * This class uses "dynamic" initialization mechanism: the class
+  * object is defined via a call to python `type(name, (), {})`, and
+  * then the resulting object is modified to add new methods. This
+  * mechanism is used because the "standard" extension types do not
+  * allow to define class properties (which we need).
   *
   * Because of this mechanism, the XObject's field `.type` is not
   * used: instead we use a static variable defined in "py_type.cc".
