@@ -72,6 +72,94 @@ def test_type_names():
     assert Type.obj64.name == "obj64"
 
 
+def test_type_cmp():
+    assert Type.int8 == Type.int8
+    assert Type.int8 != Type.int32
+    assert not(Type.int8 == Type.int32)
+    assert not(Type.int32 == Type.float32)
+    assert not(Type.void == Type.obj64)
+
+
+def test_type_create_from_strings():
+    assert Type("V") == Type.void
+    assert Type("bool") == Type.bool8
+    assert Type("boolean") == Type.bool8
+    assert Type("int") == Type.int64
+    assert Type("integer") == Type.int64
+    assert Type("float") == Type.float32
+    assert Type("double") == Type.float64
+    assert Type("<U") == Type.str32
+    assert Type("str") == Type.str32
+    assert Type("string") == Type.str32
+    assert Type("obj") == Type.obj64
+    assert Type("object") == Type.obj64
+
+
+def test_type_create_from_names():
+    assert Type("void") == Type.void
+    assert Type("bool8") == Type.bool8
+    assert Type("int8") == Type.int8
+    assert Type("int16") == Type.int16
+    assert Type("int32") == Type.int32
+    assert Type("int64") == Type.int64
+    assert Type("float32") == Type.float32
+    assert Type("float64") == Type.float64
+    assert Type("str32") == Type.str32
+    assert Type("str64") == Type.str64
+    assert Type("obj64") == Type.obj64
+
+
+def test_type_create_from_stypes():
+    assert Type(dt.stype.void) == Type.void
+    assert Type(dt.stype.bool8) == Type.bool8
+    assert Type(dt.stype.int8) == Type.int8
+    assert Type(dt.stype.int16) == Type.int16
+    assert Type(dt.stype.int32) == Type.int32
+    assert Type(dt.stype.int64) == Type.int64
+    assert Type(dt.stype.float32) == Type.float32
+    assert Type(dt.stype.float64) == Type.float64
+    assert Type(dt.stype.str32) == Type.str32
+    assert Type(dt.stype.str64) == Type.str64
+    assert Type(dt.stype.obj64) == Type.obj64
+
+
+def test_type_create_from_types():
+    assert Type(Type.void) == Type.void
+    assert Type(Type.bool8) == Type.bool8
+    assert Type(Type.int8) == Type.int8
+    assert Type(Type.int16) == Type.int16
+    assert Type(Type.int32) == Type.int32
+    assert Type(Type.int64) == Type.int64
+    assert Type(Type.float32) == Type.float32
+    assert Type(Type.float64) == Type.float64
+    assert Type(Type.str32) == Type.str32
+    assert Type(Type.str64) == Type.str64
+    assert Type(Type.obj64) == Type.obj64
+
+
+def test_type_create_from_python_types():
+    assert Type(None) == Type.void
+    assert Type(bool) == Type.bool8
+    assert Type(int) == Type.int64
+    assert Type(float) == Type.float64
+    assert Type(str) == Type.str32
+    assert Type(object) == Type.obj64
+
+
+def test_type_create_invalid():
+    msg = "Cannot create Type object from"
+    with pytest.raises(ValueError, match=msg):
+        Type(0)
+    with pytest.raises(ValueError, match=msg):
+        Type(0.5)
+    with pytest.raises(ValueError, match=msg):
+        Type("nothing")
+    with pytest.raises(ValueError, match=msg):
+        Type(type)
+    with pytest.raises(TypeError):
+        Type()
+
+
 
 #-------------------------------------------------------------------------------
 # Test stype enum

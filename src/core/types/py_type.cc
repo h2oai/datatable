@@ -27,9 +27,14 @@ namespace dt {
 // Pointer to the `class Type` that was created from python.
 static PyObject* pythonType = nullptr;
 
+
+static bool internal_initialization = false;
+
 py::oobj PyType::make(Type type) {
   xassert(pythonType);
+  internal_initialization = true;
   py::oobj res = py::robj(pythonType).call();
+  internal_initialization = false;
   PyType* typed = reinterpret_cast<PyType*>(res.to_borrowed_ref());
   typed->type_ = std::move(type);
   return res;
@@ -165,8 +170,11 @@ static py::PKArgs args___init__(
     1, 0, 0, false, false, {"src"}, "__init__", nullptr);
 
 void PyType::m__init__(const py::PKArgs& args) {
+  if (internal_initialization) return;
   auto src = args[0].to_oobj();
-  if (!src) return;
+  if (!src) {
+    throw TypeError() << "Missing required argument `src` in Type constructor";
+  }
   for (int i = 0; i < 3; i++) {
     if (i == 0) init_src_store_basic();
     if (i == 1) init_src_store_from_stypes();
