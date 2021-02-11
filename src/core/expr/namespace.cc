@@ -88,11 +88,12 @@ oobj Namespace::m__getattr__(robj attr) {
 //------------------------------------------------------------------------------
 
 oobj Namespace::m__getitem__(robj item) {
-  if (!(item.is_int() || item.is_string() || item.is_slice() ||
-        item.is_none() || item.is_pytype() || item.is_stype() || item.is_ltype()))
+  if (!(item.is_int() || item.is_string() ||item.is_slice() ||
+        item.is_none() || item.is_pytype() || item.is_stype() ||
+        item.is_ltype() || item.is_list_or_tuple()))
   {
     throw TypeError() << "Column selector should be an integer, string, "
-                         "or slice, not " << item.typeobj();
+                         "or slice, or list/tuple, not " << item.typeobj();
   }
   return dt::expr::PyFExpr::make(
               new dt::expr::FExpr_ColumnAsArg(index_, item));
