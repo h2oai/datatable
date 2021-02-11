@@ -6,14 +6,15 @@
     .. toctree::
         :hidden:
 
-        void     <type/void>
         bool8    <type/bool8>
-        int8     <type/int8>
+        float32  <type/float32>
+        float64  <type/float64>
         int16    <type/int16>
         int32    <type/int32>
         int64    <type/int64>
-        float32  <type/float32>
-        float64  <type/float64>
+        int8     <type/int8>
+        name     <type/name>
+        obj64    <type/obj64>
         str32    <type/str32>
         str64    <type/str64>
-        obj64    <type/obj64>
+        void     <type/void>

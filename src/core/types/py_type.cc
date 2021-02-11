@@ -220,7 +220,19 @@ py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
 }
 
 
-static py::GSArgs args_get_name("name", "The name of the type");
+static const char* doc_name =
+R"(
+Return the canonical name of this type, as a string.
+
+Examples
+--------
+>>> dt.Type.int64.name
+'int64'
+>>> dt.Type(np.bool_).name
+'bool8'
+)";
+
+static py::GSArgs args_get_name("name", doc_name);
 
 py::oobj PyType::get_name() const {
   return py::ostring(type_.to_string());
