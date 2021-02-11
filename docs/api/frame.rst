@@ -122,6 +122,9 @@
         * - :attr:`.stypes`
           - Storage types (:class:`dt.stype`s) of all columns.
 
+        * - :attr:`.types`
+          - types (:class:`dt.Type`s) of all columns.
+
 
     Other methods
     -------------
@@ -262,4 +265,5 @@
     .to_numpy()      <frame/to_numpy>
     .to_pandas()     <frame/to_pandas>
     .to_tuples()     <frame/to_tuples>
+    .types           <frame/types>
     .view()          <frame/view>

@@ -5,6 +5,10 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] Property :attr:`.types` returns the list of :class:`dt.Type`
+      objects for each column of the frame. These types are a generalization
+      of previous stypes, and will eventually replace them.
+
     -[new] A Frame can now be constructed from an Arrow
       table::
 
@@ -32,6 +36,10 @@
 
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
+
+    -[api] Properties :attr:`.stypes` and :attr:`.ltypes` are not considered
+      deprecated and will be removed in a future version. Currently they
+      continue to work as before, however.
 
 
     FExpr
