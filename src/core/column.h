@@ -116,6 +116,7 @@ class Column
   public:
     size_t nrows() const noexcept;
     size_t na_count() const;
+    const dt::Type& type() const noexcept;
     dt::SType stype() const noexcept;
     dt::LType ltype() const noexcept;
     size_t elemsize() const noexcept;

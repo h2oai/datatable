@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,8 +37,8 @@ class SentinelFw_ColumnImpl : public Sentinel_ColumnImpl
     Buffer mbuf_;
 
   public:
-    SentinelFw_ColumnImpl(size_t nrows);
-    SentinelFw_ColumnImpl(size_t nrows, Buffer&&);
+    SentinelFw_ColumnImpl(size_t nrows, SType stype);
+    SentinelFw_ColumnImpl(size_t nrows, SType stype, Buffer&&);
     SentinelFw_ColumnImpl(ColumnImpl*&&);
 
     virtual ColumnImpl* clone() const override;

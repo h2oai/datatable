@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -371,6 +371,33 @@ def test_random_attack():
     out, err = proc.communicate(timeout=100)
     assert "FAIL" not in out.decode()
     assert not err
+
+
+
+#-------------------------------------------------------------------------------
+# Types
+#-------------------------------------------------------------------------------
+
+def test_dt0_types(dt0):
+    T = dt.Type
+    assert dt0.types == \
+        [T.int32, T.bool8, T.int8, T.float64, T.void, T.int8, T.str32]
+
+
+def test_empty_frame_types():
+    DT = dt.Frame([])
+    assert DT.types == []
+    DT.nrows = 11
+    assert DT.types == []
+
+
+def test_modify_types_list():
+    DT = dt.Frame(A=[1, 4], B=['g', 'r'])
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+    types = DT.types
+    types[0] = 42
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+
 
 
 

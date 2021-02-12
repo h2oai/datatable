@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -429,7 +429,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 {
   PyObject* obj = args[0].to_borrowed_ref();
   if (obj) {
-    auto frame_type = reinterpret_cast<PyObject*>(&py::Frame::type);
+    auto frame_type = py::Frame::typePtr;
     int ret = PyObject_IsSubclass(obj, frame_type);
     if (ret == -1) throw PyError();
     if (ret == 0) {
@@ -437,7 +437,8 @@ static void _install_buffer_hooks(const py::PKArgs& args)
           "applied to subclasses of core.Frame";
     }
     auto type = reinterpret_cast<PyTypeObject*>(obj);
-    type->tp_as_buffer = py::Frame::type.tp_as_buffer;
+    type->tp_as_buffer =
+        reinterpret_cast<PyTypeObject*>(frame_type)->tp_as_buffer;
   }
 }
 
@@ -471,7 +472,7 @@ static const char* format_from_stype(dt::SType stype)
 
 template <typename T>
 static void _copy_column_fw(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<T>(col.stype()));
+  xassert(col.type().can_be_read_as<T>());
   xassert(buf.size() == col.nrows() * sizeof(T));
   auto nthreads = dt::NThreads(col.allow_parallel_access());
   auto out_data = static_cast<T*>(buf.wptr());
@@ -485,7 +486,7 @@ static void _copy_column_fw(const Column& col, Buffer& buf) {
 }
 
 static void _copy_column_obj(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<py::oobj>(col.stype()));
+  xassert(col.type().can_be_read_as<py::oobj>());
   xassert(buf.size() == col.nrows() * sizeof(py::oobj));
   xassert(!buf.is_pyobjects());
   auto out_data = reinterpret_cast<PyObject**>(buf.wptr());

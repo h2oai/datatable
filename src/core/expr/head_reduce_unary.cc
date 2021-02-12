@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -79,7 +79,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     ColumnImpl* clone() const override {
-      return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
+      return new Reduced_ColumnImpl<T, U>(stype(), Column(arg), groupby,
                                           reducer);
     }
 
@@ -864,7 +864,7 @@ class SdGrouped_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby) {}
 
     ColumnImpl* clone() const override {
-      return new SdGrouped_ColumnImpl(stype_, Column(arg), groupby);
+      return new SdGrouped_ColumnImpl(stype(), Column(arg), groupby);
     }
 
     bool get_element(size_t i, float* out) const override {

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,7 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(col.nrows(), SType::BOOL),
         arg_(std::move(col))
     {
-      xassert(compatible_type<T>(arg_.stype()));
+      xassert(arg_.type().can_be_read_as<T>());
     }
 
 

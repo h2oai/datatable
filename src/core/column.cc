@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -152,23 +152,27 @@ bool Column::operator==(const Column& other) const noexcept {
 //------------------------------------------------------------------------------
 
 size_t Column::nrows() const noexcept {
-  return impl_->nrows_;
+  return impl_->nrows();
 }
 
 size_t Column::na_count() const {
   return stats()->nacount();
 }
 
+const dt::Type& Column::type() const noexcept {
+  return impl_->type_;
+}
+
 dt::SType Column::stype() const noexcept {
-  return impl_->stype_;
+  return impl_->type_.stype();
 }
 
 dt::LType Column::ltype() const noexcept {
-  return dt::stype_to_ltype(impl_->stype_);
+  return dt::stype_to_ltype(impl_->stype());
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !stype_is_variable_width(impl_->stype_);
+  return !stype_is_variable_width(impl_->stype());
 }
 
 bool Column::is_virtual() const noexcept {
@@ -184,7 +188,7 @@ bool Column::is_constant() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return stype_elemsize(impl_->stype_);
+  return stype_elemsize(impl_->stype());
 }
 
 Column::operator bool() const noexcept {

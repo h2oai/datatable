@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -72,7 +72,7 @@ FuncNary_ColumnImpl<T>::FuncNary_ColumnImpl(
 template <typename T>
 ColumnImpl* FuncNary_ColumnImpl<T>::clone() const {
   return new FuncNary_ColumnImpl<T>(
-                colvec(columns_), evaluator_, nrows_, stype_);
+                colvec(columns_), evaluator_, nrows_, stype());
 }
 
 

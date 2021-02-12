@@ -1,12 +1,189 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2021 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from datatable import Type
 
+
+#-------------------------------------------------------------------------------
+# Test Type class
+#-------------------------------------------------------------------------------
+
+def test_type_singletons():
+    assert Type.void
+    assert Type.bool8
+    assert Type.int8
+    assert Type.int16
+    assert Type.int32
+    assert Type.int64
+    assert Type.float32
+    assert Type.float64
+    assert Type.str32
+    assert Type.str64
+    assert Type.obj64
+
+
+def test_type_repr():
+    assert repr(Type.void) == "Type.void"
+    assert repr(Type.bool8) == "Type.bool8"
+    assert repr(Type.int8) == "Type.int8"
+    assert repr(Type.int16) == "Type.int16"
+    assert repr(Type.int32) == "Type.int32"
+    assert repr(Type.int64) == "Type.int64"
+    assert repr(Type.float32) == "Type.float32"
+    assert repr(Type.float64) == "Type.float64"
+    assert repr(Type.str32) == "Type.str32"
+    assert repr(Type.str64) == "Type.str64"
+    assert repr(Type.obj64) == "Type.obj64"
+
+
+def test_type_names():
+    assert Type.void.name == "void"
+    assert Type.bool8.name == "bool8"
+    assert Type.int8.name == "int8"
+    assert Type.int16.name == "int16"
+    assert Type.int32.name == "int32"
+    assert Type.int64.name == "int64"
+    assert Type.float32.name == "float32"
+    assert Type.float64.name == "float64"
+    assert Type.str32.name == "str32"
+    assert Type.str64.name == "str64"
+    assert Type.obj64.name == "obj64"
+
+
+def test_type_cmp():
+    assert Type.int8 == Type.int8
+    assert Type.int8 != Type.int32
+    assert not(Type.int8 == Type.int32)
+    assert not(Type.int32 == Type.float32)
+    assert not(Type.void == Type.obj64)
+
+
+def test_type_create_from_strings():
+    assert Type("V") == Type.void
+    assert Type("bool") == Type.bool8
+    assert Type("boolean") == Type.bool8
+    assert Type("int") == Type.int64
+    assert Type("integer") == Type.int64
+    assert Type("float") == Type.float32
+    assert Type("double") == Type.float64
+    assert Type("<U") == Type.str32
+    assert Type("str") == Type.str32
+    assert Type("string") == Type.str32
+    assert Type("obj") == Type.obj64
+    assert Type("object") == Type.obj64
+
+
+def test_type_create_from_names():
+    assert Type("void") == Type.void
+    assert Type("bool8") == Type.bool8
+    assert Type("int8") == Type.int8
+    assert Type("int16") == Type.int16
+    assert Type("int32") == Type.int32
+    assert Type("int64") == Type.int64
+    assert Type("float32") == Type.float32
+    assert Type("float64") == Type.float64
+    assert Type("str32") == Type.str32
+    assert Type("str64") == Type.str64
+    assert Type("obj64") == Type.obj64
+
+
+def test_type_create_from_stypes():
+    assert Type(dt.stype.void) == Type.void
+    assert Type(dt.stype.bool8) == Type.bool8
+    assert Type(dt.stype.int8) == Type.int8
+    assert Type(dt.stype.int16) == Type.int16
+    assert Type(dt.stype.int32) == Type.int32
+    assert Type(dt.stype.int64) == Type.int64
+    assert Type(dt.stype.float32) == Type.float32
+    assert Type(dt.stype.float64) == Type.float64
+    assert Type(dt.stype.str32) == Type.str32
+    assert Type(dt.stype.str64) == Type.str64
+    assert Type(dt.stype.obj64) == Type.obj64
+
+
+def test_type_create_from_types():
+    assert Type(Type.void) == Type.void
+    assert Type(Type.bool8) == Type.bool8
+    assert Type(Type.int8) == Type.int8
+    assert Type(Type.int16) == Type.int16
+    assert Type(Type.int32) == Type.int32
+    assert Type(Type.int64) == Type.int64
+    assert Type(Type.float32) == Type.float32
+    assert Type(Type.float64) == Type.float64
+    assert Type(Type.str32) == Type.str32
+    assert Type(Type.str64) == Type.str64
+    assert Type(Type.obj64) == Type.obj64
+
+
+def test_type_create_from_python_types():
+    assert Type(None) == Type.void
+    assert Type(bool) == Type.bool8
+    assert Type(int) == Type.int64
+    assert Type(float) == Type.float64
+    assert Type(str) == Type.str32
+    assert Type(object) == Type.obj64
+
+
+def test_type_create_from_numpy_classes(np):
+    assert Type(np.void) == Type.void
+    assert Type(np.bool_) == Type.bool8
+    assert Type(np.int8) == Type.int8
+    assert Type(np.int16) == Type.int16
+    assert Type(np.int32) == Type.int32
+    assert Type(np.int64) == Type.int64
+    assert Type(np.float16) == Type.float32
+    assert Type(np.float32) == Type.float32
+    assert Type(np.float64) == Type.float64
+    assert Type(np.str_) == Type.str32
+
+
+def test_type_create_from_numpy_dtypes(np):
+    assert Type(np.dtype("void")) == Type.void
+    assert Type(np.dtype("bool")) == Type.bool8
+    assert Type(np.dtype("int8")) == Type.int8
+    assert Type(np.dtype("int16")) == Type.int16
+    assert Type(np.dtype("int32")) == Type.int32
+    assert Type(np.dtype("int64")) == Type.int64
+    assert Type(np.dtype("float16")) == Type.float32
+    assert Type(np.dtype("float32")) == Type.float32
+    assert Type(np.dtype("float64")) == Type.float64
+    assert Type(np.dtype("str")) == Type.str32
+
+
+def test_type_create_invalid():
+    msg = "Cannot create Type object from"
+    with pytest.raises(ValueError, match=msg):
+        Type(0)
+    with pytest.raises(ValueError, match=msg):
+        Type(0.5)
+    with pytest.raises(ValueError, match=msg):
+        Type("nothing")
+    with pytest.raises(ValueError, match=msg):
+        Type(type)
+    with pytest.raises(TypeError):
+        Type()
 
 
 

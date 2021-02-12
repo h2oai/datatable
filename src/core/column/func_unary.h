@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -109,7 +109,7 @@ FuncUnary1_ColumnImpl<TI, TO>::FuncUnary1_ColumnImpl(
 template <typename TI, typename TO>
 ColumnImpl* FuncUnary1_ColumnImpl<TI, TO>::clone() const {
   return new FuncUnary1_ColumnImpl<TI, TO>(
-                Column(arg_), func_, nrows_, stype_);
+                Column(arg_), func_, nrows_, stype());
 }
 
 
@@ -127,7 +127,7 @@ bool FuncUnary1_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
 template <typename TI, typename TO>
 void FuncUnary1_ColumnImpl<TI, TO>::verify_integrity() const {
   arg_.verify_integrity();
-  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<TO>(stype()));
   xassert(compatible_type<TI>(arg_.stype()));
   XAssert(nrows_ <= arg_.nrows());
   XAssert(func_ != nullptr);
@@ -168,7 +168,7 @@ FuncUnary2_ColumnImpl<TI, TO>::FuncUnary2_ColumnImpl(
 template <typename TI, typename TO>
 ColumnImpl* FuncUnary2_ColumnImpl<TI, TO>::clone() const {
   return new FuncUnary2_ColumnImpl<TI, TO>(
-                Column(arg_), func_, nrows_, stype_);
+                Column(arg_), func_, nrows_, stype());
 }
 
 template <typename TI, typename TO>
@@ -182,7 +182,7 @@ bool FuncUnary2_ColumnImpl<TI, TO>::get_element(size_t i, TO* out) const {
 template <typename TI, typename TO>
 void FuncUnary2_ColumnImpl<TI, TO>::verify_integrity() const {
   arg_.verify_integrity();
-  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<TO>(stype()));
   xassert(compatible_type<TI>(arg_.stype()));
   XAssert(nrows_ <= arg_.nrows());
   XAssert(func_ != nullptr);
