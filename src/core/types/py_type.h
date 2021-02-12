@@ -27,7 +27,7 @@ namespace dt {
 
 
 /**
-  * This class corresponds is python-visible `dt.Type`: it describes
+  * This class corresponds to python-visible `dt.Type`: it describes
   * a type of a single column.
   *
   * This class uses "dynamic" initialization mechanism: the class

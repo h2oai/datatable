@@ -201,7 +201,7 @@ Other
     ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
-    Type             <type>
+    Type              <type>
     as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>

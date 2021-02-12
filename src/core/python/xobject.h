@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #ifndef dt_PYTHON_XOBJECT_h
 #define dt_PYTHON_XOBJECT_h
 #include <cstring>    // std::memcpy, std::memset, std::strrchr
