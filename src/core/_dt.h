@@ -51,6 +51,7 @@ namespace dt {
   struct ArrowSchema;
   class OArrowArray;
   class OArrowSchema;
+  class Type;
 }
 
 

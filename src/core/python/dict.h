@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -113,12 +113,14 @@ class rdict : public robj {
     using robj::robj;
 
     static rdict unchecked(const robj&);
+    static rdict unchecked(PyObject*);
 
     size_t size() const;
     bool empty() const;
     bool has(_obj key) const;
     robj get(_obj key) const;
     robj get_or_none(_obj key) const;
+    void set(_obj key, _obj val);
 
     dict_iterator begin() const;
     dict_iterator end() const;

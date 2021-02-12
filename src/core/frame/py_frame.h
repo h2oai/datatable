@@ -108,6 +108,7 @@ class Frame : public XObject<Frame> {
     oobj get_source() const;
     oobj get_stype() const;
     oobj get_stypes() const;
+    oobj get_types() const;
     void set_key(const Arg&);
     void set_meta(const Arg&);
     void set_names(const Arg&);

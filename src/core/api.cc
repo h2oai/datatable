@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,8 +53,7 @@ size_t DtABIVersion() {
 
 int DtFrame_Check(PyObject* ob) {
   if (ob == nullptr) return 0;
-  auto typeptr = reinterpret_cast<PyObject*>(&py::Frame::type);
-  int ret = PyObject_IsInstance(ob, typeptr);
+  int ret = PyObject_IsInstance(ob, py::Frame::typePtr);
   if (ret == -1) {
     PyErr_Clear();
     ret = 0;

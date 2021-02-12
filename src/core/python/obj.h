@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -186,6 +186,7 @@ class _obj {
     bool is_pandas_categorical() const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
+    bool is_pytype()        const noexcept;
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
     bool is_sort_node()     const noexcept;
@@ -259,6 +260,7 @@ class _obj {
     DataTable*  to_datatable      (const error_manager& = _em0) const;
     py::Frame*  to_pyframe        (const error_manager& = _em0) const;
     dt::SType   to_stype          (const error_manager& = _em0) const;
+    dt::Type    to_type           (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
@@ -290,6 +292,7 @@ class _obj {
       virtual Error error_not_range          (PyObject*) const;
       virtual Error error_not_slice          (PyObject*) const;
       virtual Error error_not_stype          (PyObject*) const;
+      virtual Error error_not_type           (PyObject*) const;
       virtual Error error_not_iterable       (PyObject*) const;
       virtual Error error_int32_overflow     (PyObject*) const;
       virtual Error error_int64_overflow     (PyObject*) const;
@@ -331,7 +334,9 @@ class robj : public _obj {
 class oobj : public _obj {
   public:
     oobj();
+    oobj(std::nullptr_t);
     oobj(PyObject* p);
+    oobj(PyTypeObject* p);
     oobj(const oobj&);
     oobj(const robj&);
     oobj(oobj&&);
@@ -383,11 +388,14 @@ robj rnone();
 void write_to_stdout(const std::string& str);
 
 
+bool is_python_system_attr(py::robj attr);
+bool is_python_system_attr(const dt::CString& attr);
+
 oobj get_module(const char* name);
 
 
 extern PyObject* Expr_Type;
-extern PyTypeObject* FExpr_Type;
+extern PyObject* FExpr_Type;
 
 
 }  // namespace py

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,7 +81,7 @@ class Sorter_Float : public SSorter<T>
     Sorter_Float(const Column& col)
       : column_(col)
     {
-      xassert(compatible_type<TE>(col.stype()));
+      xassert(col.type().can_be_read_as<TE>());
     }
 
 

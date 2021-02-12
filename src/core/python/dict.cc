@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -55,6 +55,10 @@ odict::odict(std::initializer_list<oobj> args)
 
 rdict rdict::unchecked(const robj& src) {
   return rdict(src);
+}
+
+rdict rdict::unchecked(PyObject* src) {
+  return rdict(robj(src));
 }
 
 odict odict::copy() const {
@@ -122,6 +126,11 @@ robj rdict::get_or_none(_obj key) const {
 
 void odict::set(_obj key, _obj val) {
   // PyDict_SetItem INCREFs both key and value internally
+  int r = PyDict_SetItem(v, key.v, val.v);
+  if (r) throw PyError();
+}
+
+void rdict::set(_obj key, _obj val) {
   int r = PyDict_SetItem(v, key.v, val.v);
   if (r) throw PyError();
 }

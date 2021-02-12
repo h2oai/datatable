@@ -48,12 +48,14 @@ Classes
     * - :class:`Namespace`
       - Helper class for addressing columns in a frame.
 
+    * - :class:`Type`
+      - Column's type, similar to numpy's ``dtype``.
+
     * - :class:`stype`
-      - Enum of column "storage" types, analogous to numpy's ``dtype``.
+      - [DEPRECATED] Enum of column "storage" types.
 
     * - :class:`ltype`
-      - Enum of column "logical" types, similar to standard Python notion
-        of a ``type``.
+      - [DEPRECATED] Enum of column "logical" types.
 
 
 Functions
@@ -199,6 +201,7 @@ Other
     ltype             <ltype>
     Namespace         <namespace>
     stype             <stype>
+    Type              <type>
     as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,8 +35,8 @@ IfElseN_ColumnImpl::IfElseN_ColumnImpl(colvec&& cond, colvec&& vals)
     xassert(cnd.nrows() == nrows_);
   }
   for (const Column& val : values_) {
-    xassert(val.stype() == stype_);
-    xassert(val.nrows() == nrows_);
+    xassert(val.stype() == stype());
+    xassert(val.nrows() == nrows());
   }
 }
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -66,18 +66,11 @@ oobj Namespace::m__repr__() const {
 // __getattr__()
 //------------------------------------------------------------------------------
 
-static bool is_system_attr(robj attr) {
-  auto a = attr.to_cstring();
-  auto n = a.size();
-  return (n > 4 && a[0] == '_' && a[1] == '_' &&
-                   a[n-1] == '_' && a[n-2] == '_');
-}
-
 oobj Namespace::m__getattr__(robj attr) {
   // For system attributes such as `__module__`, `__class__`,
   // `__doc__`, etc, use the standard object.__getattribute__()
   // method.
-  if (is_system_attr(attr)) {
+  if (is_python_system_attr(attr)) {
     return oobj::from_new_reference(
         PyObject_GenericGetAttr(
           reinterpret_cast<PyObject*>(this),
@@ -95,11 +88,12 @@ oobj Namespace::m__getattr__(robj attr) {
 //------------------------------------------------------------------------------
 
 oobj Namespace::m__getitem__(robj item) {
-  if (!(item.is_int() || item.is_string() || item.is_slice() ||
-        item.is_none() || item.is_type() || item.is_stype() || item.is_ltype()))
+  if (!(item.is_int() || item.is_string() ||item.is_slice() ||
+        item.is_none() || item.is_pytype() || item.is_stype() ||
+        item.is_ltype() || item.is_list_or_tuple()))
   {
     throw TypeError() << "Column selector should be an integer, string, "
-                         "or slice, not " << item.typeobj();
+                         "or slice, or list/tuple, not " << item.typeobj();
   }
   return dt::expr::PyFExpr::make(
               new dt::expr::FExpr_ColumnAsArg(index_, item));

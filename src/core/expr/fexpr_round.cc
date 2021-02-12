@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -69,7 +69,7 @@ class RoundNeg_ColumnImpl : public Virtual_ColumnImpl {
         arg_(std::move(arg)),
         scale_(scale)
     {
-      xassert(compatible_type<T>(arg_.stype()));
+      xassert(arg_.type().can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {
@@ -175,7 +175,7 @@ class Round_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     ColumnImpl* clone() const override {
-      return new Round_ColumnImpl(Column(arg_), stype_);
+      return new Round_ColumnImpl(Column(arg_), stype());
     }
 
     size_t n_children() const noexcept override { return 1; }

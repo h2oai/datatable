@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -72,7 +72,7 @@ Range_ColumnImpl::Range_ColumnImpl(size_t nrows, SType stype, int64_t start,
 
 
 ColumnImpl* Range_ColumnImpl::clone() const {
-  return new Range_ColumnImpl(nrows_, stype_, start_, step_);
+  return new Range_ColumnImpl(nrows_, stype(), start_, step_);
 }
 
 
@@ -104,7 +104,7 @@ bool Range_ColumnImpl::get_element(size_t i, double* out)  const { return _get(i
 
 template <typename T>
 void Range_ColumnImpl::_materialize(Column& out) const {
-  Column newcol = Column::new_data_column(nrows_, stype_);
+  Column newcol = Column::new_data_column(nrows_, stype());
   T* data = static_cast<T*>(newcol.get_data_editable(0));
   parallel_for_static(nrows_,
     [&](size_t i) {
@@ -114,7 +114,7 @@ void Range_ColumnImpl::_materialize(Column& out) const {
 }
 
 void Range_ColumnImpl::materialize(Column& out, bool) {
-  switch (stype_) {
+  switch (stype()) {
     case SType::INT8:    return _materialize<int8_t>(out);
     case SType::INT16:   return _materialize<int16_t>(out);
     case SType::INT32:   return _materialize<int32_t>(out);
@@ -134,7 +134,7 @@ void Range_ColumnImpl::materialize(Column& out, bool) {
 
 void Range_ColumnImpl::verify_integrity() const {
   Virtual_ColumnImpl::verify_integrity();
-  auto ltype = stype_to_ltype(stype_);
+  auto ltype = stype_to_ltype(stype());
   XAssert(ltype == LType::INT || ltype == LType::REAL);
 }
 

@@ -184,7 +184,7 @@ static void _clear_validity_buffer(size_t n, size_t* data) {
 
 
 Column dt::ColumnImpl::_as_arrow_void() const {
-  xassert(stype_ == SType::VOID);
+  xassert(stype() == SType::VOID);
   size_t bufsize = (nrows_ + 63)/64 * 8;
   Buffer validity_buffer = Buffer::mem(bufsize);
   auto validity_data = static_cast<size_t*>(validity_buffer.xptr());
@@ -194,7 +194,7 @@ Column dt::ColumnImpl::_as_arrow_void() const {
 
 
 Column dt::ColumnImpl::_as_arrow_bool() const {
-  xassert(stype_ == SType::BOOL);
+  xassert(stype() == SType::BOOL);
   // The buffers must be aligned at 8-bytes boundary
   size_t bufsize = (nrows_ + 63)/64 * 8;
   Buffer validity_buffer = Buffer::mem(bufsize);
@@ -242,7 +242,7 @@ Column dt::ColumnImpl::_as_arrow_fw() const {
     });
 
   return Column(new ArrowFw_ColumnImpl(
-      nrows_, stype_, std::move(validity_buffer), std::move(data_buffer))
+      nrows_, stype(), std::move(validity_buffer), std::move(data_buffer))
   );
 }
 
@@ -325,7 +325,7 @@ Column dt::ColumnImpl::_as_arrow_str() const {
   );
 
   return Column(new dt::ArrowStr_ColumnImpl<T>(
-      nrows_, stype_, std::move(validity_buffer),
+      nrows(), stype(), std::move(validity_buffer),
       std::move(offsets_buffer), std::move(strdata_buffer))
   );
 }
@@ -336,7 +336,7 @@ Column dt::ColumnImpl::_as_arrow_str() const {
   * Arrow_ColumnImpl.
   */
 Column dt::ColumnImpl::as_arrow() const {
-  switch (stype_) {
+  switch (stype()) {
     case SType::VOID: return _as_arrow_void();
     case SType::BOOL: return _as_arrow_bool();
     case SType::INT8: return _as_arrow_fw<int8_t>();
@@ -349,5 +349,5 @@ Column dt::ColumnImpl::as_arrow() const {
     case SType::STR64: return _as_arrow_str<uint64_t>();
     default: break;
   }
-  throw NotImplError() << "Cannot convert column of type " << stype_ << " into arrow";
+  throw NotImplError() << "Cannot convert column of type " << stype() << " into arrow";
 }

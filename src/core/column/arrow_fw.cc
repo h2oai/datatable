@@ -39,7 +39,7 @@ ArrowFw_ColumnImpl::ArrowFw_ColumnImpl(size_t nrows, SType stype,
 
 ColumnImpl* ArrowFw_ColumnImpl::clone() const {
   return new ArrowFw_ColumnImpl(
-                nrows_, stype_, Buffer(validity_), Buffer(data_));
+                nrows(), stype(), Buffer(validity_), Buffer(data_));
 }
 
 
@@ -62,7 +62,7 @@ const void* ArrowFw_ColumnImpl::get_buffer(size_t i) const {
 template <typename T>
 inline bool ArrowFw_ColumnImpl::_get(size_t  i, T* out) const {
   xassert(i < nrows_);
-  xassert(compatible_type<T>(stype_));
+  xassert(type().can_be_read_as<T>());
   auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
   bool valid = !validity_data || (validity_data[i / 8] & (1 << (i & 7)));
   if (valid) {

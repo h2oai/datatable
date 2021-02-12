@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -94,7 +94,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
         value(x) {}
 
     ColumnImpl* clone() const override {
-      return new ConstInt_ColumnImpl(nrows_, value, stype_);
+      return new ConstInt_ColumnImpl(nrows_, value, stype());
     }
 
     bool get_element(size_t, int8_t* out) const override {

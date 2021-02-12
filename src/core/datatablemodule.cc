@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,6 +53,7 @@
 #include "python/xargs.h"
 #include "read/py_read_iterator.h"
 #include "sort.h"
+#include "types/py_type.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
@@ -412,12 +413,15 @@ static void initialize_options(const py::PKArgs& args) {
 }
 
 
-static py::PKArgs args_initialize_final(
-  0, 0, 0, false, false, {}, "initialize_final", "");
-
-static void initialize_final(const py::PKArgs&) {
+static py::oobj initialize_final(const py::XArgs&) {
   init_exceptions();
+  return py::None();
 }
+DECLARE_PYFN(&initialize_final)
+    ->name("initialize_final")
+    ->docs("Called once at the end of initialization of the python datatable "
+           "module. This function will import some of the objects defined "
+           "in the python module into the extension.");
 
 
 
@@ -434,7 +438,6 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
-  ADD_FN(&initialize_final, args_initialize_final);
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
@@ -490,6 +493,7 @@ extern "C" {
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
       dt::expr::PyFExpr::init_type(m);
+      dt::PyType::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);

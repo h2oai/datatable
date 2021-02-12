@@ -1140,7 +1140,7 @@ def locate_cxx_function(name, kind, lines):
         rx_start = re.compile(r"(\s*)"
                               r"(?:static\s+|inline\s+)*"
                               r"(?:[\w:*&<> ]+)\s+" +
-                              name +
+                              r"(?:\w+::)*" + name +
                               r"\s*\(.*\)\s*" +
                               r"(?:const\s*|noexcept\s*|override\s*)*" +
                               r"\{\s*")
