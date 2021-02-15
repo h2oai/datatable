@@ -56,6 +56,8 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
+    date32 = 17
+    time64 = 18
     obj64 = 21
 
     def __repr__(self):
