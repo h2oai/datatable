@@ -81,6 +81,11 @@ static void init_src_store_basic() {
   src_store->set(py::ostring("double"), tFloat64);
   src_store->set(py::oobj(&PyFloat_Type), tFloat64);
 
+  auto tDate32 = PyType::make(Type::date32());
+  src_store->set(py::ostring("date"), tDate32);
+  src_store->set(py::ostring("date32"), tDate32);
+  src_store->set(py::oobj::import("datetime", "date"), tDate32);
+
   auto tStr32 = PyType::make(Type::str32());
   src_store->set(py::ostring("str32"), tStr32);
   src_store->set(py::ostring("<U"), tStr32);
@@ -112,6 +117,7 @@ static void init_src_store_from_stypes() {
   src_store->set(stype.get_attr("int64"), PyType::make(Type::int64()));
   src_store->set(stype.get_attr("float32"), PyType::make(Type::float32()));
   src_store->set(stype.get_attr("float64"), PyType::make(Type::float64()));
+  src_store->set(stype.get_attr("date32"), PyType::make(Type::date32()));
   src_store->set(stype.get_attr("str32"), PyType::make(Type::str32()));
   src_store->set(stype.get_attr("str64"), PyType::make(Type::str64()));
   src_store->set(stype.get_attr("obj64"), PyType::make(Type::obj64()));
@@ -155,6 +161,9 @@ static void init_src_store_from_numpy() {
   src_store->set(np.get_attr("float32"), tFloat32);
   src_store->set(dtype.call({py::ostring("float16")}), tFloat32);
   src_store->set(dtype.call({py::ostring("float32")}), tFloat32);
+
+  auto tDate32 = PyType::make(Type::date32());
+  src_store->set(dtype.call({py::ostring("<M8[D]")}), tDate32);
 
   auto tFloat64 = PyType::make(Type::float64());
   src_store->set(np.get_attr("float64"), tFloat64);
@@ -279,6 +288,7 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add_attr("int64",   PyType::make(Type::int64()));
   xt.add_attr("float32", PyType::make(Type::float32()));
   xt.add_attr("float64", PyType::make(Type::float64()));
+  xt.add_attr("date32",  PyType::make(Type::date32()));
   xt.add_attr("str32",   PyType::make(Type::str32()));
   xt.add_attr("str64",   PyType::make(Type::str64()));
   xt.add_attr("obj64",   PyType::make(Type::obj64()));

@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <Python.h>
+#include <datetime.h>      // from Python
 #include <exception>       // std::exception
 #include <iostream>        // std::cerr
 #include <mutex>           // std::mutex, std::lock_guard
@@ -505,6 +507,11 @@ extern "C" {
       exception_to_python(e);
       m = nullptr;
     }
+
+    // In order to be able to use python API to access datetime objects,
+    // we need to "import" it via a special macro.
+    // See https://docs.python.org/3/c-api/datetime.html
+    PyDateTime_IMPORT;
 
     return m;
   }
