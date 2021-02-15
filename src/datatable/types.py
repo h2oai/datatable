@@ -226,6 +226,8 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
+    stype.date32: ltype.time,
+    stype.time64: ltype.time,
     stype.obj64: ltype.obj,
 }
 
