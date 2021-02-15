@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,20 +19,22 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
+#ifndef dt_TYPES_TYPE_DATE_h
+#define dt_TYPES_TYPE_DATE_h
+#include "types/type_impl.h"
+namespace dt {
 
-#include "python/bool.h"
-#include "python/date.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/list.h"
-#include "python/namedtuple.h"
-#include "python/obj.h"
-#include "python/pybuffer.h"
-#include "python/range.h"
-#include "python/set.h"
-#include "python/slice.h"
-#include "python/string.h"
-#include "python/tuple.h"
+
+
+class Type_Date32 : public TypeImpl {
+  public:
+    Type_Date32() : TypeImpl(SType::DATE32) {}
+
+    bool can_be_read_as_int32() const override { return true; }
+    std::string to_string() const override { return "date32"; }
+};
+
+
+
+}  // namespace dt
+#endif

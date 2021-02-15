@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,20 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
-
-#include "python/bool.h"
-#include "python/date.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/list.h"
-#include "python/namedtuple.h"
+#ifndef dt_PYTHON_DATE_h
+#define dt_PYTHON_DATE_h
 #include "python/obj.h"
-#include "python/pybuffer.h"
-#include "python/range.h"
-#include "python/set.h"
-#include "python/slice.h"
-#include "python/string.h"
-#include "python/tuple.h"
+#include "lib/hh/date.h"
+namespace py {
+
+
+class odate : public oobj {
+  public:
+    odate() = default;
+    odate(const odate&) = default;
+    odate(odate&&) = default;
+    odate& operator=(const odate&) = default;
+    odate& operator=(odate&&) = default;
+
+    static odate unchecked(PyObject*);
+    explicit odate(hh::ymd date);
+
+    static bool check(py::robj obj);
+
+  private:
+    explicit odate(PyObject*);
+};
+
+
+
+}  // namespace py
+#endif

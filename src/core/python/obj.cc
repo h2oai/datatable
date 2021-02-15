@@ -222,6 +222,7 @@ bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !i
 bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
+bool _obj::is_date()          const noexcept { return v && odate::check(robj(v)); }
 bool _obj::is_pytype()        const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && dt::is_ltype_object(v); }
 bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
@@ -827,6 +828,13 @@ strvec _obj::to_stringlist(const error_manager&) const {
 }
 
 
+odate _obj::to_odate(const error_manager& em) const {
+  if (is_date()) {
+    return odate::unchecked(v);
+  }
+  throw em.error_not_date(v);
+}
+
 
 //------------------------------------------------------------------------------
 // Object conversions
@@ -1248,6 +1256,10 @@ Error _obj::error_manager::error_not_integer(PyObject* o) const {
 
 Error _obj::error_manager::error_not_double(PyObject* o) const {
   return TypeError() << "Expected a float, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_date(PyObject* o) const {
+  return TypeError() << "Expected a date, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_not_string(PyObject* o) const {

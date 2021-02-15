@@ -56,6 +56,7 @@ bool TypeImpl::can_be_read_as_int32()    const { return false; }
 bool TypeImpl::can_be_read_as_int64()    const { return false; }
 bool TypeImpl::can_be_read_as_float32()  const { return false; }
 bool TypeImpl::can_be_read_as_float64()  const { return false; }
+bool TypeImpl::can_be_read_as_date()     const { return false; }
 bool TypeImpl::can_be_read_as_cstring()  const { return false; }
 bool TypeImpl::can_be_read_as_pyobject() const { return false; }
 
