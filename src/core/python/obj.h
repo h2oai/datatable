@@ -225,6 +225,7 @@ class _obj {
     bool parse_numpy_float(float*) const;
     bool parse_numpy_float(double*) const;
     bool parse_double(double*) const;
+    bool parse_date(int32_t*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;

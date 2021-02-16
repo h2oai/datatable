@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <Python.h>
-#include <datetime.h>      // from Python
+#include <datetime.h>     // Python "datetime" module, not included in Python.h
 #include "python/date.h"
 #include "lib/hh/date.h"
 namespace py {
@@ -45,6 +45,27 @@ bool odate::check(robj obj) {
 }
 
 
+int odate::get_days() const {
+  return hh::days_from_civil(
+      PyDateTime_GET_YEAR(v),
+      PyDateTime_GET_MONTH(v),
+      PyDateTime_GET_DAY(v)
+  );
+}
+
+
+void odate::init() {
+  // In order to be able to use python API to access datetime objects,
+  // we need to "import" it via a special macro. This macro loads the
+  // datetime module as a capsule and stores it in PyDateTimeAPI variable.
+  //
+  // Note that the PyDateTimeAPI variable will be local to this file,
+  // which means that no PyDateTime* macros will work outside of this
+  // translation unit.
+  //
+  // See https://docs.python.org/3/c-api/datetime.html
+  PyDateTime_IMPORT;
+}
 
 
 }  // namespace py

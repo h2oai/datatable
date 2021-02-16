@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -273,6 +273,21 @@ static Column force_as_real(const Column& inputcol)
 
 
 //------------------------------------------------------------------------------
+// Date32
+//------------------------------------------------------------------------------
+
+static size_t parse_as_date32(const Column& inputcol, Buffer& mbuf, size_t i0) {
+  return parse_as_X<int32_t>(inputcol, mbuf, i0,
+            [](const py::oobj& item, int32_t* out) {
+              return item.parse_date(out) ||
+                     item.parse_none(out);
+            });
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // String
 //------------------------------------------------------------------------------
 
@@ -452,7 +467,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
   static styvec s_void = {
     dt::SType::BOOL, dt::SType::INT8, dt::SType::INT16, dt::SType::INT32,
     dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::STR32,
-    dt::SType::OBJ
+    dt::SType::DATE32, dt::SType::OBJ
   };
   static styvec s_bool8 = {dt::SType::INT8, dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
   static styvec s_int8  = {dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
@@ -463,6 +478,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
   static styvec s_float64 = {dt::SType::STR32, dt::SType::OBJ};
   static styvec s_str32 = {dt::SType::STR64, dt::SType::OBJ};
   static styvec s_str64 = {dt::SType::OBJ};
+  static styvec s_date32 = {};
 
   switch (stype) {
     case dt::SType::VOID:    return s_void;
@@ -475,6 +491,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
     case dt::SType::FLOAT64: return s_float64;
     case dt::SType::STR32:   return s_str32;
     case dt::SType::STR64:   return s_str64;
+    case dt::SType::DATE32:  return s_date32;
     default:
       throw RuntimeError() << "Unknown successors of stype " << stype;  // LCOV_EXCL_LINE
   }
@@ -506,6 +523,7 @@ static Column parse_column_auto_stype(const Column& inputcol) {
         case dt::SType::FLOAT64: j = parse_as_float64(inputcol, databuf, i); break;
         case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
         case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
+        case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
         case dt::SType::OBJ:     return force_as_pyobj(inputcol);
         default: continue;  // try another stype
       }

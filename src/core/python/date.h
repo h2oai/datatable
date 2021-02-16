@@ -37,7 +37,10 @@ class odate : public oobj {
     static odate unchecked(PyObject*);
     explicit odate(hh::ymd date);
 
+    static void init();
     static bool check(py::robj obj);
+
+    int get_days() const;
 
   private:
     explicit odate(PyObject*);

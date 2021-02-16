@@ -41,7 +41,7 @@ namespace hh {
 //     [civil_from_days(numeric_limits<int>::min()),
 //      civil_from_days(numeric_limits<int>::max()-719468)]
 //
-constexpr int days_from_civil(int y, int m, int d) noexcept {
+int days_from_civil(int y, int m, int d) noexcept {
   y -= (m <= 2);
   const int era = (y >= 0 ? y : y-399) / 400;
   const int yoe = y - era * 400;                             // [0, 399]
@@ -56,7 +56,7 @@ constexpr int days_from_civil(int y, int m, int d) noexcept {
 //   z is number of days since 1970-01-01 and is in the range:
 //   [numeric_limits<int>::min(), numeric_limits<int>::max()-719468].
 //
-constexpr ymd civil_from_days(int z) noexcept {
+ymd civil_from_days(int z) noexcept {
   z += 719468;
   const int era = (z >= 0 ? z : z - 146096) / 146097;
   const int doe = z - era * 146097;                                 // [0, 146096]
@@ -70,7 +70,7 @@ constexpr ymd civil_from_days(int z) noexcept {
 }
 
 
-constexpr bool is_leap(int y) noexcept {
+bool is_leap(int y) noexcept {
   return (y % 4 == 0) && (y % 100 != 0 || y % 400 == 0);
 }
 
@@ -79,7 +79,7 @@ constexpr bool is_leap(int y) noexcept {
 // Returns: The number of days in the month m of common year
 // The result is always in the range [28, 31].
 //
-constexpr int last_day_of_month_common_year(int m) noexcept {
+int last_day_of_month_common_year(int m) noexcept {
   constexpr char a[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
   return static_cast<int>(a[m - 1]);
 }
@@ -89,7 +89,7 @@ constexpr int last_day_of_month_common_year(int m) noexcept {
 // Returns: The number of days in the month m of leap year
 // The result is always in the range [29, 31].
 //
-constexpr int last_day_of_month_leap_year(int m) noexcept {
+int last_day_of_month_leap_year(int m) noexcept {
   constexpr char a[] = {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
   return static_cast<int>(a[m - 1]);
 }
@@ -99,7 +99,7 @@ constexpr int last_day_of_month_leap_year(int m) noexcept {
 // Returns: The number of days in the month m of year y
 // The result is always in the range [28, 31].
 //
-constexpr int last_day_of_month(int y, int m) noexcept {
+int last_day_of_month(int y, int m) noexcept {
   return (m != 2 || !is_leap(y)) ? last_day_of_month_common_year(m) : 29;
 }
 
@@ -108,7 +108,7 @@ constexpr int last_day_of_month(int y, int m) noexcept {
 // Preconditions:
 //   z is number of days since 1970-01-01 and is in the range:
 //   [numeric_limits<int>::min(), numeric_limits<int>::max()-4].
-constexpr int weekday_from_days(int z) noexcept {
+int weekday_from_days(int z) noexcept {
   return (z >= -4) ? (z+4) % 7 : (z+5) % 7 + 6;
 }
 

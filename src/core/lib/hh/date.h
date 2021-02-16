@@ -34,13 +34,13 @@ struct ymd {
 };
 
 
-constexpr int days_from_civil(int y, int m, int d) noexcept;
-constexpr ymd civil_from_days(int z) noexcept;
-constexpr bool is_leap(int y) noexcept;
-constexpr int last_day_of_month_common_year(int m) noexcept;
-constexpr int last_day_of_month_leap_year(int m) noexcept;
-constexpr int last_day_of_month(int y, int m) noexcept;
-constexpr int weekday_from_days(int z) noexcept;
+int days_from_civil(int y, int m, int d) noexcept;
+ymd civil_from_days(int z) noexcept;
+bool is_leap(int y) noexcept;
+int last_day_of_month_common_year(int m) noexcept;
+int last_day_of_month_leap_year(int m) noexcept;
+int last_day_of_month(int y, int m) noexcept;
+int weekday_from_days(int z) noexcept;
 
 
 

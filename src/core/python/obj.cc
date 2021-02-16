@@ -507,6 +507,15 @@ bool _obj::parse_double(double* out) const {
 }
 
 
+bool _obj::parse_date(int32_t* out) const {
+  if (py::odate::check(v)) {
+    *out = py::odate::unchecked(v).get_days();
+    return true;
+  }
+  return false;
+}
+
+
 
 
 //------------------------------------------------------------------------------
