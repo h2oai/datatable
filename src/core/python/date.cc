@@ -38,6 +38,9 @@ odate::odate(hh::ymd date) {
   if (!v) throw PyError();
 }
 
+odate::odate(int32_t days)
+  : odate(hh::civil_from_days(days)) {}
+
 
 
 bool odate::check(robj obj) {

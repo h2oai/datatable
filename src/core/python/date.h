@@ -35,6 +35,7 @@ class odate : public oobj {
     odate& operator=(odate&&) = default;
 
     static odate unchecked(PyObject*);
+    explicit odate(int32_t days);
     explicit odate(hh::ymd date);
 
     static void init();
