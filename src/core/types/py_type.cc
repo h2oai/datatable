@@ -209,6 +209,11 @@ py::oobj PyType::m__repr__() const {
 }
 
 
+size_t PyType::m__hash__() const {
+  return type_.hash();
+}
+
+
 py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
   if (x.is_type() && y.is_type()) {
     dt::Type xtype = reinterpret_cast<PyType*>(x.to_borrowed_ref())->type_;
@@ -268,6 +273,7 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(DESTRUCTOR(&PyType::m__dealloc__));
   xt.add(METHOD__REPR__(&PyType::m__repr__));
   xt.add(METHOD__CMP__(&PyType::m__compare__));
+  xt.add(METHOD__HASH__(&PyType::m__hash__));
   xt.add(GETTER(&PyType::get_name, args_get_name));
   pythonType = xt.get_type_object();
 

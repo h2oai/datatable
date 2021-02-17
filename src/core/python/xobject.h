@@ -68,6 +68,7 @@ class XTypeMaker {
     static struct IterTag {}          iter_tag;
     static struct NextTag {}          next_tag;
     static struct CallTag {}          call_tag;
+    static struct HashTag {}          hash_tag;
     static struct RichCompareTag {}   rich_compare_tag;
     static struct NbAddTag {}         nb_add_tag;
     static struct NbSubtractTag {}    nb_subtract_tag;
@@ -120,6 +121,9 @@ class XTypeMaker {
 
     // reprfunc = PyObject*(*)(PyObject*)
     void add(reprfunc _repr, ReprTag);
+
+    // hashfunc = Py_hash_t(*)(PyObject*)
+    void add(hashfunc _hash, HashTag);
 
     // reprfunc = PyObject*(*)(PyObject*)
     void add(reprfunc _str, StrTag);
@@ -345,6 +349,20 @@ Py_ssize_t _safe_len(PyObject* obj) noexcept {
   try {
     T* t = static_cast<T*>(obj);
     return static_cast<Py_ssize_t>((t->*METH)());
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return -1;
+  }
+}
+
+
+template <typename T, size_t(T::*METH)() const>
+Py_hash_t _safe_hash(PyObject* obj) noexcept {
+  auto cl = dt::CallLogger::hash(obj);
+  try {
+    T* t = static_cast<T*>(obj);
+    return static_cast<Py_hash_t>((t->*METH)());
   }
   catch (const std::exception& e) {
     exception_to_python(e);
@@ -628,6 +646,10 @@ RESTORE_CLANG_WARNING("-Wunused-template")
 
 #define METHOD__LEN__(METH)                                                    \
     py::_safe_len<CLASS_OF(METH), METH>, py::XTypeMaker::length_tag
+
+
+#define METHOD__HASH__(METH)                                                   \
+    py::_safe_hash<CLASS_OF(METH), METH>, py::XTypeMaker::hash_tag
 
 
 #define METHOD__GETATTR__(METH)                                                \

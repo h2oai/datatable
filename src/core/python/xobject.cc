@@ -38,6 +38,7 @@ XTypeMaker::BuffersTag       XTypeMaker::buffers_tag;
 XTypeMaker::IterTag          XTypeMaker::iter_tag;
 XTypeMaker::NextTag          XTypeMaker::next_tag;
 XTypeMaker::CallTag          XTypeMaker::call_tag;
+XTypeMaker::HashTag          XTypeMaker::hash_tag;
 XTypeMaker::RichCompareTag   XTypeMaker::rich_compare_tag;
 XTypeMaker::NbAddTag         XTypeMaker::nb_add_tag;
 XTypeMaker::NbSubtractTag    XTypeMaker::nb_subtract_tag;
@@ -245,6 +246,11 @@ void XTypeMaker::add(lenfunc _length, LengthTag) {
   type->tp_as_mapping->mp_length = _length;
 }
 
+// hashfunc - Py_hash_t(*)(PyObject*)
+void XTypeMaker::add(hashfunc _hash, HashTag) {
+  xassert(type);
+  type->tp_hash = _hash;
+}
 
 // getattrofunc = PyObject*(*)(PyObject*, PyObject*)
 void XTypeMaker::add(getattrofunc getattr, GetattrTag) {

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -355,6 +355,7 @@ class CallLogger::Impl
     void init_getbuffer (py::robj obj, void* buf, int flags) noexcept;
     void init_delbuffer (py::robj obj, void* buf) noexcept;
     void init_len       (py::robj obj) noexcept;
+    void init_hash      (py::robj obj) noexcept;
     void init_unaryfn   (py::robj obj, int op) noexcept;
     void init_binaryfn  (py::robj x, py::robj y, int op) noexcept;
     void init_ternaryfn (py::robj x, py::robj y, py::robj z, int op) noexcept;
@@ -495,6 +496,13 @@ void CallLogger::Impl::init_delbuffer(py::robj obj, void* buf) noexcept {
 void CallLogger::Impl::init_len(py::robj obj) noexcept {
   safe_init([&] {
     *out_ << R(obj) << ".__len__()";
+  });
+}
+
+
+void CallLogger::Impl::init_hash(py::robj obj) noexcept {
+  safe_init([&] {
+    *out_ << R(obj) << ".__hash__()";
   });
 }
 
@@ -715,6 +723,15 @@ CallLogger CallLogger::len(PyObject* pyobj) noexcept {
   CallLogger cl;
   if (cl.impl_) {
     cl.impl_->init_len(py::robj(pyobj));
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::hash(PyObject* pyobj) noexcept {
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_hash(py::robj(pyobj));
   }
   return cl;
 }
