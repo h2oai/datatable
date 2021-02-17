@@ -26,14 +26,15 @@ import datatable as dt
 
 
 
-def test_date32_type():
-    date32 = dt.Type.date32
-    assert dt.Type("date") == date32
-    assert dt.Type("date32") == date32
-    assert dt.Type(datetime.date) == date32
+def test_date32_name():
+    assert repr(dt.Type.date32) == "Type.date32"
+    assert dt.Type.date32.name == "date32"
 
-    assert repr(date32) == "Type.date32"
-    assert date32.name == "date32"
+
+def test_date32_type_from_basic():
+    assert dt.Type("date") == dt.Type.date32
+    assert dt.Type("date32") == dt.Type.date32
+    assert dt.Type(datetime.date) == dt.Type.date32
 
 
 def test_date32_type_from_numpy(np):
@@ -44,4 +45,25 @@ def test_date32_type_from_pyarrow(pa):
     assert dt.Type(pa.date32()) == dt.Type.date32
 
 
-# def test_date32_create_from
+
+def test_date32_create_from_python():
+    d = datetime.date
+    src = [d(2000, 1, 5), d(2010, 11, 23), d(2020, 2, 29), None]
+    DT = dt.Frame(src)
+    assert DT.types == [dt.Type.date32]
+    assert DT.to_list() == [src]
+
+
+def test_date32_repr():
+    d = datetime.date
+    src = [d(1, 1, 1), d(2001, 12, 13), d(5756, 5, 9)]
+    DT = dt.Frame(src)
+    assert str(DT) == (
+        "   | C0        \n"
+        "   | date32    \n"
+        "-- + ----------\n"
+        " 0 | 0001-01-01\n"
+        " 1 | 2001-12-13\n"
+        " 2 | 5756-05-09\n"
+        "[3 rows x 1 column]\n"
+    )
