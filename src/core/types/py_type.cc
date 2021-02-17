@@ -181,7 +181,7 @@ static void init_src_store_from_pyarrow() {
   auto pa = py::get_module("pyarrow");
   if (!pa) return;
   pyarrow_types_imported = true;
-  src_store->set(pa.invoke("void"), PyType::make(Type::void()));
+  src_store->set(pa.invoke("null"), PyType::make(Type::void0()));
   src_store->set(pa.invoke("bool_"), PyType::make(Type::bool8()));
   src_store->set(pa.invoke("int8"), PyType::make(Type::int8()));
   src_store->set(pa.invoke("int16"), PyType::make(Type::int16()));
@@ -190,7 +190,7 @@ static void init_src_store_from_pyarrow() {
   src_store->set(pa.invoke("float32"), PyType::make(Type::float32()));
   src_store->set(pa.invoke("float64"), PyType::make(Type::float64()));
   src_store->set(pa.invoke("string"), PyType::make(Type::str32()));
-  src_store->set(pa.invoke("long_string"), PyType::make(Type::str64()));
+  src_store->set(pa.invoke("large_string"), PyType::make(Type::str64()));
   src_store->set(pa.invoke("date32"), PyType::make(Type::date32()));
 }
 

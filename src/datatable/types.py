@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -212,6 +212,8 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
+    stype.time64: "t8",
+    stype.date32: "d4",
     stype.obj64: "o8",
 }
 
