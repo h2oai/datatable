@@ -256,7 +256,7 @@ py::oobj PyType::get_name() const {
 
 static const char* doc_min =
 R"(
-The smallest value that this type can hold, if applicable.
+The smallest finite value that this type can represent, if applicable.
 
 Parameters
 ----------
@@ -280,7 +280,7 @@ See also
 
 static const char* doc_max =
 R"(
-The largest value that this type can hold, if applicable.
+The largest finite value that this type can represent, if applicable.
 
 Parameters
 ----------
