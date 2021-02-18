@@ -40,6 +40,7 @@ class TypeImpl {
     virtual ~TypeImpl();
 
     SType stype() const { return stype_; }
+    virtual size_t hash() const noexcept;
 
     virtual bool is_boolean() const;
     virtual bool is_integer() const;

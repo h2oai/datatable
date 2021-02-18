@@ -99,7 +99,7 @@ Type Type::from_stype(SType stype) {
   throw NotImplError() << "Cannot instantiate Type from " << stype;
 }
 
-
+size_t Type::hash() const { return impl_->hash(); }
 SType Type::stype() const { return impl_->stype_; }
 
 bool Type::is_boolean() const { return impl_->is_boolean(); }

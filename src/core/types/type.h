@@ -72,6 +72,7 @@ class Type {
     //--------------------------------------------------------------------------
     // Properties
     //--------------------------------------------------------------------------
+    size_t hash() const;
     SType stype() const;
     bool is_boolean() const;
     bool is_integer() const;

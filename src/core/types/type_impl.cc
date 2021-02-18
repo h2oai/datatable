@@ -40,6 +40,9 @@ void TypeImpl::release() noexcept {
   if (refcount_ == 0) delete this;
 }
 
+size_t TypeImpl::hash() const noexcept {
+  return static_cast<size_t>(stype_);
+}
 
 bool TypeImpl::is_boolean() const { return false; }
 bool TypeImpl::is_integer() const { return false; }

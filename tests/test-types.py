@@ -186,6 +186,15 @@ def test_type_create_invalid():
         Type()
 
 
+def test_type_hashable():
+    m = {dt.Type.int32: 'ok', dt.Type.str64: 'yep'}
+    assert dt.Type.int32 in m
+    assert dt.Type('int32') in m
+    assert dt.Type.str64 in m
+    assert dt.Type('str64') in m
+    assert dt.Type.int64 not in m
+
+
 
 #-------------------------------------------------------------------------------
 # Test stype enum
