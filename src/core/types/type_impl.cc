@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "python/obj.h"
 #include "types/type_impl.h"
 namespace dt {
 
@@ -65,6 +66,10 @@ bool TypeImpl::can_be_read_as_pyobject() const { return false; }
 bool TypeImpl::equals(const TypeImpl* other) const {
   return stype_ == other->stype_;
 }
+
+
+py::oobj TypeImpl::min() const { return py::None(); }
+py::oobj TypeImpl::max() const { return py::None(); }
 
 
 

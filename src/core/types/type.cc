@@ -100,6 +100,8 @@ Type Type::from_stype(SType stype) {
 }
 
 size_t Type::hash() const { return impl_->hash(); }
+py::oobj Type::min() const { return impl_->min(); }
+py::oobj Type::max() const { return impl_->max(); }
 SType Type::stype() const { return impl_->stype_; }
 
 bool Type::is_boolean() const { return impl_->is_boolean(); }

@@ -225,6 +225,11 @@ py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
 }
 
 
+
+//------------------------------------------------------------------------------
+// .name
+//------------------------------------------------------------------------------
+
 static const char* doc_name =
 R"(
 Return the canonical name of this type, as a string.
@@ -243,6 +248,72 @@ py::oobj PyType::get_name() const {
   return py::ostring(type_.to_string());
 }
 
+
+
+//------------------------------------------------------------------------------
+// .min / .max
+//------------------------------------------------------------------------------
+
+static const char* doc_min =
+R"(
+The smallest value that this type can hold, if applicable.
+
+Parameters
+----------
+return: Any
+    The type of the returned value corresponds to the Type object: an int
+    for integer types, a float for floating-point types, etc. If the type
+    has no well-defined min value then `None` is returned.
+
+
+Examples
+--------
+>>> dt.Type.int8.min
+-127
+>>> dt.Type.float32.min
+-3.4028234663852886e+38
+
+See also
+--------
+:attr:`.max` -- the largest value for the type.
+)";
+
+static const char* doc_max =
+R"(
+The largest value that this type can hold, if applicable.
+
+Parameters
+----------
+return: Any
+    The type of the returned value corresponds to the Type object: an int
+    for integer types, a float for floating-point types, etc. If the type
+    has no well-defined max value then `None` is returned.
+
+
+Examples
+--------
+>>> dt.Type.int32.max
+2147483647
+>>> dt.Type.float64.max
+1.7976931348623157e+308
+
+
+See also
+--------
+:attr:`.min` -- the smallest value for the type.
+)";
+
+static py::GSArgs args_get_min("min", doc_min);
+static py::GSArgs args_get_max("max", doc_max);
+
+
+py::oobj PyType::get_min() const {
+  return type_.min();
+}
+
+py::oobj PyType::get_max() const {
+  return type_.max();
+}
 
 
 
@@ -275,6 +346,8 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(METHOD__CMP__(&PyType::m__compare__));
   xt.add(METHOD__HASH__(&PyType::m__hash__));
   xt.add(GETTER(&PyType::get_name, args_get_name));
+  xt.add(GETTER(&PyType::get_min, args_get_min));
+  xt.add(GETTER(&PyType::get_max, args_get_max));
   pythonType = xt.get_type_object();
 
   xt.add_attr("void",    PyType::make(Type::void0()));

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_STRING_h
 #define dt_TYPES_TYPE_STRING_h
+#include "python/string.h"
 #include "types/type_impl.h"
 #include "utils/assert.h"
 namespace dt {
@@ -34,6 +35,10 @@ class Type_String : public TypeImpl {
   public:
     bool is_string() const override { return true; }
     bool can_be_read_as_cstring() const override { return true; }
+
+    py::oobj min() const override {
+      return py::ostring("");
+    }
 };
 
 

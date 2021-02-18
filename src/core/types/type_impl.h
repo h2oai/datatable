@@ -41,6 +41,8 @@ class TypeImpl {
 
     SType stype() const { return stype_; }
     virtual size_t hash() const noexcept;
+    virtual py::oobj min() const;
+    virtual py::oobj max() const;
 
     virtual bool is_boolean() const;
     virtual bool is_integer() const;
