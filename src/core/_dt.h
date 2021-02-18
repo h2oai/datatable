@@ -74,6 +74,7 @@ namespace py {
   class buffer;  // in pybuffer.h
   class obool;
   class oby;
+  class odate;
   class odict;
   class ofloat;
   class oint;

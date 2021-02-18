@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -56,6 +56,8 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
+    date32 = 17
+    time64 = 18
     obj64 = 21
 
     def __repr__(self):
@@ -210,6 +212,8 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
+    stype.time64: "t8",
+    stype.date32: "d4",
     stype.obj64: "o8",
 }
 
@@ -224,6 +228,8 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
+    stype.date32: ltype.time,
+    stype.time64: ltype.time,
     stype.obj64: ltype.obj,
 }
 

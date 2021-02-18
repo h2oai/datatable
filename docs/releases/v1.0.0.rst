@@ -9,6 +9,12 @@
       objects for each column of the frame. These types are a generalization
       of previous stypes, and will eventually replace them.
 
+    -[new] New column type :attr:`dt.Type.date32` added, which can store a
+      calendar date [#1646]::
+
+          >>> import datetime
+          >>> DT = dt.Frame([datetime.date(2021, 2, 17)])
+
     -[new] A Frame can now be constructed from an Arrow
       table::
 

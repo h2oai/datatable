@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,20 +19,58 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
-
-#include "python/bool.h"
+#include <Python.h>
+#include <datetime.h>     // Python "datetime" module, not included in Python.h
 #include "python/date.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/list.h"
-#include "python/namedtuple.h"
-#include "python/obj.h"
-#include "python/pybuffer.h"
-#include "python/range.h"
-#include "python/set.h"
-#include "python/slice.h"
-#include "python/string.h"
-#include "python/tuple.h"
+#include "lib/hh/date.h"
+namespace py {
+
+
+odate::odate(PyObject* obj) : oobj(obj) {}  // private
+
+odate odate::unchecked(PyObject* obj) {
+  return odate(obj);
+}
+
+
+odate::odate(hh::ymd date) {
+  v = PyDate_FromDate(date.year, date.month, date.day);
+  if (!v) throw PyError();
+}
+
+odate::odate(int32_t days)
+  : odate(hh::civil_from_days(days)) {}
+
+
+
+bool odate::check(robj obj) {
+  return PyDate_Check(obj.to_borrowed_ref());
+}
+
+
+int odate::get_days() const {
+  return hh::days_from_civil(
+      PyDateTime_GET_YEAR(v),
+      PyDateTime_GET_MONTH(v),
+      PyDateTime_GET_DAY(v)
+  );
+}
+
+
+void odate::init() {
+  // In order to be able to use python API to access datetime objects,
+  // we need to "import" it via a special macro. This macro loads the
+  // datetime module as a capsule and stores it in PyDateTimeAPI variable.
+  //
+  // Note that the PyDateTimeAPI variable will be local to this file,
+  // which means that no PyDateTime* macros will work outside of this
+  // translation unit.
+  //
+  // See https://docs.python.org/3/c-api/datetime.html
+  PyDateTime_IMPORT;
+}
+
+
+
+
+}  // namespace py

@@ -830,15 +830,20 @@ def test_single_element_extraction_from_view(dt0):
 
 @pytest.mark.parametrize('st', list(dt.stype))
 def test_single_element_all_stypes(st):
+    from datetime import date as dd
+    if st == dt.stype.time64:
+        return
     pt = (bool if st == dt.stype.bool8 else
           int if st.ltype == dt.ltype.int else
           float if st.ltype == dt.ltype.real else
           str if st.ltype == dt.ltype.str else
+          dd if st == dt.stype.date32 else
           object)
     src = [True, False, True, None] if pt is bool else \
           [1, 7, -99, 214, None, 3333] if pt is int else \
           [2.5, 3.4e15, -7.909, None] if pt is float else \
           ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
+          [dd(2000, 5, 5), dd(2012, 12, 12), None] if pt is dd else \
           [dt, st, list, None, {3, 2, 1}]
     df = dt.Frame(A=src, stype=st)
     frame_integrity_check(df)

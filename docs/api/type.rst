@@ -7,6 +7,7 @@
         :hidden:
 
         bool8    <type/bool8>
+        date32   <type/date32>
         float32  <type/float32>
         float64  <type/float64>
         int16    <type/int16>

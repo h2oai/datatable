@@ -162,6 +162,7 @@ class _obj {
     bool is_by_node()       const noexcept;
     bool is_bytes()         const noexcept;
     bool is_callable()      const noexcept;
+    bool is_date()          const noexcept;
     bool is_dict()          const noexcept;
     bool is_dtexpr()        const noexcept;
     bool is_ellipsis()      const noexcept;
@@ -224,6 +225,7 @@ class _obj {
     bool parse_numpy_float(float*) const;
     bool parse_numpy_float(double*) const;
     bool parse_double(double*) const;
+    bool parse_date(int32_t*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
@@ -253,6 +255,7 @@ class _obj {
     py::orange  to_orange         (const error_manager& = _em0) const;
     py::oiter   to_oiter          (const error_manager& = _em0) const;
     py::oslice  to_oslice         (const error_manager& = _em0) const;
+    py::odate   to_odate          (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;
     py::rtuple  to_rtuple_lax     () const;
@@ -287,6 +290,7 @@ class _obj {
       virtual Error error_not_rowindex       (PyObject*) const;
       virtual Error error_not_frame          (PyObject*) const;
       virtual Error error_not_column         (PyObject*) const;
+      virtual Error error_not_date           (PyObject*) const;
       virtual Error error_not_list           (PyObject*) const;
       virtual Error error_not_dict           (PyObject*) const;
       virtual Error error_not_range          (PyObject*) const;
