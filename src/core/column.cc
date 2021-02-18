@@ -270,6 +270,11 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case dt::SType::FLOAT64: return getelem<double>(*this, i);
     case dt::SType::STR32:
     case dt::SType::STR64:   return getelem<dt::CString>(*this, i);
+    case dt::SType::DATE32: {
+      int32_t x;
+      bool isvalid = get_element(i, &x);
+      return isvalid? py::odate(x) : py::None();
+    }
     case dt::SType::OBJ: {
       py::oobj x;
       bool isvalid = get_element(i, &x);
@@ -293,6 +298,7 @@ bool Column::get_element_isvalid(size_t i) const {
       int16_t x;
       return get_element(i, &x);
     }
+    case dt::SType::DATE32:
     case dt::SType::INT32: {
       int32_t x;
       return get_element(i, &x);

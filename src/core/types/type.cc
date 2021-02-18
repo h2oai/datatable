@@ -23,6 +23,7 @@
 #include "stype.h"
 #include "types/type.h"
 #include "types/type_bool.h"
+#include "types/type_date.h"
 #include "types/type_float.h"
 #include "types/type_impl.h"
 #include "types/type_int.h"
@@ -71,6 +72,7 @@ Type::~Type() {
 
 Type Type::void0()   { return Type(new Type_Void); }
 Type Type::bool8()   { return Type(new Type_Bool8); }
+Type Type::date32()  { return Type(new Type_Date32); }
 Type Type::int8()    { return Type(new Type_Int8); }
 Type Type::int16()   { return Type(new Type_Int16); }
 Type Type::int32()   { return Type(new Type_Int32); }
@@ -93,6 +95,7 @@ Type Type::from_stype(SType stype) {
     case SType::FLOAT64: return float64();
     case SType::STR32:   return str32();
     case SType::STR64:   return str64();
+    case SType::DATE32:  return date32();
     case SType::OBJ:     return obj64();
     default: break;
   }

@@ -81,6 +81,11 @@ static void init_src_store_basic() {
   src_store->set(py::ostring("double"), tFloat64);
   src_store->set(py::oobj(&PyFloat_Type), tFloat64);
 
+  auto tDate32 = PyType::make(Type::date32());
+  src_store->set(py::ostring("date"), tDate32);
+  src_store->set(py::ostring("date32"), tDate32);
+  src_store->set(py::oobj::import("datetime", "date"), tDate32);
+
   auto tStr32 = PyType::make(Type::str32());
   src_store->set(py::ostring("str32"), tStr32);
   src_store->set(py::ostring("<U"), tStr32);
@@ -112,6 +117,7 @@ static void init_src_store_from_stypes() {
   src_store->set(stype.get_attr("int64"), PyType::make(Type::int64()));
   src_store->set(stype.get_attr("float32"), PyType::make(Type::float32()));
   src_store->set(stype.get_attr("float64"), PyType::make(Type::float64()));
+  src_store->set(stype.get_attr("date32"), PyType::make(Type::date32()));
   src_store->set(stype.get_attr("str32"), PyType::make(Type::str32()));
   src_store->set(stype.get_attr("str64"), PyType::make(Type::str64()));
   src_store->set(stype.get_attr("obj64"), PyType::make(Type::obj64()));
@@ -121,7 +127,7 @@ static void init_src_store_from_stypes() {
 static bool numpy_types_imported = false;
 static void init_src_store_from_numpy() {
   if (numpy_types_imported) return;
-  auto np = py::get_module("numpy");
+  auto np = py::get_module("numpy"); // only returns if numpy already loaded
   if (!np) return;
   numpy_types_imported = true;
   auto dtype = np.get_attr("dtype");
@@ -156,6 +162,9 @@ static void init_src_store_from_numpy() {
   src_store->set(dtype.call({py::ostring("float16")}), tFloat32);
   src_store->set(dtype.call({py::ostring("float32")}), tFloat32);
 
+  auto tDate32 = PyType::make(Type::date32());
+  src_store->set(dtype.call({py::ostring("<M8[D]")}), tDate32);
+
   auto tFloat64 = PyType::make(Type::float64());
   src_store->set(np.get_attr("float64"), tFloat64);
   src_store->set(dtype.call({py::ostring("float64")}), tFloat64);
@@ -166,19 +175,58 @@ static void init_src_store_from_numpy() {
 }
 
 
+static bool pyarrow_types_imported = false;
+static void init_src_store_from_pyarrow() {
+  if (pyarrow_types_imported) return;
+  auto pa = py::get_module("pyarrow");
+  if (!pa) return;
+  pyarrow_types_imported = true;
+  src_store->set(pa.invoke("null"), PyType::make(Type::void0()));
+  src_store->set(pa.invoke("bool_"), PyType::make(Type::bool8()));
+  src_store->set(pa.invoke("int8"), PyType::make(Type::int8()));
+  src_store->set(pa.invoke("int16"), PyType::make(Type::int16()));
+  src_store->set(pa.invoke("int32"), PyType::make(Type::int32()));
+  src_store->set(pa.invoke("int64"), PyType::make(Type::int64()));
+  src_store->set(pa.invoke("float32"), PyType::make(Type::float32()));
+  src_store->set(pa.invoke("float64"), PyType::make(Type::float64()));
+  src_store->set(pa.invoke("string"), PyType::make(Type::str32()));
+  src_store->set(pa.invoke("large_string"), PyType::make(Type::str64()));
+  src_store->set(pa.invoke("date32"), PyType::make(Type::date32()));
+}
+
+
 static py::PKArgs args___init__(
     1, 0, 0, false, false, {"src"}, "__init__", nullptr);
 
+
+// This constructor implements ``dt.Type(src)``. There are 2 modes of invoking
+// this: the "internal" mode (invoked without arguments) is called only by
+// PyType::make(). This mode is indicated by temporary setting global variable
+// ``internal_initialization = true``.
+//
+// The "normal" calling mode requires a single argument (possibly with
+// additional keywords for more advanced types).
+//
+// Creating PyTypes requires a lookup in the ``src_store`` dictionary, and
+// that dictionary is populated with various known sources in multiple steps.
+// Notably, numpy/pyarrow dtypes are among the sources, and we need to import
+// those libraries in order to fully populate ``src_store``. However, we are
+// doing a lazy import: the ``py::get_module()`` function that we use returns
+// the library instance if and only if that library was already loaded. Thus,
+// when we call ``init_src_store_from_numpy()``, and the user hasn't imported
+// numpy yet, then we skip putting numpy sources into the ``src_store``.
+//
 void PyType::m__init__(const py::PKArgs& args) {
   if (internal_initialization) return;
   auto src = args[0].to_oobj();
   if (!src) {
     throw TypeError() << "Missing required argument `src` in Type constructor";
   }
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 4; i++) {
     if (i == 0) init_src_store_basic();
     if (i == 1) init_src_store_from_stypes();
     if (i == 2) init_src_store_from_numpy();
+    if (i == 3) init_src_store_from_pyarrow();
     auto stored_type = src_store->get(src);
     if (stored_type) {
       type_ = reinterpret_cast<PyType*>(stored_type.to_borrowed_ref())->type_;
@@ -358,6 +406,7 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add_attr("int64",   PyType::make(Type::int64()));
   xt.add_attr("float32", PyType::make(Type::float32()));
   xt.add_attr("float64", PyType::make(Type::float64()));
+  xt.add_attr("date32",  PyType::make(Type::date32()));
   xt.add_attr("str32",   PyType::make(Type::str32()));
   xt.add_attr("str64",   PyType::make(Type::str64()));
   xt.add_attr("obj64",   PyType::make(Type::obj64()));

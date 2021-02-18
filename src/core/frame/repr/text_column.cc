@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,8 +20,10 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>                  // std::min, std::max
+#include <iomanip>                    // std::setfill, std::setw
 #include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
+#include "lib/hh/date.h"
 #include "ltype.h"
 #include "utils/assert.h"
 #include "encodings.h"
@@ -176,6 +178,19 @@ tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
   return tstring(out.str());
 }
 
+tstring Data_TextColumn::_render_value_date(const Column& col, size_t i) const {
+  int32_t value;
+  bool isvalid = col.get_element(i, &value);
+  hh::ymd parsed = hh::civil_from_days(value);
+  if (!isvalid) return na_value_;
+  std::ostringstream out;
+  out << std::setfill('0');
+  out << std::setw(4) << parsed.year << '-'
+      << std::setw(2) << parsed.month << '-'
+      << std::setw(2) << parsed.day;
+  return tstring(out.str());
+}
+
 
 bool Data_TextColumn::_needs_escaping(const CString& str) const {
   size_t n = str.size();
@@ -313,6 +328,7 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::FLOAT64: return _render_value_float<double>(col, i);
     case SType::STR32:
     case SType::STR64:   return _render_value_string(col, i);
+    case SType::DATE32:  return _render_value_date(col, i);
     default: return tstring("");
   }
 }

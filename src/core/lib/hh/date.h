@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,20 +19,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "python/python.h"
+#ifndef hh_DATE_h
+#define hh_DATE_h
+namespace hh {
 
-#include "python/bool.h"
-#include "python/date.h"
-#include "python/dict.h"
-#include "python/float.h"
-#include "python/int.h"
-#include "python/iter.h"
-#include "python/list.h"
-#include "python/namedtuple.h"
-#include "python/obj.h"
-#include "python/pybuffer.h"
-#include "python/range.h"
-#include "python/set.h"
-#include "python/slice.h"
-#include "python/string.h"
-#include "python/tuple.h"
+
+struct ymd {
+  int year;
+  int month;
+  int day;
+  int : 32;
+
+  constexpr ymd(int y, int m, int d) : year(y), month(m), day(d) {}
+};
+
+
+int days_from_civil(int y, int m, int d) noexcept;
+ymd civil_from_days(int z) noexcept;
+bool is_leap(int y) noexcept;
+int last_day_of_month_common_year(int m) noexcept;
+int last_day_of_month_leap_year(int m) noexcept;
+int last_day_of_month(int y, int m) noexcept;
+int weekday_from_days(int z) noexcept;
+
+
+
+}  // namespace hh
+#endif

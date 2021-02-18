@@ -56,10 +56,8 @@ LType stype_to_ltype(SType stype) {
     case SType::FLOAT64: return LType::REAL;
     case SType::STR32  : return LType::STRING;
     case SType::STR64  : return LType::STRING;
-    case SType::DATE64 : return LType::DATETIME;
-    case SType::TIME32 : return LType::DATETIME;
+    case SType::TIME64 : return LType::DATETIME;
     case SType::DATE32 : return LType::DATETIME;
-    case SType::DATE16 : return LType::DATETIME;
     case SType::OBJ    : return LType::OBJECT;
     default            : return LType::INVALID;
   }
@@ -78,10 +76,8 @@ const char* stype_name(SType stype) {
     case SType::FLOAT64: return "float64";
     case SType::STR32  : return "str32";
     case SType::STR64  : return "str64";
-    case SType::DATE64 : return "date64";
-    case SType::TIME32 : return "time32";
+    case SType::TIME64 : return "time64";
     case SType::DATE32 : return "date32";
-    case SType::DATE16 : return "date16";
     case SType::OBJ    : return "obj64";
     case SType::AUTO   : return "auto";
     default            : return "unknown";
@@ -101,10 +97,8 @@ size_t stype_elemsize(SType stype) {
     case SType::FLOAT64: return sizeof(element_t<SType::FLOAT64>);
     case SType::STR32  : return sizeof(element_t<SType::STR32>);
     case SType::STR64  : return sizeof(element_t<SType::STR64>);
-    case SType::DATE64 : return sizeof(element_t<SType::DATE64>);
-    case SType::TIME32 : return sizeof(element_t<SType::TIME32>);
+    case SType::TIME64 : return sizeof(element_t<SType::TIME64>);
     case SType::DATE32 : return sizeof(element_t<SType::DATE32>);
-    case SType::DATE16 : return sizeof(element_t<SType::DATE16>);
     case SType::OBJ    : return sizeof(element_t<SType::OBJ>);
     default            : return 0;
   }
@@ -153,10 +147,8 @@ void init_py_stype_objs(PyObject* stype_enum) {
   _init_py_stype(SType::FLOAT64);
   _init_py_stype(SType::STR32);
   _init_py_stype(SType::STR64);
-  // _init_py_stype(SType::DATE64);
-  // _init_py_stype(SType::TIME32);
-  // _init_py_stype(SType::DATE32);
-  // _init_py_stype(SType::DATE16);
+  _init_py_stype(SType::TIME64);
+  _init_py_stype(SType::DATE32);
   _init_py_stype(SType::OBJ);
 }
 
