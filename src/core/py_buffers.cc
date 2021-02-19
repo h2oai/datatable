@@ -69,15 +69,16 @@ static char strB[] = "B";
 // Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column Column::from_pybuffer(const py::robj& pyobj)
-{
+Column Column::from_pybuffer(const py::robj& pyobj) {
   // Check if this is a datetime64 column, in which case it must be converted
   if (pyobj.is_numpy_array()) {
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
     if (kind == "M") {  // datetime64
+      // datetime64 column does not support PyBuffers interface, so it has to
+      // be cast into int64 first.
       Column tmp = Column::from_pybuffer(
-          pyobj.invoke("view", py::ostring("int64"))
+        pyobj.invoke("view", py::ostring("int64"))
       );
       xassert(tmp.stype() == dt::SType::INT64);
       auto str = dtype.get_attr("str").to_string();

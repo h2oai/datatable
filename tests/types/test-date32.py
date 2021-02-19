@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import datetime
 import datatable as dt
+import pytest
 
 
 
@@ -77,3 +78,15 @@ def test_date32_repr():
         " 2 | 5756-05-09\n"
         "[3 rows x 1 column]\n"
     )
+
+
+
+#-------------------------------------------------------------------------------
+# Convert from numpy
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("scale", ["D", "W", "M", "Y"])
+def test_date32_from_numpy_datetime64(np, scale):
+    arr = np.array(range(-100, 1000), dtype=f'datetime64[{scale}]')
+    DT = dt.Frame(arr)
+    assert DT.to_list() == [arr.tolist()]
