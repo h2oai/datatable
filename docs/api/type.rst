@@ -3,6 +3,25 @@
     :src: src/core/types/py_type.h PyType
     :doc: src/core/types/py_type.cc doc_Type
 
+
+    Values
+    ------
+    The following types are currently available:
+
+    - :attr:`dt.Type.bool8`
+    - :attr:`dt.Type.date32`
+    - :attr:`dt.Type.float32`
+    - :attr:`dt.Type.float64`
+    - :attr:`dt.Type.int16`
+    - :attr:`dt.Type.int32`
+    - :attr:`dt.Type.int64`
+    - :attr:`dt.Type.int8`
+    - :attr:`dt.Type.obj64`
+    - :attr:`dt.Type.str32`
+    - :attr:`dt.Type.str64`
+    - :attr:`dt.Type.void`
+
+
     Properties
     ----------
     .. list-table::

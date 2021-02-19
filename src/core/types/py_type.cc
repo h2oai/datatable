@@ -320,6 +320,13 @@ Examples
 -127
 >>> dt.Type.float32.min
 -3.4028234663852886e+38
+>>> dt.Type.date32.min
+   | min
+   | date32
+-- + --------------
+ 0 | -5877641-06-24
+[1 row x 1 column]
+
 
 See also
 --------
@@ -344,7 +351,12 @@ Examples
 2147483647
 >>> dt.Type.float64.max
 1.7976931348623157e+308
-
+>>> dt.Type.date32.max
+   | max
+   | date32
+-- + -------------
+ 0 | 5879610-09-09
+[1 row x 1 column]
 
 See also
 --------
