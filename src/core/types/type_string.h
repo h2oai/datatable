@@ -35,10 +35,6 @@ class Type_String : public TypeImpl {
   public:
     bool is_string() const override { return true; }
     bool can_be_read_as_cstring() const override { return true; }
-
-    py::oobj min() const override {
-      return py::ostring("");
-    }
 };
 
 
