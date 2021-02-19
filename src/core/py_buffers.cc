@@ -24,6 +24,9 @@
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
 #include <stdlib.h>  // atoi
+#include "column/date_from_weeks.h"
+#include "column/date_from_months.h"
+#include "column/date_from_years.h"
 #include "column/view.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -72,6 +75,20 @@ Column Column::from_pybuffer(const py::robj& pyobj)
   if (pyobj.is_numpy_array()) {
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
+    if (kind == "M") {  // datetime64
+      Column tmp = Column::from_pybuffer(
+          pyobj.invoke("view", py::ostring("int64"))
+      );
+      xassert(tmp.stype() == dt::SType::INT64);
+      auto str = dtype.get_attr("str").to_string();
+      if (str == "<M8[D]") {
+        tmp.cast_inplace(dt::SType::DATE32);
+        return tmp;
+      }
+      if (str == "<M8[W]") return Column(new dt::DateFromWeeks_ColumnImpl(std::move(tmp)));
+      if (str == "<M8[M]") return Column(new dt::DateFromMonths_ColumnImpl(std::move(tmp)));
+      if (str == "<M8[Y]") return Column(new dt::DateFromYears_ColumnImpl(std::move(tmp)));
+    }
     if (kind == "M" || kind == "m") {
       return Column::from_pybuffer(pyobj.invoke("astype", py::ostring("str")));
     }
