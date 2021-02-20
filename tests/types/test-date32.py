@@ -90,3 +90,11 @@ def test_date32_from_numpy_datetime64(np, scale):
     arr = np.array(range(-100, 1000), dtype=f'datetime64[{scale}]')
     DT = dt.Frame(arr)
     assert DT.to_list() == [arr.tolist()]
+
+
+def test_from_numpy_with_nats(np):
+    arr = np.array(['2000-01-01', '2020-05-11', 'NaT'], dtype='datetime64[D]')
+    DT = dt.Frame(arr)
+    assert DT.to_list() == [
+        [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
+    ]
