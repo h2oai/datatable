@@ -36,9 +36,10 @@ DateFromMonths_ColumnImpl::DateFromMonths_ColumnImpl(Column&& arg)
 bool DateFromMonths_ColumnImpl::get_element(size_t i, int32_t* out) const {
   int64_t value;
   bool valid = arg_.get_element(i, &value);
-  int year = static_cast<int>(value / 12) + 1970;
-  int month = static_cast<int>(value % 12) + 1;
-  *out = hh::days_from_civil(year, month, 1);
+  auto y = value >= 0? value/12 : (value - 11)/12;
+  auto m = (value - y * 12);
+  *out = hh::days_from_civil(static_cast<int>(y) + 1970,
+                             static_cast<int>(m) + 1, 1);
   return valid;
 }
 
