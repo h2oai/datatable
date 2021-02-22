@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,13 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+
 #ifndef dt_MODELS_COLUMN_CASTER_h
 #define dt_MODELS_COLUMN_CASTER_h
 #include "column/func_unary.h"
 
 
 /**
- *  Create a virtual column that casts `col` from `T_from` to `T_to`.
+ *  Create a virtual column that casts numeric `col` from `T_from` to `T_to`.
  *  Infinite values are casted into NA's.
  */
 template <typename T_from, typename T_to>

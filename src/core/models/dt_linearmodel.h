@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,8 @@ namespace dt {
 
 
 /**
- *  Class template that implements all the virtual methods declared in dt::Linear.
+ *  Class template that implements all the virtual methods declared in
+ *  dt::LinearModelBase.
  */
 template <typename T /* float or double */>
 class LinearModel : public dt::LinearModelBase {
@@ -107,10 +108,6 @@ class LinearModel : public dt::LinearModelBase {
     void adjust_model();
     void init_model();
     void init_weights();
-
-    // Do label encoding and set up mapping information
-    void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
-    void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
 
     // Feature importance helper methods
     void create_fi();

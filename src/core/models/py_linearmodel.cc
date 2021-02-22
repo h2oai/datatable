@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -59,8 +59,8 @@ std::map<dt::LinearModelType, std::string> LinearModel::create_model_type_name()
 
 
 /**
- *  Linear(...)
- *  Initialize Linear object with the provided parameters.
+ *  LinearModel(...)
+ *  Initialize LinearModel object with the provided parameters.
  */
 
 static const char* doc___init__ =
@@ -77,12 +77,10 @@ eta: float
     :math:`\eta` step size aka learning rate.
 
 lambda1: float
-    L1 regularization parameter, :math:`\lambda_1` in per-coordinate
-    LINEAR-Proximal algorithm. It should be non-negative.
+    L1 regularization parameter, should be non-negative.
 
 lambda2: float
-    L2 regularization parameter, :math:`\lambda_2` in per-coordinate
-    LINEAR-Proximal algorithm. It should be non-negative.
+    L2 regularization parameter, should be non-negative.
 
 nepochs: float
     Number of training epochs, should be non-negative. When `nepochs`
@@ -99,7 +97,7 @@ double_precision: bool
     for computations. It is not guaranteed that setting
     `double_precision` to `True` will automatically improve
     the model accuracy. It will, however, roughly double the memory
-    footprint of the `Linear` object.
+    footprint of the `LinearModel` object.
 
 negative_class: bool
     An option to indicate if a "negative" class should be created
@@ -179,7 +177,7 @@ void LinearModel::m__init__(const PKArgs& args) {
         << "`params` or any of the individual parameters with `eta`, "
         << "`lambda1`, `lambda2`, `nepochs`, "
         << "`double_precision`, `negative_class`, `interactions` or `model_type` "
-        << "to `Linear` constructor, but not both at the same time";
+        << "to `LinearModel` constructor, but not both at the same time";
     }
 
     py::otuple py_params_in = arg_params.to_otuple();
@@ -388,7 +386,9 @@ oobj LinearModel::fit(const PKArgs& args) {
   size_t val_niters = 0;
 
   if (!arg_X_validation.is_none_or_undefined() &&
-      !arg_y_validation.is_none_or_undefined()) {
+      !arg_y_validation.is_none_or_undefined())
+
+  {
     dt_X_val = arg_X_validation.to_datatable();
     dt_y_val = arg_y_validation.to_datatable();
 
@@ -572,7 +572,7 @@ static const char* doc_reset =
 R"(reset(self)
 --
 
-Reset `Linear` model by resetting all the model weights, labels and
+Reset linear model by resetting all the model weights, labels and
 feature importance information.
 
 Parameters
@@ -771,7 +771,7 @@ void LinearModel::set_colnames(robj py_colnames) {
 
 static const char* doc_eta =
 R"(
-:math:`\eta` in per-coordinate LINEAR-Proximal algorithm.
+Step size, aka learning rate.
 
 Parameters
 ----------
@@ -811,8 +811,7 @@ void LinearModel::set_eta(const Arg& py_eta) {
 
 static const char* doc_lambda1 =
 R"(
-L1 regularization parameter, :math:`\lambda_1` in per-coordinate
-LINEAR-Proximal algorithm.
+L1 regularization parameter.
 
 Parameters
 ----------
@@ -853,8 +852,7 @@ void LinearModel::set_lambda1(const Arg& py_lambda1) {
 
 static const char* doc_lambda2 =
 R"(
-L2 regularization parameter, :math:`\lambda_2` in per-coordinate
-LINEAR-Proximal algorithm.
+L2 regularization parameter.
 
 Parameters
 ----------
@@ -944,7 +942,7 @@ R"(
 An option to indicate whether double precision, i.e. `float64`,
 or single precision, i.e. `float32`, arithmetic should be
 used for computations. This option is read-only and can only be set
-during the `Linear` object :meth:`construction <datatable.models.Linear.__init__>`.
+during the `LinearModel` object :meth:`construction <datatable.models.LinearModel.__init__>`.
 
 Parameters
 ----------
@@ -1120,7 +1118,7 @@ void LinearModel::set_interactions(const Arg& arg_interactions) {
 
 static const char* doc_model_type =
 R"(
-A type of the model `Linear` should build:
+A type of the model `LinearModel` should build:
 
 - `"binomial"` for binomial classification;
 - `"multinomial"` for multinomial classification;
@@ -1146,7 +1144,7 @@ except: ValueError
 
 See also
 --------
-- :attr:`.model_type_trained` -- the model type `Linear` has build.
+- :attr:`.model_type_trained` -- the model type `LinearModel` has build.
 )";
 
 static GSArgs args_model_type(
@@ -1182,7 +1180,7 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
 
 static const char* doc_model_type_trained =
 R"(
-The model type `Linear` has built.
+The model type `LinearModel` has built.
 
 Parameters
 ----------
@@ -1192,7 +1190,7 @@ return: str
 
 See also
 --------
-- :attr:`.model_type` -- the model type `Linear` should build.
+- :attr:`.model_type` -- the model type `LinearModel` should build.
 )";
 
 static GSArgs args_model_type_trained(
@@ -1214,7 +1212,7 @@ oobj LinearModel::get_model_type_trained() const {
 
 static const char* doc_params =
 R"(
-`Linear` model parameters as a named tuple `LinearModelParams`,
+`LinearModel` model parameters as a named tuple `LinearModelParams`,
 see :meth:`.__init__` for more details.
 This option is read-only for a trained model.
 
@@ -1291,7 +1289,7 @@ void LinearModel::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
   if (n_params != 8) {
-    throw ValueError() << "Tuple of LINEAR parameters should have 8 elements, "
+    throw ValueError() << "Tuple of `LinearModel` parameters should have 8 elements, "
                        << "got: " << n_params;
   }
   set_eta({params_tuple[0], "eta"});
