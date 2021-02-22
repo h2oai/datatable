@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_INT_h
 #define dt_TYPES_TYPE_INT_h
+#include <limits>
+#include "python/int.h"
 #include "types/type_impl.h"
 #include "utils/assert.h"
 namespace dt {
@@ -42,6 +44,8 @@ class Type_Int8 : public Type_Int {
     Type_Int8() : Type_Int(SType::INT8) {}
     bool can_be_read_as_int8()  const override { return true; }
     std::string to_string() const override { return "int8"; }
+    py::oobj min() const override { return py::oint(-127); }
+    py::oobj max() const override { return py::oint(127); }
 };
 
 
@@ -50,6 +54,8 @@ class Type_Int16 : public Type_Int {
     Type_Int16() : Type_Int(SType::INT16) {}
     bool can_be_read_as_int16()  const override { return true; }
     std::string to_string() const override { return "int16"; }
+    py::oobj min() const override { return py::oint(-32767); }
+    py::oobj max() const override { return py::oint(32767); }
 };
 
 
@@ -58,6 +64,13 @@ class Type_Int32 : public Type_Int {
     Type_Int32() : Type_Int(SType::INT32) {}
     bool can_be_read_as_int32()  const override { return true; }
     std::string to_string() const override { return "int32"; }
+
+    py::oobj min() const override {
+      return py::oint(-std::numeric_limits<int32_t>::max());
+    }
+    py::oobj max() const override {
+      return py::oint(std::numeric_limits<int32_t>::max());
+    }
 };
 
 
@@ -66,6 +79,13 @@ class Type_Int64 : public Type_Int {
     Type_Int64() : Type_Int(SType::INT64) {}
     bool can_be_read_as_int64()  const override { return true; }
     std::string to_string() const override { return "int64"; }
+
+    py::oobj min() const override {
+      return py::oint(-std::numeric_limits<int64_t>::max());
+    }
+    py::oobj max() const override {
+      return py::oint(std::numeric_limits<int64_t>::max());
+    }
 };
 
 
