@@ -43,6 +43,7 @@
 #include "ltype.h"
 #include "models/aggregate.h"
 #include "models/py_ftrl.h"
+#include "models/py_linearmodel.h"
 #include "options.h"
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
@@ -487,6 +488,7 @@ extern "C" {
 
       py::Frame::init_type(m);
       py::Ftrl::init_type(m);
+      py::LinearModel::init_type(m);
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
       dt::expr::PyFExpr::init_type(m);

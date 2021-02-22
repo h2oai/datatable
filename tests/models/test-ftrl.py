@@ -50,10 +50,6 @@ tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  negative_class = True, interactions = (("C0",),),
                  model_type = 'binomial')
 
-tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
-                   [random.random() for _ in range(tparams.nbins)]],
-                   names=['z', 'n'])
-
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 10**6, mantissa_nbits = 10, nepochs = 1,
                         double_precision = False, negative_class = False,
@@ -1340,6 +1336,7 @@ def test_ftrl_early_stopping_float(validation_average_niterations):
     assert_equals(ft.model, ft1.model)
     assert_equals(p, p1)
 
+
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])
 def test_ftrl_early_stopping_regression(validation_average_niterations):
     nepochs = 10000
@@ -1585,7 +1582,7 @@ def test_ftrl_reuse_pickled_empty_model():
     df_target = dt.Frame([True] * ft_unpickled.nbins)
     ft_unpickled.fit(df_train, df_target)
     model = [[0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
-    fi = dt.Frame([["id"], [0.0]])[:, [f[0], dt.float32(f[1])]]
+    fi = dt.Frame([["id"], [0.0]/stype.float32])
     fi.names = ["feature_name", "feature_importance"]
     assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)

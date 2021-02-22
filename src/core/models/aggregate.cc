@@ -20,13 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
-#include "column/func_unary.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "models/aggregate.h"
-#include "models/utils.h"
+#include "models/column_caster.h"
 #include "models/py_validator.h"
+#include "models/utils.h"
 #include "options.h"
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
@@ -290,26 +290,6 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 }
 
 
-/**
- *  Continuous column maker returns virtual column
- *  that casts a numeric column to type `T` and converts
- *  infinite values into missings.
- */
-template <typename T>
-template <typename TI>
-Column Aggregator<T>::contcol_maker(const Column& col_, dt::SType stype) {
-  Column col = Column(new dt::FuncUnary2_ColumnImpl<TI, T>(
-                 Column(col_),
-                 [](TI x, bool x_isvalid, T* out) {
-                   *out = static_cast<T>(x);
-                   return x_isvalid && _isfinite(x);
-                 },
-                 col_.nrows(),
-                 stype
-               ));
-  return col;
-}
-
 
 /**
  *  Main Aggregator method, convert all the numeric columns to `T`,
@@ -356,20 +336,20 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       switch (col_stype) {
         case dt::SType::VOID:
         case dt::SType::BOOL:
-        case dt::SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
-        case dt::SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
-        case dt::SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
-        case dt::SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
-        case dt::SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
-        case dt::SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
+        case dt::SType::INT8:    contcol = make_casted_column<int8_t, T>(col, agg_stype); break;
+        case dt::SType::INT16:   contcol = make_casted_column<int16_t, T>(col, agg_stype); break;
+        case dt::SType::INT32:   contcol = make_casted_column<int32_t, T>(col, agg_stype); break;
+        case dt::SType::INT64:   contcol = make_casted_column<int64_t, T>(col, agg_stype); break;
+        case dt::SType::FLOAT32: contcol = make_casted_column<float, T>(col, agg_stype); break;
+        case dt::SType::FLOAT64: contcol = make_casted_column<double, T>(col, agg_stype); break;
         case dt::SType::STR32:
         case dt::SType::STR64:   is_continuous = false;
-                             if (ncols < ND_COLS) {
-                               catcols.push_back(dt->get_column(i));
-                             }
-                             break;
-        default:             throw TypeError() << "Columns with stype `"
-                               << col_stype << "` are not supported";
+                                 if (ncols < ND_COLS) {
+                                   catcols.push_back(dt->get_column(i));
+                                 }
+                                 break;
+        default:  throw TypeError() << "Columns with stype `"
+                  << col_stype << "` are not supported";
       }
       if (is_continuous) {
         double min, max;

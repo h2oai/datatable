@@ -19,41 +19,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_MODELS_PY_FTRL_h
-#define dt_MODELS_PY_FTRL_h
+#ifndef dt_MODELS_PY_LINEARMODEL_h
+#define dt_MODELS_PY_LINEARMODEL_h
 #include <map>
 #include "str/py_str.h"
 #include "python/string.h"
 #include "python/xobject.h"
-#include "models/dt_ftrl.h"
-#include "models/dt_ftrl_base.h"
+#include "models/dt_linearmodel.h"
+#include "models/dt_linearmodel_base.h"
 #include "models/py_validator.h"
 namespace py {
 
 
 /**
- *  Main class that controls Python FTRL API.
+ *  Main class that controls Python LinearModel API.
  */
-class Ftrl : public XObject<Ftrl> {
+class LinearModel : public XObject<LinearModel> {
   private:
-    dt::FtrlBase* dtft;
+    dt::LinearModelBase* lm;
     py::onamedtuple* py_params;
     strvec* colnames;
     bool double_precision;
     size_t: 56;
 
   public:
-    // FTRL API version to be used for backward compatibility
-    static const size_t API_VERSION = 23;
+    // LinearModel API version to be used for backward compatibility
+    static const size_t API_VERSION = 1;
     static void impl_init_type(XTypeMaker&);
 
     // Initializers and deallocator
     void m__init__(const PKArgs&);
     void m__dealloc__();
     void init_py_params();
-    void init_dt_ftrl();
+    void init_dt_linearmodel();
     void init_dt_interactions();
-    static std::map<dt::FtrlModelType, std::string> create_model_type_name();
+    static std::map<dt::LinearModelType, std::string> create_model_type_name();
 
     // Pickling support
     oobj m__getstate__(const PKArgs&);
@@ -70,15 +70,11 @@ class Ftrl : public XObject<Ftrl> {
     oobj get_normalized_fi(bool) const;
     oobj get_model() const;
     oobj get_colnames() const;
-    oobj get_colname_hashes() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;
-    oobj get_alpha() const;
-    oobj get_beta() const;
+    oobj get_eta() const;
     oobj get_lambda1() const;
     oobj get_lambda2() const;
-    oobj get_nbins() const;
-    oobj get_mantissa_nbits() const;
     oobj get_nepochs() const;
     oobj get_interactions() const;
     oobj get_double_precision() const;
@@ -92,13 +88,10 @@ class Ftrl : public XObject<Ftrl> {
     void set_colnames(robj);          // Not exposed, used for unpickling only
     void set_params_tuple(robj);      // Not exposed, used for unpickling only
     void set_params_namedtuple(robj); // Not exposed, used in `m__init__` only
-    void set_alpha(const Arg&);
-    void set_beta(const Arg&);
+    void set_eta(const Arg&);
     void set_lambda1(const Arg&);
     void set_lambda2(const Arg&);
     void set_nepochs(const Arg&);
-    void set_nbins(const Arg&);             // Disabled for a trained model
-    void set_mantissa_nbits(const Arg&);    // Disabled for a trained model
     void set_interactions(const Arg&);      // Disabled for a trained model
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model

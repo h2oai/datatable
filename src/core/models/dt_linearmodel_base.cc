@@ -19,35 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <vector>
-#include "models/utils.h"
+#include "models/dt_linearmodel_base.h"
+#include "parallel/api.h"
+
+
+namespace dt {
+
 
 /**
- *  For a given `n` calculate all the coprime numbers and return them
- *  as a `coprimes` vector.
+ *  Destructor for the abstract `dt::LinearModelBase` class.
  */
-void calculate_coprimes(size_t n, sztvec& coprimes) {
-  coprimes.clear();
-  if (n == 1) {
-    coprimes.push_back(1);
-    return;
-  }
+LinearModelBase::~LinearModelBase() {}
 
-  std::vector<bool> mask(n - 1, false);
-  for (size_t i = 2; i <= n / 2; ++i) {
-    if (mask[i - 1]) continue;
-    if (n % i == 0) {
-      size_t j = 1;
-      while (j * i < n) {
-        mask[j * i - 1] = true;
-        j++;
-      }
-    }
-  }
 
-  for (size_t i = 1; i < n; ++i) {
-    if (mask[i - 1] == 0) {
-      coprimes.push_back(i);
-    }
-  }
+/**
+ *  Calculate work amount, i.e. number of rows, to be processed
+ *  by the zero thread for a MIN_ROWS_PER_THREAD chunk size.
+ */
+size_t LinearModelBase::get_work_amount(size_t nrows) {
+  size_t chunk_size = MIN_ROWS_PER_THREAD;
+  NThreads nthreads(nthreads_from_niters(nrows, MIN_ROWS_PER_THREAD));
+  size_t nth = nthreads.get();
+
+  size_t chunk_rows = chunk_size * (nrows / (nth * chunk_size));
+  size_t residual_rows = std::min(nrows - chunk_rows * nth, chunk_size);
+  return chunk_rows + residual_rows;
 }
+
+} // namespace dt
