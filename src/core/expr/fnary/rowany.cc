@@ -55,6 +55,34 @@ See Also
 
 - :func:`rowall()` -- row-wise `all() <https://docs.python.org/3/library/functions.html#all>`_ function.
 
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A":[True, True],
+    ...                "B":[True, False],
+    ...                "C":[True, True]})
+    >>> DT
+       |     A      B      C
+       | bool8  bool8  bool8
+    -- + -----  -----  -----
+     0 |     1      1      1
+     1 |     1      0      1
+    [2 rows x 3 columns]
+
+
+::
+
+    >>> DT[:, dt.rowany(f[:])]
+       |    C0
+       | bool8
+    -- + -----
+     0 |     1
+     1 |     1
+    [2 rows x 1 column]
+
+
 )";
 
 py::PKArgs args_rowany(0, 0, 0, true, false, {}, "rowany", doc_rowany);
