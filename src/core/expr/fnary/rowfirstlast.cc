@@ -52,6 +52,55 @@ See Also
 
 - :func:`rowlast()` -- find the last non-missing value row-wise.
 
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None],
+    ...                "C":[True, False, False, True, True]})
+    >>> DT
+       |     A      B      C
+       | int32  int32  bool8
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      0
+     2 |     2      3      0
+     3 |     1      4      1
+     4 |     2     NA      1
+    [5 rows x 3 columns]
+
+::
+
+    >>> DT[:, dt.rowfirst(f[:])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     1
+     1 |     1
+     2 |     2
+     3 |     1
+     4 |     2
+    [5 rows x 1 column]
+
+
+::
+
+    >>> DT[:, dt.rowfirst(f['B', 'C'])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+     2 |     3
+     3 |     4
+     4 |     1
+    [5 rows x 1 column]
+
+
+
+
 )";
 
 
