@@ -53,6 +53,34 @@ See Also
 
 - :func:`rowany()` -- row-wise `any() <https://docs.python.org/3/library/functions.html#any>`_ function.
 
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A":[True, True],
+    ...                "B":[True, False],
+    ...                "C":[True, True]})
+    >>> DT
+       |     A      B      C
+       | bool8  bool8  bool8
+    -- + -----  -----  -----
+     0 |     1      1      1
+     1 |     1      0      1
+    [2 rows x 3 columns]
+
+
+::
+
+    >>> DT[:, dt.rowall(f[:])]
+       |    C0
+       | bool8
+    -- + -----
+     0 |     1
+     1 |     0
+    [2 rows x 1 column]
+
+
 )";
 
 py::PKArgs args_rowall(0, 0, 0, true, false, {}, "rowall", doc_rowall);
