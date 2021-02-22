@@ -79,6 +79,67 @@ See Also
 
 - :func:`rowfirst()` -- find the first non-missing value row-wise.
 
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None],
+    ...                "C":[True, False, False, True, True]})
+    >>> DT
+       |     A      B      C
+       | int32  int32  bool8
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      0
+     2 |     2      3      0
+     3 |     1      4      1
+     4 |     2     NA      1
+    [5 rows x 3 columns]
+
+::
+
+    >>> DT[:, dt.rowlast(f[:])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     1
+     1 |     0
+     2 |     0
+     3 |     1
+     4 |     1
+    [5 rows x 1 column]
+
+::
+
+    >>> DT[[1, 3], 'C'] = None
+    >>> DT
+       |     A      B      C
+       | int32  int32  bool8
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2     NA
+     2 |     2      3      0
+     3 |     1      4     NA
+     4 |     2     NA      1
+    [5 rows x 3 columns]
+
+::
+
+    >>> DT[:, dt.rowlast(f[:])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+     2 |     0
+     3 |     4
+     4 |     1
+    [5 rows x 1 column]
+
+
+
 )";
 
 
