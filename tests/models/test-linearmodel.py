@@ -136,7 +136,7 @@ def test_linearmodel_construct_wrong_combination():
     assert ("You can either pass all the parameters with params or any of "
             "the individual parameters with eta, lambda1, "
             "lambda2, nepochs, double_precision, "
-            "negative_class, interactions or model_type to Linear constructor, "
+            "negative_class, interactions or model_type to LinearModel constructor, "
             "but not both at the same time"
             == str(e.value))
 
