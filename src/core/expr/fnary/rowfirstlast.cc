@@ -52,8 +52,8 @@ See Also
 
 - :func:`rowlast()` -- find the last non-missing value row-wise.
 
-Example
--------
+Examples
+--------
 ::
 
     >>> from datatable import dt, f
@@ -97,10 +97,6 @@ Example
      3 |     4
      4 |     1
     [5 rows x 1 column]
-
-
-
-
 )";
 
 
