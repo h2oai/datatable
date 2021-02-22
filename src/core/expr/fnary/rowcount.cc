@@ -49,8 +49,8 @@ See Also
 
 - :func:`rowsum()` -- sum of all values row-wise.
 
-Examples
---------
+Example
+-------
 ::
 
     >>> from datatable import dt, f
