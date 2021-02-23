@@ -195,6 +195,31 @@ def test_type_hashable():
     assert dt.Type.int64 not in m
 
 
+def test_type_minmax():
+    assert dt.Type.bool8.min is False
+    assert dt.Type.bool8.max is True
+    assert dt.Type.int8.min == -127
+    assert dt.Type.int8.max == 127
+    assert dt.Type.int16.min == -32767
+    assert dt.Type.int16.max == 32767
+    assert dt.Type.int32.min == -(2**31 - 1)
+    assert dt.Type.int32.max == +(2**31 - 1)
+    assert dt.Type.int64.min == -(2**63 - 1)
+    assert dt.Type.int64.max == +(2**63 - 1)
+    assert dt.Type.float32.min == float.fromhex("-0x1.fffffep+127")
+    assert dt.Type.float32.max == float.fromhex("+0x1.fffffep+127")
+    assert dt.Type.float64.min == float.fromhex("-0x1.fffffffffffffp+1023")
+    assert dt.Type.float64.max == float.fromhex("+0x1.fffffffffffffp+1023")
+    assert dt.Type.void.min is None
+    assert dt.Type.void.max is None
+    assert dt.Type.str32.min is None
+    assert dt.Type.str32.max is None
+    assert dt.Type.str64.min is None
+    assert dt.Type.str64.max is None
+    assert dt.Type.obj64.min is None
+    assert dt.Type.obj64.max is None
+
+
 
 #-------------------------------------------------------------------------------
 # Test stype enum

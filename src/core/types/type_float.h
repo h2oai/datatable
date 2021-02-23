@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_FLOAT_h
 #define dt_TYPES_TYPE_FLOAT_h
+#include "python/float.h"
 #include "types/type_impl.h"
 #include "utils/assert.h"
 namespace dt {
@@ -43,6 +44,13 @@ class Type_Float32 : public Type_Float {
     Type_Float32() : Type_Float(SType::FLOAT32) {}
     bool can_be_read_as_float32() const override { return true; }
     std::string to_string() const override { return "float32"; }
+
+    py::oobj min() const override {
+      return py::ofloat(-std::numeric_limits<float>::max());
+    }
+    py::oobj max() const override {
+      return py::ofloat(std::numeric_limits<float>::max());
+    }
 };
 
 
@@ -51,6 +59,13 @@ class Type_Float64 : public Type_Float {
     Type_Float64() : Type_Float(SType::FLOAT64) {}
     bool can_be_read_as_float64() const override { return true; }
     std::string to_string() const override { return "float64"; }
+
+    py::oobj min() const override {
+      return py::ofloat(-std::numeric_limits<double>::max());
+    }
+    py::oobj max() const override {
+      return py::ofloat(std::numeric_limits<double>::max());
+    }
 };
 
 

@@ -75,6 +75,9 @@ class Type {
     // Properties
     //--------------------------------------------------------------------------
     size_t hash() const;
+    py::oobj min() const;
+    py::oobj max() const;
+
     SType stype() const;
     bool is_boolean() const;
     bool is_integer() const;

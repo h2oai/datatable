@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_DATE_h
 #define dt_TYPES_TYPE_DATE_h
+#include "frame/py_frame.h"
+#include "stype.h"
 #include "types/type_impl.h"
 namespace dt {
 
@@ -32,6 +34,26 @@ class Type_Date32 : public TypeImpl {
 
     bool can_be_read_as_int32() const override { return true; }
     std::string to_string() const override { return "date32"; }
+
+    py::oobj min() const override {
+      return _wrap_value(-std::numeric_limits<int>::max(), "min");
+    }
+    py::oobj max() const override {
+      return _wrap_value(std::numeric_limits<int>::max() - 719468, "max");
+    }
+
+  private:
+    // The min/max value is returned as a 1x1 frame instead of a python
+    // datetime.date object because the latter can only accommodate year
+    // range 1 .. 9999
+    //
+    py::oobj _wrap_value(int32_t value, const char* name) const {
+      Column col = Column::new_data_column(1, SType::DATE32);
+      static_cast<int32_t*>(col.get_data_editable())[0] = value;
+      return py::Frame::oframe(new DataTable(
+        {std::move(col)}, {name}
+      ));
+    }
 };
 
 

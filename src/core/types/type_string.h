@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_STRING_h
 #define dt_TYPES_TYPE_STRING_h
+#include "python/string.h"
 #include "types/type_impl.h"
 #include "utils/assert.h"
 namespace dt {

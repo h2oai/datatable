@@ -55,6 +55,8 @@ class PyType : public py::XObject<PyType, true> {
     size_t m__hash__() const;
 
     py::oobj get_name() const;
+    py::oobj get_min() const;
+    py::oobj get_max() const;
 
     Type get_type() const { return type_; }
 

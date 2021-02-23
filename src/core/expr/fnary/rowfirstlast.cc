@@ -79,6 +79,7 @@ See Also
 
 - :func:`rowfirst()` -- find the first non-missing value row-wise.
 
+
 Examples
 --------
 ::
@@ -137,9 +138,6 @@ Examples
      3 |     4
      4 |     1
     [5 rows x 1 column]
-
-
-
 )";
 
 
