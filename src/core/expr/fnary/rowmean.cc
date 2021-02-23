@@ -52,6 +52,7 @@ static bool op_rowmean(size_t i, T* out, const colvec& columns) {
   }
 }
 
+
 template <typename T>
 static inline Column _rowmean(colvec&& columns) {
   size_t nrows = columns[0].nrows();
@@ -59,11 +60,12 @@ static inline Column _rowmean(colvec&& columns) {
                     std::move(columns), op_rowmean<T>, nrows, stype_from<T>));
 }
 
+
 Column FExpr_RowMean::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(1);
   }
-  SType res_stype = detect_common_numeric_stype(columns, "rowmean");
+  SType res_stype = common_numeric_stype(columns);
   if (res_stype == SType::INT32 || res_stype == SType::INT64) {
     res_stype = SType::FLOAT64;
   }
@@ -113,11 +115,6 @@ DECLARE_PYFN(&py_rowfn)
     ->docs(doc_rowmean)
     ->allow_varargs()
     ->add_info(FN_ROWMEAN);
-
-// py::PKArgs args_rowmean(0, 0, 0, true, false, {}, "rowmean", doc_rowmean);
-
-
-
 
 
 

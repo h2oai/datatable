@@ -35,8 +35,7 @@ stypes_float = ltype.real.stypes
 stypes_str = ltype.str.stypes
 
 rowfns = [rowall, rowany, rowsum, rowcount, rowmin, rowmax,
-          rowfirst, rowlast, rowmean, #rowsd
-          ]
+          rowfirst, rowlast, rowmean, rowsd]
 
 
 @pytest.mark.parametrize('rowfn', rowfns)
@@ -329,7 +328,3 @@ def test_rowsum_promote_to_float64():
                   stypes=[dt.int8, dt.float64, dt.int64, dt.float32, dt.int16])
     assert_equals(DT[:, rowsum(f[:])],
                   dt.Frame([11], stype=dt.float64))
-
-
-
-

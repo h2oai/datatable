@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,9 +22,8 @@
 #ifndef dt_EXPR_FNARY_FNARY_h
 #define dt_EXPR_FNARY_FNARY_h
 #include <memory>
-#include "expr/fexpr_func.h"
-
 #include "expr/declarations.h"
+#include "expr/fexpr_func.h"
 #include "expr/op.h"
 #include "python/args.h"
 namespace dt {
@@ -150,63 +149,6 @@ class FExpr_RowSum : public FExpr_RowFn {
     std::string name() const override;
     Column apply_function(std::vector<Column>&& columns) const override;
 };
-
-
-
-//==============================================================================
-
-/**
-  * Main method for computing n-ary (rowwise) functions.
-  *
-  */
-Column naryop(Op opcode, colvec&& columns);
-
-
-
-//------------------------------------------------------------------------------
-// Resolvers [private]
-//------------------------------------------------------------------------------
-
-// Column naryop_rowall(colvec&&);
-// Column naryop_rowany(colvec&&);
-// Column naryop_rowcount(colvec&&);
-// Column naryop_rowfirstlast(colvec&&, bool FIRST);
-// Column naryop_rowmean(colvec&&);
-// Column naryop_rowminmax(colvec&&, bool MIN);
-// Column naryop_rowsd(colvec&&);
-// Column naryop_rowsum(colvec&&);
-
-/**
-  * For a list of numeric columns, find the largest common stype.
-  * Possible return values are: INT32, INT64, FLOAT32 or FLOAT64.
-  * If any column in the list is not numeric, then an exception will
-  * be thrown. The error message will use `fnname`.
-  */
-SType detect_common_numeric_stype(const colvec&, const char* fnname);
-
-
-/**
-  * Convert all columns in the list into a common stype.
-  */
-void promote_columns(colvec& columns, SType target_stype);
-
-
-
-
-//------------------------------------------------------------------------------
-// Python interface
-//------------------------------------------------------------------------------
-
-// extern py::PKArgs args_rowall;
-// extern py::PKArgs args_rowany;
-// extern py::PKArgs args_rowcount;
-// extern py::PKArgs args_rowfirst;
-// extern py::PKArgs args_rowlast;
-// extern py::PKArgs args_rowmax;
-// extern py::PKArgs args_rowmean;
-// extern py::PKArgs args_rowmin;
-// extern py::PKArgs args_rowsd;
-// extern py::PKArgs args_rowsum;
 
 
 

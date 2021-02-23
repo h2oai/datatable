@@ -35,8 +35,6 @@ std::string FExpr_RowFirstLast<FIRST>::name() const {
 
 
 
-
-
 template <typename T, bool FIRST>
 static bool op_rowfirstlast(size_t i, T* out, const colvec& columns) {
   size_t n = columns.size();

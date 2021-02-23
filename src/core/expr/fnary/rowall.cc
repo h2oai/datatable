@@ -20,9 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
-#include "expr/fnary/fnary.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
 #include "python/xargs.h"
 namespace dt {
 namespace expr {
