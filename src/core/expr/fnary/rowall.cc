@@ -33,6 +33,7 @@ std::string FExpr_RowAll::name() const {
 }
 
 
+
 static bool op_rowall(size_t i, int8_t* out, const colvec& columns) {
   for (const auto& col : columns) {
     int8_t x;
@@ -86,11 +87,37 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-boolean type.
 
+
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A":[True, True],
+    ...                "B":[True, False],
+    ...                "C":[True, True]})
+    >>> DT
+       |     A      B      C
+       | bool8  bool8  bool8
+    -- + -----  -----  -----
+     0 |     1      1      1
+     1 |     1      0      1
+    [2 rows x 3 columns]
+
+::
+
+    >>> DT[:, dt.rowall(f[:])]
+       |    C0
+       | bool8
+    -- + -----
+     0 |     1
+     1 |     0
+    [2 rows x 1 column]
+
+
 See Also
 --------
-
 - :func:`rowany()` -- row-wise `any() <https://docs.python.org/3/library/functions.html#any>`_ function.
-
 )";
 
 DECLARE_PYFN(&py_rowfn)
