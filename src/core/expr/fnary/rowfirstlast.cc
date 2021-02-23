@@ -79,6 +79,7 @@ See Also
 
 - :func:`rowfirst()` -- find the first non-missing value row-wise.
 
+
 )";
 
 
