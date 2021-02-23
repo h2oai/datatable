@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,7 +53,8 @@ class XArgs : public ArgParent {
     bool has_varargs_;
     bool has_varkwds_;
     bool has_renamed_args_;
-    size_t : 40;
+    int : 8;
+    int info_;  // custom user info that can be stored inside XArgs
 
     // Runtime arguments
     std::vector<Arg> bound_args_;
@@ -79,6 +80,7 @@ class XArgs : public ArgParent {
     XArgs* allow_varargs();
     XArgs* allow_varkwds();
     XArgs* docs(const char*);
+    XArgs* add_info(int);
 
     size_t n_positional_args() const override;
     size_t n_positional_or_keyword_args() const override;
@@ -132,9 +134,21 @@ class XArgs : public ArgParent {
     size_t num_varargs() const noexcept;
     size_t num_varkwds() const noexcept;
     py::robj vararg(size_t i) const;
+    int get_info() const;
 
+
+    class VarArgsIterator;  // defined in xargs.cc
+    class VarArgsIterable {
+      private:
+        const XArgs& parent_;
+      public:
+        using iterator = VarArgsIterator;
+        VarArgsIterable(const XArgs&);
+        iterator begin() const;
+        iterator end() const;
+    };
+    VarArgsIterable varargs() const noexcept;
     // VarKwdsIterable varkwds() const noexcept;
-    // VarArgsIterable varargs() const noexcept;
 
     // template <typename T> T get(size_t i) const;
     // template <typename T> T get(size_t i, T default_value) const;
@@ -148,8 +162,6 @@ class XArgs : public ArgParent {
     void bind(PyObject* args, PyObject* kwds);
     size_t find_kwd(PyObject* kwd);
 
-    // friend class VarArgsIterable;
-    // friend class VarArgsIterator;
     // friend class VarKwdsIterator;
 };
 
