@@ -23,8 +23,57 @@
 #include "column/func_nary.h"
 #include "expr/fnary/fnary.h"
 #include "models/utils.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
+
+
+
+std::string FExpr_RowSum::name() const {
+  return "rowsum";
+}
+
+
+template <typename T>
+static bool op_rowsum(size_t i, T* out, const colvec& columns) {
+  T sum = 0;
+  for (const auto& col : columns) {
+    T x;
+    bool xvalid = col.get_element(i, &x);
+    if (xvalid) {
+      sum += x;
+    }
+  }
+  *out = sum;
+  return _notnan(sum);
+}
+
+
+template <typename T>
+static inline Column _rowsum(colvec&& columns) {
+  size_t nrows = columns[0].nrows();
+  return Column(new FuncNary_ColumnImpl<T>(
+                    std::move(columns), op_rowsum<T>, nrows, stype_from<T>));
+}
+
+
+Column FExpr_RowSum::apply_function(colvec&& columns) const {
+  if (columns.empty()) {
+    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+  }
+  SType res_stype = common_numeric_stype(columns);
+  promote_columns(columns, res_stype);
+
+  switch (res_stype) {
+    case SType::INT32:   return _rowsum<int32_t>(std::move(columns));
+    case SType::INT64:   return _rowsum<int64_t>(std::move(columns));
+    case SType::FLOAT32: return _rowsum<float>(std::move(columns));
+    case SType::FLOAT64: return _rowsum<double>(std::move(columns));
+    default: throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowsum()`: "
+               << res_stype;  // LCOV_EXCL_LINE
+  }
+}
 
 
 
@@ -57,50 +106,11 @@ See Also
 
 )";
 
-py::PKArgs args_rowsum(0, 0, 0, true, false, {}, "rowsum", doc_rowsum);
-
-
-
-template <typename T>
-static bool op_rowsum(size_t i, T* out, const colvec& columns) {
-  T sum = 0;
-  for (const auto& col : columns) {
-    T x;
-    bool xvalid = col.get_element(i, &x);
-    if (xvalid) {
-      sum += x;
-    }
-  }
-  *out = sum;
-  return _notnan(sum);
-}
-
-
-template <typename T>
-static inline Column _rowsum(colvec&& columns) {
-  size_t nrows = columns[0].nrows();
-  return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), op_rowsum<T>, nrows, stype_from<T>));
-}
-
-
-Column naryop_rowsum(colvec&& columns) {
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
-  }
-  SType res_stype = detect_common_numeric_stype(columns, "rowsum");
-  promote_columns(columns, res_stype);
-
-  switch (res_stype) {
-    case SType::INT32:   return _rowsum<int32_t>(std::move(columns));
-    case SType::INT64:   return _rowsum<int64_t>(std::move(columns));
-    case SType::FLOAT32: return _rowsum<float>(std::move(columns));
-    case SType::FLOAT64: return _rowsum<double>(std::move(columns));
-    default: throw RuntimeError()
-               << "Wrong `res_stype` in `naryop_rowsum()`: "
-               << res_stype;  // LCOV_EXCL_LINE
-  }
-}
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowsum")
+    ->docs(doc_rowsum)
+    ->allow_varargs()
+    ->add_info(FN_ROWSUM);
 
 
 

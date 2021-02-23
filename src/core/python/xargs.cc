@@ -376,37 +376,6 @@ size_t XArgs::num_varkwds() const noexcept {
 // varargs
 //------------------------------------------------------------------------------
 
-class XArgs::VarArgsIterator {
-  private:
-    const XArgs& parent_;
-    Py_ssize_t pos_;  // position within parent_'s arg_tuple_
-
-  public:
-    using value_type = py::robj;
-    using category_type = std::input_iterator_tag;
-
-    VarArgsIterator(const XArgs& args, size_t i0)
-      : parent_(args), pos_(static_cast<Py_ssize_t>(i0)) {}
-    VarArgsIterator(const VarArgsIterator&) = default;
-    VarArgsIterator& operator=(const VarArgsIterator&) = delete;
-
-    VarArgsIterator& operator++() {
-      ++pos_;
-      return *this;
-    }
-    value_type operator*() const {
-      return py::robj(PyTuple_GET_ITEM(parent_.args_tuple_, pos_));
-    }
-    bool operator==(const VarArgsIterator& other) const {
-      return (pos_ == other.pos_);
-    }
-    bool operator!=(const VarArgsIterator& other) const {
-      return (pos_ != other.pos_);
-    }
-};
-
-
-
 size_t XArgs::num_varargs() const noexcept {
   return n_varargs_;
 }
@@ -418,11 +387,14 @@ py::robj XArgs::vararg(size_t i) const {
   return py::robj(PyTuple_GET_ITEM(args_tuple_, j));
 }
 
-
 XArgs::VarArgsIterable XArgs::varargs() const noexcept {
   return XArgs::VarArgsIterable(*this);
 }
 
+
+
+XArgs::VarArgsIterable::VarArgsIterable(const XArgs& args)
+  : parent_(args) {}
 
 XArgs::VarArgsIterator XArgs::VarArgsIterable::begin() const {
   size_t i0 = parent_.n_bound_args_;
@@ -432,6 +404,28 @@ XArgs::VarArgsIterator XArgs::VarArgsIterable::begin() const {
 XArgs::VarArgsIterator XArgs::VarArgsIterable::end() const {
   size_t i1 = parent_.n_bound_args_ + parent_.n_varargs_;
   return XArgs::VarArgsIterator(parent_, i1);
+}
+
+
+
+XArgs::VarArgsIterator::VarArgsIterator(const XArgs& args, size_t i0)
+  : parent_(args), pos_(static_cast<Py_ssize_t>(i0)) {}
+
+XArgs::VarArgsIterator& XArgs::VarArgsIterator::operator++() {
+  ++pos_;
+  return *this;
+}
+
+py::robj XArgs::VarArgsIterator::operator*() const {
+  return py::robj(PyTuple_GET_ITEM(parent_.args_tuple_, pos_));
+}
+
+bool XArgs::VarArgsIterator::operator==(const VarArgsIterator& other) const {
+  return (pos_ == other.pos_);
+}
+
+bool XArgs::VarArgsIterator::operator!=(const VarArgsIterator& other) const {
+  return (pos_ != other.pos_);
 }
 
 

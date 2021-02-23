@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019-2020 H2O.ai
+# Copyright 2019-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -35,20 +35,31 @@ stypes_float = ltype.real.stypes
 stypes_str = ltype.str.stypes
 
 
-
-def test_reprs():
-    # Check that row-expressions can be repr'd without errors
-    assert repr(rowall())
+def test_repr_empty():
+    assert repr(rowall()) == "FExpr<rowall([])>"
     assert repr(rowany())
-    assert repr(rowsum())
+    assert repr(rowsum()) == "FExpr<rowsum([])>"
     assert repr(rowcount())
     assert repr(rowmin())
     assert repr(rowmax())
     assert repr(rowfirst())
     assert repr(rowlast())
-    assert repr(rowmean())
+    assert repr(rowmean()) == "FExpr<rowmean([])>"
     assert repr(rowsd())
 
+
+def test_reprs():
+    # Check that row-expressions can be repr'd without errors
+    assert repr(rowall(f[:])) == "FExpr<rowall(f[:])>"
+    assert repr(rowany())
+    assert repr(rowsum(f[:])) == "FExpr<rowsum(f[:])>"
+    assert repr(rowcount())
+    assert repr(rowmin())
+    assert repr(rowmax())
+    assert repr(rowfirst())
+    assert repr(rowlast())
+    assert repr(rowmean(f[:])) == "FExpr<rowmean(f[:])>"
+    assert repr(rowsd())
 
 
 
@@ -66,7 +77,7 @@ def test_rowall_simple():
 
 def test_rowall_single_column():
     DT = dt.Frame([[True, False, None, True]])
-    RES = rowall(DT)
+    RES = DT[:, rowall(f[:])]
     assert_equals(RES, dt.Frame([True, False, False, True]))
 
 
@@ -233,7 +244,7 @@ def test_rowminmax_floats():
 
 def test_rowmean_simple():
     DT = dt.Frame(A=range(5))
-    assert_equals(rowmean(DT), dt.Frame(range(5), stype=dt.float64))
+    assert_equals(DT[:, rowmean(f[:])], dt.Frame(range(5), stype=dt.float64))
 
 
 def test_rowmean_floats():
@@ -250,7 +261,7 @@ def test_rowmean_wrong_types():
     DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
     with pytest.raises(TypeError, match="Function rowmean expects a sequence "
                                         "of numeric columns"):
-        assert rowmean(DT)
+        assert DT[:, rowmean(f[:])]
 
 
 
@@ -322,14 +333,14 @@ def test_rowsum_different_types():
 
 def test_rowsum_promote_to_float32():
     DT = dt.Frame([[2], [7], [11]], stypes=[dt.int32, dt.float32, dt.int64])
-    assert_equals(rowsum(DT),
+    assert_equals(DT[:, rowsum(f[:])],
                   dt.Frame([20], stype=dt.float32))
 
 
 def test_rowsum_promote_to_float64():
     DT = dt.Frame([[2], [3], [1], [5], [None]],
                   stypes=[dt.int8, dt.float64, dt.int64, dt.float32, dt.int16])
-    assert_equals(rowsum(DT),
+    assert_equals(DT[:, rowsum(f[:])],
                   dt.Frame([11], stype=dt.float64))
 
 

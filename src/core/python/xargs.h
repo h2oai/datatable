@@ -137,7 +137,23 @@ class XArgs : public ArgParent {
     int get_info() const;
 
 
-    class VarArgsIterator;  // defined in xargs.cc
+    class VarArgsIterator {
+      private:
+        const XArgs& parent_;
+        Py_ssize_t pos_;  // position within parent_'s arg_tuple_
+
+      public:
+        using value_type = py::robj;
+        using category_type = std::input_iterator_tag;
+        VarArgsIterator(const XArgs& args, size_t i0);
+        VarArgsIterator(const VarArgsIterator&) = default;
+        VarArgsIterator& operator=(const VarArgsIterator&) = delete;
+        VarArgsIterator& operator++();
+        value_type operator*() const;
+        bool operator==(const VarArgsIterator& other) const;
+        bool operator!=(const VarArgsIterator& other) const;
+    };
+
     class VarArgsIterable {
       private:
         const XArgs& parent_;
@@ -147,7 +163,10 @@ class XArgs : public ArgParent {
         iterator begin() const;
         iterator end() const;
     };
+
     VarArgsIterable varargs() const noexcept;
+
+
     // VarKwdsIterable varkwds() const noexcept;
 
     // template <typename T> T get(size_t i) const;

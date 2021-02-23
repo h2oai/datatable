@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,11 +20,63 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
-#include "expr/fnary/fnary.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
+
+
+std::string FExpr_RowMean::name() const {
+  return "rowmean";
+}
+
+
+template <typename T>
+static bool op_rowmean(size_t i, T* out, const colvec& columns) {
+  T sum = 0;
+  int count = 0;
+  for (const auto& col : columns) {
+    T x;
+    bool xvalid = col.get_element(i, &x);
+    if (!xvalid) continue;
+    sum += x;
+    count++;
+  }
+  if (count && !std::isnan(sum)) {
+    *out = sum/static_cast<T>(count);
+    return true;
+  } else {
+    return false;
+  }
+}
+
+template <typename T>
+static inline Column _rowmean(colvec&& columns) {
+  size_t nrows = columns[0].nrows();
+  return Column(new FuncNary_ColumnImpl<T>(
+                    std::move(columns), op_rowmean<T>, nrows, stype_from<T>));
+}
+
+Column FExpr_RowMean::apply_function(colvec&& columns) const {
+  if (columns.empty()) {
+    return Const_ColumnImpl::make_na_column(1);
+  }
+  SType res_stype = detect_common_numeric_stype(columns, "rowmean");
+  if (res_stype == SType::INT32 || res_stype == SType::INT64) {
+    res_stype = SType::FLOAT64;
+  }
+  promote_columns(columns, res_stype);
+
+  switch (res_stype) {
+    case SType::FLOAT32: return _rowmean<float>(std::move(columns));
+    case SType::FLOAT64: return _rowmean<double>(std::move(columns));
+    default: throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowmean()`: "
+               << res_stype;  // LCOV_EXCL_LINE
+  }
+}
 
 
 
@@ -56,56 +108,16 @@ See Also
 
 )";
 
-py::PKArgs args_rowmean(0, 0, 0, true, false, {}, "rowmean", doc_rowmean);
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowmean")
+    ->docs(doc_rowmean)
+    ->allow_varargs()
+    ->add_info(FN_ROWMEAN);
+
+// py::PKArgs args_rowmean(0, 0, 0, true, false, {}, "rowmean", doc_rowmean);
 
 
 
-template <typename T>
-static bool op_rowmean(size_t i, T* out, const colvec& columns) {
-  T sum = 0;
-  int count = 0;
-  for (const auto& col : columns) {
-    T x;
-    bool xvalid = col.get_element(i, &x);
-    if (!xvalid) continue;
-    sum += x;
-    count++;
-  }
-  if (count && !std::isnan(sum)) {
-    *out = sum/static_cast<T>(count);
-    return true;
-  } else {
-    return false;
-  }
-}
-
-
-template <typename T>
-static inline Column _rowmean(colvec&& columns) {
-  size_t nrows = columns[0].nrows();
-  return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), op_rowmean<T>, nrows, stype_from<T>));
-}
-
-
-Column naryop_rowmean(colvec&& columns) {
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_na_column(1);
-  }
-  SType res_stype = detect_common_numeric_stype(columns, "rowmean");
-  if (res_stype == SType::INT32 || res_stype == SType::INT64) {
-    res_stype = SType::FLOAT64;
-  }
-  promote_columns(columns, res_stype);
-
-  switch (res_stype) {
-    case SType::FLOAT32: return _rowmean<float>(std::move(columns));
-    case SType::FLOAT64: return _rowmean<double>(std::move(columns));
-    default: throw RuntimeError()
-               << "Wrong `res_stype` in `naryop_rowmean()`: "
-               << res_stype;  // LCOV_EXCL_LINE
-  }
-}
 
 
 
