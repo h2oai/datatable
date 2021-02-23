@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import datetime
 import datatable as dt
+import pytest
 
 
 
@@ -78,7 +79,7 @@ def test_date32_repr():
         "[3 rows x 1 column]\n"
     )
 
-
+    
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -101,3 +102,24 @@ def test_date32_max():
         " 0 | 5879610-09-09\n"
         "[1 row x 1 column]\n"
     )
+    
+
+#-------------------------------------------------------------------------------
+# Convert from numpy
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("scale", ["D", "W", "M", "Y"])
+def test_date32_from_numpy_datetime64(np, scale):
+    arr = np.array(range(-100, 1000), dtype=f'datetime64[{scale}]')
+    DT = dt.Frame(arr)
+    assert DT.types == [dt.Type.date32]
+    assert DT.to_list() == [arr.tolist()]
+
+
+def test_from_numpy_with_nats(np):
+    arr = np.array(['2000-01-01', '2020-05-11', 'NaT'], dtype='datetime64[D]')
+    DT = dt.Frame(arr)
+    assert DT.types == [dt.Type.date32]
+    assert DT.to_list() == [
+        [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
+    ]
