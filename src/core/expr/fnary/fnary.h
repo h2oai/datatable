@@ -74,6 +74,7 @@ class FExpr_RowAll : public FExpr_RowFn {
 };
 
 
+
 class FExpr_RowAny : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;
@@ -81,6 +82,7 @@ class FExpr_RowAny : public FExpr_RowFn {
     std::string name() const override;
     Column apply_function(std::vector<Column>&& columns) const override;
 };
+
 
 
 class FExpr_RowCount : public FExpr_RowFn {
@@ -92,7 +94,9 @@ class FExpr_RowCount : public FExpr_RowFn {
 };
 
 
-class FExpr_RowFirst : public FExpr_RowFn {
+
+template <bool FIRST>
+class FExpr_RowFirstLast : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;
 
@@ -100,8 +104,13 @@ class FExpr_RowFirst : public FExpr_RowFn {
     Column apply_function(std::vector<Column>&& columns) const override;
 };
 
+extern template class FExpr_RowFirstLast<true>;
+extern template class FExpr_RowFirstLast<false>;
 
-class FExpr_RowLast : public FExpr_RowFn {
+
+
+template <bool MIN>
+class FExpr_RowMinMax : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;
 
@@ -109,14 +118,9 @@ class FExpr_RowLast : public FExpr_RowFn {
     Column apply_function(std::vector<Column>&& columns) const override;
 };
 
+extern template class FExpr_RowMinMax<true>;
+extern template class FExpr_RowMinMax<false>;
 
-class FExpr_RowMax : public FExpr_RowFn {
-  public:
-    using FExpr_RowFn::FExpr_RowFn;
-
-    std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
-};
 
 
 class FExpr_RowMean : public FExpr_RowFn {
@@ -128,14 +132,6 @@ class FExpr_RowMean : public FExpr_RowFn {
 };
 
 
-class FExpr_RowMin : public FExpr_RowFn {
-  public:
-    using FExpr_RowFn::FExpr_RowFn;
-
-    std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
-};
-
 
 class FExpr_RowSd : public FExpr_RowFn {
   public:
@@ -144,6 +140,7 @@ class FExpr_RowSd : public FExpr_RowFn {
     std::string name() const override;
     Column apply_function(std::vector<Column>&& columns) const override;
 };
+
 
 
 class FExpr_RowSum : public FExpr_RowFn {
@@ -173,9 +170,9 @@ Column naryop(Op opcode, colvec&& columns);
 // Column naryop_rowall(colvec&&);
 // Column naryop_rowany(colvec&&);
 // Column naryop_rowcount(colvec&&);
-Column naryop_rowfirstlast(colvec&&, bool FIRST);
+// Column naryop_rowfirstlast(colvec&&, bool FIRST);
 // Column naryop_rowmean(colvec&&);
-Column naryop_rowminmax(colvec&&, bool MIN);
+// Column naryop_rowminmax(colvec&&, bool MIN);
 Column naryop_rowsd(colvec&&);
 // Column naryop_rowsum(colvec&&);
 
@@ -203,11 +200,11 @@ void promote_columns(colvec& columns, SType target_stype);
 // extern py::PKArgs args_rowall;
 // extern py::PKArgs args_rowany;
 // extern py::PKArgs args_rowcount;
-extern py::PKArgs args_rowfirst;
-extern py::PKArgs args_rowlast;
-extern py::PKArgs args_rowmax;
+// extern py::PKArgs args_rowfirst;
+// extern py::PKArgs args_rowlast;
+// extern py::PKArgs args_rowmax;
 // extern py::PKArgs args_rowmean;
-extern py::PKArgs args_rowmin;
+// extern py::PKArgs args_rowmin;
 extern py::PKArgs args_rowsd;
 // extern py::PKArgs args_rowsum;
 

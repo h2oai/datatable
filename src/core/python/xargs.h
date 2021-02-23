@@ -185,11 +185,14 @@ class XArgs : public ArgParent {
 };
 
 
+#define PASTE_TOKENS(x, y) x ## y
+#define PASTE_TOKENS2(x, y) PASTE_TOKENS(x, y)
+#define ARGS_NAME  PASTE_TOKENS2(args_, __LINE__)
 #define DECLARE_PYFN(fn)                                                       \
-    static py::XArgs* args_ ## __LINE__ = (new py::XArgs(fn))                  \
+    static py::XArgs* ARGS_NAME = (new py::XArgs(fn))                          \
       ->pyfunction(                                                            \
           [](PyObject*, PyObject* args, PyObject* kwds) -> PyObject* {         \
-            return (args_ ## __LINE__)->exec_function(args, kwds);             \
+            return ARGS_NAME->exec_function(args, kwds);                       \
           })
 
 

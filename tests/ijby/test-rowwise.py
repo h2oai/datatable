@@ -34,9 +34,8 @@ stypes_int = ltype.int.stypes
 stypes_float = ltype.real.stypes
 stypes_str = ltype.str.stypes
 
-rowfns = [rowall, rowany, rowsum, # rowcount, rowmin, rowmax,
-          #rowfirst, rowlast,
-          rowmean, #rowsd
+rowfns = [rowall, rowany, rowsum, rowcount, rowmin, rowmax,
+          rowfirst, rowlast, rowmean, #rowsd
           ]
 
 
