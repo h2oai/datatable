@@ -68,18 +68,19 @@ Column FExpr_RowAll::apply_function(colvec&& columns) const {
 
 
 static const char* doc_rowall =
-R"(rowall(cols)
+R"(rowall(*cols)
 --
 
 For each row in `cols` return `True` if all values in that row are `True`,
 or otherwise return `False`.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr[bool]
     Input boolean columns.
 
-return: Expr
+return: FExpr[bool]
     f-expression consisting of one boolean column that has the same number
     of rows as in `cols`.
 
@@ -88,14 +89,14 @@ except: TypeError
     has a non-boolean type.
 
 
-Example
--------
+Examples
+--------
 ::
 
     >>> from datatable import dt, f
-    >>> DT = dt.Frame({"A":[True, True],
-    ...                "B":[True, False],
-    ...                "C":[True, True]})
+    >>> DT = dt.Frame({"A": [True, True],
+    ...                "B": [True, False],
+    ...                "C": [True, True]})
     >>> DT
        |     A      B      C
        | bool8  bool8  bool8

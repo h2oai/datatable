@@ -93,28 +93,25 @@ template class FExpr_RowFirstLast<false>;
 
 
 static const char* doc_rowfirst =
-R"(rowfirst(cols)
+R"(rowfirst(*cols)
 --
 
 For each row, find the first non-missing value in `cols`. If all values
 in a row are missing, then this function will also produce a missing value.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column and the same number
     of rows as in `cols`.
 
 except: TypeError
     The exception is raised when input columns have incompatible types.
 
-See Also
---------
-
-- :func:`rowlast()` -- find the last non-missing value row-wise.
 
 Examples
 --------
@@ -123,7 +120,7 @@ Examples
     >>> from datatable import dt, f
     >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
     ...                "B": [None, 2, 3, 4, None],
-    ...                "C":[True, False, False, True, True]})
+    ...                "C": [True, False, False, True, True]})
     >>> DT
        |     A      B      C
        | int32  int32  bool8
@@ -148,7 +145,6 @@ Examples
      4 |     2
     [5 rows x 1 column]
 
-
 ::
 
     >>> DT[:, dt.rowfirst(f['B', 'C'])]
@@ -161,15 +157,21 @@ Examples
      3 |     4
      4 |     1
     [5 rows x 1 column]
+
+
+See Also
+--------
+- :func:`rowlast()` -- find the last non-missing value row-wise.
 )";
 
 
 static const char* doc_rowlast =
-R"(rowlast(cols)
+R"(rowlast(*cols)
 --
 
 For each row, find the last non-missing value in `cols`. If all values
 in a row are missing, then this function will also produce a missing value.
+
 
 Parameters
 ----------
@@ -182,11 +184,6 @@ return: Expr
 
 except: TypeError
     The exception is raised when input columns have incompatible types.
-
-See Also
---------
-
-- :func:`rowfirst()` -- find the first non-missing value row-wise.
 
 
 Examples
@@ -247,6 +244,11 @@ Examples
      3 |     4
      4 |     1
     [5 rows x 1 column]
+
+
+See Also
+--------
+- :func:`rowfirst()` -- find the first non-missing value row-wise.
 )";
 
 DECLARE_PYFN(&py_rowfn)

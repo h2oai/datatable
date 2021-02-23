@@ -90,18 +90,19 @@ template class FExpr_RowMinMax<false>;
 
 
 static const char* doc_rowmin =
-R"(rowmin(cols)
+R"(rowmin(*cols)
 --
 
 For each row, find the smallest value among the columns from `cols`,
 excluding missing values.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
@@ -109,13 +110,9 @@ return: Expr
 except: TypeError
     The exception is raised when `cols` has non-numeric columns.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowmax()` -- find the largest element row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -145,21 +142,27 @@ Example
      3 |     1
      4 |     1
     [5 rows x 1 column]
+
+
+See Also
+--------
+- :func:`rowmax()` -- find the largest element row-wise.
 )";
 
 
 static const char* doc_rowmax =
-R"(rowmax(cols)
+R"(rowmax(*cols)
 --
 
 For each row, find the largest value among the columns from `cols`.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
@@ -167,13 +170,9 @@ return: Expr
 except: TypeError
     The exception is raised when `cols` has non-numeric columns.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowmin()` -- find the smallest element row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -205,6 +204,9 @@ Example
     [5 rows x 1 column]
 
 
+See Also
+--------
+- :func:`rowmin()` -- find the smallest element row-wise.
 )";
 
 DECLARE_PYFN(&py_rowfn)

@@ -78,18 +78,19 @@ Column FExpr_RowSum::apply_function(colvec&& columns) const {
 
 
 static const char* doc_rowsum =
-R"(rowsum(cols)
+R"(rowsum(*cols)
 --
 
 For each row, calculate the sum of all values in `cols`. Missing values
 are treated as if they are zeros and skipped during the calcultion.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column and the same number
     of rows as in `cols`. The stype of the resulting column
     will be the smallest common stype calculated for `cols`,
@@ -99,11 +100,10 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
+
 See Also
 --------
-
 - :func:`rowcount()` -- count non-missing values row-wise.
-
 )";
 
 DECLARE_PYFN(&py_rowfn)

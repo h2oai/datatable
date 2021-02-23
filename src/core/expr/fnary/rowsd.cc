@@ -88,19 +88,20 @@ Column FExpr_RowSd::apply_function(colvec&& columns) const {
 
 
 static const char* doc_rowsd =
-R"(rowsd(cols)
+R"(rowsd(*cols)
 --
 
 For each row, find the standard deviation among the columns from `cols`
 skipping missing values. If a row contains only the missing values,
 this function will produce a missing value too.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is `float32` when all the `cols`
     are `float32`, and `float64` in all the other cases.
@@ -108,11 +109,10 @@ return: Expr
 except: TypeError
     The exception is raised when `cols` has non-numeric columns.
 
+
 See Also
 --------
-
 - :func:`rowmean()` -- calculate the mean value row-wise.
-
 )";
 
 DECLARE_PYFN(&py_rowfn)

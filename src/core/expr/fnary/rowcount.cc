@@ -65,27 +65,24 @@ Column FExpr_RowCount::apply_function(colvec&& columns) const {
 
 
 static const char* doc_rowcount =
-R"(rowcount(cols)
+R"(rowcount(*cols)
 --
 
 For each row, count the number of non-missing values in `cols`.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one `int32` column and the same number
     of rows as in `cols`.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowsum()` -- sum of all values row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -118,6 +115,10 @@ Note the exclusion of null values in the count::
      4 |     2
     [5 rows x 1 column]
 
+
+See Also
+--------
+- :func:`rowsum()` -- sum of all values row-wise.
 )";
 
 DECLARE_PYFN(&py_rowfn)

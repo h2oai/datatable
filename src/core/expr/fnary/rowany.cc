@@ -68,7 +68,7 @@ Column FExpr_RowAny::apply_function(colvec&& columns) const {
 
 
 static const char* doc_rowany =
-R"(rowany(cols)
+R"(rowany(*cols)
 --
 
 For each row in `cols` return `True` if any of the values in that row
@@ -76,12 +76,13 @@ are `True`, or otherwise return `False`. The function uses shortcut
 evaluation: if the `True` value is found in one of the columns,
 then the subsequent columns are skipped.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr[bool]
     Input boolean columns.
 
-return: Expr
+return: FExpr[bool]
     f-expression consisting of one boolean column that has the same number
     of rows as in `cols`.
 
@@ -89,8 +90,9 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-boolean type.
 
-Example
--------
+
+Examples
+--------
 ::
 
     >>> from datatable import dt, f
