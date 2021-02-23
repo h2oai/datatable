@@ -128,6 +128,6 @@ void py::DatatableModule::init_fnary()
   // FNARY(args_rowmax,   Op::ROWMAX);
   // FNARY(args_rowmean,  Op::ROWMEAN);
   // FNARY(args_rowmin,   Op::ROWMIN);
-  FNARY(args_rowsd,    Op::ROWSD);
+  // FNARY(args_rowsd,    Op::ROWSD);
   // FNARY(args_rowsum,   Op::ROWSUM);
 }

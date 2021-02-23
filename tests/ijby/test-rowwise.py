@@ -257,12 +257,14 @@ def test_rowmean_wrong_types():
 
 def test_rowsd_single_column():
     DT = dt.Frame(A=range(5))
-    assert_equals(rowsd(DT), dt.Frame([math.nan]*5))
+    RES = DT[:, rowsd(f[:])]
+    assert_equals(RES, dt.Frame([math.nan]*5))
 
 
 def test_rowsd_same_columns():
     DT = dt.Frame([range(5)] * 10)
-    assert_equals(rowsd(DT), dt.Frame([0.0]*5))
+    RES = DT[:, rowsd(f[:])]
+    assert_equals(RES, dt.Frame([0.0]*5))
 
 
 def test_rowsd_floats():
@@ -280,7 +282,7 @@ def test_rowsd_wrong_types():
     DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
     with pytest.raises(TypeError, match="Function rowsd expects a sequence "
                                         "of numeric columns"):
-        assert rowsd(DT)
+        assert DT[:, rowsd(f[:])]
 
 
 

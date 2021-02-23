@@ -129,6 +129,7 @@ py::oobj py_rowfn(const py::XArgs& args) {
     case FN_ROWMAX:   return PyFExpr::make(new FExpr_RowMinMax<false>(std::move(a)));
     case FN_ROWMEAN:  return PyFExpr::make(new FExpr_RowMean(std::move(a)));
     case FN_ROWMIN:   return PyFExpr::make(new FExpr_RowMinMax<true>(std::move(a)));
+    case FN_ROWSD:    return PyFExpr::make(new FExpr_RowSd(std::move(a)));
     default: throw RuntimeError();
   }
 }
@@ -148,7 +149,7 @@ Column naryop(Op opcode, colvec&& columns) {
     // case Op::ROWMAX:   return naryop_rowminmax(std::move(columns), false);
     // case Op::ROWMEAN:  return naryop_rowmean(std::move(columns));
     // case Op::ROWMIN:   return naryop_rowminmax(std::move(columns), true);
-    case Op::ROWSD:    return naryop_rowsd(std::move(columns));
+    // case Op::ROWSD:    return naryop_rowsd(std::move(columns));
     // case Op::ROWSUM:   return naryop_rowsum(std::move(columns));
     default:
       throw TypeError() << "Unknown n-ary op " << static_cast<int>(opcode);
