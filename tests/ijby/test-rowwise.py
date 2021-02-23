@@ -34,32 +34,18 @@ stypes_int = ltype.int.stypes
 stypes_float = ltype.real.stypes
 stypes_str = ltype.str.stypes
 
-
-def test_repr_empty():
-    assert repr(rowall()) == "FExpr<rowall([])>"
-    assert repr(rowany())
-    assert repr(rowsum()) == "FExpr<rowsum([])>"
-    assert repr(rowcount())
-    assert repr(rowmin())
-    assert repr(rowmax())
-    assert repr(rowfirst())
-    assert repr(rowlast())
-    assert repr(rowmean()) == "FExpr<rowmean([])>"
-    assert repr(rowsd())
+rowfns = [rowall, rowany, rowsum, # rowcount, rowmin, rowmax,
+          #rowfirst, rowlast,
+          rowmean, #rowsd
+          ]
 
 
-def test_reprs():
-    # Check that row-expressions can be repr'd without errors
-    assert repr(rowall(f[:])) == "FExpr<rowall(f[:])>"
-    assert repr(rowany())
-    assert repr(rowsum(f[:])) == "FExpr<rowsum(f[:])>"
-    assert repr(rowcount())
-    assert repr(rowmin())
-    assert repr(rowmax())
-    assert repr(rowfirst())
-    assert repr(rowlast())
-    assert repr(rowmean(f[:])) == "FExpr<rowmean(f[:])>"
-    assert repr(rowsd())
+@pytest.mark.parametrize('rowfn', rowfns)
+def test_reprs(rowfn):
+    name = rowfn.__name__
+    assert repr(rowfn()) == f"FExpr<{name}([])>"
+    assert repr(rowfn(f[:])) == f"FExpr<{name}(f[:])>"
+    assert repr(rowfn(f.A, f.B, f.C)) == f"FExpr<{name}([f.A, f.B, f.C])>"
 
 
 
