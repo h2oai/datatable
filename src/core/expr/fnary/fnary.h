@@ -172,7 +172,7 @@ Column naryop(Op opcode, colvec&& columns);
 
 // Column naryop_rowall(colvec&&);
 // Column naryop_rowany(colvec&&);
-Column naryop_rowcount(colvec&&);
+// Column naryop_rowcount(colvec&&);
 Column naryop_rowfirstlast(colvec&&, bool FIRST);
 // Column naryop_rowmean(colvec&&);
 Column naryop_rowminmax(colvec&&, bool MIN);
@@ -202,7 +202,7 @@ void promote_columns(colvec& columns, SType target_stype);
 
 // extern py::PKArgs args_rowall;
 // extern py::PKArgs args_rowany;
-extern py::PKArgs args_rowcount;
+// extern py::PKArgs args_rowcount;
 extern py::PKArgs args_rowfirst;
 extern py::PKArgs args_rowlast;
 extern py::PKArgs args_rowmax;

@@ -120,10 +120,11 @@ py::oobj py_rowfn(const py::XArgs& args) {
     }
   }
   switch (args.get_info()) {
-    case FN_ROWALL:  return PyFExpr::make(new FExpr_RowAll(std::move(a)));
-    case FN_ROWANY:  return PyFExpr::make(new FExpr_RowAny(std::move(a)));
-    case FN_ROWSUM:  return PyFExpr::make(new FExpr_RowSum(std::move(a)));
-    case FN_ROWMEAN: return PyFExpr::make(new FExpr_RowMean(std::move(a)));
+    case FN_ROWALL:   return PyFExpr::make(new FExpr_RowAll(std::move(a)));
+    case FN_ROWANY:   return PyFExpr::make(new FExpr_RowAny(std::move(a)));
+    case FN_ROWCOUNT: return PyFExpr::make(new FExpr_RowCount(std::move(a)));
+    case FN_ROWSUM:   return PyFExpr::make(new FExpr_RowSum(std::move(a)));
+    case FN_ROWMEAN:  return PyFExpr::make(new FExpr_RowMean(std::move(a)));
     default: throw RuntimeError();
   }
 }
@@ -137,7 +138,7 @@ Column naryop(Op opcode, colvec&& columns) {
   switch (opcode) {
     // case Op::ROWALL:   return naryop_rowall(std::move(columns));
     // case Op::ROWANY:   return naryop_rowany(std::move(columns));
-    case Op::ROWCOUNT: return naryop_rowcount(std::move(columns));
+    // case Op::ROWCOUNT: return naryop_rowcount(std::move(columns));
     case Op::ROWFIRST: return naryop_rowfirstlast(std::move(columns), true);
     case Op::ROWLAST:  return naryop_rowfirstlast(std::move(columns), false);
     case Op::ROWMAX:   return naryop_rowminmax(std::move(columns), false);

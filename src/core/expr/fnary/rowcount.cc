@@ -20,12 +20,46 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
-#include "expr/fnary/fnary.h"
-#include "expr/funary/umaker.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "expr/funary/umaker.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
+
+
+std::string FExpr_RowCount::name() const {
+  return "rowcount";
+}
+
+
+static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
+  int32_t valid_count = static_cast<int32_t>(columns.size());
+  for (const auto& col : columns) {
+    int8_t x;
+    // each column is ISNA(col), so the return value is 1 if
+    // the value in the original column is NA.
+    col.get_element(i, &x);
+    valid_count -= x;
+  }
+  *out = valid_count;
+  return true;
+}
+
+
+Column FExpr_RowCount::apply_function(colvec&& columns) const {
+  if (columns.empty()) {
+    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+  }
+  size_t nrows = columns[0].nrows();
+  for (size_t i = 0; i < columns.size(); ++i) {
+    xassert(columns[i].nrows() == nrows);
+    columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
+  }
+  return Column(new FuncNary_ColumnImpl<int32_t>(
+                      std::move(columns), op_rowcount, nrows, SType::INT32));
+}
 
 
 
@@ -51,37 +85,11 @@ See Also
 
 )";
 
-py::PKArgs args_rowcount(0, 0, 0, true, false, {}, "rowcount", doc_rowcount);
-
-
-
-static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
-  int32_t valid_count = static_cast<int32_t>(columns.size());
-  for (const auto& col : columns) {
-    int8_t x;
-    // each column is ISNA(col), so the return value is 1 if
-    // the value in the original column is NA.
-    col.get_element(i, &x);
-    valid_count -= x;
-  }
-  *out = valid_count;
-  return true;
-}
-
-
-
-Column naryop_rowcount(colvec&& columns) {
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
-  }
-  size_t nrows = columns[0].nrows();
-  for (size_t i = 0; i < columns.size(); ++i) {
-    xassert(columns[i].nrows() == nrows);
-    columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
-  }
-  return Column(new FuncNary_ColumnImpl<int32_t>(
-                      std::move(columns), op_rowcount, nrows, SType::INT32));
-}
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowcount")
+    ->docs(doc_rowcount)
+    ->allow_varargs()
+    ->add_info(FN_ROWCOUNT);
 
 
 
