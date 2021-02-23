@@ -49,6 +49,40 @@ See Also
 
 - :func:`rowsum()` -- sum of all values row-wise.
 
+Example
+-------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None],
+    ...                "C":[True, False, False, True, True]})
+    >>> DT
+       |     A      B      C
+       | int32  int32  bool8
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      0
+     2 |     2      3      0
+     3 |     1      4      1
+     4 |     2     NA      1
+    [5 rows x 3 columns]
+
+
+
+Note the exclusion of null values in the count::
+
+    >>> DT[:, dt.rowcount(f[:])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     2
+     1 |     3
+     2 |     3
+     3 |     3
+     4 |     2
+    [5 rows x 1 column]
+
 )";
 
 py::PKArgs args_rowcount(0, 0, 0, true, false, {}, "rowcount", doc_rowcount);

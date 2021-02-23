@@ -79,7 +79,30 @@ def test_date32_repr():
         "[3 rows x 1 column]\n"
     )
 
+    
+def test_date32_min():
+    DT = dt.Type.date32.min
+    assert isinstance(DT, dt.Frame)
+    assert str(DT) == (
+        "   | min           \n"
+        "   | date32        \n"
+        "-- + --------------\n"
+        " 0 | -5877641-06-24\n"
+        "[1 row x 1 column]\n"
+    )
 
+
+def test_date32_max():
+    DT = dt.Type.date32.max
+    assert isinstance(DT, dt.Frame)
+    assert str(DT) == (
+        "   | max          \n"
+        "   | date32       \n"
+        "-- + -------------\n"
+        " 0 | 5879610-09-09\n"
+        "[1 row x 1 column]\n"
+    )
+    
 
 #-------------------------------------------------------------------------------
 # Convert from numpy
