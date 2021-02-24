@@ -65,11 +65,11 @@ class pybuffers_context {
 //------------------------------------------------------------------------------
 
 static const char* doc_to_numpy =
-R"(to_numpy(self, stype=None)
+R"(to_numpy(self, type=None, column=None)
 --
 
 Convert frame into a 2D numpy array, optionally forcing it into the
-specified stype/dtype.
+specified type.
 
 In a limited set of circumstances the returned numpy array will be
 created as a data view, avoiding copying the data. This happens if
@@ -88,8 +88,8 @@ be an instance of `numpy.ma.masked_array`.
 
 Parameters
 ----------
-stype: stype | numpy.dtype | str | type
-    Cast frame into this stype before converting it into a numpy
+type: Type | numpy.dtype | str | type
+    Cast frame into this type before converting it into a numpy
     array.
 
 column: int
@@ -104,7 +104,7 @@ except: ImportError
 
 static PKArgs args_to_numpy(
     0, 2, 0, false, false,
-    {"stype", "column"}, "to_numpy", doc_to_numpy);
+    {"type", "column"}, "to_numpy", doc_to_numpy);
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
@@ -224,6 +224,7 @@ oobj Frame::to_pandas(const PKArgs&) {
 //------------------------------------------------------------------------------
 
 void Frame::_init_tonumpy(XTypeMaker& xt) {
+  args_to_numpy.add_synonym_arg("stype", "type");
   xt.add(METHOD(&Frame::to_numpy, args_to_numpy));
   xt.add(METHOD(&Frame::to_pandas, args_to_pandas));
 }
