@@ -42,8 +42,8 @@
 
 
 namespace pybuffers {
-  size_t single_col;
-  dt::SType force_stype;
+  size_t single_col = size_t(-1);
+  dt::SType force_stype = dt::SType::AUTO;
 }
 
 // Forward declarations
@@ -413,35 +413,6 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
 void py::Frame::m__releasebuffer__(Py_buffer* view) {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   delete xinfo;
-}
-
-
-
-static py::PKArgs args__install_buffer_hooks(
-  1, 0, 0, false, false, {"obj"}, "_install_buffer_hooks", nullptr);
-
-static void _install_buffer_hooks(const py::PKArgs& args)
-{
-  PyObject* obj = args[0].to_borrowed_ref();
-  if (obj) {
-    auto frame_type = py::Frame::typePtr;
-    int ret = PyObject_IsSubclass(obj, frame_type);
-    if (ret == -1) throw PyError();
-    if (ret == 0) {
-      throw ValueError() << "Function `_install_buffer_hooks()` can only be "
-          "applied to subclasses of core.Frame";
-    }
-    auto type = reinterpret_cast<PyTypeObject*>(obj);
-    type->tp_as_buffer =
-        reinterpret_cast<PyTypeObject*>(frame_type)->tp_as_buffer;
-  }
-}
-
-
-void py::DatatableModule::init_methods_buffers() {
-  ADD_FN(&_install_buffer_hooks, args__install_buffer_hooks);
-  pybuffers::single_col = size_t(-1);
-  pybuffers::force_stype = dt::SType::AUTO;
 }
 
 

@@ -447,7 +447,6 @@ void py::DatatableModule::init_methods() {
   }
 
   init_methods_aggregate();
-  init_methods_buffers();
   init_methods_cbind();
   init_methods_csv();
   init_methods_isclose();
