@@ -36,7 +36,7 @@ namespace dt {
  *  dt::FtrlBase.
  */
 template <typename T /* float or double */>
-class Ftrl : public dt::FtrlBase {
+class Ftrl : public FtrlBase {
   private:
     // Model datatable of shape (nbins, 2 * nlabels),
     // a vector of weight pointers, and the model type.

@@ -35,7 +35,7 @@ namespace dt {
  *  dt::LinearModelBase.
  */
 template <typename T /* float or double */>
-class LinearModel : public dt::LinearModelBase {
+class LinearModel : public LinearModelBase {
   private:
     // SType that corresponds to `T`
     const SType stype;
