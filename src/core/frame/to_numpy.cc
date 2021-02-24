@@ -46,13 +46,13 @@ static bool datatable_has_nas(DataTable* dt, size_t force_col) {
 }
 
 
-class pybuffers_context {
+class PybuffersSettings {
   public:
-    pybuffers_context(dt::SType st, size_t col) {
+    PybuffersSettings(dt::SType st, size_t col) {
       pybuffers::force_stype = st;
       pybuffers::single_col = col;
     }
-    ~pybuffers_context() {
+    ~PybuffersSettings() {
       pybuffers::force_stype = dt::SType::AUTO;
       pybuffers::single_col = size_t(-1);
     }
@@ -77,7 +77,7 @@ all of these conditions are met:
 
   - the frame has only 1 column, which is not virtual;
   - the column's type is not string;
-  - the `stype` argument was not used.
+  - the `type` argument was not used.
 
 In all other cases the returned numpy array will have a copy of the
 frame's data. If the frame has multiple columns of different stypes,
@@ -88,15 +88,19 @@ be an instance of `numpy.ma.masked_array`.
 
 Parameters
 ----------
-type: Type | numpy.dtype | str | type
+type: Type | <type-like>
     Cast frame into this type before converting it into a numpy
     array.
 
 column: int
-    Convert only the specified column; the returned value will be
+    Convert a single column from the frame.; the returned value will be
     a 1D-array instead of a regular 2D-array.
 
 return: numpy.array
+    The returned array will be 2-dimensional with the same :attr:`.shape`
+    as the original frame. However, if the option `column` was used,
+    then the returned array will be 1-dimensional with the length of
+    :attr:`.nrows`.
 
 except: ImportError
     If the ``numpy`` module is not installed.
@@ -115,7 +119,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
   oobj res;
   {
-    pybuffers_context ctx(stype, force_col);
+    PybuffersSettings tmp(stype, force_col);
+    // At this point, numpy will invoke py::Frame::m__getbuffer__
     res = nparray.call({oobj(this)});
   }
 

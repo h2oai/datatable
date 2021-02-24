@@ -236,47 +236,26 @@ static void try_to_resolve_object_column(Column& col)
 
 
 //==============================================================================
-// Buffers protocol for Python-side Frame object
-//
-// These methods are needed to support the buffers protocol for the Python-side
-// `DataTable` object. We define these methods here, and then use
-// `pyinstall_buffer_hooks` in order to attach this behavior to the PyType
-// corresponding to the Python::DataTable.
-//
-// This is somewhat hacky, however there is no other way to implement the
-// buffers protocol in pure Python. And we need to implement this protocol, so
-// that DataTable objects can be passed to Numpy/Pandas, i.e. it supports the
-// code like this:
-//
-//     >>> d = dt.DataTable(...)
-//     >>> import numpy as np
-//     >>> a = np.array(d)
-//
+// Buffers protocol for the Frame class
 //==============================================================================
 
 struct XInfo {
   // Exported Buffer object.
   Buffer mbuf;
 
-  // An array of Py_ssize_t of length `ndim`, indicating the shape of the
+  // An array of integers of length `ndim`, indicating the shape of the
   // memory as an n-dimensional array (prod(shape) * itemsize == len).
   // Must be provided iff PyBUF_ND is set.
   Py_ssize_t shape[2];
 
-  // An array of Py_ssize_t of length `ndim` giving the number of bytes to skip
-  // to get to a new element in each dimension.
+  // An array of integers of length `ndim` giving the number of bytes
+  // to skip to get to a new element in each dimension.
   // Must be provided iff PyBUF_STRIDES is set.
   Py_ssize_t strides[2];
-
-  // Stype of the exported data
-  dt::SType stype;
-
-  int64_t : 56;
 
   XInfo() {
     shape[0] = shape[1] = 0;
     strides[0] = strides[1] = 0;
-    stype = dt::SType::AUTO;
   }
 };
 
@@ -314,7 +293,6 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   xinfo->shape[1] = 1;
   xinfo->strides[0] = static_cast<Py_ssize_t>(col.elemsize());
   xinfo->strides[1] = static_cast<Py_ssize_t>(xinfo->mbuf.size());
-  xinfo->stype = col.stype();
 
   view->buf = const_cast<void*>(xinfo->mbuf.rptr());
   view->obj = py::oobj(self).release();
@@ -417,7 +395,6 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
   xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
   xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
   xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
-  xinfo->stype = stype;
 
   // Fill in the `view` struct
   view->buf = const_cast<void*>(xinfo->mbuf.rptr());
