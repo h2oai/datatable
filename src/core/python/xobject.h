@@ -630,7 +630,7 @@ RESTORE_CLANG_WARNING("-Wunused-template")
     py::_safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
 
 
-#define BUFFERS(GETMETH, DELMETH)                                              \
+#define METHOD__GETBUFFER__(GETMETH, DELMETH)                                  \
     _safe_getbuffer<CLASS_OF(GETMETH), GETMETH>,                               \
     _safe_releasebuffer<CLASS_OF(DELMETH), DELMETH>,                           \
     py::XTypeMaker::buffers_tag
