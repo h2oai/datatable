@@ -45,6 +45,7 @@ size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
+bool TypeImpl::is_invalid() const { return false; }
 bool TypeImpl::is_boolean() const { return false; }
 bool TypeImpl::is_integer() const { return false; }
 bool TypeImpl::is_float()   const { return false; }

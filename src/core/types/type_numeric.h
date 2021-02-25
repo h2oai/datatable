@@ -19,24 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_OBJECT_h
-#define dt_TYPES_TYPE_OBJECT_h
+#ifndef dt_TYPES_TYPE_NUMERIC_h
+#define dt_TYPES_TYPE_NUMERIC_h
 #include "types/type_impl.h"
+#include "types/type_invalid.h"
 namespace dt {
 
 
 
-class Type_Object : public TypeImpl {
-  public:
-    Type_Object() : TypeImpl(SType::OBJ) {}
+class Type_Numeric : public TypeImpl {
+  protected:
+    using TypeImpl::TypeImpl;
 
-    bool is_object() const override { return true; }
-    bool can_be_read_as_pyobject() const override { return true; }
-    std::string to_string() const override { return "obj64"; }
+  public:
+    bool is_numeric() const override { return true; }
 
     TypeImpl* common_type(TypeImpl* other) override {
-      if (other->is_invalid()) return other;
-      return this;
+      if (other->is_numeric()) {
+        auto stype1 = static_cast<int>(this->stype());
+        auto stype2 = static_cast<int>(other->stype());
+        return stype1 >= stype2? this : other;
+      }
+      if (other->is_object() || other->is_invalid()) {
+        return other;
+      }
+      return new Type_Invalid();
     }
 };
 

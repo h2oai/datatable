@@ -79,6 +79,7 @@ class Type {
     py::oobj max() const;
 
     SType stype() const;
+    bool is_invalid() const;
     bool is_boolean() const;
     bool is_integer() const;
     bool is_float() const;
@@ -91,6 +92,17 @@ class Type {
 
     bool operator==(const Type& other) const;
     std::string to_string() const;
+
+    // (Optionally) change the current type so that it becomes
+    // compatible with the type `other`. This can be used, for
+    // example, when two columns of different types are passed to a
+    // binary function; or when multiple columns need to be merged
+    // into a single one; etc.
+    //
+    // If the current type is incompatible with `other`, then it will
+    // be promoted into `Type::invalid()`.
+    //
+    void promote(const Type& other);
 
   private:
     Type(TypeImpl*&&) noexcept;

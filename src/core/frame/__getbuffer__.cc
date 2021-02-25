@@ -191,10 +191,9 @@ void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
     // created having the converted data; but the side-effect of this is
     // that `mbuf` will have the same data, and in the right place.
     {
-      Column newcol = dt->get_column(i + i0); //.cast(stype, std::move(xmb));
+      Column newcol = dt->get_column(i + i0);
       newcol.cast_inplace(stype);
       copy_column_into_buffer(newcol, xmb);
-      // newcol.materialize();
       // We can now delete the new column: this will delete `xmb` as well,
       // however a "view buffer" object does not attempt to free its
       // memory. The converted data that was written to `xmb` will

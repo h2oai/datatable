@@ -23,25 +23,16 @@
 #define dt_TYPES_TYPE_INT_h
 #include <limits>
 #include "python/int.h"
-#include "types/type_impl.h"
+#include "types/type_numeric.h"
 #include "utils/assert.h"
 namespace dt {
 
 
 
-class Type_Int : public TypeImpl {
-  protected:
-    using TypeImpl::TypeImpl;
-
+class Type_Int8 : public Type_Numeric {
   public:
+    Type_Int8() : Type_Numeric(SType::INT8) {}
     bool is_integer() const override { return true; }
-    bool is_numeric() const override { return true; }
-};
-
-
-class Type_Int8 : public Type_Int {
-  public:
-    Type_Int8() : Type_Int(SType::INT8) {}
     bool can_be_read_as_int8()  const override { return true; }
     std::string to_string() const override { return "int8"; }
     py::oobj min() const override { return py::oint(-127); }
@@ -49,9 +40,10 @@ class Type_Int8 : public Type_Int {
 };
 
 
-class Type_Int16 : public Type_Int {
+class Type_Int16 : public Type_Numeric {
   public:
-    Type_Int16() : Type_Int(SType::INT16) {}
+    Type_Int16() : Type_Numeric(SType::INT16) {}
+    bool is_integer() const override { return true; }
     bool can_be_read_as_int16()  const override { return true; }
     std::string to_string() const override { return "int16"; }
     py::oobj min() const override { return py::oint(-32767); }
@@ -59,9 +51,10 @@ class Type_Int16 : public Type_Int {
 };
 
 
-class Type_Int32 : public Type_Int {
+class Type_Int32 : public Type_Numeric {
   public:
-    Type_Int32() : Type_Int(SType::INT32) {}
+    Type_Int32() : Type_Numeric(SType::INT32) {}
+    bool is_integer() const override { return true; }
     bool can_be_read_as_int32()  const override { return true; }
     std::string to_string() const override { return "int32"; }
 
@@ -74,9 +67,10 @@ class Type_Int32 : public Type_Int {
 };
 
 
-class Type_Int64 : public Type_Int {
+class Type_Int64 : public Type_Numeric {
   public:
-    Type_Int64() : Type_Int(SType::INT64) {}
+    Type_Int64() : Type_Numeric(SType::INT64) {}
+    bool is_integer() const override { return true; }
     bool can_be_read_as_int64()  const override { return true; }
     std::string to_string() const override { return "int64"; }
 

@@ -24,6 +24,7 @@
 #include "frame/py_frame.h"
 #include "stype.h"
 #include "types/type_impl.h"
+#include "types/type_invalid.h"
 namespace dt {
 
 
@@ -40,6 +41,16 @@ class Type_Date32 : public TypeImpl {
     }
     py::oobj max() const override {
       return _wrap_value(std::numeric_limits<int>::max() - 719468, "max");
+    }
+
+    TypeImpl* common_type(TypeImpl* other) override {
+      if (this->stype() == other->stype()) {
+        return this;
+      }
+      if (other->is_object() || other->is_invalid()) {
+        return other;
+      }
+      return new Type_Invalid();
     }
 
   private:
