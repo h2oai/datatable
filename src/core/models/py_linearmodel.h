@@ -52,7 +52,6 @@ class LinearModel : public XObject<LinearModel> {
     void m__dealloc__();
     void init_py_params();
     void init_dt_linearmodel();
-    void init_dt_interactions();
     static std::map<dt::LinearModelType, std::string> create_model_type_name();
 
     // Pickling support
@@ -76,7 +75,6 @@ class LinearModel : public XObject<LinearModel> {
     oobj get_lambda1() const;
     oobj get_lambda2() const;
     oobj get_nepochs() const;
-    oobj get_interactions() const;
     oobj get_double_precision() const;
     oobj get_negative_class() const;
     oobj get_model_type() const;
@@ -92,7 +90,6 @@ class LinearModel : public XObject<LinearModel> {
     void set_lambda1(const Arg&);
     void set_lambda2(const Arg&);
     void set_nepochs(const Arg&);
-    void set_interactions(const Arg&);      // Disabled for a trained model
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model
     void set_model_type(const Arg&);        // Disabled for a trained model

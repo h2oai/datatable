@@ -545,19 +545,6 @@ bool LinearModel<T>::read_row(const size_t row, const colvec& cols, tptr<T>& x) 
     if (!isvalid) break;
   }
 
-
-  // Do feature interactions.
-  if (isvalid) {
-    size_t i = cols.size();
-    for (auto interaction : interactions) {
-      x[i] = 0;
-      for (auto feature_id : interaction) {
-        x[i] += x[feature_id];
-      }
-      i++;
-    }
-  }
-
   return isvalid;
 }
 
@@ -790,7 +777,6 @@ void LinearModel<T>::reset() {
   dt_fi = nullptr;
   model_type = LinearModelType::NONE;
   dt_labels = nullptr;
-  interactions.clear();
 }
 
 
@@ -837,17 +823,6 @@ void LinearModel<T>::create_fi() {
     sb.write(feature_name);
   }
 
-  if (interactions.size()) {
-    for (auto interaction : interactions) {
-      std::string feature_interaction;
-      for (auto feature_id : interaction) {
-        feature_interaction += colnames[feature_id] + ":";
-      }
-      feature_interaction.pop_back();
-      sb.write(feature_interaction);
-    }
-  }
-
   sb.order();
   sb.commit_and_start_new_chunk(nfeatures);
 
@@ -875,7 +850,7 @@ void LinearModel<T>::init_fi() {
  */
 template <typename T>
 void LinearModel<T>::define_features() {
-  nfeatures = dt_X_train->ncols() + interactions.size();
+  nfeatures = dt_X_train->ncols();
 }
 
 
@@ -949,7 +924,7 @@ py::oobj LinearModel<T>::get_fi(bool normalize /* = true */) {
 
 template <typename T>
 size_t LinearModel<T>::get_ncols() {
-  return nfeatures - interactions.size();
+  return nfeatures;
 }
 
 
@@ -982,12 +957,6 @@ double LinearModel<T>::get_lambda1() {
 template <typename T>
 double LinearModel<T>::get_lambda2() {
   return params.lambda2;
-}
-
-
-template <typename T>
-const std::vector<sztvec>& LinearModel<T>::get_interactions() {
-  return interactions;
 }
 
 
@@ -1061,12 +1030,6 @@ template <typename T>
 void LinearModel<T>::set_lambda2(double lambda2_in) {
   params.lambda2 = lambda2_in;
   lambda2 = static_cast<T>(lambda2_in);
-}
-
-
-template <typename T>
-void LinearModel<T>::set_interactions(std::vector<sztvec> interactions_in) {
-  interactions = std::move(interactions_in);
 }
 
 

@@ -66,7 +66,7 @@ std::map<dt::LinearModelType, std::string> LinearModel::create_model_type_name()
 static const char* doc___init__ =
 R"(__init__(self, eta=0.005, lambda1=0, lambda2=0,
 nepochs=1, double_precision=False, negative_class=False,
-interactions=None, model_type='auto', params=None)
+model_type='auto', params=None)
 --
 
 Create a new :class:`LinearModel <datatable.models.LinearModel>` object.
@@ -108,12 +108,6 @@ negative_class: bool
     If `negative_class` is set to `False`, the initial weights
     become zeros.
 
-interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
-    A list or a tuple of interactions. In turn, each interaction
-    should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame. Each interaction
-    should have at least one feature.
-
 model_type: "binomial" | "multinomial" | "regression" | "auto"
     The model type to be built. When this option is `"auto"`
     then the model type will be automatically chosen based on
@@ -134,7 +128,7 @@ static PKArgs args___init__(0, 1, 8, false, false,
                                  {"params", "eta", "lambda1",
                                  "lambda2", "nepochs",
                                  "double_precision",
-                                 "negative_class", "interactions",
+                                 "negative_class",
                                  "model_type"},
                                  "__init__", doc___init__);
 
@@ -151,8 +145,7 @@ void LinearModel::m__init__(const PKArgs& args) {
   const Arg& arg_nepochs          = args[4];
   const Arg& arg_double_precision = args[5];
   const Arg& arg_negative_class   = args[6];
-  const Arg& arg_interactions     = args[7];
-  const Arg& arg_model_type       = args[8];
+  const Arg& arg_model_type       = args[7];
 
 
   bool defined_params           = !arg_params.is_none_or_undefined();
@@ -162,12 +155,11 @@ void LinearModel::m__init__(const PKArgs& args) {
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
-  bool defined_interactions     = !arg_interactions.is_none_or_undefined();
   bool defined_model_type       = !arg_model_type.is_none_or_undefined();
   bool defined_individual_param = defined_eta ||
                                   defined_lambda1 || defined_lambda2 ||
                                   defined_nepochs || defined_double_precision ||
-                                  defined_negative_class || defined_interactions;
+                                  defined_negative_class;
 
   init_py_params();
 
@@ -176,7 +168,7 @@ void LinearModel::m__init__(const PKArgs& args) {
       throw ValueError() << "You can either pass all the parameters with "
         << "`params` or any of the individual parameters with `eta`, "
         << "`lambda1`, `lambda2`, `nepochs`, "
-        << "`double_precision`, `negative_class`, `interactions` or `model_type` "
+        << "`double_precision`, `negative_class` or `model_type` "
         << "to `LinearModel` constructor, but not both at the same time";
     }
 
@@ -199,7 +191,6 @@ void LinearModel::m__init__(const PKArgs& args) {
     if (defined_nepochs) set_nepochs(arg_nepochs);
     if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_negative_class) set_negative_class(arg_negative_class);
-    if (defined_interactions) set_interactions(arg_interactions);
     if (defined_model_type) set_model_type(arg_model_type);
   }
 }
@@ -225,41 +216,6 @@ void LinearModel::m__dealloc__() {
   lm = nullptr;
   py_params = nullptr;
   colnames = nullptr;
-}
-
-
-/**
- *  Check if provided interactions are consistent with the column names
- *  of the training frame. If yes, set up interactions for `lm`.
- */
-void LinearModel::init_dt_interactions() {
-  std::vector<sztvec> dt_interactions;
-  auto py_interactions = py_params->get_attr("interactions").to_oiter();
-  dt_interactions.reserve(py_interactions.size());
-
-  for (auto py_interaction_robj : py_interactions) {
-    sztvec dt_interaction;
-    auto py_interaction = py_interaction_robj.to_oiter();
-    size_t nfeatures = py_interaction.size();
-    dt_interaction.reserve(nfeatures);
-
-    for (auto py_feature : py_interaction) {
-      std::string feature_name = py_feature.to_string();
-
-      auto it = find(colnames->begin(), colnames->end(), feature_name);
-      if (it == colnames->end()) {
-        throw ValueError() << "Feature `" << feature_name
-          << "` is used in the interactions, however, column "
-          << "`" << feature_name << "` is missing in the training frame";
-      }
-
-      auto feature_id = std::distance(colnames->begin(), it);
-      dt_interaction.push_back(static_cast<size_t>(feature_id));
-    }
-
-    dt_interactions.push_back(std::move(dt_interaction));
-  }
-  lm->set_interactions(std::move(dt_interactions));
 }
 
 
@@ -373,10 +329,6 @@ oobj LinearModel::fit(const PKArgs& args) {
                        << "model";
   }
 
-  if (!py_params->get_attr("interactions").is_none()
-      && !lm->get_interactions().size()) {
-    init_dt_interactions();
-  }
 
   // Validtion set handling
   DataTable* dt_X_val = nullptr;
@@ -544,18 +496,6 @@ oobj LinearModel::predict(const PKArgs& args) {
                        << "should have the same column names";
   }
 
-  if (!py_params->get_attr("interactions").is_none()
-      && !lm->get_interactions().size()) {
-    init_dt_interactions();
-  }
-
-
-  if (!py_params->get_attr("interactions").is_none()
-      && !lm->get_interactions().size()) {
-    init_dt_interactions();
-  }
-
-
   DataTable* dt_p = lm->predict(dt_X).release();
   py::oobj df_p = py::Frame::oframe(dt_p);
 
@@ -634,7 +574,7 @@ return: Frame
     A frame of shape `(nfeatures + 1, nlabels)`, where `nlabels` is
     the total number of labels the model was trained on, and
     :attr:`nfeatures <datatable.models.LinearModel.nfeatures>` is
-    the total number of features including interactions.
+    the total number of features.
 )";
 
 static GSArgs args_model("model", doc_model);
@@ -1026,93 +966,6 @@ void LinearModel::set_negative_class(const Arg& arg_negative_class) {
 
 
 /**
- *  .interactions
- */
-
-static const char* doc_interactions =
-R"(
-The feature interactions to be used for model training. This option is
-read-only for a trained model.
-
-Parameters
-----------
-return: Tuple
-    Current `interactions` value.
-
-new_interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
-    New `interactions` value. Each particular interaction
-    should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - one of the interactions has zero features.
-
-)";
-
-static GSArgs args_interactions(
-  "interactions",
-  doc_interactions
-);
-
-
-oobj LinearModel::get_interactions() const {
-  return py_params->get_attr("interactions");
-}
-
-
-void LinearModel::set_interactions(const Arg& arg_interactions) {
-  if (lm->is_model_trained())
-    throw ValueError() << "Cannot change " << arg_interactions.name()
-                       << " for a trained model, reset this model or"
-                       << " create a new one";
-
-  if (arg_interactions.is_none()) {
-    py_params->replace(6, arg_interactions.to_robj());
-    return;
-  }
-
-  if (!arg_interactions.is_list() && !arg_interactions.is_tuple())
-    throw TypeError() << arg_interactions.name() << " should be a "
-                      << "list or a tuple, instead got: "
-                      << arg_interactions.typeobj();
-
-  // Convert the input into a tuple of tuples.
-  auto py_interactions = arg_interactions.to_oiter();
-  py::otuple params_interactions(py_interactions.size());
-  size_t i = 0;
-
-  for (auto py_interaction_robj : py_interactions) {
-    if (!py_interaction_robj.is_list() && !py_interaction_robj.is_tuple())
-      throw TypeError() << arg_interactions.name()
-                        << " should be a list or a tuple of lists or tuples, "
-                        << "instead encountered: " << py_interaction_robj;
-
-    auto py_interaction = py_interaction_robj.to_oiter();
-    if (!py_interaction.size())
-      throw ValueError() << "Interaction cannot have zero features, encountered: "
-                        << py_interaction_robj;
-
-    py::otuple params_interaction(py_interaction.size());
-    size_t j = 0;
-
-    for (auto py_feature_robj : py_interaction) {
-      if (!py_feature_robj.is_string())
-        throw TypeError() << "Interaction features should be strings, "
-                          << "instead encountered: " << py_feature_robj;
-      params_interaction.set(j++, py::oobj(py_feature_robj));
-    }
-
-    params_interactions.set(i++, std::move(params_interaction));
-  }
-
-  py_params->replace(6, std::move(params_interactions));
-}
-
-
-/**
  *  .model_type
  */
 
@@ -1170,7 +1023,7 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
   }
 
   lm->set_model_type(it->second);
-  py_params->replace(7, py_model_type.to_robj());
+  py_params->replace(6, py_model_type.to_robj());
 }
 
 
@@ -1247,8 +1100,8 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::otuple params_tuple = params_in.to_otuple();
   size_t n_params = params_tuple.size();
 
-  if (n_params != 8) {
-    throw ValueError() << "Tuple of LinearModel parameters should have 8 elements, "
+  if (n_params != 7) {
+    throw ValueError() << "Tuple of LinearModel parameters should have 7 elements, "
                        << "got: " << n_params;
   }
   py::oobj py_eta = params_in.get_attr("eta");
@@ -1257,7 +1110,6 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::oobj py_nepochs = params_in.get_attr("nepochs");
   py::oobj py_double_precision = params_in.get_attr("double_precision");
   py::oobj py_negative_class = params_in.get_attr("negative_class");
-  py::oobj py_interactions = params_in.get_attr("interactions");
   py::oobj py_model_type = params_in.get_attr("model_type");
 
 
@@ -1267,7 +1119,6 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   set_nepochs({py_nepochs, "`LinearModelParams.nepochs`"});
   set_double_precision({py_double_precision, "`LinearModelParams.double_precision`"});
   set_negative_class({py_negative_class, "`LinearModelParams.negative_class`"});
-  set_interactions({py_interactions, "`LinearModelParams.interactions`"});
   set_model_type({py_model_type, "`LinearModelParams.model_type`"});
 }
 
@@ -1279,7 +1130,6 @@ oobj LinearModel::get_params_tuple() const {
                  get_nepochs(),
                  get_double_precision(),
                  get_negative_class(),
-                 get_interactions(),
                  get_model_type()
                 };
 }
@@ -1288,8 +1138,8 @@ oobj LinearModel::get_params_tuple() const {
 void LinearModel::set_params_tuple(robj params) {
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 8) {
-    throw ValueError() << "Tuple of `LinearModel` parameters should have 8 elements, "
+  if (n_params != 7) {
+    throw ValueError() << "Tuple of `LinearModel` parameters should have 7 elements, "
                        << "got: " << n_params;
   }
   set_eta({params_tuple[0], "eta"});
@@ -1298,8 +1148,7 @@ void LinearModel::set_params_tuple(robj params) {
   set_nepochs({params_tuple[3], "nepochs"});
   set_double_precision({params_tuple[4], "double_precision"});
   set_negative_class({params_tuple[5], "negative_class"});
-  set_interactions({params_tuple[6], "interactions"});
-  set_model_type({params_tuple[7], "model_type"});
+  set_model_type({params_tuple[6], "model_type"});
 }
 
 
@@ -1313,7 +1162,6 @@ void LinearModel::init_py_params() {
       {args_nepochs.name,          args_nepochs.doc},
       {args_double_precision.name, args_double_precision.doc},
       {args_negative_class.name,   args_negative_class.doc},
-      {args_interactions.name,     args_interactions.doc},
       {args_model_type.name,       args_model_type.doc}
     }
   );
@@ -1328,8 +1176,7 @@ void LinearModel::init_py_params() {
   py_params->replace(3, py::ofloat(params.nepochs));
   py_params->replace(4, py::obool(params.double_precision));
   py_params->replace(5, py::obool(params.negative_class));
-  py_params->replace(6, py::None());
-  py_params->replace(7, py::ostring("auto"));
+  py_params->replace(6, py::ostring("auto"));
 }
 
 
@@ -1417,7 +1264,6 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
   xt.add(GETSET(&LinearModel::get_nepochs, &LinearModel::set_nepochs, args_nepochs));
   xt.add(GETTER(&LinearModel::get_double_precision, args_double_precision));
   xt.add(GETSET(&LinearModel::get_negative_class, &LinearModel::set_negative_class, args_negative_class));
-  xt.add(GETSET(&LinearModel::get_interactions, &LinearModel::set_interactions, args_interactions));
   xt.add(GETSET(&LinearModel::get_model_type, &LinearModel::set_model_type, args_model_type));
 
   // Model and features

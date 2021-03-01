@@ -43,7 +43,7 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("LinearModelParams",
           ["eta", "lambda1", "lambda2", "nepochs", "double_precision",
-           "negative_class", "interactions", "model_type"]
+           "negative_class", "model_type"]
          )
 
 params_test = Params(eta = 1,
@@ -52,7 +52,6 @@ params_test = Params(eta = 1,
                  nepochs = 4.0,
                  double_precision = True,
                  negative_class = True,
-                 interactions = (("C0",),),
                  model_type = 'binomial')
 
 
@@ -62,7 +61,6 @@ params_default = Params(eta = 0.005,
                         nepochs = 1,
                         double_precision = False,
                         negative_class = False,
-                        interactions = None,
                         model_type = 'auto')
 
 epsilon = 0.01 # Accuracy required for some tests
@@ -107,36 +105,13 @@ def test_linearmodel_construct_wrong_double_precision_type():
             "instead got <class 'int'>" == str(e.value))
 
 
-def test_linearmodel_construct_wrong_interactions_type():
-    with pytest.raises(TypeError) as e:
-        noop(LinearModel(interactions = "C0"))
-    assert ("Argument interactions in LinearModel() constructor should be a list or a tuple, "
-            "instead got: <class 'str'>" == str(e.value))
-
-
-def test_linearmodel_construct_wrong_interaction_type():
-    with pytest.raises(TypeError) as e:
-        noop(LinearModel(interactions = ["C0"]))
-    assert ("Argument interactions in LinearModel() constructor should be a list or a tuple "
-            "of lists or tuples, instead encountered: 'C0'" == str(e.value))
-
-
-def test_linearmodel_construct_wrong_interactions_from_itertools():
-    import itertools
-    with pytest.raises(TypeError) as e:
-        noop(LinearModel(interactions = itertools.combinations(["C0", "C1"], 2)))
-    assert ("Argument interactions in LinearModel() constructor should be a list or a tuple, "
-            "instead got: <class 'itertools.combinations'>"
-            == str(e.value))
-
-
 def test_linearmodel_construct_wrong_combination():
     with pytest.raises(ValueError) as e:
         noop(LinearModel(params=params_test, eta = params_test.eta))
     assert ("You can either pass all the parameters with params or any of "
             "the individual parameters with eta, lambda1, "
             "lambda2, nepochs, double_precision, "
-            "negative_class, interactions or model_type to LinearModel constructor, "
+            "negative_class or model_type to LinearModel constructor, "
             "but not both at the same time"
             == str(e.value))
 
@@ -230,13 +205,12 @@ def test_linearmodel_create_individual():
               nepochs = params_test.nepochs,
               double_precision = params_test.double_precision,
               negative_class = params_test.negative_class,
-              interactions = params_test.interactions,
               model_type = params_test.model_type)
     assert lm.params == (params_test.eta,
                          params_test.lambda1, params_test.lambda2,
                          params_test.nepochs,
                          params_test.double_precision, params_test.negative_class,
-                         params_test.interactions, params_test.model_type)
+                         params_test.model_type)
 
 
 #-------------------------------------------------------------------------------
@@ -248,11 +222,11 @@ def test_linearmodel_get_params():
     params = lm.params
     assert params == params_test
     assert (lm.eta, lm.lambda1, lm.lambda2,
-           lm.nepochs, lm.double_precision, lm.negative_class, lm.interactions,
+           lm.nepochs, lm.double_precision, lm.negative_class,
            lm.model_type) == params_test
     assert (params.eta, params.lambda1, params.lambda2,
            params.nepochs, params.double_precision,
-           params.negative_class, params.interactions, params.model_type) == params_test
+           params.negative_class, params.model_type) == params_test
 
 
 def test_linearmodel_set_individual():
@@ -262,7 +236,6 @@ def test_linearmodel_set_individual():
     lm.lambda2 = params_test.lambda2
     lm.nepochs = params_test.nepochs
     lm.negative_class = params_test.negative_class
-    lm.interactions = params_test.interactions
     lm.model_type = params_test.model_type
 
 
@@ -275,11 +248,11 @@ def test_linearmodel_set_individual_almer_params():
     assert (params_new.eta, params_new.lambda1, params_new.lambda2,
            params_new.nepochs,
            params_new.double_precision, params_new.negative_class,
-           params_new.interactions, params_new.model_type) == params_new
+           params_new.model_type) == params_new
     assert (lm.eta, lm.lambda1, lm.lambda2,
            lm.nepochs,
            lm.double_precision, lm.negative_class,
-           lm.interactions, lm.model_type) == params_new
+           lm.model_type) == params_new
 
 #-------------------------------------------------------------------------------
 # Test getters and setters for wrong types / names of LinearModel parameters
@@ -311,37 +284,6 @@ def test_linearmodel_set_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
         lm.nepochs = "-10.0"
     assert (".nepochs should be a float, instead got <class 'str'>" == str(e.value))
-
-
-def test_linearmodel_set_wrong_interactions_type():
-    lm = LinearModel()
-    with pytest.raises(TypeError) as e:
-        lm.interactions = True
-    assert (".interactions should be a list or a tuple, instead got: <class 'bool'>"
-            == str(e.value))
-
-
-def test_linearmodel_set_wrong_interactions_empty():
-    lm = LinearModel()
-    with pytest.raises(ValueError) as e:
-        lm.interactions = [["C0"], []]
-    assert ("Interaction cannot have zero features, encountered: []" == str(e.value))
-
-
-def test_linearmodel_set_wrong_interactions_not_list():
-    lm = LinearModel()
-    with pytest.raises(TypeError) as e:
-        lm.interactions = ["a", [1, 2]]
-    assert (".interactions should be a list or a tuple of lists or tuples, "
-           "instead encountered: 'a'" == str(e.value))
-
-
-def test_linearmodel_set_wrong_interactions_not_string():
-    lm = LinearModel()
-    with pytest.raises(TypeError) as e:
-        lm.interactions = [["a", "b"], [1, 2]]
-    assert ("Interaction features should be strings, instead "
-            "encountered: 1" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -668,8 +610,7 @@ def test_linearmodel_fit_predict_view():
 
 
 @pytest.mark.parametrize('parameter, value',
-                         [("interactions", [["C0", "C0"]]),
-                         ("negative_class", True)])
+                         [("negative_class", True)])
 def test_linearmodel_disable_setters_after_fit(parameter, value):
     nrows = 10
     lm = LinearModel()
@@ -1072,6 +1013,23 @@ def test_linearmodel_regression_fit_simple_one():
     assert_equals(lm.model, dt.Frame([0.01, 0.0099]))
 
 
+def test_linearmodel_regression_fit_predict_simple_one_epoch():
+    lm = LinearModel(nepochs = 1)
+    r = list(range(30))
+    df_train = dt.Frame(r)
+    df_target = dt.Frame(r)
+    lm.fit(df_train, df_target)
+    # p = lm.predict(df_train)
+    # assert_equals(
+    #     lm.labels,
+    #     dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
+    # )
+    # delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
+    # assert lm.labels[:, 0].to_list() == [["C0"]]
+    # assert lm.model_type_trained == "regression"
+    # assert max(delta) < epsilon
+
+
 def test_linearmodel_regression_fit_predict():
     lm = LinearModel(nepochs = 1000)
     r = list(range(9))
@@ -1354,117 +1312,6 @@ def test_linearmodel_fi_shallowcopy():
     lm.reset()
     assert lm.feature_importances is None
     assert_equals(fi1, fi2)
-
-
-#-------------------------------------------------------------------------------
-# Test feature interactions
-#-------------------------------------------------------------------------------
-
-def test_linearmodel_interactions_wrong_features():
-    nrows = 10**4
-    feature_names = ['unique', 'boolean', 'mod100']
-    feature_interactions = [["unique", "boolean"],["unique", "mod1000"]]
-    lm = LinearModel()
-    lm.interactions = feature_interactions
-    df_train = dt.Frame([range(nrows),
-                         [i % 2 for i in range(nrows)],
-                         [i % 100 for i in range(nrows)]
-                        ], names = feature_names)
-    df_target = dt.Frame([False, True] * (nrows // 2))
-    with pytest.raises(ValueError) as e:
-        lm.fit(df_train, df_target)
-    assert ("Feature mod1000 is used in the interactions, however, column "
-            "mod1000 is missing in the training frame" == str(e.value))
-
-
-@pytest.mark.parametrize("interactions", [
-                         [["feature1", "feature2", "feature3"], ["feature3", "feature2"]],
-                         [("feature1", "feature2", "feature3"), ("feature3", "feature2")],
-                         (["feature1", "feature2", "feature3"], ["feature3", "feature2"]),
-                         (("feature1", "feature2", "feature3"), ("feature3", "feature2")),
-                        ])
-def test_linearmodel_interactions_formats(interactions):
-    lm = LinearModel(interactions = interactions)
-    df_train = dt.Frame(
-                 [range(10), [False, True] * 5, range(1, 100, 10)],
-                 names = ["feature1", "feature2", "feature3"]
-               )
-    df_target = dt.Frame(target = [True, False] * 5)
-
-    lm.fit(df_train, df_target)
-    fi = lm.feature_importances
-    assert fi[1].min1() >= 0
-    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
-    assert (fi[0].to_list() ==
-           [["feature1", "feature2", "feature3",
-             "feature1:feature2:feature3", "feature3:feature2"]])
-    assert lm.interactions == tuple(tuple(interaction) for interaction in interactions)
-
-
-@pytest.mark.parametrize("struct", [list, tuple])
-def test_linearmodel_interactions_from_itertools(struct):
-    import itertools
-    df_train = dt.Frame(
-                 [range(10), [False, True] * 5, range(1, 100, 10)],
-                 names = ["feature1", "feature2", "feature3"]
-               )
-    df_target = dt.Frame(target = [True, False] * 5)
-    interactions = struct(itertools.combinations(df_train.names, 2))
-
-    lm = LinearModel(interactions = interactions)
-    lm.fit(df_train, df_target)
-    fi = lm.feature_importances
-    assert fi[1].min1() >= 0
-    assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
-    assert (fi[0].to_list() ==
-           [["feature1", "feature2", "feature3",
-             "feature1:feature2", "feature1:feature3", "feature2:feature3"]])
-
-
-# def test_linearmodel_interactions():
-#     nrows = 10**4
-#     feature_names = ['unique', 'boolean', 'mod100']
-#     feature_interactions = (("unique", "boolean"),
-#                             ("unique", "mod100"),
-#                             ("boolean", "mod100"),
-#                             ("boolean", "boolean", "boolean"))
-#     interaction_names = ["unique:boolean", "unique:mod100",
-#                          "boolean:mod100", "boolean:boolean:boolean"]
-#     lm = LinearModel(interactions = feature_interactions)
-#     df_train = dt.Frame([range(nrows),
-#                          [i % 2 for i in range(nrows)],
-#                          [i % 100 for i in range(nrows)]
-#                         ], names = feature_names)
-#     df_target = dt.Frame([False, True] * (nrows // 2))
-#     lm.fit(df_train, df_target)
-#     fi = lm.feature_importances
-
-#     assert fi[1].min1() >= 0
-#     assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
-#     assert fi.stypes == (stype.str32, stype.float32)
-#     assert fi.names == ("feature_name", "feature_importance")
-#     assert fi[0].to_list() == [feature_names + interaction_names]
-#     assert fi[0, 1] < fi[2, 1]
-#     assert fi[2, 1] < fi[1, 1]
-#     assert fi[3, 1] < fi[1, 1]
-#     assert fi[4, 1] < fi[1, 1]
-#     assert fi[5, 1] < fi[1, 1]
-#     # Make sure interaction of important features is still an important feature
-#     assert fi[0, 1] < fi[6, 1]
-#     assert fi[2, 1] < fi[6, 1]
-#     assert fi[3, 1] < fi[6, 1]
-#     assert fi[4, 1] < fi[6, 1]
-#     assert fi[5, 1] < fi[6, 1]
-
-#     # Also check what happens when we reset the model
-#     lm.reset()
-#     assert lm.interactions == feature_interactions
-#     lm.interactions = None
-#     lm.fit(df_train, df_target)
-#     fi = lm.feature_importances
-#     assert fi[1].min1() >= 0
-#     assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
-#     assert fi[0].to_list() == [feature_names]
 
 
 #-------------------------------------------------------------------------------

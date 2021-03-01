@@ -109,7 +109,6 @@ class LinearModelBase {
     virtual double get_lambda1() = 0;
     virtual double get_lambda2() = 0;
     virtual double get_nepochs() = 0;
-    virtual const std::vector<sztvec>& get_interactions() = 0;
     virtual bool get_negative_class() = 0;
     virtual LinearModelParams get_params() = 0;
     virtual py::oobj get_labels() = 0;
@@ -124,7 +123,6 @@ class LinearModelBase {
     virtual void set_lambda1(double) = 0;
     virtual void set_lambda2(double) = 0;
     virtual void set_nepochs(double) = 0;
-    virtual void set_interactions(std::vector<sztvec>) = 0;
     virtual void set_negative_class(bool) = 0;
     virtual void set_labels(const DataTable&) = 0;
 

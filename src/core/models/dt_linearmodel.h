@@ -59,9 +59,6 @@ class LinearModel : public LinearModelBase {
     T lambda2;
     T nepochs;
 
-    // Vector of feature interactions.
-    std::vector<sztvec> interactions;
-
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
     //   index 0: negative label
@@ -69,8 +66,8 @@ class LinearModel : public LinearModelBase {
     // and we only train the zero model.
     dtptr dt_labels;
 
-    // Total number of features used for training, this includes
-    // dt_X->ncols columns plus their interactions.
+    // Total number of features used for training, this equals to
+    // dt_X->ncols()
     size_t nfeatures;
 
     // Pointers to training and validation datatables, they are
@@ -147,7 +144,6 @@ class LinearModel : public LinearModelBase {
     double get_lambda1() override;
     double get_lambda2() override;
     double get_nepochs() override;
-    const std::vector<sztvec>& get_interactions() override;
     bool get_negative_class() override;
     LinearModelParams get_params() override;
     py::oobj get_labels() override;
@@ -161,7 +157,6 @@ class LinearModel : public LinearModelBase {
     void set_lambda1(double) override;
     void set_lambda2(double) override;
     void set_nepochs(double) override;
-    void set_interactions(std::vector<sztvec>) override;
     void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
 
