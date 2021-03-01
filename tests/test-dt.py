@@ -1062,4 +1062,6 @@ def test_issue2873():
     DT[:, names1000]
     t1000 = time() - t0
     assert t10000 < 1.0
-    assert t10000 / t1000 < 50
+    # The timer can have low resolution and produce `t1000 == 0`
+    if t1000 > 0:
+        assert t10000 / t1000 < 50
