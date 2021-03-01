@@ -124,7 +124,7 @@ except: ValueError
 
 )";
 
-static PKArgs args___init__(0, 1, 8, false, false,
+static PKArgs args___init__(0, 1, 7, false, false,
                                  {"params", "eta", "lambda1",
                                  "lambda2", "nepochs",
                                  "double_precision",
