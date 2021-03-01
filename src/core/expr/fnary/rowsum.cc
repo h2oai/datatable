@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,42 +23,15 @@
 #include "column/func_nary.h"
 #include "expr/fnary/fnary.h"
 #include "models/utils.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
 
 
-static const char* doc_rowsum =
-R"(rowsum(cols)
---
-
-For each row, calculate the sum of all values in `cols`. Missing values
-are treated as if they are zeros and skipped during the calcultion.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression consisting of one column and the same number
-    of rows as in `cols`. The stype of the resulting column
-    will be the smallest common stype calculated for `cols`,
-    but not less than `int32`.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-See Also
---------
-
-- :func:`rowcount()` -- count non-missing values row-wise.
-
-)";
-
-py::PKArgs args_rowsum(0, 0, 0, true, false, {}, "rowsum", doc_rowsum);
-
+std::string FExpr_RowSum::name() const {
+  return "rowsum";
+}
 
 
 template <typename T>
@@ -84,11 +57,11 @@ static inline Column _rowsum(colvec&& columns) {
 }
 
 
-Column naryop_rowsum(colvec&& columns) {
+Column FExpr_RowSum::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
   }
-  SType res_stype = detect_common_numeric_stype(columns, "rowsum");
+  SType res_stype = common_numeric_stype(columns);
   promote_columns(columns, res_stype);
 
   switch (res_stype) {
@@ -101,6 +74,43 @@ Column naryop_rowsum(colvec&& columns) {
                << res_stype;  // LCOV_EXCL_LINE
   }
 }
+
+
+
+static const char* doc_rowsum =
+R"(rowsum(*cols)
+--
+
+For each row, calculate the sum of all values in `cols`. Missing values
+are treated as if they are zeros and skipped during the calcultion.
+
+
+Parameters
+----------
+cols: FExpr
+    Input columns.
+
+return: FExpr
+    f-expression consisting of one column and the same number
+    of rows as in `cols`. The stype of the resulting column
+    will be the smallest common stype calculated for `cols`,
+    but not less than `int32`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric type.
+
+
+See Also
+--------
+- :func:`rowcount()` -- count non-missing values row-wise.
+)";
+
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowsum")
+    ->docs(doc_rowsum)
+    ->allow_varargs()
+    ->add_info(FN_ROWSUM);
 
 
 

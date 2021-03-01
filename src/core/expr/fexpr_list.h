@@ -33,8 +33,11 @@ class FExpr_List : public FExpr {
     vecExpr args_;
 
   public:
+    FExpr_List() = default;
     FExpr_List(vecExpr&& args);
+    static ptrExpr empty();
     static ptrExpr make(py::robj);
+    void add_expr(ptrExpr&&);
 
     Workframe evaluate_n(EvalContext&) const override;
     Workframe evaluate_j(EvalContext&) const override;

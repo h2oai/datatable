@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,26 +20,89 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
-#include "expr/fnary/fnary.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
 
+template <bool MIN>
+std::string FExpr_RowMinMax<MIN>::name() const {
+  return MIN? "rowmin" : "rowmax";
+}
+
+
+
+template <typename T, bool MIN>
+static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
+  bool minmax_valid = false;
+  T minmax = 0;
+  for (const auto& col : columns) {
+    T x;
+    bool xvalid = col.get_element(i, &x);
+    if (!xvalid) continue;
+    if (minmax_valid) {
+      if (MIN) { if (x < minmax) minmax = x; }
+      else     { if (x > minmax) minmax = x; }
+    } else {
+      minmax = x;
+      minmax_valid = true;
+    }
+  }
+  *out = minmax;
+  return minmax_valid;
+}
+
+
+template <typename T, bool MIN>
+static inline Column _rowminmax(colvec&& columns) {
+  auto fn = op_rowminmax<T, MIN>;
+  size_t nrows = columns[0].nrows();
+  return Column(new FuncNary_ColumnImpl<T>(
+                    std::move(columns), fn, nrows, stype_from<T>));
+}
+
+
+template <bool MIN>
+Column FExpr_RowMinMax<MIN>::apply_function(colvec&& columns) const {
+  if (columns.empty()) {
+    return Const_ColumnImpl::make_na_column(1);
+  }
+  SType res_stype = common_numeric_stype(columns);
+  promote_columns(columns, res_stype);
+
+  switch (res_stype) {
+    case SType::INT32:   return _rowminmax<int32_t, MIN>(std::move(columns));
+    case SType::INT64:   return _rowminmax<int64_t, MIN>(std::move(columns));
+    case SType::FLOAT32: return _rowminmax<float, MIN>(std::move(columns));
+    case SType::FLOAT64: return _rowminmax<double, MIN>(std::move(columns));
+    default: throw RuntimeError()
+               << "Wrong `res_stype` in `naryop_rowminmax()`: "
+               << res_stype;  // LCOV_EXCL_LINE
+  }
+}
+
+template class FExpr_RowMinMax<true>;
+template class FExpr_RowMinMax<false>;
+
+
+
 static const char* doc_rowmin =
-R"(rowmin(cols)
+R"(rowmin(*cols)
 --
 
 For each row, find the smallest value among the columns from `cols`,
 excluding missing values.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
@@ -47,13 +110,9 @@ return: Expr
 except: TypeError
     The exception is raised when `cols` has non-numeric columns.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowmax()` -- find the largest element row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -85,21 +144,25 @@ Example
     [5 rows x 1 column]
 
 
+See Also
+--------
+- :func:`rowmax()` -- find the largest element row-wise.
 )";
 
 
 static const char* doc_rowmax =
-R"(rowmax(cols)
+R"(rowmax(*cols)
 --
 
 For each row, find the largest value among the columns from `cols`.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one column that has the same number of rows
     as in `cols`. The column stype is the smallest common stype
     for `cols`, but not less than `int32`.
@@ -107,13 +170,9 @@ return: Expr
 except: TypeError
     The exception is raised when `cols` has non-numeric columns.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowmin()` -- find the smallest element row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -145,62 +204,22 @@ Example
     [5 rows x 1 column]
 
 
+See Also
+--------
+- :func:`rowmin()` -- find the smallest element row-wise.
 )";
 
-py::PKArgs args_rowmin(0, 0, 0, true, false, {}, "rowmin", doc_rowmin);
-py::PKArgs args_rowmax(0, 0, 0, true, false, {}, "rowmax", doc_rowmax);
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowmin")
+    ->docs(doc_rowmin)
+    ->allow_varargs()
+    ->add_info(FN_ROWMIN);
 
-
-
-template <typename T, bool MIN>
-static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
-  bool minmax_valid = false;
-  T minmax = 0;
-  for (const auto& col : columns) {
-    T x;
-    bool xvalid = col.get_element(i, &x);
-    if (!xvalid) continue;
-    if (minmax_valid) {
-      if (MIN) { if (x < minmax) minmax = x; }
-      else     { if (x > minmax) minmax = x; }
-    } else {
-      minmax = x;
-      minmax_valid = true;
-    }
-  }
-  *out = minmax;
-  return minmax_valid;
-}
-
-
-template <typename T>
-static inline Column _rowminmax(colvec&& columns, bool MIN) {
-  auto fn = MIN? op_rowminmax<T, true>
-               : op_rowminmax<T, false>;
-  size_t nrows = columns[0].nrows();
-  return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), fn, nrows, stype_from<T>));
-}
-
-
-Column naryop_rowminmax(colvec&& columns, bool MIN) {
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_na_column(1);
-  }
-  const char* fnname = MIN? "rowmin" : "rowmax";
-  SType res_stype = detect_common_numeric_stype(columns, fnname);
-  promote_columns(columns, res_stype);
-
-  switch (res_stype) {
-    case SType::INT32:   return _rowminmax<int32_t>(std::move(columns), MIN);
-    case SType::INT64:   return _rowminmax<int64_t>(std::move(columns), MIN);
-    case SType::FLOAT32: return _rowminmax<float>(std::move(columns), MIN);
-    case SType::FLOAT64: return _rowminmax<double>(std::move(columns), MIN);
-    default: throw RuntimeError()
-               << "Wrong `res_stype` in `naryop_rowminmax()`: "
-               << res_stype;  // LCOV_EXCL_LINE
-  }
-}
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowmax")
+    ->docs(doc_rowmax)
+    ->allow_varargs()
+    ->add_info(FN_ROWMAX);
 
 
 

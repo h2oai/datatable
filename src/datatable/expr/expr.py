@@ -134,18 +134,6 @@ class OpCodes(enum.Enum):
     MAXIMUM = 553
     MINIMUM = 554
 
-    # Row-functions
-    ROWALL = 601
-    ROWANY = 602
-    ROWCOUNT = 603
-    ROWFIRST = 604
-    ROWLAST = 605
-    ROWMAX = 606
-    ROWMEAN = 607
-    ROWMIN = 608
-    ROWSD = 609
-    ROWSUM = 610
-
 
 
 #-------------------------------------------------------------------------------
