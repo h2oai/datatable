@@ -336,12 +336,12 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       switch (col_stype) {
         case dt::SType::VOID:
         case dt::SType::BOOL:
-        case dt::SType::INT8:    contcol = make_casted_column<int8_t, T>(col, agg_stype); break;
-        case dt::SType::INT16:   contcol = make_casted_column<int16_t, T>(col, agg_stype); break;
-        case dt::SType::INT32:   contcol = make_casted_column<int32_t, T>(col, agg_stype); break;
-        case dt::SType::INT64:   contcol = make_casted_column<int64_t, T>(col, agg_stype); break;
-        case dt::SType::FLOAT32: contcol = make_casted_column<float, T>(col, agg_stype); break;
-        case dt::SType::FLOAT64: contcol = make_casted_column<double, T>(col, agg_stype); break;
+        case dt::SType::INT8:    contcol = make_inf2na_casted_column<int8_t, T>(col, agg_stype); break;
+        case dt::SType::INT16:   contcol = make_inf2na_casted_column<int16_t, T>(col, agg_stype); break;
+        case dt::SType::INT32:   contcol = make_inf2na_casted_column<int32_t, T>(col, agg_stype); break;
+        case dt::SType::INT64:   contcol = make_inf2na_casted_column<int64_t, T>(col, agg_stype); break;
+        case dt::SType::FLOAT32: contcol = make_inf2na_casted_column<float, T>(col, agg_stype); break;
+        case dt::SType::FLOAT64: contcol = make_inf2na_casted_column<double, T>(col, agg_stype); break;
         case dt::SType::STR32:
         case dt::SType::STR64:   is_continuous = false;
                                  if (ncols < ND_COLS) {

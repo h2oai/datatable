@@ -441,7 +441,11 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
                 if (j) grad *= x[j - 1];
                 grad += copysign(lambda1, w[k][j]); // L1 regularization
                 grad += 2 * lambda2 * w[k][j];      // L2 regularization
-                w[k][j] -= eta * grad;
+
+                // Update only when the final `grad` is finite
+                if (_isfinite(grad)) {
+                  w[k][j] -= eta * grad;
+                }
               }
             }
           }

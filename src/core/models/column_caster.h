@@ -27,10 +27,12 @@
 
 /**
  *  Create a virtual column that casts numeric `col` from `T_from` to `T_to`.
- *  Infinite values are casted into NA's.
+ *  Infinite values are casted into NA's. This function is only needed
+ *  as a workaround for a stats calculation: min/max on this column will never be
+ *  an inf.
  */
 template <typename T_from, typename T_to>
-Column make_casted_column(const Column& col, dt::SType stype) {
+Column make_inf2na_casted_column(const Column& col, dt::SType stype) {
   Column col_casted = Column(new dt::FuncUnary2_ColumnImpl<T_from, T_to>(
            Column(col),
            [](T_from x, bool x_isvalid, T_to* out) {
@@ -56,19 +58,7 @@ colvec make_casted_columns(const DataTable* dt, const dt::SType stype) {
 
   for (size_t i = 0; i < ncols; ++i) {
     const Column& col = dt->get_column(i);
-    Column col_casted;
-    switch (stype) {
-      case dt::SType::VOID:
-      case dt::SType::BOOL:
-      case dt::SType::INT8:    col_casted = make_casted_column<int8_t, T>(col, stype); break;
-      case dt::SType::INT16:   col_casted = make_casted_column<int16_t, T>(col, stype); break;
-      case dt::SType::INT32:   col_casted = make_casted_column<int32_t, T>(col, stype); break;
-      case dt::SType::INT64:   col_casted = make_casted_column<int64_t, T>(col, stype); break;
-      case dt::SType::FLOAT32: col_casted = make_casted_column<float, T>(col, stype); break;
-      case dt::SType::FLOAT64: col_casted = make_casted_column<double, T>(col, stype); break;
-      default: throw TypeError() << "Columns with stype `" << stype << "` are not supported";
-    }
-    cols_casted.push_back(std::move(col_casted));
+    cols_casted.push_back(col.cast(stype));
   }
 
   return cols_casted;
