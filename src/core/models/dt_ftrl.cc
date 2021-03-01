@@ -29,9 +29,6 @@
 #include "column.h"
 #include "wstringcol.h"
 #include "utils/macros.h"
-#if DT_OS_WINDOWS
-  #undef copysign
-#endif
 
 namespace dt {
 

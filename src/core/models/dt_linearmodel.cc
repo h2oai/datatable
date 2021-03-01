@@ -30,9 +30,7 @@
 #include "progress/work.h"      // dt::progress::work
 #include "wstringcol.h"
 #include "utils/macros.h"
-#if DT_OS_WINDOWS
-  #undef copysign
-#endif
+
 
 namespace dt {
 
