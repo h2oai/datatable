@@ -97,13 +97,12 @@ void Workframe::add_placeholder(const std::string& name, size_t ifr) {
 void Workframe::cbind(Workframe&& other, bool at_end) {
   sync_grouping_mode(other);
   if (at_end && !entries_.empty()) {
-    entries_.reserve(entries_.size() + other.entries_.size());
+    // Do not use `reserve()` here since cbind can be called in a loop
     for (auto& item : other.entries_) {
       entries_.emplace_back(std::move(item));
     }
   }
   else {
-    other.entries_.reserve(entries_.size() + other.entries_.size());
     for (auto& item : entries_) {
       other.entries_.emplace_back(std::move(item));
     }

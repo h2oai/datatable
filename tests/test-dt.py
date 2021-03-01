@@ -1048,3 +1048,18 @@ def test_issue2269():
     DT = dt.Frame(range(10000))
     ptr = dt.internal.frame_column_data_r(DT, 0)
     assert isinstance(ptr, ctypes.c_void_p)
+
+
+def test_issue2873():
+    from time import time
+    DT = dt.Frame([[1]] * 10000)
+    names10000 = DT.names
+    names1000 = names10000[:1000]
+    t0 = time()
+    DT[:, names10000]
+    t10000 = time() - t0
+    t0 = time()
+    DT[:, names1000]
+    t1000 = time() - t0
+    assert t10000 < 1.0
+    assert t10000 / t1000 < 50
