@@ -351,7 +351,7 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
   // Define weight pointers, feature importances storage
   init_weights();
   if (dt_fi == nullptr) create_fi();
-  colvec cols = make_casted_columns<T>(dt_X_train, stype);
+  colvec cols = make_casted_columns(dt_X_train, stype);
 
 
   // Obtain rowindex and data pointers for the target column(s).
@@ -386,7 +386,7 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
   colvec cols_val;
 
   if (validation) {
-    cols_val = make_casted_columns<T>(dt_X_val, stype);
+    cols_val = make_casted_columns(dt_X_val, stype);
     iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val * static_cast<T>(iteration_nrows)));
     niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters, 0.0);
@@ -580,7 +580,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
 
   // Re-acquire model weight pointers.
   init_weights();
-  colvec cols = make_casted_columns<T>(dt_X, stype);
+  colvec cols = make_casted_columns(dt_X, stype);
 
   // Create datatable for predictions and obtain column data pointers.
   size_t nlabels = dt_labels->nrows();

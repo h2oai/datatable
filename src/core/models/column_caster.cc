@@ -20,33 +20,20 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 
-#ifndef dt_MODELS_COLUMN_CASTER_h
-#define dt_MODELS_COLUMN_CASTER_h
-#include "column/func_unary.h"
-
+#include "models/column_caster.h"
 
 /**
- *  Create a virtual column that casts numeric `col` from `T_from` to `T_to`.
- *  Infinite values are casted into NA's. This function is only needed
- *  as a workaround for a stats calculation: min/max on this column will never be
- *  an inf.
+ *  Create a vector of numeric columns casted to `stype`.
  */
-template <typename T_from, typename T_to>
-Column make_inf2na_casted_column(const Column& col, dt::SType stype) {
-  Column col_casted = Column(new dt::FuncUnary2_ColumnImpl<T_from, T_to>(
-           Column(col),
-           [](T_from x, bool x_isvalid, T_to* out) {
-             *out = static_cast<T_to>(x);
-             return x_isvalid && _isfinite(x);
-           },
-           col.nrows(),
-           stype
-         ));
+colvec make_casted_columns(const DataTable* dt, const dt::SType stype) {
+  colvec cols_casted;
+  const size_t ncols = dt->ncols();
+  cols_casted.reserve(ncols);
 
-  return col_casted;
+  for (size_t i = 0; i < ncols; ++i) {
+    const Column& col = dt->get_column(i);
+    cols_casted.push_back(col.cast(stype));
+  }
+
+  return cols_casted;
 }
-
-colvec make_casted_columns(const DataTable*, const dt::SType);
-
-
-#endif
