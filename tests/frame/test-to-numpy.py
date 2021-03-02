@@ -47,12 +47,13 @@ def test_tonumpy0(np):
 def test_tonumpy1(np):
     d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
                    "C": [True, False], "D": [3.4, None]})
-    a0 = d0.to_numpy()
+    msg = "Frame contains columns of incompatible types"
+    with pytest.raises(TypeError, match=msg):
+        a0 = d0.to_numpy()
+    a0 = d0.to_numpy(type=object)
     assert a0.shape == d0.shape
     assert a0.dtype == np.dtype("object")
     assert list_equals(a0.T.tolist(), d0.to_list())
-    a1 = np.array(d0)
-    assert (a0 == a1).all()
 
 
 @numpy_test

@@ -49,12 +49,13 @@ static bool datatable_has_nas(DataTable* dt, size_t force_col) {
 class PybuffersSettings {
   public:
     PybuffersSettings(dt::SType st, size_t col) {
-      pybuffers::force_stype = st;
-      pybuffers::single_col = col;
+      getbuffer_exception = nullptr;
+      getbuffer_force_type = dt::Type::from_stype(st);
+      getbuffer_force_column = col;
     }
     ~PybuffersSettings() {
-      pybuffers::force_stype = dt::SType::AUTO;
-      pybuffers::single_col = size_t(-1);
+      getbuffer_force_type = dt::Type();
+      getbuffer_force_column = size_t(-1);
     }
 };
 
@@ -122,6 +123,9 @@ oobj Frame::to_numpy(const PKArgs& args) {
     PybuffersSettings tmp(stype, force_col);
     // At this point, numpy will invoke py::Frame::m__getbuffer__
     res = nparray.call({oobj(this)});
+    if (getbuffer_exception) {
+      std::rethrow_exception(getbuffer_exception);
+    }
   }
 
   // If there are any columns with NAs, replace the numpy.array with

@@ -87,6 +87,7 @@ Type Type::obj64()   { return Type(new Type_Object); }
 
 Type Type::from_stype(SType stype) {
   switch (stype) {
+    case SType::AUTO:    return Type();
     case SType::VOID:    return void0();
     case SType::BOOL:    return bool8();
     case SType::INT8:    return int8();
@@ -149,6 +150,10 @@ template<> bool Type::can_be_read_as<py::oobj>() const { return impl_->can_be_re
 
 bool Type::operator==(const Type& other) const {
   return (impl_ == other.impl_) || (impl_->equals(other.impl_));
+}
+
+Type::operator bool() const {
+  return (impl_ != nullptr);
 }
 
 std::string Type::to_string() const {

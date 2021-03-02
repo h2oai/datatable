@@ -23,6 +23,7 @@
 // See: https://www.python.org/dev/peps/pep-3118/
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
+#include <exception>
 #include <stdlib.h>  // atoi
 #include "column/date_from_weeks.h"
 #include "column/date_from_months.h"
@@ -41,10 +42,10 @@
 #include "stype.h"
 
 
-namespace pybuffers {
-  size_t single_col = size_t(-1);
-  dt::SType force_stype = dt::SType::AUTO;
-}
+size_t getbuffer_force_column = size_t(-1);
+dt::Type getbuffer_force_type;
+std::exception_ptr getbuffer_exception;
+
 
 // Forward declarations
 static const char* format_from_stype(dt::SType stype);
@@ -56,7 +57,11 @@ static void copy_column_into_buffer(const Column& col, Buffer& buf);
 #define REQ_WRITABLE(flags) ((flags & PyBUF_WRITABLE) == PyBUF_WRITABLE)
 
 
-
+/**
+  * Helper structure that stores information exported with the buffer.
+  * This structure is then passed along with the `view`, using the
+  * field `view->internal`.
+  */
 struct XInfo {
   // Exported Buffer object.
   Buffer mbuf;
@@ -79,7 +84,7 @@ struct XInfo {
 
 
 
-static void getbuffer_0_cols(py::Frame* pydt, Py_buffer* view, int flags) {
+static int getbuffer_0_cols(py::Frame* pydt, Py_buffer* view, int flags) {
   XInfo* xinfo = new XInfo();
   view->buf = nullptr;
   view->obj = py::oobj(pydt).release();
@@ -92,13 +97,13 @@ static void getbuffer_0_cols(py::Frame* pydt, Py_buffer* view, int flags) {
   view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
   view->suboffsets = nullptr;
   view->internal = xinfo;
+  return 0;
 }
 
 
-static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
-{
-  bool one_col = (pybuffers::single_col != size_t(-1));
-  size_t i0 = one_col? pybuffers::single_col : 0;
+static int getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags) {
+  bool one_col = (getbuffer_force_column != size_t(-1));
+  size_t i0 = one_col? getbuffer_force_column : 0;
   XInfo* xinfo = nullptr;
   const Column& col = self->get_datatable()->get_column(i0);
   const char* fmt = format_from_stype(col.stype());
@@ -121,111 +126,126 @@ static void getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags)
   view->strides = REQ_STRIDES(flags) ? xinfo->strides : nullptr;
   view->suboffsets = nullptr;
   view->internal = xinfo;
+  return 0;
 }
 
 
 
-void py::Frame::m__getbuffer__(Py_buffer* view, int flags) {
-  XInfo* xinfo = nullptr;
-  size_t ncols = dt->ncols();
-  size_t nrows = dt->nrows();
-  size_t i0 = 0;
-  bool one_col = (pybuffers::single_col != size_t(-1));
-  if (one_col) {
-    ncols = 1;
-    i0 = pybuffers::single_col;
-  }
-
-  if (ncols == 0) {
-    return getbuffer_0_cols(this, view, flags);
-  }
-
-  // Check whether we have a single-column DataTable that doesn't need to be
-  // copied -- in which case it should be possible to return the buffer
-  // by-reference instead of copying the data into an intermediate buffer.
-  const Column& col_i0 = dt->get_column(i0);
-  if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
-      col_i0.is_fixedwidth() && pybuffers::force_stype == dt::SType::AUTO)
-  {
-    return getbuffer_1_col(this, view, flags);
-  }
-
-  // Multiple columns datatable => copy all data into a new buffer before
-  // passing it to the requester. This is of course very unfortunate, but
-  // Numpy (the primary consumer of the buffer protocol) is unable to handle
-  // "INDIRECT" buffer.
-
-  // First, find the common stype for all columns in the DataTable.
-  dt::SType stype = pybuffers::force_stype;
-  if (stype == dt::SType::AUTO) {
-    // Auto-detect common stype
-    stype = dt::SType::VOID;
-    for (size_t i = 0; i < ncols; ++i) {
-      dt::SType next_stype = dt->get_column(i + i0).stype();
-      stype = common_stype(stype, next_stype);
+int py::Frame::m__getbuffer__(Py_buffer* view, int flags) noexcept {
+  try {
+    XInfo* xinfo = nullptr;
+    size_t ncols = dt->ncols();
+    size_t nrows = dt->nrows();
+    size_t i0 = 0;
+    bool one_col = (getbuffer_force_column != size_t(-1));
+    if (one_col) {
+      ncols = 1;
+      i0 = getbuffer_force_column;
     }
-  }
-  if (stype == dt::SType::INVALID || stype == dt::SType::AUTO ||
-      stype == dt::SType::VOID ||
-      stype == dt::SType::STR32 || stype == dt::SType::STR64) {
-    stype = dt::SType::OBJ;
-  }
 
-  // Allocate the final buffer
-  xassert(!stype_is_variable_width(stype));
-  size_t elemsize = stype_elemsize(stype);
-  size_t colsize = nrows * elemsize;
-  Buffer memr = Buffer::mem(ncols * colsize);
-  const char* fmt = format_from_stype(stype);
+    if (ncols == 0) {
+      return getbuffer_0_cols(this, view, flags);
+    }
 
-  // Construct the data buffer
-  for (size_t i = 0; i < ncols; ++i) {
-    // xmb becomes a "view" on a portion of the buffer `mbuf`. An
-    // ExternalMemBuf object is documented to be readonly; however in
-    // practice it can still be written to, just not resized (this is
-    // hacky, maybe fix in the future).
-    Buffer xmb = Buffer::view(memr, colsize, i*colsize);
-    // Now we create a `newcol` by casting `col` into `stype`, using
-    // the buffer `xmb`. Since `xmb` already has the correct size, this
-    // is possible. The effect of this call is that `newcol` will be
-    // created having the converted data; but the side-effect of this is
-    // that `mbuf` will have the same data, and in the right place.
+    // Check whether we have a single-column DataTable that doesn't need to be
+    // copied -- in which case it should be possible to return the buffer
+    // by-reference instead of copying the data into an intermediate buffer.
+    const Column& col_i0 = dt->get_column(i0);
+    if (ncols == 1 && !col_i0.is_virtual() && !REQ_WRITABLE(flags) &&
+        col_i0.is_fixedwidth() && !getbuffer_force_type)
     {
-      Column newcol = dt->get_column(i + i0);
-      newcol.cast_inplace(stype);
-      copy_column_into_buffer(newcol, xmb);
-      // We can now delete the new column: this will delete `xmb` as well,
-      // however a "view buffer" object does not attempt to free its
-      // memory. The converted data that was written to `xmb` will
-      // thus remain intact.
+      return getbuffer_1_col(this, view, flags);
     }
-  }
-  if (stype == dt::SType::OBJ) {
-    memr.set_pyobjects(/*clear=*/ false);
-  }
 
-  xinfo = new XInfo();
-  xinfo->mbuf = std::move(memr);
-  xinfo->shape[0] = static_cast<Py_ssize_t>(nrows);
-  xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
-  xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
-  xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
+    // Multiple columns datatable => copy all data into a new buffer before
+    // passing it to the requester. This is of course very unfortunate, but
+    // Numpy (the primary consumer of the buffer protocol) is unable to handle
+    // "INDIRECT" buffer.
+    // Also note that numpy will request an INDIRECT buffer, even though it is
+    // unable to handle it. See https://github.com/numpy/numpy/issues/9456
+    // For now, we just ignore the INDIRECT flag completely and return the
+    // contiguous buffer always.
 
-  // Fill in the `view` struct
-  view->buf = const_cast<void*>(xinfo->mbuf.rptr());
-  view->obj = py::oobj(this).release();
-  view->len = static_cast<Py_ssize_t>(xinfo->mbuf.size());
-  view->readonly = 0;
-  view->itemsize = static_cast<Py_ssize_t>(elemsize);
-  view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
-  view->ndim = one_col? 1 : 2;
-  view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
-  view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
-  view->suboffsets = nullptr;
-  view->internal = xinfo;
+    // First, find the common stype for all columns in the DataTable.
+    auto type = getbuffer_force_type;
+    if (!type) {
+      for (size_t i = 0; i < ncols; ++i) {
+        type.promote(dt->get_column(i + i0).type());
+      }
+    }
+    xassert(type);
+    if (type.is_invalid()) {
+      throw TypeError() <<
+          "Frame contains columns of incompatible types and cannot be "
+          "converted into a numpy array";
+    }
+    if (type.is_string()) {
+      type = dt::Type::obj64();
+    }
+
+    // Allocate the final buffer
+    auto stype = type.stype();
+    xassert(!stype_is_variable_width(stype));
+    size_t elemsize = stype_elemsize(stype);
+    size_t colsize = nrows * elemsize;
+    Buffer memr = Buffer::mem(ncols * colsize);
+    const char* fmt = format_from_stype(stype);
+
+    // Construct the data buffer
+    for (size_t i = 0; i < ncols; ++i) {
+      // xmb becomes a "view" on a portion of the buffer `mbuf`. An
+      // ExternalMemBuf object is documented to be readonly; however in
+      // practice it can still be written to, just not resized (this is
+      // hacky, maybe fix in the future).
+      Buffer xmb = Buffer::view(memr, colsize, i*colsize);
+      // Now we create a `newcol` by casting `col` into `stype`, using
+      // the buffer `xmb`. Since `xmb` already has the correct size, this
+      // is possible. The effect of this call is that `newcol` will be
+      // created having the converted data; but the side-effect of this is
+      // that `mbuf` will have the same data, and in the right place.
+      {
+        Column newcol = dt->get_column(i + i0);
+        newcol.cast_inplace(stype);
+        copy_column_into_buffer(newcol, xmb);
+        // We can now delete the new column: this will delete `xmb` as well,
+        // however a "view buffer" object does not attempt to free its
+        // memory. The converted data that was written to `xmb` will
+        // thus remain intact.
+      }
+    }
+    if (type.is_object()) {
+      memr.set_pyobjects(/*clear=*/ false);
+    }
+
+    xinfo = new XInfo();
+    xinfo->mbuf = std::move(memr);
+    xinfo->shape[0] = static_cast<Py_ssize_t>(nrows);
+    xinfo->shape[1] = static_cast<Py_ssize_t>(ncols);
+    xinfo->strides[0] = static_cast<Py_ssize_t>(elemsize);
+    xinfo->strides[1] = static_cast<Py_ssize_t>(colsize);
+
+    // Fill in the `view` struct
+    view->buf = const_cast<void*>(xinfo->mbuf.rptr());
+    view->obj = py::oobj(this).release();
+    view->len = static_cast<Py_ssize_t>(xinfo->mbuf.size());
+    view->readonly = 0;
+    view->itemsize = static_cast<Py_ssize_t>(elemsize);
+    view->format = REQ_FORMAT(flags) ? const_cast<char*>(fmt) : nullptr;
+    view->ndim = one_col? 1 : 2;
+    view->shape = REQ_ND(flags)? xinfo->shape : nullptr;
+    view->strides = REQ_STRIDES(flags)? xinfo->strides : nullptr;
+    view->suboffsets = nullptr;
+    view->internal = xinfo;
+    return 0;
+
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    getbuffer_exception = std::current_exception();
+    return -1;
+  }
 }
 
-void py::Frame::m__releasebuffer__(Py_buffer* view) {
+void py::Frame::m__releasebuffer__(Py_buffer* view) noexcept {
   XInfo* xinfo = static_cast<XInfo*>(view->internal);
   delete xinfo;
 }

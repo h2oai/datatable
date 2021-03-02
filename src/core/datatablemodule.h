@@ -64,12 +64,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
 
 
-namespace pybuffers {
-  extern size_t single_col;  // Declared in py_buffers
-  extern dt::SType force_stype;
-}
-
-
 const char* get_compiler_version_string();
 
 extern "C" {

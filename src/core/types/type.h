@@ -91,6 +91,7 @@ class Type {
     bool can_be_read_as() const;
 
     bool operator==(const Type& other) const;
+    operator bool() const;
     std::string to_string() const;
 
     // (Optionally) change the current type so that it becomes
