@@ -104,8 +104,8 @@ negative_class: bool
     in the case of multinomial classification. For the "negative"
     class the model will train on all the negatives, and if
     a new label is encountered in the target column, its
-    weights will be initialized to the current "negative" class weights.
-    If `negative_class` is set to `False`, the initial weights
+    coefficients will be initialized to the current "negative" class coefficients.
+    If `negative_class` is set to `False`, the initial coefficients
     become zeros.
 
 model_type: "binomial" | "multinomial" | "regression" | "auto"
@@ -512,7 +512,7 @@ static const char* doc_reset =
 R"(reset(self)
 --
 
-Reset linear model by resetting all the model weights, labels and
+Reset linear model by resetting all the model coefficients, labels and
 feature importance information.
 
 Parameters
@@ -566,7 +566,7 @@ oobj LinearModel::get_labels() const {
 
 static const char* doc_model =
 R"(
-Trained models weights.
+Trained models coefficients.
 
 Parameters
 ----------
@@ -922,8 +922,8 @@ An option to indicate if a "negative" class should be created
 in the case of multinomial classification. For the "negative"
 class the model will train on all the negatives, and if
 a new label is encountered in the target column, its
-weights are initialized to the current "negative" class weights.
-If `negative_class` is set to `False`, the initial weights
+coefficients are initialized to the current "negative" class coefficients.
+If `negative_class` is set to `False`, the initial coefficients
 become zeros.
 
 This option is read-only for a trained model.

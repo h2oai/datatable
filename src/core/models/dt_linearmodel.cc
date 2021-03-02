@@ -349,7 +349,7 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
                                          T(*lossfn)(T, T))
 {
   // Define weight pointers, feature importances storage
-  init_weights();
+  init_coefficients();
   if (dt_fi == nullptr) create_fi();
   colvec cols = make_casted_columns(dt_X_train, stype);
 
@@ -428,7 +428,7 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
             for (size_t k = 0; k < label_ids_train.size(); ++k) {
-              // Update all the weights with SGD
+              // Update all the coefficients with SGD
               for (size_t j = 0; j < nfeatures + 1; ++j) {
 
                 T grad = linkfn(predict_row(x, k,
@@ -439,12 +439,12 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
                 T y = static_cast<T>(targetfn(target, label_ids_train[k]));
                 grad = 2 * dlinkfn(grad) * (grad - y);
                 if (j) grad *= x[j - 1];
-                grad += copysign(lambda1, w[k][j]); // L1 regularization
-                grad += 2 * lambda2 * w[k][j];      // L2 regularization
+                grad += copysign(lambda1, betas[k][j]); // L1 regularization
+                grad += 2 * lambda2 * betas[k][j];      // L2 regularization
 
                 // Update only when the final `grad` is finite
                 if (_isfinite(grad)) {
-                  w[k][j] -= eta * grad;
+                  betas[k][j] -= eta * grad;
                 }
               }
             }
@@ -557,10 +557,10 @@ bool LinearModel<T>::read_row(const size_t row, const colvec& cols, tptr<T>& x) 
 template <typename T>
 template <typename F>
 T LinearModel<T>::predict_row(const tptr<T>& x, const size_t k, F fifn) {
-  T wTx = w[k][0];
+  T wTx = betas[k][0];
   for (size_t i = 0; i < nfeatures; ++i) {
-    wTx += w[k][i + 1] * x[i];
-    fifn(i, abs(w[k][i + 1] * x[i]));
+    wTx += betas[k][i + 1] * x[i];
+    fifn(i, abs(betas[k][i + 1] * x[i]));
   }
   return wTx;
 }
@@ -579,7 +579,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
   }
 
   // Re-acquire model weight pointers.
-  init_weights();
+  init_coefficients();
   colvec cols = make_casted_columns(dt_X, stype);
 
   // Create datatable for predictions and obtain column data pointers.
@@ -685,7 +685,7 @@ void LinearModel<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
 
 
 /**
- *  Create a datatable of shape (nfeatures + 1, nlabels) to store weights.
+ *  Create a datatable of shape (nfeatures + 1, nlabels) to store coefficients.
  */
 template <typename T>
 void LinearModel<T>::create_model() {
@@ -705,7 +705,7 @@ void LinearModel<T>::create_model() {
 /**
  *  This method is invoked in the case when we get new labels
  *  for multinomial classification and need to add them to the model.
- *  In such a case, we make a copy of the "negative" weights
+ *  In such a case, we make a copy of the "negative" coefficients
  *  adding them to the existing `dt_model` columns.
  */
 template <typename T>
@@ -722,8 +722,8 @@ void LinearModel<T>::adjust_model() {
 
   Column wcol;
   // If `negative_class` parameter is set to `True`, all the new classes
-  // get a copy of `w` weights of the `_negative_class`.
-  // Otherwise, new classes start learning from the zero weights.
+  // get a copy of `w` coefficients of the `_negative_class`.
+  // Otherwise, new classes start learning from the zero coefficients.
   if (params.negative_class) {
     wcol = dt_model->get_column(0);
   } else {
@@ -800,13 +800,13 @@ void LinearModel<T>::init_model() {
  *  Obtain pointers to the model column data.
  */
 template <typename T>
-void LinearModel<T>::init_weights() {
+void LinearModel<T>::init_coefficients() {
   size_t nlabels = dt_model->ncols();
-  w.clear();
-  w.reserve(nlabels);
+  betas.clear();
+  betas.reserve(nlabels);
 
   for (size_t k = 0; k < nlabels; ++k) {
-    w.push_back(static_cast<T*>(dt_model->get_column(k).get_data_editable()));
+    betas.push_back(static_cast<T*>(dt_model->get_column(k).get_data_editable()));
   }
 }
 

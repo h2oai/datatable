@@ -42,7 +42,7 @@ class LinearModel : public LinearModelBase {
     size_t : 56;
     // Model's shape is (nfeatures + 1, nlabels)
     dtptr dt_model;
-    std::vector<T*> w;
+    std::vector<T*> betas;
     LinearModelType model_type;
 
     // Feature importances datatable of shape (nfeatures, 2),
@@ -104,7 +104,7 @@ class LinearModel : public LinearModelBase {
     void create_model();
     void adjust_model();
     void init_model();
-    void init_weights();
+    void init_coefficients();
 
     // Feature importance helper methods
     void create_fi();
