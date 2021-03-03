@@ -34,6 +34,7 @@
 #include "sort.h"
 
 
+
 Column Column::new_data_column(size_t nrows, dt::SType stype) {
   return dt::Sentinel_ColumnImpl::make_column(nrows, stype);
 }

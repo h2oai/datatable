@@ -287,8 +287,6 @@ class Column
       return type().can_be_read_as<T>();
     }
 
-  public:
-
   private:
     void _acquire_impl(const dt::ColumnImpl*);
     void _release_impl(const dt::ColumnImpl*);
