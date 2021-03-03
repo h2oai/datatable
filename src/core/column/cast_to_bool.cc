@@ -65,7 +65,7 @@ template class CastNumericToBool_ColumnImpl<double>;
 
 CastStringToBool_ColumnImpl::CastStringToBool_ColumnImpl(Column&& arg)
   : Cast_ColumnImpl(SType::BOOL, std::move(arg))
-{ xassert(arg_.type().can_be_read_as<CString>()); }
+{ xassert(arg_.can_be_read_as<CString>()); }
 
 
 ColumnImpl* CastStringToBool_ColumnImpl::clone() const {

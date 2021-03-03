@@ -503,7 +503,7 @@ void StringStats::set_mode(const dt::CString& value, bool isvalid) {
 
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
-  xassert(col->type().can_be_read_as<T>());
+  xassert(col->can_be_read_as<T>());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
     dt::NThreads(col->allow_parallel_access()),
@@ -564,7 +564,7 @@ void BooleanStats::compute_minmax() {
 
 template <typename T>
 void NumericStats<T>::compute_minmax() {
-  xassert(column->type().can_be_read_as<T>());
+  xassert(column->can_be_read_as<T>());
   size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();

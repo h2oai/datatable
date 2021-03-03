@@ -81,7 +81,7 @@ class Sorter_Float : public SSorter<T>
     Sorter_Float(const Column& col)
       : column_(col)
     {
-      xassert(col.type().can_be_read_as<TE>());
+      xassert(col.can_be_read_as<TE>());
     }
 
 
