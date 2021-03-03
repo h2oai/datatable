@@ -1,5 +1,5 @@
 
 .. xfunction:: datatable.rowlast
-    :src: src/core/expr/fnary/rowfirstlast.cc naryop_rowfirstlast
+    :src: src/core/expr/fnary/rowfirstlast.cc FExpr_RowFirstLast<FIRST>::apply_function
     :doc: src/core/expr/fnary/rowfirstlast.cc doc_rowlast
     :tests: tests/ijby/test-rowwise.py

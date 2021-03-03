@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,37 +20,69 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
-#include "expr/fnary/fnary.h"
-#include "expr/funary/umaker.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "expr/funary/umaker.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
 
+std::string FExpr_RowCount::name() const {
+  return "rowcount";
+}
+
+
+
+static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
+  int32_t valid_count = static_cast<int32_t>(columns.size());
+  for (const auto& col : columns) {
+    int8_t x;
+    // each column is ISNA(col), so the return value is 1 if
+    // the value in the original column is NA.
+    col.get_element(i, &x);
+    valid_count -= x;
+  }
+  *out = valid_count;
+  return true;
+}
+
+
+Column FExpr_RowCount::apply_function(colvec&& columns) const {
+  if (columns.empty()) {
+    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+  }
+  size_t nrows = columns[0].nrows();
+  for (size_t i = 0; i < columns.size(); ++i) {
+    xassert(columns[i].nrows() == nrows);
+    columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
+  }
+  return Column(new FuncNary_ColumnImpl<int32_t>(
+                      std::move(columns), op_rowcount, nrows, SType::INT32));
+}
+
+
 
 static const char* doc_rowcount =
-R"(rowcount(cols)
+R"(rowcount(*cols)
 --
 
 For each row, count the number of non-missing values in `cols`.
 
+
 Parameters
 ----------
-cols: Expr
+cols: FExpr
     Input columns.
 
-return: Expr
+return: FExpr
     f-expression consisting of one `int32` column and the same number
     of rows as in `cols`.
 
-See Also
+
+Examples
 --------
-
-- :func:`rowsum()` -- sum of all values row-wise.
-
-Example
--------
 ::
 
     >>> from datatable import dt, f
@@ -83,39 +115,17 @@ Note the exclusion of null values in the count::
      4 |     2
     [5 rows x 1 column]
 
+
+See Also
+--------
+- :func:`rowsum()` -- sum of all values row-wise.
 )";
 
-py::PKArgs args_rowcount(0, 0, 0, true, false, {}, "rowcount", doc_rowcount);
-
-
-
-static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
-  int32_t valid_count = static_cast<int32_t>(columns.size());
-  for (const auto& col : columns) {
-    int8_t x;
-    // each column is ISNA(col), so the return value is 1 if
-    // the value in the original column is NA.
-    col.get_element(i, &x);
-    valid_count -= x;
-  }
-  *out = valid_count;
-  return true;
-}
-
-
-
-Column naryop_rowcount(colvec&& columns) {
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
-  }
-  size_t nrows = columns[0].nrows();
-  for (size_t i = 0; i < columns.size(); ++i) {
-    xassert(columns[i].nrows() == nrows);
-    columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
-  }
-  return Column(new FuncNary_ColumnImpl<int32_t>(
-                      std::move(columns), op_rowcount, nrows, SType::INT32));
-}
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowcount")
+    ->docs(doc_rowcount)
+    ->allow_varargs()
+    ->add_info(FN_ROWCOUNT);
 
 
 

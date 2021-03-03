@@ -43,6 +43,9 @@
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
 
+    -[fix] Frames with 1000000+ columns will now be correctly stored in Jay.
+      [#2876]
+
     -[api] Properties :attr:`.stypes` and :attr:`.ltypes` are now considered
       deprecated and will be removed in a future version. Currently they
       continue to work as before, however.
@@ -74,6 +77,9 @@
 
     -[fix] Fix a crash that occurred when using `median()` on virtual
       columns of type ArrayView64. [#2802]
+
+    -[fix] Fix poor performance when selecting columns from a frame with a
+      large number of columns (10k+). [#2873]
 
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
       column names/column positions/column types in the ``j`` section. [#2797]

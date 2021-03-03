@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,8 +36,6 @@ static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 412;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 554;
-static constexpr size_t ROWFNS_FIRST  = 601;
-static constexpr size_t ROWFNS_LAST   = 610;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
 static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 static constexpr size_t REDUCER_COUNT = REDUCER_LAST - REDUCER_FIRST + 1;
@@ -148,18 +146,6 @@ enum class Op : size_t {
   FMOD,
   MAXIMUM,
   MINIMUM = MATH_LAST,
-
-  // Row-functions
-  ROWALL = ROWFNS_FIRST,    // fnary/rowall.cc
-  ROWANY,                   // fnary/rowany.cc
-  ROWCOUNT,                 // fnary/rowcount.cc
-  ROWFIRST,                 // fnary/rowfirst.cc
-  ROWLAST,                  // fnary/rowlast.cc
-  ROWMAX,                   // fnary/rowmax.cc
-  ROWMEAN,                  // fnary/rowmean.cc
-  ROWMIN,                   // fnary/rowmin.cc
-  ROWSD,                    // fnary/rowsd.cc
-  ROWSUM = ROWFNS_LAST,     // fnary/rowsum.cc
 };
 
 
