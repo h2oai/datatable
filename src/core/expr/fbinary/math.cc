@@ -24,9 +24,8 @@
 #include "ltype.h"
 #include "python/args.h"
 #include "utils/macros.h"
-#if DT_OS_WINDOWS
-  #undef copysign
-#endif
+
+
 namespace dt {
 namespace expr {
 

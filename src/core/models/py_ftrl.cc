@@ -572,12 +572,6 @@ oobj Ftrl::predict(const PKArgs& args) {
   }
 
 
-  if (!py_params->get_attr("interactions").is_none()
-      && !dtft->get_interactions().size()) {
-    init_dt_interactions();
-  }
-
-
   DataTable* dt_p = dtft->predict(dt_X).release();
   py::oobj df_p = py::Frame::oframe(dt_p);
 
