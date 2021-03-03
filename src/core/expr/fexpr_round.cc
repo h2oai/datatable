@@ -69,7 +69,7 @@ class RoundNeg_ColumnImpl : public Virtual_ColumnImpl {
         arg_(std::move(arg)),
         scale_(scale)
     {
-      xassert(arg_.type().can_be_read_as<T>());
+      xassert(arg_.type().template can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {

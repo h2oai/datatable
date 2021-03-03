@@ -36,7 +36,7 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(col.nrows(), SType::BOOL),
         arg_(std::move(col))
     {
-      xassert(arg_.type().can_be_read_as<T>());
+      xassert(arg_.type().template can_be_read_as<T>());
     }
 
 
