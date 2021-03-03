@@ -284,7 +284,7 @@ class Column
     // A shortcut for `.type().can_be_read_as<T>()`. The latter call
     // is not compatible with some compilers, for instance Clang 11.
     template<typename T> bool can_be_read_as() const {
-      return can_be_read_as<T>();
+      return type().can_be_read_as<T>();
     }
 
   public:
