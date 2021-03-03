@@ -43,6 +43,7 @@ class Type_Void : public TypeImpl {
     TypeImpl* common_type(TypeImpl* other) override {
       return other;
     }
+    const char* struct_format() const override { return "V"; }
 };
 
 

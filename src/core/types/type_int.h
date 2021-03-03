@@ -37,6 +37,7 @@ class Type_Int8 : public Type_Numeric {
     std::string to_string() const override { return "int8"; }
     py::oobj min() const override { return py::oint(-127); }
     py::oobj max() const override { return py::oint(127); }
+    const char* struct_format() const override { return "b"; }
 };
 
 
@@ -48,6 +49,7 @@ class Type_Int16 : public Type_Numeric {
     std::string to_string() const override { return "int16"; }
     py::oobj min() const override { return py::oint(-32767); }
     py::oobj max() const override { return py::oint(32767); }
+    const char* struct_format() const override { return "h"; }
 };
 
 
@@ -64,6 +66,7 @@ class Type_Int32 : public Type_Numeric {
     py::oobj max() const override {
       return py::oint(std::numeric_limits<int32_t>::max());
     }
+    const char* struct_format() const override { return "i"; }
 };
 
 
@@ -80,6 +83,7 @@ class Type_Int64 : public Type_Numeric {
     py::oobj max() const override {
       return py::oint(std::numeric_limits<int64_t>::max());
     }
+    const char* struct_format() const override { return "q"; }
 };
 
 

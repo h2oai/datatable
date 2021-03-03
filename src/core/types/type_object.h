@@ -38,6 +38,7 @@ class Type_Object : public TypeImpl {
       if (other->is_invalid()) return other;
       return this;
     }
+    const char* struct_format() const override { return "O"; }
 };
 
 

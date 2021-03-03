@@ -72,7 +72,7 @@ bool TypeImpl::equals(const TypeImpl* other) const {
 
 py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
-
+const char* TypeImpl::struct_format() const { return ""; }
 
 
 

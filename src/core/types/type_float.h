@@ -41,6 +41,7 @@ class Type_Float32 : public Type_Numeric {
     py::oobj max() const override {
       return py::ofloat(std::numeric_limits<float>::max());
     }
+    const char* struct_format() const override { return "f"; }
 };
 
 
@@ -57,6 +58,7 @@ class Type_Float64 : public Type_Numeric {
     py::oobj max() const override {
       return py::ofloat(std::numeric_limits<double>::max());
     }
+    const char* struct_format() const override { return "d"; }
 };
 
 

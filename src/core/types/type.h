@@ -77,6 +77,7 @@ class Type {
     size_t hash() const;
     py::oobj min() const;
     py::oobj max() const;
+    const char* struct_format() const;
 
     SType stype() const;
     bool is_invalid() const;

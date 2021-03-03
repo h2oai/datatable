@@ -45,6 +45,10 @@ class Type_Bool8 : public Type_Numeric {
     py::oobj max() const override {
       return py::True();
     }
+
+    const char* struct_format() const override {
+      return "?";
+    }
 };
 
 

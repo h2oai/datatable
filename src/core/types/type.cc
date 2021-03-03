@@ -109,7 +109,7 @@ size_t Type::hash() const { return impl_->hash(); }
 py::oobj Type::min() const { return impl_->min(); }
 py::oobj Type::max() const { return impl_->max(); }
 SType Type::stype() const { return impl_->stype_; }
-
+const char* Type::struct_format() const { return impl_->struct_format(); }
 
 void Type::promote(const Type& other) {
   if (impl_) {

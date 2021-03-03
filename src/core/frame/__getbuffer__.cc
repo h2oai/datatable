@@ -48,7 +48,6 @@ std::exception_ptr getbuffer_exception;
 
 
 // Forward declarations
-static const char* format_from_stype(dt::SType stype);
 static void copy_column_into_buffer(const Column& col, Buffer& buf);
 
 #define REQ_ND(flags)       ((flags & PyBUF_ND) == PyBUF_ND)
@@ -106,7 +105,7 @@ static int getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags) {
   size_t i0 = one_col? getbuffer_force_column : 0;
   XInfo* xinfo = nullptr;
   const Column& col = self->get_datatable()->get_column(i0);
-  const char* fmt = format_from_stype(col.stype());
+  const char* fmt = col.type().struct_format();
 
   xinfo = new XInfo();
   xinfo->mbuf = col.get_data_buffer();
@@ -189,7 +188,7 @@ int py::Frame::m__getbuffer__(Py_buffer* view, int flags) noexcept {
     size_t elemsize = stype_elemsize(stype);
     size_t colsize = nrows * elemsize;
     Buffer memr = Buffer::mem(ncols * colsize);
-    const char* fmt = format_from_stype(stype);
+    const char* fmt = type.struct_format();
 
     // Construct the data buffer
     for (size_t i = 0; i < ncols; ++i) {

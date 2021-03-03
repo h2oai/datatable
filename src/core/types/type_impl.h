@@ -43,6 +43,7 @@ class TypeImpl {
     virtual size_t hash() const noexcept;
     virtual py::oobj min() const;
     virtual py::oobj max() const;
+    virtual const char* struct_format() const;
     virtual TypeImpl* common_type(TypeImpl* other) = 0;
 
     virtual bool is_boolean() const;
