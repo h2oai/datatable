@@ -134,7 +134,7 @@ Examples
 
 Get the row standard deviation for all integer columns::
 
-    >>> DT[:, dt.rowsd(f[int])]
+    >>> DT[:, rowsd(f[int])]
        |      C0
        | float64
     -- + -------
@@ -147,7 +147,7 @@ Get the row standard deviation for all integer columns::
 
 Get the row standard deviation for some columns::
 
-    >>> DT[:, dt.rowsd(f[2, 3])]
+    >>> DT[:, rowsd(f[2, 3])]
        |       C0
        |  float64
     -- + --------
