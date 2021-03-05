@@ -338,7 +338,11 @@ void LinearModel<T>::add_negative_class() {
 
 
 /**
- *  Fit model on a datatable.
+ *  Fit a model by using ordinary least squares formulation with
+ *  stohastic gradient descent learning and elastic net regularization,
+ *  see these references for more details:
+ *  - https://en.wikipedia.org/wiki/Stochastic_gradient_descent
+ *  - https://en.wikipedia.org/wiki/Elastic_net_regularization
  */
 template <typename T>
 template <typename U, typename V> /* target column(s) data type */
@@ -432,10 +436,10 @@ LinearModelFitOutput LinearModel<T>::fit(T(*linkfn)(T),
               for (size_t j = 0; j < nfeatures + 1; ++j) {
 
                 T grad = linkfn(predict_row(x, k,
-                           [&](size_t f_id, T f_imp) {
-                             fi[f_id] += f_imp;
-                            }
-                         ));
+                        [&](size_t f_id, T f_imp) {
+                          fi[f_id] += f_imp;
+                         }
+                      ));
                 T y = static_cast<T>(targetfn(target, label_ids_train[k]));
                 grad = 2 * dlinkfn(grad) * (grad - y);
                 if (j) grad *= x[j - 1];
