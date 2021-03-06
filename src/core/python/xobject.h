@@ -260,6 +260,10 @@ struct XObject : public PyObject {
     return (ret == 1);
   }
 
+  static Derived* unchecked(PyObject* v) {
+    return reinterpret_cast<Derived*>(v);
+  }
+
   // Returns borrowed ref
   static Derived* cast_from(robj obj) {
     PyObject* v = obj.to_borrowed_ref();

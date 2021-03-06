@@ -443,8 +443,19 @@ void Column::cast_inplace(dt::SType new_stype) {
 }
 
 
+void Column::cast_inplace(dt::Type new_type) {
+  cast_inplace(new_type.stype());
+}
+
+
 Column Column::cast(dt::SType new_stype) const {
   Column newcol(*this);
   newcol.cast_inplace(new_stype);
+  return newcol;
+}
+
+Column Column::cast(dt::Type new_type) const {
+  Column newcol(*this);
+  newcol.cast_inplace(new_type.stype());
   return newcol;
 }

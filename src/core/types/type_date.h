@@ -42,6 +42,8 @@ class Type_Date32 : public TypeImpl {
     py::oobj max() const override {
       return _wrap_value(std::numeric_limits<int>::max() - 719468, "max");
     }
+    // Pretend this is int32
+    const char* struct_format() const override { return "i"; }
 
     TypeImpl* common_type(TypeImpl* other) override {
       if (this->stype() == other->stype()) {

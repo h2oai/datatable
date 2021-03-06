@@ -135,6 +135,7 @@ bool Type::is_float()   const { return impl_->is_float(); }
 bool Type::is_numeric() const { return impl_->is_numeric(); }
 bool Type::is_string()  const { return impl_->is_string(); }
 bool Type::is_object()  const { return impl_->is_object(); }
+bool Type::is_time()    const { return impl_->is_time(); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }

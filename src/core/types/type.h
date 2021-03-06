@@ -80,13 +80,14 @@ class Type {
     const char* struct_format() const;
 
     SType stype() const;
-    bool is_invalid() const;
     bool is_boolean() const;
     bool is_integer() const;
+    bool is_invalid() const;
     bool is_float() const;
     bool is_numeric() const;
     bool is_string() const;
     bool is_object() const;
+    bool is_time() const;
 
     template<typename T>
     bool can_be_read_as() const;

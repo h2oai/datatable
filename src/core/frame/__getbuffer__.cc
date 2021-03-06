@@ -106,6 +106,10 @@ static int getbuffer_1_col(py::Frame* self, Py_buffer* view, int flags) {
   XInfo* xinfo = nullptr;
   const Column& col = self->get_datatable()->get_column(i0);
   const char* fmt = col.type().struct_format();
+  if (*fmt == 0) {
+    throw TypeError() << "Column of type " << col.type() << " cannot be "
+        "transferred via the PyBuffer protocol. Use .to_numpy() instead";
+  }
 
   xinfo = new XInfo();
   xinfo->mbuf = col.get_data_buffer();
@@ -255,20 +259,6 @@ void py::Frame::m__releasebuffer__(Py_buffer* view) noexcept {
 //==============================================================================
 // Buffers utility functions
 //==============================================================================
-
-static const char* format_from_stype(dt::SType stype)
-{
-  return stype == dt::SType::BOOL? "?" :
-         stype == dt::SType::INT8? "b" :
-         stype == dt::SType::INT16? "h" :
-         stype == dt::SType::INT32? "i" :
-         stype == dt::SType::INT64? "q" :
-         stype == dt::SType::FLOAT32? "f" :
-         stype == dt::SType::FLOAT64? "d" :
-         stype == dt::SType::OBJ? "O" : "x";
-}
-
-
 
 template <typename T>
 static void _copy_column_fw(const Column& col, Buffer& buf) {

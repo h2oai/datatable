@@ -33,10 +33,7 @@ namespace py {
 // Helpers
 //------------------------------------------------------------------------------
 
-static bool datatable_has_nas(DataTable* dt, size_t force_col) {
-  if (force_col != size_t(-1)) {
-    return dt->get_column(force_col).na_count() > 0;
-  }
+static bool datatable_has_nas(DataTable* dt) {
   for (size_t i = 0; i < dt->ncols(); ++i) {
     if (dt->get_column(i).na_count() > 0) {
       return true;
@@ -48,9 +45,9 @@ static bool datatable_has_nas(DataTable* dt, size_t force_col) {
 
 class PybuffersSettings {
   public:
-    PybuffersSettings(dt::SType st, size_t col) {
+    PybuffersSettings(dt::Type type, size_t col) {
       getbuffer_exception = nullptr;
-      getbuffer_force_type = dt::Type::from_stype(st);
+      getbuffer_force_type = type;
       getbuffer_force_column = col;
     }
     ~PybuffersSettings() {
@@ -108,21 +105,63 @@ except: ImportError
 )";
 
 static PKArgs args_to_numpy(
-    0, 2, 0, false, false,
+    0, 0, 2, false, false,
     {"type", "column"}, "to_numpy", doc_to_numpy);
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
+  const Arg& arg_type = args[0];
+  const Arg& arg_column = args[1];
+  oobj frame = oobj(this);
+
+  dt::Type target_type = arg_type.to_type_force();
+  if (arg_column.is_defined()) {
+    auto i = arg_column.to_int64_strict();
+    size_t icol = dt->xcolindex(i);
+    Column col = dt->get_column(icol);
+    if (target_type) {
+      col.cast_inplace(target_type);
+    }
+    frame = Frame::oframe(new DataTable({col}, DataTable::default_names));
+  }
+  else if (target_type) {
+    colvec columns;
+    columns.reserve(dt->ncols());
+    for (size_t i = 0; i < dt->ncols(); i++) {
+      columns.push_back(dt->get_column(i).cast(target_type));
+    }
+    frame = Frame::oframe(new DataTable(std::move(columns), *dt));
+  }
+
   oobj numpy = oobj::import("numpy");
   oobj nparray = numpy.get_attr("asfortranarray");
-  dt::SType stype  = args.get<dt::SType>(0, dt::SType::AUTO);
-  size_t force_col = args.get<size_t>(1, size_t(-1));
+
+  size_t ncols = dt->ncols();
+  auto common_type = target_type;
+  for (size_t i = 0; i < ncols; i++) {
+    auto coltype = dt->get_column(i).type();
+    common_type.promote(coltype);
+    if (common_type.is_invalid()) {
+      if (target_type) {
+        throw TypeError() << "Frame cannot be converted into a numpy array "
+            "of type " << target_type << " because it has a column of an "
+            "incompatible type " << coltype;
+      } else {
+        throw TypeError() << "Frame cannot be converted into a numpy array "
+            "because it has columns of incompatible types";
+      }
+    }
+  }
 
   oobj res;
   {
-    PybuffersSettings tmp(stype, force_col);
+    PybuffersSettings tmp(target_type, size_t(-1));
     // At this point, numpy will invoke py::Frame::m__getbuffer__
-    res = nparray.call({oobj(this)});
+    res = nparray.call({frame});
+    // If there was an exception in Frame::m__getbuffer__ then numpy will
+    // "eat" it and create a 1x1 array containing the Frame object. In order
+    // to prevent this, we check whether there was an exception in getbuffer,
+    // and if so rethrow the exception.
     if (getbuffer_exception) {
       std::rethrow_exception(getbuffer_exception);
     }
@@ -130,11 +169,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
 
   // If there are any columns with NAs, replace the numpy.array with
   // numpy.ma.masked_array
-  if (datatable_has_nas(dt, force_col)) {
-    bool one_col = force_col != size_t(-1);
-    size_t ncols = one_col? 1 : dt->ncols();
-    size_t i0 = one_col? force_col : 0;
-
+  if (datatable_has_nas(dt)) {
     size_t dtsize = ncols * dt->nrows();
     Column mask_col = Column::new_data_column(dtsize, dt::SType::BOOL);
     bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());
@@ -152,7 +187,7 @@ oobj Frame::to_numpy(const PKArgs& args) {
         size_t row0 = irow * rows_per_chunk;
         size_t row1 = irow == n_row_chunks-1? dt->nrows() : row0 + rows_per_chunk;
         bool* mask_ptr = mask_data + icol * dt->nrows();
-        const Column& col = dt->get_column(icol + i0);
+        const Column& col = dt->get_column(icol);
         col.fill_npmask(mask_ptr, row0, row1);
       });
 
