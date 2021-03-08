@@ -55,8 +55,7 @@ namespace dt {
   class Type;
 }
 
-extern size_t getbuffer_force_column;  // Declared in __getbuffer__.cc
-extern dt::Type getbuffer_force_type;
+extern dt::Type getbuffer_force_type;  // Declared in __getbuffer__.cc
 extern std::exception_ptr getbuffer_exception;
 
 

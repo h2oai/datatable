@@ -32,6 +32,7 @@ namespace py {
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
+static oobj to_numpy_impl(oobj frame);
 
 static bool datatable_has_nas(DataTable* dt) {
   for (size_t i = 0; i < dt->ncols(); ++i) {
@@ -41,20 +42,6 @@ static bool datatable_has_nas(DataTable* dt) {
   }
   return false;
 }
-
-
-class PybuffersSettings {
-  public:
-    PybuffersSettings(dt::Type type, size_t col) {
-      getbuffer_exception = nullptr;
-      getbuffer_force_type = type;
-      getbuffer_force_column = col;
-    }
-    ~PybuffersSettings() {
-      getbuffer_force_type = dt::Type();
-      getbuffer_force_column = size_t(-1);
-    }
-};
 
 
 
@@ -105,14 +92,13 @@ except: ImportError
 )";
 
 static PKArgs args_to_numpy(
-    0, 0, 2, false, false,
+    0, 2, 0, false, false,
     {"type", "column"}, "to_numpy", doc_to_numpy);
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
   const Arg& arg_type = args[0];
   const Arg& arg_column = args[1];
-  oobj frame = oobj(this);
 
   dt::Type target_type = arg_type.to_type_force();
   if (arg_column.is_defined()) {
@@ -122,7 +108,10 @@ oobj Frame::to_numpy(const PKArgs& args) {
     if (target_type) {
       col.cast_inplace(target_type);
     }
-    frame = Frame::oframe(new DataTable({col}, DataTable::default_names));
+    auto res = to_numpy_impl(
+        Frame::oframe(new DataTable({col}, DataTable::default_names))
+    );
+    return res.invoke("reshape", {oint(col.nrows())});
   }
   else if (target_type) {
     colvec columns;
@@ -130,32 +119,33 @@ oobj Frame::to_numpy(const PKArgs& args) {
     for (size_t i = 0; i < dt->ncols(); i++) {
       columns.push_back(dt->get_column(i).cast(target_type));
     }
-    frame = Frame::oframe(new DataTable(std::move(columns), *dt));
+    return to_numpy_impl(Frame::oframe(new DataTable(std::move(columns), *dt)));
   }
+  else {
+    return to_numpy_impl(oobj(this));
+  }
+}
 
+
+static oobj to_numpy_impl(oobj frame) {
+  DataTable* dt = frame.to_datatable();
   oobj numpy = oobj::import("numpy");
   oobj nparray = numpy.get_attr("asfortranarray");
 
   size_t ncols = dt->ncols();
-  auto common_type = target_type;
+  dt::Type common_type;
   for (size_t i = 0; i < ncols; i++) {
     auto coltype = dt->get_column(i).type();
     common_type.promote(coltype);
     if (common_type.is_invalid()) {
-      if (target_type) {
-        throw TypeError() << "Frame cannot be converted into a numpy array "
-            "of type " << target_type << " because it has a column of an "
-            "incompatible type " << coltype;
-      } else {
-        throw TypeError() << "Frame cannot be converted into a numpy array "
-            "because it has columns of incompatible types";
-      }
+      throw TypeError() << "Frame cannot be converted into a numpy array "
+          "because it has columns of incompatible types";
     }
   }
 
   oobj res;
   {
-    PybuffersSettings tmp(target_type, size_t(-1));
+    getbuffer_exception = nullptr;
     // At this point, numpy will invoke py::Frame::m__getbuffer__
     res = nparray.call({frame});
     // If there was an exception in Frame::m__getbuffer__ then numpy will
