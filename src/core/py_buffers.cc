@@ -490,7 +490,7 @@ static const char* format_from_stype(dt::SType stype)
 
 template <typename T>
 static void _copy_column_fw(const Column& col, Buffer& buf) {
-  xassert(col.type().can_be_read_as<T>());
+  xassert(col.can_be_read_as<T>());
   xassert(buf.size() == col.nrows() * sizeof(T));
   auto nthreads = dt::NThreads(col.allow_parallel_access());
   auto out_data = static_cast<T*>(buf.wptr());
@@ -504,7 +504,7 @@ static void _copy_column_fw(const Column& col, Buffer& buf) {
 }
 
 static void _copy_column_obj(const Column& col, Buffer& buf) {
-  xassert(col.type().can_be_read_as<py::oobj>());
+  xassert(col.can_be_read_as<py::oobj>());
   xassert(buf.size() == col.nrows() * sizeof(py::oobj));
   xassert(!buf.is_pyobjects());
   auto out_data = reinterpret_cast<PyObject**>(buf.wptr());

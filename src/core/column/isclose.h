@@ -48,8 +48,8 @@ class IsClose_ColumnImpl : public Virtual_ColumnImpl {
         rtol_(rtol),
         atol_(atol)
     {
-      xassert(argx_.type().can_be_read_as<T>());
-      xassert(argy_.type().can_be_read_as<T>());
+      xassert(argx_.can_be_read_as<T>());
+      xassert(argy_.can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {

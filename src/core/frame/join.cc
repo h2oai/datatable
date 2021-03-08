@@ -187,8 +187,8 @@ template <typename TX, typename TJ>
 FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
-  xassert(xcol.type().can_be_read_as<TX>());
-  xassert(jcol.type().can_be_read_as<TJ>());
+  xassert(xcol.can_be_read_as<TX>());
+  xassert(jcol.can_be_read_as<TJ>());
 }
 
 template <typename TX, typename TJ>

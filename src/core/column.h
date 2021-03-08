@@ -23,6 +23,7 @@
 #define dt_COLUMN_h
 #include "_dt.h"
 #include "stats.h"       // Stat (enum), Stats
+#include "types/type.h"
 
 namespace dt {
   class ColumnImpl;
@@ -126,7 +127,6 @@ class Column
     bool   allow_parallel_access() const;
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
-
     dt::ColumnImpl* release() &&;
 
   //------------------------------------
@@ -280,6 +280,12 @@ class Column
     // See frame/to_arrow.cc
     std::unique_ptr<dt::OArrowArray> to_arrow() const;
     std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
+
+    // A shortcut for `.type().can_be_read_as<T>()`. The latter call
+    // is not compatible with some compilers, for instance Clang 11.
+    template<typename T> bool can_be_read_as() const {
+      return type().can_be_read_as<T>();
+    }
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

@@ -29,9 +29,6 @@
 #include "column.h"
 #include "wstringcol.h"
 #include "utils/macros.h"
-#if DT_OS_WINDOWS
-  #undef copysign
-#endif
 
 namespace dt {
 
@@ -149,18 +146,18 @@ template <typename T>
 FtrlFitOutput Ftrl<T>::fit_binomial() {
   dtptr dt_y_train_binomial, dt_y_val_binomial;
   bool validation = _notnan(nepochs_val);
-  create_y_binomial(dt_y_train, dt_y_train_binomial, label_ids_train);
+  create_y_binomial(dt_y_train, dt_y_train_binomial, label_ids_train, dt_labels);
 
-  // NA values are ignored during training, so if we stop training right away,
-  // if got only NA's.
+  // NA values are ignored during training, so we stop training right away,
+  // if got NA's only.
   if (dt_y_train_binomial == nullptr) return {0, static_cast<double>(T_NAN)};
   dt_y_train = dt_y_train_binomial.get();
 
   if (validation) {
-    create_y_binomial(dt_y_val, dt_y_val_binomial, label_ids_val);
+    create_y_binomial(dt_y_val, dt_y_val_binomial, label_ids_val, dt_labels);
     if (dt_y_val_binomial == nullptr) {
       throw ValueError() << "Cannot set early stopping criteria as validation "
-                            "target column got only `NA` targets";
+                            "target column got `NA` targets only";
     }
     dt_y_val = dt_y_val_binomial.get();
   }
@@ -181,105 +178,9 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 
 /**
- *  Convert target column to boolean type, and set up mapping
- *  between models and the incoming label inficators.
- */
-template <typename T>
-void Ftrl<T>::create_y_binomial(const DataTable* dt,
-                                dtptr& dt_binomial,
-                                std::vector<size_t>& label_ids) {
-  xassert(label_ids.size() == 0);
-  dtptr dt_labels_in;
-  label_encode(dt->get_column(0), dt_labels_in, dt_binomial, true);
-
-  // If we only got NA targets, return to stop training.
-  if (dt_labels_in == nullptr) return;
-  size_t nlabels_in = dt_labels_in->nrows();
-
-  if (nlabels_in > 2) {
-    throw ValueError() << "For binomial regression target column should have "
-                       << "two labels at maximum, got: " << nlabels_in;
-  }
-
-  // By default we assume zero model got zero label id
-  label_ids.push_back(0);
-
-  if (dt_labels == nullptr) {
-    dt_labels = std::move(dt_labels_in);
-  } else {
-
-    RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
-    size_t nlabels = dt_labels->nrows();
-    xassert(nlabels != 0 && nlabels < 3);
-    auto data_label_ids_in = static_cast<int32_t*>(
-                              dt_labels_in->get_column(1).get_data_editable());
-    auto data_label_ids = static_cast<const int32_t*>(
-                              dt_labels->get_column(1).get_data_readonly());
-
-    size_t ri0_index = 0, ri1_index;
-    bool ri0_valid = (ri_join.size() >= 1) && ri_join.get_element(0, &ri0_index);
-    bool ri1_valid = (ri_join.size() >= 2) && ri_join.get_element(1, &ri1_index);
-
-    switch (nlabels) {
-      case 1: switch (nlabels_in) {
-                 case 1: if (!ri0_valid) {
-                           // The new label we got was encoded with zeros,
-                           // so we train the model on all negatives: 1 == 0
-                           label_ids[0] = 1;
-                           data_label_ids_in[0] = 1;
-                           // Since we cannot rbind anything to a keyed frame, we
-                           // - clear the key;
-                           // - rbind new labels;
-                           // - set the key back, this will sort the resulting `dt_labels`.
-                           dt_labels->clear_key();
-                           dt_labels->rbind({ dt_labels_in.get() }, {{ 0 }, { 1 }});
-                           sztvec keys{ 0 };
-                           dt_labels->set_key(keys);
-                         }
-                         break;
-                 case 2: if (!ri0_valid && !ri1_valid) {
-                           throw ValueError() << "Got two new labels in the target column, "
-                                              << "however, positive label is already set";
-                         }
-                         // If the new label is the zero label,
-                         // then we need to train on the existing label indicator
-                         // i.e. the first one.
-                         label_ids[0] = static_cast<size_t>(data_label_ids_in[!ri0_valid]);
-                         // Reverse labels id order if the new label comes first.
-                         if (label_ids[0] == 1) {
-                           data_label_ids_in[0] = 1;
-                           data_label_ids_in[1] = 0;
-                         }
-                         dt_labels = std::move(dt_labels_in);
-              }
-              break;
-
-      case 2: switch (nlabels_in) {
-                case 1: if (!ri0_valid) {
-                          throw ValueError() << "Got a new label in the target column, however, both "
-                                             << "positive and negative labels are already set";
-                        }
-                        label_ids[0] = (data_label_ids[ri0_index] == 1);
-                        break;
-                case 2: if (!ri0_valid || !ri1_valid) {
-                          throw ValueError() << "Got a new label in the target column, however, both "
-                                             << "positive and negative labels are already set";
-                        }
-                        size_t label_id = static_cast<size_t>(data_label_ids[ri0_index] != 0);
-                        label_ids[0] = static_cast<size_t>(data_label_ids_in[label_id]);
-
-                        break;
-              }
-              break;
-    }
-  }
-}
-
-
-/**
  *  Create labels (in the case of numeric regression there is no actual
  *  labeles, so we just use a column name for this purpose),
- *  set up identity mapping between models and the incoming label inficators,
+ *  set up identity mapping between models and the incoming label indicators,
  *  call to the main `fit` method.
  */
 template <typename T>
@@ -350,7 +251,16 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
 
 
   dtptr dt_y_train_multinomial;
-  create_y_multinomial(dt_y_train, dt_y_train_multinomial, label_ids_train);
+  size_t n_new_labels = create_y_multinomial(
+                          dt_y_train, dt_y_train_multinomial, label_ids_train,
+                          dt_labels, params.negative_class
+                        );
+
+  // Adjust trained model if we got new labels
+  if (n_new_labels) {
+    xassert(is_model_trained());
+    adjust_model();
+  }
 
   if (dt_y_train_multinomial == nullptr) return {0, static_cast<double>(T_NAN)};
   dt_y_train = dt_y_train_multinomial.get();
@@ -358,10 +268,11 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
   // Create validation targets if needed.
   dtptr dt_y_val_multinomial;
   if (_notnan(nepochs_val)) {
-    create_y_multinomial(dt_y_val, dt_y_val_multinomial, label_ids_val, true);
+    create_y_multinomial(dt_y_val, dt_y_val_multinomial, label_ids_val, dt_labels,
+                         params.negative_class, true);
     if (dt_y_val_multinomial == nullptr)
       throw ValueError() << "Cannot set early stopping criteria as validation "
-                         << "target column got only `NA` targets";
+                         << "target column got `NA` targets only";
     dt_y_val = dt_y_val_multinomial.get();
   }
 
@@ -380,157 +291,6 @@ FtrlFitOutput Ftrl<T>::fit_multinomial() {
   return fit<int32_t, int32_t>(sigmoid<T>, targetfn, targetfn, log_loss<T>);
 }
 
-
-/**
- *  Add negative class label and save its model id.
- */
-template <typename T>
-void Ftrl<T>::add_negative_class() {
-  dt::writable_string_col c_labels(1);
-  dt::writable_string_col::buffer_impl<uint32_t> sb(c_labels);
-  sb.commit_and_start_new_chunk(0);
-  sb.write("_negative_class");
-  sb.order();
-  sb.commit_and_start_new_chunk(1);
-
-  Column c_ids = Column::new_data_column(1, SType::INT32);
-  auto d_ids = static_cast<int32_t*>(c_ids.get_data_editable());
-  d_ids[0] = 0;
-
-  dtptr dt_nc = dtptr(
-                  new DataTable(
-                    {std::move(c_labels).to_ocolumn(), std::move(c_ids)},
-                    dt_labels->get_names()
-                  )
-                );
-
-  dt_labels->clear_key();
-
-  // Increment all the exiting label ids, and then insert
-  // a `_negative_class` label with the zero id.
-  adjust_values<int32_t>(
-    dt_labels->get_column(1),
-    [](int32_t& value, size_t) {
-      ++value;
-    }
-  );
-
-  dt_labels->rbind({dt_nc.get()}, {{ 0 } , { 1 }});
-  sztvec keys{ 0 };
-  dt_labels->set_key(keys);
-}
-
-
-/**
- *  Encode target column with the integer labels, and set up mapping
- *  between models and the incoming label indicators.
- */
-template <typename T>
-void Ftrl<T>::create_y_multinomial(const DataTable* dt,
-                                   dtptr& dt_multinomial,
-                                   std::vector<size_t>& label_ids,
-                                   bool validation /* = false */) {
-  xassert(label_ids.size() == 0);
-  dtptr dt_labels_in;
-  label_encode(dt->get_column(0), dt_labels_in, dt_multinomial);
-
-  // If we only got NA targets, return to stop training.
-  if (dt_labels_in == nullptr) return;
-
-  auto data_label_ids_in = static_cast<const int32_t*>(
-                              dt_labels_in->get_column(1).get_data_readonly()
-                           );
-  size_t nlabels_in = dt_labels_in->nrows();
-
-  // When we start training for the first time, all the incoming labels
-  // become the model labels. Mapping is trivial in this case.
-  if (dt_labels == nullptr) {
-    dt_labels = std::move(dt_labels_in);
-    if (params.negative_class) {
-      add_negative_class();
-      ++nlabels_in;
-    }
-
-    label_ids.resize(nlabels_in);
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      label_ids[i] = i - params.negative_class;
-    }
-
-  } else {
-    // When we already have some labels, and got new ones, we first
-    // set up mapping in such a way, so that models will train
-    // on all the negatives.
-    auto data_label_ids = static_cast<const int32_t*>(
-                            dt_labels->get_column(1).get_data_readonly()
-                          );
-
-    RowIndex ri_join = natural_join(*dt_labels_in.get(), *dt_labels.get());
-    size_t nlabels = dt_labels->nrows();
-
-    for (size_t i = 0; i < nlabels; ++i) {
-      label_ids.push_back(std::numeric_limits<size_t>::max());
-    }
-
-    // Then we go through the list of new labels and relate existing models
-    // to the incoming label indicators.
-    Buffer new_label_indices = Buffer::mem(nlabels_in * sizeof(int64_t));
-    int64_t* data = static_cast<int64_t*>(new_label_indices.xptr());
-    size_t n_new_labels = 0;
-    for (size_t i = 0; i < nlabels_in; ++i) {
-      size_t rii;
-      bool rii_valid = ri_join.get_element(i, &rii);
-      size_t label_id_in = static_cast<size_t>(data_label_ids_in[i]);
-      if (rii_valid) {
-        size_t label_id = static_cast<size_t>(data_label_ids[rii]);
-        label_ids[label_id] = label_id_in;
-      } else {
-        // If there is no corresponding label already set,
-        // we will need to create a new one and its model.
-        data[n_new_labels] = static_cast<int64_t>(i);
-        label_ids.push_back(label_id_in);
-        n_new_labels++;
-      }
-    }
-
-    if (n_new_labels) {
-      // In the case of validation we don't allow unseen labels.
-      if (validation) {
-        throw ValueError() << "Validation target column cannot contain labels, "
-                           << "the model was not trained on";
-      }
-
-      // Extract new labels from `dt_labels_in`, and rbind them to `dt_labels`.
-      new_label_indices.resize(n_new_labels * sizeof(int64_t),
-                               true);  // keep data
-      RowIndex ri_labels(std::move(new_label_indices), RowIndex::ARR64);
-      dt_labels_in->apply_rowindex(ri_labels);
-
-      // Set new ids for the incoming labels, so that they can be rbinded
-      // to the existing ones. NB: this operation won't affect the relation
-      // between the models and label indicators, because at this point
-      // it has been already set in `label_ids`.
-      adjust_values<int32_t>(
-        dt_labels_in->get_column(1),
-        [&] (int32_t& value, size_t irow) {
-          value = static_cast<int32_t>(irow + dt_labels->nrows());
-        }
-      );
-
-      // Since we cannot rbind anything to a keyed frame, we
-      // - clear the key;
-      // - rbind new labels;
-      // - set the key back, this will sort the resulting `dt_labels`.
-      dt_labels->clear_key();
-      dt_labels->rbind({ dt_labels_in.get() }, {{ 0 } , { 1 }});
-      sztvec keys{ 0 };
-      dt_labels->set_key(keys);
-
-      // Add new models for the new labels.
-      if (n_new_labels) adjust_model();
-    }
-
-  }
-}
 
 
 /**
@@ -1168,22 +928,19 @@ void Ftrl<T>::hash_row(uint64ptr& x, std::vector<hasherptr>& hashers,
                            size_t row) {
   // Hash column values adding a column name hash, so that the same value
   // in different columns results in different hashes.
-  for (size_t i = 0; i < hashers.size(); ++i) {
+  size_t i;
+  for (i = 0; i < hashers.size(); ++i) {
     x[i] = (hashers[i]->hash(row) + colname_hashes[i]) % params.nbins;
   }
 
   // Do feature interactions.
-  if (interactions.size() > 0) {
-    size_t count = 0;
-    for (auto interaction : interactions) {
-      size_t i = hashers.size() + count;
-      x[i] = 0;
-      for (auto feature_id : interaction) {
-        x[i] += x[feature_id];
-      }
-      x[i] %= params.nbins;
-      count++;
+  for (auto interaction : interactions) {
+    x[i] = 0;
+    for (auto feature_id : interaction) {
+      x[i] += x[feature_id];
     }
+    x[i] %= params.nbins;
+    i++;
   }
 }
 

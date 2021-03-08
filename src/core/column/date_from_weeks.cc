@@ -28,7 +28,7 @@ DateFromWeeks_ColumnImpl::DateFromWeeks_ColumnImpl(Column&& arg)
   : Virtual_ColumnImpl(arg.nrows(), SType::DATE32),
     arg_(std::move(arg))
 {
-  xassert(arg_.type().can_be_read_as<int64_t>());
+  xassert(arg_.can_be_read_as<int64_t>());
 }
 
 

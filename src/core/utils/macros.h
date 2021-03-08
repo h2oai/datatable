@@ -65,6 +65,9 @@
   #error Unknown operating system
 #endif
 
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 
 //------------------------------------------------------------------------------
