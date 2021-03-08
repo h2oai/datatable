@@ -27,6 +27,7 @@
 #include "groupby.h"     // Groupby
 #include "buffer.h"      // Buffer
 #include "stats.h"       // Stats
+#include "types/type.h"
 namespace dt {
 
 
@@ -51,10 +52,9 @@ namespace dt {
 class ColumnImpl
 {
   protected:
+    Type   type_;
     size_t nrows_;
-    SType  stype_;
-    size_t : 24;
-    mutable uint32_t refcount_;
+    mutable size_t refcount_;
     mutable std::unique_ptr<Stats> stats_;
 
   //------------------------------------
@@ -91,7 +91,8 @@ class ColumnImpl
   //------------------------------------
   public:
     size_t nrows() const noexcept { return nrows_; }
-    SType  stype() const noexcept { return stype_; }
+    SType  stype() const { return type_.stype(); }
+    const Type& type() const { return type_; }
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;

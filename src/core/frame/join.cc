@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -187,8 +187,8 @@ template <typename TX, typename TJ>
 FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
-  xassert(dt::compatible_type<TX>(xcol.stype()));
-  xassert(dt::compatible_type<TJ>(jcol.stype()));
+  xassert(xcol.can_be_read_as<TX>());
+  xassert(jcol.can_be_read_as<TJ>());
 }
 
 template <typename TX, typename TJ>

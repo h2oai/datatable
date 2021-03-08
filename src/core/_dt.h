@@ -51,6 +51,7 @@ namespace dt {
   struct ArrowSchema;
   class OArrowArray;
   class OArrowSchema;
+  class Type;
 }
 
 
@@ -73,6 +74,7 @@ namespace py {
   class buffer;  // in pybuffer.h
   class obool;
   class oby;
+  class odate;
   class odict;
   class ofloat;
   class oint;

@@ -71,7 +71,13 @@ DataTable* open_jay_from_mbuf(const Buffer& mbuf)
 
   auto meta_ptr = ptr + len - 16 - meta_size;
   auto frame = jay::GetFrame(meta_ptr);
-  flatbuffers::Verifier verifier(meta_ptr, meta_size);
+  // The default value for _max_tables is 1000000, which prevents us
+  // from reading frames with 1M columns. See issue #2876.
+  flatbuffers::Verifier verifier(
+      meta_ptr,
+      meta_size,
+      64,            // _max_depth (default)
+      1 + (1<<30));  // _max_tables
   if (!frame->Verify(verifier)) {
     throw IOError() << "Invalid meta record in a Jay file";
   }

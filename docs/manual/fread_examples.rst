@@ -1,3 +1,5 @@
+.. _`Fread Examples`:
+
 
 Fread Examples
 =================

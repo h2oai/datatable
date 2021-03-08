@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -46,7 +46,7 @@ class ConstFloat_ColumnImpl : public Const_ColumnImpl {
         value(x) {}
 
     ColumnImpl* clone() const override {
-      return new ConstFloat_ColumnImpl(nrows_, value, stype_);
+      return new ConstFloat_ColumnImpl(nrows_, value, stype());
     }
 
     bool get_element(size_t, float* out) const override {
@@ -107,7 +107,7 @@ class ConstString_ColumnImpl : public Const_ColumnImpl {
         value(std::move(x)) {}
 
     ColumnImpl* clone() const override {
-      return new ConstString_ColumnImpl(nrows_, CString(value), stype_);
+      return new ConstString_ColumnImpl(nrows_, CString(value), stype());
     }
 
     bool get_element(size_t, CString* out) const override {

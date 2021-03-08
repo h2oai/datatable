@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -101,7 +101,7 @@ Workframe FExpr_Literal_Type::evaluate_n(EvalContext&) const {
 
 
 Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
-  if (value_.is_type()) {
+  if (value_.is_pytype()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
     if (et == &PyLong_Type)       return _select_types(ctx, fid, stINT);
     if (et == &PyFloat_Type)      return _select_types(ctx, fid, stFLOAT);
@@ -148,7 +148,7 @@ static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
 {
   *out_stype = SType::AUTO;
   *out_ltype = LType::MU;
-  if (value_.is_type()) {
+  if (value_.is_pytype()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
     *out_ltype = (et == &PyLong_Type)?       LType::INT :
                  (et == &PyFloat_Type)?      LType::REAL :
@@ -230,7 +230,7 @@ int FExpr_Literal_Type::precedence() const noexcept {
 
 
 std::string FExpr_Literal_Type::repr() const {
-  if (value_.is_type()) {
+  if (value_.is_pytype()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
     if (et == &PyLong_Type)       return "int";
     if (et == &PyFloat_Type)      return "float";

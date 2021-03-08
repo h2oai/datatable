@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2019-2020 H2O.ai
+# Copyright 2019-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_refnode
 from . import xnodes
 
-rx_cc_id = re.compile(r"(?:\w+::)*\w+")
+rx_cc_id = re.compile(r"(?:\w+(?:<\w+>)?::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
 rx_param = re.compile(r"""
     (?:(\w+)                                        # parameter name
@@ -1140,7 +1140,7 @@ def locate_cxx_function(name, kind, lines):
         rx_start = re.compile(r"(\s*)"
                               r"(?:static\s+|inline\s+)*"
                               r"(?:[\w:*&<> ]+)\s+" +
-                              name +
+                              r"(?:\w+::)*" + name +
                               r"\s*\(.*\)\s*" +
                               r"(?:const\s*|noexcept\s*|override\s*)*" +
                               r"\{\s*")

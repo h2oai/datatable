@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -152,23 +152,27 @@ bool Column::operator==(const Column& other) const noexcept {
 //------------------------------------------------------------------------------
 
 size_t Column::nrows() const noexcept {
-  return impl_->nrows_;
+  return impl_->nrows();
 }
 
 size_t Column::na_count() const {
   return stats()->nacount();
 }
 
+const dt::Type& Column::type() const noexcept {
+  return impl_->type_;
+}
+
 dt::SType Column::stype() const noexcept {
-  return impl_->stype_;
+  return impl_->type_.stype();
 }
 
 dt::LType Column::ltype() const noexcept {
-  return dt::stype_to_ltype(impl_->stype_);
+  return dt::stype_to_ltype(impl_->stype());
 }
 
 bool Column::is_fixedwidth() const noexcept {
-  return !stype_is_variable_width(impl_->stype_);
+  return !stype_is_variable_width(impl_->stype());
 }
 
 bool Column::is_virtual() const noexcept {
@@ -184,7 +188,7 @@ bool Column::is_constant() const noexcept {
 }
 
 size_t Column::elemsize() const noexcept {
-  return stype_elemsize(impl_->stype_);
+  return stype_elemsize(impl_->stype());
 }
 
 Column::operator bool() const noexcept {
@@ -266,6 +270,11 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
     case dt::SType::FLOAT64: return getelem<double>(*this, i);
     case dt::SType::STR32:
     case dt::SType::STR64:   return getelem<dt::CString>(*this, i);
+    case dt::SType::DATE32: {
+      int32_t x;
+      bool isvalid = get_element(i, &x);
+      return isvalid? py::odate(x) : py::None();
+    }
     case dt::SType::OBJ: {
       py::oobj x;
       bool isvalid = get_element(i, &x);
@@ -289,6 +298,7 @@ bool Column::get_element_isvalid(size_t i) const {
       int16_t x;
       return get_element(i, &x);
     }
+    case dt::SType::DATE32:
     case dt::SType::INT32: {
       int32_t x;
       return get_element(i, &x);

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -352,6 +352,7 @@ void Error::emit_warning() const {
 //==============================================================================
 
 Error AssertionError()        { return Error(PyExc_AssertionError); }
+Error AttributeError()        { return Error(PyExc_AttributeError); }
 Error RuntimeError()          { return Error(PyExc_RuntimeError); }
 Error ImportError()           { return Error(DtExc_ImportError); }
 Error IndexError()            { return Error(DtExc_IndexError); }

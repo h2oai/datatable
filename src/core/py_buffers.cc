@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,9 @@
 // See: https://docs.python.org/3/c-api/buffer.html
 //------------------------------------------------------------------------------
 #include <stdlib.h>  // atoi
+#include "column/date_from_weeks.h"
+#include "column/date_from_months.h"
+#include "column/date_from_years.h"
 #include "column/view.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -66,12 +69,27 @@ static char strB[] = "B";
 // Construct a Column from a python object implementing Buffers protocol
 //------------------------------------------------------------------------------
 
-Column Column::from_pybuffer(const py::robj& pyobj)
-{
+Column Column::from_pybuffer(const py::robj& pyobj) {
   // Check if this is a datetime64 column, in which case it must be converted
   if (pyobj.is_numpy_array()) {
     auto dtype = pyobj.get_attr("dtype");
     auto kind = dtype.get_attr("kind").to_string();
+    if (kind == "M") {  // datetime64
+      // datetime64 column does not support PyBuffers interface, so it has to
+      // be cast into int64 first.
+      Column tmp = Column::from_pybuffer(
+        pyobj.invoke("view", py::ostring("int64"))
+      );
+      xassert(tmp.stype() == dt::SType::INT64);
+      auto str = dtype.get_attr("str").to_string();
+      if (str == "<M8[D]") {
+        tmp.cast_inplace(dt::SType::DATE32);
+        return tmp;
+      }
+      if (str == "<M8[W]") return Column(new dt::DateFromWeeks_ColumnImpl(std::move(tmp)));
+      if (str == "<M8[M]") return Column(new dt::DateFromMonths_ColumnImpl(std::move(tmp)));
+      if (str == "<M8[Y]") return Column(new dt::DateFromYears_ColumnImpl(std::move(tmp)));
+    }
     if (kind == "M" || kind == "m") {
       return Column::from_pybuffer(pyobj.invoke("astype", py::ostring("str")));
     }
@@ -429,7 +447,7 @@ static void _install_buffer_hooks(const py::PKArgs& args)
 {
   PyObject* obj = args[0].to_borrowed_ref();
   if (obj) {
-    auto frame_type = reinterpret_cast<PyObject*>(&py::Frame::type);
+    auto frame_type = py::Frame::typePtr;
     int ret = PyObject_IsSubclass(obj, frame_type);
     if (ret == -1) throw PyError();
     if (ret == 0) {
@@ -437,7 +455,8 @@ static void _install_buffer_hooks(const py::PKArgs& args)
           "applied to subclasses of core.Frame";
     }
     auto type = reinterpret_cast<PyTypeObject*>(obj);
-    type->tp_as_buffer = py::Frame::type.tp_as_buffer;
+    type->tp_as_buffer =
+        reinterpret_cast<PyTypeObject*>(frame_type)->tp_as_buffer;
   }
 }
 
@@ -471,7 +490,7 @@ static const char* format_from_stype(dt::SType stype)
 
 template <typename T>
 static void _copy_column_fw(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<T>(col.stype()));
+  xassert(col.can_be_read_as<T>());
   xassert(buf.size() == col.nrows() * sizeof(T));
   auto nthreads = dt::NThreads(col.allow_parallel_access());
   auto out_data = static_cast<T*>(buf.wptr());
@@ -485,7 +504,7 @@ static void _copy_column_fw(const Column& col, Buffer& buf) {
 }
 
 static void _copy_column_obj(const Column& col, Buffer& buf) {
-  xassert(dt::compatible_type<py::oobj>(col.stype()));
+  xassert(col.can_be_read_as<py::oobj>());
   xassert(buf.size() == col.nrows() * sizeof(py::oobj));
   xassert(!buf.is_pyobjects());
   auto out_data = reinterpret_cast<PyObject**>(buf.wptr());

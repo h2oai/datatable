@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -53,10 +53,10 @@ Rbound_ColumnImpl::Rbound_ColumnImpl(const colvec& columns)
 {
   xassert(!chunks_.empty());
   for (auto& col : chunks_) {
-    col.cast_inplace(stype_);  // noop if stypes are the same
+    col.cast_inplace(stype());  // noop if stypes are the same
   }
   calculate_nacount();
-  switch (stype_to_ltype(stype_)) {
+  switch (stype_to_ltype(stype())) {
     case LType::BOOL: calculate_boolean_stats(); break;
     case LType::INT:  calculate_integer_stats(); break;
     default: break;
@@ -84,7 +84,7 @@ void Rbound_ColumnImpl::calculate_nacount() {
 
 
 void Rbound_ColumnImpl::calculate_boolean_stats() {
-  xassert(stype_ == SType::BOOL);
+  xassert(stype() == SType::BOOL);
   bool is_valid = true;
   size_t count1 = 0;
   for (const auto& col : chunks_) {
@@ -103,8 +103,8 @@ void Rbound_ColumnImpl::calculate_boolean_stats() {
 
 
 void Rbound_ColumnImpl::calculate_integer_stats() {
-  xassert(stype_ == SType::INT8 || stype_ == SType::INT16 ||
-          stype_ == SType::INT32 || stype_ == SType::INT64);
+  xassert(stype() == SType::INT8 || stype() == SType::INT16 ||
+          stype() == SType::INT32 || stype() == SType::INT64);
   int64_t min = std::numeric_limits<int64_t>::max();
   int64_t max = -std::numeric_limits<int64_t>::max();
   bool valid = false;
@@ -126,7 +126,7 @@ void Rbound_ColumnImpl::calculate_integer_stats() {
 
 
 void Rbound_ColumnImpl::calculate_float_stats() {
-  xassert(stype_ == SType::FLOAT32 || stype_ == SType::FLOAT64);
+  xassert(stype() == SType::FLOAT32 || stype() == SType::FLOAT64);
   double min = std::numeric_limits<double>::infinity();
   double max = -std::numeric_limits<double>::infinity();
   bool valid = false;

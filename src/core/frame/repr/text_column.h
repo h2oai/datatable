@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -114,6 +114,7 @@ class Data_TextColumn : public TextColumn {
     tstring _render_value_int(const Column&, size_t i) const;
     tstring _render_value_bool(const Column&, size_t i) const;
     tstring _render_value_string(const Column&, size_t i) const;
+    tstring _render_value_date(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
     tstring _escape_string(const CString&) const;

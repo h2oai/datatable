@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,44 +20,17 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
-#include "expr/fnary/fnary.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
 
-
-static const char* doc_rowsd =
-R"(rowsd(cols)
---
-
-For each row, find the standard deviation among the columns from `cols`
-skipping missing values. If a row contains only the missing values,
-this function will produce a missing value too.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression consisting of one column that has the same number of rows
-    as in `cols`. The column stype is `float32` when all the `cols`
-    are `float32`, and `float64` in all the other cases.
-
-except: TypeError
-    The exception is raised when `cols` has non-numeric columns.
-
-See Also
---------
-
-- :func:`rowmean()` -- calculate the mean value row-wise.
-
-)";
-
-py::PKArgs args_rowsd(0, 0, 0, true, false, {}, "rowsd", doc_rowsd);
-
+std::string FExpr_RowSd::name() const {
+  return "rowsd";
+}
 
 
 template <typename T>
@@ -92,11 +65,11 @@ static inline Column _rowsd(colvec&& columns) {
 }
 
 
-Column naryop_rowsd(colvec&& columns) {
+Column FExpr_RowSd::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(1);
   }
-  SType res_stype = detect_common_numeric_stype(columns, "rowsd");
+  SType res_stype = common_numeric_stype(columns);
   if (res_stype == SType::INT32 || res_stype == SType::INT64) {
     res_stype = SType::FLOAT64;
   }
@@ -111,6 +84,42 @@ Column naryop_rowsd(colvec&& columns) {
   }
 }
 
+
+
+
+static const char* doc_rowsd =
+R"(rowsd(*cols)
+--
+
+For each row, find the standard deviation among the columns from `cols`
+skipping missing values. If a row contains only the missing values,
+this function will produce a missing value too.
+
+
+Parameters
+----------
+cols: FExpr
+    Input columns.
+
+return: FExpr
+    f-expression consisting of one column that has the same number of rows
+    as in `cols`. The column stype is `float32` when all the `cols`
+    are `float32`, and `float64` in all the other cases.
+
+except: TypeError
+    The exception is raised when `cols` has non-numeric columns.
+
+
+See Also
+--------
+- :func:`rowmean()` -- calculate the mean value row-wise.
+)";
+
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowsd")
+    ->docs(doc_rowsd)
+    ->allow_varargs()
+    ->add_info(FN_ROWSD);
 
 
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,6 +33,7 @@
 #include "python/obj.h"
 #include "python/string.h"
 #include "stype.h"
+#include "types/py_type.h"
 #include "utils/macros.h"
 
 namespace py {
@@ -59,7 +60,7 @@ static void init_numpy();
 PyObject* Expr_Type = nullptr;
 
 // Set from expr/fexpr.cc
-PyTypeObject* FExpr_Type = nullptr;
+PyObject* FExpr_Type = nullptr;
 
 // `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
 // a designated initializer, that is not supported by the C++14 standard.
@@ -113,9 +114,18 @@ oobj::oobj() {
   v = nullptr;
 }
 
+oobj::oobj(std::nullptr_t) {
+  v = nullptr;
+}
+
 oobj::oobj(PyObject* p) {
   v = p;
-  if (p) Py_INCREF(p);
+  Py_XINCREF(v);
+}
+
+oobj::oobj(PyTypeObject* p) {
+  v = reinterpret_cast<PyObject*>(p);
+  Py_XINCREF(v);
 }
 
 oobj::oobj(const oobj& other) : oobj(other.v) {}
@@ -212,10 +222,12 @@ bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !i
 bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
-bool _obj::is_type()          const noexcept { return v && PyType_Check(v); }
+bool _obj::is_date()          const noexcept { return v && odate::check(robj(v)); }
+bool _obj::is_pytype()        const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && dt::is_ltype_object(v); }
 bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
-bool _obj::is_anytype()       const noexcept { return is_type() || is_stype() || is_ltype(); }
+bool _obj::is_type()          const noexcept { return dt::PyType::check(v); }
+bool _obj::is_anytype()       const noexcept { return is_pytype() || is_stype() || is_ltype(); }
 bool _obj::is_list()          const noexcept { return v && PyList_Check(v); }
 bool _obj::is_tuple()         const noexcept { return v && PyTuple_Check(v); }
 bool _obj::is_dict()          const noexcept { return v && PyDict_Check(v); }
@@ -316,7 +328,7 @@ bool _obj::is_dtexpr() const noexcept {
 }
 
 bool _obj::is_fexpr() const noexcept {
-  return v && Py_TYPE(v) == FExpr_Type;
+  return v && reinterpret_cast<PyObject*>(Py_TYPE(v)) == FExpr_Type;
 }
 
 
@@ -489,6 +501,15 @@ bool _obj::parse_numpy_float(double* out) const { return _parse_npfloat(v, out);
 bool _obj::parse_double(double* out) const {
   if (PyFloat_Check(v)) {
     *out = PyFloat_AsDouble(v);
+    return true;
+  }
+  return false;
+}
+
+
+bool _obj::parse_date(int32_t* out) const {
+  if (py::odate::check(v)) {
+    *out = py::odate::unchecked(v).get_days();
     return true;
   }
   return false;
@@ -816,6 +837,13 @@ strvec _obj::to_stringlist(const error_manager&) const {
 }
 
 
+odate _obj::to_odate(const error_manager& em) const {
+  if (is_date()) {
+    return odate::unchecked(v);
+  }
+  throw em.error_not_date(v);
+}
+
 
 //------------------------------------------------------------------------------
 // Object conversions
@@ -845,6 +873,15 @@ dt::SType _obj::to_stype(const error_manager& em) const {
     throw em.error_not_stype(v);
   }
   return static_cast<dt::SType>(s);
+}
+
+
+dt::Type _obj::to_type(const error_manager& em) const {
+  dt::PyType* typePtr = dt::PyType::cast_from(robj(v));
+  if (typePtr == nullptr) {
+    throw em.error_not_type(v);
+  }
+  return typePtr->get_type();
 }
 
 
@@ -1077,6 +1114,17 @@ PyObject* oobj::release() && {
 }
 
 
+bool is_python_system_attr(py::robj attr) {
+  return is_python_system_attr(attr.to_cstring());
+}
+bool is_python_system_attr(const dt::CString& attr) {
+  auto a = attr.data();
+  auto n = attr.size();
+  return (n > 4 && a[0] == '_' && a[1] == '_' &&
+                   a[n-1] == '_' && a[n-2] == '_');
+}
+
+
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
   #if PY_VERSION_HEX >= 0x03070000
@@ -1219,6 +1267,10 @@ Error _obj::error_manager::error_not_double(PyObject* o) const {
   return TypeError() << "Expected a float, instead got " << Py_TYPE(o);
 }
 
+Error _obj::error_manager::error_not_date(PyObject* o) const {
+  return TypeError() << "Expected a date, instead got " << Py_TYPE(o);
+}
+
 Error _obj::error_manager::error_not_string(PyObject* o) const {
   return TypeError() << "Expected a string, instead got " << Py_TYPE(o);
 }
@@ -1258,6 +1310,10 @@ Error _obj::error_manager::error_not_slice(PyObject* o) const {
 
 Error _obj::error_manager::error_not_stype(PyObject* o) const {
   return TypeError() << "Expected an stype, instead got " << Py_TYPE(o);
+}
+
+Error _obj::error_manager::error_not_type(PyObject* o) const {
+  return TypeError() << "Expected a Type, instead got " << Py_TYPE(o);
 }
 
 Error _obj::error_manager::error_int32_overflow(PyObject* o) const {

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,12 +30,13 @@ namespace dt {
 Column Sentinel_ColumnImpl::make_column(size_t nrows, SType stype) {
   switch (stype) {
     case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows));
-    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows));
-    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows));
-    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows));
-    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows));
-    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows));
-    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, stype));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, stype));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, stype));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, stype));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, stype));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, stype));
+    case SType::DATE32:  return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, stype));
     case SType::STR32:   return Column(new SentinelStr_ColumnImpl<uint32_t>(nrows));
     case SType::STR64:   return Column(new SentinelStr_ColumnImpl<uint64_t>(nrows));
     case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows));
@@ -52,12 +53,13 @@ Column Sentinel_ColumnImpl::make_fw_column(
   xassert(buf.size() >= nrows * stype_elemsize(stype));
   switch (stype) {
     case SType::BOOL:    return Column(new SentinelBool_ColumnImpl(nrows, std::move(buf)));
-    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, std::move(buf)));
-    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, std::move(buf)));
-    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, std::move(buf)));
-    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, std::move(buf)));
-    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, std::move(buf)));
-    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, std::move(buf)));
+    case SType::INT8:    return Column(new SentinelFw_ColumnImpl<int8_t>(nrows, stype, std::move(buf)));
+    case SType::INT16:   return Column(new SentinelFw_ColumnImpl<int16_t>(nrows, stype, std::move(buf)));
+    case SType::INT32:   return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, stype, std::move(buf)));
+    case SType::INT64:   return Column(new SentinelFw_ColumnImpl<int64_t>(nrows, stype, std::move(buf)));
+    case SType::FLOAT32: return Column(new SentinelFw_ColumnImpl<float>(nrows, stype, std::move(buf)));
+    case SType::FLOAT64: return Column(new SentinelFw_ColumnImpl<double>(nrows, stype, std::move(buf)));
+    case SType::DATE32:  return Column(new SentinelFw_ColumnImpl<int32_t>(nrows, stype, std::move(buf)));
     case SType::OBJ:     return Column(new SentinelObj_ColumnImpl(nrows, std::move(buf)));
     default:
       throw ValueError()
@@ -115,7 +117,7 @@ Sentinel_ColumnImpl::Sentinel_ColumnImpl(size_t nrows, SType stype)
 
 
 bool Sentinel_ColumnImpl::allow_parallel_access() const {
-  return (stype_ != SType::OBJ);
+  return !(stype() == SType::OBJ);
 }
 
 bool Sentinel_ColumnImpl::is_virtual() const noexcept {

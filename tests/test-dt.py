@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -371,6 +371,33 @@ def test_random_attack():
     out, err = proc.communicate(timeout=100)
     assert "FAIL" not in out.decode()
     assert not err
+
+
+
+#-------------------------------------------------------------------------------
+# Types
+#-------------------------------------------------------------------------------
+
+def test_dt0_types(dt0):
+    T = dt.Type
+    assert dt0.types == \
+        [T.int32, T.bool8, T.int8, T.float64, T.void, T.int8, T.str32]
+
+
+def test_empty_frame_types():
+    DT = dt.Frame([])
+    assert DT.types == []
+    DT.nrows = 11
+    assert DT.types == []
+
+
+def test_modify_types_list():
+    DT = dt.Frame(A=[1, 4], B=['g', 'r'])
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+    types = DT.types
+    types[0] = 42
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+
 
 
 
@@ -803,15 +830,20 @@ def test_single_element_extraction_from_view(dt0):
 
 @pytest.mark.parametrize('st', list(dt.stype))
 def test_single_element_all_stypes(st):
+    from datetime import date as dd
+    if st == dt.stype.time64:
+        return
     pt = (bool if st == dt.stype.bool8 else
           int if st.ltype == dt.ltype.int else
           float if st.ltype == dt.ltype.real else
           str if st.ltype == dt.ltype.str else
+          dd if st == dt.stype.date32 else
           object)
     src = [True, False, True, None] if pt is bool else \
           [1, 7, -99, 214, None, 3333] if pt is int else \
           [2.5, 3.4e15, -7.909, None] if pt is float else \
           ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
+          [dd(2000, 5, 5), dd(2012, 12, 12), None] if pt is dd else \
           [dt, st, list, None, {3, 2, 1}]
     df = dt.Frame(A=src, stype=st)
     frame_integrity_check(df)
@@ -1016,3 +1048,20 @@ def test_issue2269():
     DT = dt.Frame(range(10000))
     ptr = dt.internal.frame_column_data_r(DT, 0)
     assert isinstance(ptr, ctypes.c_void_p)
+
+
+def test_issue2873():
+    from time import time
+    DT = dt.Frame([[1]] * 10000)
+    names10000 = DT.names
+    names1000 = names10000[:1000]
+    t0 = time()
+    DT[:, names10000]
+    t10000 = time() - t0
+    t0 = time()
+    DT[:, names1000]
+    t1000 = time() - t0
+    assert t10000 < 1.0
+    # The timer can have low resolution and produce `t1000 == 0`
+    if t1000 > 0:
+        assert t10000 / t1000 < 50

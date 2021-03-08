@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -503,7 +503,7 @@ void StringStats::set_mode(const dt::CString& value, bool isvalid) {
 
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
-  xassert(dt::compatible_type<T>(col->stype()));
+  xassert(col->type().can_be_read_as<T>());
   std::atomic<size_t> total_countna { 0 };
   dt::parallel_region(
     dt::NThreads(col->allow_parallel_access()),
@@ -564,7 +564,7 @@ void BooleanStats::compute_minmax() {
 
 template <typename T>
 void NumericStats<T>::compute_minmax() {
-  xassert(dt::compatible_type<T>(column->stype()));
+  xassert(column->type().can_be_read_as<T>());
   size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();

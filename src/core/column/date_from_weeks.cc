@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,41 +19,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/fnary/fnary.h"
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
+#include "column/date_from_weeks.h"
+#include "stype.h"
 namespace dt {
-namespace expr {
 
 
-Head_Func_Nary::Head_Func_Nary(Op op) : op_(op) {}
-
-
-Workframe Head_Func_Nary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
+DateFromWeeks_ColumnImpl::DateFromWeeks_ColumnImpl(Column&& arg)
+  : Virtual_ColumnImpl(arg.nrows(), SType::DATE32),
+    arg_(std::move(arg))
 {
-  Workframe inputs(ctx);
-  for (const auto& arg : args) {
-    inputs.cbind(arg->evaluate_n(ctx));
-  }
+  xassert(arg_.can_be_read_as<int64_t>());
+}
 
-  Grouping gmode = inputs.get_grouping_mode();
-  std::vector<Column> columns;
-  columns.reserve(inputs.ncols());
-  for (size_t i = 0; i < inputs.ncols(); ++i) {
-    columns.emplace_back(inputs.retrieve_column(i));
-  }
 
-  Column res = naryop(op_, std::move(columns));
-  Workframe out(ctx);
-  out.add_column(std::move(res), "", gmode);
-  return out;
+bool DateFromWeeks_ColumnImpl::get_element(size_t i, int32_t* out) const {
+  int64_t value;
+  bool valid = arg_.get_element(i, &value);
+  *out = static_cast<int32_t>(value * 7);
+  return valid;
+}
+
+
+ColumnImpl* DateFromWeeks_ColumnImpl::clone() const {
+  return new DateFromWeeks_ColumnImpl(Column(arg_));
+}
+
+size_t DateFromWeeks_ColumnImpl::n_children() const noexcept {
+  return 1;
+}
+
+const Column& DateFromWeeks_ColumnImpl::child(size_t i) const {
+  xassert(i == 0); (void) i;
+  return arg_;
 }
 
 
 
 
-}}  // namespace dt::expr
+}

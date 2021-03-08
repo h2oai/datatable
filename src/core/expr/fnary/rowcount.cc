@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,38 +20,18 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>
-#include "expr/fnary/fnary.h"
-#include "expr/funary/umaker.h"
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "expr/fnary/fnary.h"
+#include "expr/funary/umaker.h"
+#include "python/xargs.h"
 namespace dt {
 namespace expr {
 
 
-
-static const char* doc_rowcount =
-R"(rowcount(cols)
---
-
-For each row, count the number of non-missing values in `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression consisting of one `int32` column and the same number
-    of rows as in `cols`.
-
-See Also
---------
-
-- :func:`rowsum()` -- sum of all values row-wise.
-
-)";
-
-py::PKArgs args_rowcount(0, 0, 0, true, false, {}, "rowcount", doc_rowcount);
+std::string FExpr_RowCount::name() const {
+  return "rowcount";
+}
 
 
 
@@ -69,8 +49,7 @@ static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
 }
 
 
-
-Column naryop_rowcount(colvec&& columns) {
+Column FExpr_RowCount::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
   }
@@ -82,6 +61,71 @@ Column naryop_rowcount(colvec&& columns) {
   return Column(new FuncNary_ColumnImpl<int32_t>(
                       std::move(columns), op_rowcount, nrows, SType::INT32));
 }
+
+
+
+static const char* doc_rowcount =
+R"(rowcount(*cols)
+--
+
+For each row, count the number of non-missing values in `cols`.
+
+
+Parameters
+----------
+cols: FExpr
+    Input columns.
+
+return: FExpr
+    f-expression consisting of one `int32` column and the same number
+    of rows as in `cols`.
+
+
+Examples
+--------
+::
+
+    >>> from datatable import dt, f
+    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None],
+    ...                "C":[True, False, False, True, True]})
+    >>> DT
+       |     A      B      C
+       | int32  int32  bool8
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      0
+     2 |     2      3      0
+     3 |     1      4      1
+     4 |     2     NA      1
+    [5 rows x 3 columns]
+
+
+
+Note the exclusion of null values in the count::
+
+    >>> DT[:, dt.rowcount(f[:])]
+       |    C0
+       | int32
+    -- + -----
+     0 |     2
+     1 |     3
+     2 |     3
+     3 |     3
+     4 |     2
+    [5 rows x 1 column]
+
+
+See Also
+--------
+- :func:`rowsum()` -- sum of all values row-wise.
+)";
+
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowcount")
+    ->docs(doc_rowcount)
+    ->allow_varargs()
+    ->add_info(FN_ROWCOUNT);
 
 
 

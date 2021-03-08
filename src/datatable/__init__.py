@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -53,6 +53,7 @@ from .lib._datatable import (
     shift,
     sort,
     symdiff,
+    Type,
     union,
     unique,
     update,
@@ -129,6 +130,7 @@ __all__ = (
     "str64",
     "stype",
     "symdiff",
+    "Type",
     "union",
     "unique",
 )

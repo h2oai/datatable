@@ -208,6 +208,17 @@ def test_jay_rbound_column(tempfile_jay):
     assert_equals(RES, dt.Frame(Z=data))
 
 
+def test_jay_very_wide_frame():
+    # See issue 2876
+    n = 1_000_000
+    DT = dt.Frame([[1]] * n)
+    jay = DT.to_jay()
+    RES = dt.fread(jay)
+    assert RES.shape == (1, n)
+    assert RES[0, 0] == 1
+    assert RES[0, -1] == 1
+    assert RES[0, n//2] == 1
+
 
 
 #-------------------------------------------------------------------------------

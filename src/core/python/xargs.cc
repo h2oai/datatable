@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -137,6 +137,11 @@ XArgs* XArgs::docs(const char* str) {
   return this;
 }
 
+XArgs* XArgs::add_info(int info) {
+  info_ = info;
+  return this;
+}
+
 
 size_t XArgs::n_positional_args() const {
   return nargs_posonly_;
@@ -163,6 +168,9 @@ const char* XArgs::arg_name(size_t i) const {
   return arg_names_[i];
 }
 
+int XArgs::get_info() const {
+  return info_;
+}
 
 
 
@@ -357,14 +365,20 @@ const Arg& XArgs::operator[](size_t i) const {
   return bound_args_[i];
 }
 
-size_t XArgs::num_varargs() const noexcept {
-  return n_varargs_;
-}
-
 size_t XArgs::num_varkwds() const noexcept {
   return n_varkwds_;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// varargs
+//------------------------------------------------------------------------------
+
+size_t XArgs::num_varargs() const noexcept {
+  return n_varargs_;
+}
 
 py::robj XArgs::vararg(size_t i) const {
   xassert(i < n_varargs_);
@@ -372,6 +386,48 @@ py::robj XArgs::vararg(size_t i) const {
   // PyTuple_GET_ITEM() returns a borrowed reference
   return py::robj(PyTuple_GET_ITEM(args_tuple_, j));
 }
+
+XArgs::VarArgsIterable XArgs::varargs() const noexcept {
+  return XArgs::VarArgsIterable(*this);
+}
+
+
+
+XArgs::VarArgsIterable::VarArgsIterable(const XArgs& args)
+  : parent_(args) {}
+
+XArgs::VarArgsIterator XArgs::VarArgsIterable::begin() const {
+  size_t i0 = parent_.n_bound_args_;
+  return XArgs::VarArgsIterator(parent_, i0);
+}
+
+XArgs::VarArgsIterator XArgs::VarArgsIterable::end() const {
+  size_t i1 = parent_.n_bound_args_ + parent_.n_varargs_;
+  return XArgs::VarArgsIterator(parent_, i1);
+}
+
+
+
+XArgs::VarArgsIterator::VarArgsIterator(const XArgs& args, size_t i0)
+  : parent_(args), pos_(static_cast<Py_ssize_t>(i0)) {}
+
+XArgs::VarArgsIterator& XArgs::VarArgsIterator::operator++() {
+  ++pos_;
+  return *this;
+}
+
+py::robj XArgs::VarArgsIterator::operator*() const {
+  return py::robj(PyTuple_GET_ITEM(parent_.args_tuple_, pos_));
+}
+
+bool XArgs::VarArgsIterator::operator==(const VarArgsIterator& other) const {
+  return (pos_ == other.pos_);
+}
+
+bool XArgs::VarArgsIterator::operator!=(const VarArgsIterator& other) const {
+  return (pos_ != other.pos_);
+}
+
 
 
 

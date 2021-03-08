@@ -108,7 +108,8 @@ using namespace py;
 
 // static "constructor"
 oobj PyFExpr::make(FExpr* expr) {
-  oobj res = robj(reinterpret_cast<PyObject*>(FExpr_Type)).call();
+  xassert(FExpr_Type);
+  oobj res = robj(FExpr_Type).call();
   auto fexpr = reinterpret_cast<PyFExpr*>(res.to_borrowed_ref());
   fexpr->expr_ = ptrExpr(expr);
   return res;
@@ -391,7 +392,7 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__POS__(&PyFExpr::nb__pos__));
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
 
-  FExpr_Type = &type;
+  FExpr_Type = xt.get_type_object();
 }
 
 
