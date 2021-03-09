@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -166,6 +166,32 @@ extern template class CastNumeric_ColumnImpl<int32_t>;
 extern template class CastNumeric_ColumnImpl<int64_t>;
 extern template class CastNumeric_ColumnImpl<float>;
 extern template class CastNumeric_ColumnImpl<double>;
+
+
+
+
+//------------------------------------------------------------------------------
+// CastDate32_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    using Cast_ColumnImpl::arg_;
+    using Cast_ColumnImpl::Cast_ColumnImpl;
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*)   const override;
+    bool get_element(size_t, int16_t*)  const override;
+    bool get_element(size_t, int32_t*)  const override;
+    bool get_element(size_t, int64_t*)  const override;
+    bool get_element(size_t, float*)    const override;
+    bool get_element(size_t, double*)   const override;
+    // bool get_element(size_t, CString*)  const override;
+    // bool get_element(size_t, py::oobj*) const override;
+
+  private:
+    template <typename T> inline bool _get(size_t i, T* out) const;
+};
 
 
 

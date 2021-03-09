@@ -434,28 +434,24 @@ void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
 }
 
 
-void Column::cast_inplace(dt::SType new_stype) {
-  if (new_stype == stype() || new_stype == dt::SType::AUTO) return;
-  bool done = impl_->cast_replace(new_stype, *this);
-  if (!done) {
-    _get_mutable_impl()->cast_mutate(new_stype);
-  }
-}
-
 
 void Column::cast_inplace(dt::Type new_type) {
-  cast_inplace(new_type.stype());
+  if (!new_type || new_type == type()) return;
+  impl_->cast_replace(new_type, *this);
 }
 
-
-Column Column::cast(dt::SType new_stype) const {
-  Column newcol(*this);
-  newcol.cast_inplace(new_stype);
-  return newcol;
-}
 
 Column Column::cast(dt::Type new_type) const {
   Column newcol(*this);
-  newcol.cast_inplace(new_type.stype());
+  newcol.cast_inplace(new_type);
   return newcol;
+}
+
+
+// old API
+void Column::cast_inplace(dt::SType new_stype) {
+  cast_inplace(dt::Type::from_stype(new_stype));
+}
+Column Column::cast(dt::SType new_stype) const {
+  return cast(dt::Type::from_stype(new_stype));
 }

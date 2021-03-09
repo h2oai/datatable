@@ -169,7 +169,7 @@ static oobj to_numpy_impl(oobj frame) {
     }
   }
   if (is_date32) {
-    auto np_date64_dtype = numpy.invoke("dtype", "datetime64[D]");
+    auto np_date64_dtype = numpy.invoke("dtype", {py::ostring("datetime64[D]")});
     res = res.invoke("view", np_date64_dtype);
   }
 
