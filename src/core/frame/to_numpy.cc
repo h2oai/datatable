@@ -152,6 +152,11 @@ static oobj to_numpy_impl(oobj frame) {
     for (size_t i = 0; i < ncols; i++) {
       columns.push_back(dt->get_column(i).cast(target_type));
     }
+    // Note: `frame` is the owner of the `dt` pointer. First line creates a
+    // new (unowned) DataTable object and stores the pointer in the `dt`
+    // variable. The second line stores the pointer inside the `frame` object,
+    // which will now be the owner of this new pointer. At the same time,
+    // previous DataTable object owned by `frame` will now be destroyed.
     dt = new DataTable(std::move(columns), *dt);
     frame = Frame::oframe(dt);
   }
