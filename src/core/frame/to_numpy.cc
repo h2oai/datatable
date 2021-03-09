@@ -142,24 +142,6 @@ static oobj to_numpy_impl(oobj frame) {
           "because it has columns of incompatible types";
     }
   }
-  // date32 columns will be converted into int64 numpy arrays, and then
-  // afterward we will "cast" that int64 array into datetime64[D].
-  bool is_date32 = common_type.stype() == dt::SType::DATE32;
-  if (is_date32) {
-    auto target_type = dt::Type::int64();
-    colvec columns;
-    columns.reserve(dt->ncols());
-    for (size_t i = 0; i < ncols; i++) {
-      columns.push_back(dt->get_column(i).cast(target_type));
-    }
-    // Note: `frame` is the owner of the `dt` pointer. First line creates a
-    // new (unowned) DataTable object and stores the pointer in the `dt`
-    // variable. The second line stores the pointer inside the `frame` object,
-    // which will now be the owner of this new pointer. At the same time,
-    // previous DataTable object owned by `frame` will now be destroyed.
-    dt = new DataTable(std::move(columns), *dt);
-    frame = Frame::oframe(dt);
-  }
 
   oobj res;
   {
@@ -174,9 +156,11 @@ static oobj to_numpy_impl(oobj frame) {
       std::rethrow_exception(getbuffer_exception);
     }
   }
-  if (is_date32) {
-    auto np_date64_dtype = numpy.invoke("dtype", {py::ostring("datetime64[D]")});
-    res = res.invoke("view", np_date64_dtype);
+
+  // date32 columns are passed as int32 via the buffer. We need to cast that
+  // into datetime64[D] afterwards.
+  if (common_type.stype() == dt::SType::DATE32) {
+    res = res.invoke("astype", {py::ostring("datetime64[D]")});
   }
 
   // If there are any columns with NAs, replace the numpy.array with
