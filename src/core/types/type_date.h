@@ -34,6 +34,7 @@ class Type_Date32 : public TypeImpl {
     Type_Date32() : TypeImpl(SType::DATE32) {}
 
     bool can_be_read_as_int32() const override { return true; }
+    bool is_time() const override { return true; }
     std::string to_string() const override { return "date32"; }
 
     py::oobj min() const override {

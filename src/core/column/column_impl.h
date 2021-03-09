@@ -133,7 +133,7 @@ class ColumnImpl
                                 const Column& replace_with, Column& out);
     virtual void pre_materialize_hook() {}
 
-    // cast_const(new_stype, thiscol)
+    // cast_replace(new_stype, thiscol)
     //   Cast the column into new stype, storing the result into
     //   `thiscol`. An implementation may also move `thiscol` before
     //   storing a new Column there. The return value is true if the
@@ -145,15 +145,15 @@ class ColumnImpl
     //   str32 but the result may only fit into str64.
     //
     // cast_mutate(new_stype)
-    //   Unlike `cast_const()`, this method performs the cast by
+    //   Unlike `cast_replace()`, this method performs the cast by
     //   modifying itself.
     //
-    //   This method will only be called if `cast_const()` did not
+    //   This method will only be called if `cast_replace()` did not
     //   perform the cast. The default implementation will never call
-    //   this, but a derived class may choose to implement cast_const
+    //   this, but a derived class may choose to implement cast_replace
     //   in such a way that "mutate" cast is needed.
     //
-    virtual bool cast_const(SType new_stype, Column& thiscol) const;
+    virtual bool cast_replace(SType new_stype, Column& thiscol) const;
     virtual void cast_mutate(SType new_stype);
 
     virtual Column as_arrow() const;

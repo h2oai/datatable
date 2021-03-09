@@ -197,7 +197,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Casts
 //------------------------------------------------------------------------------
 
-bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
+bool ColumnImpl::cast_replace(SType new_stype, Column& thiscol) const {
   if (new_stype == SType::BOOL) {
     switch (stype()) {
       case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;

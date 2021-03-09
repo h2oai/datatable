@@ -436,7 +436,7 @@ void Column::fill_npmask(bool* out_mask, size_t row0, size_t row1) const {
 
 void Column::cast_inplace(dt::SType new_stype) {
   if (new_stype == stype() || new_stype == dt::SType::AUTO) return;
-  bool done = impl_->cast_const(new_stype, *this);
+  bool done = impl_->cast_replace(new_stype, *this);
   if (!done) {
     _get_mutable_impl()->cast_mutate(new_stype);
   }
