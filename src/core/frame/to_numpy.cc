@@ -152,7 +152,8 @@ static oobj to_numpy_impl(oobj frame) {
     for (size_t i = 0; i < ncols; i++) {
       columns.push_back(dt->get_column(i).cast(target_type));
     }
-    frame = Frame::oframe(new DataTable(std::move(columns), *dt));
+    dt = new DataTable(std::move(columns), *dt);
+    frame = Frame::oframe(dt);
   }
 
   oobj res;
