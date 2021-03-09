@@ -225,6 +225,9 @@ See Also
 --------
 - :func:`iread()`
 
+- :ref:`Fread Examples` user guide for usage examples.
+
+
 )";
 
 static py::PKArgs args_fread(

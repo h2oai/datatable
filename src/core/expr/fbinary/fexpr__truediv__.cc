@@ -65,7 +65,7 @@ class FExpr__truediv__ : public FExpr_BinaryOp {
       size_t nrows = a.nrows();
       a.cast_inplace(stype);
       b.cast_inplace(stype);
-      xassert(a.type().can_be_read_as<T>());
+      xassert(a.can_be_read_as<T>());
       return Column(new FuncBinary1_ColumnImpl<T, T, T>(
         std::move(a), std::move(b),
         [](T x, T y){

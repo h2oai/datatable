@@ -60,7 +60,7 @@ class Sorter_Int : public SSorter<T>
     Sorter_Int(const Column& col)
       : column_(col)
     {
-      xassert(col.type().can_be_read_as<TI>());
+      xassert(col.can_be_read_as<TI>());
     }
 
 
