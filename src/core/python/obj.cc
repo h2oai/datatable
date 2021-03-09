@@ -885,7 +885,7 @@ dt::Type _obj::to_type(const error_manager& em) const {
 }
 
 
-dt::Type _obj::to_type_force(const error_manager& em) const {
+dt::Type _obj::to_type_force(const error_manager&) const {
   if (!v) return dt::Type();
   if (dt::PyType::check(v)) {
     auto typePtr = dt::PyType::unchecked(v);

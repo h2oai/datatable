@@ -1135,6 +1135,7 @@ static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
     case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
     case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
+    case dt::SType::DATE32:  return StatsPtr(new IntegerStats<int32_t>(col));
     case dt::SType::STR32:
     case dt::SType::STR64:   return StatsPtr(new StringStats(col));
     case dt::SType::OBJ:     return StatsPtr(new PyObjectStats(col));
