@@ -114,6 +114,21 @@ def test_tonumpy_date32(np):
     assert a.T.tolist() == DT.to_list()
 
 
+@numpy_test
+def test_tonumpy_with_upcast():
+    from math import nan
+    DT = dt.Frame(A=[3, 7, 8], B=[True, False, False], C=[2.1, 7.7, 9.1],
+                  D=[None]*3)
+    a = DT.to_numpy()
+    assert a.shape == DT.shape
+    assert list_equals(
+                a.tolist(),
+                [[3.0, 1.0, 2.1, nan],
+                 [7.0, 0.0, 7.7, nan],
+                 [8.0, 0.0, 9.1, nan]]
+            )
+
+
 
 
 #-------------------------------------------------------------------------------
