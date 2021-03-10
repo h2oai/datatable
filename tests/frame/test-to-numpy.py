@@ -37,6 +37,15 @@ numpy_test = pytest.mark.usefixtures("numpy")
 #-------------------------------------------------------------------------------
 
 @numpy_test
+def test_empty_frame():
+    DT = dt.Frame()
+    assert DT.shape == (0, 0)
+    a = DT.to_numpy()
+    assert a.shape == (0, 0)
+    assert a.tolist() == []
+
+
+@numpy_test
 def test_tonumpy0(np):
     d0 = dt.Frame([1, 3, 5, 7, 9])
     assert d0.stype == dt.int32
@@ -49,7 +58,7 @@ def test_tonumpy0(np):
 
 
 @numpy_test
-def test_tonumpy1(np):
+def test_tonumpy_incompatible_types(np):
     d0 = dt.Frame({"A": [1, 5],
                    "B": ["helo", "you"],
                    "C": [True, False],
@@ -64,12 +73,79 @@ def test_tonumpy1(np):
 
 
 @numpy_test
-def test_empty_frame():
-    DT = dt.Frame()
-    assert DT.shape == (0, 0)
+@pytest.mark.parametrize('src_type',
+    [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64])
+def test_tonumpy_numerics(np, src_type):
+    DT = dt.Frame([-3, 3, 5, 0, 2], stype=src_type)
     a = DT.to_numpy()
-    assert a.shape == (0, 0)
-    assert a.tolist() == []
+    assert dt.Type(a.dtype) == DT.types[0]
+    assert a.shape == DT.shape
+    assert a.T.tolist() == DT.to_list()
+
+
+
+
+#-------------------------------------------------------------------------------
+# Convert data with NAs
+#-------------------------------------------------------------------------------
+
+@numpy_test
+def test_tonumpy_ints_with_NAs(np):
+    src = [1, 5, None, 187, None, 103948]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert a0.dtype == np.dtype('int32')
+    assert a0.T.tolist() == [src]
+
+
+@numpy_test
+def test_tonumpy_floats_with_NAs(np):
+    from math import nan, inf
+    src = [[2.3, 11.89, None, inf], [4, None, nan, -12]]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert isinstance(a0, np.ndarray)
+    assert a0.dtype == np.dtype('float64')
+    assert list_equals(a0.T.tolist(), src)
+
+
+@numpy_test
+def test_tonumpy_strings_with_NAs(np):
+    src = ["faa", None, "", "hooray", None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert a0.dtype == np.dtype('object')
+    assert a0.T.tolist() == [src]
+
+
+@numpy_test
+def test_tonumpy_booleans_with_NAs(np):
+    src = [True, False, None]
+    d0 = dt.Frame(src)
+    a0 = d0.to_numpy()
+    assert a0.dtype == np.dtype("bool")
+    assert a0.T.tolist() == [src]
+
+
+@numpy_test
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_tonumpy_with_NAs_random(seed, numpy):
+    random.seed(seed)
+    n = int(random.expovariate(0.001) + 1)
+    m = int(random.expovariate(0.2) + 1)
+    data = [None] * m
+    for j in range(m):
+        threshold = 0.1 * (m + 1);
+        vec = [random.random() for i in range(n)]
+        for i, x in enumerate(vec):
+            if x < threshold:
+                vec[i] = None
+        data[j] = vec
+    DT = dt.Frame(data, stype=dt.float64)
+    ar = DT.to_numpy()
+    assert list_equals(ar.T.tolist(), data)
 
 
 
@@ -161,83 +237,63 @@ def test_numpy_constructor_view_1col(numpy):
     assert (a == numpy.array(d2)).all()
 
 
+
+
+#-------------------------------------------------------------------------------
+# .to_numpy(type=...)
+#-------------------------------------------------------------------------------
+
 @numpy_test
-def test_tonumpy_with_stype(numpy):
-    """
-    Test using dt.to_numpy() with explicit `stype` argument.
-    """
+def test_tonumpy_with_type(np):
     src = [[1.5, 2.6, 5.4], [3, 7, 10]]
-    d0 = dt.Frame(src)
-    assert d0.stypes == (stype.float64, stype.int32)
-    a1 = d0.to_numpy("float32")
-    a2 = d0.to_numpy()
-    del d0
+    DT = dt.Frame(src)
+    assert DT.types == [dt.Type.float64, dt.Type.int32]
+    a1 = DT.to_numpy(type="float32")
+    a2 = DT.to_numpy()
+    del DT
     # Check using list_equals(), which allows a tolerance of 1e-6, because
     # conversion to float32 resulted in loss of precision
     assert list_equals(a1.T.tolist(), src)
     assert a2.T.tolist() == src
-    assert a1.dtype == numpy.dtype("float32")
-    assert a2.dtype == numpy.dtype("float64")
+    assert a1.dtype == np.dtype("float32")
+    assert a2.dtype == np.dtype("float64")
 
 
 @numpy_test
-def test_tonumpy_ints_with_NAs(np):
-    src = [1, 5, None, 187, None, 103948]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert isinstance(a0, np.ma.core.MaskedArray)
-    assert a0.dtype == np.dtype('int32')
-    assert a0.T.tolist() == [src]
+def test_tonumpy_stype(np):
+    # stype= is a synonym for type=
+    DT = dt.Frame([3, 14, 12])
+    assert DT.types == [dt.Type.int32]
+    a = DT.to_numpy(stype='int8')
+    assert a.dtype == np.dtype('int8')
+    assert a.T.tolist() == [[3, 14, 12]]
 
 
 @numpy_test
-def test_tonumpy_floats_with_NAs(np):
-    from math import nan, inf
-    src = [[2.3, 11.89, None, inf], [4, None, nan, -12]]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert isinstance(a0, np.ndarray)
-    assert a0.dtype == np.dtype('float64')
-    assert list_equals(a0.T.tolist(), src)
+def test_tonumpy_valid_types(np):
+    DT = dt.Frame([7.4, 2.1, 0.0, 9.3])
+    types = [dt.Type.int64, dt.int64, 'int64', int, np.int64, np.dtype('int64')]
+    for src_type in types:
+        a = DT.to_numpy(type=src_type)
+        assert a.dtype == np.dtype('int64')
+        assert a.tolist() == [[7], [2], [0], [9]]
 
 
 @numpy_test
-def test_tonumpy_strings_with_NAs(np):
-    src = ["faa", None, "", "hooray", None]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert isinstance(a0, np.ma.core.MaskedArray)
-    assert a0.dtype == np.dtype('object')
-    assert a0.T.tolist() == [src]
+def test_tonumpy_invalid_types(np):
+    msg = "Cannot create Type object"
+    DT = dt.Frame(range(10))
+    types = [1, "whatever", np, dt.Frame]
+    for src_type in types:
+        with pytest.raises(ValueError, match=msg):
+            DT.to_numpy(type=src_type)
 
 
-@numpy_test
-def test_tonumpy_booleans_with_NAs(np):
-    src = [True, False, None]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert a0.dtype == np.dtype("bool")
-    assert a0.T.tolist() == [src]
 
 
-@numpy_test
-@pytest.mark.parametrize("seed", [random.getrandbits(32)])
-def test_tonumpy_with_NAs_random(seed, numpy):
-    random.seed(seed)
-    n = int(random.expovariate(0.001) + 1)
-    m = int(random.expovariate(0.2) + 1)
-    data = [None] * m
-    for j in range(m):
-        threshold = 0.1 * (m + 1);
-        vec = [random.random() for i in range(n)]
-        for i, x in enumerate(vec):
-            if x < threshold:
-                vec[i] = None
-        data[j] = vec
-    DT = dt.Frame(data, stype=dt.float64)
-    ar = DT.to_numpy()
-    assert list_equals(ar.T.tolist(), data)
-
+#-------------------------------------------------------------------------------
+# Issues
+#-------------------------------------------------------------------------------
 
 @numpy_test
 def test_tonumpy_with_NAs_view():
