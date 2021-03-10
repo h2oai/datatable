@@ -33,7 +33,7 @@ numpy_test = pytest.mark.usefixtures("numpy")
 
 
 #-------------------------------------------------------------------------------
-# Basic conversion
+# .to_numpy() basic
 #-------------------------------------------------------------------------------
 
 @numpy_test
@@ -64,11 +64,26 @@ def test_tonumpy1(np):
 
 
 @numpy_test
+def test_empty_frame():
+    DT = dt.Frame()
+    assert DT.shape == (0, 0)
+    a = DT.to_numpy()
+    assert a.shape == (0, 0)
+    assert a.tolist() == []
+
+
+
+
+#-------------------------------------------------------------------------------
+# np.array(DT) constructor
+#-------------------------------------------------------------------------------
+
+@numpy_test
 def test_numpy_constructor_simple(np):
     tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
     d0 = dt.Frame(tbl)
     assert d0.shape == (5, 3)
-    assert d0.stypes == (stype.int32, stype.int32, stype.int32)
+    assert d0.stype == dt.int32
     assert d0.to_list() == tbl
     n0 = np.array(d0)
     assert n0.shape == d0.shape
