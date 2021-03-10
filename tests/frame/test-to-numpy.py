@@ -31,6 +31,11 @@ from tests import (assert_equals, isview, list_equals)
 numpy_test = pytest.mark.usefixtures("numpy")
 
 
+
+#-------------------------------------------------------------------------------
+# Basic conversion
+#-------------------------------------------------------------------------------
+
 @numpy_test
 def test_tonumpy0(np):
     d0 = dt.Frame([1, 3, 5, 7, 9])
@@ -45,8 +50,10 @@ def test_tonumpy0(np):
 
 @numpy_test
 def test_tonumpy1(np):
-    d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
-                   "C": [True, False], "D": [3.4, None]})
+    d0 = dt.Frame({"A": [1, 5],
+                   "B": ["helo", "you"],
+                   "C": [True, False],
+                   "D": [3.4, None]})
     msg = "Frame .* columns of incompatible types"
     with pytest.raises(TypeError, match=msg):
         a0 = d0.to_numpy()
@@ -229,6 +236,6 @@ def test_tonumpy_with_NAs_view():
 def test_tonumpy_issue2050():
     n = 1234
     DT = dt.Frame(A=[1,2,None,4,5], B=range(5), C=[4, None, None, None, 4], stype=int)
-    DT = dt.repeat(DT[:, ["A", "B", "C"]], n)
+    DT = dt.repeat(DT, n)
     assert DT.sum().to_list() == [[12*n], [10*n], [8*n]]
     assert DT.to_numpy().sum() == 30*n
