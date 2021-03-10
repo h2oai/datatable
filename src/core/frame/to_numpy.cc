@@ -71,21 +71,26 @@ then the values will be upcasted into the smallest common stype.
 If the frame has any NA values, then the returned numpy array will
 be an instance of `numpy.ma.masked_array`.
 
+
 Parameters
 ----------
 type: Type | <type-like>
     Cast frame into this type before converting it into a numpy
-    array.
+    array. Here "type-like" can be any value that is acceptable to the
+    :class:`dt.Type` constructor.
 
 column: int
-    Convert a single column from the frame.; the returned value will be
-    a 1D-array instead of a regular 2D-array.
+    Convert a single column instead of the whole frame. This column index
+    can be negative, indicating columns counted from the end of the frame.
 
-return: numpy.array
+return: numpy.ndarray | numpy.ma.core.MaskedArray
     The returned array will be 2-dimensional with the same :attr:`.shape`
     as the original frame. However, if the option `column` was used,
     then the returned array will be 1-dimensional with the length of
     :attr:`.nrows`.
+
+    A masked array is returned if the frame contains NA values but the
+    corresponding numpy array does not support NAs.
 
 except: ImportError
     If the ``numpy`` module is not installed.
@@ -150,6 +155,9 @@ static oobj to_numpy_impl(oobj frame) {
     }
   }
   xassert(common_type);
+  if (common_type.stype() == dt::SType::VOID) {
+    return numpy.invoke("empty", {frame.get_attr("shape"), ostring("void")});
+  }
 
   // date32 columns will be converted into int64 numpy arrays, and then
   // afterward we will "cast" that int64 array into datetime64[D]. We do not

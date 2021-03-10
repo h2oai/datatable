@@ -73,6 +73,16 @@ def test_tonumpy_incompatible_types(np):
 
 
 @numpy_test
+def test_tonumpy_void(np):
+    DT = dt.Frame([[None]*10] * 3)
+    assert DT.shape == (10, 3)
+    a = DT.to_numpy()
+    assert a.shape == DT.shape
+    assert a.dtype == np.dtype('void')
+    assert a.tolist() == [[b''] * 3] * 10
+
+
+@numpy_test
 @pytest.mark.parametrize('src_type',
     [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64])
 def test_tonumpy_numerics(np, src_type):
