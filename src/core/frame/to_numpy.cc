@@ -133,6 +133,13 @@ static oobj to_numpy_impl(oobj frame) {
   oobj nparray = numpy.get_attr("asfortranarray");
 
   size_t ncols = dt->ncols();
+  if (ncols == 0) {
+    otuple shape(2);
+    shape.set(0, oint(0));
+    shape.set(1, oint(0));
+    return numpy.invoke("empty", {shape});
+  }
+
   dt::Type common_type;
   for (size_t i = 0; i < ncols; i++) {
     auto coltype = dt->get_column(i).type();
@@ -141,6 +148,28 @@ static oobj to_numpy_impl(oobj frame) {
       throw TypeError() << "Frame cannot be converted into a numpy array "
           "because it has columns of incompatible types";
     }
+  }
+  xassert(common_type);
+
+  // date32 columns will be converted into int64 numpy arrays, and then
+  // afterward we will "cast" that int64 array into datetime64[D]. We do not
+  // want to use numpy's `.astype()` here, because our cast properly converts
+  // INT32 NAs into INT64 NAs, which numpy then interprets as NaT values.
+  bool is_date32 = common_type.stype() == dt::SType::DATE32;
+  if (is_date32) {
+    auto target_type = dt::Type::int64();
+    colvec columns;
+    columns.reserve(dt->ncols());
+    for (size_t i = 0; i < ncols; i++) {
+      columns.push_back(dt->get_column(i).cast(target_type));
+    }
+    // Note: `frame` is the owner of the `dt` pointer. First line creates a
+    // new (unowned) DataTable object and stores the pointer in the `dt`
+    // variable. The second line stores the pointer inside the `frame` object,
+    // which will now be the owner of this new pointer. At the same time,
+    // previous DataTable object owned by `frame` will now be destroyed.
+    dt = new DataTable(std::move(columns), *dt);
+    frame = Frame::oframe(dt);
   }
 
   oobj res;
@@ -156,17 +185,15 @@ static oobj to_numpy_impl(oobj frame) {
       std::rethrow_exception(getbuffer_exception);
     }
   }
-  if (!common_type) return res;
 
-  // date32 columns are passed as int32 via the buffer. We need to cast that
-  // into datetime64[D] afterwards.
-  if (common_type.stype() == dt::SType::DATE32) {
-    res = res.invoke("astype", {py::ostring("datetime64[D]")});
+  if (is_date32) {
+    auto np_date64_dtype = numpy.invoke("dtype", {py::ostring("datetime64[D]")});
+    res = res.invoke("view", np_date64_dtype);
   }
 
   // If there are any columns with NAs, replace the numpy.array with
   // numpy.ma.masked_array
-  if (!common_type.is_float() && datatable_has_nas(dt)) {
+  if (!(common_type.is_float() || common_type.is_time()) && datatable_has_nas(dt)) {
     size_t dtsize = ncols * dt->nrows();
     Column mask_col = Column::new_data_column(dtsize, dt::SType::BOOL);
     bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());

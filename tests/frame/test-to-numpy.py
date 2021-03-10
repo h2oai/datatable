@@ -26,7 +26,7 @@ import math
 import pytest
 import random
 from datatable import stype
-from tests import (assert_equals, isview, list_equals)
+from tests import (assert_equals, list_equals)
 
 numpy_test = pytest.mark.usefixtures("numpy")
 
@@ -95,7 +95,7 @@ def test_tonumpy_strings(np, src_type):
 
 @numpy_test
 def test_tonumpy_date32(np):
-    from datetime import datetime as d
+    from datetime import date as d
     DT = dt.Frame([d(2001, 1, 1), d(2002, 3, 5), d(2012, 2, 7), d(2020, 3, 9)])
     assert DT.types[0] == dt.Type.date32
     a = DT.to_numpy()
@@ -169,6 +169,17 @@ def test_tonumpy_with_NAs_random(seed, numpy):
     assert list_equals(ar.T.tolist(), data)
 
 
+@numpy_test
+def test_tonumpy_date32_with_nas(np):
+    from datetime import date as d
+    DT = dt.Frame([d(1990, 5, 28), d(980, 3, 1), None, d(2096, 11, 30)])
+    assert DT.types[0] == dt.Type.date32
+    a = DT.to_numpy()
+    assert a.dtype == np.dtype('datetime64[D]')
+    assert a.shape == DT.shape
+    assert a.T.tolist() == DT.to_list()
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -219,7 +230,6 @@ def test_numpy_constructor_multi_types(numpy):
 def test_numpy_constructor_view(numpy):
     d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
     d1 = d0[::-2, :]
-    assert isview(d1)
     n1 = numpy.array(d1)
     assert n1.dtype == numpy.dtype("int32")
     assert n1.T.tolist() == [list(range(99, 0, -2)),
