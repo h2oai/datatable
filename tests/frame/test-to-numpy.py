@@ -83,6 +83,27 @@ def test_tonumpy_numerics(np, src_type):
     assert a.T.tolist() == DT.to_list()
 
 
+@numpy_test
+@pytest.mark.parametrize('src_type', [dt.str32, dt.str64])
+def test_tonumpy_strings(np, src_type):
+    DT = dt.Frame(["veni", "vidi", "vici"], stype=src_type)
+    a = DT.to_numpy()
+    assert a.dtype == np.dtype('object')
+    assert a.shape == DT.shape
+    assert a.T.tolist() == DT.to_list()
+
+
+@numpy_test
+def test_tonumpy_date32(np):
+    from datetime import datetime as d
+    DT = dt.Frame([d(2001, 1, 1), d(2002, 3, 5), d(2012, 2, 7), d(2020, 3, 9)])
+    assert DT.types[0] == dt.Type.date32
+    a = DT.to_numpy()
+    assert a.dtype == np.dtype('datetime64[D]')
+    assert a.shape == DT.shape
+    assert a.T.tolist() == DT.to_list()
+
+
 
 
 #-------------------------------------------------------------------------------
