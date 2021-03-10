@@ -323,6 +323,46 @@ def test_tonumpy_invalid_types(np):
 
 
 #-------------------------------------------------------------------------------
+# .to_numpy(column=...)
+#-------------------------------------------------------------------------------
+
+@numpy_test
+def test_tonumpy_column():
+    DT = dt.Frame(A=[1, 2, 3], B=['a', 'b', 'c'], C=[2.3, 4.5, 6.9])
+    a0 = DT.to_numpy(column=0)
+    a1 = DT.to_numpy(column=1)
+    a2 = DT.to_numpy(column=2)
+    assert a0.shape == a1.shape == a2.shape == (3,)
+    assert a0.tolist() == [1, 2, 3]
+    assert a1.tolist() == ['a', 'b', 'c']
+    assert a2.tolist() == [2.3, 4.5, 6.9]
+    alast = DT.to_numpy(column=-1)
+    assert alast.tolist() == a2.tolist()
+
+
+@numpy_test
+def test_tonumpy_column_invalid():
+    DT = dt.Frame(A=[1, 2, 3], B=['a', 'b', 'c'], C=[2.3, 4.5, 6.9])
+    msg = "Column index -5 is invalid"
+    with pytest.raises(IndexError, match=msg):
+        DT.to_numpy(column=-5)
+    msg = "Argument column in .* should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        DT.to_numpy(column='first')
+
+
+@numpy_test
+def  test_tonumpy_column_with_type(np):
+    DT = dt.Frame(A=[1, 2, 3], B=['a', 'b', 'c'], C=[2.3, 4.5, 6.9])
+    a = DT.to_numpy(type='int32', column=-1)
+    assert a.shape == (3,)
+    assert a.dtype == np.dtype('int32')
+    assert a.tolist() == [2, 4, 6]
+
+
+
+
+#-------------------------------------------------------------------------------
 # Issues
 #-------------------------------------------------------------------------------
 
