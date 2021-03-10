@@ -119,13 +119,13 @@ def test_numpy_constructor_single_col(numpy):
 
 
 @numpy_test
-def test_numpy_constructor_single_string_col(numpy):
+def test_numpy_constructor_single_string_col(np):
     d = dt.Frame(["adf", "dfkn", "qoperhi"])
     assert d.shape == (3, 1)
     assert d.stypes == (stype.str32, )
-    a = numpy.array(d)
+    a = np.array(d)
     assert a.shape == d.shape
-    assert a.dtype == numpy.dtype("object")
+    assert a.dtype == np.dtype("object")
     assert a.T.tolist() == d.to_list()
     assert (a == d.to_numpy()).all()
 
@@ -159,35 +159,42 @@ def test_tonumpy_with_stype(numpy):
 
 
 @numpy_test
-def test_tonumpy_with_NAs1(numpy):
+def test_tonumpy_ints_with_NAs(np):
     src = [1, 5, None, 187, None, 103948]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
+    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert a0.dtype == np.dtype('int32')
     assert a0.T.tolist() == [src]
 
 
 @numpy_test
-def test_tonumpy_with_NAs2(numpy):
-    src = [[2.3, 11.89, None, math.inf], [4, None, None, -12]]
+def test_tonumpy_floats_with_NAs(np):
+    from math import nan, inf
+    src = [[2.3, 11.89, None, inf], [4, None, nan, -12]]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
-    assert a0.T.tolist() == src
+    assert isinstance(a0, np.ndarray)
+    assert a0.dtype == np.dtype('float64')
+    assert list_equals(a0.T.tolist(), src)
 
 
 @numpy_test
-def test_tonumpy_with_NAs3(numpy):
+def test_tonumpy_strings_with_NAs(np):
     src = ["faa", None, "", "hooray", None]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
+    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert a0.dtype == np.dtype('object')
     assert a0.T.tolist() == [src]
 
 
 @numpy_test
-def test_tonumpy_with_NAs4(numpy):
+def test_tonumpy_booleans_with_NAs(np):
     src = [True, False, None]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
-    assert a0.dtype == numpy.dtype("bool")
+    assert a0.dtype == np.dtype("bool")
     assert a0.T.tolist() == [src]
 
 
@@ -205,9 +212,9 @@ def test_tonumpy_with_NAs_random(seed, numpy):
             if x < threshold:
                 vec[i] = None
         data[j] = vec
-    DT = dt.Frame(data)
+    DT = dt.Frame(data, stype=dt.float64)
     ar = DT.to_numpy()
-    assert ar.T.tolist() == data
+    assert list_equals(ar.T.tolist(), data)
 
 
 @numpy_test
@@ -215,7 +222,7 @@ def test_tonumpy_with_NAs_view():
     # See issue #1738
     X = dt.Frame(A=[5.7, 2.3, None, 4.4, 9.8, None])[1:, :]
     a = X.to_numpy()
-    assert a.tolist() == [[2.3], [None], [4.4], [9.8], [None]]
+    assert list_equals(a.tolist(), [[2.3], [None], [4.4], [9.8], [None]])
 
 
 @numpy_test
