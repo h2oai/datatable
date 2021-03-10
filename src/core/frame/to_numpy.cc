@@ -156,6 +156,7 @@ static oobj to_numpy_impl(oobj frame) {
       std::rethrow_exception(getbuffer_exception);
     }
   }
+  if (!common_type) return res;
 
   // date32 columns are passed as int32 via the buffer. We need to cast that
   // into datetime64[D] afterwards.
