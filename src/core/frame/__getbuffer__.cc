@@ -41,7 +41,6 @@
 #include "encodings.h"
 #include "stype.h"
 
-dt::Type getbuffer_force_type;
 std::exception_ptr getbuffer_exception;
 
 
@@ -117,7 +116,7 @@ int py::Frame::m__getbuffer__(Py_buffer* view, int flags) noexcept {
     // contiguous buffer always.
 
     // First, find the common stype for all columns in the DataTable.
-    auto type = getbuffer_force_type;
+    dt::Type type;
     if (!type) {
       for (size_t i = 0; i < ncols; ++i) {
         type.promote(dt->get_column(i).type());

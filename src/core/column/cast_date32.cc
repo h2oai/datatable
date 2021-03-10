@@ -78,25 +78,5 @@ bool CastDate32_ColumnImpl::get_element(size_t i, double* out) const {
 
 
 
-//------------------------------------------------------------------------------
-// Parse other
-//------------------------------------------------------------------------------
-
-// bool CastDate32_ColumnImpl::get_element(size_t i, CString* out) const {
-//   return arg_.get_element(i, out);
-// }
-
-
-// bool CastDate32_ColumnImpl::get_element(size_t i, py::oobj* out) const {
-//   CString x;
-//   bool isvalid = arg_.get_element(i, &x);
-//   if (isvalid) {
-//     *out = py::ostring(x);
-//   }
-//   return isvalid;
-// }
-
-
-
 
 }  // namespace dt
