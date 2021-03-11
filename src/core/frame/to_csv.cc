@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -129,7 +129,7 @@ method: "mmap" | "write" | "auto"
     gives a better performance; on other OSes 'mmap' may not work at
     all.
 
-(return): None | str | bytes
+return: None | str | bytes
     None if `path` is non-empty. This is the most common case: the
     output is written to the file provided.
 
