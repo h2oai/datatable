@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>             // std::min
+#include <cstring>               // std::strcmp
 #include "call_logger.h"
 #include "python/xargs.h"
 #include "utils/assert.h"
