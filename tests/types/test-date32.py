@@ -79,7 +79,7 @@ def test_date32_repr():
         "[3 rows x 1 column]\n"
     )
 
-    
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -102,7 +102,7 @@ def test_date32_max():
         " 0 | 5879610-09-09\n"
         "[1 row x 1 column]\n"
     )
-    
+
 
 #-------------------------------------------------------------------------------
 # Convert from numpy
@@ -123,3 +123,29 @@ def test_from_numpy_with_nats(np):
     assert DT.to_list() == [
         [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
     ]
+
+
+
+#-------------------------------------------------------------------------------
+# Write to csv
+#-------------------------------------------------------------------------------
+
+def test_write_to_csv():
+    d = datetime.date
+    DT = dt.Frame([d(2001, 3, 15), d(1788, 6, 21), d(2030, 7, 1)])
+    assert DT.to_csv() == "C0\n2001-03-15\n1788-06-21\n2030-07-01\n"
+
+
+def test_write_dates_around_year_zero():
+    day0 = -719528
+    DT = dt.Frame([day0, day0 + 20, day0 + 1000, day0 + 10000, day0 + 100000,
+                   day0 - 1, day0 - 1000, day0 - 10000, day0 - 100000],
+                  stype='date32')
+    assert DT.to_csv() == (
+        "C0\n0000-01-01\n0000-01-21\n0002-09-27\n0027-05-19\n0273-10-16\n"
+        "-001-12-31\n-003-04-06\n-028-08-15\n-274-03-18\n")
+
+
+def test_write_huge_dates():
+    assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
+    assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
