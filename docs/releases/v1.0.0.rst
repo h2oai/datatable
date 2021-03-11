@@ -105,3 +105,6 @@
 
     -[fix] Fixed a memory leak when creating a large number of datatable
       objects. [#2701]
+
+    -[fix] Datatable can now be properly installed from a source distribution.
+      [#2846]
