@@ -24,6 +24,7 @@
 #include "frame/py_frame.h"
 #include "stype.h"
 #include "types/type_impl.h"
+#include "types/type_invalid.h"
 namespace dt {
 
 
@@ -33,6 +34,7 @@ class Type_Date32 : public TypeImpl {
     Type_Date32() : TypeImpl(SType::DATE32) {}
 
     bool can_be_read_as_int32() const override { return true; }
+    bool is_time() const override { return true; }
     std::string to_string() const override { return "date32"; }
 
     py::oobj min() const override {
@@ -40,6 +42,18 @@ class Type_Date32 : public TypeImpl {
     }
     py::oobj max() const override {
       return _wrap_value(std::numeric_limits<int>::max() - 719468, "max");
+    }
+    // Pretend this is int32
+    const char* struct_format() const override { return "i"; }
+
+    TypeImpl* common_type(TypeImpl* other) override {
+      if (this->stype() == other->stype()) {
+        return this;
+      }
+      if (other->is_object() || other->is_invalid()) {
+        return other;
+      }
+      return new Type_Invalid();
     }
 
   private:

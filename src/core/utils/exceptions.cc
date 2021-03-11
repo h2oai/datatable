@@ -257,6 +257,13 @@ Error& Error::operator<<(const dt::LType& ltype) {
 
 
 template <>
+Error& Error::operator<<(const dt::Type& type) {
+  error_message_ << type.to_string();
+  return *this;
+}
+
+
+template <>
 Error& Error::operator<<(const char& c) {
   uint8_t uc = static_cast<uint8_t>(c);
   if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {

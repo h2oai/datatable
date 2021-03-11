@@ -260,6 +260,10 @@ struct XObject : public PyObject {
     return (ret == 1);
   }
 
+  static Derived* unchecked(PyObject* v) {
+    return reinterpret_cast<Derived*>(v);
+  }
+
   // Returns borrowed ref
   static Derived* cast_from(robj obj) {
     PyObject* v = obj.to_borrowed_ref();
@@ -412,31 +416,19 @@ int _safe_setitem(PyObject* self, PyObject* key, PyObject* val) noexcept {
 }
 
 
-template <typename T, void(T::*METH)(Py_buffer*, int)>
+template <typename T, int(T::*METH)(Py_buffer*, int) noexcept>
 int _safe_getbuffer(PyObject* self, Py_buffer* buf, int flags) noexcept {
   auto cl = dt::CallLogger::getbuffer(self, buf, flags);
-  try {
-    T* tself = static_cast<T*>(self);
-    (tself->*METH)(buf, flags);
-    return 0;
-  }
-  catch (const std::exception& e) {
-    exception_to_python(e);
-    return -1;
-  }
+  T* tself = static_cast<T*>(self);
+  return (tself->*METH)(buf, flags);
 }
 
 
-template <typename T, void(T::*METH)(Py_buffer*)>
+template <typename T, void(T::*METH)(Py_buffer*) noexcept>
 void _safe_releasebuffer(PyObject* self, Py_buffer* buf) noexcept {
   auto cl = dt::CallLogger::delbuffer(self, buf);
-  try {
-    T* tself = static_cast<T*>(self);
-    (tself->*METH)(buf);
-  }
-  catch (const std::exception& e) {
-    exception_to_python(e);
-  }
+  T* tself = static_cast<T*>(self);
+  (tself->*METH)(buf);
 }
 
 
@@ -630,7 +622,19 @@ RESTORE_CLANG_WARNING("-Wunused-template")
     py::_safe_repr<CLASS_OF(METH), METH>, NAME, py::XTypeMaker::method0_tag
 
 
-#define BUFFERS(GETMETH, DELMETH)                                              \
+// Handles a request to the object to fill in `view` as specified by
+// `flags`. If the object cannot provide a buffer of the exact type,
+// it MUST raise PyExc_BufferError, set view->obj to NULL and
+// return -1.
+//
+// On success, fill in `view`, set `view->obj` to a new reference to
+// self and return 0.
+//
+// Note that both GETMETH and DELMETH must be noexcept, and if GETMETH
+// needs to throw an exception it must do so via the standard python
+// mechanism.
+//
+#define METHOD__GETBUFFER__(GETMETH, DELMETH)                                  \
     _safe_getbuffer<CLASS_OF(GETMETH), GETMETH>,                               \
     _safe_releasebuffer<CLASS_OF(DELMETH), DELMETH>,                           \
     py::XTypeMaker::buffers_tag

@@ -45,6 +45,7 @@ size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
+bool TypeImpl::is_invalid() const { return false; }
 bool TypeImpl::is_boolean() const { return false; }
 bool TypeImpl::is_integer() const { return false; }
 bool TypeImpl::is_float()   const { return false; }
@@ -71,7 +72,7 @@ bool TypeImpl::equals(const TypeImpl* other) const {
 
 py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
-
+const char* TypeImpl::struct_format() const { return ""; }
 
 
 

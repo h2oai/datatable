@@ -19,51 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_STRING_h
-#define dt_TYPES_TYPE_STRING_h
-#include "python/string.h"
+#ifndef dt_TYPES_TYPE_INVALID_h
+#define dt_TYPES_TYPE_INVALID_h
 #include "types/type_impl.h"
-#include "types/type_invalid.h"
-#include "utils/assert.h"
 namespace dt {
 
 
 
-class Type_String : public TypeImpl {
-  protected:
-    using TypeImpl::TypeImpl;
-
+class Type_Invalid : public TypeImpl {
   public:
-    bool is_string() const override { return true; }
-    bool can_be_read_as_cstring() const override { return true; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->is_string()) {
-        auto stype1 = static_cast<int>(this->stype());
-        auto stype2 = static_cast<int>(other->stype());
-        return stype1 >= stype2? this : other;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+    Type_Invalid() : TypeImpl(SType::INVALID) {}
+    bool is_invalid() const override { return true; }
+    std::string to_string() const override { return "invalid"; }
+    TypeImpl* common_type(TypeImpl*) override { return this; }
 };
-
-
-class Type_String32 : public Type_String {
-  public:
-    Type_String32() : Type_String(SType::STR32) {}
-    std::string to_string() const override { return "str32"; }
-};
-
-
-class Type_String64 : public Type_String {
-  public:
-    Type_String64() : Type_String(SType::STR64) {}
-    std::string to_string() const override { return "str64"; }
-};
-
 
 
 

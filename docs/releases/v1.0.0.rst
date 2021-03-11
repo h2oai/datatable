@@ -46,6 +46,17 @@
     -[fix] Frames with 1000000+ columns will now be correctly stored in Jay.
       [#2876]
 
+    -[fix] Passing an invalid value to the ``column=`` argument of the
+      :meth:`.to_numpy()` method will no longer result in a crash.
+
+    -[api] Converting a frame with incompatible types into a numpy array will
+      now raise an error (instead of auto-promoting to object type). However,
+      if the user explicitly requests promotion into the object type then
+      there won't be any error.
+
+    -[api] When a frame is converted into a numpy array of floatinng type,
+      then we will produce a regular ``np.ndarray`` instead of a masked array.
+
     -[api] Properties :attr:`.stypes` and :attr:`.ltypes` are now considered
       deprecated and will be removed in a future version. Currently they
       continue to work as before, however.
