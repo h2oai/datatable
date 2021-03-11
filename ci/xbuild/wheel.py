@@ -298,7 +298,7 @@ class Wheel:
             "name", "version", "summary", "keywords", "description",
             "description_content_type", "home_page", "author", "author_email",
             "maintainer", "maintainer_email", "license", "classifiers",
-            "requirements", "requires_python", "audit"}
+            "requirements", "requires_python", "audit", "reuse_version"}
         unknown_fields = set(meta.keys()) - known_fields
         if unknown_fields:
             raise KeyError("Unknown meta parameters %r" % unknown_fields)
