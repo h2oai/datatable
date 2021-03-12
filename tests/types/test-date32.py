@@ -79,7 +79,7 @@ def test_date32_repr():
         "[3 rows x 1 column]\n"
     )
 
-    
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -102,7 +102,7 @@ def test_date32_max():
         " 0 | 5879610-09-09\n"
         "[1 row x 1 column]\n"
     )
-    
+
 
 #-------------------------------------------------------------------------------
 # Convert from numpy
@@ -123,3 +123,20 @@ def test_from_numpy_with_nats(np):
     assert DT.to_list() == [
         [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
     ]
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to/from Jay
+#-------------------------------------------------------------------------------
+
+def test_save_to_jay(tempfile_jay):
+    d = datetime.date
+    src = [d(1, 1, 1), d(2001, 12, 13), d(2026, 5, 9), None, d(1956, 11, 11)]
+    DT = dt.Frame(src)
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT2 = dt.fread(tempfile_jay)
+    assert DT2.shape == (5, 1)
+    assert DT2.types == [dt.Type.date32]
+    assert DT2.to_list()[0] == src
