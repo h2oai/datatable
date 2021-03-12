@@ -24,7 +24,7 @@
 #include "column/sentinel.h"
 #include "column/virtual.h"
 #include "frame/py_frame.h"
-#include "jay/jay_generated.h"
+#include "jay/jay_nowarnings.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/args.h"
@@ -164,7 +164,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
   cbb.add_nullcount(na_count());
   write_data_to_jay(cbb, wb);
 
-  if (jsttype != jay::Stats_NONE) {
+  if (!jsto.IsNull()) {
     cbb.add_stats_type(jsttype);
     cbb.add_stats(jsto);
   }
@@ -481,6 +481,7 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::INT64)]   = jay::Type_Int64;
   stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::Type_Float32;
   stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::Type_Float64;
+  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::Type_Date32;
   stype_to_jaytype[int(dt::SType::STR32)]   = jay::Type_Str32;
   stype_to_jaytype[int(dt::SType::STR64)]   = jay::Type_Str64;
 }

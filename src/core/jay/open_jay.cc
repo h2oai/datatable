@@ -22,7 +22,7 @@
 #include <string>
 #include <cstring>              // std::memcmp
 #include "frame/py_frame.h"
-#include "jay/jay_generated.h"
+#include "jay/jay_nowarnings.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "stype.h"
@@ -183,6 +183,7 @@ static Column column_from_jay(
     case jay::Type_Float64: stype = dt::SType::FLOAT64; break;
     case jay::Type_Str32:   stype = dt::SType::STR32; break;
     case jay::Type_Str64:   stype = dt::SType::STR64; break;
+    case jay::Type_Date32:  stype = dt::SType::DATE32; break;
   }
 
   Column col;
