@@ -79,7 +79,7 @@ def test_date32_repr():
         "[3 rows x 1 column]\n"
     )
 
-    
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -102,7 +102,7 @@ def test_date32_max():
         " 0 | 5879610-09-09\n"
         "[1 row x 1 column]\n"
     )
-    
+
 
 #-------------------------------------------------------------------------------
 # Convert from numpy
@@ -123,3 +123,33 @@ def test_from_numpy_with_nats(np):
     assert DT.to_list() == [
         [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
     ]
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to pandas
+#-------------------------------------------------------------------------------
+
+def test_date32_to_pandas(pd):
+    d = datetime.date
+    DT = dt.Frame([d(2000, 1, 1), d(2005, 7, 12), d(2020, 2, 29),
+                   d(1677, 9, 22), None])
+    pf = DT.to_pandas()
+    assert pf.shape == (5, 1)
+    assert list(pf.columns) == ['C0']
+    assert pf['C0'].dtype.name == 'datetime64[ns]'
+    assert pf['C0'].to_list() == [
+        pd.Timestamp(2000, 1, 1),
+        pd.Timestamp(2005, 7, 12),
+        pd.Timestamp(2020, 2, 29),
+        pd.Timestamp(1677, 9, 22),
+        pd.NaT
+    ]
+
+
+# Note: pandas stores dates as `datetime64[ns]` type, meaning they are
+# indistinguishable from full `time64` columns.
+# For now, we convert such columns to strings; but in the future when
+# we add time64 type, we'd be able to write a function that checks
+# whether a pandas datetime64 column contains dates only, and convert
+# it to dates in such case.
