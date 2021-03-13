@@ -123,8 +123,15 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       return  _make_vw<uint64_t>(dt::SType::STR64, std::move(array));
     }
     case 't': {  // various time formats
-      if (format[1] == 'd' && format[2] == 'D') {
-        return _make_fw(dt::SType::DATE32, std::move(array));
+      if (format[1] == 'd') {
+        if (format[2] == 'D') {  // date32
+          return _make_fw(dt::SType::DATE32, std::move(array));
+        }
+        if (format[2] == 'm') {  // date64
+          Column res = _make_fw(dt::SType::INT64, std::move(array));
+          res.cast_inplace(dt::SType::DATE32);
+          return res;
+        }
       }
       break;
     }

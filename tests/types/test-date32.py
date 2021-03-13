@@ -167,3 +167,11 @@ def test_from_date32_arrow(pa):
     tbl = pa.Table.from_arrays([a], names=["D32"])
     DT = dt.Frame(tbl)
     assert_equals(DT, dt.Frame({"D32": src}, stype='date32'))
+
+
+def test_from_date64_arrow(pa):
+    src = [1, 1000, 20000, None, -700000]
+    a = pa.array(src, type=pa.date64())
+    tbl = pa.Table.from_arrays([a], names=["D64"])
+    DT = dt.Frame(tbl)
+    assert_equals(DT, dt.Frame({"D64": src}, stype='date32'))
