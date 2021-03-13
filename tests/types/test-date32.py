@@ -24,6 +24,7 @@
 import datetime
 import datatable as dt
 import pytest
+from tests import assert_equals
 
 
 
@@ -105,7 +106,7 @@ def test_date32_max():
 
 
 #-------------------------------------------------------------------------------
-# Convert from numpy
+# Create from numpy
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("scale", ["D", "W", "M", "Y"])
@@ -153,3 +154,16 @@ def test_date32_to_pandas(pd):
 # we add time64 type, we'd be able to write a function that checks
 # whether a pandas datetime64 column contains dates only, and convert
 # it to dates in such case.
+
+
+
+#-------------------------------------------------------------------------------
+# Create from pyarrow
+#-------------------------------------------------------------------------------
+
+def test_from_date32_arrow(pa):
+    src = [1, 1000, 20000, None, -700000]
+    a = pa.array(src, type=pa.date32())
+    tbl = pa.Table.from_arrays([a], names=["D32"])
+    DT = dt.Frame(tbl)
+    assert_equals(DT, dt.Frame({"D32": src}, stype='date32'))
