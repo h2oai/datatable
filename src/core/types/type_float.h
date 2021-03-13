@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_FLOAT_h
 #define dt_TYPES_TYPE_FLOAT_h
+#include <limits>
 #include "python/float.h"
 #include "types/type_numeric.h"
 #include "utils/assert.h"
