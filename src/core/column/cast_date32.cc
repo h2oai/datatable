@@ -19,53 +19,64 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_STRING_h
-#define dt_TYPES_TYPE_STRING_h
+#include <cmath>             // std::ismath
+#include <cstdlib>           // std::strtod
+#include "column/cast.h"
 #include "python/string.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
-#include "utils/assert.h"
+#include "read/constants.h"  // dt::read::pow10lookup
 namespace dt {
 
 
 
-class Type_String : public TypeImpl {
-  protected:
-    using TypeImpl::TypeImpl;
-
-  public:
-    bool is_string() const override { return true; }
-    bool can_be_read_as_cstring() const override { return true; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->is_string()) {
-        auto stype1 = static_cast<int>(this->stype());
-        auto stype2 = static_cast<int>(other->stype());
-        return stype1 >= stype2? this : other;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
-};
+ColumnImpl* CastDate32_ColumnImpl::clone() const {
+  return new CastDate32_ColumnImpl(stype(), Column(arg_));
+}
 
 
-class Type_String32 : public Type_String {
-  public:
-    Type_String32() : Type_String(SType::STR32) {}
-    std::string to_string() const override { return "str32"; }
-};
+
+//------------------------------------------------------------------------------
+// Converters
+//------------------------------------------------------------------------------
+
+template <typename T>
+inline bool CastDate32_ColumnImpl::_get(size_t i, T* out) const {
+  int32_t x;
+  bool isvalid = arg_.get_element(i, &x);
+  *out = static_cast<T>(x);
+  return isvalid;
+}
 
 
-class Type_String64 : public Type_String {
-  public:
-    Type_String64() : Type_String(SType::STR64) {}
-    std::string to_string() const override { return "str64"; }
-};
+bool CastDate32_ColumnImpl::get_element(size_t i, int8_t* out) const {
+  return _get<int8_t>(i, out);
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, int16_t* out) const {
+  return _get<int16_t>(i, out);
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
+  return _get<int32_t>(i, out);
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, int64_t* out) const {
+  return _get<int64_t>(i, out);
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, float* out) const {
+  return _get<float>(i, out);
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, double* out) const {
+  return _get<double>(i, out);
+}
 
 
 
 
 }  // namespace dt
-#endif

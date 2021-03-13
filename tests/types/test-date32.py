@@ -158,3 +158,33 @@ def test_write_dates_around_year_zero():
 def test_write_huge_dates():
     assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
     assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
+
+    
+    
+#-------------------------------------------------------------------------------
+# Convert to pandas
+#-------------------------------------------------------------------------------
+
+def test_date32_to_pandas(pd):
+    d = datetime.date
+    DT = dt.Frame([d(2000, 1, 1), d(2005, 7, 12), d(2020, 2, 29),
+                   d(1677, 9, 22), None])
+    pf = DT.to_pandas()
+    assert pf.shape == (5, 1)
+    assert list(pf.columns) == ['C0']
+    assert pf['C0'].dtype.name == 'datetime64[ns]'
+    assert pf['C0'].to_list() == [
+        pd.Timestamp(2000, 1, 1),
+        pd.Timestamp(2005, 7, 12),
+        pd.Timestamp(2020, 2, 29),
+        pd.Timestamp(1677, 9, 22),
+        pd.NaT
+    ]
+
+
+# Note: pandas stores dates as `datetime64[ns]` type, meaning they are
+# indistinguishable from full `time64` columns.
+# For now, we convert such columns to strings; but in the future when
+# we add time64 type, we'd be able to write a function that checks
+# whether a pandas datetime64 column contains dates only, and convert
+# it to dates in such case.

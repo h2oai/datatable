@@ -69,6 +69,10 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
             return True
         if abs(a - b) < max(rel_tol * max(abs(a), abs(b)), abs_tol):
             return True
+    if (isinstance(a, float) and isnan(a) and b is None):
+        return True
+    if (isinstance(b, float) and isnan(b) and a is None):
+        return True
     if isinstance(a, list) and isinstance(b, list):
         return (len(a) == len(b) and
                 all(list_equals(a[i], b[i], rel_tol = rel_tol, abs_tol = abs_tol)

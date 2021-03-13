@@ -717,9 +717,10 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    uint8_t una = 128;
+    constexpr uint8_t una = 128;
     uint8_t replace_una = na_pos == NaPosition::LAST ? 3 : 0;
 
+    DISABLE_CLANG_WARNING("-Wpadded")
     if (use_order) {
       dt::parallel_for_static(n,
         [=](size_t j) {
@@ -739,6 +740,7 @@ class SortContext {
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
+    RESTORE_CLANG_WARNING("-Wpadded")
   }
 
 
