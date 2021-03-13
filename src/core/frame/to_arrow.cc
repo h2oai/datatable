@@ -166,6 +166,7 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
     case dt::SType::INT64:   (*osch)->format = "l"; break;
     case dt::SType::FLOAT32: (*osch)->format = "f"; break;
     case dt::SType::FLOAT64: (*osch)->format = "g"; break;
+    case dt::SType::DATE32:  (*osch)->format = "tdD"; break;
     case dt::SType::STR32:   (*osch)->format = "u"; break;
     case dt::SType::STR64:   (*osch)->format = "U"; break;
     default:
@@ -345,6 +346,7 @@ Column dt::ColumnImpl::as_arrow() const {
     case SType::INT64: return _as_arrow_fw<int64_t>();
     case SType::FLOAT32: return _as_arrow_fw<float>();
     case SType::FLOAT64: return _as_arrow_fw<double>();
+    case SType::DATE32: return  _as_arrow_fw<int32_t>();
     case SType::STR32: return _as_arrow_str<uint32_t>();
     case SType::STR64: return _as_arrow_str<uint64_t>();
     default: break;

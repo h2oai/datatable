@@ -158,7 +158,7 @@ def test_date32_to_pandas(pd):
 
 
 #-------------------------------------------------------------------------------
-# Create from pyarrow
+# to/from pyarrow
 #-------------------------------------------------------------------------------
 
 def test_from_date32_arrow(pa):
@@ -175,3 +175,13 @@ def test_from_date64_arrow(pa):
     tbl = pa.Table.from_arrays([a], names=["D64"])
     DT = dt.Frame(tbl)
     assert_equals(DT, dt.Frame({"D64": src}, stype='date32'))
+
+
+def test_date32_to_arrow(pa):
+    d = datetime.date
+    DT = dt.Frame([17, 349837, 88888, None, 17777], stype='date32')
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"C0": [
+        d(1970, 1, 18), d(2927, 10, 28), d(2213, 5, 15), None, d(2018, 9, 3)
+    ]}
