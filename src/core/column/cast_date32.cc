@@ -82,7 +82,7 @@ bool CastDate32_ColumnImpl::get_element(size_t i, CString* out) const {
   int32_t x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    out->prepare_buffer(14);
+    char* ch = out->prepare_buffer(14);
     char* ch0 = ch;
     date32_toa(&ch, x);
     out->set_size(static_cast<size_t>(ch - ch0));
