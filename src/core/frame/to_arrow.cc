@@ -157,6 +157,8 @@ static void release_arrow_schema(dt::ArrowSchema* schema) {
 
 std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
   auto osch = std::unique_ptr<dt::OArrowSchema>(new dt::OArrowSchema());
+  // The formats are listed in pyarrow's [CDataInterface / format strings]
+  // manual: https://arrow.apache.org/docs/format/CDataInterface.html
   switch (stype()) {
     case dt::SType::VOID:    (*osch)->format = "n"; break;
     case dt::SType::BOOL:    (*osch)->format = "b"; break;
