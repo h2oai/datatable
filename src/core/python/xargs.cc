@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>             // std::min
+#include <cstring>               // std::strcmp
 #include "call_logger.h"
 #include "python/xargs.h"
 #include "utils/assert.h"
@@ -141,6 +142,25 @@ XArgs* XArgs::add_info(int info) {
   info_ = info;
   return this;
 }
+
+XArgs* XArgs::add_synonym_arg(const char* new_name, const char* old_name) {
+  constexpr size_t NPOS = size_t(-1);
+  has_renamed_args_ = true;
+  size_t iold = NPOS;
+  size_t inew = NPOS;
+  for (size_t i = 0; i < arg_names_.size(); ++i) {
+    const char* name = arg_names_[i];
+    if (std::strcmp(name, old_name) == 0) iold = i;
+    if (std::strcmp(name, new_name) == 0) inew = i;
+  }
+  xassert(iold != NPOS);  // make sure that `old_name` exists
+  xassert(inew == NPOS);  (void)inew;
+  PyObject* py_new_name = PyUnicode_FromString(new_name);
+  xassert(py_new_name);
+  kwd_map_[py_new_name] = iold;
+  return this;
+}
+
 
 
 size_t XArgs::n_positional_args() const {
