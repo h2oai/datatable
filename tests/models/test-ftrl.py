@@ -628,6 +628,16 @@ def test_ftrl_fit_none():
     assert res.loss is None
 
 
+def test_ftrl_fit_one():
+    ft = Ftrl(model_type = "binomial", nepochs = 1)
+    df_train = dt.Frame(["cat"])
+    df_target = dt.Frame(["animal"])
+    ft.fit(df_train, df_target)
+    p = ft.predict(df_train)
+    p_ref = dt.Frame({"animal" : [0.5]/dt.float32})
+    assert_equals(p, p_ref, 1e-3)
+
+
 def test_ftrl_fit_unique():
     ft = Ftrl(nbins = 10)
     df_train = dt.Frame(range(ft.nbins))

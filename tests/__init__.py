@@ -77,7 +77,7 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
 
 
 
-def assert_equals(frame1, frame2):
+def assert_equals(frame1, frame2, rel_tol = 1e-7, abs_tol = 0.0):
     """
     Helper function to assert that 2 frames are equal to each other.
     """
@@ -106,7 +106,7 @@ def assert_equals(frame1, frame2):
                 val2 = col2[j]
                 if val1 == val2: continue
                 if isinstance(val1, float) and isinstance(val2, float):
-                    if math.isclose(val1, val2): continue
+                    if math.isclose(val1, val2, rel_tol = rel_tol, abs_tol = abs_tol): continue
                 if len(col1) > 16:
                     arr1 = repr(col1[:16])[:-1] + ", ...]"
                     arr2 = repr(col2[:16])[:-1] + ", ...]"
@@ -123,7 +123,7 @@ def assert_equals(frame1, frame2):
         assert frame1.shape == frame2.shape
         assert list_equals(frame1.names, frame2.names)
         assert list_equals(frame1.stypes, frame2.stypes)
-        assert list_equals(frame1.to_list(), frame2.to_list())
+        assert list_equals(frame1.to_list(), frame2.to_list(), rel_tol, abs_tol)
 
 
 
