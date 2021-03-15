@@ -22,10 +22,10 @@
 #include <cstdlib>   // std::abs
 #include <cstring>   // std::memcpy
 #include "csv/toa.h"
+#include "stype.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
 #include "write/value_writer.h"
-#include "stype.h"
 namespace dt {
 namespace write {
 
@@ -239,6 +239,20 @@ using float64_hex_writer = generic_writer<24, double, write_float64_hex>;
 
 
 //------------------------------------------------------------------------------
+// date32 writers
+//------------------------------------------------------------------------------
+
+static void write_date32(int32_t value, writing_context& ctx) {
+  date32_toa(&ctx.ch, value);
+}
+
+// -5877641-06-24 -> 14
+using date32_writer = generic_writer<14, int32_t, write_date32>;
+
+
+
+
+//------------------------------------------------------------------------------
 // string writers
 //------------------------------------------------------------------------------
 
@@ -332,6 +346,7 @@ vptr value_writer::create(const Column& col, const output_options& options)
     case SType::INT16: return vptr(new int16_dec_writer(col));
     case SType::INT32: return vptr(new int32_dec_writer(col));
     case SType::INT64: return vptr(new int64_dec_writer(col));
+    case SType::DATE32: return vptr(new date32_writer(col));
     case SType::FLOAT32: {
       return options.floats_as_hex? vptr(new float32_hex_writer(col))
                                   : vptr(new float32_dec_writer(col));

@@ -81,6 +81,7 @@ class XArgs : public ArgParent {
     XArgs* allow_varkwds();
     XArgs* docs(const char*);
     XArgs* add_info(int);
+    XArgs* add_synonym_arg(const char* new_name, const char* old_name);
 
     size_t n_positional_args() const override;
     size_t n_positional_or_keyword_args() const override;

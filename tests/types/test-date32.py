@@ -24,6 +24,7 @@
 import datetime
 import datatable as dt
 import pytest
+from tests import assert_equals
 
 
 
@@ -105,7 +106,7 @@ def test_date32_max():
 
 
 #-------------------------------------------------------------------------------
-# Convert from numpy
+# Create from numpy
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("scale", ["D", "W", "M", "Y"])
@@ -140,3 +141,99 @@ def test_save_to_jay(tempfile_jay):
     assert DT2.shape == (5, 1)
     assert DT2.types == [dt.Type.date32]
     assert DT2.to_list()[0] == src
+
+
+
+#-------------------------------------------------------------------------------
+# Write to csv
+#-------------------------------------------------------------------------------
+
+def test_write_to_csv():
+    d = datetime.date
+    DT = dt.Frame([d(2001, 3, 15), d(1788, 6, 21), d(2030, 7, 1)])
+    assert DT.to_csv() == "C0\n2001-03-15\n1788-06-21\n2030-07-01\n"
+
+
+def test_write_dates_around_year_zero():
+    day0 = -719528
+    DT = dt.Frame([day0, day0 + 20, day0 + 1000, day0 + 10000, day0 + 100000,
+                   day0 - 1, day0 - 1000, day0 - 10000, day0 - 100000],
+                  stype='date32')
+    assert DT.to_csv() == (
+        "C0\n"
+        "0000-01-01\n"
+        "0000-01-21\n"
+        "0002-09-27\n"
+        "0027-05-19\n"
+        "0273-10-16\n"
+        "-001-12-31\n"
+        "-003-04-06\n"
+        "-028-08-15\n"
+        "-274-03-18\n"
+    )
+
+
+def test_write_huge_dates():
+    assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
+    assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
+
+    
+    
+#-------------------------------------------------------------------------------
+# Convert to pandas
+#-------------------------------------------------------------------------------
+
+def test_date32_to_pandas(pd):
+    d = datetime.date
+    DT = dt.Frame([d(2000, 1, 1), d(2005, 7, 12), d(2020, 2, 29),
+                   d(1677, 9, 22), None])
+    pf = DT.to_pandas()
+    assert pf.shape == (5, 1)
+    assert list(pf.columns) == ['C0']
+    assert pf['C0'].dtype.name == 'datetime64[ns]'
+    assert pf['C0'].to_list() == [
+        pd.Timestamp(2000, 1, 1),
+        pd.Timestamp(2005, 7, 12),
+        pd.Timestamp(2020, 2, 29),
+        pd.Timestamp(1677, 9, 22),
+        pd.NaT
+    ]
+
+
+# Note: pandas stores dates as `datetime64[ns]` type, meaning they are
+# indistinguishable from full `time64` columns.
+# For now, we convert such columns to strings; but in the future when
+# we add time64 type, we'd be able to write a function that checks
+# whether a pandas datetime64 column contains dates only, and convert
+# it to dates in such case.
+
+
+
+#-------------------------------------------------------------------------------
+# to/from pyarrow
+#-------------------------------------------------------------------------------
+
+def test_from_date32_arrow(pa):
+    src = [1, 1000, 20000, None, -700000]
+    a = pa.array(src, type=pa.date32())
+    tbl = pa.Table.from_arrays([a], names=["D32"])
+    DT = dt.Frame(tbl)
+    assert_equals(DT, dt.Frame({"D32": src}, stype='date32'))
+
+
+def test_from_date64_arrow(pa):
+    src = [1, 1000, 20000, None, -700000]
+    a = pa.array(src, type=pa.date64())
+    tbl = pa.Table.from_arrays([a], names=["D64"])
+    DT = dt.Frame(tbl)
+    assert_equals(DT, dt.Frame({"D64": src}, stype='date32'))
+
+
+def test_date32_to_arrow(pa):
+    d = datetime.date
+    DT = dt.Frame([17, 349837, 88888, None, 17777], stype='date32')
+    tbl = DT.to_arrow()
+    assert isinstance(tbl, pa.Table)
+    assert tbl.to_pydict() == {"C0": [
+        d(1970, 1, 18), d(2927, 10, 28), d(2213, 5, 15), None, d(2018, 9, 3)
+    ]}
