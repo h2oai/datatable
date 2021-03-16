@@ -66,6 +66,9 @@
     -----
     .. current-module:: datatable
 
+    -[new] Function :func:`dt.time.ymd()` can create ``date32`` columns out of
+      individual year/month/day parts.
+
     -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
