@@ -166,7 +166,7 @@ class FExpr_YMD : public FExpr_Func {
 
 
 //------------------------------------------------------------------------------
-// Python-facing `qcut()` function
+// Python-facing `ymd()` function
 //------------------------------------------------------------------------------
 
 static const char* doc_ymd =

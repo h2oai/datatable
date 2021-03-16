@@ -9,7 +9,7 @@ datatable.time
    :class: api-table
 
    * - :func:`ymd(y,m,d)`
-     - Create a ``date32`` column from year, month, day components.
+     - Create a ``date32`` column from year, month, and day components.
 
 
 .. toctree::
