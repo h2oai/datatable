@@ -340,6 +340,7 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-global-constructors",
                 "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
+                "-Wno-poison-system-directories",
                 "-Wno-weak-template-vtables",
                 "-Wno-weak-vtables",
             )
