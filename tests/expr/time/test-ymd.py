@@ -38,6 +38,12 @@ def test_ymd_simple():
                   d(2020, 11, 1)]))
 
 
+def test_ymd_named():
+    DT = dt.Frame(Y=[2001, 2002, 2003], M=[3, 9, 1], D=[31, 3, 1])
+    RES = DT[:, ymd(month=f.M, day=f.D, year=f.Y)]
+    assert_equals(RES, dt.Frame([d(2001, 3, 31), d(2002, 9, 3), d(2003, 1, 1)]))
+
+
 def test_ymd_wrong_types():
     DT = dt.Frame(A=[2000], B=[2.1], C=[1])
 
