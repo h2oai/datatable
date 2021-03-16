@@ -194,7 +194,7 @@ day: FExpr[int]
     The day part of the resulting date32 column. Values in this column
     should be from 1 to ``last_day_of_month(year, month)``.
 
-result: FExpr[date32]
+return: FExpr[date32]
 
 
 Examples

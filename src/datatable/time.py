@@ -21,5 +21,8 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .lib._datatable import (
+    day,
+    month,
+    year,
     ymd,
 )

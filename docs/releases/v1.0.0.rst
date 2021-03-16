@@ -66,9 +66,6 @@
     -----
     .. current-module:: datatable
 
-    -[new] Function :func:`dt.time.ymd()` can create ``date32`` columns out of
-      individual year/month/day parts.
-
     -[new] Function :func:`ifelse()` can now accept more than 3 arguments,
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
@@ -76,6 +73,12 @@
     -[new] New function :func:`as_type()` that allows casting columns into
       a different stype. This function is an alternative to the already
       existing functionality of using the stype itself as a cast function.
+
+    -[new] Function :func:`dt.time.ymd()` can create ``date32`` columns out of
+      individual year/month/day parts.
+
+    -[new] Functions :func:`dt.time.year()`, :func:`dt.time.month()` and
+      :func:`dt.time.day()` for retrieving individual components of a date.
 
     -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
