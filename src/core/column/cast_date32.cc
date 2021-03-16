@@ -21,7 +21,9 @@
 //------------------------------------------------------------------------------
 #include <cmath>             // std::ismath
 #include <cstdlib>           // std::strtod
+#include "csv/toa.h"
 #include "column/cast.h"
+#include "python/date.h"
 #include "python/string.h"
 #include "read/constants.h"  // dt::read::pow10lookup
 namespace dt {
@@ -76,6 +78,28 @@ bool CastDate32_ColumnImpl::get_element(size_t i, double* out) const {
   return _get<double>(i, out);
 }
 
+
+bool CastDate32_ColumnImpl::get_element(size_t i, CString* out) const {
+  int32_t x;
+  bool isvalid = arg_.get_element(i, &x);
+  if (isvalid) {
+    char* ch = out->prepare_buffer(14);
+    char* ch0 = ch;
+    date32_toa(&ch, x);
+    out->set_size(static_cast<size_t>(ch - ch0));
+  }
+  return isvalid;
+}
+
+
+bool CastDate32_ColumnImpl::get_element(size_t i, py::oobj* out) const {
+  int32_t x;
+  bool isvalid = arg_.get_element(i, &x);
+  if (isvalid) {
+    *out = py::odate(x);
+  }
+  return isvalid;
+}
 
 
 
