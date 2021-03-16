@@ -200,6 +200,7 @@ static Column column_from_jay(
     case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
     case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
     case jay::Type_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
+    case jay::Type_Date32:
     case jay::Type_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
     case jay::Type_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
     case jay::Type_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;

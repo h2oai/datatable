@@ -143,6 +143,24 @@ def test_save_to_jay(tempfile_jay):
     assert DT2.to_list()[0] == src
 
 
+def test_with_stats(tempfile_jay):
+    DT = dt.Frame([-1, 0, 1, None, 12, 3, None], stype='date32')
+    # precompute stats so that they get stored in the Jay file
+    assert DT.countna1() == 2
+    assert DT.min1() == datetime.date(1969, 12, 31)
+    assert DT.max1() == datetime.date(1970, 1, 13)
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT = dt.fread(tempfile_jay)
+    # assert_equals() also checks frame integrity, including validity of stats
+    assert_equals(DT,
+        dt.Frame([-1, 0, 1, None, 12, 3, None], stype='date32'))
+    assert DT.countna1() == 2
+    assert DT.min1() == datetime.date(1969, 12, 31)
+    assert DT.max1() == datetime.date(1970, 1, 13)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Write to csv
@@ -177,8 +195,8 @@ def test_write_huge_dates():
     assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
     assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
 
-    
-    
+
+
 #-------------------------------------------------------------------------------
 # Convert to pandas
 #-------------------------------------------------------------------------------

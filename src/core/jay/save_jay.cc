@@ -137,6 +137,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
       jsto = saveStats<int16_t, jay::StatsInt16>(colstats, fbb);
       jsttype = jay::Stats_Int16;
       break;
+    case dt::SType::DATE32:
     case dt::SType::INT32:
       jsto = saveStats<int32_t, jay::StatsInt32>(colstats, fbb);
       jsttype = jay::Stats_Int32;
