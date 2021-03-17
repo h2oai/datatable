@@ -344,6 +344,7 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-weak-template-vtables",
                 "-Wno-poison-system-directories",
                 "-Wno-weak-vtables",
+                "-Wno-unknown-warning-option",
             )
         else:
             ext.compiler.add_compiler_flag(
