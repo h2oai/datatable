@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>                  // std::min, std::max
 #include <iomanip>                    // std::setfill, std::setw
+#include "csv/toa.h"
 #include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
 #include "lib/hh/date.h"
@@ -179,16 +180,17 @@ tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
 }
 
 tstring Data_TextColumn::_render_value_date(const Column& col, size_t i) const {
+  static char tmp[15];
   int32_t value;
   bool isvalid = col.get_element(i, &value);
-  hh::ymd parsed = hh::civil_from_days(value);
-  if (!isvalid) return na_value_;
-  std::ostringstream out;
-  out << std::setfill('0');
-  out << std::setw(4) << parsed.year << '-'
-      << std::setw(2) << parsed.month << '-'
-      << std::setw(2) << parsed.day;
-  return tstring(out.str());
+  if (isvalid) {
+    char* ch = tmp;
+    date32_toa(&ch, value);
+    *ch = '\0';
+    return tstring(std::string(tmp));
+  } else {
+    return na_value_;
+  }
 }
 
 

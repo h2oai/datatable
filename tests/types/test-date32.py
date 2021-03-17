@@ -82,6 +82,21 @@ def test_date32_repr():
     )
 
 
+def test_date32_repr_negative_dates():
+    DT = dt.Frame([-700000, -720000, -730000, -770000, -2000000], stype='date32')
+    assert str(DT) == (
+        "   | C0         \n"
+        "   | date32     \n"
+        "-- + -----------\n"
+        " 0 | 0053-06-19 \n"
+        " 1 | -002-09-16 \n"
+        " 2 | -029-05-01 \n"
+        " 3 | -139-10-24 \n"
+        " 4 | -3506-03-09\n"
+        "[5 rows x 1 column]\n"
+    )
+
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
