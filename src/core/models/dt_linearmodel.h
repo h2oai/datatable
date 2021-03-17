@@ -22,6 +22,7 @@
 #ifndef dt_MODELS_LINEARMODEL_h
 #define dt_MODELS_LINEARMODEL_h
 
+#include <limits>                        // std::numeric_limits
 #include "models/dt_linearmodel_base.h"
 #include "models/label_encode.h"
 #include "models/utils.h"
