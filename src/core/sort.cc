@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -687,6 +687,7 @@ class SortContext {
       case dt::SType::BOOL:    _initB<ASC>(); break;
       case dt::SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
       case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case dt::SType::DATE32:
       case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
       case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
