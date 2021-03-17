@@ -35,10 +35,10 @@ class LinearModelMultinomial : public LinearModel<T> {
   protected:
 
     LinearModelFitOutput fit_model() override {
-      dtptr dt_y_train_multinomial;
+      dtptr dt_y_fit;
       size_t n_new_labels = create_y_multinomial(
-                              this->dt_y_train_, dt_y_train_multinomial,
-                              this->label_ids_train_, this->dt_labels_,
+                              this->dt_y_fit_, dt_y_fit,
+                              this->label_ids_fit_, this->dt_labels_,
                               this->negative_class_
                             );
 
@@ -48,21 +48,21 @@ class LinearModelMultinomial : public LinearModel<T> {
         this->adjust_model();
       }
 
-      if (dt_y_train_multinomial == nullptr) {
+      if (dt_y_fit == nullptr) {
         return {0, static_cast<double>(this->T_NAN)};
       }
-      this->col_y_train_ = dt_y_train_multinomial.get()->get_column(0);
+      this->col_y_fit_ = dt_y_fit.get()->get_column(0);
 
       // Create validation targets if needed.
-      dtptr dt_y_val_multinomial;
+      dtptr dt_y_val;
       if (_notnan(this->nepochs_val_)) {
-        create_y_multinomial(this->dt_y_val_, dt_y_val_multinomial,
+        create_y_multinomial(this->dt_y_val_, dt_y_val,
                              this->label_ids_val_, this->dt_labels_,
                              this->negative_class_, true);
-        if (dt_y_val_multinomial == nullptr)
+        if (dt_y_val == nullptr)
           throw ValueError() << "Cannot set early stopping criteria as validation "
                              << "target column got `NA` targets only";
-        this->col_y_val_ = dt_y_val_multinomial.get()->get_column(0);
+        this->col_y_val_ = dt_y_val.get()->get_column(0);
       }
 
       return this->template fit_impl<int32_t>();

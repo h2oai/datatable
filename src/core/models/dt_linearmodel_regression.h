@@ -34,20 +34,20 @@ template <typename T /* float or double */>
 class LinearModelRegression : public LinearModel<T> {
   protected:
     LinearModelFitOutput fit_model() override {
-      xassert(this->dt_y_train_->ncols() == 1);
+      xassert(this->dt_y_fit_->ncols() == 1);
 
       if (!this->is_fitted()) {
         // In the case of numeric regression there are no labels,
         // so we just use a column name for this purpose.
-        const strvec& colnames = this->dt_y_train_->get_names();
+        const strvec& colnames = this->dt_y_fit_->get_names();
         std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
         this->dt_labels_ = create_dt_labels_str<uint32_t>(colnames_map);
       }
 
-      this->label_ids_train_ = { 0 };
+      this->label_ids_fit_ = { 0 };
       this->label_ids_val_ = { 0 };
 
-      this->col_y_train_ = this->dt_y_train_->get_column(0).cast(this->stype_);
+      this->col_y_fit_ = this->dt_y_fit_->get_column(0).cast(this->stype_);
       if (_notnan(this->nepochs_val_)) {
         this->col_y_val_ = this->dt_y_val_->get_column(0).cast(this->stype_);
       }

@@ -71,11 +71,11 @@ class LinearModel : public LinearModelBase {
 
     // Pointers to training and validation datatables, they are
     // only valid during training.
-    const DataTable* dt_X_train_;
-    const DataTable* dt_y_train_;
+    const DataTable* dt_X_fit_;
+    const DataTable* dt_y_fit_;
     const DataTable* dt_X_val_;
     const DataTable* dt_y_val_;
-    Column col_y_train_, col_y_val_;
+    Column col_y_fit_, col_y_val_;
 
     // Other temporary parameters needed for validation.
     T nepochs_val_;
@@ -86,7 +86,7 @@ class LinearModel : public LinearModelBase {
     // indicators, i.e. if label_ids_train[i] == j, we train i-th model
     // on positives, when encounter j in the encoded data,
     // and train on negatives otherwise.
-    std::vector<size_t> label_ids_train_;
+    std::vector<size_t> label_ids_fit_;
     std::vector<size_t> label_ids_val_;
 
     virtual LinearModelFitOutput fit_model() = 0;

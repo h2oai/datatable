@@ -50,9 +50,7 @@ LinearModel<T>::LinearModel() {
 template <typename T>
 LinearModelFitOutput LinearModel<T>::fit(
   const LinearModelParams* params,
-  const DataTable* dt_X_train,
-  const DataTable* dt_y_train,
-  const DataTable* dt_X_val,
+  const DataTable* dt_X_fit, const DataTable* dt_y_fit, const DataTable* dt_X_val,
   const DataTable* dt_y_val,
   double nepochs_val,
   double val_error,
@@ -66,21 +64,16 @@ LinearModelFitOutput LinearModel<T>::fit(
   nepochs_ = static_cast<T>(params->nepochs);
   negative_class_ = params->negative_class;
 
-  dt_X_train_ = dt_X_train;
-  dt_y_train_ = dt_y_train;
-  dt_X_val_ = dt_X_val;
+  dt_X_fit_ = dt_X_fit; dt_y_fit_ = dt_y_fit; dt_X_val_ = dt_X_val;
   dt_y_val_ = dt_y_val;
   nepochs_val_ = static_cast<T>(nepochs_val);
   val_error_ = static_cast<T>(val_error);
   val_niters_ = val_niters;
-  label_ids_train_.clear();
-  label_ids_val_.clear();
+  label_ids_fit_.clear(); label_ids_val_.clear();
 
   auto res = fit_model();
 
-  dt_X_train_ = nullptr;
-  dt_y_train_ = nullptr;
-  dt_X_val_ = nullptr;
+  dt_X_fit_ = nullptr; dt_y_fit_ = nullptr; dt_X_val_ = nullptr;
   dt_y_val_ = nullptr;
   nepochs_val_ = T_NAN;
   val_error_ = T_NAN;
@@ -101,28 +94,22 @@ template <typename U> /* target column(s) data type */
 LinearModelFitOutput LinearModel<T>::fit_impl() {
   // Initialization
   if (!is_fitted()) {
-    nfeatures_ = dt_X_train_->ncols();
-    create_model();
+    nfeatures_ = dt_X_fit_->ncols(); create_model();
   }
   init_coefficients();
   if (dt_fi_ == nullptr) create_fi();
-  colvec cols = make_casted_columns(dt_X_train_, stype_);
-
+  colvec cols = make_casted_columns(dt_X_fit_, stype_);
   // Obtain rowindex and data pointers for the target column(s).
   auto data_fi = static_cast<T*>(dt_fi_->get_column(1).get_data_editable());
 
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on
-  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_train_->nrows()`;
-  // - then, the model is trained on the remaining `last_iteration_nrows` rows,
-  //   where `0 < last_iteration_nrows <= dt_X_train_->nrows()`.
-  // If `nepochs_` is an integer number, `last_iteration_nrows == dt_X_train_->nrows()`,
-  // so that the last epoch becomes identical to all the others.
+  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_fit_->nrows()`; // - then, the model is trained on the remaining `last_iteration_nrows` rows,
+  //   where `0 < last_iteration_nrows <= dt_X_fit_->nrows()`. // If `nepochs_` is an integer number, `last_iteration_nrows == dt_X_fit_->nrows()`, // so that the last epoch becomes identical to all the others.
   size_t niterations = static_cast<size_t>(std::ceil(nepochs_));
   T last_epoch = nepochs_ - static_cast<T>(niterations) + 1;
 
-  size_t iteration_nrows = dt_X_train_->nrows();
-  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
+  size_t iteration_nrows = dt_X_fit_->nrows(); size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
   size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
@@ -172,14 +159,11 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
         // Training.
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X_train_->nrows();
-          U target;
-          bool isvalid = col_y_train_.get_element(ii, &target);
-
+          size_t ii = (iteration_start + i) % dt_X_fit_->nrows(); U target;
+          bool isvalid = col_y_fit_.get_element(ii, &target);
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
-            for (size_t k = 0; k < label_ids_train_.size(); ++k) {
-              // Update all the coefficients with SGD
+            for (size_t k = 0; k < label_ids_fit_.size(); ++k) {// Update all the coefficients with SGD
               for (size_t j = 0; j < nfeatures_ + 1; ++j) {
 
                 T grad = linkfn(predict_row(x, k,
@@ -187,8 +171,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
                              fi[f_id] += f_imp;
                            }
                          ));
-                T y = targetfn(target, label_ids_train_[k]);
-                grad = 2 * dlinkfn(grad) * (grad - y);
+                T y = targetfn(target, label_ids_fit_[k]); grad = 2 * dlinkfn(grad) * (grad - y);
                 if (j) grad *= x[j - 1];
                 grad += copysign(lambda1_, betas_[k][j]); // L1 regularization
                 grad += 2 * lambda2_ * betas_[k][j];      // L2 regularization
@@ -251,8 +234,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           }
           barrier();
 
-          double epoch = static_cast<double>(iteration_end) / static_cast<double>(dt_X_train_->nrows());
-          if (std::isnan(loss_old)) {
+          double epoch = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows()); if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Stopping at epoch " + tostr(epoch) +
                               ", loss = " + tostr(loss));
@@ -279,8 +261,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   );
   job.done();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_train_->nrows());
-  LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows()); LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
 }
@@ -548,8 +529,7 @@ void LinearModel<T>::init_coefficients() {
  */
 template <typename T>
 void LinearModel<T>::create_fi() {
-  const strvec& colnames = dt_X_train_->get_names();
-
+  const strvec& colnames = dt_X_fit_->get_names();
   dt::writable_string_col c_fi_names(nfeatures_);
   dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
   sb.commit_and_start_new_chunk(0);

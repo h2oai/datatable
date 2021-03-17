@@ -36,26 +36,26 @@ class LinearModelBinomial : public LinearModel<T> {
 
   protected:
     LinearModelFitOutput fit_model() override {
-      dtptr dt_y_train_binomial, dt_y_val_binomial;
+      dtptr dt_y_fit, dt_y_val;
       bool validation = _notnan(this->nepochs_val_);
-      create_y_binomial(this->dt_y_train_, dt_y_train_binomial,
-                        this->label_ids_train_, this->dt_labels_);
+      create_y_binomial(this->dt_y_fit_, dt_y_fit,
+                        this->label_ids_fit_, this->dt_labels_);
 
       // NA values are ignored during training, so we stop training right away,
       // if got NA's only.
-      if (dt_y_train_binomial == nullptr) {
+      if (dt_y_fit == nullptr) {
         return {0, static_cast<double>(this->T_NAN)};
       }
-      this->col_y_train_ = dt_y_train_binomial.get()->get_column(0);
+      this->col_y_fit_ = dt_y_fit.get()->get_column(0);
 
       if (validation) {
-        create_y_binomial(this->dt_y_val_, dt_y_val_binomial,
+        create_y_binomial(this->dt_y_val_, dt_y_val,
                           this->label_ids_val_, this->dt_labels_);
-        if (dt_y_val_binomial == nullptr) {
+        if (dt_y_val == nullptr) {
           throw ValueError() << "Cannot set early stopping criteria as validation "
                                 "target column got `NA` targets only";
         }
-        this->col_y_val_ = dt_y_val_binomial.get()->get_column(0);
+        this->col_y_val_ = dt_y_val.get()->get_column(0);
       }
 
       return this->template fit_impl<int8_t>();
