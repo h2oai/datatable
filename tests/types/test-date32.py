@@ -287,3 +287,12 @@ def test_date32_stats():
     assert DT.max1() == datetime.date(1970, 4, 11)
     assert DT.mode1() == datetime.date(1970, 1, 13)
     assert DT.countna1() == 1
+
+
+def date32_materialize():
+    DT = dt.Frame(A = range(1, 5))
+    RES = DT[:, dt.time.ymd(2000, 1, f.A)]
+    assert dt.internal.frame_columns_virtual(R)[0]
+    RES.materialize()
+    assert_equals(RES,
+        dt.Frame([datetime.date(2000, 1, i) for i in range(1, 5)]))
