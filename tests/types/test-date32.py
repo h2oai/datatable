@@ -311,3 +311,21 @@ def test_date32_repeat():
     assert_equals(RES, dt.Frame([11]*10, stype='date32'))
     RES2 = dt.repeat(RES, 5)
     assert_equals(RES2, dt.Frame([11]*50, stype='date32'))
+
+
+def test_date32_in_groupby():
+    DT = dt.Frame(A=[1, 2, 3]*1000, B=list(range(3000)), stypes={"B": "date32"})
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)},
+            dt.by(f.A)]
+    date32 = dt.stype.date32
+    assert_equals(RES,
+        dt.Frame(A=[1, 2, 3],
+                 count = [1000] * 3 / dt.int64,
+                 min = [0, 1, 2] / date32,
+                 max = [2997, 2998, 2999] / date32,
+                 first = [0, 1, 2] / date32,
+                 last = [2997, 2998, 2999] / date32))
