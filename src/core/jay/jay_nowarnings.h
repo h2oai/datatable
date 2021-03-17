@@ -19,31 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef hh_DATE_h
-#define hh_DATE_h
-namespace hh {
+#include "utils/macros.h"
 
+DISABLE_CLANG_WARNING("-Wzero-as-null-pointer-constant")
+DISABLE_CLANG_WARNING("-Wcovered-switch-default")
+DISABLE_CLANG_WARNING("-Wpadded")
 
-struct ymd {
-  int year;
-  int month;
-  int day;
-  int : 32;
+#include "jay/jay_generated.h"
 
-  constexpr ymd(int y, int m, int d) : year(y), month(m), day(d) {}
-};
-
-
-int days_from_civil(int y, int m, int d) noexcept;
-ymd civil_from_days(int z) noexcept;
-bool is_leap(int y) noexcept;
-int last_day_of_month_common_year(int m) noexcept;
-int last_day_of_month_leap_year(int m) noexcept;
-int last_day_of_month(int y, int m) noexcept;
-int iso_weekday_from_days(int z) noexcept;
-int bible_weekday_from_days(int z) noexcept;
-
-
-
-}  // namespace hh
-#endif
+RESTORE_CLANG_WARNING("-Wpadded")
+RESTORE_CLANG_WARNING("-Wcovered-switch-default")
+RESTORE_CLANG_WARNING("-Wzero-as-null-pointer-constant")

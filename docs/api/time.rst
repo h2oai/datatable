@@ -11,6 +11,9 @@ datatable.time
    * - :func:`day()`
      - Return day component of a date.
 
+   * - :func:`day_of_week()`
+     - Compute day of week for the given date.
+
    * - :func:`month()`
      - Return month component of a date.
 
@@ -24,7 +27,8 @@ datatable.time
 .. toctree::
     :hidden:
 
-    day()     <time/day>
-    month()   <time/month>
-    year()    <time/year>
-    ymd()     <time/ymd>
+    day()          <time/day>
+    day_of_week()  <time/day_of_week>
+    month()        <time/month>
+    year()         <time/year>
+    ymd()          <time/ymd>

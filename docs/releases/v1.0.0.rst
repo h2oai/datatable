@@ -80,6 +80,9 @@
     -[new] Functions :func:`dt.time.year()`, :func:`dt.time.month()` and
       :func:`dt.time.day()` for retrieving individual components of a date.
 
+    -[new] New function :func:`dt.time.day_of_week()` for computing the day
+      of week (Monday to Sunday) for the given date column.
+
     -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after

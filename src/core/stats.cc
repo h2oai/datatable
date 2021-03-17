@@ -1267,6 +1267,7 @@ void Stats::verify_integrity(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
     case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
+    case dt::SType::DATE32:
     case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
     case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
     case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
@@ -1331,6 +1332,11 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
         case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
         case dt::LType::REAL: return pywrap_stat<double>(stat);
         case dt::LType::STRING: return pywrap_stat<dt::CString>(stat);
+        case dt::LType::DATETIME: {
+          int64_t value;
+          bool isvalid = get_stat(stat, &value);
+          return isvalid? py::odate(static_cast<int32_t>(value)) : py::None();
+        }
         default: return py::None();
       }
     }
@@ -1422,6 +1428,7 @@ Column Stats::get_stat_as_column(Stat stat) {
         case dt::SType::FLOAT64: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
         case dt::SType::STR32:
         case dt::SType::STR64:   return strcolwrap_stat(stat);
+        case dt::SType::DATE32:  return colwrap_stat<int64_t, int32_t>(stat, dt::SType::DATE32);
         default:                 return _make_nacol(column->stype());
       }
     }
