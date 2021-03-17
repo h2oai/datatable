@@ -282,7 +282,8 @@ def test_date32_sort_with_NAs():
 
 
 def test_date32_stats():
-    DT = dt.Frame([0, 12, None, 100, -3], stype='date32')
+    DT = dt.Frame([0, 12, None, 100, -3, 12], stype='date32')
     assert DT.min1() == datetime.date(1969, 12, 29)
     assert DT.max1() == datetime.date(1970, 4, 11)
+    assert DT.mode1() == datetime.date(1970, 1, 13)
     assert DT.countna1() == 1
