@@ -98,7 +98,7 @@ class FExpr_DayOfWeek : public FExpr_FuncUnary {
 
 
 //------------------------------------------------------------------------------
-// Python-facing `ymd()` function
+// Python-facing `day_of_week()` function
 //------------------------------------------------------------------------------
 
 static const char* doc_day_of_week =
