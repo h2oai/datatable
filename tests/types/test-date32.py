@@ -344,3 +344,15 @@ def test_date32_in_groupby():
                  max = [2997, 2998, 2999] / date32,
                  first = [0, 1, 2] / date32,
                  last = [2997, 2998, 2999] / date32))
+
+
+def test_select_dates():
+    d = datetime.date
+    DT = dt.Frame(A=[12], B=[d(2000, 12, 20)], C=[True])
+    assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.bool8]
+    RES1 = DT[:, f[d]]
+    RES2 = DT[:, d]
+    RES3 = DT[:, dt.ltype.time]
+    assert_equals(RES1, DT['B'])
+    assert_equals(RES2, DT['B'])
+    assert_equals(RES3, DT['B'])

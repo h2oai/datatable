@@ -70,6 +70,10 @@ void odate::init() {
   PyDateTime_IMPORT;
 }
 
+PyTypeObject* odate::type() {
+  return PyDateTimeAPI->DateType;
+}
+
 
 
 
