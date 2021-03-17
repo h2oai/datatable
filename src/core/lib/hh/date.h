@@ -40,7 +40,8 @@ bool is_leap(int y) noexcept;
 int last_day_of_month_common_year(int m) noexcept;
 int last_day_of_month_leap_year(int m) noexcept;
 int last_day_of_month(int y, int m) noexcept;
-int weekday_from_days(int z) noexcept;
+int iso_weekday_from_days(int z) noexcept;
+int bible_weekday_from_days(int z) noexcept;
 
 
 

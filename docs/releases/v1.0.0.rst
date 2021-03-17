@@ -77,6 +77,9 @@
       a different stype. This function is an alternative to the already
       existing functionality of using the stype itself as a cast function.
 
+    -[new] New function :func:`dt.time.day_of_week()` for computing the day
+      of week (Monday to Sunday) for the given date column.
+
     -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after
