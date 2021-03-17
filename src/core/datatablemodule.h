@@ -37,7 +37,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
     void init_methods();
     void init_methods_aggregate(); // models/aggregate.cc
-    void init_methods_buffers();   // py_buffers.cc
     void init_methods_cbind();     // frame/cbind.cc
     void init_methods_csv();       // csv/py_csv.cc
     void init_methods_isclose();   // expr/head_func_isclose.cc
@@ -62,12 +61,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
 }  // namespace py
 
-
-
-namespace pybuffers {
-  extern size_t single_col;  // Declared in py_buffers
-  extern dt::SType force_stype;
-}
 
 
 const char* get_compiler_version_string();

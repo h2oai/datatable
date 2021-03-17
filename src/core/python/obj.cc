@@ -885,6 +885,21 @@ dt::Type _obj::to_type(const error_manager& em) const {
 }
 
 
+dt::Type _obj::to_type_force(const error_manager&) const {
+  if (!v) return dt::Type();
+  if (dt::PyType::check(v)) {
+    auto typePtr = dt::PyType::unchecked(v);
+    return typePtr->get_type();
+  }
+  else if (is_none()) return dt::Type();
+  else {
+    oobj converted = robj(dt::PyType::typePtr).call({robj(v)});
+    auto typePtr = dt::PyType::unchecked(converted.v);
+    return typePtr->get_type();
+  }
+}
+
+
 py::ojoin _obj::to_ojoin_lax() const {
   if (is_join_node()) {
     return ojoin(robj(v));

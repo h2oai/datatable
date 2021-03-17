@@ -19,49 +19,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_FLOAT_h
-#define dt_TYPES_TYPE_FLOAT_h
-#include <limits>
-#include "python/float.h"
-#include "types/type_numeric.h"
-#include "utils/assert.h"
+#ifndef dt_TYPES_TYPE_NUMERIC_h
+#define dt_TYPES_TYPE_NUMERIC_h
+#include "types/type_impl.h"
+#include "types/type_invalid.h"
 namespace dt {
 
 
 
-class Type_Float32 : public Type_Numeric {
+class Type_Numeric : public TypeImpl {
+  protected:
+    using TypeImpl::TypeImpl;
+
   public:
-    Type_Float32() : Type_Numeric(SType::FLOAT32) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float32() const override { return true; }
-    std::string to_string() const override { return "float32"; }
+    bool is_numeric() const override { return true; }
 
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<float>::max());
+    TypeImpl* common_type(TypeImpl* other) override {
+      if (other->is_numeric()) {
+        auto stype1 = static_cast<int>(this->stype());
+        auto stype2 = static_cast<int>(other->stype());
+        return stype1 >= stype2? this : other;
+      }
+      if (other->is_object() || other->is_invalid()) {
+        return other;
+      }
+      return new Type_Invalid();
     }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<float>::max());
-    }
-    const char* struct_format() const override { return "f"; }
 };
-
-
-class Type_Float64 : public Type_Numeric {
-  public:
-    Type_Float64() : Type_Numeric(SType::FLOAT64) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float64() const override { return true; }
-    std::string to_string() const override { return "float64"; }
-
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<double>::max());
-    }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<double>::max());
-    }
-    const char* struct_format() const override { return "d"; }
-};
-
 
 
 

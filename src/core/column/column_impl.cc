@@ -197,8 +197,9 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Casts
 //------------------------------------------------------------------------------
 
-bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
-  if (new_stype == SType::BOOL) {
+void ColumnImpl::cast_replace(Type new_type, Column& thiscol) const {
+  auto new_stype = new_type.stype();
+  if (new_type.is_boolean()) {
     switch (stype()) {
       case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
       case SType::INT8:    thiscol = Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(thiscol))); break;
@@ -210,7 +211,7 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::STR32:
       case SType::STR64:   thiscol = Column(new CastStringToBool_ColumnImpl(std::move(thiscol))); break;
       case SType::OBJ:     thiscol = Column(new CastObjToBool_ColumnImpl(std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << stype() << "` into `bool8`";
+      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `bool8`";
     }
   }
   else {
@@ -223,16 +224,14 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::INT64:   thiscol = Column(new CastNumeric_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT32: thiscol = Column(new CastNumeric_ColumnImpl<float>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT64: thiscol = Column(new CastNumeric_ColumnImpl<double>(new_stype, std::move(thiscol))); break;
+      case SType::DATE32:  thiscol = Column(new CastDate32_ColumnImpl(new_stype, std::move(thiscol))); break;
       case SType::STR32:
       case SType::STR64:   thiscol = Column(new CastString_ColumnImpl(new_stype, std::move(thiscol))); break;
       case SType::OBJ:     thiscol = Column(new CastObject_ColumnImpl(new_stype, std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << stype() << "` into `" << new_stype << "`";
+      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `" << new_type << "`";
     }
   }
-  return true;
 }
-
-void ColumnImpl::cast_mutate(SType) {}
 
 
 

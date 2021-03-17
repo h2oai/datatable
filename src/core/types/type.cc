@@ -50,10 +50,12 @@ Type::Type(Type&& other) noexcept {
 }
 
 Type& Type::operator=(const Type& other) {
-  auto old_impl = impl_;
-  impl_ = other.impl_;
-  if (old_impl) impl_->release();
-  if (impl_) impl_->acquire();
+  if (impl_ != other.impl_) {
+    auto old_impl = impl_;
+    impl_ = other.impl_;
+    if (old_impl) old_impl->release();
+    if (impl_) impl_->acquire();
+  }
   return *this;
 }
 
@@ -85,6 +87,7 @@ Type Type::obj64()   { return Type(new Type_Object); }
 
 Type Type::from_stype(SType stype) {
   switch (stype) {
+    case SType::AUTO:    return Type();
     case SType::VOID:    return void0();
     case SType::BOOL:    return bool8();
     case SType::INT8:    return int8();
@@ -106,13 +109,33 @@ size_t Type::hash() const { return impl_->hash(); }
 py::oobj Type::min() const { return impl_->min(); }
 py::oobj Type::max() const { return impl_->max(); }
 SType Type::stype() const { return impl_->stype_; }
+const char* Type::struct_format() const { return impl_->struct_format(); }
 
+void Type::promote(const Type& other) {
+  if (impl_) {
+    if (!other.impl_) return;
+    TypeImpl* res = impl_->common_type(other.impl_);
+    if (res != impl_) {
+      impl_->release();
+      impl_ = res;
+      if (res == other.impl_) res->acquire();
+    }
+  }
+  else {
+    impl_ = other.impl_;
+    if (impl_) impl_->acquire();
+  }
+}
+
+
+bool Type::is_invalid() const { return impl_->is_invalid(); }
 bool Type::is_boolean() const { return impl_->is_boolean(); }
 bool Type::is_integer() const { return impl_->is_integer(); }
 bool Type::is_float()   const { return impl_->is_float(); }
 bool Type::is_numeric() const { return impl_->is_numeric(); }
 bool Type::is_string()  const { return impl_->is_string(); }
 bool Type::is_object()  const { return impl_->is_object(); }
+bool Type::is_time()    const { return impl_->is_time(); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }
@@ -128,6 +151,10 @@ template<> bool Type::can_be_read_as<py::oobj>() const { return impl_->can_be_re
 
 bool Type::operator==(const Type& other) const {
   return (impl_ == other.impl_) || (impl_->equals(other.impl_));
+}
+
+Type::operator bool() const {
+  return (impl_ != nullptr);
 }
 
 std::string Type::to_string() const {

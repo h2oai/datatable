@@ -1166,7 +1166,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__LEN__(&Frame::m__len__));
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
-  xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
+  xt.add(METHOD__GETBUFFER__(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
   Frame_Type = xt.get_type_object();
 
   _init_cbind(xt);

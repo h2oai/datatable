@@ -616,7 +616,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   });
   job.done();
 
-  if (model_type == FtrlModelType::BINOMIAL) {
+  if (model_type == FtrlModelType::BINOMIAL && nlabels == 2) {
     dt::parallel_for_static(dt_X->nrows(), [&](size_t i){
       data_p[k_binomial][i] = T(1) - data_p[!k_binomial][i];
     });

@@ -77,20 +77,35 @@ class Type {
     size_t hash() const;
     py::oobj min() const;
     py::oobj max() const;
+    const char* struct_format() const;
 
     SType stype() const;
     bool is_boolean() const;
     bool is_integer() const;
+    bool is_invalid() const;
     bool is_float() const;
     bool is_numeric() const;
     bool is_string() const;
     bool is_object() const;
+    bool is_time() const;
 
     template<typename T>
     bool can_be_read_as() const;
 
     bool operator==(const Type& other) const;
+    operator bool() const;
     std::string to_string() const;
+
+    // (Optionally) change the current type so that it becomes
+    // compatible with the type `other`. This can be used, for
+    // example, when two columns of different types are passed to a
+    // binary function; or when multiple columns need to be merged
+    // into a single one; etc.
+    //
+    // If the current type is incompatible with `other`, then it will
+    // be promoted into `Type::invalid()`.
+    //
+    void promote(const Type& other);
 
   private:
     Type(TypeImpl*&&) noexcept;

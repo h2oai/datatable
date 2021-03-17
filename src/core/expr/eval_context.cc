@@ -501,6 +501,7 @@ static void _vivify_workframe(const Workframe& wf) {
       case SType::BOOL:
       case SType::INT8:    _vivify_column<int8_t>(col); break;
       case SType::INT16:   _vivify_column<int16_t>(col); break;
+      case SType::DATE32:
       case SType::INT32:   _vivify_column<int32_t>(col); break;
       case SType::INT64:   _vivify_column<int64_t>(col); break;
       case SType::FLOAT32: _vivify_column<float>(col); break;

@@ -80,8 +80,8 @@ class Frame : public XObject<Frame> {
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
     oobj m__sizeof__(const PKArgs&);
-    void m__getbuffer__(Py_buffer* view, int flags);
-    void m__releasebuffer__(Py_buffer* view);
+    int  m__getbuffer__(Py_buffer* view, int flags) noexcept;
+    void m__releasebuffer__(Py_buffer* view) noexcept;
     oobj m__iter__();
     oobj m__reversed__();
     oobj m__copy__();

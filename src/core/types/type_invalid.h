@@ -19,49 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_FLOAT_h
-#define dt_TYPES_TYPE_FLOAT_h
-#include <limits>
-#include "python/float.h"
-#include "types/type_numeric.h"
-#include "utils/assert.h"
+#ifndef dt_TYPES_TYPE_INVALID_h
+#define dt_TYPES_TYPE_INVALID_h
+#include "types/type_impl.h"
 namespace dt {
 
 
 
-class Type_Float32 : public Type_Numeric {
+class Type_Invalid : public TypeImpl {
   public:
-    Type_Float32() : Type_Numeric(SType::FLOAT32) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float32() const override { return true; }
-    std::string to_string() const override { return "float32"; }
-
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<float>::max());
-    }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<float>::max());
-    }
-    const char* struct_format() const override { return "f"; }
+    Type_Invalid() : TypeImpl(SType::INVALID) {}
+    bool is_invalid() const override { return true; }
+    std::string to_string() const override { return "invalid"; }
+    TypeImpl* common_type(TypeImpl*) override { return this; }
 };
-
-
-class Type_Float64 : public Type_Numeric {
-  public:
-    Type_Float64() : Type_Numeric(SType::FLOAT64) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float64() const override { return true; }
-    std::string to_string() const override { return "float64"; }
-
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<double>::max());
-    }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<double>::max());
-    }
-    const char* struct_format() const override { return "d"; }
-};
-
 
 
 

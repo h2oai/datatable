@@ -87,6 +87,7 @@ using PyTypeObjectPtr = PyTypeObject*;
 template <> Error& Error::operator<<(const dt::CString&);
 template <> Error& Error::operator<<(const dt::SType&);
 template <> Error& Error::operator<<(const dt::LType&);
+template <> Error& Error::operator<<(const dt::Type&);
 template <> Error& Error::operator<<(const py::robj&);
 template <> Error& Error::operator<<(const py::oobj&);
 template <> Error& Error::operator<<(const py::ostring&);

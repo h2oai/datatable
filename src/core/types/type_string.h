@@ -23,6 +23,7 @@
 #define dt_TYPES_TYPE_STRING_h
 #include "python/string.h"
 #include "types/type_impl.h"
+#include "types/type_invalid.h"
 #include "utils/assert.h"
 namespace dt {
 
@@ -35,6 +36,18 @@ class Type_String : public TypeImpl {
   public:
     bool is_string() const override { return true; }
     bool can_be_read_as_cstring() const override { return true; }
+
+    TypeImpl* common_type(TypeImpl* other) override {
+      if (other->is_string()) {
+        auto stype1 = static_cast<int>(this->stype());
+        auto stype2 = static_cast<int>(other->stype());
+        return stype1 >= stype2? this : other;
+      }
+      if (other->is_object() || other->is_invalid()) {
+        return other;
+      }
+      return new Type_Invalid();
+    }
 };
 
 
