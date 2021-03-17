@@ -298,7 +298,16 @@ def test_date32_materialize():
         dt.Frame([datetime.date(2000, 1, i) for i in range(1, 5)]))
 
 
+def test_date32_materialize_na():
+    DT = dt.Frame(A=[1, 3, 5], stype='date32')
+    DT['A'] = None
+    DT.materialize()
+    assert_equals(DT, dt.Frame(A = [None]*3, stype='date32'))
+
+
 def test_date32_repeat():
     DT = dt.Frame([11], stype='date32')
     RES = dt.repeat(DT, 10)
     assert_equals(RES, dt.Frame([11]*10, stype='date32'))
+    RES2 = dt.repeat(RES, 5)
+    assert_equals(RES2, dt.Frame([11]*50, stype='date32'))
