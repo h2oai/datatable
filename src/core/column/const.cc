@@ -164,6 +164,7 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
     case SType::FLOAT64: return _make<ConstFloat_ColumnImpl, SType::FLOAT64>(col);
     case SType::STR32:   return _make<ConstString_ColumnImpl, SType::STR32>(col);
     case SType::STR64:   return _make<ConstString_ColumnImpl, SType::STR64>(col);
+    case SType::DATE32:  return _make<ConstInt_ColumnImpl, SType::DATE32>(col);
     default:
       throw NotImplError() << "Cannot convert 1-row column of stype "
                            << col.stype();
