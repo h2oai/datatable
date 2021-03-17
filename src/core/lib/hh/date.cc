@@ -105,17 +105,17 @@ int last_day_of_month(int y, int m) noexcept {
 
 
 // Returns day of week in civil calendar
-//   iso:    [0 .. 6] <-> [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
-//   bible:  [0 .. 6] <-> [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+//   iso:    [1 .. 7] <-> [Mon, Tue, Wed, Thu, Fri, Sat, Sun]
+//   bible:  [1 .. 7] <-> [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
 //
 // Preconditions:
 //   z is number of days since 1970-01-01 and is in the range:
 //   [numeric_limits<int>::min(), numeric_limits<int>::max()-4].
 int iso_weekday_from_days(int z) noexcept {
-  return (z >= -3) ? (z+3) % 7 : (z+4) % 7 + 6;
+  return (z >= -3) ? (z+3) % 7 + 1 : (z+4) % 7 + 7;
 }
 int bible_weekday_from_days(int z) noexcept {
-  return (z >= -4) ? (z+4) % 7 : (z+5) % 7 + 6;
+  return (z >= -4) ? (z+4) % 7 + 1 : (z+5) % 7 + 7;
 }
 
 
