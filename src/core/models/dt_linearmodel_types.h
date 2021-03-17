@@ -22,6 +22,7 @@
 #ifndef dt_MODELS_LINEARMODEL_TYPES_h
 #define dt_MODELS_LINEARMODEL_TYPES_h
 
+#include <limits>
 
 namespace dt {
 
@@ -67,8 +68,9 @@ struct LinearModelFitOutput {
   double epoch;
   double loss;
   LinearModelFitOutput() {
-    epoch = std::numeric_limits<double>::quiet_NaN();
-    loss = std::numeric_limits<double>::quiet_NaN();
+    double double_nan = std::numeric_limits<double>::quiet_NaN();
+    epoch = double_nan;
+    loss = double_nan;
   }
   LinearModelFitOutput(double epoch_, double loss_) {
     epoch = epoch_;
