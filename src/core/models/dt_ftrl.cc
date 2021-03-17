@@ -179,7 +179,7 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 /**
  *  Create labels (in the case of numeric regression there is no actual
- *  labeles, so we just use a column name for this purpose),
+ *  labels, so we just use a column name for this purpose),
  *  set up identity mapping between models and the incoming label indicators,
  *  call to the main `fit` method.
  */
@@ -356,9 +356,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Calculate work amounts for full fit iterations, last fit iteration and
   // validation.
-  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows);
-  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
-  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows());
+  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows, MIN_ROWS_PER_THREAD);
+  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows, MIN_ROWS_PER_THREAD);
+  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows(), MIN_ROWS_PER_THREAD);
 
   // Set work amount to be reported by the zero thread.
   dt::progress::work job(work_total);
@@ -586,7 +586,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   bool k_binomial;
 
   // Set progress reporting
-  size_t work_total = get_work_amount(dt_X->nrows());
+  size_t work_total = get_work_amount(dt_X->nrows(), MIN_ROWS_PER_THREAD);
 
   dt::progress::work job(work_total);
   job.set_message("Predicting...");

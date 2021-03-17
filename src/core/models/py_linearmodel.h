@@ -22,12 +22,13 @@
 #ifndef dt_MODELS_PY_LINEARMODEL_h
 #define dt_MODELS_PY_LINEARMODEL_h
 #include <map>
-#include "str/py_str.h"
-#include "python/string.h"
-#include "python/xobject.h"
-#include "models/dt_linearmodel.h"
+#include "ltype.h"
 #include "models/dt_linearmodel_base.h"
 #include "models/py_validator.h"
+#include "python/string.h"
+#include "python/xobject.h"
+#include "str/py_str.h"
+
 namespace py {
 
 
@@ -37,21 +38,21 @@ namespace py {
 class LinearModel : public XObject<LinearModel> {
   private:
     dt::LinearModelBase* lm;
+    dt::LinearModelParams* dt_params;
     py::onamedtuple* py_params;
-    strvec* colnames;
-    bool double_precision;
-    size_t: 56;
 
   public:
     // LinearModel API version to be used for backward compatibility
-    static const size_t API_VERSION = 1;
+    static const size_t API_VERSION;
+    static const size_t N_PARAMS;
     static void impl_init_type(XTypeMaker&);
 
     // Initializers and deallocator
     void m__init__(const PKArgs&);
     void m__dealloc__();
     void init_py_params();
-    void init_dt_linearmodel();
+    template <typename T>
+    void init_dt_model(dt::LType ltype = dt::LType::MU);
     static std::map<dt::LinearModelType, std::string> create_model_type_name();
 
     // Pickling support
@@ -62,13 +63,13 @@ class LinearModel : public XObject<LinearModel> {
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);
+    oobj is_fitted(const PKArgs&);
 
     // Getters
     oobj get_labels() const;
     oobj get_fi() const;
     oobj get_normalized_fi(bool) const;
     oobj get_model() const;
-    oobj get_colnames() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;
     oobj get_eta() const;
@@ -78,14 +79,12 @@ class LinearModel : public XObject<LinearModel> {
     oobj get_double_precision() const;
     oobj get_negative_class() const;
     oobj get_model_type() const;
-    oobj get_model_type_trained() const;
 
     // Setters
-    void set_model(robj);             // Not exposed, used for unpickling only
-    void set_labels(robj);            // Not exposed, used for unpickling only
-    void set_colnames(robj);          // Not exposed, used for unpickling only
-    void set_params_tuple(robj);      // Not exposed, used for unpickling only
-    void set_params_namedtuple(robj); // Not exposed, used in `m__init__` only
+    void set_model(robj);                   // Not exposed, used for unpickling only
+    void set_labels(robj);                  // Not exposed, used for unpickling only
+    void set_params_tuple(robj);            // Not exposed, used for unpickling only
+    void set_params_namedtuple(robj);       // Not exposed, used in `m__init__` only
     void set_eta(const Arg&);
     void set_lambda1(const Arg&);
     void set_lambda2(const Arg&);

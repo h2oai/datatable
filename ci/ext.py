@@ -341,6 +341,7 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
                 "-Wno-weak-template-vtables",
+                "-Wno-poison-system-directories",
                 "-Wno-weak-vtables",
             )
         else:

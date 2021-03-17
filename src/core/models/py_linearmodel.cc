@@ -19,23 +19,29 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iterator>        // std::distance
 #include <vector>
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "str/py_str.h"
+#include "models/dt_linearmodel_regression.h"
+#include "models/dt_linearmodel_binomial.h"
+#include "models/dt_linearmodel_multinomial.h"
 #include "models/py_linearmodel.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
 
+
 namespace py {
+
+const size_t LinearModel::API_VERSION = 1;
+const size_t LinearModel::N_PARAMS = 7;
 
 /**
  *  Model type names and their corresponding dt::LinearModelType's
  */
 static const std::unordered_map<std::string, dt::LinearModelType> LinearModelNameType {
-   {"none", dt::LinearModelType::NONE},
+   {"unknown", dt::LinearModelType::UNKNOWN},
    {"auto", dt::LinearModelType::AUTO},
    {"regression", dt::LinearModelType::REGRESSION},
    {"binomial", dt::LinearModelType::BINOMIAL},
@@ -124,7 +130,8 @@ except: ValueError
 
 )";
 
-static PKArgs args___init__(0, 1, 7, false, false,
+
+static PKArgs args___init__(0, 1, LinearModel::N_PARAMS, false, false,
                                  {"params", "eta", "lambda1",
                                  "lambda2", "nepochs",
                                  "double_precision",
@@ -135,17 +142,17 @@ static PKArgs args___init__(0, 1, 7, false, false,
 
 
 void LinearModel::m__init__(const PKArgs& args) {
-  m__dealloc__();
-  double_precision = dt::LinearModelParams().double_precision;
+  size_t i = 0;
 
-  const Arg& arg_params           = args[0];
-  const Arg& arg_eta              = args[1];
-  const Arg& arg_lambda1          = args[2];
-  const Arg& arg_lambda2          = args[3];
-  const Arg& arg_nepochs          = args[4];
-  const Arg& arg_double_precision = args[5];
-  const Arg& arg_negative_class   = args[6];
-  const Arg& arg_model_type       = args[7];
+  const Arg& arg_params           = args[i++];
+  const Arg& arg_eta              = args[i++];
+  const Arg& arg_lambda1          = args[i++];
+  const Arg& arg_lambda2          = args[i++];
+  const Arg& arg_nepochs          = args[i++];
+  const Arg& arg_double_precision = args[i++];
+  const Arg& arg_negative_class   = args[i++];
+  const Arg& arg_model_type       = args[i++];
+  xassert(i == N_PARAMS + 1);
 
 
   bool defined_params           = !arg_params.is_none_or_undefined();
@@ -173,18 +180,9 @@ void LinearModel::m__init__(const PKArgs& args) {
     }
 
     py::otuple py_params_in = arg_params.to_otuple();
-    py::oobj py_double_precision = py_params_in.get_attr("double_precision");
-    double_precision = py_double_precision.to_bool_strict();
-
-    init_dt_linearmodel();
     set_params_namedtuple(py_params_in);
 
   } else {
-    if (defined_double_precision) {
-      double_precision = arg_double_precision.to_bool_strict();
-    }
-
-    init_dt_linearmodel();
     if (defined_eta) set_eta(arg_eta);
     if (defined_lambda1) set_lambda1(arg_lambda1);
     if (defined_lambda2) set_lambda2(arg_lambda2);
@@ -196,26 +194,53 @@ void LinearModel::m__init__(const PKArgs& args) {
 }
 
 
-void LinearModel::init_dt_linearmodel() {
-  delete lm;
-  if (double_precision) {
-    lm = new dt::LinearModel<double>();
-  } else {
-    lm = new dt::LinearModel<float>();
-  }
-}
-
 
 /**
  *  Deallocate memory.
  */
 void LinearModel::m__dealloc__() {
-  delete lm;
+  if (lm) {
+    delete lm;
+  }
+  delete dt_params;
   delete py_params;
-  delete colnames;
-  lm = nullptr;
-  py_params = nullptr;
-  colnames = nullptr;
+}
+
+
+template <typename T>
+void LinearModel::init_dt_model(dt::LType target_ltype /* = dt::LType::MU */) {
+  if (lm) return;
+
+  switch (dt_params->model_type) {
+    case dt::LinearModelType::AUTO :    switch (target_ltype) {
+                                          case dt::LType::MU:
+                                          case dt::LType::BOOL:    lm = new dt::LinearModelBinomial<T>();
+                                                                   set_model_type({py::ostring("binomial"), "`LinearModelParams.model_type`"});
+                                                                   break;
+                                          case dt::LType::INT:
+                                          case dt::LType::REAL:    lm = new dt::LinearModelRegression<T>();
+                                                                   set_model_type({py::ostring("regression"), "`LinearModelParams.model_type`"});
+                                                                   break;
+                                          case dt::LType::STRING:  lm = new dt::LinearModelMultinomial<T>();
+                                                                   set_model_type({py::ostring("multinomial"), "`LinearModelParams.model_type`"});
+                                                                   break;
+                                          default: throw RuntimeError() << "Target column should have one of "
+                                            << "the following ltypes: `void`, `bool`, `int`, `real` or `string`, "
+                                            << "instead got: `" << target_ltype << "`";
+                                        }
+                                        break;
+
+    case dt::LinearModelType::REGRESSION :  lm = new dt::LinearModelRegression<T>();
+                                            break;
+
+    case dt::LinearModelType::BINOMIAL :    lm = new dt::LinearModelBinomial<T>();
+                                            break;
+
+    case dt::LinearModelType::MULTINOMIAL : lm = new dt::LinearModelMultinomial<T>();
+                                            break;
+
+    case dt::LinearModelType::UNKNOWN : throw ValueError() << "Cannot train model in an unknown mode";
+  }
 }
 
 
@@ -280,13 +305,14 @@ static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
 
 
 oobj LinearModel::fit(const PKArgs& args) {
-  const Arg& arg_X_train                        = args[0];
-  const Arg& arg_y_train                        = args[1];
-  const Arg& arg_X_validation                   = args[2];
-  const Arg& arg_y_validation                   = args[3];
-  const Arg& arg_nepochs_validation             = args[4];
-  const Arg& arg_validation_error               = args[5];
-  const Arg& arg_validation_average_niterations = args[6];
+  size_t i = 0;
+  const Arg& arg_X_train                        = args[i++];
+  const Arg& arg_y_train                        = args[i++];
+  const Arg& arg_X_validation                   = args[i++];
+  const Arg& arg_y_validation                   = args[i++];
+  const Arg& arg_nepochs_validation             = args[i++];
+  const Arg& arg_validation_error               = args[i++];
+  const Arg& arg_validation_average_niterations = args[i++];
 
   // Training set handling
   if (arg_X_train.is_undefined()) {
@@ -319,14 +345,24 @@ oobj LinearModel::fit(const PKArgs& args) {
                        << "as the training frame";
   }
 
-  if (!lm->is_model_trained()) {
-    delete colnames;
-    colnames = new strvec(dt_X_train->get_names());
+  if (lm && (lm->get_nfeatures() != dt_X_train->ncols())) {
+    throw ValueError() << "This model has already been trained, thus, the "
+      << "training frame must have `" << lm->get_nfeatures() << "` column"
+      << ((lm->get_nfeatures() > 1)? "s" : "")
+      << ", instead got: `" << dt_X_train->ncols() << "`";
   }
 
-  if (lm->is_model_trained() && dt_X_train->get_names() != *colnames) {
-    throw ValueError() << "Training frame names cannot change for a trained "
-                       << "model";
+  dt::LType ltype = dt_y->get_column(0).ltype();
+  if (ltype > dt::LType::STRING) {
+    throw TypeError() << "Target column should have one of "
+      << "the following ltypes: `void`, `bool`, `int`, `real` or `string`, "
+      << "instead got: `" << ltype << "`";
+  }
+
+  if (dt_params->model_type == dt::LinearModelType::REGRESSION && ltype > dt::LType::REAL) {
+    throw TypeError() << "For regression, target column should have one of "
+      << "the following ltypes: `void`, `bool`, `int` or `real`, "
+      << "instead got: `" << ltype << "`";
   }
 
 
@@ -341,6 +377,7 @@ oobj LinearModel::fit(const PKArgs& args) {
       !arg_y_validation.is_none_or_undefined())
 
   {
+    dt::LType ltype_val;
     dt_X_val = arg_X_validation.to_datatable();
     dt_y_val = arg_y_validation.to_datatable();
 
@@ -349,22 +386,17 @@ oobj LinearModel::fit(const PKArgs& args) {
                          << "columns as the training frame";
     }
 
-    if (dt_X_val->get_names() != *colnames) {
-      throw ValueError() << "Validation frame must have the same column "
-                         << "names as the training frame";
-    }
 
-    dt::LType ltype, ltype_val;
-
-    for (size_t i = 0; i < dt_X_train->ncols(); i++) {
+    for (i = 0; i < dt_X_train->ncols(); i++) {
       ltype = dt_X_train->get_column(i).ltype();
       ltype_val = dt_X_val->get_column(i).ltype();
 
       if (ltype != ltype_val) {
         throw TypeError() << "Training and validation frames must have "
-                          << "identical column ltypes, instead for a column `"
-                          << (*colnames)[i] << "`, got ltypes: `" << ltype << "` and `"
-                          << ltype_val << "`";
+                          << "identical column ltypes, instead for columns `"
+                          << dt_X_train->get_names()[i] << "` and `"
+                          << dt_X_val->get_names()[i] << "`, got ltypes: `"
+                          << ltype << "` and `" << ltype_val << "`";
       }
     }
 
@@ -377,8 +409,6 @@ oobj LinearModel::fit(const PKArgs& args) {
                          << "one column";
     }
 
-
-    ltype = dt_y->get_column(0).ltype();
     ltype_val = dt_y_val->get_column(0).ltype();
 
     if (ltype != ltype_val) {
@@ -398,7 +428,7 @@ oobj LinearModel::fit(const PKArgs& args) {
       py::Validator::check_positive(nepochs_val, arg_nepochs_validation);
       py::Validator::check_less_than_or_equal_to(
         nepochs_val,
-        lm->get_nepochs(),
+        dt_params->nepochs,
         arg_nepochs_validation
       );
     } else nepochs_val = 1;
@@ -415,9 +445,16 @@ oobj LinearModel::fit(const PKArgs& args) {
     } else val_niters = 1;
   }
 
-  dt::LinearModelFitOutput output = lm->dispatch_fit(dt_X_train, dt_y,
-                                                dt_X_val, dt_y_val,
-                                                nepochs_val, val_error, val_niters);
+  if (dt_params->double_precision) {
+    init_dt_model<double>(ltype);
+  } else {
+    init_dt_model<float>(ltype);
+  }
+
+  dt::LinearModelFitOutput output = lm->fit(dt_params,
+                                            dt_X_train, dt_y,
+                                            dt_X_val, dt_y_val,
+                                            nepochs_val, val_error, val_niters);
 
   static onamedtupletype py_fit_output_ntt(
     "LinearModelFitOutput",
@@ -478,22 +515,16 @@ oobj LinearModel::predict(const PKArgs& args) {
   DataTable* dt_X = arg_X.to_datatable();
   if (dt_X == nullptr) return Py_None;
 
-  if (!lm->is_model_trained()) {
+  if (lm == nullptr || !lm->is_fitted()) {
     throw ValueError() << "Cannot make any predictions, the model "
                           "should be trained first";
   }
 
-  size_t ncols = lm->get_ncols();
-  if (dt_X->ncols() != ncols && ncols != 0) {
-    throw ValueError() << "Can only predict on a frame that has " << ncols
-                       << " column" << (ncols == 1? "" : "s")
-                       << ", i.e. has the same number of features as "
-                          "was used for model training";
-  }
-
-  if (dt_X->get_names() != *colnames) {
-    throw ValueError() << "Frames used for training and predictions "
-                       << "should have the same column names";
+  size_t nfeatures = lm->get_nfeatures();
+  if (dt_X->ncols() != nfeatures) {
+    throw ValueError() << "Can only predict on a frame that has `" << nfeatures
+                       << "` column" << (nfeatures == 1? "" : "s")
+                       << ", i.e. the same number of features the model was trained on";
   }
 
   DataTable* dt_p = lm->predict(dt_X).release();
@@ -505,7 +536,7 @@ oobj LinearModel::predict(const PKArgs& args) {
 
 /**
  *  .reset()
- *  Reset the model by making a call to `lm->reset()`.
+ *  Reset the model by deleting the underlying `dt::LinearModel` object.
  */
 
 static const char* doc_reset =
@@ -530,8 +561,10 @@ static PKArgs args_reset(0, 0, 0, false, false, {}, "reset", doc_reset);
 
 
 void LinearModel::reset(const PKArgs&) {
-  lm->reset();
-  if (colnames) colnames->clear();
+  if (lm != nullptr) {
+    delete lm;
+    lm = nullptr;
+  }
 }
 
 
@@ -556,7 +589,40 @@ static GSArgs args_labels(
 
 
 oobj LinearModel::get_labels() const {
-  return lm->get_labels();
+  if (lm == nullptr || !lm->is_fitted()) {
+    return py::None();
+  } else {
+    return lm->get_labels();
+  }
+}
+
+
+/**
+ *  .is_fitted()
+ */
+
+static const char* doc_is_fitted =
+R"(is_fitted(self)
+--
+
+Report the status of the model.
+
+Parameters
+----------
+return: bool
+    `True` if model is trained, `False` otherwise.
+
+)";
+
+static PKArgs args_is_fitted(0, 0, 0, false, false, {}, "is_fitted", doc_is_fitted);
+
+
+oobj LinearModel::is_fitted(const PKArgs&) {
+  if (lm != nullptr && lm->is_fitted()) {
+    return py::True();
+  } else {
+    return py::False();
+  }
 }
 
 
@@ -580,8 +646,11 @@ return: Frame
 static GSArgs args_model("model", doc_model);
 
 oobj LinearModel::get_model() const {
-  if (!lm->is_model_trained()) return py::None();
-  return lm->get_model();
+  if (lm == nullptr || !lm->is_fitted()) {
+    return py::None();
+  } else {
+    return lm->get_model();
+  }
 }
 
 
@@ -595,16 +664,16 @@ void LinearModel::set_model(robj model) {
       << "` and `" << lm->get_nfeatures() + 1 << "`, respectively";
   }
 
-  size_t ncols = lm->get_model_type_trained() == dt::LinearModelType::BINOMIAL;
-  if ((dt_model->ncols() + ncols) != lm->get_nlabels()) {
+  size_t is_binomial = dt_params->model_type == dt::LinearModelType::BINOMIAL;
+  if ((dt_model->ncols() + is_binomial) != lm->get_nlabels()) {
     throw ValueError() << "The number of columns in the model must be consistent "
       << "with the number of labels, instead got: `" << dt_model->ncols()
       << "` and `" << lm->get_nlabels() << "`, respectively";
   }
 
-  auto stype = double_precision? dt::SType::FLOAT64 : dt::SType::FLOAT32;
+  auto stype = dt_params->double_precision? dt::SType::FLOAT64 : dt::SType::FLOAT32;
 
-  for (size_t i = 0; i < ncols; ++i) {
+  for (size_t i = 0; i < dt_model->ncols(); ++i) {
 
     const Column& col = dt_model->get_column(i);
     dt::SType c_stype = col.stype();
@@ -650,57 +719,10 @@ oobj LinearModel::get_fi() const {
 }
 
 oobj LinearModel::get_normalized_fi(bool normalize) const {
-  if (!lm->is_model_trained()) return py::None();
-  return lm->get_fi(normalize);
-}
-
-
-/**
- *  .colnames
- */
-
-static const char* doc_colnames =
-R"(
-Column names of the training frame, i.e. the feature names.
-
-Parameters
-----------
-return: List[str]
-    A list of the column names.
-
-)";
-
-static GSArgs args_colnames(
-  "colnames",
-  doc_colnames
-);
-
-
-oobj LinearModel::get_colnames() const {
-  if (lm->is_model_trained()) {
-    size_t ncols = colnames->size();
-    py::olist py_colnames(ncols);
-    for (size_t i = 0; i < ncols; ++i) {
-      py_colnames.set(i, py::ostring((*colnames)[i]));
-    }
-    return std::move(py_colnames);
-  } else {
+  if (lm == nullptr || !lm->is_fitted()) {
     return py::None();
-  }
-}
-
-
-void LinearModel::set_colnames(robj py_colnames) {
-  if (py_colnames.is_list()) {
-    py::olist py_colnames_list = py_colnames.to_pylist();
-    size_t ncolnames = py_colnames_list.size();
-
-    delete colnames;
-    colnames = new strvec();
-    colnames->reserve(ncolnames);
-    for (size_t i = 0; i < ncolnames; ++i) {
-      colnames->push_back(py_colnames_list[i].to_string());
-    }
+  } else {
+    return lm->get_fi(normalize);
   }
 }
 
@@ -740,8 +762,8 @@ void LinearModel::set_eta(const Arg& py_eta) {
   double eta = py_eta.to_double();
   py::Validator::check_finite(eta, py_eta);
   py::Validator::check_positive(eta, py_eta);
-  lm->set_eta(eta);
   py_params->replace(0, py_eta.robj());
+  dt_params->eta = eta;
 }
 
 
@@ -781,8 +803,8 @@ void LinearModel::set_lambda1(const Arg& py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_finite(lambda1, py_lambda1);
   py::Validator::check_not_negative(lambda1, py_lambda1);
-  lm->set_lambda1(lambda1);
   py_params->replace(1, py_lambda1.to_robj());
+  dt_params->lambda1 = lambda1;
 }
 
 
@@ -822,8 +844,8 @@ void LinearModel::set_lambda2(const Arg& py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_finite(lambda2, py_lambda2);
   py::Validator::check_not_negative(lambda2, py_lambda2);
-  lm->set_lambda2(lambda2);
   py_params->replace(2, py_lambda2.to_robj());
+  dt_params->lambda2 = lambda2;
 }
 
 
@@ -868,8 +890,8 @@ void LinearModel::set_nepochs(const Arg& arg_nepochs) {
   double nepochs = arg_nepochs.to_double();
   py::Validator::check_finite(nepochs, arg_nepochs);
   py::Validator::check_not_negative(nepochs, arg_nepochs);
-  lm->set_nepochs(nepochs);
   py_params->replace(3, arg_nepochs.to_robj());
+  dt_params->nepochs = nepochs;
 }
 
 
@@ -902,13 +924,14 @@ oobj LinearModel::get_double_precision() const {
 }
 
 void LinearModel::set_double_precision(const Arg& arg_double_precision) {
-  if (lm->is_model_trained()) {
+  if (lm && lm->is_fitted()) {
     throw ValueError() << "Cannot change " << arg_double_precision.name()
                        << "for a trained model, "
                        << "reset this model or create a new one";
   }
-  double_precision = arg_double_precision.to_bool_strict();
+  bool double_precision = arg_double_precision.to_bool_strict();
   py_params->replace(4, arg_double_precision.to_robj());
+  dt_params->double_precision = double_precision;
 }
 
 
@@ -954,14 +977,14 @@ oobj LinearModel::get_negative_class() const {
 
 
 void LinearModel::set_negative_class(const Arg& arg_negative_class) {
-  if (lm->is_model_trained()) {
+  if (lm && lm->is_fitted()) {
     throw ValueError() << "Cannot change " << arg_negative_class.name()
                        << " for a trained model, "
                        << "reset this model or create a new one";
   }
   bool negative_class = arg_negative_class.to_bool_strict();
-  lm->set_negative_class(negative_class);
   py_params->replace(5, arg_negative_class.to_robj());
+  dt_params->negative_class = negative_class;
 }
 
 
@@ -1012,50 +1035,19 @@ oobj LinearModel::get_model_type() const {
 
 
 void LinearModel::set_model_type(const Arg& py_model_type) {
-  if (lm->is_model_trained()) {
+  if (lm && lm->is_fitted()) {
     throw ValueError() << "Cannot change `model_type` for a trained model, "
                        << "reset this model or create a new one";
   }
   std::string model_type = py_model_type.to_string();
   auto it = py::LinearModelNameType.find(model_type);
-  if (it == py::LinearModelNameType.end() || it->second == dt::LinearModelType::NONE) {
+  if (it == py::LinearModelNameType.end() || it->second == dt::LinearModelType::UNKNOWN) {
     throw ValueError() << "Model type `" << model_type << "` is not supported";
   }
 
-  lm->set_model_type(it->second);
   py_params->replace(6, py_model_type.to_robj());
-}
+  dt_params->model_type = it->second;
 
-
-/**
- *  .model_type_trained
- */
-
-static const char* doc_model_type_trained =
-R"(
-The model type `LinearModel` has built.
-
-Parameters
-----------
-return: str
-    Could be one of the following: `"regression"`, `"binomial"`,
-    `"multinomial"` or `"none"` for untrained model.
-
-See also
---------
-- :attr:`.model_type` -- the model type `LinearModel` should build.
-)";
-
-static GSArgs args_model_type_trained(
-  "model_type_trained",
-  doc_model_type_trained
-);
-
-
-oobj LinearModel::get_model_type_trained() const {
-  dt::LinearModelType dt_model_type = lm->get_model_type_trained();
-  std::string model_type = LinearModelTypeName.at(dt_model_type);
-  return py::ostring(std::move(model_type));
 }
 
 
@@ -1100,9 +1092,9 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::otuple params_tuple = params_in.to_otuple();
   size_t n_params = params_tuple.size();
 
-  if (n_params != 7) {
-    throw ValueError() << "Tuple of LinearModel parameters should have 7 elements, "
-                       << "got: " << n_params;
+  if (n_params != N_PARAMS) {
+    throw ValueError() << "Tuple of LinearModel parameters should have "
+      << "`" << N_PARAMS << "` elements, instead got: " << n_params;
   }
   py::oobj py_eta = params_in.get_attr("eta");
   py::oobj py_lambda1 = params_in.get_attr("lambda1");
@@ -1111,7 +1103,6 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::oobj py_double_precision = params_in.get_attr("double_precision");
   py::oobj py_negative_class = params_in.get_attr("negative_class");
   py::oobj py_model_type = params_in.get_attr("model_type");
-
 
   set_eta({py_eta, "`LinearModelParams.eta`"});
   set_lambda1({py_lambda1, "`LinearModelParams.lambda1`"});
@@ -1136,19 +1127,21 @@ oobj LinearModel::get_params_tuple() const {
 
 
 void LinearModel::set_params_tuple(robj params) {
+  size_t i = 0;
   py::otuple params_tuple = params.to_otuple();
   size_t n_params = params_tuple.size();
-  if (n_params != 7) {
-    throw ValueError() << "Tuple of `LinearModel` parameters should have 7 elements, "
-                       << "got: " << n_params;
+  if (n_params != N_PARAMS) {
+    throw ValueError() << "Tuple of `LinearModel` parameters should have "
+      << "` " << N_PARAMS << "` elements, instead got: " << n_params;
   }
-  set_eta({params_tuple[0], "eta"});
-  set_lambda1({params_tuple[1], "lambda1"});
-  set_lambda2({params_tuple[2], "lambda2"});
-  set_nepochs({params_tuple[3], "nepochs"});
-  set_double_precision({params_tuple[4], "double_precision"});
-  set_negative_class({params_tuple[5], "negative_class"});
-  set_model_type({params_tuple[6], "model_type"});
+  set_eta({params_tuple[i++], "eta"});
+  set_lambda1({params_tuple[i++], "lambda1"});
+  set_lambda2({params_tuple[i++], "lambda2"});
+  set_nepochs({params_tuple[i++], "nepochs"});
+  set_double_precision({params_tuple[i++], "double_precision"});
+  set_negative_class({params_tuple[i++], "negative_class"});
+  set_model_type({params_tuple[i++], "model_type"});
+  xassert(i == N_PARAMS);
 }
 
 
@@ -1156,7 +1149,7 @@ void LinearModel::init_py_params() {
   static onamedtupletype py_params_ntt(
     "LinearModelParams",
     args_params.doc, {
-      {args_eta.name,            args_eta.doc},
+      {args_eta.name,              args_eta.doc},
       {args_lambda1.name,          args_lambda1.doc},
       {args_lambda2.name,          args_lambda2.doc},
       {args_nepochs.name,          args_nepochs.doc},
@@ -1166,17 +1159,18 @@ void LinearModel::init_py_params() {
     }
   );
 
-  dt::LinearModelParams params;
-  delete py_params;
+  dt_params = new dt::LinearModelParams();
   py_params = new py::onamedtuple(py_params_ntt);
+  size_t i = 0;
 
-  py_params->replace(0, py::ofloat(params.eta));
-  py_params->replace(1, py::ofloat(params.lambda1));
-  py_params->replace(2, py::ofloat(params.lambda2));
-  py_params->replace(3, py::ofloat(params.nepochs));
-  py_params->replace(4, py::obool(params.double_precision));
-  py_params->replace(5, py::obool(params.negative_class));
-  py_params->replace(6, py::ostring("auto"));
+  py_params->replace(i++, py::ofloat(dt_params->eta));
+  py_params->replace(i++, py::ofloat(dt_params->lambda1));
+  py_params->replace(i++, py::ofloat(dt_params->lambda2));
+  py_params->replace(i++, py::ofloat(dt_params->nepochs));
+  py_params->replace(i++, py::obool(dt_params->double_precision));
+  py_params->replace(i++, py::obool(dt_params->negative_class));
+  py_params->replace(i++, py::ostring("auto"));
+  xassert(i == N_PARAMS);
 }
 
 
@@ -1192,17 +1186,13 @@ oobj LinearModel::m__getstate__(const PKArgs&) {
   py::oobj py_api_version = py::oint(API_VERSION);
   py::oobj py_fi = get_normalized_fi(false);
   py::oobj py_labels = get_labels();
-  py::oobj py_colnames = get_colnames();
   py::oobj py_params_tuple = get_params_tuple();
   py::oobj py_model = get_model();
-  py::oobj py_model_type = get_model_type_trained();
 
   return otuple {py_api_version,
                  py_params_tuple,
                  py_fi,
                  py_labels,
-                 py_colnames,
-                 py_model_type,
                  py_model
                 };
 }
@@ -1217,26 +1207,25 @@ static PKArgs args___setstate__(
 void LinearModel::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::oint py_api_version = pickle[0].to_size_t(); // Not used for the moment
-  py::otuple py_params_tuple = pickle[1].to_otuple();
-
-  double_precision = py_params_tuple[5].to_bool_strict();
-  init_dt_linearmodel();
   init_py_params();
   set_params_tuple(pickle[1]);
+
+  // If model is trained, then there are feature importances, labels and
+  // model coefficients to be set
   if (pickle[2].is_frame()) {
+    xassert(dt_params->model_type > dt::LinearModelType::AUTO);
+
+    if (dt_params->double_precision) {
+      init_dt_model<double>();
+    } else {
+      init_dt_model<float>();
+    }
+
     lm->set_fi(*pickle[2].to_datatable());
-  }
-
-  if (pickle[3].is_frame()) {
     lm->set_labels(*pickle[3].to_datatable());
+    set_model(pickle[4]);
   }
-  set_colnames(pickle[4]);
-
-  auto model_type = py::LinearModelNameType.at(pickle[5].to_string());
-  lm->set_model_type_trained(model_type);
-  set_model(pickle[6]);
 }
-
 
 
 
@@ -1268,15 +1257,14 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
 
   // Model and features
   xt.add(GETTER(&LinearModel::get_labels, args_labels));
-  xt.add(GETTER(&LinearModel::get_model_type_trained, args_model_type_trained));
   xt.add(GETTER(&LinearModel::get_model, args_model));
   xt.add(GETTER(&LinearModel::get_fi, args_fi));
-  xt.add(GETTER(&LinearModel::get_colnames, args_colnames));
 
   // Fit, predict and reset
   xt.add(METHOD(&LinearModel::fit, args_fit));
   xt.add(METHOD(&LinearModel::predict, args_predict));
   xt.add(METHOD(&LinearModel::reset, args_reset));
+  xt.add(METHOD(&LinearModel::is_fitted, args_is_fitted));
 
   // Pickling and unpickling
   xt.add(METHOD(&LinearModel::m__getstate__, args___getstate__));

@@ -134,9 +134,9 @@ def test_linearmodel_construct_wrong_params_type():
 def test_linearmodel_construct_wrong_params_name():
     WrongParams = collections.namedtuple("WrongParams",["eta", "lambda1"])
     wrong_params = WrongParams(eta = 1, lambda1 = 0.01)
-    with pytest.raises(AttributeError) as e:
+    with pytest.raises(ValueError) as e:
         LinearModel(wrong_params)
-    assert ("'WrongParams' object has no attribute 'double_precision'"
+    assert ("Tuple of LinearModel parameters should have 7 elements, instead got: 2"
             == str(e.value))
 
 
@@ -179,7 +179,7 @@ def test_linearmodel_construct_wrong_nepochs_value():
 def test_linearmodel_create_default():
     lm = LinearModel()
     assert lm.params == params_default
-    assert lm.model_type_trained == "none"
+    assert lm.model is None
     assert lm.labels is None
 
 
@@ -366,7 +366,8 @@ def test_linearmodel_fit_wrong_target_obj64():
     df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"])
     with pytest.raises(TypeError) as e:
         lm.fit(df_train, df_target)
-    assert ("Target column type obj64 is not supported" ==
+    assert ("Target column should have one of the following ltypes: "
+            "void, bool, int, real or string, instead got: object" ==
             str(e.value))
 
 
@@ -419,8 +420,8 @@ def test_linearmodel_predict_wrong_frame():
     lm.fit(df_train, df_target)
     with pytest.raises(ValueError) as e:
         lm.predict(df_predict)
-    assert ("Can only predict on a frame that has 1 column, i.e. has the "
-            "same number of features as was used for model training"
+    assert ("Can only predict on a frame that has 1 column, "
+            "i.e. the same number of features the model was trained on"
             == str(e.value))
 
 
@@ -455,11 +456,12 @@ def test_linearmodel_fit_none():
     lm = LinearModel(model_type = "binomial")
     df_train = dt.Frame(range(nrows))
     df_target = dt.Frame([None] * nrows)
+    assert lm.is_fitted() == False
     res = lm.fit(df_train, df_target)
     assert lm.model is None
     assert not lm.labels
     assert lm.model_type == "binomial"
-    assert lm.model_type_trained == "none"
+    assert lm.is_fitted() == False
     assert res.epoch == 0.0
     assert res.loss is None
 
@@ -474,7 +476,8 @@ def test_linearmodel_fit_unique():
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
     )
-    assert lm.model_type_trained == "binomial"
+    assert lm.is_fitted() == True
+    assert lm.model_type == "binomial"
 
 
 def test_linearmodel_fit_unique_ignore_none():
@@ -487,7 +490,7 @@ def test_linearmodel_fit_unique_ignore_none():
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
     )
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
 
 
 def test_linearmodel_fit_predict_bool():
@@ -500,7 +503,7 @@ def test_linearmodel_fit_predict_bool():
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
     )
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     assert df_target[0, 1] <= 1
     assert df_target[0, 1] >= 1 - epsilon
     assert df_target[1, 1] >= 0
@@ -513,7 +516,7 @@ def test_linearmodel_fit_predict_int():
     df_target = dt.Frame([[True, False]])
     lm.fit(df_train, df_target)
     df_target = lm.predict(df_train[:,0])
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     assert df_target[0, 1] <= 1
     assert df_target[0, 1] >= 1 - epsilon
     assert df_target[1, 1] >= 0
@@ -526,7 +529,7 @@ def test_linearmodel_fit_predict_float():
     df_target = dt.Frame([[True, False, False]])
     lm.fit(df_train, df_target)
     df_target = lm.predict(df_train[:,0])
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     assert df_target[0, 1] <= 1
     assert df_target[0, 1] >= 1 - epsilon
     assert df_target[1, 1] >= 0
@@ -539,7 +542,7 @@ def test_linearmodel_fit_predict_float():
 #     df_target = dt.Frame([[True, False, False, True]])
 #     lm.fit(df_train, df_target)
 #     df_target = lm.predict(df_train[:,0])
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert df_target[0, 1] <= 1
 #     assert df_target[0, 1] >= 1 - epsilon
 #     assert df_target[1, 1] >= 0
@@ -568,7 +571,7 @@ def test_linearmodel_fit_predict_bool_binomial(target):
         dt.Frame(label=target, id=ids, stypes={"id" : stype.int32})
     )
     assert lm.labels[:, 0].to_list() == [sorted(target)]
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     assert df_res[0, 1] <= 1
     assert df_res[0, 1] >= 1 - epsilon
     assert df_res[1, 1] >= 0
@@ -604,7 +607,7 @@ def test_linearmodel_fit_predict_view():
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
     )
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     assert_equals(model, lm.model)
     assert_equals(predictions, predictions_range)
 
@@ -618,7 +621,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
     df_target = dt.Frame([True] * nrows)
     lm.fit(df_train, df_target)
 
-    assert lm.model_type_trained == "binomial"
+    assert lm.model_type == "binomial"
     with pytest.raises(ValueError) as e:
         setattr(lm, parameter, value)
     assert ("Cannot change ."+parameter+" for a trained model, "
@@ -659,7 +662,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [1, 1, 1, 1, 1])]
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [0, 0, 0, 0, 0])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -667,7 +670,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [1, 1, 1, 1])]
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [0, 0, 0, 0])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -702,7 +705,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [1, 1, 1, 1, 1])]
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [0, 0, 0, 0, 0])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -710,7 +713,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [1, 0, 1, 0])]
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [0, 1, 0, 1])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -746,7 +749,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [1, 1, 1, 1, 1])]
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [0, 0, 0, 0, 0])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -754,7 +757,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [1, 0, 1, 0])]
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [0, 1, 0, 1])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -789,7 +792,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     p_dict = p.to_dict()
 #     delta_even = [abs(i - j) for i, j in zip(p_dict["even"], [1, 0, 1, 0])]
 #     delta_odd = [abs(i - j) for i, j in zip(p_dict["odd"], [0, 1, 0, 1])]
-#     assert lm.model_type_trained == "binomial"
+#     assert lm.model_type == "binomial"
 #     assert max(delta_odd) < epsilon
 #     assert max(delta_even) < epsilon
 
@@ -806,7 +809,7 @@ def test_linearmodel_fit_multinomial_none():
     res = lm.fit(df_train, df_target)
     assert not lm.labels
     assert lm.model_type == "multinomial"
-    assert lm.model_type_trained == "none"
+    assert lm.is_fitted() == False
     assert res.epoch == 0.0
     assert res.loss is None
 
@@ -837,8 +840,8 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
         lm_multinomial.labels,
         dt.Frame(label=["cat", "dog"], id=[0, 1], stypes={"id": dt.int32})
     )
-    assert lm_binomial.model_type_trained == "binomial"
-    assert lm_multinomial.model_type_trained == "multinomial"
+    assert lm_binomial.model_type == "binomial"
+    assert lm_multinomial.model_type == "multinomial"
     assert_equals(lm_binomial.model, multinomial_model)
     assert_equals(p_binomial[:, 0], p_multinomial[:, 0])
 
@@ -875,7 +878,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert max(delta_sum)   < 1e-12
 #     assert max(delta_red)   < epsilon
 #     assert max(delta_green) < epsilon
@@ -900,7 +903,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
 
 #     # Also do pickling unpickling in the middle.
@@ -918,7 +921,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
 
 #     # And one more
@@ -932,7 +935,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
 
 #     # Do not add any new labels
@@ -944,7 +947,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
 
 #     # Test predictions
@@ -966,7 +969,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 #         lm.labels,
 #         dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
 #     )
-#     assert lm.model_type_trained == "multinomial"
+#     assert lm.model_type == "multinomial"
 #     assert max(delta_sum)   < 1e-12
 #     assert max(delta_red)   < epsilon
 #     assert max(delta_green) < epsilon
@@ -990,7 +993,7 @@ def test_linearmodel_regression_fit_none():
         dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
     )
     assert lm.model_type == "regression"
-    assert lm.model_type_trained == "regression"
+    assert lm.model_type == "regression"
     assert res.epoch == 1.0
     assert res.loss is None
 
@@ -999,8 +1002,8 @@ def test_linearmodel_regression_fit_simple_zero():
     lm = LinearModel(nepochs = 1, double_precision = True)
     df_train = dt.Frame([0])
     df_target = dt.Frame([0])
-    lm.fit(df_train, df_target)
-    assert lm.model_type_trained == "regression"
+    res = lm.fit(df_train, df_target)
+    assert lm.model_type == "regression"
     assert_equals(lm.model, dt.Frame([0.0, 0.0]))
 
 
@@ -1009,7 +1012,7 @@ def test_linearmodel_regression_fit_simple_one():
     df_train = dt.Frame([1])
     df_target = dt.Frame([1])
     lm.fit(df_train, df_target)
-    assert lm.model_type_trained == "regression"
+    assert lm.model_type == "regression"
     assert_equals(lm.model, dt.Frame([0.01, 0.0099]))
 
 
@@ -1026,7 +1029,7 @@ def test_linearmodel_regression_fit_predict_simple_one_epoch():
     # )
     # delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     # assert lm.labels[:, 0].to_list() == [["C0"]]
-    # assert lm.model_type_trained == "regression"
+    # assert lm.model_type == "regression"
     # assert max(delta) < epsilon
 
 
@@ -1043,7 +1046,7 @@ def test_linearmodel_regression_fit_predict():
     )
     delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     assert lm.labels[:, 0].to_list() == [["C0"]]
-    assert lm.model_type_trained == "regression"
+    assert lm.model_type == "regression"
     assert max(delta) < epsilon
 
 
@@ -1127,7 +1130,7 @@ def test_linearmodel_wrong_validation_stypes():
     df_y_val = dt.Frame(list(r)) # int8 stype
 
     msg = r"Training and validation frames must have identical column ltypes, " \
-           "instead for a column C0, got ltypes: int and str"
+           "instead for columns C0 and C0, got ltypes: int and str"
     with pytest.raises(TypeError, match=msg):
         res = lm.fit(df_X, df_y, df_X_val, df_y_val)
 
@@ -1355,7 +1358,6 @@ def test_linearmodel_pickling_binomial():
     assert_equals(lm.feature_importances, lm_unpickled.feature_importances)
     assert lm.params == lm_unpickled.params
     assert_equals(lm.labels, lm_unpickled.labels)
-    assert lm.colnames == lm_unpickled.colnames
 
     # Predict
     target = lm.predict(df_train)

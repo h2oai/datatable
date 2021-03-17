@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <vector>
 #include "models/utils.h"
+#include "parallel/api.h"
 
 /**
  *  For a given `n` calculate all the coprime numbers and return them
@@ -50,4 +51,18 @@ void calculate_coprimes(size_t n, sztvec& coprimes) {
       coprimes.push_back(i);
     }
   }
+}
+
+
+/**
+ *  Calculate work amount, i.e. the number of rows, to be processed
+ *  by the zeroth thread for a `min_rows_per_thread` chunk size.
+ */
+size_t get_work_amount(const size_t nrows, const size_t min_rows_per_thread) {
+  dt::NThreads nthreads(dt::nthreads_from_niters(nrows, min_rows_per_thread));
+  size_t nth = nthreads.get();
+
+  size_t chunk_rows = min_rows_per_thread * (nrows / (nth * min_rows_per_thread));
+  size_t residual_rows = std::min(nrows - chunk_rows * nth, min_rows_per_thread);
+  return chunk_rows + residual_rows;
 }

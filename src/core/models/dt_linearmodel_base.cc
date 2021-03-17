@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,8 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "models/dt_linearmodel_base.h"
-#include "parallel/api.h"
-
 
 namespace dt {
 
@@ -31,19 +29,5 @@ namespace dt {
  */
 LinearModelBase::~LinearModelBase() {}
 
-
-/**
- *  Calculate work amount, i.e. number of rows, to be processed
- *  by the zero thread for a MIN_ROWS_PER_THREAD chunk size.
- */
-size_t LinearModelBase::get_work_amount(size_t nrows) {
-  size_t chunk_size = MIN_ROWS_PER_THREAD;
-  NThreads nthreads(nthreads_from_niters(nrows, MIN_ROWS_PER_THREAD));
-  size_t nth = nthreads.get();
-
-  size_t chunk_rows = chunk_size * (nrows / (nth * chunk_size));
-  size_t residual_rows = std::min(nrows - chunk_rows * nth, chunk_size);
-  return chunk_rows + residual_rows;
-}
 
 } // namespace dt

@@ -21,86 +21,80 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_LINEARMODEL_h
 #define dt_MODELS_LINEARMODEL_h
-#include "models/utils.h"
+
 #include "models/dt_linearmodel_base.h"
-#include "str/py_str.h"
 #include "models/label_encode.h"
+#include "models/utils.h"
 
 
 namespace dt {
 
-
 /**
- *  Class template that implements all the virtual methods declared in
- *  dt::LinearModelBase.
+ *  An abstract class that implements all the virtual methods declared in
+ *  `dt::LinearModelBase`. It also declares problem-specific virtual methods,
+ *  such as `fit_model()`, `linkfn()`, `lossfn()`, etc. Some of these methods
+ *  are implemented to cover the most frequent use case.
  */
 template <typename T /* float or double */>
 class LinearModel : public LinearModelBase {
-  private:
-    // SType that corresponds to `T`
-    const SType stype;
-    size_t : 56;
-    // Model's shape is (nfeatures + 1, nlabels)
-    dtptr dt_model;
-    std::vector<T*> betas;
-    LinearModelType model_type;
+  protected:
+    // Model coefficients
+    dtptr dt_model_;
+    std::vector<T*> betas_;
 
     // Feature importances datatable of shape (nfeatures, 2),
     // where the first column contains feature names and the second one
     // feature importance values.
-    dtptr dt_fi;
-
-    // Linear model parameters provided to constructor.
-    LinearModelParams params;
+    dtptr dt_fi_;
 
     // Individual parameters converted to T type.
-    T eta;
-    T lambda1;
-    T lambda2;
-    T nepochs;
+    T eta_;
+    T lambda1_;
+    T lambda2_;
+    T nepochs_;
+    bool negative_class_;
+    // SType that corresponds to `T`
+    SType stype_;
+    size_t : 48;
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
     //   index 0: negative label
     //   index 1: positive label
-    // and we only train the zero model.
-    dtptr dt_labels;
+    // and we only train the zeroth model.
+    dtptr dt_labels_;
 
-    // Total number of features used for training, this equals to
-    // dt_X->ncols()
-    size_t nfeatures;
+    // Total number of features used for training, this should always
+    // be equal to `dt_X_->ncols()`
+    size_t nfeatures_;
 
     // Pointers to training and validation datatables, they are
     // only valid during training.
-    const DataTable* dt_X_train;
-    const DataTable* dt_y_train;
-    const DataTable* dt_X_val;
-    const DataTable* dt_y_val;
+    const DataTable* dt_X_train_;
+    const DataTable* dt_y_train_;
+    const DataTable* dt_X_val_;
+    const DataTable* dt_y_val_;
+    Column col_y_train_, col_y_val_;
 
     // Other temporary parameters needed for validation.
-    T nepochs_val;
-    T val_error;
-    size_t val_niters;
+    T nepochs_val_;
+    T val_error_;
+    size_t val_niters_;
 
     // These mappings relate model_id's to the incoming label
     // indicators, i.e. if label_ids_train[i] == j, we train i-th model
     // on positives, when encounter j in the encoded data,
     // and train on negatives otherwise.
-    std::vector<size_t> label_ids_train;
-    std::vector<size_t> label_ids_val;
+    std::vector<size_t> label_ids_train_;
+    std::vector<size_t> label_ids_val_;
 
-    // Fitting methods
-    LinearModelFitOutput fit_binomial();
-    LinearModelFitOutput fit_multinomial();
-    template <typename U> LinearModelFitOutput fit_regression();
-    template <typename U, typename V>
-    LinearModelFitOutput fit(T(*)(T), T(*)(T), U(*)(U, size_t), V(*)(V, size_t), T(*)(T, T));
-
+    virtual LinearModelFitOutput fit_model() = 0;
+    template <typename U> LinearModelFitOutput fit_impl();
     template <typename F> T predict_row(const tptr<T>& x, const size_t, F);
     dtptr create_p(size_t);
+    virtual void finalize_predict(std::vector<T*>, const size_t, const int32_t*) {}
 
     // Model helper methods
-    void add_negative_class();
     void create_model();
     void adjust_model();
     void init_model();
@@ -109,58 +103,46 @@ class LinearModel : public LinearModelBase {
     // Feature importance helper methods
     void create_fi();
     void init_fi();
-    void define_features();
     void softmax_rows(std::vector<T*>&, const size_t);
 
 
   public:
     LinearModel();
-    LinearModel(LinearModelParams);
 
-    // Main fitting method
-    LinearModelFitOutput dispatch_fit(const DataTable*, const DataTable*,
-                               const DataTable*, const DataTable*,
-                               double, double, size_t) override;
+    // Fitting and predicting
+    LinearModelFitOutput fit(
+      const LinearModelParams*,           // Training parameters
+      const DataTable*, const DataTable*, // Training frames
+      const DataTable*, const DataTable*, // Validation frames
+      double, double, size_t              // Validation parameters
+    ) override;
 
-    // Main predicting method
     dtptr predict(const DataTable*) override;
-
-    // Model methods
-    void reset() override;
-    bool is_model_trained() override;
-
-    // Helpers
+    bool is_fitted() override;
     bool read_row(const size_t, const colvec&, tptr<T>&);
+
+    virtual T linkfn(T);
+    virtual T dlinkfn(T);
+    virtual T lossfn(T, T);
+    template <typename U> T targetfn(U, size_t);  // Classification
+    T targetfn(T, size_t);                        // Regression
+
 
     // Getters
     py::oobj get_model() override;
     py::oobj get_fi(bool normalize = true) override;
-    LinearModelType get_model_type() override;
-    LinearModelType get_model_type_trained() override;
     size_t get_nfeatures() override;
     size_t get_nlabels() override;
-    size_t get_ncols() override;
-    double get_eta() override;
-    double get_lambda1() override;
-    double get_lambda2() override;
-    double get_nepochs() override;
-    bool get_negative_class() override;
-    LinearModelParams get_params() override;
+    bool get_negative_class();
     py::oobj get_labels() override;
+    virtual size_t get_label_id(size_t&, const int32_t*);
+    virtual size_t get_nclasses();
 
     // Setters
     void set_model(const DataTable&) override;
     void set_fi(const DataTable&) override;
-    void set_model_type(LinearModelType) override;
-    void set_model_type_trained(LinearModelType) override;
-    void set_eta(double) override;
-    void set_lambda1(double) override;
-    void set_lambda2(double) override;
-    void set_nepochs(double) override;
-    void set_negative_class(bool) override;
     void set_labels(const DataTable&) override;
 
-    // Some useful constants:
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();
     static constexpr T T_EPSILON = std::numeric_limits<T>::epsilon();
 };
@@ -170,6 +152,14 @@ template<class T> constexpr T LinearModel<T>::T_EPSILON;
 
 extern template class LinearModel<float>;
 extern template class LinearModel<double>;
+
+extern template LinearModelFitOutput LinearModel<float>::fit_impl<int8_t>();
+extern template LinearModelFitOutput LinearModel<float>::fit_impl<int32_t>();
+extern template LinearModelFitOutput LinearModel<float>::fit_impl<float>();
+extern template LinearModelFitOutput LinearModel<double>::fit_impl<int8_t>();
+extern template LinearModelFitOutput LinearModel<double>::fit_impl<int32_t>();
+extern template LinearModelFitOutput LinearModel<double>::fit_impl<double>();
+
 
 } // namespace dt
 

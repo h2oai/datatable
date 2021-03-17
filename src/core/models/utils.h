@@ -153,4 +153,8 @@ std::string tostr(const T& v) {
 }
 
 
+// Helpers for parallelization
+size_t get_work_amount(const size_t, const size_t);
+
+
 #endif
