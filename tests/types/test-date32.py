@@ -22,8 +22,9 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datetime
-import datatable as dt
 import pytest
+import random
+from datatable import dt, f
 from tests import assert_equals
 
 
@@ -255,3 +256,33 @@ def test_date32_to_arrow(pa):
     assert tbl.to_pydict() == {"C0": [
         d(1970, 1, 18), d(2927, 10, 28), d(2213, 5, 15), None, d(2018, 9, 3)
     ]}
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('seed', [random.getrandbits(32)])
+def test_date32_sort(seed):
+    random.seed(seed)
+    n = int(10 + random.expovariate(0.01))
+    src = [int(random.random() * 100000) for i in range(n)]
+    DT = dt.Frame(src, stype='date32')
+    RES = DT[:, :, dt.sort(f[0])]
+    assert_equals(RES, dt.Frame(sorted(src), stype='date32'))
+
+
+def test_date32_sort_with_NAs():
+    d = datetime.date
+    src = [d(2001, 12, 1), None, d(3000, 3, 30), None, d(1, 1, 1)]
+    RES = dt.Frame(src)[:, :, dt.sort(f[0])]
+    assert_equals(RES,
+        dt.Frame([None, None, d(1, 1, 1), d(2001, 12, 1), d(3000, 3, 30)]))
+
+
+def test_date32_stats():
+    DT = dt.Frame([0, 12, None, 100, -3], stype='date32')
+    assert DT.min1() == datetime.date(1969, 12, 29)
+    assert DT.max1() == datetime.date(1970, 4, 11)
+    assert DT.countna1() == 1
