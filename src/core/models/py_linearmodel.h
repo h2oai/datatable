@@ -37,9 +37,9 @@ namespace py {
  */
 class LinearModel : public XObject<LinearModel> {
   private:
-    dt::LinearModelBase* lm;
-    dt::LinearModelParams* dt_params;
-    py::onamedtuple* py_params;
+    dt::LinearModelBase* lm_;
+    dt::LinearModelParams* dt_params_;
+    py::onamedtuple* py_params_;
 
   public:
     // LinearModel API version to be used for backward compatibility
