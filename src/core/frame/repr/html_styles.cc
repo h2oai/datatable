@@ -91,6 +91,7 @@ static py::oobj generate_stylesheet() {
           ".datatable .int     { background: #5D9E5D; }\n"
           ".datatable .float   { background: #4040CC; }\n"
           ".datatable .str     { background: #CC4040; }\n"
+          ".datatable .time    { background: #40CC40; }\n"
           ".datatable .row_index {"
           "  background: var(--jp-border-color3);"
           "  border-right: 1px solid var(--jp-border-color0);"

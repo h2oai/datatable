@@ -43,6 +43,8 @@ class odate : public oobj {
 
     int get_days() const;
 
+    static PyTypeObject* type();
+
   private:
     explicit odate(PyObject*);
 };
