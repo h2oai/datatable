@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -46,6 +46,7 @@ void parse_float32_hex(const dt::read::ParseContext&);
 void parse_float64_simple(const dt::read::ParseContext& ctx);
 void parse_float64_extended(const dt::read::ParseContext& ctx);
 void parse_float64_hex(const dt::read::ParseContext&);
+void parse_date32_iso(const dt::read::ParseContext&);
 
 template <typename T, bool ALLOW_LEADING_ZEROES>
 void parse_int_simple(const dt::read::ParseContext&);
@@ -87,6 +88,7 @@ enum PT : uint8_t {
   Float64Plain,
   Float64Ext,
   Float64Hex,
+  Date32ISO,
   Str32,
   Str64,
 };
