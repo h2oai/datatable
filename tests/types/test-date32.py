@@ -294,6 +294,16 @@ def test_date32_compare_vs_other_types():
             DT[:, expr]
 
 
+def test_date32_compare_vs_void():
+    DT = dt.Frame(A=[None]*3, B=[2398, None, 34639], stypes={"B": "date32"})
+    EXP = dt.Frame([False, True, False])
+    assert_equals(DT[:, f.B == None], EXP)
+    assert_equals(DT[:, None == f.B], EXP)
+    assert_equals(DT[:, f.B == f.A], EXP)
+    assert_equals(DT[:, f.A == f.B], EXP)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
