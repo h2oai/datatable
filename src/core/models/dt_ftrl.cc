@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -626,36 +626,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // classifier by using `sigmoid` link function. When there is more
   // than two labels, we first employ `identity` linking, and do `softmax`
   // normalization at the end.
-  if (nlabels > 2) softmax_rows(data_p, dt_p->nrows());
+  if (nlabels > 2) softmax(data_p, dt_p->nrows());
   return dt_p;
-}
-
-
-/**
- *  Normalize predictions, so that their values sum up to `1` row-wise.
- *  To prevent overflow when calculating the softmax function,
- *  we multiply its numerator and denominator by `std::exp(-max)`,
- *  where `max` is the maximum value of predictions for a given row.
- */
-template <typename T>
-void Ftrl<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
-  size_t ncols = data_p.size();
-
-  dt::parallel_for_static(nrows, [&](size_t i){
-    T sum = T(0);
-    T max = data_p[0][i];
-    for (size_t j = 1; j < ncols; ++j) {
-      if (data_p[j][i] > max) max = data_p[j][i];
-    }
-
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] = std::exp(data_p[j][i] - max);
-      sum += data_p[j][i];
-    }
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] /= sum;
-    }
-  });
 }
 
 

@@ -65,14 +65,15 @@ class LinearModelBinomial : public LinearModel<T> {
     // Calculate predictions for the negative class
     void finalize_predict(std::vector<T*> data_p,
                           const size_t nrows,
-                          const int32_t* data_label_ids) override {
-      xassert(data_p.size() == 2);
-      size_t positive_class_id = (data_label_ids[0] == 1);
+                          const int32_t* data_label_ids) override
+    {
+      if (data_p.size() == 2) {
+        size_t positive_class_id = (data_label_ids[0] == 1);
 
-      dt::parallel_for_static(nrows, [&](size_t i){
-        data_p[!positive_class_id][i] = T(1) - data_p[positive_class_id][i];
-      });
-
+        dt::parallel_for_static(nrows, [&](size_t i){
+          data_p[!positive_class_id][i] = T(1) - data_p[positive_class_id][i];
+        });
+      }
     }
 
 

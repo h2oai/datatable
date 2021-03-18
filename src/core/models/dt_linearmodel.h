@@ -104,8 +104,6 @@ class LinearModel : public LinearModelBase {
     // Feature importance helper methods
     void create_fi();
     void init_fi();
-    void softmax_rows(std::vector<T*>&, const size_t);
-
 
   public:
     LinearModel();

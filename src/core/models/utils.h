@@ -27,6 +27,7 @@
 #include <memory>
 #include <numeric>      // std::iota
 #include "datatable.h"
+#include "parallel/api.h"
 
 
 template <typename T>
@@ -115,6 +116,35 @@ template<typename T>
 inline T squared_loss(T p, T y) {
   return (p - y) * (p - y);
 }
+
+
+/**
+ *  Normalize predictions, so that their values sum up to `1` row-wise.
+ *  To prevent overflow when calculating the softmax function,
+ *  we multiply its numerator and denominator by `std::exp(-max)`,
+ *  where `max` is the maximum value of predictions for a given row.
+ */
+template <typename T>
+void softmax(std::vector<T*>& p, const size_t nrows) {
+  size_t ncols = p.size();
+
+  dt::parallel_for_static(nrows, [&](size_t i){
+    T sum = T(0);
+    T max = p[0][i];
+    for (size_t j = 1; j < ncols; ++j) {
+      if (p[j][i] > max) max = p[j][i];
+    }
+
+    for (size_t j = 0; j < ncols; ++j) {
+      p[j][i] = std::exp(p[j][i] - max);
+      sum += p[j][i];
+    }
+    for (size_t j = 0; j < ncols; ++j) {
+      p[j][i] /= sum;
+    }
+  });
+}
+
 
 
 /**

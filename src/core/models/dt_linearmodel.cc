@@ -104,12 +104,16 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on
-  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_fit_->nrows()`; // - then, the model is trained on the remaining `last_iteration_nrows` rows,
-  //   where `0 < last_iteration_nrows <= dt_X_fit_->nrows()`. // If `nepochs_` is an integer number, `last_iteration_nrows == dt_X_fit_->nrows()`, // so that the last epoch becomes identical to all the others.
+  //   `iteration_nrows` rows, where `iteration_nrows == dt_X_fit_->nrows()`;
+  // - then, the model is trained on the remaining `last_iteration_nrows` rows,
+  //   where `0 < last_iteration_nrows <= dt_X_fit_->nrows()`.
+  // If `nepochs_` is an integer number, `last_iteration_nrows == dt_X_fit_->nrows()`,
+  // so that the last epoch becomes identical to all the others.
   size_t niterations = static_cast<size_t>(std::ceil(nepochs_));
   T last_epoch = nepochs_ - static_cast<T>(niterations) + 1;
 
-  size_t iteration_nrows = dt_X_fit_->nrows(); size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
+  size_t iteration_nrows = dt_X_fit_->nrows();
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
   size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
@@ -163,15 +167,17 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           bool isvalid = col_y_fit_.get_element(ii, &target);
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
-            for (size_t k = 0; k < label_ids_fit_.size(); ++k) {// Update all the coefficients with SGD
+            for (size_t k = 0; k < label_ids_fit_.size(); ++k) {
+              // Update all the coefficients with SGD
               for (size_t j = 0; j < nfeatures_ + 1; ++j) {
 
-                T grad = linkfn(predict_row(x, k,
-                           [&](size_t f_id, T f_imp) {
-                             fi[f_id] += f_imp;
-                           }
-                         ));
-                T y = targetfn(target, label_ids_fit_[k]); grad = 2 * dlinkfn(grad) * (grad - y);
+                T p = linkfn(predict_row(x, k,
+                        [&](size_t f_id, T f_imp) {
+                          fi[f_id] += f_imp;
+                        }
+                      ));
+                T y = targetfn(target, label_ids_fit_[k]);
+                T grad = 2 * dlinkfn(p) * (p - y);
                 if (j) grad *= x[j - 1];
                 grad += copysign(lambda1_, betas_[k][j]); // L1 regularization
                 grad += 2 * lambda2_ * betas_[k][j];      // L2 regularization
@@ -349,15 +355,14 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
   });
   job.done();
 
-  // For binomial classification we calculate predictions for the negative
-  // class as 1 - p, where p is the positive class predictions calculated above.
-  // For multinomial classification and regression this function is a noop.
+  // Here we do the following:
+  // - for binomial classification we calculate predictions for the negative
+  //   class as 1 - p, where p is the positive class predictions calculated above;
+  // - for multinomial classification we do softmax normalization of the
+  //   calculated predictions;
+  // - for regression this function is a noop.
   finalize_predict(data_p, dt_X->nrows(), data_label_ids);
 
-  // For multinomial case, when there is only two labels, we match binomial
-  // classifier by using `sigmoid` link function. When there is more
-  // than two labels, we do `softmax` normalization.
-  if (nlabels > 2) softmax_rows(data_p, dt_p->nrows());
   return dt_p;
 }
 
@@ -369,34 +374,6 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
 template <typename T>
 size_t LinearModel<T>::get_label_id(size_t& k, const int32_t* data_label_ids) {
   return static_cast<size_t>(data_label_ids[k]);
-}
-
-
-/**
- *  Normalize predictions, so that their values sum up to `1` row-wise.
- *  To prevent overflow when calculating the softmax function,
- *  we multiply its numerator and denominator by `std::exp(-max)`,
- *  where `max` is the maximum value of predictions for a given row.
- */
-template <typename T>
-void LinearModel<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
-  size_t ncols = data_p.size();
-
-  dt::parallel_for_static(nrows, [&](size_t i){
-    T sum = T(0);
-    T max = data_p[0][i];
-    for (size_t j = 1; j < ncols; ++j) {
-      if (data_p[j][i] > max) max = data_p[j][i];
-    }
-
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] = std::exp(data_p[j][i] - max);
-      sum += data_p[j][i];
-    }
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] /= sum;
-    }
-  });
 }
 
 

@@ -22,6 +22,7 @@
 #ifndef dt_MODELS_LINEARMODEL_MULTINOMIAL_h
 #define dt_MODELS_LINEARMODEL_MULTINOMIAL_h
 #include "models/dt_linearmodel.h"
+#include "models/utils.h"
 
 
 namespace dt {
@@ -66,6 +67,14 @@ class LinearModelMultinomial : public LinearModel<T> {
       }
 
       return this->template fit_impl<int32_t>();
+    }
+
+
+    void finalize_predict(std::vector<T*> data_p,
+                          const size_t nrows,
+                          const int32_t*) override
+    {
+      if (data_p.size() > 2) softmax(data_p, nrows);
     }
 };
 
