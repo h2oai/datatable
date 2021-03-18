@@ -198,6 +198,7 @@ void OutputColumn::reset_colinfo() {
       colinfo_.b.count1 = 0;
       break;
     }
+    case SType::DATE32:
     case SType::INT8:
     case SType::INT16:
     case SType::INT32:
@@ -233,6 +234,7 @@ void OutputColumn::merge_chunk_stats(const ColInfo& info) {
       colinfo_.b.count1 += info.b.count1;
       break;
     }
+    case SType::DATE32:
     case SType::INT8:
     case SType::INT16:
     case SType::INT32:
