@@ -63,7 +63,7 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
   auto type0 = Type::common(type1, type2);
 
   // `expr == None` should be treated as `isna(expr)`
-  if (type1.is_void() or type2.is_void()) {
+  if (type1.is_void() || type2.is_void()) {
     if (type1.is_void()) {
       std::swap(lcol, rcol);
     }
