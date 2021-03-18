@@ -128,6 +128,7 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
     case SType::BOOL:
     case SType::INT8:    return _materialize_fw<int8_t> (out);
     case SType::INT16:   return _materialize_fw<int16_t>(out);
+    case SType::DATE32:
     case SType::INT32:   return _materialize_fw<int32_t>(out);
     case SType::INT64:   return _materialize_fw<int64_t>(out);
     case SType::FLOAT32: return _materialize_fw<float>  (out);

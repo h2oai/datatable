@@ -39,7 +39,7 @@ static stypevec stBOOL  = {SType::BOOL};
 static stypevec stINT   = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
 static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
 static stypevec stSTR   = {SType::STR32, SType::STR64};
-static stypevec stTIME  = {};
+static stypevec stDATE  = {SType::DATE32};
 static stypevec stOBJ   = {SType::OBJ};
 
 
@@ -108,6 +108,9 @@ Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
     if (et == &PyUnicode_Type)    return _select_types(ctx, fid, stSTR);
     if (et == &PyBool_Type)       return _select_types(ctx, fid, stBOOL);
     if (et == &PyBaseObject_Type) return _select_types(ctx, fid, stOBJ);
+    if (et == py::odate::type()) {
+      return _select_types(ctx, fid, stDATE);
+    }
   }
   if (value_.is_ltype()) {
     auto lt = static_cast<LType>(value_.get_attr("value").to_size_t());
@@ -116,7 +119,7 @@ Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
     if (lt == LType::INT)      return _select_types(ctx, fid, stINT);
     if (lt == LType::REAL)     return _select_types(ctx, fid, stFLOAT);
     if (lt == LType::STRING)   return _select_types(ctx, fid, stSTR);
-    if (lt == LType::DATETIME) return _select_types(ctx, fid, stTIME);
+    if (lt == LType::DATETIME) return _select_types(ctx, fid, stDATE);
     if (lt == LType::OBJECT)   return _select_types(ctx, fid, stOBJ);
   }
   if (value_.is_stype()) {

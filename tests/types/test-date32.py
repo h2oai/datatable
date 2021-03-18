@@ -82,6 +82,21 @@ def test_date32_repr():
     )
 
 
+def test_date32_repr_negative_dates():
+    DT = dt.Frame([-700000, -720000, -730000, -770000, -2000000], stype='date32')
+    assert str(DT) == (
+        "   | C0         \n"
+        "   | date32     \n"
+        "-- + -----------\n"
+        " 0 | 0053-06-19 \n"
+        " 1 | -002-09-16 \n"
+        " 2 | -029-05-01 \n"
+        " 3 | -139-10-24 \n"
+        " 4 | -3506-03-09\n"
+        "[5 rows x 1 column]\n"
+    )
+
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -287,3 +302,57 @@ def test_date32_stats():
     assert DT.max1() == datetime.date(1970, 4, 11)
     assert DT.mode1() == datetime.date(1970, 1, 13)
     assert DT.countna1() == 1
+
+
+def test_date32_materialize():
+    DT = dt.Frame(A = range(1, 5))
+    RES = DT[:, dt.time.ymd(2000, 1, f.A)]
+    assert dt.internal.frame_columns_virtual(RES)[0]
+    RES.materialize()
+    assert_equals(RES,
+        dt.Frame([datetime.date(2000, 1, i) for i in range(1, 5)]))
+
+
+def test_date32_materialize_na():
+    DT = dt.Frame(A=[1, 3, 5], stype='date32')
+    DT['A'] = None
+    DT.materialize()
+    assert_equals(DT, dt.Frame(A = [None]*3, stype='date32'))
+
+
+def test_date32_repeat():
+    DT = dt.Frame([11], stype='date32')
+    RES = dt.repeat(DT, 10)
+    assert_equals(RES, dt.Frame([11]*10, stype='date32'))
+    RES2 = dt.repeat(RES, 5)
+    assert_equals(RES2, dt.Frame([11]*50, stype='date32'))
+
+
+def test_date32_in_groupby():
+    DT = dt.Frame(A=[1, 2, 3]*1000, B=list(range(3000)), stypes={"B": "date32"})
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)},
+            dt.by(f.A)]
+    date32 = dt.stype.date32
+    assert_equals(RES,
+        dt.Frame(A=[1, 2, 3],
+                 count = [1000] * 3 / dt.int64,
+                 min = [0, 1, 2] / date32,
+                 max = [2997, 2998, 2999] / date32,
+                 first = [0, 1, 2] / date32,
+                 last = [2997, 2998, 2999] / date32))
+
+
+def test_select_dates():
+    d = datetime.date
+    DT = dt.Frame(A=[12], B=[d(2000, 12, 20)], C=[True])
+    assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.bool8]
+    RES1 = DT[:, f[d]]
+    RES2 = DT[:, d]
+    RES3 = DT[:, dt.ltype.time]
+    assert_equals(RES1, DT['B'])
+    assert_equals(RES2, DT['B'])
+    assert_equals(RES3, DT['B'])

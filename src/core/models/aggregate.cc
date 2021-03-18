@@ -362,6 +362,7 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
         case dt::SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
         case dt::SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
         case dt::SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
+        case dt::SType::DATE32:  contcol = col.cast(agg_stype); break;
         case dt::SType::STR32:
         case dt::SType::STR64:   is_continuous = false;
                              if (ncols < ND_COLS) {
