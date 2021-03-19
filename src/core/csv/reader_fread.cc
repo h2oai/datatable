@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -581,7 +581,7 @@ void FreadReader::detect_column_types()
 
   // This variable will store column types at the beginning of each jump
   // so that we can revert to them if the jump proves to be invalid.
-  std::vector<dt::read::PT> saved_types(ncols, dt::read::Mu);
+  std::vector<dt::read::PT> saved_types(ncols, dt::read::PT::Void);
 
   for (size_t j = 0; j < nChunks; ++j) {
     dt::read::ChunkCoordinates cc = chunkster.compute_chunk_boundaries(j);
@@ -717,7 +717,7 @@ void FreadReader::detect_header() {
     for (size_t j = 0; j < ncols; ++j) {
       if (ParserLibrary::info(header_types[j]).isstring() &&
           !ParserLibrary::info(saved_types[j]).isstring() &&
-          saved_types[j] != dt::read::PT::Mu) {
+          saved_types[j] != dt::read::PT::Void) {
         header = true;
         D() << "`header` determined to be True due to column " << j + 1
             << " containing a string on row 1 and type "

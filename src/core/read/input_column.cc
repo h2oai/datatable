@@ -37,7 +37,7 @@ namespace read {
 //------------------------------------------------------------------------------
 
 InputColumn::InputColumn()
-  : parse_type_(PT::Mu),
+  : parse_type_(PT::Void),
     requested_type_(RT::RAuto) {}
 
 

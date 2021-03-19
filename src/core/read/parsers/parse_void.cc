@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,40 +19,33 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PARSERS_PT_h
-#define dt_READ_PARSERS_PT_h
+#include "read/field64.h"                // field64
+#include "read/parse_context.h"          // ParseContext
+#include "read/parsers/library.h"
 namespace dt {
 namespace read {
 
 
 /**
-  * Parse Type -- each identifier corresponds to one of the
-  * parser functions defined in this directory.
+  * "Void" type is a root for all other types. This type is matched by
+  * empty column only, and there is nothing to read nor parsing
+  * pointer to advance for an empty column.
   */
-enum PT : uint8_t {
-  Void,
-  Bool01,
-  BoolU,
-  BoolT,
-  BoolL,
-  Int32,
-  Int32Sep,
-  Int64,
-  Int64Sep,
-  // Float32Plain,
-  Float32Hex,
-  Float64Plain,
-  Float64Ext,
-  Float64Hex,
-  Date32ISO,
-  Str32,
-  Str64,
+static void parse_void(const ParseContext& ctx) {
+  ctx.target->int8 = -128;
+}
 
-  // PT::COUNT is the total number of parser types
-  COUNT
-};
+REGISTER_PARSER(PT::Void)
+    ->parser(parse_void)
+    ->name("Empty")
+    ->code('V')
+    ->type(Type::bool8())
+    ->successors({PT::Bool01, PT::BoolU, PT::BoolT, PT::BoolL, PT::Int32,
+                  PT::Int32Sep, PT::Int64, PT::Int64Sep, PT::Float32Hex,
+                  PT::Float64Plain, PT::Float64Ext, PT::Float64Hex,
+                  PT::Date32ISO, PT::Str32});
+
 
 
 
 }}  // namespace dt::read::
-#endif

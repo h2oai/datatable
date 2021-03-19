@@ -34,10 +34,7 @@ class ParserInfo2;
 
 class ParserLibrary2 {
   public:
-    static std::vector<ParserInfo2*>& all_parsers() {
-      static std::vector<ParserInfo2*> parsers(PT::COUNT, nullptr);
-      return parsers;
-    }
+    static std::vector<ParserInfo2*>& all_parsers();
 };
 
 
@@ -46,19 +43,19 @@ class ParserInfo2 {
   private:
     ParserFnPtr parser_;
     std::string name_;
+    std::vector<PT> successors_;
     Type type_;
     PT id_;
     char code_;
     size_t : 48;
 
   public:
-    ParserInfo2(PT p) : id_(p) {
-      ParserLibrary2::all_parsers()[id_] = this;
-    }
+    ParserInfo2(PT p);
 
     //---- Property getters --------------------------------
     ParserFnPtr parser() const { return parser_; }
     const std::string& name() const { return name_; }
+    const std::vector<PT>& successors() const { return successors_; }
     char code() const { return code_; }
     Type type() const { return type_; }
 
@@ -80,6 +77,11 @@ class ParserInfo2 {
 
     ParserInfo2* type(Type t) {
       type_ = t;
+      return this;
+    }
+
+    ParserInfo2* successors(std::vector<PT>&& sccsss) {
+      successors_ = std::move(sccsss);
       return this;
     }
 };

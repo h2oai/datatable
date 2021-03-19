@@ -19,40 +19,28 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PARSERS_PT_h
-#define dt_READ_PARSERS_PT_h
+#include <iostream>
+#include "read/parsers/library.h"
+#include "utils/assert.h"
 namespace dt {
 namespace read {
 
 
-/**
-  * Parse Type -- each identifier corresponds to one of the
-  * parser functions defined in this directory.
-  */
-enum PT : uint8_t {
-  Void,
-  Bool01,
-  BoolU,
-  BoolT,
-  BoolL,
-  Int32,
-  Int32Sep,
-  Int64,
-  Int64Sep,
-  // Float32Plain,
-  Float32Hex,
-  Float64Plain,
-  Float64Ext,
-  Float64Hex,
-  Date32ISO,
-  Str32,
-  Str64,
 
-  // PT::COUNT is the total number of parser types
-  COUNT
-};
+std::vector<ParserInfo2*>& ParserLibrary2::all_parsers() {
+  static std::vector<ParserInfo2*> parsers(PT::COUNT, nullptr);
+  return parsers;
+}
 
 
 
-}}  // namespace dt::read::
-#endif
+ParserInfo2::ParserInfo2(PT p) : id_(p) {
+  auto& parsers = ParserLibrary2::all_parsers();
+  xassert(id_ < parsers.size() && parsers[id_] == nullptr);
+  parsers[id_] = this;
+}
+
+
+
+
+}}

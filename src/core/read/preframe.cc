@@ -262,7 +262,7 @@ PreFrame::const_iterator PreFrame::end() const {
 //------------------------------------------------------------------------------
 
 std::vector<PT> PreFrame::get_ptypes() const {
-  std::vector<PT> res(columns_.size(), PT::Mu);
+  std::vector<PT> res(columns_.size(), PT::Void);
   save_ptypes(res);
   return res;
 }
@@ -295,7 +295,7 @@ void PreFrame::set_ptypes(const std::vector<PT>& types) {
 
 void PreFrame::reset_ptypes() {
   for (auto& col : columns_) {
-    col.set_ptype(PT::Mu);
+    col.set_ptype(PT::Void);
     col.outcol().set_stype(col.get_stype());
   }
 }

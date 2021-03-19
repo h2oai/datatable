@@ -16,7 +16,6 @@
 #include "utils/macros.h"
 #include "stype.h"
 
-static constexpr int8_t   NA_BOOL8 = -128;
 static constexpr int32_t  NA_INT32 = INT32_MIN;
 static constexpr int64_t  NA_INT64 = INT64_MIN;
 static constexpr uint32_t NA_FLOAT32_I32 = 0x7F8007A2;
@@ -25,27 +24,6 @@ static constexpr uint32_t INF_FLOAT32_I32 = 0x7F800000;
 static constexpr uint64_t INF_FLOAT64_I64 = 0x7FF0000000000000ull;
 
 using namespace dt::read;
-
-
-//------------------------------------------------------------------------------
-// Boolean
-//------------------------------------------------------------------------------
-
-/**
- * "Mu" type is not a boolean -- it's a root for all other types -- however if
- * a column is detected as Mu (i.e. it has no data in it), then we'll return it
- * to the user as a boolean column. This is why we're saving the NA_BOOL8 value
- * here.
- * Note that parsing itself is a noop: Mu type is matched by empty column only,
- * and there is nothing to read nor parsing pointer to advance in an empty
- * column.
- */
-void parse_mu(const ParseContext& ctx) {
-  ctx.target->int8 = NA_BOOL8;
-}
-
-
-
 
 
 
@@ -637,12 +615,13 @@ void ParserLibrary::init_parsers() {
   };
   auto autoadd = [&](dt::read::PT pt) {
     auto info = ParserLibrary2::all_parsers()[pt];
+    xassert(info);
     auto stype = info->type().stype();
     add(pt, info->name().data(), info->code(),
         static_cast<int8_t>(stype_elemsize(stype)), stype, info->parser());
   };
 
-  add(dt::read::PT::Mu,           "Unknown",         '?', 1, dt::SType::BOOL,    parse_mu);
+  autoadd(dt::read::PT::Void);
   autoadd(dt::read::PT::Bool01);
   autoadd(dt::read::PT::BoolL);
   autoadd(dt::read::PT::BoolT);

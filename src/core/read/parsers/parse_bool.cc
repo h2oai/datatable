@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader_parsers.h"  // temporary
 #include "read/field64.h"                // field64
 #include "read/parse_context.h"          // ParseContext
 #include "read/parsers/library.h"
@@ -51,7 +50,9 @@ REGISTER_PARSER(PT::Bool01)
     ->parser(parse_bool8_numeric)
     ->name("Bool8/numeric")
     ->code('b')
-    ->type(Type::bool8());
+    ->type(Type::bool8())
+    ->successors({PT::Int32, PT::Int32Sep, PT::Int64, PT::Int64Sep,
+                  PT::Float64Plain, PT::Float64Ext, PT::Str32});
 
 
 
@@ -78,7 +79,8 @@ REGISTER_PARSER(PT::BoolL)
     ->parser(parse_bool8_lowercase)
     ->name("Bool8/lowercase")
     ->code('b')
-    ->type(Type::bool8());
+    ->type(Type::bool8())
+    ->successors({PT::Str32});
 
 
 
@@ -106,7 +108,8 @@ REGISTER_PARSER(PT::BoolT)
     ->parser(parse_bool8_titlecase)
     ->name("Bool8/titlecase")
     ->code('b')
-    ->type(Type::bool8());
+    ->type(Type::bool8())
+    ->successors({PT::Str32});
 
 
 
@@ -134,7 +137,8 @@ REGISTER_PARSER(PT::BoolU)
     ->parser(parse_bool8_uppercase)
     ->name("Bool8/uppercase")
     ->code('b')
-    ->type(Type::bool8());
+    ->type(Type::bool8())
+    ->successors({PT::Str32});
 
 
 

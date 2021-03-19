@@ -1075,7 +1075,7 @@ def test_almost_nodata(capsys):
     assert d0.ltypes == (ltype.int, ltype.str, ltype.str)
     assert d0.to_list() == [[2017] * n, m, ["foo"] * n]
     assert not err
-    assert ("Column 2 (B) bumped from Unknown to Str32 "
+    assert ("Column 2 (B) bumped from Empty to Str32 "
             "due to <<gotcha>> on row 111" in out)
 
 
