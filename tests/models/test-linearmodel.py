@@ -1013,24 +1013,33 @@ def test_linearmodel_regression_fit_simple_one():
     df_target = dt.Frame([1])
     lm.fit(df_train, df_target)
     assert lm.model_type == "regression"
-    assert_equals(lm.model, dt.Frame([0.01, 0.0099]))
+    assert_equals(lm.model, dt.Frame([lm.eta, lm.eta]), rel_tol = 1e-3)
+
+
+def test_linearmodel_regression_fit_predict_simple_linear():
+    lm = LinearModel(nepochs = 10000, double_precision = True)
+    df_train = dt.Frame([1, 2])
+    df_target = dt.Frame([1, 2])
+    lm.fit(df_train, df_target)
+    assert lm.model_type == "regression"
+    p = lm.predict(dt.Frame([1.5]))
+    assert_equals(p, dt.Frame([1.5]), rel_tol = 1e-3)
 
 
 def test_linearmodel_regression_fit_predict_simple_one_epoch():
-    lm = LinearModel(nepochs = 1)
-    r = list(range(30))
+    lm = LinearModel(nepochs = 1000)
+    r = list(range(10))
     df_train = dt.Frame(r)
-    df_target = dt.Frame(r)
+    df_target = dt.Frame(r/dt.float32)
     lm.fit(df_train, df_target)
-    # p = lm.predict(df_train)
-    # assert_equals(
-    #     lm.labels,
-    #     dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
-    # )
-    # delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
-    # assert lm.labels[:, 0].to_list() == [["C0"]]
-    # assert lm.model_type == "regression"
-    # assert max(delta) < epsilon
+    assert lm.model_type == "regression"
+    p = lm.predict(df_train)
+    print(p, df_train)
+    assert_equals(
+        lm.labels,
+        dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
+    )
+    assert_equals(p, df_target, abs_tol = 1e-3)
 
 
 def test_linearmodel_regression_fit_predict():
@@ -1330,14 +1339,15 @@ def test_linearmodel_pickling_empty_model():
 
 
 def test_linearmodel_reuse_pickled_empty_model():
-    lm_pickled = pickle.dumps(LinearModel())
+    lm = LinearModel()
+    lm_pickled = pickle.dumps(lm)
     lm_unpickled = pickle.loads(lm_pickled)
     df_train = dt.Frame({"id" : [1]})
     df_target = dt.Frame([1.0])
     lm_unpickled.fit(df_train, df_target)
     fi = dt.Frame([["id"], [0.0]/stype.float32])
     fi.names = ["feature_name", "feature_importance"]
-    assert_equals(lm_unpickled.model, dt.Frame([0.01, 0.0099]/stype.float32))
+    assert_equals(lm_unpickled.model, dt.Frame([lm.eta, lm.eta]/stype.float32))
     assert_equals(lm_unpickled.feature_importances, fi)
 
 

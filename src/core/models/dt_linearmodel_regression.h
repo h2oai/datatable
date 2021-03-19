@@ -61,21 +61,14 @@ class LinearModelRegression : public LinearModel<T> {
     /**
      *  Identity function.
      */
-    T linkfn(T x) override {
+    T activation_fn(T x) override {
       return x;
-    }
-
-    /**
-     *  Derivative of identity function.
-     */
-    T dlinkfn(T) override {
-      return T(1);
     }
 
     /**
      *  Quadratic loss.
      */
-    T lossfn(T p, T y) override {
+    T loss_fn(T p, T y) override {
       return (p - y) * (p - y);
     }
 

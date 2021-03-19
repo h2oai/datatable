@@ -168,16 +168,15 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
             for (size_t k = 0; k < label_ids_fit_.size(); ++k) {
+              T p = activation_fn(predict_row(x, k,
+                      [&](size_t f_id, T f_imp) {
+                        fi[f_id] += f_imp;
+                      }
+                    ));
+              T y = target_fn(target, label_ids_fit_[k]);
+              T grad = (p - y);                           // Same gradient for both regression and classification
               // Update all the coefficients with SGD
               for (size_t j = 0; j < nfeatures_ + 1; ++j) {
-
-                T p = linkfn(predict_row(x, k,
-                        [&](size_t f_id, T f_imp) {
-                          fi[f_id] += f_imp;
-                        }
-                      ));
-                T y = targetfn(target, label_ids_fit_[k]);
-                T grad = 2 * dlinkfn(p) * (p - y);
                 if (j) grad *= x[j - 1];
                 grad += copysign(lambda1_, betas_[k][j]); // L1 regularization
                 grad += 2 * lambda2_ * betas_[k][j];      // L2 regularization
@@ -209,11 +208,11 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
             if (isvalid && _isfinite(y_val) && read_row(i, cols_val, x)) {
               for (size_t k = 0; k < label_ids_val_.size(); ++k) {
-                T p = linkfn(predict_row(
+                T p = activation_fn(predict_row(
                         x, k, [&](size_t, T){}
                       ));
-                T y = targetfn(y_val, label_ids_val_[k]);
-                loss_local += lossfn(p, y);
+                T y = target_fn(y_val, label_ids_val_[k]);
+                loss_local += loss_fn(p, y);
               }
             }
 
@@ -343,7 +342,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
       if (read_row(i, cols, x)) {
         for (size_t k = 0; k < get_nclasses(); ++k) {
           size_t label_id = get_label_id(k, data_label_ids);
-          data_p[k][i] = linkfn(predict_row(x, label_id, [&](size_t, T){}));
+          data_p[k][i] = activation_fn(predict_row(x, label_id, [&](size_t, T){}));
         }
       }
 
@@ -634,17 +633,8 @@ void LinearModel<T>::set_labels(const DataTable& dt_labels) {
  *  Sigmoid function.
  */
 template <typename T>
-T LinearModel<T>::linkfn(T x) {
+T LinearModel<T>::activation_fn(T x) {
   return T(1) / (T(1) + std::exp(-x));
-}
-
-
-/**
- *  Derivative of sigmoid function.
- */
-template <typename T>
-T LinearModel<T>::dlinkfn(T x) {
-  return std::exp(-x) / pow(T(1) + std::exp(-x), T(2));
 }
 
 
@@ -652,7 +642,7 @@ T LinearModel<T>::dlinkfn(T x) {
  *  Logloss.
  */
 template <typename T>
-T LinearModel<T>::lossfn(T p, T y) {
+T LinearModel<T>::loss_fn(T p, T y) {
   constexpr T epsilon = std::numeric_limits<T>::epsilon();
   p = std::max(std::min(p, 1 - epsilon), epsilon);
   return -std::log(p * (2*y - 1) + 1 - y);
@@ -664,7 +654,7 @@ T LinearModel<T>::lossfn(T p, T y) {
  */
 template <typename T>
 template <typename U>
-T LinearModel<T>::targetfn(U y, size_t label_id) {
+T LinearModel<T>::target_fn(U y, size_t label_id) {
   return static_cast<T>(static_cast<size_t>(y) == label_id);
 };
 
@@ -673,7 +663,7 @@ T LinearModel<T>::targetfn(U y, size_t label_id) {
  *  Target function for regression.
  */
 template <typename T>
-T LinearModel<T>::targetfn(T y, size_t) {
+T LinearModel<T>::target_fn(T y, size_t) {
   return y;
 };
 
