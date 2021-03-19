@@ -23,6 +23,8 @@
 #define dt_CSV_READER_PARSERS_h
 #include <iterator>    // std::input_iterator_tag
 #include "_dt.h"
+#include "read/parsers/library.h"
+#include "read/parsers/pt.h"
 
 typedef void (*ParserFnPtr)(const dt::read::ParseContext& ctx);
 typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
@@ -36,10 +38,6 @@ typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 //
 
 void parse_mu(const dt::read::ParseContext&);
-void parse_bool8_numeric(const dt::read::ParseContext&);
-void parse_bool8_uppercase(const dt::read::ParseContext&);
-void parse_bool8_lowercase(const dt::read::ParseContext&);
-void parse_bool8_titlecase(const dt::read::ParseContext&);
 void parse_int32_simple(const dt::read::ParseContext&);
 void parse_int64_simple(const dt::read::ParseContext&);
 void parse_float32_hex(const dt::read::ParseContext&);
@@ -68,30 +66,6 @@ namespace read {
 namespace dt {
 namespace read {
 
-
-/**
- * Parse Type -- each identifier corresponds to one of the parser functions
- * listed above.
- */
-enum PT : uint8_t {
-  Mu,
-  Bool01,
-  BoolU,
-  BoolT,
-  BoolL,
-  Int32,
-  Int32Sep,
-  Int64,
-  Int64Sep,
-  // Float32Plain,
-  Float32Hex,
-  Float64Plain,
-  Float64Ext,
-  Float64Hex,
-  Date32ISO,
-  Str32,
-  Str64,
-};
 
 
 /**

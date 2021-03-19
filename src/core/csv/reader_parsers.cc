@@ -45,66 +45,7 @@ void parse_mu(const ParseContext& ctx) {
 }
 
 
-/* Parse numbers 0 | 1 as boolean. */
-void parse_bool8_numeric(const ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  // *ch=='0' => d=0,
-  // *ch=='1' => d=1,
-  // *ch==(everything else) => d>1
-  uint8_t d = ch < ctx.eof? static_cast<uint8_t>(*ch - '0') : uint8_t(-1);
 
-  if (d <= 1) {
-    ctx.target->int8 = static_cast<int8_t>(d);
-    ctx.ch = ch + 1;
-  } else {
-    ctx.target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse lowercase true | false as boolean. */
-void parse_bool8_lowercase(const ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  if (ch + 4 < ctx.eof && ch[0]=='f' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    ctx.target->int8 = 0;
-    ctx.ch = ch + 5;
-  } else if (ch + 3 < ctx.eof && ch[0]=='t' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    ctx.target->int8 = 1;
-    ctx.ch = ch + 4;
-  } else {
-    ctx.target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse titlecase True | False as boolean. */
-void parse_bool8_titlecase(const ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='a' && ch[2]=='l' && ch[3]=='s' && ch[4]=='e') {
-    ctx.target->int8 = 0;
-    ctx.ch = ch + 5;
-  } else if (ch + 3 < ctx.eof && ch[0]=='T' && ch[1]=='r' && ch[2]=='u' && ch[3]=='e') {
-    ctx.target->int8 = 1;
-    ctx.ch = ch + 4;
-  } else {
-    ctx.target->int8 = NA_BOOL8;
-  }
-}
-
-
-/* Parse uppercase TRUE | FALSE as boolean. */
-void parse_bool8_uppercase(const ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  if (ch + 4 < ctx.eof && ch[0]=='F' && ch[1]=='A' && ch[2]=='L' && ch[3]=='S' && ch[4]=='E') {
-    ctx.target->int8 = 0;
-    ctx.ch = ch + 5;
-  } else if (ch + 3 < ctx.eof && ch[0]=='T' && ch[1]=='R' && ch[2]=='U' && ch[3]=='E') {
-    ctx.target->int8 = 1;
-    ctx.ch = ch + 4;
-  } else {
-    ctx.target->int8 = NA_BOOL8;
-  }
-}
 
 
 
@@ -694,12 +635,18 @@ void ParserLibrary::init_parsers() {
     parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
     parser_fns[iid] = ptr;
   };
+  auto autoadd = [&](dt::read::PT pt) {
+    auto info = ParserLibrary2::all_parsers()[pt];
+    auto stype = info->type().stype();
+    add(pt, info->name().data(), info->code(),
+        static_cast<int8_t>(stype_elemsize(stype)), stype, info->parser());
+  };
 
   add(dt::read::PT::Mu,           "Unknown",         '?', 1, dt::SType::BOOL,    parse_mu);
-  add(dt::read::PT::Bool01,       "Bool8/numeric",   'b', 1, dt::SType::BOOL,    parse_bool8_numeric);
-  add(dt::read::PT::BoolU,        "Bool8/uppercase", 'b', 1, dt::SType::BOOL,    parse_bool8_uppercase);
-  add(dt::read::PT::BoolT,        "Bool8/titlecase", 'b', 1, dt::SType::BOOL,    parse_bool8_titlecase);
-  add(dt::read::PT::BoolL,        "Bool8/lowercase", 'b', 1, dt::SType::BOOL,    parse_bool8_lowercase);
+  autoadd(dt::read::PT::Bool01);
+  autoadd(dt::read::PT::BoolL);
+  autoadd(dt::read::PT::BoolT);
+  autoadd(dt::read::PT::BoolU);
   add(dt::read::PT::Int32,        "Int32",           'i', 4, dt::SType::INT32,   parse_int_simple<int32_t, true>);
   add(dt::read::PT::Int32Sep,     "Int32/grouped",   'i', 4, dt::SType::INT32,   parse_intNN_grouped<int32_t>);
   add(dt::read::PT::Int64,        "Int64",           'I', 8, dt::SType::INT64,   parse_int_simple<int64_t, true>);
