@@ -22,8 +22,9 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datetime
-import datatable as dt
 import pytest
+import random
+from datatable import dt, f
 from tests import assert_equals
 
 
@@ -81,6 +82,21 @@ def test_date32_repr():
     )
 
 
+def test_date32_repr_negative_dates():
+    DT = dt.Frame([-700000, -720000, -730000, -770000, -2000000], stype='date32')
+    assert str(DT) == (
+        "   | C0         \n"
+        "   | date32     \n"
+        "-- + -----------\n"
+        " 0 | 0053-06-19 \n"
+        " 1 | -002-09-16 \n"
+        " 2 | -029-05-01 \n"
+        " 3 | -139-10-24 \n"
+        " 4 | -3506-03-09\n"
+        "[5 rows x 1 column]\n"
+    )
+
+
 def test_date32_min():
     DT = dt.Type.date32.min
     assert isinstance(DT, dt.Frame)
@@ -128,6 +144,41 @@ def test_from_numpy_with_nats(np):
 
 
 #-------------------------------------------------------------------------------
+# Convert to/from Jay
+#-------------------------------------------------------------------------------
+
+def test_save_to_jay(tempfile_jay):
+    d = datetime.date
+    src = [d(1, 1, 1), d(2001, 12, 13), d(2026, 5, 9), None, d(1956, 11, 11)]
+    DT = dt.Frame(src)
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT2 = dt.fread(tempfile_jay)
+    assert DT2.shape == (5, 1)
+    assert DT2.types == [dt.Type.date32]
+    assert DT2.to_list()[0] == src
+
+
+def test_with_stats(tempfile_jay):
+    DT = dt.Frame([-1, 0, 1, None, 12, 3, None], stype='date32')
+    # precompute stats so that they get stored in the Jay file
+    assert DT.countna1() == 2
+    assert DT.min1() == datetime.date(1969, 12, 31)
+    assert DT.max1() == datetime.date(1970, 1, 13)
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT = dt.fread(tempfile_jay)
+    # assert_equals() also checks frame integrity, including validity of stats
+    assert_equals(DT,
+        dt.Frame([-1, 0, 1, None, 12, 3, None], stype='date32'))
+    assert DT.countna1() == 2
+    assert DT.min1() == datetime.date(1969, 12, 31)
+    assert DT.max1() == datetime.date(1970, 1, 13)
+
+
+
+
+#-------------------------------------------------------------------------------
 # Write to csv
 #-------------------------------------------------------------------------------
 
@@ -160,8 +211,8 @@ def test_write_huge_dates():
     assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
     assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
 
-    
-    
+
+
 #-------------------------------------------------------------------------------
 # Convert to pandas
 #-------------------------------------------------------------------------------
@@ -220,3 +271,88 @@ def test_date32_to_arrow(pa):
     assert tbl.to_pydict() == {"C0": [
         d(1970, 1, 18), d(2927, 10, 28), d(2213, 5, 15), None, d(2018, 9, 3)
     ]}
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('seed', [random.getrandbits(32)])
+def test_date32_sort(seed):
+    random.seed(seed)
+    n = int(10 + random.expovariate(0.01))
+    src = [int(random.random() * 100000) for i in range(n)]
+    DT = dt.Frame(src, stype='date32')
+    RES = DT[:, :, dt.sort(f[0])]
+    assert_equals(RES, dt.Frame(sorted(src), stype='date32'))
+
+
+def test_date32_sort_with_NAs():
+    d = datetime.date
+    src = [d(2001, 12, 1), None, d(3000, 3, 30), None, d(1, 1, 1)]
+    RES = dt.Frame(src)[:, :, dt.sort(f[0])]
+    assert_equals(RES,
+        dt.Frame([None, None, d(1, 1, 1), d(2001, 12, 1), d(3000, 3, 30)]))
+
+
+def test_date32_stats():
+    DT = dt.Frame([0, 12, None, 100, -3, 12], stype='date32')
+    assert DT.min1() == datetime.date(1969, 12, 29)
+    assert DT.max1() == datetime.date(1970, 4, 11)
+    assert DT.mode1() == datetime.date(1970, 1, 13)
+    assert DT.countna1() == 1
+
+
+def test_date32_materialize():
+    DT = dt.Frame(A = range(1, 5))
+    RES = DT[:, dt.time.ymd(2000, 1, f.A)]
+    assert dt.internal.frame_columns_virtual(RES)[0]
+    RES.materialize()
+    assert_equals(RES,
+        dt.Frame([datetime.date(2000, 1, i) for i in range(1, 5)]))
+
+
+def test_date32_materialize_na():
+    DT = dt.Frame(A=[1, 3, 5], stype='date32')
+    DT['A'] = None
+    DT.materialize()
+    assert_equals(DT, dt.Frame(A = [None]*3, stype='date32'))
+
+
+def test_date32_repeat():
+    DT = dt.Frame([11], stype='date32')
+    RES = dt.repeat(DT, 10)
+    assert_equals(RES, dt.Frame([11]*10, stype='date32'))
+    RES2 = dt.repeat(RES, 5)
+    assert_equals(RES2, dt.Frame([11]*50, stype='date32'))
+
+
+def test_date32_in_groupby():
+    DT = dt.Frame(A=[1, 2, 3]*1000, B=list(range(3000)), stypes={"B": "date32"})
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)},
+            dt.by(f.A)]
+    date32 = dt.stype.date32
+    assert_equals(RES,
+        dt.Frame(A=[1, 2, 3],
+                 count = [1000] * 3 / dt.int64,
+                 min = [0, 1, 2] / date32,
+                 max = [2997, 2998, 2999] / date32,
+                 first = [0, 1, 2] / date32,
+                 last = [2997, 2998, 2999] / date32))
+
+
+def test_select_dates():
+    d = datetime.date
+    DT = dt.Frame(A=[12], B=[d(2000, 12, 20)], C=[True])
+    assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.bool8]
+    RES1 = DT[:, f[d]]
+    RES2 = DT[:, d]
+    RES3 = DT[:, dt.ltype.time]
+    assert_equals(RES1, DT['B'])
+    assert_equals(RES2, DT['B'])
+    assert_equals(RES3, DT['B'])

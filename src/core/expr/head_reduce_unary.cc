@@ -1008,6 +1008,7 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
     case SType::BOOL:
     case SType::INT8:    return _count<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _count<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
     case SType::INT32:   return _count<int32_t>(std::move(arg), gby);
     case SType::INT64:   return _count<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _count<float>(std::move(arg), gby);
@@ -1078,6 +1079,7 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
     case SType::BOOL:
     case SType::INT8:    return _gcount<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _gcount<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
     case SType::INT32:   return _gcount<int32_t>(std::move(arg), gby);
     case SType::INT64:   return _gcount<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _gcount<float>(std::move(arg), gby);
@@ -1298,24 +1300,26 @@ bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
 
 
 template <typename T, bool MM>
-static Column _minmax(Column&& arg, const Groupby& gby) {
+static Column _minmax(SType stype, Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
-                 stype_from<T>, std::move(arg), gby, minmax_reducer<T, MM>
+                 stype, std::move(arg), gby, minmax_reducer<T, MM>
             )));
 }
 
 template <bool MIN>
 static Column compute_minmax(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
+  auto st = arg.stype();
+  switch (st) {
     case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, MIN>(std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, MIN>(std::move(arg), gby);
-    case SType::INT32:   return _minmax<int32_t, MIN>(std::move(arg), gby);
-    case SType::INT64:   return _minmax<int64_t, MIN>(std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, MIN>(std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, MIN>(std::move(arg), gby);
+    case SType::INT8:    return _minmax<int8_t, MIN>(st, std::move(arg), gby);
+    case SType::INT16:   return _minmax<int16_t, MIN>(st, std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _minmax<int32_t, MIN>(st, std::move(arg), gby);
+    case SType::INT64:   return _minmax<int64_t, MIN>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _minmax<float, MIN>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _minmax<double, MIN>(st, std::move(arg), gby);
     default: throw _error(MIN? "min" : "max", arg.stype());
   }
 }
