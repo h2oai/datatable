@@ -31,15 +31,14 @@ namespace read {
   * empty column only, and there is nothing to read nor parsing
   * pointer to advance for an empty column.
   */
-static void parse_void(const ParseContext& ctx) {
-  ctx.target->int8 = -128;
+static void parse_void(const ParseContext&) {
 }
 
 REGISTER_PARSER(PT::Void)
     ->parser(parse_void)
     ->name("Empty")
     ->code('V')
-    ->type(Type::bool8())
+    ->type(Type::void0())
     ->successors({PT::Bool01, PT::BoolU, PT::BoolT, PT::BoolL, PT::Int32,
                   PT::Int32Sep, PT::Int64, PT::Int64Sep, PT::Float32Hex,
                   PT::Float64Plain, PT::Float64Ext, PT::Float64Hex,
