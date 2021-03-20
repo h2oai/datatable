@@ -37,19 +37,11 @@ typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
 
-void parse_int32_simple(const dt::read::ParseContext&);
-void parse_int64_simple(const dt::read::ParseContext&);
 void parse_float32_hex(const dt::read::ParseContext&);
 void parse_float64_simple(const dt::read::ParseContext& ctx);
 void parse_float64_extended(const dt::read::ParseContext& ctx);
 void parse_float64_hex(const dt::read::ParseContext&);
 void parse_date32_iso(const dt::read::ParseContext&);
-
-template <typename T, bool ALLOW_LEADING_ZEROES>
-void parse_int_simple(const dt::read::ParseContext&);
-
-extern template void parse_int_simple<int32_t, true>(const dt::read::ParseContext&);
-extern template void parse_int_simple<int64_t, true>(const dt::read::ParseContext&);
 
 namespace dt {
 namespace read {
