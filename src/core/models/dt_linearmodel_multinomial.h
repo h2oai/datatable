@@ -29,7 +29,7 @@ namespace dt {
 
 
 /**
- *  A class for multinomial classification.
+ *  Multinomial classification.
  */
 template <typename T /* float or double */>
 class LinearModelMultinomial : public LinearModel<T> {

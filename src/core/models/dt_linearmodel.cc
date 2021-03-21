@@ -161,9 +161,10 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
                                                    (iter + 1) * iteration_nrows;
         size_t iteration_size = iteration_end - iteration_start;
 
-        // Training.
+        // Training
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X_fit_->nrows(); U target;
+          size_t ii = (iteration_start + i) % dt_X_fit_->nrows();
+          U target;
           bool isvalid = col_y_fit_.get_element(ii, &target);
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
@@ -174,16 +175,20 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
                       }
                     ));
               T y = target_fn(target, label_ids_fit_[k]);
-              T grad = (p - y);                           // Same gradient for both regression and classification
-              // Update all the coefficients with SGD
-              for (size_t j = 0; j < nfeatures_ + 1; ++j) {
-                if (j) grad *= x[j - 1];
-                grad += copysign(lambda1_, betas_[k][j]); // L1 regularization
-                grad += 2 * lambda2_ * betas_[k][j];      // L2 regularization
 
-                // Update coefficients only when the final `grad` is finite
-                if (_isfinite(grad)) {
-                  betas_[k][j] -= eta_ * grad;
+              // If we use sigmoid activation, gradients for linear and logistic
+              // regressions are the same
+              T gradient = (p - y);
+
+              // Update `betas_` with SGD, j = 0 corresponds to the bias term
+              for (size_t j = 0; j < nfeatures_ + 1; ++j) {
+                if (j) gradient *= x[j - 1];
+                gradient += copysign(lambda1_, betas_[k][j]); // L1 regularization
+                gradient += 2 * lambda2_ * betas_[k][j];      // L2 regularization
+
+                // Update coefficients only when the final gradient is finite
+                if (_isfinite(gradient)) {
+                  betas_[k][j] -= eta_ * gradient;
                 }
               }
             }
@@ -194,10 +199,10 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
             job.add_done_amount(1);
           }
 
-        }); // End training.
+        }); // End training
         barrier();
 
-        // Validation and early stopping.
+        // Validation and early stopping
         if (validation) {
           dt::atomic<T> loss_global {0.0};
           T loss_local = 0.0;
@@ -243,7 +248,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
             if (dt::this_thread_index() == 0) {
               job.set_message("Stopping at epoch " + tostr(epoch) +
                               ", loss = " + tostr(loss));
-              // In some cases this makes progress "jumping" to 100%.
+              // In some cases this makes progress "jumping" to 100%
               job.set_done_amount(work_total);
             }
             break;
@@ -254,13 +259,13 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           }
         } // End validation
 
-        // Update global feature importances with the local data.
+        // Update global feature importances with the local data
         std::lock_guard<std::mutex> lock(m);
         for (size_t i = 0; i < nfeatures_; ++i) {
           data_fi[i] += fi[i];
         }
 
-      } // End iteration.
+      } // End iteration
 
     }
   );

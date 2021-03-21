@@ -28,7 +28,7 @@ namespace dt {
 
 
 /**
- *  A class for numeric regression.
+ *  Numeric regression.
  */
 template <typename T /* float or double */>
 class LinearModelRegression : public LinearModel<T> {

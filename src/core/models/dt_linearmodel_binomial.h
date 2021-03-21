@@ -28,7 +28,7 @@ namespace dt {
 
 
 /**
- *  A class for binomial classification. Note, we only train the positive class
+ *  Binomial classification. Note, we only train the positive class
  *  in this case.
  */
 template <typename T /* float or double */>
