@@ -39,14 +39,12 @@ enum PT : uint8_t {
   Int32Sep,
   Int64,
   Int64Sep,
-  // Float32Plain,
   Float32Hex,
   Float64Plain,
   Float64Ext,
   Float64Hex,
   Date32ISO,
   Str32,
-  Str64,
 
   // PT::COUNT is the total number of parser types
   COUNT

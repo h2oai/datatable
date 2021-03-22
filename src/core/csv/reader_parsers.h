@@ -30,22 +30,6 @@ typedef void (*ParserFnPtr)(const dt::read::ParseContext& ctx);
 typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 
 
-// In order to add a new type:
-//   - implement a new parser function `void (*)(const dt::read::ParseContext&)`
-//   - add a new identifier into `enum PT`
-//   - declare this parser in `ParserLibrary::init_parsers()`
-//   - update `test_fread_fillna1` in test_fread.py to include the new type
-//
-// void parse_date32_iso(const dt::read::ParseContext&);
-
-namespace dt {
-namespace read {
-
-  // void parse_string(const dt::read::ParseContext&);
-
-}}
-
-
 //------------------------------------------------------------------------------
 // Do not use "enum class" here: we want these enums to be implicitly
 // convertible into integers, so that we can use them as array indices.
@@ -198,7 +182,7 @@ class ParserLibrary {
     int64_t : 64;
 
   public:
-    static constexpr size_t num_parsers = static_cast<size_t>(dt::read::PT::Str64) + 1;
+    static constexpr size_t num_parsers = static_cast<size_t>(dt::read::PT::COUNT);
     ParserLibrary();
     ParserLibrary(const ParserLibrary&) = delete;
     void operator=(const ParserLibrary&) = delete;

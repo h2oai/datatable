@@ -61,8 +61,6 @@ void ParserLibrary::init_parsers() {
   autoadd(dt::read::PT::Float64Hex);
   autoadd(dt::read::PT::Date32ISO);
   autoadd(dt::read::PT::Str32);
-  // add(dt::read::PT::Str32,        "Str32",           's', 4, dt::SType::STR32,   dt::read::parse_string);
-  add(dt::read::PT::Str64,        "Str64",           'S', 8, dt::SType::STR64,   dt::read::parse_string);
 }
 
 
