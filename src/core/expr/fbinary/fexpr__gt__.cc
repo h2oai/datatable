@@ -33,11 +33,11 @@ static bool op_gt(ref_t<T> x, bool xvalid, ref_t<T> y, bool yvalid, int8_t* out)
 }
 
 template <typename T>
-static Column make(Column&& a, Column&& b, SType stype) {
-  xassert(compatible_type<T>(stype));
+static Column make(Column&& a, Column&& b, dt::Type type) {
+  xassert(type.can_be_read_as<T>());
   size_t nrows = a.nrows();
-  a.cast_inplace(stype);
-  b.cast_inplace(stype);
+  a.cast_inplace(type);
+  b.cast_inplace(type);
   return Column(new FuncBinary2_ColumnImpl<T, T, int8_t>(
     std::move(a), std::move(b), op_gt<T>, nrows, SType::BOOL
   ));
@@ -56,24 +56,25 @@ int FExpr__gt__::precedence() const noexcept {
 
 Column FExpr__gt__::evaluate1(Column&& lcol, Column&& rcol) const {
   xassert(lcol.nrows() == rcol.nrows());
-  auto stype1 = lcol.stype();
-  auto stype2 = rcol.stype();
-  auto stype0 = common_stype(stype1, stype2);
+  auto type1 = lcol.type();
+  auto type2 = rcol.type();
+  auto type0 = Type::common(type1, type2);
 
-  switch (stype0) {
+  switch (type0.stype()) {
     case SType::VOID:
     case SType::BOOL:
     case SType::INT8:
-    case SType::INT16:
-    case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), SType::INT32);
-    case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
-    case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), stype0);
-    case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), stype0);
+    case SType::INT16:   type0 = dt::Type::int32(); FALLTHROUGH;
+    case SType::DATE32:
+    case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), type0);
+    case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), type0);
+    case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), type0);
+    case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), type0);
     case SType::STR32:
-    case SType::STR64:   return make<CString>(std::move(lcol), std::move(rcol), stype0);
+    case SType::STR64:   return make<CString>(std::move(lcol), std::move(rcol), type0);
     default:
-        throw TypeError() << "Operator `" << name() << "` cannot be applied to "
-            "columns with types `" << stype1 << "` and `" << stype2 << "`";
+        throw TypeError() << "Operator `>` cannot be applied to "
+            "columns with types `" << type1 << "` and `" << type2 << "`";
   }
 }
 

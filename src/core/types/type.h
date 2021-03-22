@@ -80,6 +80,7 @@ class Type {
     const char* struct_format() const;
 
     SType stype() const;
+    bool is_void() const;
     bool is_boolean() const;
     bool is_integer() const;
     bool is_invalid() const;
@@ -106,6 +107,8 @@ class Type {
     // be promoted into `Type::invalid()`.
     //
     void promote(const Type& other);
+
+    static Type common(const Type&, const Type&);
 
   private:
     Type(TypeImpl*&&) noexcept;

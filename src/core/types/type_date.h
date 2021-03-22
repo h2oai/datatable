@@ -47,7 +47,7 @@ class Type_Date32 : public TypeImpl {
     const char* struct_format() const override { return "i"; }
 
     TypeImpl* common_type(TypeImpl* other) override {
-      if (this->stype() == other->stype()) {
+      if (other->stype() == SType::DATE32 || other->is_void()) {
         return this;
       }
       if (other->is_object() || other->is_invalid()) {
