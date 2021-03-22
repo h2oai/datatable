@@ -8,7 +8,6 @@
 #include <iostream>
 #include <limits>                        // std::numeric_limits
 #include "csv/reader_parsers.h"
-#include "lib/hh/date.h"
 #include "read/parse_context.h"          // ParseContext
 #include "read/field64.h"                // field64
 #include "read/constants.h"              // hexdigits, pow10lookup
@@ -16,7 +15,6 @@
 #include "utils/macros.h"
 #include "stype.h"
 
-static constexpr int32_t  NA_INT32 = INT32_MIN;
 
 using namespace dt::read;
 
@@ -26,63 +24,7 @@ using namespace dt::read;
 
 
 
-//------------------------------------------------------------------------------
-// Date32
-//------------------------------------------------------------------------------
 
-static bool parse_year(const char** pch, const char* eof, int32_t* out) {
-  const char* ch = *pch;
-  if (ch == eof) return false;
-  bool neg = (*ch == '-');
-  ch += neg;
-  if (ch + 7 < eof) eof = ch + 7;  // year can have up to 7 digits
-  const char* ch0 = ch;
-  int32_t value = 0;
-  uint8_t digit;
-  while (ch < eof && (digit = static_cast<uint8_t>(*ch - '0')) < 10) {
-    value = value * 10 + static_cast<int32_t>(digit);
-    ch++;
-  }
-  if (ch0 == ch) return false;
-  if (neg) value = -value;
-  *out = value;
-  *pch = ch;
-  return true;
-}
-
-static bool parse_2digits(const char** pch, const char* eof, int32_t* out) {
-  const char* ch = *pch;
-  if (ch + 2 >= eof) return false;
-  uint8_t digit0 = static_cast<uint8_t>(ch[0] - '0');
-  uint8_t digit1 = static_cast<uint8_t>(ch[1] - '0');
-  if (digit0 < 10 && digit1 < 10) {
-    *out = static_cast<int32_t>(digit0) * 10 + static_cast<int32_t>(digit1);
-    *pch = ch + 2;
-    return true;
-  }
-  return false;
-}
-
-void parse_date32_iso(const ParseContext& ctx) {
-  const char* ch = ctx.ch;
-  int32_t year, month, day;
-  if (!parse_year(&ch, ctx.eof, &year)) goto fail;
-  if (!(ch < ctx.eof && *ch == '-')) goto fail;
-  ch++;
-  if (!parse_2digits(&ch, ctx.eof, &month)) goto fail;
-  if (!(ch < ctx.eof && *ch == '-')) goto fail;
-  ch++;
-  if (!parse_2digits(&ch, ctx.eof, &day)) goto fail;
-  if (!(year >= -5877641 && year <= 5879610)) goto fail;
-  if (!(month >= 1 && month <= 12)) goto fail;
-  if (!(day >= 1 && day <= hh::last_day_of_month(year, month))) goto fail;
-  ctx.target->int32 = hh::days_from_civil(year, month, day);
-  ctx.ch = ch;
-  return;
-
-  fail:
-    ctx.target->int32 = NA_INT32;
-}
 
 
 
@@ -127,7 +69,7 @@ void ParserLibrary::init_parsers() {
   autoadd(dt::read::PT::Float64Plain);
   autoadd(dt::read::PT::Float64Ext);
   autoadd(dt::read::PT::Float64Hex);
-  add(dt::read::PT::Date32ISO,    "Date32/iso",      'D', 4, dt::SType::DATE32,  parse_date32_iso);
+  autoadd(dt::read::PT::Date32ISO);
   add(dt::read::PT::Str32,        "Str32",           's', 4, dt::SType::STR32,   dt::read::parse_string);
   add(dt::read::PT::Str64,        "Str64",           'S', 8, dt::SType::STR64,   dt::read::parse_string);
 }
