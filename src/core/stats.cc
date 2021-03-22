@@ -504,20 +504,32 @@ void StringStats::set_mode(const dt::CString& value, bool isvalid) {
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
   xassert(col->type().can_be_read_as<T>());
-  std::atomic<size_t> total_countna { 0 };
-  dt::parallel_region(
-    dt::NThreads(col->allow_parallel_access()),
-    [&] {
-      T target;
-      size_t thread_countna = 0;
-      dt::nested_for_static(col->nrows(),
-        [&](size_t i) {
-          bool isvalid = col->get_element(i, &target);
-          thread_countna += !isvalid;
-        });
-      total_countna += thread_countna;
-    });
-  return total_countna.load();
+  size_t n = col->nrows();
+  if (n <= 32) {
+    T target;
+    size_t countna = 0;
+    for (size_t i = 0; i < n; ++i) {
+      bool isvalid = col->get_element(i, &target);
+      countna += !isvalid;
+    }
+    return countna;
+  }
+  else {
+    std::atomic<size_t> total_countna { 0 };
+    dt::parallel_region(
+      dt::NThreads(col->allow_parallel_access()),
+      [&] {
+        T target;
+        size_t thread_countna = 0;
+        dt::nested_for_static(n,
+          [&](size_t i) {
+            bool isvalid = col->get_element(i, &target);
+            thread_countna += !isvalid;
+          });
+        total_countna += thread_countna;
+      });
+    return total_countna.load();
+  }
 }
 
 void Stats::compute_nacount() { throw NotImplError(); }
