@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,8 @@
 // Simplified test framework. Use as follows:
 //
 // In a C++ file:
+//
+//      #include "utils/tests.h"
 //
 //      TEST(suite_name, test_name) {
 //        ... test body ...

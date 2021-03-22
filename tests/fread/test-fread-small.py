@@ -33,7 +33,13 @@ import random
 import re
 import time
 from datatable.internal import frame_integrity_check
-from tests import random_string, list_equals, assert_equals
+from tests import random_string, list_equals, assert_equals, get_core_tests
+
+
+@pytest.mark.parametrize("testname", get_core_tests("fread"), indirect=True)
+def test_core_fread(testname):
+    # Run all core tests in suite "fread"
+    dt.lib.core.run_test("fread", testname)
 
 
 
