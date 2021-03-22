@@ -36,11 +36,6 @@ typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 //   - declare this parser in `ParserLibrary::init_parsers()`
 //   - update `test_fread_fillna1` in test_fread.py to include the new type
 //
-
-void parse_float32_hex(const dt::read::ParseContext&);
-void parse_float64_simple(const dt::read::ParseContext& ctx);
-void parse_float64_extended(const dt::read::ParseContext& ctx);
-void parse_float64_hex(const dt::read::ParseContext&);
 void parse_date32_iso(const dt::read::ParseContext&);
 
 namespace dt {
