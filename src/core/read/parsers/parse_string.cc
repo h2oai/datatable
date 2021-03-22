@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,13 +21,13 @@
 //------------------------------------------------------------------------------
 #include <cstring>                       // std::memcpy
 #include <iostream>
+#include "_dt.h"
 #include "csv/reader_parsers.h"
+#include "encodings.h"
+#include "py_encodings.h"
 #include "read/field64.h"                // field64
 #include "read/parse_context.h"          // ParseContext
 #include "utils/assert.h"
-#include "_dt.h"
-#include "encodings.h"
-#include "py_encodings.h"
 namespace dt {
 namespace read {
 
@@ -405,6 +405,14 @@ void parse_string(const ParseContext& ctx) {
     }
   }
 }
+
+
+REGISTER_PARSER(PT::Str32)
+    ->parser(parse_string)
+    ->name("Str32")
+    ->code('s')
+    ->type(Type::str32())
+    ->successors({});
 
 
 
