@@ -90,8 +90,10 @@ class LinearModel : public LinearModelBase {
     std::vector<size_t> label_ids_val_;
 
     virtual LinearModelFitOutput fit_model() = 0;
-    template <typename U> LinearModelFitOutput fit_impl();
-    template <typename F> T predict_row(const tptr<T>& x, const size_t, F);
+    template <typename U>
+    LinearModelFitOutput fit_impl();
+    template <typename F>
+    T predict_row(const tptr<T>& x, const std::vector<T*>, const size_t, F);
     dtptr create_p(size_t);
     virtual void finalize_predict(std::vector<T*>, const size_t, const int32_t*) {}
 
@@ -99,7 +101,7 @@ class LinearModel : public LinearModelBase {
     void create_model();
     void adjust_model();
     void init_model();
-    void init_coefficients();
+    std::vector<T*> get_model_data(const dtptr&);
 
     // Feature importance helper methods
     void create_fi();

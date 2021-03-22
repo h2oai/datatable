@@ -81,12 +81,17 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
 
 
 
-def assert_equals(frame1, frame2, rel_tol = 1e-7, abs_tol = 0.0):
+def assert_equals(frame1, frame2, rel_tol = 1e-7, abs_tol = None):
     """
     Helper function to assert that 2 frames are equal to each other.
     """
     frame_integrity_check(frame1)
     frame_integrity_check(frame2)
+
+    # The default value of `abs_tol` is set to `rel_tol`
+    if abs_tol is None:
+        abs_tol = rel_tol
+
     assert frame1.shape == frame2.shape, (
         "The left frame has shape %r, while the right has shape %r"
         % (frame1.shape, frame2.shape))

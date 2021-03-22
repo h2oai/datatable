@@ -84,22 +84,24 @@ LinearModelFitOutput LinearModel<T>::fit(
 
 /**
  *  Fit a model by using ordinary least squares formulation with
- *  stohastic gradient descent learning and elastic net regularization,
+ *  parallel stohastic gradient descent learning and elastic net regularization,
  *  see these references for more details:
  *  - https://en.wikipedia.org/wiki/Stochastic_gradient_descent
  *  - https://en.wikipedia.org/wiki/Elastic_net_regularization
+ *  - http://martin.zinkevich.org/publications/nips2010.pdf
  */
 template <typename T>
 template <typename U> /* target column(s) data type */
 LinearModelFitOutput LinearModel<T>::fit_impl() {
   // Initialization
   if (!is_fitted()) {
-    nfeatures_ = dt_X_fit_->ncols(); create_model();
+    nfeatures_ = dt_X_fit_->ncols();
+    create_model();
   }
-  init_coefficients();
-  if (dt_fi_ == nullptr) create_fi();
   colvec cols = make_casted_columns(dt_X_fit_, stype_);
-  // Obtain rowindex and data pointers for the target column(s).
+
+  // Pointer to feature importance data
+  if (dt_fi_ == nullptr) create_fi();
   auto data_fi = static_cast<T*>(dt_fi_->get_column(1).get_data_editable());
 
   // Since `nepochs` can be a float value
@@ -113,7 +115,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   T last_epoch = nepochs_ - static_cast<T>(niterations) + 1;
 
   size_t iteration_nrows = dt_X_fit_->nrows();
-  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * static_cast<T>(iteration_nrows));
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows);
   size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
@@ -129,33 +131,41 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
   if (validation) {
     cols_val = make_casted_columns(dt_X_val_, stype_);
-    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val_ * static_cast<T>(iteration_nrows)));
+    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val_ * iteration_nrows));
     niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters_, 0.0);
   }
 
-
-  // Mutex to update global feature importance information
+  // Mutex for single-threaded regions
   std::mutex m;
 
-  // Calculate work amounts for full fit iterations, last fit iteration and
-  // validation.
+  // Work amounts for full fit iterations, last fit iteration and validation
   size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows, MIN_ROWS_PER_THREAD);
   work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows, MIN_ROWS_PER_THREAD);
   if (validation) work_total += niterations * get_work_amount(dt_X_val_->nrows(), MIN_ROWS_PER_THREAD);
 
-  // Set work amount to be reported by the zero thread.
+  // Set work amount to be reported by the zero thread
   dt::progress::work job(work_total);
   job.set_message("Fitting...");
   NThreads nthreads = nthreads_from_niters(iteration_nrows, MIN_ROWS_PER_THREAD);
 
   dt::parallel_region(nthreads,
     [&]() {
-      // Each thread gets a private storage observations and feature importances.
+      // Each thread gets a private storage for observations and feature importances.
       tptr<T> x = tptr<T>(new T[nfeatures_]);
       tptr<T> fi = tptr<T>(new T[nfeatures_]());
 
       for (size_t iter = 0; iter < niterations; ++iter) {
+
+        // Each thread gets its own copy of the model
+        dtptr dt_model;
+        std::vector<T*> betas;
+        {
+          std::lock_guard<std::mutex> lock(m);
+          dt_model = dtptr(new DataTable(*dt_model_));
+          betas = get_model_data(dt_model);
+        }
+
         size_t iteration_start = iter * iteration_nrows;
         iteration_end = (iter == niterations - 1)? total_nrows :
                                                    (iter + 1) * iteration_nrows;
@@ -169,7 +179,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
             for (size_t k = 0; k < label_ids_fit_.size(); ++k) {
-              T p = activation_fn(predict_row(x, k,
+              T p = activation_fn(predict_row(x, betas, k,
                       [&](size_t f_id, T f_imp) {
                         fi[f_id] += f_imp;
                       }
@@ -177,18 +187,18 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
               T y = target_fn(target, label_ids_fit_[k]);
 
               // If we use sigmoid activation, gradients for linear and logistic
-              // regressions are the same
+              // regressions are the same. For other activations the gradient
+              // should be adjusted accordingly.
               T gradient = (p - y);
 
-              // Update `betas_` with SGD, j = 0 corresponds to the bias term
+              // Update local betas with SGD, j = 0 corresponds to the bias term
               for (size_t j = 0; j < nfeatures_ + 1; ++j) {
                 if (j) gradient *= x[j - 1];
-                gradient += copysign(lambda1_, betas_[k][j]); // L1 regularization
-                gradient += 2 * lambda2_ * betas_[k][j];      // L2 regularization
+                gradient += copysign(lambda1_, betas[k][j]); // L1 regularization
+                gradient += 2 * lambda2_ * betas[k][j];      // L2 regularization
 
-                // Update coefficients only when the final gradient is finite
                 if (_isfinite(gradient)) {
-                  betas_[k][j] -= eta_ * gradient;
+                  betas[k][j] -= eta_ * gradient;
                 }
               }
             }
@@ -200,6 +210,28 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           }
 
         }); // End training
+        barrier();
+
+        // Update global model coefficients by averaging the local ones
+        {
+          // First, zero out the global model
+          if (dt::this_thread_index() == 0) {
+            init_model();
+            betas_ = get_model_data(dt_model_);
+          }
+          barrier();
+
+          // Second, average the local coefficients
+          {
+            std::lock_guard<std::mutex> lock(m);
+
+            for (size_t i = 0; i < dt_model->ncols(); ++i) {
+              for (size_t j = 0; j < dt_model->nrows(); ++j) {
+                betas_[i][j] += betas[i][j] / dt::num_threads_in_team();
+              }
+            }
+          }
+        }
         barrier();
 
         // Validation and early stopping
@@ -214,7 +246,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
             if (isvalid && _isfinite(y_val) && read_row(i, cols_val, x)) {
               for (size_t k = 0; k < label_ids_val_.size(); ++k) {
                 T p = activation_fn(predict_row(
-                        x, k, [&](size_t, T){}
+                        x, betas_, k, [&](size_t, T){}
                       ));
                 T y = target_fn(y_val, label_ids_val_[k]);
                 loss_local += loss_fn(p, y);
@@ -260,9 +292,11 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
         } // End validation
 
         // Update global feature importances with the local data
-        std::lock_guard<std::mutex> lock(m);
-        for (size_t i = 0; i < nfeatures_; ++i) {
-          data_fi[i] += fi[i];
+        {
+          std::lock_guard<std::mutex> lock(m);
+          for (size_t i = 0; i < nfeatures_; ++i) {
+            data_fi[i] += fi[i];
+          }
         }
 
       } // End iteration
@@ -271,7 +305,8 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   );
   job.done();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows()); LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
+  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows());
+  LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
 }
@@ -296,11 +331,14 @@ bool LinearModel<T>::read_row(const size_t row, const colvec& cols, tptr<T>& x) 
  */
 template <typename T>
 template <typename F>
-T LinearModel<T>::predict_row(const tptr<T>& x, const size_t k, F fifn) {
-  T wTx = betas_[k][0];
+T LinearModel<T>::predict_row(const tptr<T>& x,
+                              const std::vector<T*> betas,
+                              const size_t k, F fifn)
+{
+  T wTx = betas[k][0];
   for (size_t i = 0; i < nfeatures_; ++i) {
-    wTx += betas_[k][i + 1] * x[i];
-    fifn(i, abs(betas_[k][i + 1] * x[i]));
+    wTx += betas[k][i + 1] * x[i];
+    fifn(i, abs(betas[k][i + 1] * x[i]));
   }
   return wTx;
 }
@@ -314,7 +352,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
   xassert(is_fitted());
 
   // Re-acquire model weight pointers.
-  init_coefficients();
+  betas_ = get_model_data(dt_model_);
   colvec cols = make_casted_columns(dt_X, stype_);
 
   // Create datatable for predictions and obtain column data pointers.
@@ -347,7 +385,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
       if (read_row(i, cols, x)) {
         for (size_t k = 0; k < get_nclasses(); ++k) {
           size_t label_id = get_label_id(k, data_label_ids);
-          data_p[k][i] = activation_fn(predict_row(x, label_id, [&](size_t, T){}));
+          data_p[k][i] = activation_fn(predict_row(x, betas_, label_id, [&](size_t, T){}));
         }
       }
 
@@ -491,17 +529,19 @@ void LinearModel<T>::init_model() {
 
 
 /**
- *  Obtain pointers to the model column data.
+ *  Obtain pointers to the model data.
  */
 template <typename T>
-void LinearModel<T>::init_coefficients() {
-  size_t nlabels = dt_model_->ncols();
-  betas_.clear();
-  betas_.reserve(nlabels);
+std::vector<T*> LinearModel<T>::get_model_data(const dtptr& dt) {
+  size_t nlabels = dt->ncols();
+  std::vector<T*> betas;
+  betas.reserve(nlabels);
 
   for (size_t k = 0; k < nlabels; ++k) {
-    betas_.push_back(static_cast<T*>(dt_model_->get_column(k).get_data_editable()));
+    betas.push_back(static_cast<T*>(dt->get_column(k).get_data_editable()));
   }
+
+  return betas;
 }
 
 

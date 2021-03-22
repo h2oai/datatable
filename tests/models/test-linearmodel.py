@@ -591,8 +591,8 @@ def test_linearmodel_fit_predict_view():
 
     # Train model and predict on a view
     lm.fit(df_train[rows,:], df_target[rows,:])
-    predictions = lm.predict(df_train[rows,:])
-    model = lm.model
+    p_view = lm.predict(df_train[rows,:])
+    model_view = lm.model
 
     # Train model and predict on a frame
     lm.reset()
@@ -601,15 +601,15 @@ def test_linearmodel_fit_predict_view():
     df_train_range.materialize()
     df_target_range.materialize()
     lm.fit(df_train_range, df_target_range)
-    predictions_range = lm.predict(df_train_range)
+    p_frame = lm.predict(df_train_range)
 
     assert_equals(
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
     )
     assert lm.model_type == "binomial"
-    assert_equals(model, lm.model)
-    assert_equals(predictions, predictions_range)
+    assert_equals(model_view, lm.model, rel_tol = 1e-6)
+    assert_equals(p_view, p_frame, rel_tol = 1e-6)
 
 
 @pytest.mark.parametrize('parameter, value',
@@ -1027,23 +1027,22 @@ def test_linearmodel_regression_fit_predict_simple_linear():
 
 
 def test_linearmodel_regression_fit_predict_simple_one_epoch():
-    lm = LinearModel(nepochs = 1000)
+    lm = LinearModel(nepochs = 1)
     r = list(range(10))
     df_train = dt.Frame(r)
     df_target = dt.Frame(r/dt.float32)
     lm.fit(df_train, df_target)
+    assert lm.is_fitted() == True
     assert lm.model_type == "regression"
     p = lm.predict(df_train)
-    print(p, df_train)
     assert_equals(
         lm.labels,
         dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
     )
-    assert_equals(p, df_target, abs_tol = 1e-3)
 
 
 def test_linearmodel_regression_fit_predict():
-    lm = LinearModel(nepochs = 1000)
+    lm = LinearModel(nepochs = 10000)
     r = list(range(9))
     df_train = dt.Frame(r + [0])
     df_target = dt.Frame(r + [math.inf])
@@ -1053,10 +1052,9 @@ def test_linearmodel_regression_fit_predict():
         lm.labels,
         dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
     )
-    delta = [abs(i - j) for i, j in zip(p.to_list()[0], r + [0])]
     assert lm.labels[:, 0].to_list() == [["C0"]]
     assert lm.model_type == "regression"
-    assert max(delta) < epsilon
+    assert_equals(p, df_train[:, dt.float32(f[0])], rel_tol = 1e-6)
 
 
 #-------------------------------------------------------------------------------
