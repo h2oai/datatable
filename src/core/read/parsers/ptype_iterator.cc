@@ -19,35 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_READER_PARSERS_h
-#define dt_CSV_READER_PARSERS_h
-#include <iterator>    // std::input_iterator_tag
-#include "_dt.h"
-#include "read/parsers/info.h"
-#include "read/parsers/pt.h"
-#include "read/parsers/rt.h"
+#include "read/parsers/ptype_iterator.h"
 namespace dt {
 namespace read {
 
 
 
-class PtypeIterator {
-  private:
-    int8_t* pqr;
-    RT rtype;
-    PT orig_ptype;
-    PT curr_ptype;
-    int64_t : 40;
+PtypeIterator::PtypeIterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
 
-  public:
-    PtypeIterator(PT pt, RT rt, int8_t* qr_ptr);
-    PT operator*() const;
-    PtypeIterator& operator++();
-    bool has_incremented() const;
-    RT get_rtype() const;
-};
+PT PtypeIterator::operator*() const {
+  return curr_ptype;
+}
+
+RT PtypeIterator::get_rtype() const {
+  return rtype;
+}
+
+PtypeIterator& PtypeIterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool PtypeIterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
+}
 
 
 
-}}
-#endif
+
+}}  // namespace dt::read::

@@ -19,12 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"              // GenericReader
-#include "csv/reader_parsers.h"
-#include "read/preframe.h"
-#include "utils/temporary_file.h"    // TemporaryFile
 #include "column.h"
+#include "csv/reader.h"              // GenericReader
 #include "datatable.h"
+#include "read/preframe.h"
+#include "read/parsers/info.h"
+#include "utils/temporary_file.h"    // TemporaryFile
 namespace dt {
 namespace read {
 

@@ -21,10 +21,11 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/reader.h"
-#include "csv/reader_parsers.h"
 #include "python/string.h"
-#include "read/output_column.h"
 #include "read/input_column.h"
+#include "read/output_column.h"
+#include "read/parsers/info.h"
+#include "read/parsers/rt.h"
 #include "stype.h"
 #include "utils/temporary_file.h"
 namespace dt {

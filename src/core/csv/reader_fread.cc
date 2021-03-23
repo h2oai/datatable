@@ -25,6 +25,7 @@
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 #include "read/chunk_coordinates.h"
 #include "read/parse_context.h"  // dt::read::ParseContext
+#include "read/parsers/ptype_iterator.h"  // dt::read::PtypeIterator
 #include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock

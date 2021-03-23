@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_PARSERS_RT_h
 #define dt_READ_PARSERS_RT_h
+#include <cstdint>   // uint8_t
 namespace dt {
 namespace read {
 

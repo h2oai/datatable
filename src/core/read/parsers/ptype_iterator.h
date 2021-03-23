@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,39 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PARSERS_PT_h
-#define dt_READ_PARSERS_PT_h
-#include <cstdint>  // uint8_t
+#ifndef dt_READ_PARSERS_PTYPE_ITERATOR_h
+#define dt_READ_PARSERS_PTYPE_ITERATOR_h
+#include "read/parsers/pt.h"
+#include "read/parsers/rt.h"
 namespace dt {
 namespace read {
 
 
-/**
-  * Parse Type -- each identifier corresponds to one of the
-  * parser functions defined in this directory.
-  */
-enum PT : uint8_t {
-  Void,
-  Bool01,
-  BoolU,
-  BoolT,
-  BoolL,
-  Int32,
-  Int32Sep,
-  Int64,
-  Int64Sep,
-  Float32Hex,
-  Float64Plain,
-  Float64Ext,
-  Float64Hex,
-  Date32ISO,
-  Str32,
 
-  // PT::COUNT is the total number of parser types
-  COUNT
+class PtypeIterator {
+  private:
+    int8_t* pqr;
+    RT rtype;
+    PT orig_ptype;
+    PT curr_ptype;
+    int64_t : 40;
+
+  public:
+    PtypeIterator(PT pt, RT rt, int8_t* qr_ptr);
+    PT operator*() const;
+    PtypeIterator& operator++();
+    bool has_incremented() const;
+    RT get_rtype() const;
 };
 
 
 
-}}  // namespace dt::read::
+}}
 #endif

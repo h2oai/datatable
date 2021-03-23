@@ -23,6 +23,7 @@
 #include "csv/reader_fread.h"      // FreadReader
 #include "read/fread/fread_thread_context.h"
 #include "read/parallel_reader.h"  // ChunkCoordinates
+#include "read/parsers/ptype_iterator.h"     // PtypeIterator
 #include "utils/misc.h"            // wallclock
 #include "encodings.h"             // check_escaped_string, decode_escaped_csv_string
 #include "py_encodings.h"          // decode_win1252
