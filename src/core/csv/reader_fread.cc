@@ -25,7 +25,7 @@
 #include "py_encodings.h"        // decode_win1252, check_escaped_string, ...
 #include "read/chunk_coordinates.h"
 #include "read/parse_context.h"  // dt::read::ParseContext
-#include "read/parsers/ptype_iterator.h"  // dt::read::PtypeIterator
+#include "read/parsers/ptype_iterator.h"  // dt::read::PTypeIterator
 #include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
@@ -496,7 +496,7 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
     fctx.skip_whitespace();
 
     const char* fieldStart = tch;
-    auto ptype_iter = dt::read::PtypeIterator(
+    auto ptype_iter = dt::read::PTypeIterator(
                           col.get_ptype(), col.get_rtype(), &fctx.quoteRule);
     while (true) {
       // Try to parse using the regular field parser

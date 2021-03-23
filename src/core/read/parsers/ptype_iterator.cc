@@ -25,18 +25,18 @@ namespace read {
 
 
 
-PtypeIterator::PtypeIterator(PT pt, RT rt, int8_t* qr_ptr)
+PTypeIterator::PTypeIterator(PT pt, RT rt, int8_t* qr_ptr)
   : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
 
-PT PtypeIterator::operator*() const {
+PT PTypeIterator::operator*() const {
   return curr_ptype;
 }
 
-RT PtypeIterator::get_rtype() const {
+RT PTypeIterator::get_rtype() const {
   return rtype;
 }
 
-PtypeIterator& PtypeIterator::operator++() {
+PTypeIterator& PTypeIterator::operator++() {
   if (curr_ptype < PT::Str32) {
     curr_ptype = static_cast<PT>(curr_ptype + 1);
   } else {
@@ -45,7 +45,7 @@ PtypeIterator& PtypeIterator::operator++() {
   return *this;
 }
 
-bool PtypeIterator::has_incremented() const {
+bool PTypeIterator::has_incremented() const {
   return curr_ptype != orig_ptype;
 }
 
