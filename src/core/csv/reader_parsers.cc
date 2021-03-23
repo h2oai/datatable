@@ -55,17 +55,6 @@ bool PtypeIterator::has_incremented() const {
 // ParserIterator
 //------------------------------------------------------------------------------
 
-ParserIterable::ParserIterable(dt::read::PT pt)
-  : ptype(pt) {}
-
-ParserIterator ParserIterable::begin() const {
-  return ParserIterator(ptype);
-}
-
-ParserIterator ParserIterable::end() const {
-  return ParserIterator();
-}
-
 
 ParserIterator::ParserIterator()
   : ipt(-1), ptype(0) {}

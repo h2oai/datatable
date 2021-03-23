@@ -100,20 +100,6 @@ class ParserIterator {
     value_type operator*() const;
 };
 
-// unused?
-class ParserIterable {
-  private:
-    const dt::read::PT ptype;
-    int64_t : 56;
-
-  public:
-    using iterator = ParserIterator;
-
-    ParserIterable(dt::read::PT pt);
-    iterator begin() const;
-    iterator end() const;
-};
-
 
 
 #endif
