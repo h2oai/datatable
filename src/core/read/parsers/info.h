@@ -29,15 +29,15 @@ namespace dt {
 namespace read {
 
 using ParserFnPtr = void(*)(const ParseContext&);
-class ParserInfo2;
+class ParserInfo;
 class PTInfoBuilder;
 
 extern ParserFnPtr* parser_functions;
-extern ParserInfo2* parser_infos;
+extern ParserInfo* parser_infos;
 
 
 
-class ParserInfo2 {
+class ParserInfo {
   friend class PTInfoBuilder;
   private:
     ParserFnPtr parser_;
@@ -49,9 +49,9 @@ class ParserInfo2 {
     size_t : 48;
 
   public:
-    ParserInfo2() = default;
-    ParserInfo2(const ParserInfo2&) = delete;
-    ParserInfo2(ParserInfo2&&) = delete;
+    ParserInfo() = default;
+    ParserInfo(const ParserInfo&) = delete;
+    ParserInfo(ParserInfo&&) = delete;
 
     char                   code() const       { return code_; }
     const std::string&     name() const       { return name_; }
@@ -79,7 +79,7 @@ class PTInfoBuilder {
     PTInfoBuilder* type(Type);
 
   private:
-    ParserInfo2* get();
+    ParserInfo* get();
 };
 
 

@@ -26,7 +26,7 @@ namespace dt {
 namespace read {
 
 ParserFnPtr* parser_functions = nullptr;
-ParserInfo2* parser_infos = nullptr;
+ParserInfo* parser_infos = nullptr;
 
 
 
@@ -42,9 +42,9 @@ PTInfoBuilder::PTInfoBuilder(PT pt)
 }
 
 
-ParserInfo2* PTInfoBuilder::get() {
+ParserInfo* PTInfoBuilder::get() {
   if (parser_infos == nullptr) {
-    parser_infos = new ParserInfo2[PT::COUNT];
+    parser_infos = new ParserInfo[PT::COUNT];
     parser_functions = new ParserFnPtr[PT::COUNT];
   }
   return parser_infos + id_;
