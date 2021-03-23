@@ -364,6 +364,8 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
       // Predicting for all the fitted classes
       if (read_row(i, cols, x)) {
         for (size_t k = 0; k < get_nclasses(); ++k) {
+          // Note, binomial classifier may adjust `k` to match the label
+          // with the positive class
           size_t label_id = get_label_id(k, data_label_ids);
           data_p[k][i] = activation_fn(predict_row(x, betas_, label_id));
         }
