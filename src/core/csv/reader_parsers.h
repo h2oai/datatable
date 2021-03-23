@@ -57,39 +57,6 @@ enum RT : uint8_t {
 };
 
 
-}}  // namespace dt::read
-
-//------------------------------------------------------------------------------
-// ParserInfo
-//------------------------------------------------------------------------------
-
-class ParserInfo {
-  public:
-    ParserFnPtr fn;
-    std::string name;
-    char        code;
-    int8_t      elemsize;
-    dt::SType   stype;
-    dt::read::PT id;
-    int : 32;
-
-    ParserInfo() : fn(nullptr), code(0) {}
-    ParserInfo(dt::read::PT id_, const char* name_, char code_, int8_t sz_,
-               dt::SType st_, ParserFnPtr ptr)
-      : fn(ptr), name(name_), code(code_), elemsize(sz_), stype(st_), id(id_) {}
-
-    const char* cname() const { return name.data(); }
-    bool isstring() const { return id >= dt::read:: PT::Str32; }
-};
-
-
-
-//------------------------------------------------------------------------------
-// Parser iterators
-//------------------------------------------------------------------------------
-namespace dt {
-namespace read {
-
 
 class PtypeIterator {
   private:
