@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,38 +19,36 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_READER_PARSERS_h
-#define dt_CSV_READER_PARSERS_h
-#include <iterator>    // std::input_iterator_tag
-#include "_dt.h"
-#include "read/parsers/library.h"
-#include "read/parsers/pt.h"
-#include "read/parsers/rt.h"
+#ifndef dt_READ_PARSERS_RT_h
+#define dt_READ_PARSERS_RT_h
 namespace dt {
 namespace read {
 
 
-
-
-
-
-class PtypeIterator {
-  private:
-    int8_t* pqr;
-    RT rtype;
-    PT orig_ptype;
-    PT curr_ptype;
-    int64_t : 40;
-
-  public:
-    PtypeIterator(PT pt, RT rt, int8_t* qr_ptr);
-    PT operator*() const;
-    PtypeIterator& operator++();
-    bool has_incremented() const;
-    RT get_rtype() const;
+/**
+  * Requested Type -- column type as requested by the user; each may correspond
+  * to one or more parse types.
+  *
+  * Do not use "enum class" here: we want this enum to be implicitly
+  * convertible into integers, so that we can use it as an array index.
+  */
+enum RT : uint8_t {
+  RDrop    = 0,
+  RAuto    = 1,
+  RBool    = 2,
+  RInt     = 3,
+  RInt32   = 4,
+  RInt64   = 5,
+  RFloat   = 6,
+  RFloat32 = 7,
+  RFloat64 = 8,
+  RStr     = 9,
+  RStr32   = 10,
+  RStr64   = 11,
 };
 
 
 
-}}
+
+}}  // namespace dt::read::
 #endif

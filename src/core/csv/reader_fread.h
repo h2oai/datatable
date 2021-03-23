@@ -95,7 +95,7 @@ class FreadReader : public dt::read::GenericReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
-  const ParserFnPtr* parsers;
+  const dt::read::ParserFnPtr* parsers;
   FreadObserver fo;
   char* targetdir;
   size_t allocnrow;
