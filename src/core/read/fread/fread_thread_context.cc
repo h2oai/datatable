@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -135,7 +135,7 @@ void FreadThreadContext::read_chunk(
         while (true) {
           tch = fieldStart;
           bool quoted = false;
-          if (!ParserLibrary::info(*ptype_iter).isstring()) {
+          if (!parser_infos[*ptype_iter].type().is_string()) {
             parse_ctx_.skip_whitespace();
             const char* afterSpace = tch;
             tch = parse_ctx_.end_NA_string(tch);

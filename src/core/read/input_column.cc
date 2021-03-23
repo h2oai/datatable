@@ -81,7 +81,7 @@ RT InputColumn::get_rtype() const noexcept {
 }
 
 SType InputColumn::get_stype() const {
-  return ParserLibrary::info(parse_type_).stype;
+  return parser_infos[parse_type_].type().stype();
 }
 
 
@@ -113,7 +113,7 @@ void InputColumn::set_rtype(int64_t it) {
 }
 
 const char* InputColumn::typeName() const {
-  return ParserLibrary::info(parse_type_).name.data();
+  return parser_infos[parse_type_].name().data();
 }
 
 
@@ -121,7 +121,7 @@ const char* InputColumn::typeName() const {
 //---- Column info -------------------------------------------------------------
 
 bool InputColumn::is_string() const {
-  return ParserLibrary::info(parse_type_).isstring();
+  return parser_infos[parse_type_].type().is_string();
 }
 
 bool InputColumn::is_dropped() const noexcept {
@@ -129,7 +129,7 @@ bool InputColumn::is_dropped() const noexcept {
 }
 
 size_t InputColumn::elemsize() const {
-  return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
+  return stype_elemsize(get_stype());
 }
 
 
@@ -167,7 +167,7 @@ py::oobj InputColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = stype_to_pyobj(ParserLibrary::info(parse_type_).stype).release();
+  PyObject* stype = stype_to_pyobj(get_stype()).release();
   PyObject* cname = py::ostring(name_).release();
   PyStructSequence_SetItem(nt_tuple, 0, cname);
   PyStructSequence_SetItem(nt_tuple, 1, stype);

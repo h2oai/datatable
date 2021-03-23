@@ -167,9 +167,6 @@ class ParserLibrary {
     void operator=(const ParserLibrary&) = delete;
 
     ParserIterable successor_types(dt::read::PT pt) const;
-
-    static const ParserInfo& info(size_t i) { return parsers[i]; }
-    static const ParserInfo& info(dt::read::PT i) { return parsers[i]; }
 };
 
 

@@ -510,7 +510,7 @@ int64_t FreadReader::parse_single_line(dt::read::ParseContext& fctx)
       fctx.skip_whitespace();
       if (fctx.at_end_of_field()) break;
 
-      if (ParserLibrary::info(*ptype_iter).isstring()) {
+      if (dt::read::parser_infos[*ptype_iter].type().is_string()) {
         // Do not bump the quote rule, since we cannot be sure that the jump
         // was reliable. Instead, we'll defer quote rule bumping to regular
         // file reading.
@@ -715,13 +715,13 @@ void FreadReader::detect_header() {
 
   if (n_sample_lines > 0) {
     for (size_t j = 0; j < ncols; ++j) {
-      if (ParserLibrary::info(header_types[j]).isstring() &&
-          !ParserLibrary::info(saved_types[j]).isstring() &&
+      if (dt::read::parser_infos[header_types[j]].type().is_string() &&
+          !dt::read::parser_infos[saved_types[j]].type().is_string() &&
           saved_types[j] != dt::read::PT::Void) {
         header = true;
         D() << "`header` determined to be True due to column " << j + 1
             << " containing a string on row 1 and type "
-            << ParserLibrary::info(saved_types[j]).cname()
+            << dt::read::parser_infos[saved_types[j]].name()
             << " in the rest of the sample";
         return;
       }
@@ -730,7 +730,7 @@ void FreadReader::detect_header() {
 
   bool all_strings = true;
   for (size_t j = 0; j < ncols; ++j) {
-    if (!ParserLibrary::info(header_types[j]).isstring()) {
+    if (!dt::read::parser_infos[header_types[j]].type().is_string()) {
       all_strings = false;
       break;
     }
@@ -1047,7 +1047,7 @@ void FreadObserver::type_bump_info(
   std::stringstream ss;
   ss << "Column " << icol
      << " (" << col.repr_name(g) << ") bumped from " << col.typeName()
-     << " to " << ParserLibrary::info(new_type).cname()
+     << " to " << dt::read::parser_infos[new_type].name()
      << " due to <<" << std::string(field, field_len) << ">>"
      << " on row " << static_cast<size_t>(lineno);
 
