@@ -27,7 +27,7 @@
 namespace dt {
 namespace read {
 
-static constexpr int32_t  NA_INT32 = INT32_MIN;
+static constexpr int32_t NA_INT32 = INT32_MIN;
 
 
 
@@ -57,7 +57,7 @@ static bool parse_year(const char** pch, const char* eof, int32_t* out) {
 
 static bool parse_2digits(const char** pch, const char* eof, int32_t* out) {
   const char* ch = *pch;
-  if (ch + 2 >= eof) return false;
+  if (ch + 2 > eof) return false;
   uint8_t digit0 = static_cast<uint8_t>(ch[0] - '0');
   uint8_t digit1 = static_cast<uint8_t>(ch[1] - '0');
   if (digit0 < 10 && digit1 < 10) {
@@ -96,6 +96,37 @@ REGISTER_PARSER(PT::Date32ISO)
     ->type(Type::date32())
     ->successors({PT::Str32});
 
+TEST(fread, test_date32_iso) {
+  auto check = [](const char* input, int32_t expected_value, size_t advance) {
+    ParseContext ctx;
+    field64 output;
+    ctx.ch = input;
+    ctx.eof = input + std::strlen(input);
+    ctx.target = &output;
+    parse_date32_iso(ctx);
+    ASSERT_EQ(output.int32, expected_value);
+    ASSERT_EQ(ctx.ch, input + advance);
+  };
+  constexpr int32_t NA = NA_INT32;
+  check("", NA, 0);
+  check("1970-01-01", 0, 10);
+  check("1970-01-011", 0, 10);
+  check("1970-1-01", NA, 0);
+  check("1970-01-1", NA, 0);
+  check("1-11-11", -718848, 7);
+  check("01-11-11", -718848, 8);
+  check("001-11-11", -718848, 9);
+  check("0001-11-11", -718848, 10);
+  check("-001-01-14", -719880, 10);
+  check("-5877641-06-24", -2147483647, 14);
+  check("5879610-09-09", 2146764179, 13);
+  check("2021-03-23", 18709, 10);
+  check("2021-01-33", NA, 0);
+  check("2021-13-13", NA, 0);
+  check("2021-00-11", NA, 0);
+  check("2021-01-00", NA, 0);
+  check("2021-02-29", NA, 0);
+}
 
 
 

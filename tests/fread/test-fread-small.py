@@ -401,6 +401,21 @@ def test_invalid_float_numbers():
     assert d0.to_list() == [["."], ["+."], [".e"], [".e+"], ["0e"], ["e-3"]]
 
 
+def test_date32_iso():
+    from datetime import date as d
+    DT = dt.fread("A\n2000-01-01\n2010-11-11\n2020-12-31\n")
+    assert_equals(DT, dt.Frame(A=[d(2000,1,1), d(2010,11,11), d(2020,12,31)]))
+
+
+def test_date32_invalid_dates():
+    DT = dt.fread("A,B,C,D\n2000-00-01,2000-01-00,2000-01-01,0000-01-01\n")
+    assert_equals(DT, dt.Frame(A=["2000-00-01"], B=["2000-01-00"],
+                               C=[10957], D=[-719528],
+                               stypes={"C": 'date32', "D": 'date32'}))
+
+
+
+
 
 #-------------------------------------------------------------------------------
 # Tiny files
