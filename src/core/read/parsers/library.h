@@ -52,13 +52,15 @@ class ParserInfo2 {
 
   public:
     ParserInfo2() = default;
+    ParserInfo2(const ParserInfo2&) = delete;
+    ParserInfo2(ParserInfo2&&) = delete;
 
     //---- Property getters ----------------------------------------------------
-    ParserFnPtr parser() const                { return parser_; }
-    const std::string& name() const           { return name_; }
+    ParserFnPtr            parser() const     { return parser_; }
+    const std::string&     name() const       { return name_; }
     const std::vector<PT>& successors() const { return successors_; }
-    char code() const                         { return code_; }
-    Type type() const                         { return type_; }
+    char                   code() const       { return code_; }
+    Type                   type() const       { return type_; }
 };
 
 

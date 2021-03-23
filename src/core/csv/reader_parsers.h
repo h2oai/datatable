@@ -168,8 +168,6 @@ class ParserLibrary {
 
     ParserIterable successor_types(dt::read::PT pt) const;
 
-    static const ParserFnPtr* get_parser_fns() { return dt::read::parser_functions; }
-    static const ParserInfo* get_parser_infos() { return parsers; }
     static const ParserInfo& info(size_t i) { return parsers[i]; }
     static const ParserInfo& info(dt::read::PT i) { return parsers[i]; }
 };

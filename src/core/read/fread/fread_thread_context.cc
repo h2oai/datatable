@@ -36,7 +36,7 @@ FreadThreadContext::FreadThreadContext(
   ) : ThreadContext(bcols, brows, f.preframe),
       global_types_(types),
       freader(f),
-      parsers(ParserLibrary::get_parser_fns())
+      parsers(parser_functions)
 {
   parse_ctx_ = f.makeTokenizer();
   parse_ctx_.target = tbuf.data();

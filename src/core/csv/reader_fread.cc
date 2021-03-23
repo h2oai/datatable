@@ -37,7 +37,7 @@
 //------------------------------------------------------------------------------
 
 FreadReader::FreadReader(const dt::read::GenericReader& g)
-  : GenericReader(g), parsers(parserlib.get_parser_fns()), fo(g)
+  : GenericReader(g), parsers(dt::read::parser_functions), fo(g)
 {
   size_t input_size = datasize();
   targetdir = nullptr;

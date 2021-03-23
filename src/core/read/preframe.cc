@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -301,14 +301,13 @@ void PreFrame::reset_ptypes() {
 }
 
 const char* PreFrame::print_ptypes() const {
-  const ParserInfo* parsers = ParserLibrary::get_parser_infos();
   static const size_t N = 100;
   static char out[N + 1];
   char* ch = out;
   size_t ncols = columns_.size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[columns_[i].get_ptype()].code;
+    *ch++ = parser_infos[columns_[i].get_ptype()].code();
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -317,7 +316,7 @@ const char* PreFrame::print_ptypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[columns_[i].get_ptype()].code;
+      *ch++ = parser_infos[columns_[i].get_ptype()].code();
   }
   *ch = '\0';
   return out;
