@@ -97,28 +97,19 @@ def test_date32_repr_negative_dates():
     )
 
 
-def test_date32_min():
-    DT = dt.Type.date32.min
-    assert isinstance(DT, dt.Frame)
-    assert str(DT) == (
-        "   | min           \n"
-        "   | date32        \n"
-        "-- + --------------\n"
-        " 0 | -5877641-06-24\n"
-        "[1 row x 1 column]\n"
-    )
+def test_date32_negative_dates_to_python():
+    DT = dt.Frame([-700000, -720000, -730000, -770000, -2000000], stype='date32')
+    assert DT.to_list()[0] == [
+        datetime.date(53, 6, 19),
+        -720000, -730000, -770000, -2000000
+    ]
 
 
-def test_date32_max():
-    DT = dt.Type.date32.max
-    assert isinstance(DT, dt.Frame)
-    assert str(DT) == (
-        "   | max          \n"
-        "   | date32       \n"
-        "-- + -------------\n"
-        " 0 | 5879610-09-09\n"
-        "[1 row x 1 column]\n"
-    )
+def test_date32_minmax():
+    assert dt.Type.date32.min == -2147483647
+    assert dt.Type.date32.max == 2146764179
+
+
 
 
 #-------------------------------------------------------------------------------
@@ -208,8 +199,12 @@ def test_write_dates_around_year_zero():
 
 
 def test_write_huge_dates():
-    assert dt.Type.date32.min.to_csv() == "min\n-5877641-06-24\n"
-    assert dt.Type.date32.max.to_csv() == "max\n5879610-09-09\n"
+    DT = dt.Frame(Kind=["min", "max"],
+                  Value=[dt.Type.date32.min, dt.Type.date32.max],
+                  stypes={"Value": "date32"})
+    assert DT.to_csv() == ("Kind,Value\n"
+                           "min,-5877641-06-24\n"
+                           "max,5879610-09-09\n")
 
 
 

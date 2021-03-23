@@ -38,10 +38,10 @@ class Type_Date32 : public TypeImpl {
     std::string to_string() const override { return "date32"; }
 
     py::oobj min() const override {
-      return _wrap_value(-std::numeric_limits<int>::max(), "min");
+      return py::odate(-std::numeric_limits<int>::max());
     }
     py::oobj max() const override {
-      return _wrap_value(std::numeric_limits<int>::max() - 719468, "max");
+      return py::odate(std::numeric_limits<int>::max() - 719468);
     }
     // Pretend this is int32
     const char* struct_format() const override { return "i"; }
@@ -54,19 +54,6 @@ class Type_Date32 : public TypeImpl {
         return other;
       }
       return new Type_Invalid();
-    }
-
-  private:
-    // The min/max value is returned as a 1x1 frame instead of a python
-    // datetime.date object because the latter can only accommodate year
-    // range 1 .. 9999
-    //
-    py::oobj _wrap_value(int32_t value, const char* name) const {
-      Column col = Column::new_data_column(1, SType::DATE32);
-      static_cast<int32_t*>(col.get_data_editable())[0] = value;
-      return py::Frame::oframe(new DataTable(
-        {std::move(col)}, {name}
-      ));
     }
 };
 
