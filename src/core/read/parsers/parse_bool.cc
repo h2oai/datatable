@@ -57,30 +57,31 @@ REGISTER_PARSER(PT::Bool01)
                   PT::Float64Plain, PT::Float64Ext, PT::Str32});
 
 
-TEST(fread, test_bool8_num) {
-  auto check = [](const char* input, int8_t value, size_t advance) {
-    ParseContext ctx;
-    field64 output;
-    ctx.ch = input;
-    ctx.eof = input + std::strlen(input);
-    ctx.target = &output;
-    parse_bool8_numeric(ctx);
-    ASSERT_EQ(output.int8, value);
-    ASSERT_EQ(ctx.ch, input + advance);
-  };
-  check("", NA_BOOL8, 0);
-  check("\0", NA_BOOL8, 0);
-  check(" ", NA_BOOL8, 0);
-  check("0", 0, 1);
-  check("1", 1, 1);
-  check("2", NA_BOOL8, 0);
-  check("-1", NA_BOOL8, 0);
-  check("11", 1, 1);
-  check("01", 0, 1);
-  check("1\n", 1, 1);
-  check("false", NA_BOOL8, 0);
-}
-
+#ifdef DTTEST
+  TEST(fread, test_bool8_num) {
+    auto check = [](const char* input, int8_t value, size_t advance) {
+      ParseContext ctx;
+      field64 output;
+      ctx.ch = input;
+      ctx.eof = input + std::strlen(input);
+      ctx.target = &output;
+      parse_bool8_numeric(ctx);
+      ASSERT_EQ(output.int8, value);
+      ASSERT_EQ(ctx.ch, input + advance);
+    };
+    check("", NA_BOOL8, 0);
+    check("\0", NA_BOOL8, 0);
+    check(" ", NA_BOOL8, 0);
+    check("0", 0, 1);
+    check("1", 1, 1);
+    check("2", NA_BOOL8, 0);
+    check("-1", NA_BOOL8, 0);
+    check("11", 1, 1);
+    check("01", 0, 1);
+    check("1\n", 1, 1);
+    check("false", NA_BOOL8, 0);
+  }
+#endif
 
 
 
@@ -111,34 +112,36 @@ REGISTER_PARSER(PT::BoolL)
     ->successors({PT::Str32});
 
 
-TEST(fread, test_bool8_lowercase) {
-  auto check = [](const char* input, int8_t value, size_t advance) {
-    ParseContext ctx;
-    field64 output;
-    ctx.ch = input;
-    ctx.eof = input + std::strlen(input);
-    ctx.target = &output;
-    parse_bool8_lowercase(ctx);
-    ASSERT_EQ(output.int8, value);
-    ASSERT_EQ(ctx.ch, input + advance);
-  };
-  check("", NA_BOOL8, 0);
-  check("\0", NA_BOOL8, 0);
-  check(" ", NA_BOOL8, 0);
-  check("0", NA_BOOL8, 0);
-  check("falsee", 0, 5);
-  check("false", 0, 5);
-  check("fals", NA_BOOL8, 0);
-  check("fal", NA_BOOL8, 0);
-  check("fa", NA_BOOL8, 0);
-  check("f", NA_BOOL8, 0);
-  check("truer", 1, 4);
-  check("true", 1, 4);
-  check("tru", NA_BOOL8, 0);
-  check("tr", NA_BOOL8, 0);
-  check("t", NA_BOOL8, 0);
-  check("False", NA_BOOL8, 0);
-}
+#ifdef DTTEST
+  TEST(fread, test_bool8_lowercase) {
+    auto check = [](const char* input, int8_t value, size_t advance) {
+      ParseContext ctx;
+      field64 output;
+      ctx.ch = input;
+      ctx.eof = input + std::strlen(input);
+      ctx.target = &output;
+      parse_bool8_lowercase(ctx);
+      ASSERT_EQ(output.int8, value);
+      ASSERT_EQ(ctx.ch, input + advance);
+    };
+    check("", NA_BOOL8, 0);
+    check("\0", NA_BOOL8, 0);
+    check(" ", NA_BOOL8, 0);
+    check("0", NA_BOOL8, 0);
+    check("falsee", 0, 5);
+    check("false", 0, 5);
+    check("fals", NA_BOOL8, 0);
+    check("fal", NA_BOOL8, 0);
+    check("fa", NA_BOOL8, 0);
+    check("f", NA_BOOL8, 0);
+    check("truer", 1, 4);
+    check("true", 1, 4);
+    check("tru", NA_BOOL8, 0);
+    check("tr", NA_BOOL8, 0);
+    check("t", NA_BOOL8, 0);
+    check("False", NA_BOOL8, 0);
+  }
+#endif
 
 
 
@@ -168,34 +171,36 @@ REGISTER_PARSER(PT::BoolT)
     ->type(Type::bool8())
     ->successors({PT::Str32});
 
-TEST(fread, test_bool8_titlecase) {
-  auto check = [](const char* input, int8_t value, size_t advance) {
-    ParseContext ctx;
-    field64 output;
-    ctx.ch = input;
-    ctx.eof = input + std::strlen(input);
-    ctx.target = &output;
-    parse_bool8_titlecase(ctx);
-    ASSERT_EQ(output.int8, value);
-    ASSERT_EQ(ctx.ch, input + advance);
-  };
-  check("", NA_BOOL8, 0);
-  check("\0", NA_BOOL8, 0);
-  check(" ", NA_BOOL8, 0);
-  check("0", NA_BOOL8, 0);
-  check("Falsee", 0, 5);
-  check("False", 0, 5);
-  check("Fals", NA_BOOL8, 0);
-  check("Fal", NA_BOOL8, 0);
-  check("Fa", NA_BOOL8, 0);
-  check("F", NA_BOOL8, 0);
-  check("Truer", 1, 4);
-  check("True", 1, 4);
-  check("Tru", NA_BOOL8, 0);
-  check("Tr", NA_BOOL8, 0);
-  check("T", NA_BOOL8, 0);
-  check("false", NA_BOOL8, 0);
-}
+#ifdef DTTEST
+  TEST(fread, test_bool8_titlecase) {
+    auto check = [](const char* input, int8_t value, size_t advance) {
+      ParseContext ctx;
+      field64 output;
+      ctx.ch = input;
+      ctx.eof = input + std::strlen(input);
+      ctx.target = &output;
+      parse_bool8_titlecase(ctx);
+      ASSERT_EQ(output.int8, value);
+      ASSERT_EQ(ctx.ch, input + advance);
+    };
+    check("", NA_BOOL8, 0);
+    check("\0", NA_BOOL8, 0);
+    check(" ", NA_BOOL8, 0);
+    check("0", NA_BOOL8, 0);
+    check("Falsee", 0, 5);
+    check("False", 0, 5);
+    check("Fals", NA_BOOL8, 0);
+    check("Fal", NA_BOOL8, 0);
+    check("Fa", NA_BOOL8, 0);
+    check("F", NA_BOOL8, 0);
+    check("Truer", 1, 4);
+    check("True", 1, 4);
+    check("Tru", NA_BOOL8, 0);
+    check("Tr", NA_BOOL8, 0);
+    check("T", NA_BOOL8, 0);
+    check("false", NA_BOOL8, 0);
+  }
+#endif
 
 
 
@@ -225,35 +230,38 @@ REGISTER_PARSER(PT::BoolU)
     ->type(Type::bool8())
     ->successors({PT::Str32});
 
-TEST(fread, test_bool8_uppercase) {
-  auto check = [](const char* input, int8_t value, size_t advance) {
-    ParseContext ctx;
-    field64 output;
-    ctx.ch = input;
-    ctx.eof = input + std::strlen(input);
-    ctx.target = &output;
-    parse_bool8_uppercase(ctx);
-    ASSERT_EQ(output.int8, value);
-    ASSERT_EQ(ctx.ch, input + advance);
-  };
-  check("", NA_BOOL8, 0);
-  check("\0", NA_BOOL8, 0);
-  check(" ", NA_BOOL8, 0);
-  check("0", NA_BOOL8, 0);
-  check("FALSEE", 0, 5);
-  check("FALSE", 0, 5);
-  check("FALS", NA_BOOL8, 0);
-  check("FAL", NA_BOOL8, 0);
-  check("FA", NA_BOOL8, 0);
-  check("F", NA_BOOL8, 0);
-  check("TRUER", 1, 4);
-  check("TRUE", 1, 4);
-  check("TRU", NA_BOOL8, 0);
-  check("TR", NA_BOOL8, 0);
-  check("T", NA_BOOL8, 0);
-  check("false", NA_BOOL8, 0);
-  check("False", NA_BOOL8, 0);
-}
+#ifdef DTTEST
+  TEST(fread, test_bool8_uppercase) {
+    auto check = [](const char* input, int8_t value, size_t advance) {
+      ParseContext ctx;
+      field64 output;
+      ctx.ch = input;
+      ctx.eof = input + std::strlen(input);
+      ctx.target = &output;
+      parse_bool8_uppercase(ctx);
+      ASSERT_EQ(output.int8, value);
+      ASSERT_EQ(ctx.ch, input + advance);
+    };
+    check("", NA_BOOL8, 0);
+    check("\0", NA_BOOL8, 0);
+    check(" ", NA_BOOL8, 0);
+    check("0", NA_BOOL8, 0);
+    check("FALSEE", 0, 5);
+    check("FALSE", 0, 5);
+    check("FALS", NA_BOOL8, 0);
+    check("FAL", NA_BOOL8, 0);
+    check("FA", NA_BOOL8, 0);
+    check("F", NA_BOOL8, 0);
+    check("TRUER", 1, 4);
+    check("TRUE", 1, 4);
+    check("TRU", NA_BOOL8, 0);
+    check("TR", NA_BOOL8, 0);
+    check("T", NA_BOOL8, 0);
+    check("false", NA_BOOL8, 0);
+    check("False", NA_BOOL8, 0);
+  }
+#endif
+
 
 
 
