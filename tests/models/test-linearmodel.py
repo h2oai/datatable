@@ -1057,7 +1057,7 @@ def test_linearmodel_regression_fit_predict():
 
 
 def test_linearmodel_regression_fit_predict_large():
-    N = 20000
+    N = 40000
     lm = LinearModel(eta = 1e-4, nepochs = 100, double_precision = True)
 
     df_train0 = dt.Frame([range(N), range(0, 2*N - 1, 2)])
@@ -1069,7 +1069,8 @@ def test_linearmodel_regression_fit_predict_large():
     lm.fit(df_train1, df_target1)
     p = lm.predict(df_train1)
     p = p[:, f[0] * df_target0.sd1() + df_target0.mean1()]
-    assert_equals(df_target0, p)
+    assert_equals(df_target0, p, rel_tol = 1e-6)
+
 
 #-------------------------------------------------------------------------------
 # Test early stopping
