@@ -30,16 +30,17 @@ namespace read {
 
 using ParserFnPtr = void(*)(const ParseContext&);
 class ParserInfo2;
+class PTInfoBuilder;
 
 
-class ParserLibrary2 {
-  public:
-    static std::vector<ParserInfo2*>& all_parsers();
-};
+extern ParserFnPtr* parser_functions;
+extern ParserInfo2* parser_infos;
+
 
 
 
 class ParserInfo2 {
+  friend class PTInfoBuilder;
   private:
     ParserFnPtr parser_;
     std::string name_;
@@ -50,46 +51,44 @@ class ParserInfo2 {
     size_t : 48;
 
   public:
-    ParserInfo2(PT p);
+    ParserInfo2() = default;
 
-    //---- Property getters --------------------------------
-    ParserFnPtr parser() const { return parser_; }
-    const std::string& name() const { return name_; }
+    //---- Property getters ----------------------------------------------------
+    ParserFnPtr parser() const                { return parser_; }
+    const std::string& name() const           { return name_; }
     const std::vector<PT>& successors() const { return successors_; }
-    char code() const { return code_; }
-    Type type() const { return type_; }
-
-    //---- Property setters --------------------------------
-    ParserInfo2* parser(ParserFnPtr p) {
-      parser_ = p;
-      return this;
-    }
-
-    ParserInfo2* name(std::string&& n) {
-      name_ = std::move(n);
-      return this;
-    }
-
-    ParserInfo2* code(char c) {
-      code_ = c;
-      return this;
-    }
-
-    ParserInfo2* type(Type t) {
-      type_ = t;
-      return this;
-    }
-
-    ParserInfo2* successors(std::vector<PT>&& sccsss) {
-      successors_ = std::move(sccsss);
-      return this;
-    }
+    char code() const                         { return code_; }
+    Type type() const                         { return type_; }
 };
 
 
+/**
+  * This is a helper class for REGISTER_PARSER macro.
+  */
+class PTInfoBuilder {
+  private:
+    PT id_;
+
+  public:
+    PTInfoBuilder(PT pt);
+
+    PTInfoBuilder* code(char);
+    PTInfoBuilder* name(std::string&&);
+    PTInfoBuilder* parser(ParserFnPtr);
+    PTInfoBuilder* successors(std::vector<PT>&&);
+    PTInfoBuilder* type(Type);
+
+  private:
+    ParserInfo2* get();
+};
+
+
+// At the end of this macro, the static variable created here will contain
+// a dangling pointer -- which is ok, since it won't be used in any way.
 #define REGISTER_PARSER(ID) \
-  static ParserInfo2* PASTE_TOKENS(parser_, __LINE__) = \
-      (new ParserInfo2(ID))
+  static PTInfoBuilder* PASTE_TOKENS(ptbuilder_, __LINE__) = \
+      std::make_unique<PTInfoBuilder>(ID)
+
 
 
 

@@ -25,25 +25,22 @@ using namespace dt::read;
 // The only reason we don't do std::vector<ParserInfo> here is because it causes
 // annoying warnings about exit-time / global destructors.
 ParserInfo* ParserLibrary::parsers = nullptr;
-ParserFnPtr* ParserLibrary::parser_fns = nullptr;
 
 void ParserLibrary::init_parsers() {
   parsers = new ParserInfo[num_parsers];
-  parser_fns = new ParserFnPtr[num_parsers];
 
   auto add = [&](dt::read::PT pt, const char* name, char code, int8_t sz,
                   dt::SType st,ParserFnPtr ptr) {
     size_t iid = static_cast<size_t>(pt);
     xassert(iid < ParserLibrary::num_parsers);
     parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
-    parser_fns[iid] = ptr;
   };
   auto autoadd = [&](dt::read::PT pt) {
-    auto info = ParserLibrary2::all_parsers()[pt];
-    xassert(info);
-    auto stype = info->type().stype();
-    add(pt, info->name().data(), info->code(),
-        static_cast<int8_t>(stype_elemsize(stype)), stype, info->parser());
+    xassert(parser_infos);
+    auto& info = parser_infos[pt];
+    auto stype = info.type().stype();
+    add(pt, info.name().data(), info.code(),
+        static_cast<int8_t>(stype_elemsize(stype)), stype, info.parser());
   };
 
   autoadd(dt::read::PT::Void);

@@ -157,7 +157,6 @@ class ParserIterable {
 class ParserLibrary {
   private:
     static ParserInfo* parsers;
-    static ParserFnPtr* parser_fns;
     void init_parsers();
     int64_t : 64;
 
@@ -169,7 +168,7 @@ class ParserLibrary {
 
     ParserIterable successor_types(dt::read::PT pt) const;
 
-    static const ParserFnPtr* get_parser_fns() { return parser_fns; }
+    static const ParserFnPtr* get_parser_fns() { return dt::read::parser_functions; }
     static const ParserInfo* get_parser_infos() { return parsers; }
     static const ParserInfo& info(size_t i) { return parsers[i]; }
     static const ParserInfo& info(dt::read::PT i) { return parsers[i]; }

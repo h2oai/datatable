@@ -25,19 +25,55 @@
 namespace dt {
 namespace read {
 
+ParserFnPtr* parser_functions = nullptr;
+ParserInfo2* parser_infos = nullptr;
 
 
-std::vector<ParserInfo2*>& ParserLibrary2::all_parsers() {
-  static std::vector<ParserInfo2*> parsers(PT::COUNT, nullptr);
-  return parsers;
+
+//------------------------------------------------------------------------------
+// PTInfoBuilder
+//------------------------------------------------------------------------------
+
+PTInfoBuilder::PTInfoBuilder(PT pt)
+  : id_(pt)
+{
+  xassert(pt < PT::COUNT);
+  get()->id_ = pt;
 }
 
 
+ParserInfo2* PTInfoBuilder::get() {
+  if (parser_infos == nullptr) {
+    parser_infos = new ParserInfo2[PT::COUNT];
+    parser_functions = new ParserFnPtr[PT::COUNT];
+  }
+  return parser_infos + id_;
+}
 
-ParserInfo2::ParserInfo2(PT p) : id_(p) {
-  auto& parsers = ParserLibrary2::all_parsers();
-  xassert(id_ < parsers.size() && parsers[id_] == nullptr);
-  parsers[id_] = this;
+PTInfoBuilder* PTInfoBuilder::code(char c) {
+  get()->code_ = c;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::name(std::string&& name) {
+  get()->name_ = std::move(name);
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::parser(ParserFnPtr fn) {
+  get()->parser_ = fn;
+  parser_functions[id_] = fn;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::successors(std::vector<PT>&& sc) {
+  get()->successors_ = sc;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::type(Type type) {
+  get()->type_ = type;
+  return this;
 }
 
 
