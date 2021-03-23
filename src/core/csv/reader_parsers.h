@@ -75,31 +75,6 @@ class PtypeIterator {
 };
 
 
+
 }}
-
-
-// unused?
-class ParserIterator {
-  private:
-    int ipt;
-    const uint8_t ptype;
-    int : 24;
-
-  public:
-    using value_type = dt::read::PT;
-    using category_type = std::input_iterator_tag;
-
-    ParserIterator();
-    ParserIterator(dt::read::PT pt);
-    ParserIterator(const ParserIterator&) = default;
-    ParserIterator& operator=(const ParserIterator&) = delete;
-    ~ParserIterator() {}
-    ParserIterator& operator++();
-    bool operator==(const ParserIterator&) const;
-    bool operator!=(const ParserIterator&) const;
-    value_type operator*() const;
-};
-
-
-
 #endif
