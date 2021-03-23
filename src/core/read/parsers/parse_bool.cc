@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>
 #include "read/field64.h"                // field64
 #include "read/parse_context.h"          // ParseContext
 #include "read/parsers/library.h"

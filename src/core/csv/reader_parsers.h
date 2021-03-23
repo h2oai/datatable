@@ -27,7 +27,6 @@
 #include "read/parsers/pt.h"
 
 typedef void (*ParserFnPtr)(const dt::read::ParseContext& ctx);
-typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 
 
 //------------------------------------------------------------------------------
@@ -36,25 +35,6 @@ typedef PyObject* (*FormatGeneratorFn)(dt::read::InputColumn& col);
 namespace dt {
 namespace read {
 
-
-
-/**
- * Bump Type -- this describes transition between different parsers:
- *   Simple - values read by the previous parser can be used as-is with the
- *            new parser. For example, changing from PT::Float64Plain to
- *            PT::Float64Ext.
- *   Normal - values read by the previous parser can be losslessly converted
- *            into the values produced by the new parser. For example,
- *            transition from PT::Int32 to PT::Int64.
- *   Reread - values read by the previous parser cannot be converted, so the
- *            entire column has to be re-read.
- */
-enum BT : uint8_t {
-  None   = 0,
-  Simple = 1,
-  Normal = 2,
-  Reread = 3,
-};
 
 
 /**

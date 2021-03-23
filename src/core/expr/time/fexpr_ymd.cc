@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>
 #include "_dt.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
