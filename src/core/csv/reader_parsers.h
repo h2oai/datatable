@@ -62,7 +62,6 @@ enum RT : uint8_t {
 //------------------------------------------------------------------------------
 // ParserInfo
 //------------------------------------------------------------------------------
-class ParserLibrary;
 
 class ParserInfo {
   public:
@@ -148,26 +147,6 @@ class ParserIterable {
     iterator end() const;
 };
 
-
-
-//------------------------------------------------------------------------------
-// ParserLibrary
-//------------------------------------------------------------------------------
-
-class ParserLibrary {
-  private:
-    static ParserInfo* parsers;
-    void init_parsers();
-    int64_t : 64;
-
-  public:
-    static constexpr size_t num_parsers = static_cast<size_t>(dt::read::PT::COUNT);
-    ParserLibrary();
-    ParserLibrary(const ParserLibrary&) = delete;
-    void operator=(const ParserLibrary&) = delete;
-
-    ParserIterable successor_types(dt::read::PT pt) const;
-};
 
 
 #endif

@@ -14,64 +14,13 @@
 #include "utils/assert.h"                // xassert
 #include "utils/macros.h"
 #include "stype.h"
-
-using namespace dt::read;
-
-
-//------------------------------------------------------------------------------
-// ParserLibrary
-//------------------------------------------------------------------------------
-
-// The only reason we don't do std::vector<ParserInfo> here is because it causes
-// annoying warnings about exit-time / global destructors.
-ParserInfo* ParserLibrary::parsers = nullptr;
-
-void ParserLibrary::init_parsers() {
-  parsers = new ParserInfo[num_parsers];
-
-  auto add = [&](dt::read::PT pt, const char* name, char code, int8_t sz,
-                  dt::SType st,ParserFnPtr ptr) {
-    size_t iid = static_cast<size_t>(pt);
-    xassert(iid < ParserLibrary::num_parsers);
-    parsers[iid] = ParserInfo(pt, name, code, sz, st, ptr);
-  };
-  auto autoadd = [&](dt::read::PT pt) {
-    xassert(parser_infos);
-    auto& info = parser_infos[pt];
-    auto stype = info.type().stype();
-    add(pt, info.name().data(), info.code(),
-        static_cast<int8_t>(stype_elemsize(stype)), stype, info.parser());
-  };
-
-  autoadd(dt::read::PT::Void);
-  autoadd(dt::read::PT::Bool01);
-  autoadd(dt::read::PT::BoolL);
-  autoadd(dt::read::PT::BoolT);
-  autoadd(dt::read::PT::BoolU);
-  autoadd(dt::read::PT::Int32);
-  autoadd(dt::read::PT::Int32Sep);
-  autoadd(dt::read::PT::Int64);
-  autoadd(dt::read::PT::Int64Sep);
-  autoadd(dt::read::PT::Float32Hex);
-  autoadd(dt::read::PT::Float64Plain);
-  autoadd(dt::read::PT::Float64Ext);
-  autoadd(dt::read::PT::Float64Hex);
-  autoadd(dt::read::PT::Date32ISO);
-  autoadd(dt::read::PT::Str32);
-}
-
-
-ParserLibrary::ParserLibrary() {
-  if (!parsers) init_parsers();
-}
-
+namespace dt {
+namespace read {
 
 
 //------------------------------------------------------------------------------
 // PtypeIterator
 //------------------------------------------------------------------------------
-namespace dt {
-namespace read {
 
 
 PtypeIterator::PtypeIterator(PT pt, RT rt, int8_t* qr_ptr)
@@ -106,11 +55,6 @@ bool PtypeIterator::has_incremented() const {
 // ParserIterator
 //------------------------------------------------------------------------------
 
-ParserIterable ParserLibrary::successor_types(dt::read::PT pt) const {
-  return ParserIterable(pt);
-}
-
-
 ParserIterable::ParserIterable(dt::read::PT pt)
   : ptype(pt) {}
 
@@ -136,7 +80,7 @@ ParserIterator::ParserIterator(dt::read::PT pt)
 ParserIterator& ParserIterator::operator++() {
   if (ipt >= 0) {
     ipt++;
-    if (ipt + ptype == ParserLibrary::num_parsers) ipt = -1;
+    if (ipt + ptype == dt::read::PT::COUNT) ipt = -1;
   }
   return *this;
 }
