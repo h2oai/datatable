@@ -23,7 +23,7 @@
 #define dt_CSV_READER_FREAD_h
 #include <vector>                 // std::vector
 #include "csv/reader.h"           // GenericReader
-#include "read/parsers/library.h" // ParserFnPtr
+#include "read/parsers/info.h"    // ParserFnPtr
 #include "read/field64.h"         // dt::read::field64
 #include "parallel/atomic.h"      // dt::atomic
 

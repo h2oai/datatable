@@ -22,11 +22,11 @@
 #include <cstring>                       // std::memcpy
 #include <iostream>
 #include "_dt.h"
-#include "csv/reader_parsers.h"
 #include "encodings.h"
 #include "py_encodings.h"
 #include "read/field64.h"                // field64
 #include "read/parse_context.h"          // ParseContext
+#include "read/parsers/info.h"
 #include "utils/assert.h"
 namespace dt {
 namespace read {

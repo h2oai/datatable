@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ_PARSERS_LIBRARY_h
-#define dt_READ_PARSERS_LIBRARY_h
+#ifndef dt_READ_PARSERS_INFO_h
+#define dt_READ_PARSERS_INFO_h
 #include "_dt.h"
 #include "read/parsers/pt.h"
 #include "types/type.h"
@@ -32,10 +32,8 @@ using ParserFnPtr = void(*)(const ParseContext&);
 class ParserInfo2;
 class PTInfoBuilder;
 
-
 extern ParserFnPtr* parser_functions;
 extern ParserInfo2* parser_infos;
-
 
 
 
@@ -55,13 +53,13 @@ class ParserInfo2 {
     ParserInfo2(const ParserInfo2&) = delete;
     ParserInfo2(ParserInfo2&&) = delete;
 
-    //---- Property getters ----------------------------------------------------
     char                   code() const       { return code_; }
     const std::string&     name() const       { return name_; }
     ParserFnPtr            parser() const     { return parser_; }
     const std::vector<PT>& successors() const { return successors_; }
     const Type&            type() const       { return type_; }
 };
+
 
 
 /**

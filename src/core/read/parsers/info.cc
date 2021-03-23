@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
-#include "read/parsers/library.h"
+#include "read/parsers/info.h"
 #include "utils/assert.h"
 namespace dt {
 namespace read {

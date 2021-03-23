@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "read/field64.h"                // field64
 #include "read/parse_context.h"          // ParseContext
-#include "read/parsers/library.h"
+#include "read/parsers/info.h"
 namespace dt {
 namespace read {
 

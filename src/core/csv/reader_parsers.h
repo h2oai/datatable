@@ -23,14 +23,11 @@
 #define dt_CSV_READER_PARSERS_h
 #include <iterator>    // std::input_iterator_tag
 #include "_dt.h"
-#include "read/parsers/library.h"
+#include "read/parsers/info.h"
 #include "read/parsers/pt.h"
 #include "read/parsers/rt.h"
 namespace dt {
 namespace read {
-
-
-
 
 
 
