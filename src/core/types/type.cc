@@ -127,7 +127,17 @@ void Type::promote(const Type& other) {
   }
 }
 
+Type Type::common(const Type& type1, const Type& type2) {
+  if (!type1.impl_) return type2;
+  TypeImpl* res = type1.impl_->common_type(type2.impl_);
+  if (res == type1.impl_) return type1;
+  if (res == type2.impl_) return type2;
+  res->acquire();
+  return Type(std::move(res));
+}
 
+
+bool Type::is_void()    const { return impl_->stype_ == SType::VOID; }
 bool Type::is_invalid() const { return impl_->is_invalid(); }
 bool Type::is_boolean() const { return impl_->is_boolean(); }
 bool Type::is_integer() const { return impl_->is_integer(); }

@@ -43,6 +43,9 @@ class Type_String : public TypeImpl {
         auto stype2 = static_cast<int>(other->stype());
         return stype1 >= stype2? this : other;
       }
+      if (other->is_void()) {
+        return this;
+      }
       if (other->is_object() || other->is_invalid()) {
         return other;
       }

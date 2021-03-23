@@ -270,6 +270,52 @@ def test_date32_to_arrow(pa):
 
 
 #-------------------------------------------------------------------------------
+# Relational operators
+#-------------------------------------------------------------------------------
+
+def test_date32_relational():
+    d = datetime.date
+    DT = dt.Frame(A=[d(2000, 1, 1), d(2010, 11, 17), None, d(2020, 3, 30),
+                     None, d(1998, 5, 14), d(999, 9, 9)],
+                  B=[d(2000, 1, 2), d(2010, 11, 17), None, d(2020, 1, 31),
+                     d(1998, 5, 14), None, d(999, 9, 9)])
+    RES = DT[:, {">": f.A > f.B,
+                 ">=": f.A >= f.B,
+                 "==": f.A == f.B,
+                 "!=": f.A != f.B,
+                 "<=": f.A <= f.B,
+                 "<": f.A < f.B}]
+    assert_equals(RES, dt.Frame({
+        ">": [False, False, False, True, False, False, False],
+        ">=": [False, True, True, True, False, False, True],
+        "==": [False, True, True, False, False, False, True],
+        "!=": [True, False, False, True, True, True, False],
+        "<=": [True, True, True, False, False, False, True],
+        "<": [True, False, False, False, False, False, False],
+    }))
+
+
+def test_date32_compare_vs_other_types():
+    exprs = [f.A>f.B, f.A>=f.B, f.A==f.B, f.A<=f.B, f.A<f.B, f.A!=f.B]
+    DT = dt.Frame(A=[3, 4, 5], B=[5, 4, 3], stypes={"A": 'date32'})
+    assert DT.types == [dt.Type.date32, dt.Type.int32]
+    for expr in exprs:
+        with pytest.raises(TypeError):
+            DT[:, expr]
+
+
+def test_date32_compare_vs_void():
+    DT = dt.Frame(A=[None]*3, B=[2398, None, 34639], stypes={"B": "date32"})
+    EXP = dt.Frame([False, True, False])
+    assert_equals(DT[:, f.B == None], EXP)
+    assert_equals(DT[:, None == f.B], EXP)
+    assert_equals(DT[:, f.B == f.A], EXP)
+    assert_equals(DT[:, f.A == f.B], EXP)
+
+
+
+
+#-------------------------------------------------------------------------------
 # Misc
 #-------------------------------------------------------------------------------
 
