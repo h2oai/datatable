@@ -44,14 +44,12 @@ class LinearModelBase {
     virtual bool is_fitted() = 0;
 
     // Getters
-    virtual py::oobj get_fi(bool normalize = true) = 0;
     virtual py::oobj get_labels() = 0;
     virtual py::oobj get_model() = 0;
     virtual size_t get_nfeatures() = 0;
     virtual size_t get_nlabels() = 0;
 
     // Setters
-    virtual void set_fi(const DataTable&) = 0;
     virtual void set_labels(const DataTable&) = 0;
     virtual void set_model(const DataTable&) = 0;
 

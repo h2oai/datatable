@@ -92,8 +92,7 @@ class LinearModel : public LinearModelBase {
     virtual LinearModelFitOutput fit_model() = 0;
     template <typename U>
     LinearModelFitOutput fit_impl();
-    template <typename F>
-    T predict_row(const tptr<T>& x, const std::vector<T*>, const size_t, F);
+    T predict_row(const tptr<T>& x, const std::vector<T*>, const size_t);
     dtptr create_p(size_t);
     virtual void finalize_predict(std::vector<T*>, const size_t, const int32_t*) {}
 
@@ -102,10 +101,6 @@ class LinearModel : public LinearModelBase {
     void adjust_model();
     void init_model();
     std::vector<T*> get_model_data(const dtptr&);
-
-    // Feature importance helper methods
-    void create_fi();
-    void init_fi();
 
   public:
     LinearModel();
@@ -124,13 +119,14 @@ class LinearModel : public LinearModelBase {
 
     virtual T activation_fn(T);
     virtual T loss_fn(T, T);
-    template <typename U> T target_fn(U, size_t);  // Classification
-    T target_fn(T, size_t);                        // Regression
+
+    template <typename U>
+    T target_fn(U, size_t);                // Classification
+    T target_fn(T, size_t);                // Regression
 
 
     // Getters
     py::oobj get_model() override;
-    py::oobj get_fi(bool normalize = true) override;
     size_t get_nfeatures() override;
     size_t get_nlabels() override;
     bool get_negative_class();
@@ -140,7 +136,6 @@ class LinearModel : public LinearModelBase {
 
     // Setters
     void set_model(const DataTable&) override;
-    void set_fi(const DataTable&) override;
     void set_labels(const DataTable&) override;
 
     static constexpr T T_NAN = std::numeric_limits<T>::quiet_NaN();

@@ -100,10 +100,6 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   }
   colvec cols = make_casted_columns(dt_X_fit_, stype_);
 
-  // Pointer to feature importance data
-  if (dt_fi_ == nullptr) create_fi();
-  auto data_fi = static_cast<T*>(dt_fi_->get_column(1).get_data_editable());
-
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on
   //   `iteration_nrows` rows, where `iteration_nrows == dt_X_fit_->nrows()`;
@@ -179,11 +175,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {
             // Loop over all the labels
             for (size_t k = 0; k < label_ids_fit_.size(); ++k) {
-              T p = activation_fn(predict_row(x, betas, k,
-                      [&](size_t f_id, T f_imp) {
-                        fi[f_id] += f_imp;
-                      }
-                    ));
+              T p = activation_fn(predict_row(x, betas, k));
               T y = target_fn(target, label_ids_fit_[k]);
 
               // If we use sigmoid activation, gradients for linear and logistic
@@ -245,9 +237,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
             if (isvalid && _isfinite(y_val) && read_row(i, cols_val, x)) {
               for (size_t k = 0; k < label_ids_val_.size(); ++k) {
-                T p = activation_fn(predict_row(
-                        x, betas_, k, [&](size_t, T){}
-                      ));
+                T p = activation_fn(predict_row(x, betas_, k));
                 T y = target_fn(y_val, label_ids_val_[k]);
                 loss_local += loss_fn(p, y);
               }
@@ -291,14 +281,6 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           }
         } // End validation
 
-        // Update global feature importances with the local data
-        {
-          std::lock_guard<std::mutex> lock(m);
-          for (size_t i = 0; i < nfeatures_; ++i) {
-            data_fi[i] += fi[i];
-          }
-        }
-
       } // End iteration
 
     }
@@ -330,15 +312,13 @@ bool LinearModel<T>::read_row(const size_t row, const colvec& cols, tptr<T>& x) 
  *  Predict on one row and update feature importances if requested.
  */
 template <typename T>
-template <typename F>
 T LinearModel<T>::predict_row(const tptr<T>& x,
                               const std::vector<T*> betas,
-                              const size_t k, F fifn)
+                              const size_t k)
 {
   T wTx = betas[k][0];
   for (size_t i = 0; i < nfeatures_; ++i) {
     wTx += betas[k][i + 1] * x[i];
-    fifn(i, abs(betas[k][i + 1] * x[i]));
   }
   return wTx;
 }
@@ -385,7 +365,7 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
       if (read_row(i, cols, x)) {
         for (size_t k = 0; k < get_nclasses(); ++k) {
           size_t label_id = get_label_id(k, data_label_ids);
-          data_p[k][i] = activation_fn(predict_row(x, betas_, label_id, [&](size_t, T){}));
+          data_p[k][i] = activation_fn(predict_row(x, betas_, label_id));
         }
       }
 
@@ -546,41 +526,6 @@ std::vector<T*> LinearModel<T>::get_model_data(const dtptr& dt) {
 
 
 /**
- * Create feature importance datatable.
- */
-template <typename T>
-void LinearModel<T>::create_fi() {
-  const strvec& colnames = dt_X_fit_->get_names();
-  dt::writable_string_col c_fi_names(nfeatures_);
-  dt::writable_string_col::buffer_impl<uint32_t> sb(c_fi_names);
-  sb.commit_and_start_new_chunk(0);
-  for (const auto& feature_name : colnames) {
-    sb.write(feature_name);
-  }
-
-  sb.order();
-  sb.commit_and_start_new_chunk(nfeatures_);
-
-  Column c_fi_values = Column::new_data_column(nfeatures_, stype_);
-  dt_fi_ = dtptr(new DataTable({std::move(c_fi_names).to_ocolumn(), std::move(c_fi_values)},
-                              {"feature_name", "feature_importance"})
-                             );
-  init_fi();
-}
-
-
-/**
- *  Initialize feature importances with zeros.
- */
-template <typename T>
-void LinearModel<T>::init_fi() {
-  if (dt_fi_ == nullptr) return;
-  auto data = static_cast<T*>(dt_fi_->get_column(1).get_data_editable());
-  std::memset(data, 0, nfeatures_ * sizeof(T));
-}
-
-
-/**
  *  Return training status.
  */
 template <typename T>
@@ -596,36 +541,6 @@ template <typename T>
 py::oobj LinearModel<T>::get_model() {
   if (dt_model_ == nullptr) return py::None();
   return py::Frame::oframe(new DataTable(*dt_model_));
-}
-
-
-/**
- *  Normalize a column of feature importances to [0; 1]
- *  This column has only positive values, so we simply divide its
- *  content by the maximum. Another option is to do min-max normalization,
- *  but this may lead to some features having zero importance,
- *  while in reality they don't.
- */
-template <typename T>
-py::oobj LinearModel<T>::get_fi(bool normalize /* = true */) {
-  if (dt_fi_ == nullptr) return py::None();
-
-  DataTable dt_fi__copy { *dt_fi_ };  // copy
-  if (normalize) {
-    Column& col = dt_fi__copy.get_column(1);
-    bool max_isvalid;
-    T max = static_cast<T>(col.stats()->max_double(&max_isvalid));
-    T* data = static_cast<T*>(col.get_data_editable());
-
-    if (max_isvalid && std::fabs(max) > T_EPSILON) {
-      T norm_factor = T(1) / max;
-      for (size_t i = 0; i < col.nrows(); ++i) {
-        data[i] *= norm_factor;
-      }
-      col.reset_stats();
-    }
-  }
-  return py::Frame::oframe(std::move(dt_fi__copy));
 }
 
 
@@ -656,16 +571,8 @@ template <typename T>
 void LinearModel<T>::set_model(const DataTable& dt_model) {
   xassert(dt_model.nrows() > 1);
   dt_model_ = dtptr(new DataTable(dt_model));
+  nfeatures_ = dt_model.nrows() - 1;
 }
-
-
-
-template <typename T>
-void LinearModel<T>::set_fi(const DataTable& dt_fi) {
-  dt_fi_ = dtptr(new DataTable(dt_fi));
-  nfeatures_ = dt_fi_->nrows();
-}
-
 
 
 template <typename T>

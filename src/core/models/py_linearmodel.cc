@@ -543,8 +543,7 @@ static const char* doc_reset =
 R"(reset(self)
 --
 
-Reset linear model by resetting all the model coefficients, labels and
-feature importance information.
+Reset linear model by resetting all the model coefficients and labels.
 
 Parameters
 ----------
@@ -658,12 +657,6 @@ void LinearModel::set_model(robj model) {
   DataTable* dt_model = model.to_datatable();
   if (dt_model == nullptr) return;
 
-  if (dt_model->nrows() != (lm_->get_nfeatures() + 1)) {
-    throw ValueError() << "The number of rows in the model must be equal to the "
-      << "number of features plus one, instead got: `" << dt_model->nrows()
-      << "` and `" << lm_->get_nfeatures() + 1 << "`, respectively";
-  }
-
   size_t is_binomial = dt_params_->model_type == dt::LinearModelType::BINOMIAL;
   if ((dt_model->ncols() + is_binomial) != lm_->get_nlabels()) {
     throw ValueError() << "The number of columns in the model must be consistent "
@@ -688,43 +681,6 @@ void LinearModel::set_model(robj model) {
   lm_->set_model(*dt_model);
 }
 
-
-/**
- *  .feature_importances
- */
-
-static const char* doc_fi =
-R"(
-Feature importances as calculated during the model training and
-normalized to `[0; 1]`. The normalization is done by dividing
-the accumulated feature importances over the maximum value.
-
-Parameters
-----------
-return: Frame
-    A frame with two columns: `feature_name` that has stype `str32`,
-    and `feature_importance` that has stype `float32` or `float64`
-    depending on whether the :attr:`.double_precision`
-    option is `False` or `True`.
-)";
-
-static GSArgs args_fi(
-  "feature_importances",
-  doc_fi
-);
-
-
-oobj LinearModel::get_fi() const {
-  return get_normalized_fi(true);
-}
-
-oobj LinearModel::get_normalized_fi(bool normalize) const {
-  if (lm_ == nullptr || !lm_->is_fitted()) {
-    return py::None();
-  } else {
-    return lm_->get_fi(normalize);
-  }
-}
 
 
 /**
@@ -1184,14 +1140,12 @@ static PKArgs args___getstate__(
 
 oobj LinearModel::m__getstate__(const PKArgs&) {
   py::oobj py_api_version = py::oint(API_VERSION);
-  py::oobj py_fi = get_normalized_fi(false);
   py::oobj py_labels = get_labels();
   py::oobj py_params_tuple = get_params_tuple();
   py::oobj py_model = get_model();
 
   return otuple {py_api_version,
                  py_params_tuple,
-                 py_fi,
                  py_labels,
                  py_model
                 };
@@ -1210,8 +1164,7 @@ void LinearModel::m__setstate__(const PKArgs& args) {
   init_py_params();
   set_params_tuple(pickle[1]);
 
-  // If model is trained, then there are feature importances, labels and
-  // model coefficients to be set
+  // Set up labels and model coefficients if available
   if (pickle[2].is_frame()) {
     xassert(dt_params_->model_type > dt::LinearModelType::AUTO);
 
@@ -1221,9 +1174,8 @@ void LinearModel::m__setstate__(const PKArgs& args) {
       init_dt_model<float>();
     }
 
-    lm_->set_fi(*pickle[2].to_datatable());
-    lm_->set_labels(*pickle[3].to_datatable());
-    set_model(pickle[4]);
+    lm_->set_labels(*pickle[2].to_datatable());
+    set_model(pickle[3]);
   }
 }
 
@@ -1258,7 +1210,6 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
   // Model and features
   xt.add(GETTER(&LinearModel::get_labels, args_labels));
   xt.add(GETTER(&LinearModel::get_model, args_model));
-  xt.add(GETTER(&LinearModel::get_fi, args_fi));
 
   // Fit, predict and reset
   xt.add(METHOD(&LinearModel::fit, args_fit));

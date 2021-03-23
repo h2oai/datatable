@@ -67,8 +67,6 @@ class LinearModel : public XObject<LinearModel> {
 
     // Getters
     oobj get_labels() const;
-    oobj get_fi() const;
-    oobj get_normalized_fi(bool) const;
     oobj get_model() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;

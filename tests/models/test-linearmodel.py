@@ -1268,63 +1268,6 @@ def test_linearmodel_early_stopping_regression(validation_average_niterations):
 
 
 #-------------------------------------------------------------------------------
-# Test feature importance
-#-------------------------------------------------------------------------------
-
-# def test_linearmodel_feature_importances():
-#     nrows = 10**4
-#     feature_names = ['unique', 'boolean', 'mod100']
-#     lm = LinearModel()
-#     df_train = dt.Frame([range(nrows),
-#                          [i % 2 for i in range(nrows)],
-#                          [i % 100 for i in range(nrows)]
-#                         ], names = feature_names)
-#     df_target = dt.Frame([False, True] * (nrows // 2))
-#     lm.fit(df_train, df_target)
-#     fi = lm.feature_importances
-#     assert fi[1].min1() >= 0
-#     assert math.isclose(fi[1].max1(), 1, abs_tol = 1e-7)
-#     assert fi.stypes == (stype.str32, stype.float32)
-#     assert fi.names == ("feature_name", "feature_importance")
-#     assert fi[0].to_list() == [feature_names]
-#     assert fi[0, 1] < fi[2, 1]
-#     assert fi[2, 1] < fi[1, 1]
-
-
-def test_linearmodel_feature_importances_none():
-    lm = LinearModel()
-    assert lm.feature_importances == None
-
-
-def test_linearmodel_feature_importances_empty():
-    lm = LinearModel(nepochs = 0, double_precision = True)
-    lm.fit(dt.Frame(range(10)), dt.Frame(range(10)))
-    DT = dt.Frame(
-      [["C0"], [0.0]],
-      names = ("feature_name", "feature_importance")
-    )
-    assert_equals(lm.feature_importances, DT)
-
-
-def test_linearmodel_fi_shallowcopy():
-    import copy
-    nrows = 10
-    lm = LinearModel(params_test)
-    df_train = dt.Frame(random.sample(range(nrows), nrows))
-    df_target = dt.Frame([bool(random.getrandbits(1)) for _ in range(nrows)])
-    lm.fit(df_train, df_target)
-    fi1 = lm.feature_importances
-    fi1 = lm.feature_importances
-    assert fi1[1].min1() >= 0
-    assert math.isclose(fi1[1].max1(), 1, abs_tol = 1e-7)
-
-    fi2 = copy.deepcopy(lm.feature_importances)
-    lm.reset()
-    assert lm.feature_importances is None
-    assert_equals(fi1, fi2)
-
-
-#-------------------------------------------------------------------------------
 # Test pickling
 #-------------------------------------------------------------------------------
 
@@ -1332,7 +1275,6 @@ def test_linearmodel_pickling_empty_model():
     lm_pickled = pickle.dumps(LinearModel())
     lm_unpickled = pickle.loads(lm_pickled)
     assert lm_unpickled.model == None
-    assert lm_unpickled.feature_importances == None
     assert lm_unpickled.params == LinearModel().params
 
 
@@ -1346,7 +1288,6 @@ def test_linearmodel_reuse_pickled_empty_model():
     fi = dt.Frame([["id"], [0.0]/stype.float32])
     fi.names = ["feature_name", "feature_importance"]
     assert_equals(lm_unpickled.model, dt.Frame([lm.eta, lm.eta]/stype.float32))
-    assert_equals(lm_unpickled.feature_importances, fi)
 
 
 def test_linearmodel_pickling_binomial():
@@ -1355,15 +1296,11 @@ def test_linearmodel_pickling_binomial():
     df_train = dt.Frame(range(nrows), names = ["f1"])
     df_target = dt.Frame([True] * nrows)
     lm.fit(df_train, df_target)
+
     lm_pickled = pickle.dumps(lm)
     lm_unpickled = pickle.loads(lm_pickled)
     frame_integrity_check(lm_unpickled.model)
     assert_equals(lm.model, lm_unpickled.model)
-    assert (lm_unpickled.feature_importances.names ==
-            ('feature_name', 'feature_importance',))
-    assert (lm_unpickled.feature_importances.stypes ==
-            (stype.str32, stype.float32))
-    assert_equals(lm.feature_importances, lm_unpickled.feature_importances)
     assert lm.params == lm_unpickled.params
     assert_equals(lm.labels, lm_unpickled.labels)
 
