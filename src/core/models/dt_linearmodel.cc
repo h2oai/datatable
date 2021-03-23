@@ -94,11 +94,11 @@ template <typename T>
 template <typename U> /* target column(s) data type */
 LinearModelFitOutput LinearModel<T>::fit_impl() {
   // Initialization
+  colvec cols = make_casted_columns(dt_X_fit_, stype_);
   if (!is_fitted()) {
     nfeatures_ = dt_X_fit_->ncols();
     create_model();
   }
-  colvec cols = make_casted_columns(dt_X_fit_, stype_);
 
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on
@@ -149,7 +149,6 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
     [&]() {
       // Each thread gets a private storage for observations and feature importances.
       tptr<T> x = tptr<T>(new T[nfeatures_]);
-      tptr<T> fi = tptr<T>(new T[nfeatures_]());
 
       for (size_t iter = 0; iter < niterations; ++iter) {
 
@@ -216,7 +215,6 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           // Second, average the local coefficients
           {
             std::lock_guard<std::mutex> lock(m);
-
             for (size_t i = 0; i < dt_model->ncols(); ++i) {
               for (size_t j = 0; j < dt_model->nrows(); ++j) {
                 betas_[i][j] += betas[i][j] / dt::num_threads_in_team();
@@ -261,12 +259,14 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
             loss_history[iter % val_niters_] = loss_current / static_cast<T>(val_niters_);
             loss = std::accumulate(loss_history.begin(), loss_history.end(), T(0));
             T loss_diff = (loss_old - loss) / loss_old;
+
             bool is_loss_bad = (iter >= val_niters_) && (loss < T_EPSILON || loss_diff < val_error_);
             loss_old = is_loss_bad? T_NAN : loss;
           }
           barrier();
 
-          double epoch = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows()); if (std::isnan(loss_old)) {
+          double epoch = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows());
+          if (std::isnan(loss_old)) {
             if (dt::this_thread_index() == 0) {
               job.set_message("Stopping at epoch " + tostr(epoch) +
                               ", loss = " + tostr(loss));
@@ -287,7 +287,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   );
   job.done();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows());
+  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_fit_->nrows();
   LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
@@ -309,7 +309,7 @@ bool LinearModel<T>::read_row(const size_t row, const colvec& cols, tptr<T>& x) 
 
 
 /**
- *  Predict on one row and update feature importances if requested.
+ *  Predict for one row.
  */
 template <typename T>
 T LinearModel<T>::predict_row(const tptr<T>& x,
@@ -400,7 +400,7 @@ size_t LinearModel<T>::get_label_id(size_t& k, const int32_t* data_label_ids) {
 
 
 /**
- *  Create a model and initialize its coefficients.
+ *  Create a model and initialize coefficients.
  */
 template <typename T>
 void LinearModel<T>::create_model() {

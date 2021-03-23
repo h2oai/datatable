@@ -981,7 +981,6 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 # Test regression for numerical targets
 #-------------------------------------------------------------------------------
 
-# FIXME: we shouldn't start numeric regression when get only None's
 def test_linearmodel_regression_fit_none():
     nrows = 10
     lm = LinearModel(model_type = "regression")
