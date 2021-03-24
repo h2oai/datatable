@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
+#ifndef dt_MODELS_LINEARMODEL_BASE_h
+#define dt_MODELS_LINEARMODEL_BASE_h
+#include "_dt.h"
+#include "models/dt_linearmodel_types.h"
 
 namespace dt {
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
+ *  An abstract base class for all the linear models. It declares methods
+ *  invoked by `py::LinearModel`.
  */
-FtrlBase::~FtrlBase() {}
+class LinearModelBase {
+  public:
+    virtual ~LinearModelBase();
+
+    // Fit and predict
+    virtual LinearModelFitOutput fit(const LinearModelParams*,
+                                     const DataTable*, const DataTable*,
+                                     const DataTable*, const DataTable*,
+                                     double, double, size_t) = 0;
+    virtual dtptr predict(const DataTable*) = 0;
+    virtual bool is_fitted() = 0;
+
+    // Getters
+    virtual py::oobj get_labels() = 0;
+    virtual py::oobj get_model() = 0;
+    virtual size_t get_nfeatures() = 0;
+    virtual size_t get_nlabels() = 0;
+
+    // Setters
+    virtual void set_labels(const DataTable&) = 0;
+    virtual void set_model(const DataTable&) = 0;
+
+    // Minimum number of rows a thread gets for fitting and predicting
+    static constexpr size_t MIN_ROWS_PER_THREAD = 10000;
+};
 
 
 } // namespace dt
+
+#endif

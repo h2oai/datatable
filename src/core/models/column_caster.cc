@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
 
-
-namespace dt {
-
+#include "models/column_caster.h"
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
+ *  Create a vector of numeric columns casted to `stype`.
  */
-FtrlBase::~FtrlBase() {}
+colvec make_casted_columns(const DataTable* dt, const dt::SType stype) {
+  colvec cols_casted;
+  const size_t ncols = dt->ncols();
+  cols_casted.reserve(ncols);
 
+  for (size_t i = 0; i < ncols; ++i) {
+    const Column& col = dt->get_column(i);
+    cols_casted.push_back(col.cast(stype));
+  }
 
-} // namespace dt
+  return cols_casted;
+}

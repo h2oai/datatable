@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
+#include "models/dt_linearmodel_base.h"
 
 namespace dt {
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
+ *  Destructor for the abstract `dt::LinearModelBase` class.
  */
-FtrlBase::~FtrlBase() {}
+LinearModelBase::~LinearModelBase() {}
 
 
 } // namespace dt

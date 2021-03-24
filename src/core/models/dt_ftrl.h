@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -128,7 +128,6 @@ class Ftrl : public FtrlBase {
     void create_fi();
     void init_fi();
     void define_features();
-    void softmax_rows(std::vector<T*>&, const size_t);
 
     // Parameter helper methods.
     void init_helper_params();

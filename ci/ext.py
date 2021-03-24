@@ -342,7 +342,9 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-switch-enum",
                 "-Wno-poison-system-directories",
                 "-Wno-weak-template-vtables",
+                "-Wno-poison-system-directories",
                 "-Wno-weak-vtables",
+                "-Wno-unknown-warning-option",
             )
         else:
             ext.compiler.add_compiler_flag(

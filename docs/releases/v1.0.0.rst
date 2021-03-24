@@ -115,6 +115,14 @@
       passed to parameter ``columns=`` contains ``str64``. [#2704]
 
 
+    Models
+    ------
+
+    -[new] Implemented a linear model with stochastic gradient descent learning.
+      It supports binomial and multinomial regressions, as well as
+      regression for continous targets. [#2871]
+
+
     General
     -------
 
