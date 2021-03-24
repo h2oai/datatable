@@ -1240,7 +1240,7 @@ inline bool _equal(float a, float b) {
 
 template<>
 inline bool _equal(double a, double b) {
-  return (a == b) || (std::abs(a - b) < 1e-12);
+  return (a == b) || (std::abs(a - b) < 1e-11);
 }
 
 template <typename T>
