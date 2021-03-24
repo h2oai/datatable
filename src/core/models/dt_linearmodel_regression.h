@@ -28,7 +28,7 @@ namespace dt {
 
 
 /**
- *  Numeric regression.
+ *  Numerical regression.
  */
 template <typename T /* float or double */>
 class LinearModelRegression : public LinearModel<T> {
@@ -55,9 +55,7 @@ class LinearModelRegression : public LinearModel<T> {
       return this->template fit_impl<T>();
     }
 
-
   public:
-
     /**
      *  Identity function.
      */

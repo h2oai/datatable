@@ -33,8 +33,7 @@ namespace dt {
 /**
  *  An abstract class that implements all the virtual methods declared in
  *  `dt::LinearModelBase`. It also declares problem-specific virtual methods,
- *  such as `fit_model()`, `activation_fn()`, `loss_fn()`, etc. Some of these methods
- *  are implemented to cover the most frequent use case.
+ *  such as `fit_model()`, `activation_fn()`, `loss_fn()`, etc.
  */
 template <typename T /* float or double */>
 class LinearModel : public LinearModelBase {
@@ -117,12 +116,12 @@ class LinearModel : public LinearModelBase {
     bool is_fitted() override;
     bool read_row(const size_t, const colvec&, tptr<T>&);
 
-    virtual T activation_fn(T);
-    virtual T loss_fn(T, T);
+    virtual T activation_fn(T) = 0;
+    virtual T loss_fn(T, T) = 0;
 
     template <typename U>
-    T target_fn(U, size_t);                // Classification
-    T target_fn(T, size_t);                // Regression
+    T target_fn(U, size_t);               // Classification
+    T target_fn(T, size_t);               // Regression
 
 
     // Getters

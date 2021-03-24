@@ -584,26 +584,6 @@ void LinearModel<T>::set_labels(const DataTable& dt_labels) {
 
 
 /**
- *  Sigmoid function.
- */
-template <typename T>
-T LinearModel<T>::activation_fn(T x) {
-  return T(1) / (T(1) + std::exp(-x));
-}
-
-
-/**
- *  Logloss.
- */
-template <typename T>
-T LinearModel<T>::loss_fn(T p, T y) {
-  constexpr T epsilon = std::numeric_limits<T>::epsilon();
-  p = std::max(std::min(p, 1 - epsilon), epsilon);
-  return -std::log(p * (2*y - 1) + 1 - y);
-}
-
-
-/**
  *  Target function for classification.
  */
 template <typename T>
