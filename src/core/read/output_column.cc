@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,10 +34,8 @@ namespace read {
 OutputColumn::OutputColumn()
   : nrows_in_chunks_(0),
     nrows_allocated_(0),
-    stype_(SType::BOOL)
-{
-  reset_colinfo();
-}
+    stype_(SType::VOID)
+{}
 
 
 void* OutputColumn::data_w(size_t row) const {
