@@ -1230,17 +1230,22 @@ std::unique_ptr<Stats> StringStats::clone() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
+inline T _tol(T a, T b, T tol) {
+  return std::max(tol * std::max(std::abs(a), std::abs(b)), tol);
+}
+
+template <typename T>
 inline bool _equal(T a, T b) { return a == b; }
 
 template<>
 inline bool _equal(float a, float b) {
   // Equality check is needed to ensure that inf==inf
-  return (a == b) || (std::abs(a - b) < 1e-7f);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-7f));
 }
 
 template<>
 inline bool _equal(double a, double b) {
-  return (a == b) || (std::abs(a - b) < 1e-11);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-12));
 }
 
 template <typename T>

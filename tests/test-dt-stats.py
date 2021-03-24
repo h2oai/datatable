@@ -466,6 +466,8 @@ def test_stats_bool_large(numpy):
     assert dt0.countna().to_list() == [[0]]
     assert list_equals(dt0.mean().to_list(), [[a.mean()]])
     assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
+    # Integrity check should be performed after stats calculation, see #2906.
+    frame_integrity_check(dt0)
 
 
 def test_stats_int_large(numpy):
@@ -478,6 +480,7 @@ def test_stats_int_large(numpy):
     assert dt0.countna().to_list() == [[0]]
     assert list_equals(dt0.mean().to_list(), [[a.mean()]])
     assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
+    frame_integrity_check(dt0)
 
 
 def test_stats_float_large(numpy):
@@ -490,6 +493,7 @@ def test_stats_float_large(numpy):
     assert list_equals(dt0.sum().to_list(), [[a.sum()]])
     assert list_equals(dt0.mean().to_list(), [[a.mean()]])
     assert list_equals(dt0.sd().to_list(), [[a.std(ddof=1)]])
+    frame_integrity_check(dt0)
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
