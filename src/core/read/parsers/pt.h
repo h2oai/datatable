@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
-
+#ifndef dt_READ_PARSERS_PT_h
+#define dt_READ_PARSERS_PT_h
+#include <cstdint>  // uint8_t
 namespace dt {
+namespace read {
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
- */
-FtrlBase::~FtrlBase() {}
+  * Parse Type -- each identifier corresponds to one of the
+  * parser functions defined in this directory.
+  */
+enum PT : uint8_t {
+  Void,
+  Bool01,
+  BoolU,
+  BoolT,
+  BoolL,
+  Int32,
+  Int32Sep,
+  Int64,
+  Int64Sep,
+  Float32Hex,
+  Float64Plain,
+  Float64Ext,
+  Float64Hex,
+  Date32ISO,
+  Str32,
+
+  // PT::COUNT is the total number of parser types
+  COUNT
+};
 
 
-} // namespace dt
+
+}}  // namespace dt::read::
+#endif

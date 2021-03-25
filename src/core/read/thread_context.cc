@@ -90,7 +90,9 @@ void ThreadContext::preorder() {
   size_t j = 0;
   for (const auto& col : preframe_) {
     switch (col.get_stype()) {
+      case SType::VOID:    break;
       case SType::BOOL:    preorder_bool_column(j); break;
+      case SType::DATE32:
       case SType::INT32:   preorder_int32_column(j); break;
       case SType::INT64:   preorder_int64_column(j); break;
       case SType::FLOAT32: preorder_float32_column(j); break;
@@ -259,7 +261,9 @@ void ThreadContext::postorder() {
   for (auto& col : preframe_) {
     auto& outcol = col.outcol();
     switch (col.get_stype()) {
+      case SType::VOID:    break;
       case SType::BOOL:    postorder_bool_column(outcol, j); break;
+      case SType::DATE32:
       case SType::INT32:   postorder_int32_column(outcol, j); break;
       case SType::INT64:   postorder_int64_column(outcol, j); break;
       case SType::FLOAT32: postorder_float32_column(outcol, j); break;

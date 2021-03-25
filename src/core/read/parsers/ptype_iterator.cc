@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
-
+#include "read/parsers/ptype_iterator.h"
 namespace dt {
+namespace read {
 
 
-/**
- *  Destructor for the abstract `dt::FtrlBase` class.
- */
-FtrlBase::~FtrlBase() {}
+
+PTypeIterator::PTypeIterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
+
+PT PTypeIterator::operator*() const {
+  return curr_ptype;
+}
+
+RT PTypeIterator::get_rtype() const {
+  return rtype;
+}
+
+PTypeIterator& PTypeIterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool PTypeIterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
+}
 
 
-} // namespace dt
+
+
+}}  // namespace dt::read::

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -179,7 +179,7 @@ FtrlFitOutput Ftrl<T>::fit_binomial() {
 
 /**
  *  Create labels (in the case of numeric regression there is no actual
- *  labeles, so we just use a column name for this purpose),
+ *  labels, so we just use a column name for this purpose),
  *  set up identity mapping between models and the incoming label indicators,
  *  call to the main `fit` method.
  */
@@ -356,9 +356,9 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
 
   // Calculate work amounts for full fit iterations, last fit iteration and
   // validation.
-  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows);
-  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows);
-  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows());
+  size_t work_total = (niterations - 1) * get_work_amount(iteration_nrows, MIN_ROWS_PER_THREAD);
+  work_total += get_work_amount(total_nrows - (niterations - 1) * iteration_nrows, MIN_ROWS_PER_THREAD);
+  if (validation) work_total += niterations * get_work_amount(dt_X_val->nrows(), MIN_ROWS_PER_THREAD);
 
   // Set work amount to be reported by the zero thread.
   dt::progress::work job(work_total);
@@ -586,7 +586,7 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   bool k_binomial;
 
   // Set progress reporting
-  size_t work_total = get_work_amount(dt_X->nrows());
+  size_t work_total = get_work_amount(dt_X->nrows(), MIN_ROWS_PER_THREAD);
 
   dt::progress::work job(work_total);
   job.set_message("Predicting...");
@@ -626,36 +626,8 @@ dtptr Ftrl<T>::predict(const DataTable* dt_X) {
   // classifier by using `sigmoid` link function. When there is more
   // than two labels, we first employ `identity` linking, and do `softmax`
   // normalization at the end.
-  if (nlabels > 2) softmax_rows(data_p, dt_p->nrows());
+  if (nlabels > 2) softmax(data_p, dt_p->nrows());
   return dt_p;
-}
-
-
-/**
- *  Normalize predictions, so that their values sum up to `1` row-wise.
- *  To prevent overflow when calculating the softmax function,
- *  we multiply its numerator and denominator by `std::exp(-max)`,
- *  where `max` is the maximum value of predictions for a given row.
- */
-template <typename T>
-void Ftrl<T>::softmax_rows(std::vector<T*>& data_p, const size_t nrows) {
-  size_t ncols = data_p.size();
-
-  dt::parallel_for_static(nrows, [&](size_t i){
-    T sum = T(0);
-    T max = data_p[0][i];
-    for (size_t j = 1; j < ncols; ++j) {
-      if (data_p[j][i] > max) max = data_p[j][i];
-    }
-
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] = std::exp(data_p[j][i] - max);
-      sum += data_p[j][i];
-    }
-    for (size_t j = 0; j < ncols; ++j) {
-      data_p[j][i] /= sum;
-    }
-  });
 }
 
 

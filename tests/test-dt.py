@@ -201,7 +201,7 @@ def test_check_suites():
     # created in order to cover that suite. See test_core_coverage()
     # above for an example.
     found = core.get_test_suites()
-    expected = ["parallel", "progress", "coverage"]
+    expected = ["parallel", "progress", "coverage", "fread"]
     assert set(found) == set(expected)
 
 

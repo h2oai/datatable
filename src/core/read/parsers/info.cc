@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,64 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
-
+#include <iostream>
+#include "read/parsers/info.h"
+#include "utils/assert.h"
 namespace dt {
+namespace read {
+
+ParserFnPtr* parser_functions = nullptr;
+ParserInfo* parser_infos = nullptr;
 
 
-/**
- *  Destructor for the abstract `dt::FtrlBase` class.
- */
-FtrlBase::~FtrlBase() {}
+
+//------------------------------------------------------------------------------
+// PTInfoBuilder
+//------------------------------------------------------------------------------
+
+PTInfoBuilder::PTInfoBuilder(PT pt)
+  : id_(pt)
+{
+  xassert(pt < PT::COUNT);
+  get()->id_ = pt;
+}
 
 
-} // namespace dt
+ParserInfo* PTInfoBuilder::get() {
+  if (parser_infos == nullptr) {
+    parser_infos = new ParserInfo[PT::COUNT];
+    parser_functions = new ParserFnPtr[PT::COUNT];
+  }
+  return parser_infos + id_;
+}
+
+PTInfoBuilder* PTInfoBuilder::code(char c) {
+  get()->code_ = c;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::name(std::string&& name) {
+  get()->name_ = std::move(name);
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::parser(ParserFnPtr fn) {
+  get()->parser_ = fn;
+  parser_functions[id_] = fn;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::successors(std::vector<PT>&& sc) {
+  get()->successors_ = sc;
+  return this;
+}
+
+PTInfoBuilder* PTInfoBuilder::type(Type type) {
+  get()->type_ = type;
+  return this;
+}
+
+
+
+
+}}

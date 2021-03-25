@@ -19,45 +19,60 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_DATE_h
-#define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#ifndef dt_MODELS_LINEARMODEL_REGRESSION_h
+#define dt_MODELS_LINEARMODEL_REGRESSION_h
+#include "models/dt_linearmodel.h"
+
+
 namespace dt {
 
 
+/**
+ *  Numerical regression.
+ */
+template <typename T /* float or double */>
+class LinearModelRegression : public LinearModel<T> {
+  protected:
+    LinearModelFitOutput fit_model() override {
+      xassert(this->dt_y_fit_->ncols() == 1);
 
-class Type_Date32 : public TypeImpl {
+      if (!this->is_fitted()) {
+        // In the case of numeric regression there are no labels,
+        // so we just use a column name for this purpose.
+        const strvec& colnames = this->dt_y_fit_->get_names();
+        std::unordered_map<std::string, int32_t> colnames_map = {{colnames[0], 0}};
+        this->dt_labels_ = create_dt_labels_str<uint32_t>(colnames_map);
+      }
+
+      this->label_ids_fit_ = { 0 };
+      this->label_ids_val_ = { 0 };
+
+      this->col_y_fit_ = this->dt_y_fit_->get_column(0).cast(this->stype_);
+      if (_notnan(this->nepochs_val_)) {
+        this->col_y_val_ = this->dt_y_val_->get_column(0).cast(this->stype_);
+      }
+
+      return this->template fit_impl<T>();
+    }
+
   public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
-
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
-
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
+    /**
+     *  Identity function.
+     */
+    T activation_fn(T x) override {
+      return x;
     }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
 
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
+    /**
+     *  Quadratic loss.
+     */
+    T loss_fn(T p, T y) override {
+      return (p - y) * (p - y);
     }
+
 };
 
 
+} // namespace dt
 
-}  // namespace dt
 #endif

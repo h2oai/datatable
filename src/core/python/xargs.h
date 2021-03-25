@@ -25,6 +25,7 @@
 #include <string>          // std::string
 #include <unordered_map>   // std::unordered_map
 #include <vector>          // std::vector
+#include "utils/macros.h"
 #include "python/arg.h"
 #include "python/args.h"   // ArgParent
 namespace py {
@@ -186,9 +187,7 @@ class XArgs : public ArgParent {
 };
 
 
-#define PASTE_TOKENS(x, y) x ## y
-#define PASTE_TOKENS2(x, y) PASTE_TOKENS(x, y)
-#define ARGS_NAME  PASTE_TOKENS2(args_, __LINE__)
+#define ARGS_NAME  PASTE_TOKENS(args_, __LINE__)
 #define DECLARE_PYFN(fn)                                                       \
     static py::XArgs* ARGS_NAME = (new py::XArgs(fn))                          \
       ->pyfunction(                                                            \

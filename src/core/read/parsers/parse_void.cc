@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
-
+#include "read/field64.h"                // field64
+#include "read/parse_context.h"          // ParseContext
+#include "read/parsers/info.h"
 namespace dt {
+namespace read {
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
- */
-FtrlBase::~FtrlBase() {}
+  * "Void" type is a root for all other types. This type is matched by
+  * empty column only, and there is nothing to read nor parsing
+  * pointer to advance for an empty column.
+  */
+static void parse_void(const ParseContext&) {
+}
+
+REGISTER_PARSER(PT::Void)
+    ->parser(parse_void)
+    ->name("Empty")
+    ->code('V')
+    ->type(Type::void0())
+    ->successors({PT::Bool01, PT::BoolU, PT::BoolT, PT::BoolL, PT::Int32,
+                  PT::Int32Sep, PT::Int64, PT::Int64Sep, PT::Float32Hex,
+                  PT::Float64Plain, PT::Float64Ext, PT::Float64Hex,
+                  PT::Date32ISO, PT::Str32});
 
 
-} // namespace dt
+
+
+}}  // namespace dt::read::

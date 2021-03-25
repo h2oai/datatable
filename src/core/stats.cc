@@ -504,20 +504,32 @@ void StringStats::set_mode(const dt::CString& value, bool isvalid) {
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
   xassert(col->type().can_be_read_as<T>());
-  std::atomic<size_t> total_countna { 0 };
-  dt::parallel_region(
-    dt::NThreads(col->allow_parallel_access()),
-    [&] {
-      T target;
-      size_t thread_countna = 0;
-      dt::nested_for_static(col->nrows(),
-        [&](size_t i) {
-          bool isvalid = col->get_element(i, &target);
-          thread_countna += !isvalid;
-        });
-      total_countna += thread_countna;
-    });
-  return total_countna.load();
+  size_t n = col->nrows();
+  if (n <= 32) {
+    T target;
+    size_t countna = 0;
+    for (size_t i = 0; i < n; ++i) {
+      bool isvalid = col->get_element(i, &target);
+      countna += !isvalid;
+    }
+    return countna;
+  }
+  else {
+    std::atomic<size_t> total_countna { 0 };
+    dt::parallel_region(
+      dt::NThreads(col->allow_parallel_access()),
+      [&] {
+        T target;
+        size_t thread_countna = 0;
+        dt::nested_for_static(n,
+          [&](size_t i) {
+            bool isvalid = col->get_element(i, &target);
+            thread_countna += !isvalid;
+          });
+        total_countna += thread_countna;
+      });
+    return total_countna.load();
+  }
 }
 
 void Stats::compute_nacount() { throw NotImplError(); }
@@ -1230,17 +1242,22 @@ std::unique_ptr<Stats> StringStats::clone() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
+inline T _tol(T a, T b, T tol) {
+  return std::max(tol * std::max(std::abs(a), std::abs(b)), tol);
+}
+
+template <typename T>
 inline bool _equal(T a, T b) { return a == b; }
 
 template<>
 inline bool _equal(float a, float b) {
   // Equality check is needed to ensure that inf==inf
-  return (a == b) || (std::abs(a - b) < 1e-7f);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-7f));
 }
 
 template<>
 inline bool _equal(double a, double b) {
-  return (a == b) || (std::abs(a - b) < 1e-12);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-12));
 }
 
 template <typename T>

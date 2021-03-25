@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
-
-
+#ifndef dt_READ_PARSERS_RT_h
+#define dt_READ_PARSERS_RT_h
+#include <cstdint>   // uint8_t
 namespace dt {
+namespace read {
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
- */
-FtrlBase::~FtrlBase() {}
+  * Requested Type -- column type as requested by the user; each may correspond
+  * to one or more parse types.
+  *
+  * Do not use "enum class" here: we want this enum to be implicitly
+  * convertible into integers, so that we can use it as an array index.
+  */
+enum RT : uint8_t {
+  RDrop    = 0,
+  RAuto    = 1,
+  RBool    = 2,
+  RInt     = 3,
+  RInt32   = 4,
+  RInt64   = 5,
+  RFloat   = 6,
+  RFloat32 = 7,
+  RFloat64 = 8,
+  RStr     = 9,
+  RStr32   = 10,
+  RStr64   = 11,
+};
 
 
-} // namespace dt
+
+
+}}  // namespace dt::read::
+#endif

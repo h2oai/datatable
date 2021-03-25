@@ -34,7 +34,11 @@ odate odate::unchecked(PyObject* obj) {
 
 
 odate::odate(hh::ymd date) {
-  v = PyDate_FromDate(date.year, date.month, date.day);
+  if (date.year > 0 && date.year <= 9999) {
+    v = PyDate_FromDate(date.year, date.month, date.day);
+  } else {
+    v = PyLong_FromLong(hh::days_from_civil(date.year, date.month, date.day));
+  }
   if (!v) throw PyError();
 }
 

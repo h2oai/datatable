@@ -94,6 +94,7 @@ std_symbols_library = {
     "std::default_random_engine":              ["random"],
     "std::distance":                           ["iterator"],
     "std::domain_error":                       ["stdexcept"],
+    "std::dynamic_extent":                     ["span"],
     "std::enable_if":                          ["type_traits"],
     "std::end":                                ["array", "deque", "forward_list", "iterator", "list", "map", "regex", "set", "span", "string", "string_view", "unordered_map", "unordered_set", "vector"],
     "std::equal":                              ["algorithm"],
@@ -302,6 +303,7 @@ std_symbols_library = {
     "std::size_t":                             ["cstddef", "cstdio", "cstdlib", "cstring", "ctime"],
     "std::snprintf":                           ["cstdio"],
     "std::sort":                               ["algorithm"],
+    "std::span":                               ["span"],
     "std::sprintf":                            ["cstdio"],
     "std::sqrt":                               ["cmath"],
     "std::sqrtf":                              ["cmath"],
@@ -495,6 +497,7 @@ class Source:
         includes = self._sys_includes_resolved
         errors_found = 0
         for std_symbol in self._std_symbols:
+            if std_symbol == "std::experimental": continue
             headers = std_symbols_library.get(std_symbol)
             if headers is None:
                 print("Unknown symbol %s in file %s"

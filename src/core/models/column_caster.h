@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,16 +19,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "models/dt_ftrl_base.h"
 
-
-namespace dt {
+#ifndef dt_MODELS_COLUMN_CASTER_h
+#define dt_MODELS_COLUMN_CASTER_h
+#include "column/func_unary.h"
 
 
 /**
- *  Destructor for the abstract `dt::FtrlBase` class.
+ *  Create a virtual column that casts numeric `col` from `T_from` to `T_to`.
+ *  Infinite values are casted into NA's. This function is only needed
+ *  as a workaround for a stats calculation: min/max on this column will never be
+ *  an inf.
  */
-FtrlBase::~FtrlBase() {}
+template <typename T_from, typename T_to>
+Column make_inf2na_casted_column(const Column& col, dt::SType stype) {
+  Column col_casted = Column(new dt::FuncUnary2_ColumnImpl<T_from, T_to>(
+           Column(col),
+           [](T_from x, bool x_isvalid, T_to* out) {
+             *out = static_cast<T_to>(x);
+             return x_isvalid && _isfinite(x);
+           },
+           col.nrows(),
+           stype
+         ));
+
+  return col_casted;
+}
+
+colvec make_casted_columns(const DataTable*, const dt::SType);
 
 
-} // namespace dt
+#endif

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,12 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "csv/reader.h"              // GenericReader
-#include "csv/reader_parsers.h"
-#include "read/preframe.h"
-#include "utils/temporary_file.h"    // TemporaryFile
 #include "column.h"
+#include "csv/reader.h"              // GenericReader
 #include "datatable.h"
+#include "read/preframe.h"
+#include "read/parsers/info.h"
+#include "utils/temporary_file.h"    // TemporaryFile
 namespace dt {
 namespace read {
 
@@ -262,7 +262,7 @@ PreFrame::const_iterator PreFrame::end() const {
 //------------------------------------------------------------------------------
 
 std::vector<PT> PreFrame::get_ptypes() const {
-  std::vector<PT> res(columns_.size(), PT::Mu);
+  std::vector<PT> res(columns_.size(), PT::Void);
   save_ptypes(res);
   return res;
 }
@@ -295,20 +295,19 @@ void PreFrame::set_ptypes(const std::vector<PT>& types) {
 
 void PreFrame::reset_ptypes() {
   for (auto& col : columns_) {
-    col.set_ptype(PT::Mu);
+    col.set_ptype(PT::Void);
     col.outcol().set_stype(col.get_stype());
   }
 }
 
 const char* PreFrame::print_ptypes() const {
-  const ParserInfo* parsers = ParserLibrary::get_parser_infos();
   static const size_t N = 100;
   static char out[N + 1];
   char* ch = out;
   size_t ncols = columns_.size();
   size_t tcols = ncols <= N? ncols : N - 20;
   for (size_t i = 0; i < tcols; ++i) {
-    *ch++ = parsers[columns_[i].get_ptype()].code;
+    *ch++ = parser_infos[columns_[i].get_ptype()].code();
   }
   if (tcols != ncols) {
     *ch++ = ' ';
@@ -317,7 +316,7 @@ const char* PreFrame::print_ptypes() const {
     *ch++ = '.';
     *ch++ = ' ';
     for (size_t i = ncols - 15; i < ncols; ++i)
-      *ch++ = parsers[columns_[i].get_ptype()].code;
+      *ch++ = parser_infos[columns_[i].get_ptype()].code();
   }
   *ch = '\0';
   return out;
