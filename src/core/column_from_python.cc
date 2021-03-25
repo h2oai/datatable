@@ -494,17 +494,17 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
   static styvec s_void = {
     dt::SType::BOOL, dt::SType::INT8, dt::SType::INT16, dt::SType::INT32,
     dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::STR32,
-    dt::SType::DATE32, dt::SType::OBJ
+    dt::SType::DATE32
   };
-  static styvec s_bool8 = {dt::SType::INT8, dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_int8  = {dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_int16 = {dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_int32 = {dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_int64 = {dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_float32 = {dt::SType::FLOAT64, dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_float64 = {dt::SType::STR32, dt::SType::OBJ};
-  static styvec s_str32 = {dt::SType::STR64, dt::SType::OBJ};
-  static styvec s_str64 = {dt::SType::OBJ};
+  static styvec s_bool8 = {dt::SType::INT8, dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int8  = {dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int16 = {dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int32 = {dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int64 = {dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_float32 = {dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_float64 = {dt::SType::STR32};
+  static styvec s_str32 = {dt::SType::STR64};
+  static styvec s_str64 = {};
   static styvec s_date32 = {};
 
   switch (stype) {
@@ -520,7 +520,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
     case dt::SType::STR64:   return s_str64;
     case dt::SType::DATE32:  return s_date32;
     default:
-      throw RuntimeError() << "Unknown successors of stype " << stype;  // LCOV_EXCL_LINE
+      throw RuntimeError() << "Unknown successors of type " << stype;  // LCOV_EXCL_LINE
   }
 }
 
@@ -528,13 +528,13 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
 /**
   * Parse `inputcol`, auto-detecting its stype.
   */
-static Column parse_column_auto_stype(const Column& inputcol) {
-  xassert(inputcol.stype() == dt::SType::OBJ);
+static Column parse_column_auto_type(const Column& inputcol) {
+  xassert(inputcol.type().is_object());
   Buffer databuf, strbuf;
   size_t nrows = inputcol.nrows();
 
-  // We start with the VOID stype, which is upwards-compatible with all other
-  // stypes.
+  // We start with the VOID type, which is upwards-compatible with all other
+  // types.
   dt::SType stype = dt::SType::VOID;
   size_t i = parse_as_void(inputcol);
   while (i < nrows) {
@@ -551,7 +551,6 @@ static Column parse_column_auto_stype(const Column& inputcol) {
         case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
         case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
         case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
-        case dt::SType::OBJ:     return force_as_pyobj(inputcol);
         default: continue;  // try another stype
       }
       if (j != i) {
@@ -566,10 +565,10 @@ static Column parse_column_auto_stype(const Column& inputcol) {
       err << "Cannot create column from a python list: element at index "
           << i << " is of type " << item.typeobj();
       if (i) {
-        err << ", while previous elements had stype " << stype;
+        err << ", while previous elements had type `" << stype;
       }
-      err << ". If you meant to create a column of stype obj64, then you must "
-             "request this stype explicitly";
+      err << "`. If you meant to create a column of type obj64, then you must "
+             "request this type explicitly";
       throw err;
     }
     i = j;
@@ -589,7 +588,7 @@ static Column parse_column_auto_stype(const Column& inputcol) {
 /**
   * Parse `inputcol` forcing it into the specific stype.
   */
-static Column parse_column_fixed_stype(const Column& inputcol, dt::SType stype) {
+static Column parse_column_fixed_type(const Column& inputcol, dt::SType stype) {
   switch (stype) {
     case dt::SType::VOID:    return Column::new_na_column(inputcol.nrows(), dt::SType::VOID);
     case dt::SType::BOOL:    return force_as_bool(inputcol);
@@ -613,10 +612,10 @@ static Column parse_column_fixed_stype(const Column& inputcol, dt::SType stype) 
 static Column resolve_column(const Column& inputcol, dt::SType stype0)
 {
   if (stype0 == dt::SType::AUTO) {
-    return parse_column_auto_stype(inputcol);
+    return parse_column_auto_type(inputcol);
   }
   else {
-    return parse_column_fixed_stype(inputcol, stype0);
+    return parse_column_fixed_type(inputcol, stype0);
   }
 }
 

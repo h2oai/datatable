@@ -61,6 +61,12 @@
       deprecated and will be removed in a future version. Currently they
       continue to work as before, however.
 
+    -[api] When a frame is created from a list of python objects of disparate
+      types, we will no longer create a column of type ``object`` -- instead,
+      a :exc:`dt.exceptions.TypeError` will  be thrown. An ``object`` column
+      can still be created by an explicit request via the ``stype=``
+      parameter in the constructor.
+
 
     FExpr
     -----

@@ -754,6 +754,18 @@ def test_create_large_string_column():
     assert DT[-1, 0] == s
 
 
+def test_no_auto_object_column():
+    src = [3, "ha!", dt, [0]]
+    msg = r"Cannot create column from a python list"
+    with pytest.raises(TypeError, match=msg):
+        dt.Frame(src)
+    # Requesting 'object' stype explicitly should create a valid frame
+    DT = dt.Frame(src, stype=object)
+    assert DT.shape == (4, 1)
+    assert DT.types == [dt.Type.obj64]
+    assert DT.to_list() == [src]
+
+
 
 #-------------------------------------------------------------------------------
 # Create specific stypes
@@ -1399,7 +1411,7 @@ def test_issue_42():
     frame_integrity_check(d)
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    d = dt.Frame([-1, 2, {5}, "hooray"])
+    d = dt.Frame([-1, 2, {5}, "hooray"], stype='obj64')
     frame_integrity_check(d)
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )

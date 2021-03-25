@@ -297,7 +297,7 @@ def test_cast_str_to_str(source_stype):
 
 def test_cast_obj_to_str():
     src = [noop, "Hello!", ..., {}, dt, print, None]
-    DT = dt.Frame(src)
+    DT = dt.Frame(src, stype=object)
     assert DT.stypes == (dt.obj64,)
     RES = DT[:, [dt.str32(f[0]), dt.str64(f[0])]]
     frame_integrity_check(RES)
@@ -371,7 +371,8 @@ def test_cast_obj_to_obj():
 
     a = AA()
     b = AA()
-    DT = dt.Frame([a, b, AA, {"believe": "in something"}])
+    DT = dt.Frame([a, b, AA, {"believe": "in something"}],
+                  stype=dt.obj64)
     assert DT.stypes == (dt.obj64,)
     RES = DT[:, dt.obj64(f[0])]
     assert RES.stypes == (dt.obj64,)

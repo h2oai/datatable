@@ -363,7 +363,8 @@ def test_linearmodel_fit_wrong_empty_target():
 def test_linearmodel_fit_wrong_target_obj64():
     lm = LinearModel()
     df_train = dt.Frame(list(range(8)))
-    df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"])
+    df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"],
+                         stype=dt.obj64)
     with pytest.raises(TypeError) as e:
         lm.fit(df_train, df_target)
     assert ("Target column should have one of the following ltypes: "
