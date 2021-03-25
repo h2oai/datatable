@@ -19,45 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_DATE_h
-#define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#ifndef dt_READ_PARSERS_PT_h
+#define dt_READ_PARSERS_PT_h
+#include <cstdint>  // uint8_t
 namespace dt {
+namespace read {
 
 
+/**
+  * Parse Type -- each identifier corresponds to one of the
+  * parser functions defined in this directory.
+  */
+enum PT : uint8_t {
+  Void,
+  Bool01,
+  BoolU,
+  BoolT,
+  BoolL,
+  Int32,
+  Int32Sep,
+  Int64,
+  Int64Sep,
+  Float32Hex,
+  Float64Plain,
+  Float64Ext,
+  Float64Hex,
+  Date32ISO,
+  Str32,
 
-class Type_Date32 : public TypeImpl {
-  public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
-
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
-
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
-    }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+  // PT::COUNT is the total number of parser types
+  COUNT
 };
 
 
 
-}  // namespace dt
+}}  // namespace dt::read::
 #endif

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,45 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_DATE_h
-#define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#include "read/parsers/ptype_iterator.h"
 namespace dt {
+namespace read {
 
 
 
-class Type_Date32 : public TypeImpl {
-  public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
+PTypeIterator::PTypeIterator(PT pt, RT rt, int8_t* qr_ptr)
+  : pqr(qr_ptr), rtype(rt), orig_ptype(pt), curr_ptype(pt) {}
 
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
+PT PTypeIterator::operator*() const {
+  return curr_ptype;
+}
 
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
-    }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
+RT PTypeIterator::get_rtype() const {
+  return rtype;
+}
 
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
-};
+PTypeIterator& PTypeIterator::operator++() {
+  if (curr_ptype < PT::Str32) {
+    curr_ptype = static_cast<PT>(curr_ptype + 1);
+  } else {
+    *pqr = *pqr + 1;
+  }
+  return *this;
+}
+
+bool PTypeIterator::has_incremented() const {
+  return curr_ptype != orig_ptype;
+}
 
 
 
-}  // namespace dt
-#endif
+
+}}  // namespace dt::read::

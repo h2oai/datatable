@@ -19,45 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_DATE_h
-#define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#ifndef dt_READ_PARSERS_RT_h
+#define dt_READ_PARSERS_RT_h
+#include <cstdint>   // uint8_t
 namespace dt {
+namespace read {
 
 
-
-class Type_Date32 : public TypeImpl {
-  public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
-
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
-
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
-    }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+/**
+  * Requested Type -- column type as requested by the user; each may correspond
+  * to one or more parse types.
+  *
+  * Do not use "enum class" here: we want this enum to be implicitly
+  * convertible into integers, so that we can use it as an array index.
+  */
+enum RT : uint8_t {
+  RDrop    = 0,
+  RAuto    = 1,
+  RBool    = 2,
+  RInt     = 3,
+  RInt32   = 4,
+  RInt64   = 5,
+  RFloat   = 6,
+  RFloat32 = 7,
+  RFloat64 = 8,
+  RStr     = 9,
+  RStr32   = 10,
+  RStr64   = 11,
 };
 
 
 
-}  // namespace dt
+
+}}  // namespace dt::read::
 #endif

@@ -32,6 +32,7 @@
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "read/parsers/rt.h"
 #include "stype.h"
 #include "utils/exceptions.h"
 #include "utils/misc.h"         // wallclock

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,45 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_DATE_h
-#define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#include "read/field64.h"                // field64
+#include "read/parse_context.h"          // ParseContext
+#include "read/parsers/info.h"
 namespace dt {
+namespace read {
+
+
+/**
+  * "Void" type is a root for all other types. This type is matched by
+  * empty column only, and there is nothing to read nor parsing
+  * pointer to advance for an empty column.
+  */
+static void parse_void(const ParseContext&) {
+}
+
+REGISTER_PARSER(PT::Void)
+    ->parser(parse_void)
+    ->name("Empty")
+    ->code('V')
+    ->type(Type::void0())
+    ->successors({PT::Bool01, PT::BoolU, PT::BoolT, PT::BoolL, PT::Int32,
+                  PT::Int32Sep, PT::Int64, PT::Int64Sep, PT::Float32Hex,
+                  PT::Float64Plain, PT::Float64Ext, PT::Float64Hex,
+                  PT::Date32ISO, PT::Str32});
 
 
 
-class Type_Date32 : public TypeImpl {
-  public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
 
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
-
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
-    }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
-};
-
-
-
-}  // namespace dt
-#endif
+}}  // namespace dt::read::

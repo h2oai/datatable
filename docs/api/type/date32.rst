@@ -21,11 +21,12 @@
 
         Python's ``datetime.date`` object can accommodate dates from year 1 to
         year 9999, which is much smaller than what ``date32`` type allows.
-        As a consequence, certain date values will overflow if converted to
-        python objects.
+        As a consequence, when ``date32`` values that are outside of year range
+        1-9999 are converted to python, they become integers instead of
+        ``datetime.date`` objects.
 
         For the same reason the :attr:`.min` and :attr:`.max` properties of this
-        type return 1x1 frames instead of ``datetime.date`` objects.
+        type also return integers.
 
     .. _`proleptic gregorian`: https://en.wikipedia.org/wiki/Proleptic_Gregorian_calendar
 

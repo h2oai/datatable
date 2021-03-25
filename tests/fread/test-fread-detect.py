@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -135,7 +135,7 @@ def test_detect_newlines6():
 def test_detect_newlines7():
     # No newlines found
     DT = dt.fread(text="A,B")
-    assert_equals(DT, dt.Frame(A=[], B=[], stype=bool))
+    assert_equals(DT, dt.Frame(A=[], B=[]))
 
 
 def test_detect_newline8():
