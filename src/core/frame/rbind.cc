@@ -23,16 +23,17 @@
 #include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
+#include "column/const.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
+#include "stype.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "datatable.h"
-#include "datatablemodule.h"
-#include "stype.h"
 
 
 static void _check_ncols(size_t n0, size_t n1) {
@@ -489,6 +490,25 @@ void Column::rbind(colvec& columns) {
   // Replace current column's impl with the newcol's
   std::swap(impl_, newcol.impl_);
 }
+
+
+
+//------------------------------------------------------------------------------
+// rbind VOID column
+//------------------------------------------------------------------------------
+
+void dt::ConstNa_ColumnImpl::rbind_impl(
+        colvec& columns, size_t new_nrows, bool, dt::SType&)
+{
+  #if DT_DEBUG
+    for (const Column& col : columns) {
+      xassert(col.type().is_void());
+    }
+  #endif
+  (void)columns;
+  nrows_ = new_nrows;
+}
+
 
 
 
