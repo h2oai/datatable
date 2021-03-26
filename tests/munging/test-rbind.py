@@ -293,6 +293,10 @@ def test_rbind_strings4():
 def test_rbind_strings5():
     f0 = dt.Frame([1, 2, 3])
     f1 = dt.Frame(["foo", "bra"])
+    msg = "Cannot rbind column of type int32 to a column of type str32"
+    with pytest.raises(TypeError, match=msg):
+        f1.rbind(f0)
+    f0[0] = str
     f1.rbind(f0)
     assert f1.to_list() == [["foo", "bra", "1", "2", "3"]]
 
@@ -422,6 +426,9 @@ def test_rbind_different_stypes3():
     frame_integrity_check(dt1)
     assert dt0.stypes == (stype.int8, stype.int16, stype.int32, stype.int64)
     assert dt1.stypes == (stype.str32,) * 4
+    with pytest.raises(TypeError):
+        dt0.rbind(dt1)
+    dt0[:, :] = str
     dt0.rbind(dt1)
     assert dt0.stypes == (stype.str32,) * 4
     assert dt0.to_list() == [
@@ -446,6 +453,9 @@ def test_rbind_different_stypes4():
     frame_integrity_check(dt1)
     assert dt0.stypes == (stype.bool8, stype.float32, stype.float64)
     assert dt1.stypes == (stype.str32, ) * 3
+    with pytest.raises(TypeError):
+        dt0.rbind(dt1)
+    dt0[:, :] = str
     dt0.rbind(dt1)
     assert dt0.stypes == (stype.str32, ) * 3
     assert dt0.to_list() == [
@@ -465,6 +475,7 @@ def test_rbind_str32_str64():
 
 
 def test_rbind_all_stypes():
+    from datetime import date as d
     sources = {
         dt.bool8: [True, False, True, None, False, None],
         dt.int8: [3, -5, None, 17, None, 99, -99],
@@ -476,23 +487,37 @@ def test_rbind_all_stypes():
         dt.str32: ["first", None, "third", "asblkhblierb", ""],
         dt.str64: ["red", "orange", "blue", "purple", "magenta", None],
         dt.obj64: [1, False, "yey", math.nan, (3, "foo"), None, 2.33],
+        'date32': [d(2003, 11, 25), None, d(2017, 5, 16), d(2005, 6, 5)]
     }
+    cat1 = [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64]
+    cat2 = [dt.str32, dt.str64]
+    cat3 = ['date32']
+    cat4 = [dt.obj64]
     all_stypes = list(sources.keys())
     for st1 in all_stypes:
         for st2 in all_stypes:
+            compatible = \
+                (st2 in cat1 or st2 in cat4) if st1 in cat1 else \
+                (st2 in cat2 or st2 in cat4) if st1 in cat2 else \
+                (st2 in cat3 or st2 in cat4) if st1 in cat3 else \
+                True
             f1 = dt.Frame(sources[st1], stype=st1)
             f2 = dt.Frame(sources[st2], stype=st2)
-            f3 = dt.rbind(f1, f2)
-            f1.rbind(f2)
-            frame_integrity_check(f1)
-            frame_integrity_check(f2)
-            frame_integrity_check(f3)
-            assert f1.nrows == len(sources[st1]) + len(sources[st2])
-            assert f3.shape == f1.shape
-            assert f1.to_list() == f3.to_list()
-            del f1
-            del f2
-            del f3
+            if compatible:
+                f3 = dt.rbind(f1, f2)
+                f1.rbind(f2)
+                frame_integrity_check(f1)
+                frame_integrity_check(f2)
+                frame_integrity_check(f3)
+                assert f1.nrows == len(sources[st1]) + len(sources[st2])
+                assert f3.shape == f1.shape
+                assert f1.to_list() == f3.to_list()
+                del f1
+                del f2
+                del f3
+            else:
+                with pytest.raises(TypeError):
+                    dt.rbind(f1, f2)
 
 
 def test_rbind_modulefn():
