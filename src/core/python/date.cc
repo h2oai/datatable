@@ -22,9 +22,15 @@
 #include <Python.h>
 #include <datetime.h>     // Python "datetime" module, not included in Python.h
 #include "python/date.h"
+#include "python/datetime.h"
 #include "lib/hh/date.h"
 namespace py {
 
+
+
+//------------------------------------------------------------------------------
+// odate
+//------------------------------------------------------------------------------
 
 odate::odate(PyObject* obj) : oobj(obj) {}  // private
 
@@ -76,6 +82,64 @@ void odate::init() {
 
 PyTypeObject* odate::type() {
   return PyDateTimeAPI->DateType;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// odatetime
+//------------------------------------------------------------------------------
+
+static constexpr int64_t NANOSECONDS_PER_MICROSECOND = 1000L;
+static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000L;
+static constexpr int64_t NANOSECONDS_PER_DAY = 1000000000L * 24L * 3600L;
+
+
+odatetime::odatetime(PyObject* obj) : oobj(obj) {}  // private
+
+odatetime odatetime::unchecked(PyObject* obj) {
+  return odatetime(obj);
+}
+
+
+// odatetime::odatetime(hh::ymd date) {
+//   if (date.year > 0 && date.year <= 9999) {
+//     v = PyDate_FromDate(date.year, date.month, date.day);
+//   } else {
+//     v = PyLong_FromLong(hh::days_from_civil(date.year, date.month, date.day));
+//   }
+//   if (!v) throw PyError();
+// }
+
+// odatetime::odatetime(int64_t time)
+//   : odatetime(hh::civil_from_days(days)) {}
+
+
+
+bool odatetime::check(robj obj) {
+  return PyDateTime_Check(obj.to_borrowed_ref());
+}
+
+
+int64_t odatetime::get_time() const {
+  int days = hh::days_from_civil(
+      PyDateTime_GET_YEAR(v),
+      PyDateTime_GET_MONTH(v),
+      PyDateTime_GET_DAY(v)
+  );
+  int hours = PyDateTime_DATE_GET_HOUR(v);
+  int minutes = PyDateTime_DATE_GET_MINUTE(v);
+  int seconds = PyDateTime_DATE_GET_SECOND(v);
+  int micros = PyDateTime_DATE_GET_MICROSECOND(v);
+  return NANOSECONDS_PER_DAY * days +
+         NANOSECONDS_PER_SECOND * ((hours*60 + minutes)*60 + seconds) +
+         NANOSECONDS_PER_MICROSECOND * micros;
+}
+
+
+PyTypeObject* odatetime::type() {
+  return PyDateTimeAPI->DateTimeType;
 }
 
 
