@@ -23,6 +23,7 @@
 
 #include "python/bool.h"
 #include "python/date.h"
+#include "python/datetime.h"
 #include "python/dict.h"
 #include "python/float.h"
 #include "python/int.h"

@@ -24,6 +24,7 @@
 #include "python/date.h"
 #include "python/datetime.h"
 #include "lib/hh/date.h"
+#include "utils/assert.h"
 namespace py {
 
 
@@ -103,17 +104,24 @@ odatetime odatetime::unchecked(PyObject* obj) {
 }
 
 
-// odatetime::odatetime(hh::ymd date) {
-//   if (date.year > 0 && date.year <= 9999) {
-//     v = PyDate_FromDate(date.year, date.month, date.day);
-//   } else {
-//     v = PyLong_FromLong(hh::days_from_civil(date.year, date.month, date.day));
-//   }
-//   if (!v) throw PyError();
-// }
-
-// odatetime::odatetime(int64_t time)
-//   : odatetime(hh::civil_from_days(days)) {}
+odatetime::odatetime(int64_t time) {
+  const int days = static_cast<int>(
+      (time >= 0? time : time - NANOSECONDS_PER_DAY + 1) / NANOSECONDS_PER_DAY);
+  const hh::ymd date = hh::civil_from_days(days);
+  int64_t time_of_day = time - days * NANOSECONDS_PER_DAY;
+  xassert(time_of_day >= 0);
+  int64_t ns = time_of_day % NANOSECONDS_PER_DAY;
+  time_of_day /= NANOSECONDS_PER_DAY;
+  const int microseconds = static_cast<int>(ns / NANOSECONDS_PER_MICROSECOND);
+  const int seconds = static_cast<int>(time_of_day / 60);
+  time_of_day /= 60;
+  const int minutes = static_cast<int>(time_of_day / 60);
+  time_of_day /= 60;
+  const int hours = static_cast<int>(time_of_day);
+  v = PyDateTime_FromDateAndTime(date.year, date.month, date.day,
+      hours, minutes, seconds, microseconds);
+  if (!v) throw PyError();
+}
 
 
 
