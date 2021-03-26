@@ -391,6 +391,13 @@ def test_rbind_view4():
                   dt.Frame(A=['c', 'd', None, None, 'c', 'd', 'e']))
 
 
+def test_rbind_void():
+    DT1 = dt.Frame([None] * 10)
+    DT2 = dt.Frame([None] * 3)
+    res = dt.rbind(DT1, DT2)
+    assert res.types == [dt.Type.void]
+
+
 def test_rbind_different_stypes1():
     dt0 = dt.Frame([[1, 5, 24, 100]], stype=dt.int8)
     dt1 = dt.Frame([[1000, 2000]], stype=dt.int16)
