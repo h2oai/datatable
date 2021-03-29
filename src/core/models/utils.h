@@ -26,6 +26,7 @@
 #include <limits>
 #include <memory>
 #include <numeric>      // std::iota
+#include <random>
 #include "datatable.h"
 #include "parallel/api.h"
 
@@ -35,7 +36,19 @@ using tptr = typename std::unique_ptr<T[]>;
 using uint64ptr = std::unique_ptr<uint64_t[]>;
 using sizetptr = std::unique_ptr<size_t[]>;
 
-void calculate_coprimes(size_t, sztvec&);
+
+/**
+ *  Structure to store parameters of the modular quasi-random
+ *  generator.
+ */
+struct ModularParams {
+  size_t multiplier;
+  size_t increment;
+};
+
+
+ModularParams modular_random_gen(size_t, unsigned int);
+sztvec calculate_coprimes(size_t);
 
 
 /**
@@ -66,14 +79,6 @@ inline T sigmoid(T x) {
   return T(1) / (T(1) + std::exp(-x));
 }
 
-/**
- *  Derivative of sigmoid function.
- */
-template<typename T>
-inline T dsigmoid(T x) {
-  return std::exp(-x) / pow(T(1) + std::exp(-x), T(2));
-}
-
 
 /**
  *  Identity function.
@@ -81,16 +86,6 @@ inline T dsigmoid(T x) {
 template<typename T>
 inline T identity(T x) {
   return x;
-}
-
-
-/**
- *  Derivative of identity function.
- */
-template<typename T>
-inline T didentity(T x) {
-  (void) x;
-  return T(1);
 }
 
 

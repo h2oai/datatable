@@ -77,6 +77,7 @@ class LinearModel : public XObject<LinearModel> {
     oobj get_double_precision() const;
     oobj get_negative_class() const;
     oobj get_model_type() const;
+    oobj get_seed() const;
 
     // Setters
     void set_model(robj);                   // Not exposed, used for unpickling only
@@ -90,6 +91,7 @@ class LinearModel : public XObject<LinearModel> {
     void set_double_precision(const Arg&);  // Not exposed, used for unpickling only
     void set_negative_class(const Arg&);    // Disabled for a trained model
     void set_model_type(const Arg&);        // Disabled for a trained model
+    void set_seed(const Arg&);
 };
 
 

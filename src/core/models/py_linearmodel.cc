@@ -34,7 +34,7 @@
 namespace py {
 
 const size_t LinearModel::API_VERSION = 1;
-const size_t LinearModel::N_PARAMS = 7;
+const size_t LinearModel::N_PARAMS = 8;
 
 /**
  *  Model type names and their corresponding dt::LinearModelType's
@@ -71,7 +71,7 @@ std::map<dt::LinearModelType, std::string> LinearModel::create_model_type_name()
 static const char* doc___init__ =
 R"(__init__(self, eta=0.005, lambda1=0, lambda2=0,
 nepochs=1, double_precision=False, negative_class=False,
-model_type='auto', params=None)
+model_type='auto', seed=0, params=None)
 --
 
 Create a new :class:`LinearModel <datatable.models.LinearModel>` object.
@@ -118,6 +118,9 @@ model_type: "binomial" | "multinomial" | "regression" | "auto"
     then the model type will be automatically chosen based on
     the target column `stype`.
 
+seed: seed for the quasi-random number generator that is used for
+    data shuffling when fitting the model, should be non-negative.
+
 params: LinearModelParams
     Named tuple of the above parameters. One can pass either this tuple,
     or any combination of the individual parameters to the constructor,
@@ -135,7 +138,8 @@ static PKArgs args___init__(0, 1, LinearModel::N_PARAMS, false, false,
                                  "lambda2", "nepochs",
                                  "double_precision",
                                  "negative_class",
-                                 "model_type"},
+                                 "model_type",
+                                 "seed"},
                                  "__init__", doc___init__);
 
 
@@ -151,6 +155,7 @@ void LinearModel::m__init__(const PKArgs& args) {
   const Arg& arg_double_precision = args[i++];
   const Arg& arg_negative_class   = args[i++];
   const Arg& arg_model_type       = args[i++];
+  const Arg& arg_seed             = args[i++];
   xassert(i == N_PARAMS + 1);
 
 
@@ -162,10 +167,11 @@ void LinearModel::m__init__(const PKArgs& args) {
   bool defined_double_precision = !arg_double_precision.is_none_or_undefined();
   bool defined_negative_class   = !arg_negative_class.is_none_or_undefined();
   bool defined_model_type       = !arg_model_type.is_none_or_undefined();
+  bool defined_seed             = !arg_seed.is_none_or_undefined();
   bool defined_individual_param = defined_eta ||
                                   defined_lambda1 || defined_lambda2 ||
                                   defined_nepochs || defined_double_precision ||
-                                  defined_negative_class;
+                                  defined_negative_class || defined_seed;
 
   init_py_params();
 
@@ -174,7 +180,7 @@ void LinearModel::m__init__(const PKArgs& args) {
       throw ValueError() << "You can either pass all the parameters with "
         << "`params` or any of the individual parameters with `eta`, "
         << "`lambda1`, `lambda2`, `nepochs`, "
-        << "`double_precision`, `negative_class` or `model_type` "
+        << "`double_precision`, `negative_class`, `model_type` or `seed` "
         << "to `LinearModel` constructor, but not both at the same time";
     }
 
@@ -189,6 +195,7 @@ void LinearModel::m__init__(const PKArgs& args) {
     if (defined_double_precision) set_double_precision(arg_double_precision);
     if (defined_negative_class) set_negative_class(arg_negative_class);
     if (defined_model_type) set_model_type(arg_model_type);
+    if (defined_seed) set_seed(arg_seed);
   }
 }
 
@@ -1007,6 +1014,43 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
 
 
 /**
+ *  .seed
+ */
+
+static const char* doc_seed =
+R"(
+Seed for the quasi-random number generator that is used for
+data shuffling when fitting the model.
+
+Parameters
+----------
+return: int
+    Current `seed` value.
+
+new_seed: int
+    New `seed` value, should be non-negative.
+
+)";
+
+static GSArgs args_seed(
+  "seed",
+  doc_seed
+);
+
+
+oobj LinearModel::get_seed() const {
+  return py_params_->get_attr("seed");
+}
+
+
+void LinearModel::set_seed(const Arg& arg_seed) {
+  size_t seed = arg_seed.to_size_t();
+  py_params_->replace(7, arg_seed.to_robj());
+  dt_params_->seed = static_cast<unsigned int>(seed);
+}
+
+
+/**
  *  .params
  */
 
@@ -1058,6 +1102,7 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::oobj py_double_precision = params_in.get_attr("double_precision");
   py::oobj py_negative_class = params_in.get_attr("negative_class");
   py::oobj py_model_type = params_in.get_attr("model_type");
+  py::oobj py_seed = params_in.get_attr("seed");
 
   set_eta({py_eta, "`LinearModelParams.eta`"});
   set_lambda1({py_lambda1, "`LinearModelParams.lambda1`"});
@@ -1066,6 +1111,7 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   set_double_precision({py_double_precision, "`LinearModelParams.double_precision`"});
   set_negative_class({py_negative_class, "`LinearModelParams.negative_class`"});
   set_model_type({py_model_type, "`LinearModelParams.model_type`"});
+  set_seed({py_seed, "`LinearModelParams.seed`"});
 }
 
 
@@ -1076,7 +1122,8 @@ oobj LinearModel::get_params_tuple() const {
                  get_nepochs(),
                  get_double_precision(),
                  get_negative_class(),
-                 get_model_type()
+                 get_model_type(),
+                 get_seed()
                 };
 }
 
@@ -1096,6 +1143,7 @@ void LinearModel::set_params_tuple(robj params) {
   set_double_precision({params_tuple[i++], "double_precision"});
   set_negative_class({params_tuple[i++], "negative_class"});
   set_model_type({params_tuple[i++], "model_type"});
+  set_seed({params_tuple[i++], "seed"});
   xassert(i == N_PARAMS);
 }
 
@@ -1110,7 +1158,8 @@ void LinearModel::init_py_params() {
       {args_nepochs.name,          args_nepochs.doc},
       {args_double_precision.name, args_double_precision.doc},
       {args_negative_class.name,   args_negative_class.doc},
-      {args_model_type.name,       args_model_type.doc}
+      {args_model_type.name,       args_model_type.doc},
+      {args_seed.name,             args_seed.doc}
     }
   );
 
@@ -1125,6 +1174,7 @@ void LinearModel::init_py_params() {
   py_params_->replace(i++, py::obool(dt_params_->double_precision));
   py_params_->replace(i++, py::obool(dt_params_->negative_class));
   py_params_->replace(i++, py::ostring("auto"));
+  py_params_->replace(i++, py::oint(static_cast<size_t>(dt_params_->seed)));
   xassert(i == N_PARAMS);
 }
 
@@ -1204,6 +1254,7 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
   xt.add(GETSET(&LinearModel::get_nepochs, &LinearModel::set_nepochs, args_nepochs));
   xt.add(GETTER(&LinearModel::get_double_precision, args_double_precision));
   xt.add(GETSET(&LinearModel::get_negative_class, &LinearModel::set_negative_class, args_negative_class));
+  xt.add(GETSET(&LinearModel::get_seed, &LinearModel::set_seed, args_seed));
   xt.add(GETSET(&LinearModel::get_model_type, &LinearModel::set_model_type, args_model_type));
 
   // Model and features

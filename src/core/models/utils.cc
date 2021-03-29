@@ -23,35 +23,53 @@
 #include "models/utils.h"
 #include "parallel/api.h"
 
+
+/**
+ *  Generate a random multiplier and increment for quasi-random generator
+ *  based on the modular arithmentics.
+ */
+ModularParams modular_random_gen(size_t n, unsigned int seed) {
+  ModularParams mp;
+  auto multipliers = calculate_coprimes(n);
+  std::default_random_engine gen(seed);
+  std::uniform_int_distribution<size_t> multiplier_dist(0, multipliers.size() - 1);
+  std::uniform_int_distribution<size_t> increment_dist(0, n - 1);
+  mp.multiplier = multipliers[multiplier_dist(gen)];
+  mp.increment = increment_dist(gen);
+  return mp;
+}
+
+
 /**
  *  For a given `n` calculate all the coprime numbers and return them
  *  as a `coprimes` vector.
  */
-void calculate_coprimes(size_t n, sztvec& coprimes) {
-  coprimes.clear();
+sztvec calculate_coprimes(size_t n) {
+  sztvec coprimes;
   if (n == 1) {
     coprimes.push_back(1);
-    return;
-  }
+  } else {
+    std::vector<bool> mask(n - 1, false);
+    for (size_t i = 2; i <= n / 2; ++i) {
+      if (mask[i - 1]) continue;
+      if (n % i == 0) {
+        size_t j = 1;
+        while (j * i < n) {
+          mask[j * i - 1] = true;
+          j++;
+        }
+      }
+    }
 
-  std::vector<bool> mask(n - 1, false);
-  for (size_t i = 2; i <= n / 2; ++i) {
-    if (mask[i - 1]) continue;
-    if (n % i == 0) {
-      size_t j = 1;
-      while (j * i < n) {
-        mask[j * i - 1] = true;
-        j++;
+    for (size_t i = 1; i < n; ++i) {
+      if (mask[i - 1] == false) {
+        coprimes.push_back(i);
       }
     }
   }
-
-  for (size_t i = 1; i < n; ++i) {
-    if (mask[i - 1] == 0) {
-      coprimes.push_back(i);
-    }
-  }
+  return coprimes;
 }
+
 
 
 /**
