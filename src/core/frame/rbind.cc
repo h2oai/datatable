@@ -23,16 +23,17 @@
 #include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
+#include "column/const.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
+#include "stype.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "datatable.h"
-#include "datatablemodule.h"
-#include "stype.h"
 
 
 static void _check_ncols(size_t n0, size_t n1) {
@@ -67,8 +68,13 @@ This method modifies the current frame in-place. If you do not want
 the current frame modified, then use the :func:`dt.rbind()` function.
 
 If frame(s) being appended have columns of types different from the
-current frame, then these columns will be promoted to the largest of
-their types: bool -> int -> float -> string.
+current frame, then these columns will be promoted according to the
+standard promotion rules. In particular, booleans can be promoted into
+integers, which in turn get promoted into floats. However, they are
+not promoted into strings or objects.
+
+If frames have columns of incompatible types, a TypeError will be
+raised.
 
 If you need to append multiple frames, then it is more efficient to
 collect them into an array first and then do a single `rbind()`, than
@@ -249,7 +255,7 @@ static const char* doc_py_rbind =
 R"(rbind(*frames, force=False, bynames=True)
 --
 
-Produce a new frame by appending rows of `frames`.
+Produce a new frame by appending rows of several `frames`.
 
 This function is equivalent to::
 
@@ -305,7 +311,8 @@ Examples
      5 |      5     169
     [6 rows x 2 columns]
 
-:func:`rbind()` by default combines frames by names. The frames can also be bound by column position by setting the `bynames` parameter to ``False``::
+:func:`rbind()` by default combines frames by names. The frames can also be
+bound by column position by setting the `bynames` parameter to ``False``::
 
     >>> dt.rbind(DT1, DT2, bynames = False)
        | Weight  Height
@@ -320,8 +327,8 @@ Examples
     [6 rows x 2 columns]
 
 
-If the number of columns are not equal or the column names are different, you can force the row binding by setting
-the `force` parameter to `True`::
+If the number of columns are not equal or the column names are different,
+you can force the row binding by setting the `force` parameter to `True`::
 
     >>> DT2["Age"] = dt.Frame([25, 50, 67])
     >>> DT2
@@ -439,17 +446,21 @@ void Column::rbind(colvec& columns) {
   _get_mutable_impl();
   // Is the current column "empty" ?
   bool col_empty = (stype() == dt::SType::VOID);
-  if (!col_empty) this->materialize();
 
   // Compute the final number of rows and stype
   size_t new_nrows = nrows();
-  dt::SType new_stype = col_empty? dt::SType::BOOL : stype();
+  dt::Type new_type = type();
   for (auto& col : columns) {
     col.materialize();
     new_nrows += col.nrows();
-    // TODO: need better stype promotion mechanism than mere max()
-    new_stype = std::max(new_stype, col.stype());
+    auto next_type = dt::Type::common(new_type, col.type());
+    if (next_type.is_invalid()) {
+      throw TypeError() << "Cannot rbind column of type `" << col.type()
+          << "` to a column of type `" << new_type << "`";
+    }
+    new_type = std::move(next_type);
   }
+  auto new_stype = new_type.stype();
 
   // Create the resulting Column object. It can be either: an empty column
   // filled with NAs; the current column; or a type-cast of the current column.
@@ -479,6 +490,25 @@ void Column::rbind(colvec& columns) {
   // Replace current column's impl with the newcol's
   std::swap(impl_, newcol.impl_);
 }
+
+
+
+//------------------------------------------------------------------------------
+// rbind VOID column
+//------------------------------------------------------------------------------
+
+void dt::ConstNa_ColumnImpl::rbind_impl(
+        colvec& columns, size_t new_nrows, bool, dt::SType&)
+{
+  #if DT_DEBUG
+    for (const Column& col : columns) {
+      xassert(col.type().is_void());
+    }
+  #endif
+  (void)columns;
+  nrows_ = new_nrows;
+}
+
 
 
 

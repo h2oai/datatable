@@ -63,6 +63,8 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     ColumnImpl* clone() const override;
     void materialize(Column&, bool) override;
     void na_pad(size_t nrows, Column&) override;
+    void rbind_impl(
+        colvec& columns, size_t new_nrows, bool col_empty, dt::SType&) override;
 };
 
 
