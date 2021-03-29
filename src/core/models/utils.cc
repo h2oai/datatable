@@ -26,16 +26,19 @@
 
 /**
  *  Generate a random multiplier and increment for quasi-random generator
- *  based on the modular arithmentics.
+ *  based on the modular arithmetics. When seed is zero, we just return
+ *  the default parameters: multiplier == 1 and increment == 0.
  */
 ModularParams modular_random_gen(size_t n, unsigned int seed) {
   ModularParams mp;
-  auto multipliers = calculate_coprimes(n);
-  std::default_random_engine gen(seed);
-  std::uniform_int_distribution<size_t> multiplier_dist(0, multipliers.size() - 1);
-  std::uniform_int_distribution<size_t> increment_dist(0, n - 1);
-  mp.multiplier = multipliers[multiplier_dist(gen)];
-  mp.increment = increment_dist(gen);
+  if (seed) {
+    auto multipliers = calculate_coprimes(n);
+    std::default_random_engine gen(seed);
+    std::uniform_int_distribution<size_t> multiplier_dist(0, multipliers.size() - 1);
+    std::uniform_int_distribution<size_t> increment_dist(0, n - 1);
+    mp.multiplier = multipliers[multiplier_dist(gen)];
+    mp.increment = increment_dist(gen);
+  }
   return mp;
 }
 

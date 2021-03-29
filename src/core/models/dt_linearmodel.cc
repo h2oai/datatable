@@ -147,9 +147,9 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   NThreads nthreads = nthreads_from_niters(iteration_nrows, MIN_ROWS_PER_THREAD);
 
   // Calculate parameters for the modular quasi-random generator.
-  // By default, when seed is zero, we don't do data shuffling.
-  ModularParams mp;
-  if (seed_) mp = modular_random_gen(dt_X_fit_->nrows(), seed_);
+  // By default, when seed is zero, modular_random_gen() will return
+  // multiplier == 1 and increment == 0, so we don't do any data shuffling,
+  auto mp = modular_random_gen(dt_X_fit_->nrows(), seed_);
 
   dt::parallel_region(nthreads,
     [&]() {
