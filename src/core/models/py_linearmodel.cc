@@ -120,6 +120,7 @@ model_type: "binomial" | "multinomial" | "regression" | "auto"
 
 seed: seed for the quasi-random number generator that is used for
     data shuffling when fitting the model, should be non-negative.
+    If seed is zero, no shuffling is performed.
 
 params: LinearModelParams
     Named tuple of the above parameters. One can pass either this tuple,
@@ -1020,7 +1021,8 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
 static const char* doc_seed =
 R"(
 Seed for the quasi-random number generator that is used for
-data shuffling when fitting the model.
+data shuffling when fitting the model. If seed is zero,
+no shuffling is performed.
 
 Parameters
 ----------

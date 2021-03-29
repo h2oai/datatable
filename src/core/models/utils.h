@@ -44,6 +44,9 @@ using sizetptr = std::unique_ptr<size_t[]>;
 struct ModularParams {
   size_t multiplier;
   size_t increment;
+  ModularParams() : multiplier(1),
+                    increment(0)
+                    {}
 };
 
 

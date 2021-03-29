@@ -53,10 +53,10 @@ struct LinearModelParams {
   size_t : 16;
   unsigned int seed;
   LinearModelParams() : model_type(LinearModelType::AUTO),
-                 eta(0.005), lambda1(0.0), lambda2(0.0),
-                 nepochs(1.0), double_precision(false),
-                 negative_class(false), seed(0)
-                 {}
+                        eta(0.005), lambda1(0.0), lambda2(0.0),
+                        nepochs(1.0), double_precision(false),
+                        negative_class(false), seed(0)
+                        {}
 };
 
 
