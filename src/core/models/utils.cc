@@ -44,8 +44,8 @@ ModularParams modular_random_gen(size_t n, unsigned int seed) {
 
 
 /**
- *  For a given `n` calculate all the coprime numbers and return them
- *  as a `coprimes` vector.
+ *  For a given `n` calculate all the coprime numbers
+ *  that are less than `n` and return them as a `coprimes` vector.
  */
 sztvec calculate_coprimes(size_t n) {
   sztvec coprimes;
@@ -56,10 +56,8 @@ sztvec calculate_coprimes(size_t n) {
     for (size_t i = 2; i <= n / 2; ++i) {
       if (mask[i - 1]) continue;
       if (n % i == 0) {
-        size_t j = 1;
-        while (j * i < n) {
-          mask[j * i - 1] = true;
-          j++;
+        for (size_t ji = i; ji < n; ji += i) {
+          mask[ji - 1] = true;
         }
       }
     }
