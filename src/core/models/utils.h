@@ -52,6 +52,7 @@ struct ModularParams {
 
 ModularParams modular_random_gen(size_t, unsigned int);
 sztvec calculate_coprimes(size_t);
+size_t gcd(size_t, size_t);
 
 
 /**

@@ -31,15 +31,30 @@
  */
 ModularParams modular_random_gen(size_t n, unsigned int seed) {
   ModularParams mp;
-  if (seed) {
-    auto multipliers = calculate_coprimes(n);
+  if (seed && n > 1) {
     std::default_random_engine gen(seed);
-    std::uniform_int_distribution<size_t> multiplier_dist(0, multipliers.size() - 1);
     std::uniform_int_distribution<size_t> increment_dist(0, n - 1);
-    mp.multiplier = multipliers[multiplier_dist(gen)];
     mp.increment = increment_dist(gen);
+
+    std::uniform_int_distribution<size_t> multiplier_dist(1, n - 1);
+    do {
+      mp.multiplier = multiplier_dist(gen);
+    } while (mp.multiplier != 1 && gcd(mp.multiplier, n) != 1);
   }
   return mp;
+}
+
+
+/**
+ *  Calculate greatest common divisor for `a` and `b`.
+ */
+size_t gcd(size_t a, size_t b) {
+  while (b) {
+    size_t tmp = b;
+    b = a % b;
+    a = tmp;
+  }
+  return a;
 }
 
 
