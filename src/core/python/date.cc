@@ -23,9 +23,44 @@
 #include <datetime.h>     // Python "datetime" module, not included in Python.h
 #include "python/date.h"
 #include "python/datetime.h"
+#include "python/int.h"
+#include "python/tuple.h"
 #include "lib/hh/date.h"
 #include "utils/assert.h"
 namespace py {
+
+static PyTypeObject* DateTime_TimeZone_Type = nullptr;
+static PyObject* EPOCH_DATETIME = nullptr;
+static PyObject* last_timezone = nullptr;
+static int64_t last_timezone_offset = 0;
+
+#define PyDateTime_DATE_HAS_TIMEZONE(o) \
+    ((reinterpret_cast<PyDateTime_DateTime*>(o))->hastzinfo)
+
+#define PyDateTime_DATE_GET_TIMEZONE(o) \
+    ((reinterpret_cast<PyDateTime_DateTime*>(o))->tzinfo)
+
+
+// In order to be able to use python API to access datetime objects,
+// we need to "import" it via a special macro. This macro loads the
+// datetime module as a capsule and stores it in PyDateTimeAPI variable.
+//
+// Note that the PyDateTimeAPI variable will be local to this file,
+// which means that no PyDateTime* macros will work outside of this
+// translation unit.
+//
+// See https://docs.python.org/3/c-api/datetime.html
+void datetime_init() {
+  PyDateTime_IMPORT;
+
+  auto datetime_timezone_class = oobj::import("datetime", "timezone");
+  EPOCH_DATETIME = oobj::import("datetime", "datetime").call(
+      otuple{oint(1970), oint(1), oint(1), oint(0), oint(0), oint(0), oint(0),
+             datetime_timezone_class.get_attr("utc")}
+  ).release();
+  DateTime_TimeZone_Type = reinterpret_cast<PyTypeObject*>(
+      std::move(datetime_timezone_class).release());
+}
 
 
 
@@ -67,19 +102,6 @@ int odate::get_days() const {
   );
 }
 
-
-void odate::init() {
-  // In order to be able to use python API to access datetime objects,
-  // we need to "import" it via a special macro. This macro loads the
-  // datetime module as a capsule and stores it in PyDateTimeAPI variable.
-  //
-  // Note that the PyDateTimeAPI variable will be local to this file,
-  // which means that no PyDateTime* macros will work outside of this
-  // translation unit.
-  //
-  // See https://docs.python.org/3/c-api/datetime.html
-  PyDateTime_IMPORT;
-}
 
 PyTypeObject* odate::type() {
   return PyDateTimeAPI->DateType;
@@ -131,6 +153,30 @@ bool odatetime::check(robj obj) {
 
 
 int64_t odatetime::get_time() const {
+  int64_t offset = 0;
+  if (PyDateTime_DATE_HAS_TIMEZONE(v)) {
+    PyObject* tz = PyDateTime_DATE_GET_TIMEZONE(v);  // borrowed ref
+    if (tz == last_timezone) {
+      offset = last_timezone_offset;
+    }
+    else if (tz->ob_type == DateTime_TimeZone_Type) {
+      double delta = robj(tz).invoke("utcofffset", {None()})
+          .invoke("total_seconds").to_double();
+      offset = static_cast<int64_t>(delta) * NANOSECONDS_PER_SECOND;
+      last_timezone_offset = offset;
+      last_timezone = tz;
+    }
+    else {
+      auto delta = this->invoke("__sub__", oobj(EPOCH_DATETIME));
+      auto deltav = delta.to_borrowed_ref();
+      int days = PyDateTime_DELTA_GET_DAYS(deltav);
+      int seconds = PyDateTime_DELTA_GET_SECONDS(deltav);
+      int micros = PyDateTime_DELTA_GET_MICROSECONDS(deltav);
+      return NANOSECONDS_PER_DAY * days +
+             NANOSECONDS_PER_SECOND * seconds +
+             NANOSECONDS_PER_MICROSECOND * micros;
+    }
+  }
   int days = hh::days_from_civil(
       PyDateTime_GET_YEAR(v),
       PyDateTime_GET_MONTH(v),
@@ -142,7 +188,8 @@ int64_t odatetime::get_time() const {
   int micros = PyDateTime_DATE_GET_MICROSECOND(v);
   return NANOSECONDS_PER_DAY * days +
          NANOSECONDS_PER_SECOND * ((hours*60 + minutes)*60 + seconds) +
-         NANOSECONDS_PER_MICROSECOND * micros;
+         NANOSECONDS_PER_MICROSECOND * micros +
+         offset;
 }
 
 

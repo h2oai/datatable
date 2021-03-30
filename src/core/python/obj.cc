@@ -515,6 +515,22 @@ bool _obj::parse_date(int32_t* out) const {
   return false;
 }
 
+bool _obj::parse_date(int64_t* out) const {
+  if (py::odate::check(v)) {
+    *out = py::odate::unchecked(v).get_days();
+    return true;
+  }
+  return false;
+}
+
+bool _obj::parse_datetime(int64_t* out) const {
+  if (py::odatetime::check(v)) {
+    *out = py::odatetime::unchecked(v).get_time();
+    return true;
+  }
+  return false;
+}
+
 
 
 

@@ -38,7 +38,6 @@ class odate : public oobj {
     explicit odate(int32_t days);
     explicit odate(hh::ymd date);
 
-    static void init();
     static bool check(py::robj obj);
 
     int get_days() const;
@@ -48,6 +47,10 @@ class odate : public oobj {
   private:
     explicit odate(PyObject*);
 };
+
+
+// Called once when datatable module is initialized
+void datetime_init();
 
 
 
