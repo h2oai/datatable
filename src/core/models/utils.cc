@@ -52,18 +52,21 @@ sztvec calculate_coprimes(size_t n) {
   if (n == 1) {
     coprimes.push_back(1);
   } else {
-    std::vector<bool> mask(n - 1, false);
+    // Create mask and set `mask[i]` to `true` iff `i` is not coprime with `n`.
+    // We use `n` elements mask, instead of `n - 1`, to avoid shifting the
+    // mask index by one all the time.
+    std::vector<bool> mask(n, false);
     for (size_t i = 2; i <= n / 2; ++i) {
-      if (mask[i - 1]) continue;
+      if (mask[i]) continue;
       if (n % i == 0) {
         for (size_t ji = i; ji < n; ji += i) {
-          mask[ji - 1] = true;
+          mask[ji] = true;
         }
       }
     }
 
     for (size_t i = 1; i < n; ++i) {
-      if (mask[i - 1] == false) {
+      if (mask[i] == false) {
         coprimes.push_back(i);
       }
     }
