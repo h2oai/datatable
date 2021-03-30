@@ -29,9 +29,9 @@
 #include "utils/assert.h"
 namespace py {
 
-static PyTypeObject* DateTime_TimeZone_Type = nullptr;
-static PyObject* EPOCH_DATETIME = nullptr;
-static PyObject* last_timezone = nullptr;
+static PyTypeObject* DateTime_TimeZone_Type = nullptr;  // owned
+static PyObject* EPOCH_DATETIME = nullptr;  // owned
+static PyObject* last_timezone = nullptr;   // owned
 static int64_t last_timezone_offset = 0;
 
 #define PyDateTime_DATE_HAS_TIMEZONE(o) \
@@ -54,9 +54,12 @@ void datetime_init() {
   PyDateTime_IMPORT;
 
   auto datetime_timezone_class = oobj::import("datetime", "timezone");
+  last_timezone = datetime_timezone_class.get_attr("utc").release();
+  last_timezone_offset = 0;
+
   EPOCH_DATETIME = oobj::import("datetime", "datetime").call(
       otuple{oint(1970), oint(1), oint(1), oint(0), oint(0), oint(0), oint(0),
-             datetime_timezone_class.get_attr("utc")}
+             last_timezone}
   ).release();
   DateTime_TimeZone_Type = reinterpret_cast<PyTypeObject*>(
       std::move(datetime_timezone_class).release());
@@ -152,6 +155,22 @@ bool odatetime::check(robj obj) {
 }
 
 
+/**
+  * This function converts a `datetime.datetime` object into its time offset
+  * (in nanoseconds) since the epoch.
+  *
+  * There are 2 cases to consider here: a "naive" datetime object (without
+  * timezone information) gets converted as if it was in UTC. At the same
+  * time, a timezone-aware object gets converted taking into account the
+  * time zone information. In the latter case, again, we distinguish between
+  * time zones that are instances of `datetime.timezone` class, and all others.
+  *
+  * Specifically, an instance of `datetime.timezone` class has constant offset
+  * relative to UTC, which allows us to calculate its time value simpler. In
+  * addition, we memorize the last seen timezone object and its offset, so
+  * that in the common case when we're processing multiple datetime objects
+  * with the same timezeone, we wouldn't have to recalculate the offset.
+  */
 int64_t odatetime::get_time() const {
   int64_t offset = 0;
   if (PyDateTime_DATE_HAS_TIMEZONE(v)) {
@@ -164,7 +183,8 @@ int64_t odatetime::get_time() const {
           .invoke("total_seconds").to_double();
       offset = static_cast<int64_t>(delta) * NANOSECONDS_PER_SECOND;
       last_timezone_offset = offset;
-      last_timezone = tz;
+      Py_INCREF(tz);
+      Py_SETREF(last_timezone, tz);
     }
     else {
       auto delta = this->invoke("__sub__", oobj(EPOCH_DATETIME));
@@ -176,6 +196,7 @@ int64_t odatetime::get_time() const {
              NANOSECONDS_PER_SECOND * seconds +
              NANOSECONDS_PER_MICROSECOND * micros;
     }
+    // fall-through
   }
   int days = hh::days_from_civil(
       PyDateTime_GET_YEAR(v),
