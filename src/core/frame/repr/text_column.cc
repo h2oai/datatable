@@ -419,8 +419,9 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 //------------------------------------------------------------------------------
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
-  ell_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "~",
+  ell_ = tstring(term_->unicode_allowed()? " \xE2\x80\xA6 " : " ~ ",
                  style::dim|style::nobold);
+  space_ = tstring("   ");
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
@@ -428,27 +429,19 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 
 
 void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
 }
-
 
 void Ellipsis_TextColumn::print_type(TerminalStream& out) const {
-  out << std::string(margin_left_ + margin_right_ + width_, ' ');
+  out << space_;
 }
 
-
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
-  out << ' ';
-  out << std::string(margin_right_, ' ');
+  out << space_;
 }
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
 }
 
 

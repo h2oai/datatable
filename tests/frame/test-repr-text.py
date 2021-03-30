@@ -29,14 +29,14 @@ import sys
 
 
 def color_line(s):
-    return re.sub(r"((?:…|~|NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+    return re.sub(r"((?: … |…|~|NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0m", s)
 
 
 def color_header(s):
     return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0;1m",
-                  re.sub("…", "\x1b[0;2m…\x1b[0;1m", s))
+                  re.sub(" … ", "\x1b[0;2m … \x1b[0;1m", s))
 
 
 def check_colored_output(actual, header, types, separator, *body, keyed=False):

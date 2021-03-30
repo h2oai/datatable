@@ -139,6 +139,7 @@ class VSep_TextColumn : public TextColumn {
 class Ellipsis_TextColumn : public TextColumn {
   private:
     tstring ell_;
+    tstring space_;
 
   public:
     Ellipsis_TextColumn();
