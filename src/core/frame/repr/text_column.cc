@@ -90,16 +90,12 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   xassert(max_width >= 4);
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
+  std::string type_name = col.type().to_string();
   name_ = _escape_string(CString(name));
-  type_ = _escape_string(CString::from_null_terminated_string(
-                            stype_name(col.stype())));
+  type_ = _escape_string(CString(type_name));
   width_ = std::max(std::max(width_, name_.size()),
                     name_.empty()? 0 : type_.size());
-  LType ltype = col.ltype();
-  align_right_ = (ltype == LType::MU) ||
-                 (ltype == LType::BOOL) ||
-                 (ltype == LType::INT) ||
-                 (ltype == LType::REAL);
+  align_right_ = col.type().is_numeric();
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
