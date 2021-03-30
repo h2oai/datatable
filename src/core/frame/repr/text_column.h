@@ -154,5 +154,22 @@ class Ellipsis_TextColumn : public TextColumn {
 
 
 
+class RowIndex_TextColumn : public TextColumn {
+  private:
+    sztvec row_numbers_;
+
+  public:
+    RowIndex_TextColumn(const sztvec& indices);
+    RowIndex_TextColumn(const RowIndex_TextColumn&) = default;
+    RowIndex_TextColumn(RowIndex_TextColumn&&) noexcept = default;
+
+    void print_name(TerminalStream&) const override;
+    void print_type(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
+};
+
+
+
 }  // namespace dt
 #endif

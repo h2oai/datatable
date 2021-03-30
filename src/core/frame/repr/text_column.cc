@@ -446,4 +446,72 @@ void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
 
 
 
+//------------------------------------------------------------------------------
+// RowIndex_TextColumn
+//------------------------------------------------------------------------------
+
+RowIndex_TextColumn::RowIndex_TextColumn(const sztvec& indices) {
+  row_numbers_ = indices;
+  width_ = 0;
+  if (!indices.empty()) {
+    size_t max_value = indices.back();
+    if (max_value == NA_index) {
+      max_value = indices.size() >= 2? indices[indices.size() - 2] : 0;
+    }
+    while (max_value) {
+      width_++;
+      max_value /= 10;
+    }
+  }
+  if (width_ < 2) width_ = 2;
+  if (width_ < ellipsis_.size()) {
+    bool has_ellipsis = false;
+    for (size_t k : row_numbers_) {
+      if (k == NA_index) {
+        has_ellipsis = true;
+        break;
+      }
+    }
+    if (has_ellipsis) {
+      width_ = ellipsis_.size();
+    }
+  }
+  margin_left_ = false;
+  margin_right_ = true;
+}
+
+
+void RowIndex_TextColumn::print_name(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_type(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_separator(TerminalStream& out) const {
+  out << std::string(width_, '-')
+      << " ";
+}
+
+void RowIndex_TextColumn::print_value(TerminalStream& out, size_t i) const {
+  size_t row_index = row_numbers_[i];
+  if (row_index == NA_index) {
+    out << std::string(width_ - ellipsis_.size(), ' ')
+        << ellipsis_ << " ";
+  }
+  else {
+    auto rendered_value = std::to_string(row_numbers_[i]);
+    xassert(width_ >= rendered_value.size());
+    out << style::grey
+        << std::string(width_ - rendered_value.size(), ' ')
+        << rendered_value
+        << " "
+        << style::end;
+  }
+}
+
+
+
+
 }  // namespace dt

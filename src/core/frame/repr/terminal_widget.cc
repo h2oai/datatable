@@ -91,15 +91,9 @@ void TerminalWidget::_prerender_columns(int terminal_width)
   // If there are no keys, we add a "row numbers" column + a vertical
   // separator column.
   if (nkeys == 0) {
-    auto irows = static_cast<int64_t>(dt_->nrows());
-    text_columns_[0] = text_column(
-      new Data_TextColumn("",
-                          Column(new Range_ColumnImpl(0, irows, 1)),
-                          rowindices_,
-                          remaining_width)
-    );
+    text_columns_[0] = text_column(new RowIndex_TextColumn(rowindices_));
     text_columns_[1] = text_column(new VSep_TextColumn());
-    remaining_width -= text_columns_[0]->get_width();
+    remaining_width -= text_columns_[0]->get_width() + 1;
     remaining_width -= text_columns_[1]->get_width();
     has_rowindex_column_ = true;
     k0 = 2;
@@ -266,10 +260,7 @@ void TerminalWidget::_render_header_separator() {
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
     for (size_t i = 0; i < text_columns_.size(); ++i) {
-      bool grey = (i == 0) && has_rowindex_column_;
-      if (grey) out_ << style::grey;
       text_columns_[i]->print_value(out_, k);
-      if (grey) out_ << style::end;
     }
     out_ << '\n';
   }
