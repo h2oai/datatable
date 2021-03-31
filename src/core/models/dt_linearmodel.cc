@@ -63,6 +63,7 @@ LinearModelFitOutput LinearModel<T>::fit(
   lambda2_ = static_cast<T>(params->lambda2);
   nepochs_ = static_cast<T>(params->nepochs);
   negative_class_ = params->negative_class;
+  seed_ = params->seed;
 
   dt_X_fit_ = dt_X_fit; dt_y_fit_ = dt_y_fit; dt_X_val_ = dt_X_val;
   dt_y_val_ = dt_y_val;
@@ -103,7 +104,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on
   //   `iteration_nrows` rows, where `iteration_nrows == dt_X_fit_->nrows()`;
-  // - then, the model is trained on the remaining `last_iteration_nrows` rows,
+  // - then, the model is trained once on the remaining `last_iteration_nrows` rows,
   //   where `0 < last_iteration_nrows <= dt_X_fit_->nrows()`.
   // If `nepochs_` is an integer number, `last_iteration_nrows == dt_X_fit_->nrows()`,
   // so that the last epoch becomes identical to all the others.
@@ -145,6 +146,11 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   job.set_message("Fitting...");
   NThreads nthreads = nthreads_from_niters(iteration_nrows, MIN_ROWS_PER_THREAD);
 
+  // Calculate parameters for the modular quasi-random generator.
+  // By default, when seed is zero, modular_random_gen() will return
+  // multiplier == 1 and increment == 0, so we don't do any data shuffling,
+  auto mp = modular_random_gen(dt_X_fit_->nrows(), seed_);
+
   dt::parallel_region(nthreads,
     [&]() {
       // Each thread gets a private storage for observations and feature importances.
@@ -168,7 +174,8 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
         // Training
         dt::nested_for_static(iteration_size, ChunkSize(MIN_ROWS_PER_THREAD), [&](size_t i) {
-          size_t ii = (iteration_start + i) % dt_X_fit_->nrows();
+          // Do quasi-random data shuffling
+          size_t ii = ((iteration_start + i) * mp.multiplier + mp.increment) % dt_X_fit_->nrows();
           U target;
           bool isvalid = col_y_fit_.get_element(ii, &target);
           if (isvalid && _isfinite(target) && read_row(ii, cols, x)) {

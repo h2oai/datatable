@@ -52,10 +52,12 @@ class LinearModel : public LinearModelBase {
     T lambda1_;
     T lambda2_;
     T nepochs_;
+    unsigned int seed_;
     bool negative_class_;
+    size_t : 16;
+
     // SType that corresponds to `T`
     SType stype_;
-    size_t : 48;
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as

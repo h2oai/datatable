@@ -23,35 +23,72 @@
 #include "models/utils.h"
 #include "parallel/api.h"
 
+
 /**
- *  For a given `n` calculate all the coprime numbers and return them
- *  as a `coprimes` vector.
+ *  Generate a random multiplier and increment for quasi-random generator
+ *  based on the modular arithmetics. When seed is zero, we just return
+ *  the default parameters: multiplier == 1 and increment == 0.
  */
-void calculate_coprimes(size_t n, sztvec& coprimes) {
-  coprimes.clear();
+ModularParams modular_random_gen(size_t n, unsigned int seed) {
+  ModularParams mp;
+  if (seed && n > 1) {
+    std::default_random_engine gen(seed);
+    std::uniform_int_distribution<size_t> increment_dist(0, n - 1);
+    mp.increment = increment_dist(gen);
+
+    std::uniform_int_distribution<size_t> multiplier_dist(1, n - 1);
+    do {
+      mp.multiplier = multiplier_dist(gen);
+    } while (mp.multiplier != 1 && gcd(mp.multiplier, n) != 1);
+  }
+  return mp;
+}
+
+
+/**
+ *  Calculate greatest common divisor for `a` and `b`.
+ */
+size_t gcd(size_t a, size_t b) {
+  while (b) {
+    size_t tmp = b;
+    b = a % b;
+    a = tmp;
+  }
+  return a;
+}
+
+
+/**
+ *  For a given `n` calculate all the coprime numbers
+ *  that are less than `n` and return them as a `coprimes` vector.
+ */
+sztvec calculate_coprimes(size_t n) {
+  sztvec coprimes;
   if (n == 1) {
     coprimes.push_back(1);
-    return;
-  }
+  } else {
+    // Create mask and set `mask[i]` to `true` iff `i` is not coprime with `n`.
+    // We use `n` elements mask, instead of `n - 1`, to avoid shifting the
+    // mask index by one all the time.
+    std::vector<bool> mask(n, false);
+    for (size_t i = 2; i <= n / 2; ++i) {
+      if (mask[i]) continue;
+      if (n % i == 0) {
+        for (size_t ji = i; ji < n; ji += i) {
+          mask[ji] = true;
+        }
+      }
+    }
 
-  std::vector<bool> mask(n - 1, false);
-  for (size_t i = 2; i <= n / 2; ++i) {
-    if (mask[i - 1]) continue;
-    if (n % i == 0) {
-      size_t j = 1;
-      while (j * i < n) {
-        mask[j * i - 1] = true;
-        j++;
+    for (size_t i = 1; i < n; ++i) {
+      if (mask[i] == false) {
+        coprimes.push_back(i);
       }
     }
   }
-
-  for (size_t i = 1; i < n; ++i) {
-    if (mask[i - 1] == 0) {
-      coprimes.push_back(i);
-    }
-  }
+  return coprimes;
 }
+
 
 
 /**

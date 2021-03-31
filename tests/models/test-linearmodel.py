@@ -43,7 +43,7 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("LinearModelParams",
           ["eta", "lambda1", "lambda2", "nepochs", "double_precision",
-           "negative_class", "model_type"]
+           "negative_class", "model_type", "seed"]
          )
 
 params_test = Params(eta = 1,
@@ -52,7 +52,8 @@ params_test = Params(eta = 1,
                  nepochs = 4.0,
                  double_precision = True,
                  negative_class = True,
-                 model_type = 'binomial')
+                 model_type = 'binomial',
+                 seed = 1)
 
 
 params_default = Params(eta = 0.005,
@@ -61,7 +62,8 @@ params_default = Params(eta = 0.005,
                         nepochs = 1,
                         double_precision = False,
                         negative_class = False,
-                        model_type = 'auto')
+                        model_type = 'auto',
+                        seed = 0)
 
 epsilon = 0.01 # Accuracy required for some tests
 
@@ -105,13 +107,20 @@ def test_linearmodel_construct_wrong_double_precision_type():
             "instead got <class 'int'>" == str(e.value))
 
 
+def test_linearmodel_construct_wrong_seed_type():
+    with pytest.raises(TypeError) as e:
+        noop(LinearModel(seed = "123"))
+    assert ("Argument seed in LinearModel() constructor should be an integer, "
+            "instead got <class 'str'>" == str(e.value))
+
+
 def test_linearmodel_construct_wrong_combination():
     with pytest.raises(ValueError) as e:
         noop(LinearModel(params=params_test, eta = params_test.eta))
     assert ("You can either pass all the parameters with params or any of "
             "the individual parameters with eta, lambda1, "
             "lambda2, nepochs, double_precision, "
-            "negative_class or model_type to LinearModel constructor, "
+            "negative_class, model_type or seed to LinearModel constructor, "
             "but not both at the same time"
             == str(e.value))
 
@@ -136,7 +145,7 @@ def test_linearmodel_construct_wrong_params_name():
     wrong_params = WrongParams(eta = 1, lambda1 = 0.01)
     with pytest.raises(ValueError) as e:
         LinearModel(wrong_params)
-    assert ("Tuple of LinearModel parameters should have 7 elements, instead got: 2"
+    assert ("Tuple of LinearModel parameters should have 8 elements, instead got: 2"
             == str(e.value))
 
 
@@ -169,6 +178,13 @@ def test_linearmodel_construct_wrong_nepochs_value():
     with pytest.raises(ValueError) as e:
         noop(LinearModel(nepochs = -1))
     assert ("Argument nepochs in LinearModel() constructor should be greater than or equal to zero: -1"
+            == str(e.value))
+
+
+def test_linearmodel_construct_wrong_seed_value():
+    with pytest.raises(ValueError) as e:
+        noop(LinearModel(seed = -1))
+    assert ("Argument seed in LinearModel() constructor cannot be negative: -1"
             == str(e.value))
 
 
@@ -205,12 +221,14 @@ def test_linearmodel_create_individual():
               nepochs = params_test.nepochs,
               double_precision = params_test.double_precision,
               negative_class = params_test.negative_class,
-              model_type = params_test.model_type)
+              model_type = params_test.model_type,
+              seed = params_test.seed)
     assert lm.params == (params_test.eta,
                          params_test.lambda1, params_test.lambda2,
                          params_test.nepochs,
                          params_test.double_precision, params_test.negative_class,
-                         params_test.model_type)
+                         params_test.model_type,
+                         params_test.seed)
 
 
 #-------------------------------------------------------------------------------
@@ -223,10 +241,11 @@ def test_linearmodel_get_params():
     assert params == params_test
     assert (lm.eta, lm.lambda1, lm.lambda2,
            lm.nepochs, lm.double_precision, lm.negative_class,
-           lm.model_type) == params_test
+           lm.model_type, lm.seed) == params_test
     assert (params.eta, params.lambda1, params.lambda2,
            params.nepochs, params.double_precision,
-           params.negative_class, params.model_type) == params_test
+           params.negative_class, params.model_type,
+           params.seed) == params_test
 
 
 def test_linearmodel_set_individual():
@@ -237,9 +256,11 @@ def test_linearmodel_set_individual():
     lm.nepochs = params_test.nepochs
     lm.negative_class = params_test.negative_class
     lm.model_type = params_test.model_type
+    lm.seed = params_test.seed
+    assert lm.params == params_test
 
 
-def test_linearmodel_set_individual_almer_params():
+def test_linearmodel_set_individual_after_params():
     lm = LinearModel()
     params = lm.params
     lm.eta = params_test.eta
@@ -248,11 +269,12 @@ def test_linearmodel_set_individual_almer_params():
     assert (params_new.eta, params_new.lambda1, params_new.lambda2,
            params_new.nepochs,
            params_new.double_precision, params_new.negative_class,
-           params_new.model_type) == params_new
+           params_new.model_type, params_new.seed) == params_new
     assert (lm.eta, lm.lambda1, lm.lambda2,
            lm.nepochs,
            lm.double_precision, lm.negative_class,
-           lm.model_type) == params_new
+           lm.model_type, lm.seed) == params_new
+
 
 #-------------------------------------------------------------------------------
 # Test getters and setters for wrong types / names of LinearModel parameters
@@ -284,6 +306,13 @@ def test_linearmodel_set_wrong_nepochs_type():
     with pytest.raises(TypeError) as e:
         lm.nepochs = "-10.0"
     assert (".nepochs should be a float, instead got <class 'str'>" == str(e.value))
+
+
+def test_linearmodel_set_wrong_seed_type():
+    lm = LinearModel()
+    with pytest.raises(TypeError) as e:
+        lm.seed = "-10.0"
+    assert (".seed should be an integer, instead got <class 'str'>" == str(e.value))
 
 
 #-------------------------------------------------------------------------------
@@ -537,17 +566,18 @@ def test_linearmodel_fit_predict_float():
     assert df_target[1, 1] < epsilon
 
 
-# def test_linearmodel_fit_predict_string():
-#     lm = LinearModel(eta = 0.1, nepochs = 10000)
-#     df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
-#     df_target = dt.Frame([[True, False, False, True]])
-#     lm.fit(df_train, df_target)
-#     df_target = lm.predict(df_train[:,0])
-#     assert lm.model_type == "binomial"
-#     assert df_target[0, 1] <= 1
-#     assert df_target[0, 1] >= 1 - epsilon
-#     assert df_target[1, 1] >= 0
-#     assert df_target[1, 1] < epsilon
+@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
+def test_linearmodel_fit_predict_string():
+    lm = LinearModel(eta = 0.1, nepochs = 10000)
+    df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
+    df_target = dt.Frame([[True, False, False, True]])
+    lm.fit(df_train, df_target)
+    df_target = lm.predict(df_train[:,0])
+    assert lm.model_type == "binomial"
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
 
 
 @pytest.mark.parametrize('target',
@@ -817,14 +847,14 @@ def test_linearmodel_fit_multinomial_none():
 
 def test_linearmodel_fit_predict_multinomial_vs_binomial():
     target_names = ["cat", "dog"]
-    lm_binomial = LinearModel(nepochs = 1)
+    lm_binomial = LinearModel(nepochs = 1, seed = 123)
     df_train_binomial = dt.Frame(range(10))
     df_target_binomial = dt.Frame({"target" : [False, True] * 5})
     lm_binomial.fit(df_train_binomial, df_target_binomial)
     p_binomial = lm_binomial.predict(df_train_binomial)
     p_binomial.names = target_names
 
-    lm_multinomial = LinearModel(nepochs = 1, model_type = "multinomial")
+    lm_multinomial = LinearModel(nepochs = 1, model_type = "multinomial", seed = 123)
     df_target_multinomial = dt.Frame(target_names * 5)
     lm_multinomial.fit(df_train_binomial, df_target_multinomial)
     p_multinomial = lm_multinomial.predict(df_train_binomial)
@@ -1304,8 +1334,6 @@ def test_linearmodel_reuse_pickled_empty_model():
     df_train = dt.Frame({"id" : [1]})
     df_target = dt.Frame([1.0])
     lm_unpickled.fit(df_train, df_target)
-    fi = dt.Frame([["id"], [0.0]/stype.float32])
-    fi.names = ["feature_name", "feature_importance"]
     assert_equals(lm_unpickled.model, dt.Frame([lm.eta, lm.eta]/stype.float32))
 
 
