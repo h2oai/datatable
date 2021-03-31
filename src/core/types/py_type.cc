@@ -410,18 +410,19 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(GETTER(&PyType::get_max, args_get_max));
   pythonType = xt.get_type_object();
 
-  xt.add_attr("void",    PyType::make(Type::void0()));
   xt.add_attr("bool8",   PyType::make(Type::bool8()));
-  xt.add_attr("int8",    PyType::make(Type::int8()));
+  xt.add_attr("date32",  PyType::make(Type::date32()));
+  xt.add_attr("float32", PyType::make(Type::float32()));
+  xt.add_attr("float64", PyType::make(Type::float64()));
   xt.add_attr("int16",   PyType::make(Type::int16()));
   xt.add_attr("int32",   PyType::make(Type::int32()));
   xt.add_attr("int64",   PyType::make(Type::int64()));
-  xt.add_attr("float32", PyType::make(Type::float32()));
-  xt.add_attr("float64", PyType::make(Type::float64()));
-  xt.add_attr("date32",  PyType::make(Type::date32()));
+  xt.add_attr("int8",    PyType::make(Type::int8()));
+  xt.add_attr("obj64",   PyType::make(Type::obj64()));
   xt.add_attr("str32",   PyType::make(Type::str32()));
   xt.add_attr("str64",   PyType::make(Type::str64()));
-  xt.add_attr("obj64",   PyType::make(Type::obj64()));
+  xt.add_attr("time64",  PyType::make(Type::time64()));
+  xt.add_attr("void",    PyType::make(Type::void0()));
 }
 
 

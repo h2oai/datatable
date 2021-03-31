@@ -318,14 +318,14 @@ static Column force_as_date32(const Column& inputcol) {
 // Time64
 //------------------------------------------------------------------------------
 
-// static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
-//   return parse_as_X<int64_t>(inputcol, mbuf, i0,
-//             [](const py::oobj& item, int32_t* out) {
-//               return item.parse_datetime(out) ||
-//                      item.parse_date(out) ||
-//                      item.parse_none(out);
-//             });
-// }
+static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
+  return parse_as_X<int64_t>(inputcol, mbuf, i0,
+            [](const py::oobj& item, int64_t* out) {
+              return item.parse_datetime(out) ||
+                     item.parse_date(out) ||
+                     item.parse_none(out);
+            });
+}
 
 
 
@@ -569,7 +569,7 @@ static Column parse_column_auto_type(const Column& inputcol) {
         case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
         case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
         case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
-        // case dt::SType::TIME64:  j = parse_as_time64(inputcol, databuf, i); break;
+        case dt::SType::TIME64:  j = parse_as_time64(inputcol, databuf, i); break;
         default: continue;  // try another stype
       }
       if (j != i) {

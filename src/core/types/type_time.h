@@ -56,10 +56,10 @@ class Type_Time64 : public TypeImpl {
     std::string to_string() const override { return "time64"; }
 
     py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int64_t>::max());
+      return py::odatetime(-std::numeric_limits<int64_t>::max());
     }
     py::oobj max() const override {
-      return py::odate(std::numeric_limits<int64_t>::max());
+      return py::odatetime(std::numeric_limits<int64_t>::max());
     }
     // Pretend this is int64
     const char* struct_format() const override { return "q"; }
