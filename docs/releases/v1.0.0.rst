@@ -61,6 +61,9 @@
       if the user explicitly requests promotion into the object type then
       there won't be any error.
 
+    -[api] Rbinding frames with columns of incompatible types will now raise
+      an error instead of auto-promoting to string type. [#2790]
+
     -[api] When a frame is converted into a numpy array of floatinng type,
       then we will produce a regular ``np.ndarray`` instead of a masked array.
 
