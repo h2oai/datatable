@@ -46,32 +46,47 @@ static PKArgs args_to_pandas(
 
 
 oobj Frame::to_pandas(const PKArgs&) {
-  // ```
-  // from pandas import DataFrame
-  // names = self.names
-  // ```
+  const size_t ncols = dt->ncols();
+  const size_t nkeys = dt->nkeys();
+
   oobj pandas = oobj::import("pandas");
-  oobj dataframe = pandas.get_attr("DataFrame");
+  oobj pd_DataFrame = pandas.get_attr("DataFrame");
   otuple names = dt->get_pynames();
 
-  // ```
-  // cols = {names[i]: self.to_numpy(None, i)
-  //         for i in range(self.ncols)}
-  // ```
-  odict cols;
-  otuple np_call_args(2);
-  np_call_args.set(0, py::None());
-  for (size_t i = 0; i < dt->ncols(); ++i) {
-    np_call_args.replace(1, oint(i));
-    cols.set(names[i],
-             robj(this).invoke("to_numpy", otuple(np_call_args)));
+  oobj index = None();
+  if (nkeys) {
+    oobj pd_Index = pandas.get_attr("Index");
+    olist indices(nkeys);
+    for (size_t i = 0; i < nkeys; i++) {
+      auto column = robj(this).invoke("to_numpy", {None(), oint(i)});
+      auto index_item = pd_Index.call({column, None(), None(), names[i]});
+      indices.set(i, std::move(index_item));
+    }
+    if (nkeys == 1) {
+      index = indices[0];
+    } else {
+      index = std::move(indices);
+    }
   }
-  // ```
-  // return DataFrame(cols, columns=names)
-  // ```
-  odict pd_call_kws;
-  pd_call_kws.set(ostring("columns"), names);
-  return dataframe.call(otuple(cols), pd_call_kws);
+
+  // Note: data has to be a dict, otherwise pandas creates frame
+  //       by rows.
+  odict data;
+  for (size_t i = nkeys; i < ncols; i++) {
+    data.set(
+        names[i],
+        robj(this).invoke("to_numpy", {None(), oint(i)})
+    );
+  }
+
+  oobj columns = names;
+  if (nkeys) {
+    columns = names.invoke("__getitem__", {
+        oslice(static_cast<int64_t>(nkeys), oslice::NA, oslice::NA)
+    });
+  }
+
+  return pd_DataFrame.call({data, index, columns});
 }
 
 
