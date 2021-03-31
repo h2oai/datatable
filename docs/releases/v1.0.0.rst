@@ -49,6 +49,9 @@
     -[fix] Passing an invalid value to the ``column=`` argument of the
       :meth:`.to_numpy()` method will no longer result in a crash.
 
+    -[fix] Frame terminal display no longer overflows terminal's width if
+      it contains strings with special characters. [#2844]
+
     -[api] Converting a frame with incompatible types into a numpy array will
       now raise an error (instead of auto-promoting to object type). However,
       if the user explicitly requests promotion into the object type then
