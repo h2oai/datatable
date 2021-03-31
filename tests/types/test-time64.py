@@ -32,3 +32,21 @@ from tests import assert_equals
 def test_time64_name():
     assert repr(dt.Type.time64) == "Type.time64"
     assert dt.Type.time64.name == "time64"
+
+
+def test_time64_type_from_basic():
+    assert dt.Type("time") == dt.Type.time64
+    assert dt.Type("time64") == dt.Type.time64
+    assert dt.Type(datetime.datetime) == dt.Type.time64
+
+
+def test_time64_type_from_numpy(np):
+    assert dt.Type(np.dtype("datetime64[s]")) == dt.Type.time64
+    assert dt.Type(np.dtype("datetime64[ms]")) == dt.Type.time64
+    assert dt.Type(np.dtype("datetime64[us]")) == dt.Type.time64
+    assert dt.Type(np.dtype("datetime64[ns]")) == dt.Type.time64
+
+
+def test_time64_type_from_pyarrow(pa):
+    # pyarrow.date64: ms since unix epoch
+    assert dt.Type(pa.date64()) == dt.Type.time64

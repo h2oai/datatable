@@ -86,6 +86,11 @@ static void init_src_store_basic() {
   src_store->set(py::ostring("date32"), tDate32);
   src_store->set(py::oobj::import("datetime", "date"), tDate32);
 
+  auto tTime64 = PyType::make(Type::time64());
+  src_store->set(py::ostring("time"), tTime64);
+  src_store->set(py::ostring("time64"), tTime64);
+  src_store->set(py::oobj::import("datetime", "datetime"), tTime64);
+
   auto tStr32 = PyType::make(Type::str32());
   src_store->set(py::ostring("str32"), tStr32);
   src_store->set(py::ostring("<U"), tStr32);
@@ -120,6 +125,7 @@ static void init_src_store_from_stypes() {
   src_store->set(stype.get_attr("date32"), PyType::make(Type::date32()));
   src_store->set(stype.get_attr("str32"), PyType::make(Type::str32()));
   src_store->set(stype.get_attr("str64"), PyType::make(Type::str64()));
+  src_store->set(stype.get_attr("time64"), PyType::make(Type::time64()));
   src_store->set(stype.get_attr("obj64"), PyType::make(Type::obj64()));
 }
 
@@ -164,6 +170,15 @@ static void init_src_store_from_numpy() {
 
   auto tDate32 = PyType::make(Type::date32());
   src_store->set(dtype.call({py::ostring("<M8[D]")}), tDate32);
+  src_store->set(dtype.call({py::ostring("<M8[W]")}), tDate32);
+  src_store->set(dtype.call({py::ostring("<M8[M]")}), tDate32);
+  src_store->set(dtype.call({py::ostring("<M8[Y]")}), tDate32);
+
+  auto tTime64 = PyType::make(Type::time64());
+  src_store->set(dtype.call({py::ostring("<M8[s]")}), tTime64);
+  src_store->set(dtype.call({py::ostring("<M8[ms]")}), tTime64);
+  src_store->set(dtype.call({py::ostring("<M8[us]")}), tTime64);
+  src_store->set(dtype.call({py::ostring("<M8[ns]")}), tTime64);
 
   auto tFloat64 = PyType::make(Type::float64());
   src_store->set(np.get_attr("float64"), tFloat64);
@@ -192,6 +207,7 @@ static void init_src_store_from_pyarrow() {
   src_store->set(pa.invoke("string"), PyType::make(Type::str32()));
   src_store->set(pa.invoke("large_string"), PyType::make(Type::str64()));
   src_store->set(pa.invoke("date32"), PyType::make(Type::date32()));
+  src_store->set(pa.invoke("date64"), PyType::make(Type::time64()));
 }
 
 
