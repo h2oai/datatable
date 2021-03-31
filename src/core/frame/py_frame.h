@@ -60,6 +60,7 @@ class Frame : public XObject<Frame> {
     static void _init_toarrow(XTypeMaker&);
     static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
+    static void _init_to_pandas(XTypeMaker&);
     static void _init_topython(XTypeMaker&);
 
     // Internal "constructor" of Frame objects. We do not use real constructors
