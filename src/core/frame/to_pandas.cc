@@ -31,11 +31,15 @@ static const char* doc_to_pandas =
 R"(to_pandas(self)
 --
 
-Convert this frame to a pandas DataFrame.
+Convert this frame into a pandas DataFrame.
+
+If the frame being converted has one or more key columns, those
+columns will become the index in the pandas DataFrame.
 
 Parameters
 ----------
 return: pandas.DataFrame
+    Pandas dataframe of shape ``(nrows, ncols-nkeys)``.
 
 except: ImportError
     If the `pandas` module is not installed.

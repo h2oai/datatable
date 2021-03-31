@@ -36,6 +36,10 @@
       can now be an unsorted list. The list can also contain duplicate
       values.
 
+    -[enh] When a keyed Frame is converted into a pandas DataFrame, the
+      key columns will now become the DataFrame's index, not regulat
+      columns. [#2883]
+
     -[enh] When a Frame is shown in a python console, it will now display
       the stype of each column, as a second line under the column names.
       [#2810]
