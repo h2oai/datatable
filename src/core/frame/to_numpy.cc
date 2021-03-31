@@ -19,12 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/args.h"
 #include "python/string.h"
-#include "datatablemodule.h"
 #include "stype.h"
 namespace py {
 
@@ -240,60 +240,6 @@ static oobj to_numpy_impl(oobj frame) {
 
 
 
-//------------------------------------------------------------------------------
-// to_pandas()
-//------------------------------------------------------------------------------
-
-static const char* doc_to_pandas =
-R"(to_pandas(self)
---
-
-Convert this frame to a pandas DataFrame.
-
-Parameters
-----------
-return: pandas.DataFrame
-
-except: ImportError
-    If the `pandas` module is not installed.
-)";
-
-static PKArgs args_to_pandas(
-    0, 0, 0, false, false, {}, "to_pandas", doc_to_pandas);
-
-
-oobj Frame::to_pandas(const PKArgs&) {
-  // ```
-  // from pandas import DataFrame
-  // names = self.names
-  // ```
-  oobj pandas = oobj::import("pandas");
-  oobj dataframe = pandas.get_attr("DataFrame");
-  otuple names = dt->get_pynames();
-
-  // ```
-  // cols = {names[i]: self.to_numpy(None, i)
-  //         for i in range(self.ncols)}
-  // ```
-  odict cols;
-  otuple np_call_args(2);
-  np_call_args.set(0, py::None());
-  for (size_t i = 0; i < dt->ncols(); ++i) {
-    np_call_args.replace(1, oint(i));
-    args_to_numpy.bind(np_call_args.to_borrowed_ref(), nullptr);
-    cols.set(names[i],
-             to_numpy(args_to_numpy));
-  }
-  // ```
-  // return DataFrame(cols, columns=names)
-  // ```
-  odict pd_call_kws;
-  pd_call_kws.set(ostring("columns"), names);
-  return dataframe.call(otuple(cols), pd_call_kws);
-}
-
-
-
 
 //------------------------------------------------------------------------------
 // Declare Frame methods
@@ -302,7 +248,6 @@ oobj Frame::to_pandas(const PKArgs&) {
 void Frame::_init_tonumpy(XTypeMaker& xt) {
   args_to_numpy.add_synonym_arg("stype", "type");
   xt.add(METHOD(&Frame::to_numpy, args_to_numpy));
-  xt.add(METHOD(&Frame::to_pandas, args_to_pandas));
 }
 
 
