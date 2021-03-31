@@ -265,11 +265,12 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
     }
     // C0 block + \x7F (DEL) character
     else if (c <= 0x1F || c == 0x7F) {
-      ch++;
-      if (ch == end) remaining_width++;
+      if (ch + 1 == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
+      remaining_width -= static_cast<int>(escaped.size());
       out << std::move(escaped);
+      ch++;
     }
     // unicode character
     else {
