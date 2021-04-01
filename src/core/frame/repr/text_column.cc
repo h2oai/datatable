@@ -90,16 +90,12 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   xassert(max_width >= 4);
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
+  std::string type_name = col.type().to_string();
   name_ = _escape_string(CString(name));
-  type_ = _escape_string(CString::from_null_terminated_string(
-                            stype_name(col.stype())));
+  type_ = _escape_string(CString(type_name));
   width_ = std::max(std::max(width_, name_.size()),
                     name_.empty()? 0 : type_.size());
-  LType ltype = col.ltype();
-  align_right_ = (ltype == LType::MU) ||
-                 (ltype == LType::BOOL) ||
-                 (ltype == LType::INT) ||
-                 (ltype == LType::REAL);
+  align_right_ = col.type().is_numeric();
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
@@ -269,11 +265,12 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
     }
     // C0 block + \x7F (DEL) character
     else if (c <= 0x1F || c == 0x7F) {
-      ch++;
-      if (ch == end) remaining_width++;
+      if (ch + 1 == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
+      remaining_width -= static_cast<int>(escaped.size());
       out << std::move(escaped);
+      ch++;
     }
     // unicode character
     else {
@@ -423,8 +420,9 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 //------------------------------------------------------------------------------
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
-  ell_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "~",
+  ell_ = tstring(term_->unicode_allowed()? " \xE2\x80\xA6 " : " ~ ",
                  style::dim|style::nobold);
+  space_ = tstring("   ");
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
@@ -432,28 +430,88 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 
 
 void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
 }
-
 
 void Ellipsis_TextColumn::print_type(TerminalStream& out) const {
-  out << std::string(margin_left_ + margin_right_ + width_, ' ');
+  out << space_;
 }
 
-
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
-  out << ' ';
-  out << std::string(margin_right_, ' ');
+  out << space_;
 }
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
 }
+
+
+
+//------------------------------------------------------------------------------
+// RowIndex_TextColumn
+//------------------------------------------------------------------------------
+
+RowIndex_TextColumn::RowIndex_TextColumn(const sztvec& indices) {
+  row_numbers_ = indices;
+  width_ = 0;
+  if (!indices.empty()) {
+    size_t max_value = indices.back();
+    if (max_value == NA_index) {
+      max_value = indices.size() >= 2? indices[indices.size() - 2] : 0;
+    }
+    while (max_value) {
+      width_++;
+      max_value /= 10;
+    }
+  }
+  if (width_ < 2) width_ = 2;
+  if (width_ < ellipsis_.size()) {
+    bool has_ellipsis = false;
+    for (size_t k : row_numbers_) {
+      if (k == NA_index) {
+        has_ellipsis = true;
+        break;
+      }
+    }
+    if (has_ellipsis) {
+      width_ = ellipsis_.size();
+    }
+  }
+  margin_left_ = false;
+  margin_right_ = true;
+}
+
+
+void RowIndex_TextColumn::print_name(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_type(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_separator(TerminalStream& out) const {
+  out << std::string(width_, '-')
+      << " ";
+}
+
+void RowIndex_TextColumn::print_value(TerminalStream& out, size_t i) const {
+  size_t row_index = row_numbers_[i];
+  if (row_index == NA_index) {
+    out << std::string(width_ - ellipsis_.size(), ' ')
+        << ellipsis_ << " ";
+  }
+  else {
+    auto rendered_value = std::to_string(row_numbers_[i]);
+    xassert(width_ >= rendered_value.size());
+    out << style::grey
+        << std::string(width_ - rendered_value.size(), ' ')
+        << rendered_value
+        << " "
+        << style::end;
+  }
+}
+
 
 
 

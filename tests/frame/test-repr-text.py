@@ -29,14 +29,14 @@ import sys
 
 
 def color_line(s):
-    return re.sub(r"((?:…|~|NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
+    return re.sub(r"((?: … |…|~|NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0m", s)
 
 
 def color_header(s):
     return re.sub(r"((?:NA|\\n|\\r|\\t|\\x..|\\u....|\\U000.....)+)",
                   "\x1b[2m\\1\x1b[0;1m",
-                  re.sub("…", "\x1b[0;2m…\x1b[0;1m", s))
+                  re.sub(" … ", "\x1b[0;2m … \x1b[0;1m", s))
 
 
 def check_colored_output(actual, header, types, separator, *body, keyed=False):
@@ -749,3 +749,20 @@ def test_encoding_autodetection(tempfile):
                        "-- + ------\n"
                        " 0 | \\u2728\n"
                        "[1 row x 1 column]\n")
+
+
+def test_issue2844():
+    s = ''.join(chr(i) for i in range(30))
+    DT = dt.Frame([s[:25], s[:26], s[:27], s, "a"*100, "b"*101])
+    assert str(DT) == "\n".join([
+        r"   | C0                                                                                                  ",
+        r"   | str32                                                                                               ",
+        r"-- + ----------------------------------------------------------------------------------------------------",
+        r" 0 | \x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0B\x0C\r\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18      ",
+        r" 1 | \x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0B\x0C\r\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19  ",
+        r" 2 | \x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0B\x0C\r\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19… ",
+        r" 3 | \x00\x01\x02\x03\x04\x05\x06\x07\x08\t\n\x0B\x0C\r\x0E\x0F\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19… ",
+        r" 4 | aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        r" 5 | bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb…",
+        r"[6 rows x 1 column]", ""
+    ])
