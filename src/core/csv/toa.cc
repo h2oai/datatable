@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "csv/toa.h"
 #include "lib/hh/date.h"
+#include "utils/assert.h"
 
 
 
@@ -99,6 +100,54 @@ void date32_toa(char** pch, int32_t value) {
   } else {
     *ch++ = static_cast<char>('0' + (ymd.day / 10));
     *ch++ = static_cast<char>('0' + (ymd.day % 10));
+  }
+  *pch = ch;
+}
+
+
+// Maximum space needed: 29 chars
+//   <date> : 10 chars
+//   T      : 1
+//   <time> : 8 chars
+//   .      : 1
+//   <ns>   : 9
+//
+void time64_toa(char** pch, int64_t value) {
+  static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000L;
+  static constexpr int64_t NANOSECONDS_PER_DAY = 24L * 3600L * 1000000000L;
+
+  int days = static_cast<int>(value / NANOSECONDS_PER_DAY);
+  int64_t time_of_day = value - days * NANOSECONDS_PER_DAY;
+  xassert(time_of_day >= 0);
+  int64_t ns = time_of_day % NANOSECONDS_PER_SECOND;
+  time_of_day /= NANOSECONDS_PER_SECOND;
+  int seconds = static_cast<int>(time_of_day % 60);
+  time_of_day /= 60;
+  int minutes = static_cast<int>(time_of_day % 60);
+  time_of_day /= 60;
+  int hours = static_cast<int>(time_of_day);
+
+  date32_toa(pch, days);
+  char* ch = *pch;
+  *ch++ = 'T';
+  *ch++ = static_cast<char>('0' + (hours / 10));
+  *ch++ = static_cast<char>('0' + (hours % 10));
+  *ch++ = ':';
+  *ch++ = static_cast<char>('0' + (minutes / 10));
+  *ch++ = static_cast<char>('0' + (minutes % 10));
+  *ch++ = ':';
+  *ch++ = static_cast<char>('0' + (seconds / 10));
+  *ch++ = static_cast<char>('0' + (seconds % 10));
+  if (ns) {
+    *ch++ = '.';
+    int64_t factor = NANOSECONDS_PER_SECOND / 10;
+    while (ns) {
+      auto digit = ns / factor;
+      xassert(digit < 10);
+      *ch++ = static_cast<char>('0' + digit);
+      ns -= digit * factor;
+      factor /= 10;
+    }
   }
   *pch = ch;
 }

@@ -28,6 +28,7 @@
 void int8_toa(char** pch, int8_t value);
 void int16_toa(char** pch, int16_t value);
 void date32_toa(char** pch, int32_t value);
+void time64_toa(char** pch, int64_t value);
 
 
 //---- Generic -----------------------------------------------------------------
@@ -40,5 +41,7 @@ template<> inline void toa(char** pch, int32_t x)  { itoa(pch, x); }
 template<> inline void toa(char** pch, int64_t x)  { ltoa(pch, x); }
 template<> inline void toa(char** pch, float x)    { ftoa(pch, x); }
 template<> inline void toa(char** pch, double x)   { dtoa(pch, x); }
+
+
 
 #endif

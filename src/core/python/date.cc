@@ -93,7 +93,7 @@ odate::odate(int32_t days)
 
 
 bool odate::check(robj obj) {
-  return PyDate_Check(obj.to_borrowed_ref());
+  return PyDate_CheckExact(obj.to_borrowed_ref());
 }
 
 
@@ -135,12 +135,12 @@ odatetime::odatetime(int64_t time) {
   const hh::ymd date = hh::civil_from_days(days);
   int64_t time_of_day = time - days * NANOSECONDS_PER_DAY;
   xassert(time_of_day >= 0);
-  int64_t ns = time_of_day % NANOSECONDS_PER_DAY;
-  time_of_day /= NANOSECONDS_PER_DAY;
+  int64_t ns = time_of_day % NANOSECONDS_PER_SECOND;
+  time_of_day /= NANOSECONDS_PER_SECOND;
   const int microseconds = static_cast<int>(ns / NANOSECONDS_PER_MICROSECOND);
-  const int seconds = static_cast<int>(time_of_day / 60);
+  const int seconds = static_cast<int>(time_of_day % 60);
   time_of_day /= 60;
-  const int minutes = static_cast<int>(time_of_day / 60);
+  const int minutes = static_cast<int>(time_of_day % 60);
   time_of_day /= 60;
   const int hours = static_cast<int>(time_of_day);
   v = PyDateTime_FromDateAndTime(date.year, date.month, date.day,
@@ -151,7 +151,7 @@ odatetime::odatetime(int64_t time) {
 
 
 bool odatetime::check(robj obj) {
-  return PyDateTime_Check(obj.to_borrowed_ref());
+  return PyDateTime_CheckExact(obj.to_borrowed_ref());
 }
 
 

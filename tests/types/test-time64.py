@@ -29,6 +29,10 @@ from tests import assert_equals
 
 
 
+#-------------------------------------------------------------------------------
+# Type.time64 and its basic properties
+#-------------------------------------------------------------------------------
+
 def test_time64_name():
     assert repr(dt.Type.time64) == "Type.time64"
     assert dt.Type.time64.name == "time64"
