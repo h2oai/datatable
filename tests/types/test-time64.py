@@ -54,3 +54,44 @@ def test_time64_type_from_numpy(np):
 def test_time64_type_from_pyarrow(pa):
     # pyarrow.date64: ms since unix epoch
     assert dt.Type(pa.date64()) == dt.Type.time64
+
+
+def test_time64_type_minmax():
+    d = datetime.datetime
+    assert dt.Type.time64.min == d(1677, 9, 22, 0, 12, 43, 145225)
+    assert dt.Type.time64.max == d(2262, 4, 11, 23, 47, 16, 854775)
+
+
+
+
+#-------------------------------------------------------------------------------
+# time64 column: create
+#-------------------------------------------------------------------------------
+
+def test_time64_create_from_python():
+    d = datetime.datetime
+    src = [d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src)
+    assert DT.types == [dt.Type.time64]
+    assert DT.to_list() == [src]
+
+
+
+def test_time64_repr():
+    d = datetime.datetime
+    src = [d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src)
+    assert str(DT) == (
+        "   | C0                       \n"
+        "   | time64                   \n"
+        "-- + -------------------------\n"
+        " 0 | 2000-10-18T03:30:00      \n"
+        " 1 | 2010-11-13T15:11:59      \n"
+        " 2 | 2020-02-29T20:20:20.00002\n"
+        " 3 | NA                       \n"
+        "[4 rows x 1 column]\n"
+    )

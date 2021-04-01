@@ -55,11 +55,13 @@ class Type_Time64 : public TypeImpl {
     bool is_time() const override { return true; }
     std::string to_string() const override { return "time64"; }
 
+    // The min/max values are rounded to microsecond resolution, because
+    // that's the resolution that python supports.
     py::oobj min() const override {
-      return py::odatetime(-std::numeric_limits<int64_t>::max());
+      return py::odatetime(-9223285636854775000L);
     }
     py::oobj max() const override {
-      return py::odatetime(std::numeric_limits<int64_t>::max());
+      return py::odatetime(9223372036854775000L);
     }
     // Pretend this is int64
     const char* struct_format() const override { return "q"; }

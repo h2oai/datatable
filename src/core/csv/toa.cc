@@ -112,12 +112,13 @@ void date32_toa(char** pch, int32_t value) {
 //   .      : 1
 //   <ns>   : 9
 //
-void time64_toa(char** pch, int64_t value) {
+void time64_toa(char** pch, int64_t time) {
   static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000L;
   static constexpr int64_t NANOSECONDS_PER_DAY = 24L * 3600L * 1000000000L;
 
-  int days = static_cast<int>(value / NANOSECONDS_PER_DAY);
-  int64_t time_of_day = value - days * NANOSECONDS_PER_DAY;
+  int days = static_cast<int>(
+      (time >= 0? time : time - NANOSECONDS_PER_DAY + 1) / NANOSECONDS_PER_DAY);
+  int64_t time_of_day = time - days * NANOSECONDS_PER_DAY;
   xassert(time_of_day >= 0);
   int64_t ns = time_of_day % NANOSECONDS_PER_SECOND;
   time_of_day /= NANOSECONDS_PER_SECOND;
