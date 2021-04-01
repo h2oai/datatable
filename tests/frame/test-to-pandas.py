@@ -95,3 +95,45 @@ def test_topandas_bool_nas():
     assert_equals(d0, d1)
     d2 = dt.Frame(d0.to_numpy(), names=["A"])
     assert_equals(d0, d2)
+
+
+@pandas_test
+def test_topandas_keyed(pd):
+    DT = dt.Frame(A=[3, 5, 9, 11], B=[7, 14, 1, 0], R=['va', 'dfkjv', 'q', '...'])
+    DT.key = 'A'
+    pf = DT.to_pandas()
+    assert pf.shape == (4, 2)
+    assert list(pf.columns) == ["B", "R"]
+    assert pf['B'].tolist() == [7, 14, 1, 0]
+    assert pf['R'].tolist() == ['va', 'dfkjv', 'q', '...']
+    assert isinstance(pf.index, pd.core.indexes.numeric.Int64Index)
+    assert pf.index.name == "A"
+    assert pf.index.tolist() == [3, 5, 9, 11]
+
+
+@pandas_test
+def test_topandas_keyed2(pd):
+    DT = dt.Frame(V=[2, 9, 11, 15, 99], W=[2, 4, 8, 7, 1])
+    DT.key = ['V', 'W']
+    pf = DT.to_pandas()
+    assert pf.shape == (5, 0)
+    assert list(pf.columns) == []
+    assert isinstance(pf.index, pd.core.indexes.multi.MultiIndex)
+    assert pf.index.names == ['V', 'W']
+    assert pf.index.tolist() == [(2, 2), (9, 4), (11, 8), (15, 7), (99, 1)]
+
+
+@pandas_test
+def test_topandas_keyed_dates(pd):
+    DT = dt.Frame(A=[0, 4, 9]/dt.stype.date32, B=['first', 'fifth', 'tenth'])
+    DT.key = 'A'
+    pf = DT.to_pandas()
+    assert pf.shape == (3, 1)
+    assert list(pf.columns) == ['B']
+    assert pf['B'].tolist() == ['first', 'fifth', 'tenth']
+    assert isinstance(pf.index, pd.core.indexes.datetimes.DatetimeIndex)
+    assert pf.index.name == 'A'
+    assert pf.index.tolist() == [
+                pd.Timestamp(1970, 1, 1),
+                pd.Timestamp(1970, 1, 5),
+                pd.Timestamp(1970, 1, 10)]
