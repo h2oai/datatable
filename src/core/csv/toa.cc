@@ -113,22 +113,23 @@ void date32_toa(char** pch, int32_t value) {
 //   <ns>   : 9
 //
 void time64_toa(char** pch, int64_t time) {
-  static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000L;
-  static constexpr int64_t NANOSECONDS_PER_DAY = 24L * 3600L * 1000000000L;
+  static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000LL;
+  static constexpr int64_t NANOSECONDS_PER_DAY = 24LL * 3600LL * 1000000000LL;
 
-  int days = static_cast<int>(
-      (time >= 0? time : time - NANOSECONDS_PER_DAY + 1) / NANOSECONDS_PER_DAY);
-  int64_t time_of_day = time - days * NANOSECONDS_PER_DAY;
+  auto days = (time >= 0)? time / NANOSECONDS_PER_DAY
+                         : (time + 1) / NANOSECONDS_PER_DAY - 1;
+  auto time_of_day = time - days * NANOSECONDS_PER_DAY;
   xassert(time_of_day >= 0);
-  int64_t ns = time_of_day % NANOSECONDS_PER_SECOND;
+  auto ns = time_of_day % NANOSECONDS_PER_SECOND;
   time_of_day /= NANOSECONDS_PER_SECOND;
-  int seconds = static_cast<int>(time_of_day % 60);
+  auto seconds = time_of_day % 60;
   time_of_day /= 60;
-  int minutes = static_cast<int>(time_of_day % 60);
+  auto minutes = time_of_day % 60;
   time_of_day /= 60;
-  int hours = static_cast<int>(time_of_day);
+  auto hours = time_of_day;
 
-  date32_toa(pch, days);
+  xassert(days < 110000 && days > -110000);
+  date32_toa(pch, static_cast<int>(days));
   char* ch = *pch;
   *ch++ = 'T';
   *ch++ = static_cast<char>('0' + (hours / 10));
