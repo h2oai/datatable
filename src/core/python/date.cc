@@ -117,9 +117,9 @@ PyTypeObject* odate::type() {
 // odatetime
 //------------------------------------------------------------------------------
 
-static constexpr int64_t NANOSECONDS_PER_MICROSECOND = 1000L;
-static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000L;
-static constexpr int64_t NANOSECONDS_PER_DAY = 1000000000L * 24L * 3600L;
+static constexpr int64_t NANOSECONDS_PER_MICROSECOND = 1000LL;
+static constexpr int64_t NANOSECONDS_PER_SECOND = 1000000000LL;
+static constexpr int64_t NANOSECONDS_PER_DAY = 1000000000LL * 24LL * 3600LL;
 
 
 odatetime::odatetime(PyObject* obj) : oobj(obj) {}  // private
@@ -130,14 +130,14 @@ odatetime odatetime::unchecked(PyObject* obj) {
 
 
 static_assert(
-  ((-1) / 5 == 0) && ((-1L) / 5L == 0) && ((-4L) / 5L == 0),
+  ((-1) / 5 == 0) && ((-1LL) / 5LL == 0) && ((-4LL) / 5LL == 0),
   "Expected truncation-towards-zero behavior for integer division of negative numbers");
 static_assert(
-  ((-1L + 1) / 5L - 1 == -1L) &&
-  ((-2L + 1) / 5L - 1 == -1L) &&
-  ((-3L + 1) / 5L - 1 == -1L) &&
-  ((-4L + 1) / 5L - 1 == -1L) &&
-  ((-5L + 1) / 5L - 1 == -1L),
+  ((-1LL + 1) / 5LL - 1 == -1LL) &&
+  ((-2LL + 1) / 5LL - 1 == -1LL) &&
+  ((-3LL + 1) / 5LL - 1 == -1LL) &&
+  ((-4LL + 1) / 5LL - 1 == -1LL) &&
+  ((-5LL + 1) / 5LL - 1 == -1LL),
   "Unexpected arithmetic result when dividing negative integers");
 
 
