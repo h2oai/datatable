@@ -78,6 +78,7 @@ namespace py {
   class obool;
   class oby;
   class odate;
+  class odatetime;
   class odict;
   class ofloat;
   class oint;

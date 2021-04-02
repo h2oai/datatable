@@ -10,10 +10,17 @@
       of previous stypes, and will eventually replace them.
 
     -[new] New column type :attr:`dt.Type.date32` added, which can store a
-      calendar date [#1646]::
+      calendar date [#2858]::
 
           >>> import datetime
           >>> DT = dt.Frame([datetime.date(2021, 2, 17)])
+
+    -[new] New column type :attr:`dt.Type.time64` added, which cat store
+      timestamps within a certain time zone (in a single column all times
+      must be in the same time zone) [#2911]::
+
+          >>> import datetime
+          >>> DT = dt.Frame([datetime.datetime(2021, 3, 17, 9, 0, 0)])
 
     -[new] A Frame can now be constructed from an Arrow
       table::

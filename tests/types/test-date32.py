@@ -42,6 +42,9 @@ def test_date32_type_from_basic():
 
 def test_date32_type_from_numpy(np):
     assert dt.Type(np.dtype("datetime64[D]")) == dt.Type.date32
+    assert dt.Type(np.dtype("datetime64[W]")) == dt.Type.date32
+    assert dt.Type(np.dtype("datetime64[M]")) == dt.Type.date32
+    assert dt.Type(np.dtype("datetime64[Y]")) == dt.Type.date32
 
 
 def test_date32_type_from_pyarrow(pa):

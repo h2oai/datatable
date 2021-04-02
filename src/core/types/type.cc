@@ -29,6 +29,7 @@
 #include "types/type_int.h"
 #include "types/type_object.h"
 #include "types/type_string.h"
+#include "types/type_time.h"
 #include "types/type_void.h"
 namespace dt {
 
@@ -72,18 +73,19 @@ Type::~Type() {
 
 
 
-Type Type::void0()   { return Type(new Type_Void); }
 Type Type::bool8()   { return Type(new Type_Bool8); }
 Type Type::date32()  { return Type(new Type_Date32); }
-Type Type::int8()    { return Type(new Type_Int8); }
+Type Type::float32() { return Type(new Type_Float32); }
+Type Type::float64() { return Type(new Type_Float64); }
 Type Type::int16()   { return Type(new Type_Int16); }
 Type Type::int32()   { return Type(new Type_Int32); }
 Type Type::int64()   { return Type(new Type_Int64); }
-Type Type::float32() { return Type(new Type_Float32); }
-Type Type::float64() { return Type(new Type_Float64); }
+Type Type::int8()    { return Type(new Type_Int8); }
+Type Type::obj64()   { return Type(new Type_Object); }
 Type Type::str32()   { return Type(new Type_String32); }
 Type Type::str64()   { return Type(new Type_String64); }
-Type Type::obj64()   { return Type(new Type_Object); }
+Type Type::time64()  { return Type(new Type_Time64); }
+Type Type::void0()   { return Type(new Type_Void); }
 
 Type Type::from_stype(SType stype) {
   switch (stype) {
@@ -99,6 +101,7 @@ Type Type::from_stype(SType stype) {
     case SType::STR32:   return str32();
     case SType::STR64:   return str64();
     case SType::DATE32:  return date32();
+    case SType::TIME64:  return time64();
     case SType::OBJ:     return obj64();
     default: break;
   }

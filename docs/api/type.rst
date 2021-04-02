@@ -19,6 +19,7 @@
     - :attr:`dt.Type.obj64`
     - :attr:`dt.Type.str32`
     - :attr:`dt.Type.str64`
+    - :attr:`dt.Type.time64`
     - :attr:`dt.Type.void`
 
 
@@ -55,4 +56,5 @@
     obj64    <type/obj64>
     str32    <type/str32>
     str64    <type/str64>
+    time64   <type/time64>
     void     <type/void>

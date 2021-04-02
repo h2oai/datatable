@@ -181,9 +181,10 @@ class HtmlWidget : public dt::Widget {
           case SType::STR32:
           case SType::STR64:   _render_str_value(col, i); break;
           case SType::DATE32:  _render_date_value(col, i); break;
+          case SType::TIME64:  _render_time_value(col, i); break;
           case SType::OBJ:     _render_obj_value(col, i); break;
           default:
-            html << "(unknown stype)";
+            html << "<span class=na>(unknown)</span>";
         }
         html << "</td>";
       }
@@ -265,6 +266,27 @@ class HtmlWidget : public dt::Widget {
         if (out[0] == '-') {
           html << "&minus;";
           html << (out + 1);
+        } else {
+          html << out;
+        }
+      } else {
+        _render_na();
+      }
+    }
+
+    void _render_time_value(const Column& col, size_t row) {
+      static char out[30];
+      int64_t value;
+      bool isvalid = col.get_element(row, &value);
+      if (isvalid) {
+        char* ch = out;
+        time64_toa(&ch, value);
+        *ch = '\0';
+        if (out[10] == 'T') {
+          out[10] = '\0';
+          html << out;
+          html << "<span class=sp>T</span>";
+          html << out + 11;
         } else {
           html << out;
         }

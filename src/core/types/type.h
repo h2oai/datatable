@@ -59,13 +59,14 @@ class Type {
     static Type date32();
     static Type float32();
     static Type float64();
-    static Type int8();
     static Type int16();
     static Type int32();
     static Type int64();
+    static Type int8();
     static Type obj64();
     static Type str32();
     static Type str64();
+    static Type time64();
     static Type void0();
 
     static Type from_stype(SType);

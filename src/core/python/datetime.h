@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,29 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_CSV_TOA_h
-#define dt_CSV_TOA_h
-#include "csv/dtoa.h"   // dtoa, ftoa, DIVS32
-#include "csv/itoa.h"   // itoa, ltoa
+#ifndef dt_PYTHON_DATETIME_h
+#define dt_PYTHON_DATETIME_h
+#include "python/obj.h"
+#include "lib/hh/date.h"
+namespace py {
 
 
-void int8_toa(char** pch, int8_t value);
-void int16_toa(char** pch, int16_t value);
-void date32_toa(char** pch, int32_t value);
-void time64_toa(char** pch, int64_t value);
+/**
+  * Wrapper class around Python's `datetime.datetime` object.
+  *
+  * The implementation is in "date.cc" (in order to avoid initializing
+  * the python datetime capsule more than once).
+  */
+class odatetime : public oobj {
+  public:
+    odatetime() = default;
+    odatetime(const odatetime&) = default;
+    odatetime(odatetime&&) = default;
+    odatetime& operator=(const odatetime&) = default;
+    odatetime& operator=(odatetime&&) = default;
+
+    explicit odatetime(int64_t time);
+    static bool check(py::robj obj);
+    static odatetime unchecked(PyObject*);
+
+    int64_t get_time() const;
+    static PyTypeObject* type();
+
+  private:
+    explicit odatetime(PyObject*);
+};
 
 
-//---- Generic -----------------------------------------------------------------
 
-template<typename T>
-           inline void toa(char**, T)              { }
-template<> inline void toa(char** pch, int8_t x)   { int8_toa(pch, x); }
-template<> inline void toa(char** pch, int16_t x)  { int16_toa(pch, x); }
-template<> inline void toa(char** pch, int32_t x)  { itoa(pch, x); }
-template<> inline void toa(char** pch, int64_t x)  { ltoa(pch, x); }
-template<> inline void toa(char** pch, float x)    { ftoa(pch, x); }
-template<> inline void toa(char** pch, double x)   { dtoa(pch, x); }
-
-
-
+}  // namespace py
 #endif

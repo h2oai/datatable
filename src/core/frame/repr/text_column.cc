@@ -182,8 +182,27 @@ tstring Data_TextColumn::_render_value_date(const Column& col, size_t i) const {
   if (isvalid) {
     char* ch = tmp;
     date32_toa(&ch, value);
-    *ch = '\0';
-    return tstring(std::string(tmp));
+    return tstring(std::string(tmp, static_cast<size_t>(ch - tmp)));
+  } else {
+    return na_value_;
+  }
+}
+
+
+tstring Data_TextColumn::_render_value_time(const Column& col, size_t i) const {
+  static char tmp[30];
+  int64_t value;
+  bool isvalid = col.get_element(i, &value);
+  if (isvalid) {
+    char* ch = tmp;
+    time64_toa(&ch, value);
+    xassert(ch > tmp + 10);
+    xassert(tmp[10] == 'T');
+    tstring out;
+    out << std::string(tmp, 10);
+    out << tstring("T", style::dim);
+    out << std::string(tmp + 11, static_cast<size_t>(ch - tmp - 11));
+    return out;
   } else {
     return na_value_;
   }
@@ -328,7 +347,8 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::STR32:
     case SType::STR64:   return _render_value_string(col, i);
     case SType::DATE32:  return _render_value_date(col, i);
-    default: return tstring("");
+    case SType::TIME64:  return _render_value_time(col, i);
+    default: return tstring("<unknown>", style::dim);
   }
 }
 

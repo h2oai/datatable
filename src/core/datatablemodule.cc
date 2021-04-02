@@ -500,7 +500,7 @@ extern "C" {
       py::ojoin::init(m);
       py::osort::init(m);
       py::oupdate::init(m);
-      py::odate::init();
+      py::datetime_init();
 
     } catch (const std::exception& e) {
       exception_to_python(e);

@@ -315,6 +315,22 @@ static Column force_as_date32(const Column& inputcol) {
 
 
 //------------------------------------------------------------------------------
+// Time64
+//------------------------------------------------------------------------------
+
+static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
+  return parse_as_X<int64_t>(inputcol, mbuf, i0,
+            [](const py::oobj& item, int64_t* out) {
+              return item.parse_datetime(out) ||
+                     item.parse_date(out) ||
+                     item.parse_none(out);
+            });
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // String
 //------------------------------------------------------------------------------
 
@@ -494,7 +510,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
   static styvec s_void = {
     dt::SType::BOOL, dt::SType::INT8, dt::SType::INT16, dt::SType::INT32,
     dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::STR32,
-    dt::SType::DATE32
+    dt::SType::DATE32, dt::SType::TIME64
   };
   static styvec s_bool8 = {dt::SType::INT8, dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
   static styvec s_int8  = {dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
@@ -505,7 +521,8 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
   static styvec s_float64 = {dt::SType::STR32};
   static styvec s_str32 = {dt::SType::STR64};
   static styvec s_str64 = {};
-  static styvec s_date32 = {};
+  static styvec s_date32 = {dt::SType::TIME64};
+  static styvec s_time64 = {};
 
   switch (stype) {
     case dt::SType::VOID:    return s_void;
@@ -519,6 +536,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
     case dt::SType::STR32:   return s_str32;
     case dt::SType::STR64:   return s_str64;
     case dt::SType::DATE32:  return s_date32;
+    case dt::SType::TIME64:  return s_time64;
     default:
       throw RuntimeError() << "Unknown successors of type " << stype;  // LCOV_EXCL_LINE
   }
@@ -551,6 +569,7 @@ static Column parse_column_auto_type(const Column& inputcol) {
         case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
         case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
         case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
+        case dt::SType::TIME64:  j = parse_as_time64(inputcol, databuf, i); break;
         default: continue;  // try another stype
       }
       if (j != i) {
