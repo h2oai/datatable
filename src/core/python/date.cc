@@ -129,22 +129,41 @@ odatetime odatetime::unchecked(PyObject* obj) {
 }
 
 
+static_assert(
+  ((-1) / 5 == 0) && ((-1L) / 5L == 0) && ((-4L) / 5L == 0),
+  "Expected truncation-towards-zero behavior for integer division of negative numbers");
+static_assert(
+  ((-1L + 1) / 5L - 1 == -1L) &&
+  ((-2L + 1) / 5L - 1 == -1L) &&
+  ((-3L + 1) / 5L - 1 == -1L) &&
+  ((-4L + 1) / 5L - 1 == -1L) &&
+  ((-5L + 1) / 5L - 1 == -1L),
+  "Unexpected arithmetic result when dividing negative integers");
+
+
 odatetime::odatetime(int64_t time) {
-  const int days = static_cast<int>(
-      (time >= 0? time : time - NANOSECONDS_PER_DAY + 1) / NANOSECONDS_PER_DAY);
-  const hh::ymd date = hh::civil_from_days(days);
-  int64_t time_of_day = time - days * NANOSECONDS_PER_DAY;
+  auto days = (time >= 0)? time / NANOSECONDS_PER_DAY
+                         : (time + 1) / NANOSECONDS_PER_DAY - 1;
+  auto date = hh::civil_from_days(static_cast<int>(days));
+  auto time_of_day = time - days * NANOSECONDS_PER_DAY;
   xassert(time_of_day >= 0);
-  int64_t ns = time_of_day % NANOSECONDS_PER_SECOND;
+  auto ns = time_of_day % NANOSECONDS_PER_SECOND;
   time_of_day /= NANOSECONDS_PER_SECOND;
-  const int microseconds = static_cast<int>(ns / NANOSECONDS_PER_MICROSECOND);
-  const int seconds = static_cast<int>(time_of_day % 60);
+  auto microseconds = ns / NANOSECONDS_PER_MICROSECOND;
+  auto seconds = time_of_day % 60;
   time_of_day /= 60;
-  const int minutes = static_cast<int>(time_of_day % 60);
+  auto minutes = time_of_day % 60;
   time_of_day /= 60;
-  const int hours = static_cast<int>(time_of_day);
-  v = PyDateTime_FromDateAndTime(date.year, date.month, date.day,
-      hours, minutes, seconds, microseconds);
+  auto hours = time_of_day;
+  v = PyDateTime_FromDateAndTime(
+      date.year,
+      date.month,
+      date.day,
+      static_cast<int>(hours),
+      static_cast<int>(minutes),
+      static_cast<int>(seconds),
+      static_cast<int>(microseconds)
+  );
   if (!v) throw PyError();
 }
 
