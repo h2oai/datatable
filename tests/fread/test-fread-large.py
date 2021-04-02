@@ -198,7 +198,7 @@ def test_h2o3_smalldata(f):
             return
         if "test_pubdev3589" in f:
             params["sep"] = "\n"
-        if "single_quotes_mixed.csv" in f:
+        if "single_quotes_mixed.csv" in f or "single_quotes_with_escaped_quotes.csv" in f:
             params["quotechar"] = "'"
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
