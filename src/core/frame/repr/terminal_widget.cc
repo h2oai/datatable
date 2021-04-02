@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -91,15 +91,9 @@ void TerminalWidget::_prerender_columns(int terminal_width)
   // If there are no keys, we add a "row numbers" column + a vertical
   // separator column.
   if (nkeys == 0) {
-    auto irows = static_cast<int64_t>(dt_->nrows());
-    text_columns_[0] = text_column(
-      new Data_TextColumn("",
-                          Column(new Range_ColumnImpl(0, irows, 1)),
-                          rowindices_,
-                          remaining_width)
-    );
+    text_columns_[0] = text_column(new RowIndex_TextColumn(rowindices_));
     text_columns_[1] = text_column(new VSep_TextColumn());
-    remaining_width -= text_columns_[0]->get_width();
+    remaining_width -= text_columns_[0]->get_width() + 1;
     remaining_width -= text_columns_[1]->get_width();
     has_rowindex_column_ = true;
     k0 = 2;
@@ -189,10 +183,10 @@ void TerminalWidget::_prerender_columns(int terminal_width)
   *     ellipsis having more priority;
   *
   *   - the order in which columns from the left and from the right
-  *     are taken is such the taken and the remaining columns on both
+  *     are taken is such that the counts of remaining columns on both
   *     sides are roughly proportional to their initial counts.
   *
-  *   - the ellipsis column is rendered lsat, if present.
+  *   - the ellipsis column is rendered last, if present.
   *
   */
 std::vector<size_t> TerminalWidget::_order_colindices() const {
@@ -265,12 +259,7 @@ void TerminalWidget::_render_header_separator() {
 
 void TerminalWidget::_render_data() {
   for (size_t k = 0; k < rowindices_.size(); ++k) {
-    if (has_rowindex_column_) {
-      out_ << style::grey;
-      text_columns_[0]->print_value(out_, k);
-      out_ << style::end;
-    }
-    for (size_t i = has_rowindex_column_; i < text_columns_.size(); ++i) {
+    for (size_t i = 0; i < text_columns_.size(); ++i) {
       text_columns_[i]->print_value(out_, k);
     }
     out_ << '\n';

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,26 +34,25 @@ namespace dt {
   *
   * The widget normally represents only a subset of Frame's data. Two
   * modes are supported:
-  *   - "split view", when the first + the last rows/columns are
-  *     rendered, with an ellipsis row/column in the middle; and
-  *   - "window view", which renders a simple sub-range of both rows
-  *     and columns.
   *
-  * The "split view" mode is indicated by `startcol_ == startrow_ ==
-  * NA_index`. In this mode we generate first `cols0_` / last `cols1_`
-  * columns, and first `rows0` / last `rows1` rows.
+  *   - "split view", indicated by `is_split_view_ == true`. In this
+  *     mode we generate first `col0_` / last `col1_` columns, and
+  *     first `rows0` / last `rows1` rows.
   *
-  * The "windowed" mode is indicated by `startcol_ != NA_index` and
-  * `startrow_ != NA_index`. In this mode we render a subrange of
-  * `cols0_` columns starting at `startcol_`, and a subrange of
-  * `rows0_` rows starting at index `startrow_`.
+  *   - "window view", indicated by `is_split_view_ == false`. In this
+  *     mode we render a subrange of columns `[col0_; col1_)`, and a
+  *     subrange of rows `[row0_; row1_)`.
   *
+  * Note: we do not use inheritance to implement Split/Windowed view
+  * because we want TerminalWidget / HtmlWidget to inherit from this
+  * class.
   */
 class Widget {
   private:
-    size_t startcol_, startrow_;
-    size_t cols0_, cols1_;
-    size_t rows0_, rows1_;
+    size_t col0_, col1_;
+    size_t row0_, row1_;
+    bool is_split_view_;
+    size_t : 56;
 
   protected:
     DataTable* dt_;
@@ -78,8 +77,10 @@ class Widget {
     explicit Widget(DataTable* dt);
 
     virtual void _render() = 0;
-    void _generate_column_indices();
-    void _generate_row_indices();
+    void _generate_column_indices_split_view();
+    void _generate_row_indices_split_view();
+    void _generate_column_indices_windowed_view();
+    void _generate_row_indices_windowed_view();
 };
 
 

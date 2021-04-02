@@ -43,6 +43,10 @@
       can now be an unsorted list. The list can also contain duplicate
       values.
 
+    -[enh] When a keyed Frame is converted into a pandas DataFrame, the
+      key columns will now become the DataFrame's index, not regulat
+      columns. [#2883]
+
     -[enh] When a Frame is shown in a python console, it will now display
       the stype of each column, as a second line under the column names.
       [#2810]
@@ -55,6 +59,9 @@
 
     -[fix] Passing an invalid value to the ``column=`` argument of the
       :meth:`.to_numpy()` method will no longer result in a crash.
+
+    -[fix] Frame terminal display no longer overflows terminal's width if
+      it contains strings with special characters. [#2844]
 
     -[api] Converting a frame with incompatible types into a numpy array will
       now raise an error (instead of auto-promoting to object type). However,
