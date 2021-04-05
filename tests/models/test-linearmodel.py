@@ -50,7 +50,7 @@ Params = collections.namedtuple("LinearModelParams",
 params_test = Params(eta = 1,
                  eta_decay = 1.0,
                  eta_drop_rate = 2.0,
-                 eta_schedule = 'constant',
+                 eta_schedule = 'exponential',
                  lambda1 = 2,
                  lambda2 = 3,
                  nepochs = 4.0,
@@ -61,8 +61,8 @@ params_test = Params(eta = 1,
 
 
 params_default = Params(eta = 0.005,
-                        eta_decay = 0.5,
-                        eta_drop_rate = 1.0,
+                        eta_decay = 0.0001,
+                        eta_drop_rate = 10.0,
                         eta_schedule = 'constant',
                         lambda1 = 0,
                         lambda2 = 0,
@@ -84,6 +84,27 @@ def test_linearmodel_construct_wrong_eta_type():
         noop(LinearModel(eta = "1.0"))
     assert ("Argument eta in LinearModel() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
+
+
+def test_linearmodel_construct_wrong_eta_decay_type():
+    with pytest.raises(TypeError) as e:
+        noop(LinearModel(eta_decay = "1.0"))
+    assert ("Argument eta_decay in LinearModel() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
+
+
+def test_linearmodel_construct_wrong_eta_drop_rate_type():
+    with pytest.raises(TypeError) as e:
+        noop(LinearModel(eta_drop_rate = "1.0"))
+    assert ("Argument eta_drop_rate in LinearModel() constructor should be a float, instead "
+            "got <class 'str'>" == str(e.value))
+
+
+def test_linearmodel_construct_wrong_eta_schedule_type():
+    with pytest.raises(TypeError) as e:
+        noop(LinearModel(eta_schedule = 3.14))
+    assert ("Argument eta_schedule in LinearModel() constructor should be a string, instead "
+            "got <class 'float'>" == str(e.value))
 
 
 def test_linearmodel_construct_wrong_lambda1_type():
@@ -166,6 +187,23 @@ def test_linearmodel_construct_wrong_eta_value():
     assert ("Argument eta in LinearModel() constructor should be positive: 0.0"
             == str(e.value))
 
+def test_linearmodel_construct_wrong_eta_decay_value():
+    with pytest.raises(ValueError) as e:
+        noop(LinearModel(eta_decay = -0.1))
+    assert ("Argument eta_decay in LinearModel() constructor should be greater than or equal to zero: -0.1"
+            == str(e.value))
+
+def test_linearmodel_construct_wrong_eta_drop_rate_value():
+    with pytest.raises(ValueError) as e:
+        noop(LinearModel(eta_drop_rate = 0.0))
+    assert ("Argument eta_drop_rate in LinearModel() constructor should be positive: 0.0"
+            == str(e.value))
+
+def test_linearmodel_construct_wrong_eta_schedule_value():
+    with pytest.raises(ValueError) as e:
+        noop(LinearModel(eta_schedule = "linear"))
+    assert ("Learning rate schedule linear is not supported"
+            == str(e.value))
 
 def test_linearmodel_construct_wrong_lambda1_value():
     with pytest.raises(ValueError) as e:
@@ -1035,9 +1073,10 @@ def test_linearmodel_fit_predict_multinomial_online(negative_class):
 # Test regression for numerical targets
 #-------------------------------------------------------------------------------
 
-def test_linearmodel_regression_fit_none():
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_none(eta_schedule):
     nrows = 10
-    lm = LinearModel(model_type = "regression")
+    lm = LinearModel(model_type = "regression", eta_schedule=eta_schedule)
     df_train = dt.Frame(range(nrows))
     df_target = dt.Frame([None] * nrows)
     res = lm.fit(df_train, df_target)
@@ -1050,8 +1089,9 @@ def test_linearmodel_regression_fit_none():
     assert res.loss is None
 
 
-def test_linearmodel_regression_fit_simple_zero():
-    lm = LinearModel(nepochs = 1, double_precision = True)
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_simple_zero(eta_schedule):
+    lm = LinearModel(nepochs = 1, double_precision = True, eta_schedule=eta_schedule)
     df_train = dt.Frame([0])
     df_target = dt.Frame([0])
     res = lm.fit(df_train, df_target)
@@ -1059,8 +1099,9 @@ def test_linearmodel_regression_fit_simple_zero():
     assert_equals(lm.model, dt.Frame([0.0, 0.0]))
 
 
-def test_linearmodel_regression_fit_simple_one():
-    lm = LinearModel(nepochs = 1, double_precision = True)
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_simple_one(eta_schedule):
+    lm = LinearModel(nepochs = 1, double_precision = True, eta_schedule=eta_schedule)
     df_train = dt.Frame([1])
     df_target = dt.Frame([1])
     lm.fit(df_train, df_target)
@@ -1068,8 +1109,10 @@ def test_linearmodel_regression_fit_simple_one():
     assert_equals(lm.model, dt.Frame([lm.eta, lm.eta]), rel_tol = 1e-3)
 
 
-def test_linearmodel_regression_fit_predict_simple_linear():
-    lm = LinearModel(nepochs = 10000, double_precision = True)
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_predict_simple_linear(eta_schedule):
+    lm = LinearModel(nepochs = 10000, double_precision = True,
+                     eta_drop_rate = 5000, eta_schedule=eta_schedule)
     df_train = dt.Frame([1, 2])
     df_target = dt.Frame([1, 2])
     lm.fit(df_train, df_target)
@@ -1078,8 +1121,9 @@ def test_linearmodel_regression_fit_predict_simple_linear():
     assert_equals(p, dt.Frame([1.5]), rel_tol = 1e-3)
 
 
-def test_linearmodel_regression_fit_predict_simple_one_epoch():
-    lm = LinearModel(nepochs = 1)
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_predict_simple_one_epoch(eta_schedule):
+    lm = LinearModel(nepochs = 1, eta_schedule=eta_schedule)
     r = list(range(10))
     df_train = dt.Frame(r)
     df_target = dt.Frame(r/dt.float32)
@@ -1093,8 +1137,9 @@ def test_linearmodel_regression_fit_predict_simple_one_epoch():
     )
 
 
-def test_linearmodel_regression_fit_predict():
-    lm = LinearModel(nepochs = 10000)
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
+def test_linearmodel_regression_fit_predict(eta_schedule):
+    lm = LinearModel(nepochs = 10000, eta_drop_rate = 5000, eta_schedule=eta_schedule)
     r = list(range(9))
     df_train = dt.Frame(r + [0])
     df_target = dt.Frame(r + [math.inf])

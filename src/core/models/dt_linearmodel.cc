@@ -201,7 +201,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
                 gradient += 2 * lambda2_ * betas[k][j];      // L2 regularization
 
                 if (_isfinite(gradient)) {
-                  betas[k][j] -= eta_ * gradient;
+                  betas[k][j] -= eta * gradient;
                 }
               }
             }
