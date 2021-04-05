@@ -112,7 +112,9 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   T last_epoch = nepochs_ - static_cast<T>(niterations) + 1;
 
   size_t iteration_nrows = dt_X_fit_->nrows();
-  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows);
+  // Note: if iteration_nrows > 16.78M, this conversion loses precision
+  T iteration_nrows_f = static_cast<T>(iteration_nrows);
+  size_t last_iteration_nrows = static_cast<size_t>(last_epoch * iteration_nrows_f);
   size_t total_nrows = (niterations - 1) * iteration_nrows + last_iteration_nrows;
   size_t iteration_end;
 
@@ -128,7 +130,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
 
   if (validation) {
     cols_val = make_casted_columns(dt_X_val_, stype_);
-    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val_ * iteration_nrows));
+    iteration_nrows = static_cast<size_t>(std::ceil(nepochs_val_ * iteration_nrows_f));
     niterations = total_nrows / iteration_nrows + (total_nrows % iteration_nrows > 0);
     loss_history.resize(val_niters_, 0.0);
   }
@@ -222,9 +224,10 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           // Second, average the local coefficients
           {
             std::lock_guard<std::mutex> lock(m);
+            auto nth = static_cast<T>(dt::num_threads_in_team());
             for (size_t i = 0; i < dt_model->ncols(); ++i) {
               for (size_t j = 0; j < dt_model->nrows(); ++j) {
-                betas_[i][j] += betas[i][j] / dt::num_threads_in_team();
+                betas_[i][j] += betas[i][j] / nth;
               }
             }
           }
@@ -294,7 +297,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   );
   job.done();
 
-  double epoch_stopped = static_cast<double>(iteration_end) / dt_X_fit_->nrows();
+  double epoch_stopped = static_cast<double>(iteration_end) / static_cast<double>(dt_X_fit_->nrows());
   LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
