@@ -1111,8 +1111,8 @@ def test_linearmodel_regression_fit_simple_one(eta_schedule):
 
 @pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
 def test_linearmodel_regression_fit_predict_simple_linear(eta_schedule):
-    lm = LinearModel(nepochs = 10000, double_precision = True,
-                     eta_drop_rate = 5000, eta_schedule=eta_schedule)
+    lm = LinearModel(nepochs = 10000, double_precision = True, eta_decay = 1e-8,
+                     eta_drop_rate = 50000, eta_schedule=eta_schedule)
     df_train = dt.Frame([1, 2])
     df_target = dt.Frame([1, 2])
     lm.fit(df_train, df_target)
@@ -1139,7 +1139,8 @@ def test_linearmodel_regression_fit_predict_simple_one_epoch(eta_schedule):
 
 @pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
 def test_linearmodel_regression_fit_predict(eta_schedule):
-    lm = LinearModel(nepochs = 10000, eta_drop_rate = 5000, eta_schedule=eta_schedule)
+    lm = LinearModel(nepochs = 10000, eta_drop_rate = 5000,
+                     eta_schedule=eta_schedule, eta_decay = 1e-7)
     r = list(range(9))
     df_train = dt.Frame(r + [0])
     df_target = dt.Frame(r + [math.inf])

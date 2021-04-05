@@ -43,10 +43,10 @@ enum class LinearModelType : size_t {
  *  https://en.wikipedia.org/wiki/Learning_rate#Learning_rate_schedule
  */
 enum class LearningRateSchedule : size_t {
-  CONSTANT    = 0, // eta
-  TIME_BASED  = 1, // eta / (1 + decay * iteration)
-  STEP_BASED  = 2, // eta * decay ^ floor((1 + iteration) / drop_rate)
-  EXPONENTIAL = 3, // eta / exp(decay * iteration)
+  CONSTANT    = 0, // eta = eta0
+  TIME_BASED  = 1, // eta /= (1 + decay * iteration)
+  STEP_BASED  = 2, // eta = eta0 * decay ^ floor((1 + iteration) / drop_rate)
+  EXPONENTIAL = 3, // eta = eta0 / exp(decay * iteration)
 };
 
 

@@ -100,7 +100,7 @@ class LinearModel : public LinearModelBase {
     T predict_row(const tptr<T>& x, const std::vector<T*>, const size_t);
     dtptr create_p(size_t);
     virtual void finalize_predict(std::vector<T*>, const size_t, const int32_t*) {}
-    T eta_from_iter(size_t);
+    void adjust_eta(T&, size_t);
 
     // Model helper methods
     void create_model();

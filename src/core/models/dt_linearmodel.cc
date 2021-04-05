@@ -216,13 +216,13 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
         barrier();
 
         // Update global model coefficients by averaging the local ones.
-        // Also update `eta` according to the schedule.
+        // Also adjust `eta` according to the schedule.
         {
           // First, zero out the global model and update `eta`.
           if (dt::this_thread_index() == 0) {
             init_model();
             betas_ = get_model_data(dt_model_);
-            eta = eta_from_iter(iter + 1);
+            adjust_eta(eta, iter + 1);
           }
           barrier();
 
@@ -312,23 +312,20 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
  *  Calculate learning rate for a particular schedule.
  */
 template <typename T>
-T LinearModel<T>::eta_from_iter(size_t iter) {
-  T eta;
+void LinearModel<T>::adjust_eta(T& eta, size_t iter) {
   switch (eta_schedule_) {
     case LearningRateSchedule::CONSTANT:
       eta = eta_;
       break;
     case LearningRateSchedule::TIME_BASED:
-      eta = eta_ / (1 + eta_decay_ * iter);
+      eta /= (1 + eta_decay_ * iter);
       break;
     case LearningRateSchedule::STEP_BASED:
       eta = eta_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
       break;
     case LearningRateSchedule::EXPONENTIAL:
       eta = eta_ / exp(eta_decay_ * iter);
-      break;
   }
-  return eta;
 }
 
 
