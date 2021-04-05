@@ -34,13 +34,12 @@
 namespace py {
 
 const size_t LinearModel::API_VERSION = 1;
-const size_t LinearModel::N_PARAMS = 8;
+const size_t LinearModel::N_PARAMS = 11;
 
 /**
  *  Model type names and their corresponding dt::LinearModelType's
  */
 static const std::unordered_map<std::string, dt::LinearModelType> LinearModelNameType {
-   {"unknown", dt::LinearModelType::UNKNOWN},
    {"auto", dt::LinearModelType::AUTO},
    {"regression", dt::LinearModelType::REGRESSION},
    {"binomial", dt::LinearModelType::BINOMIAL},
@@ -49,18 +48,14 @@ static const std::unordered_map<std::string, dt::LinearModelType> LinearModelNam
 
 
 /**
- *  Create and set inverse map for py::LinearModelNameType
+ *  Learning rate schedules
  */
-static const std::map<dt::LinearModelType, std::string> LinearModelTypeName
-  = LinearModel::create_model_type_name();
-
-std::map<dt::LinearModelType, std::string> LinearModel::create_model_type_name() {
-  std::map<dt::LinearModelType, std::string> m;
-  for (const auto& v : py::LinearModelNameType) {
-    m.insert(std::pair<dt::LinearModelType, std::string>(v.second, v.first));
-  }
-  return m;
-}
+static const std::unordered_map<std::string, dt::LearningRateSchedule> LearningRateScheduleName {
+   {"constant", dt::LearningRateSchedule::CONSTANT},
+   {"time-based", dt::LearningRateSchedule::TIME_BASED},
+   {"step-based", dt::LearningRateSchedule::STEP_BASED},
+   {"exponential", dt::LearningRateSchedule::EXPONENTIAL}
+};
 
 
 /**
@@ -69,8 +64,9 @@ std::map<dt::LinearModelType, std::string> LinearModel::create_model_type_name()
  */
 
 static const char* doc___init__ =
-R"(__init__(self, eta=0.005, lambda1=0, lambda2=0,
-nepochs=1, double_precision=False, negative_class=False,
+R"(__init__(self,
+eta=0.005, eta_decay=0.5, eta_drop_rate=1.0, eta_schedule='constant',
+lambda1=0, lambda2=0, nepochs=1, double_precision=False, negative_class=False,
 model_type='auto', seed=0, params=None)
 --
 
@@ -79,7 +75,24 @@ Create a new :class:`LinearModel <datatable.models.LinearModel>` object.
 Parameters
 ----------
 eta: float
-    :math:`\eta` step size aka learning rate.
+    Learning rate, should be positive.
+
+eta_decay: float
+    Decay for the `"time-based"` and `"step-based"` learning rate schedules,
+    should be non-negative.
+
+eta_drop_rate: float
+    Drop rate for the `"step-based"` learning rate schedule,
+    should be positive.
+
+eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
+    Learning rate schedule. If it is not `"constant"`, the learning rate is
+    updated after each training iteration as follows:
+    - for `"time-based"` schedule as `eta / (1 + eta_decay * epoch)`;
+    - for `"step-based"` schedule as `eta * eta_decay ^ floor((1 + epoch) / eta_drop_rate)`;
+    - for `"exponential"` schedule as `eta / exp(eta_decay * epoch)`.
+    By default, the size of the training iteration is one epoch, it becomes
+    `nepochs_validation` when validation dataset is specified.
 
 lambda1: float
     L1 regularization parameter, should be non-negative.
@@ -135,10 +148,10 @@ except: ValueError
 
 
 static PKArgs args___init__(0, 1, LinearModel::N_PARAMS, false, false,
-                                 {"params", "eta", "lambda1",
-                                 "lambda2", "nepochs",
-                                 "double_precision",
-                                 "negative_class",
+                                 {"params",
+                                 "eta", "eta_decay", "eta_drop_rate", "eta_schedule",
+                                 "lambda1", "lambda2",
+                                 "nepochs", "double_precision", "negative_class",
                                  "model_type",
                                  "seed"},
                                  "__init__", doc___init__);
@@ -150,6 +163,9 @@ void LinearModel::m__init__(const PKArgs& args) {
 
   const Arg& arg_params           = args[i++];
   const Arg& arg_eta              = args[i++];
+  const Arg& arg_eta_decay        = args[i++];
+  const Arg& arg_eta_drop_rate    = args[i++];
+  const Arg& arg_eta_schedule     = args[i++];
   const Arg& arg_lambda1          = args[i++];
   const Arg& arg_lambda2          = args[i++];
   const Arg& arg_nepochs          = args[i++];
@@ -162,6 +178,9 @@ void LinearModel::m__init__(const PKArgs& args) {
 
   bool defined_params           = !arg_params.is_none_or_undefined();
   bool defined_eta              = !arg_eta.is_none_or_undefined();
+  bool defined_eta_decay        = !arg_eta_decay.is_none_or_undefined();
+  bool defined_eta_drop_rate    = !arg_eta_drop_rate.is_none_or_undefined();
+  bool defined_eta_schedule     = !arg_eta_schedule.is_none_or_undefined();
   bool defined_lambda1          = !arg_lambda1.is_none_or_undefined();
   bool defined_lambda2          = !arg_lambda2.is_none_or_undefined();
   bool defined_nepochs          = !arg_nepochs.is_none_or_undefined();
@@ -174,12 +193,13 @@ void LinearModel::m__init__(const PKArgs& args) {
                                   defined_nepochs || defined_double_precision ||
                                   defined_negative_class || defined_seed;
 
-  init_py_params();
+  init_params();
 
   if (defined_params) {
     if (defined_individual_param) {
       throw ValueError() << "You can either pass all the parameters with "
-        << "`params` or any of the individual parameters with `eta`, "
+        << "`params` or any of the individual parameters with "
+        << "`eta`, `eta_decay`, `eta_drop_rate`, `eta_schedule`, "
         << "`lambda1`, `lambda2`, `nepochs`, "
         << "`double_precision`, `negative_class`, `model_type` or `seed` "
         << "to `LinearModel` constructor, but not both at the same time";
@@ -190,6 +210,9 @@ void LinearModel::m__init__(const PKArgs& args) {
 
   } else {
     if (defined_eta) set_eta(arg_eta);
+    if (defined_eta_decay) set_eta_decay(arg_eta_decay);
+    if (defined_eta_drop_rate) set_eta_drop_rate(arg_eta_drop_rate);
+    if (defined_eta_schedule) set_eta_schedule(arg_eta_schedule);
     if (defined_lambda1) set_lambda1(arg_lambda1);
     if (defined_lambda2) set_lambda2(arg_lambda2);
     if (defined_nepochs) set_nepochs(arg_nepochs);
@@ -231,7 +254,7 @@ void LinearModel::init_dt_model(dt::LType target_ltype /* = dt::LType::MU */) {
                                           case dt::LType::STRING:  lm_ = new dt::LinearModelMultinomial<T>();
                                                                    set_model_type({py::ostring("multinomial"), "`LinearModelParams.model_type`"});
                                                                    break;
-                                          default: throw RuntimeError() << "Target column should have one of "
+                                          default: throw TypeError() << "Target column should have one of "
                                             << "the following ltypes: `void`, `bool`, `int`, `real` or `string`, "
                                             << "instead got: `" << target_ltype << "`";
                                         }
@@ -245,8 +268,6 @@ void LinearModel::init_dt_model(dt::LType target_ltype /* = dt::LType::MU */) {
 
     case dt::LinearModelType::MULTINOMIAL : lm_ = new dt::LinearModelMultinomial<T>();
                                             break;
-
-    case dt::LinearModelType::UNKNOWN : throw ValueError() << "Cannot train model in an unknown mode";
   }
 }
 
@@ -309,7 +330,6 @@ static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "nepochs_validation", "validation_error",
                        "validation_average_niterations"}, "fit",
                        doc_fit);
-
 
 oobj LinearModel::fit(const PKArgs& args) {
   size_t i = 0;
@@ -696,7 +716,7 @@ void LinearModel::set_model(robj model) {
 
 static const char* doc_eta =
 R"(
-Step size, aka learning rate.
+Learning rate.
 
 Parameters
 ----------
@@ -727,6 +747,132 @@ void LinearModel::set_eta(const Arg& py_eta) {
   py::Validator::check_positive(eta, py_eta);
   py_params_->replace(0, py_eta.robj());
   dt_params_->eta = eta;
+}
+
+
+/**
+ *  .eta_decay
+ */
+
+static const char* doc_eta_decay =
+R"(
+Decay for the `"time-based"` and `"step-based"` learning rate schedules.
+
+Parameters
+----------
+return: float
+    Current `eta_decay` value.
+
+new_eta_decay: float
+    New `eta_decay` value, should be non-negative.
+
+except: ValueError
+    The exception is raised when `new_eta_decay` is negative.
+)";
+
+static GSArgs args_eta_decay(
+  "eta_decay",
+  doc_eta_decay
+);
+
+
+oobj LinearModel::get_eta_decay() const {
+  return py_params_->get_attr("eta_decay");
+}
+
+
+void LinearModel::set_eta_decay(const Arg& py_eta_decay) {
+  double eta_decay = py_eta_decay.to_double();
+  py::Validator::check_finite(eta_decay, py_eta_decay);
+  py::Validator::check_not_negative(eta_decay, py_eta_decay);
+  py_params_->replace(1, py_eta_decay.robj());
+  dt_params_->eta_decay = eta_decay;
+}
+
+
+/**
+ *  .eta_drop_rate
+ */
+
+static const char* doc_eta_drop_rate =
+R"(
+Drop rate for the `"step-based"` learning rate schedule.
+
+Parameters
+----------
+return: float
+    Current `eta_drop_rate` value.
+
+new_eta_drop_rate: float
+    New `eta_drop_rate` value, should be positive.
+
+except: ValueError
+    The exception is raised when `new_eta_drop_rate` is not positive.
+)";
+
+static GSArgs args_eta_drop_rate(
+  "eta_drop_rate",
+  doc_eta_drop_rate
+);
+
+
+oobj LinearModel::get_eta_drop_rate() const {
+  return py_params_->get_attr("eta_drop_rate");
+}
+
+
+void LinearModel::set_eta_drop_rate(const Arg& py_eta_drop_rate) {
+  double eta_drop_rate = py_eta_drop_rate.to_double();
+  py::Validator::check_finite(eta_drop_rate, py_eta_drop_rate);
+  py::Validator::check_positive(eta_drop_rate, py_eta_drop_rate);
+  py_params_->replace(2, py_eta_drop_rate.robj());
+  dt_params_->eta_drop_rate = eta_drop_rate;
+}
+
+
+/**
+ *  .eta_schedule
+ */
+
+static const char* doc_eta_schedule =
+R"(
+Learning rate `schedule <https://en.wikipedia.org/wiki/Learning_rate#Learning_rate_schedule>`_
+
+- `"constant"` for constant `eta`;
+- `"time-based"` for time-based schedule;
+- `"step-based"` for step-based schedule;
+- `"exponential"` for exponential schedule.
+
+Parameters
+----------
+return: str
+    Current `eta_schedule` value.
+
+new_eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
+    New `eta_schedule` value.
+)";
+
+static GSArgs args_eta_schedule(
+  "eta_schedule",
+  doc_eta_schedule
+);
+
+
+oobj LinearModel::get_eta_schedule() const {
+  return py_params_->get_attr("eta_schedule");
+}
+
+
+void LinearModel::set_eta_schedule(const Arg& py_eta_schedule) {
+  std::string eta_schedule = py_eta_schedule.to_string();
+  auto it = py::LearningRateScheduleName.find(eta_schedule);
+  if (it == py::LearningRateScheduleName.end()) {
+    throw ValueError() << "Learning rate schedule `" << eta_schedule
+      << "` is not supported";
+  }
+  py_params_->replace(3, py_eta_schedule.to_robj());
+  dt_params_->eta_schedule = it->second;
+
 }
 
 
@@ -766,7 +912,7 @@ void LinearModel::set_lambda1(const Arg& py_lambda1) {
   double lambda1 = py_lambda1.to_double();
   py::Validator::check_finite(lambda1, py_lambda1);
   py::Validator::check_not_negative(lambda1, py_lambda1);
-  py_params_->replace(1, py_lambda1.to_robj());
+  py_params_->replace(4, py_lambda1.to_robj());
   dt_params_->lambda1 = lambda1;
 }
 
@@ -807,7 +953,7 @@ void LinearModel::set_lambda2(const Arg& py_lambda2) {
   double lambda2 = py_lambda2.to_double();
   py::Validator::check_finite(lambda2, py_lambda2);
   py::Validator::check_not_negative(lambda2, py_lambda2);
-  py_params_->replace(2, py_lambda2.to_robj());
+  py_params_->replace(5, py_lambda2.to_robj());
   dt_params_->lambda2 = lambda2;
 }
 
@@ -853,7 +999,7 @@ void LinearModel::set_nepochs(const Arg& arg_nepochs) {
   double nepochs = arg_nepochs.to_double();
   py::Validator::check_finite(nepochs, arg_nepochs);
   py::Validator::check_not_negative(nepochs, arg_nepochs);
-  py_params_->replace(3, arg_nepochs.to_robj());
+  py_params_->replace(6, arg_nepochs.to_robj());
   dt_params_->nepochs = nepochs;
 }
 
@@ -893,7 +1039,7 @@ void LinearModel::set_double_precision(const Arg& arg_double_precision) {
                        << "reset this model or create a new one";
   }
   bool double_precision = arg_double_precision.to_bool_strict();
-  py_params_->replace(4, arg_double_precision.to_robj());
+  py_params_->replace(7, arg_double_precision.to_robj());
   dt_params_->double_precision = double_precision;
 }
 
@@ -946,7 +1092,7 @@ void LinearModel::set_negative_class(const Arg& arg_negative_class) {
                        << "reset this model or create a new one";
   }
   bool negative_class = arg_negative_class.to_bool_strict();
-  py_params_->replace(5, arg_negative_class.to_robj());
+  py_params_->replace(8, arg_negative_class.to_robj());
   dt_params_->negative_class = negative_class;
 }
 
@@ -975,15 +1121,8 @@ new_model_type: "binomial" | "multinomial" | "regression" | "auto"
     New `model_type` value.
 
 except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - `new_model_type` value is not one of the following: `"binomial"`,
-      `"multinomial"`, `"regression"` or `"auto"`.
-
-See also
---------
-- :attr:`.model_type_trained` -- the model type `LinearModel` has build.
+    The exception is raised when trying to change this option
+    for a model that has already been trained.
 )";
 
 static GSArgs args_model_type(
@@ -1004,13 +1143,12 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
   }
   std::string model_type = py_model_type.to_string();
   auto it = py::LinearModelNameType.find(model_type);
-  if (it == py::LinearModelNameType.end() || it->second == dt::LinearModelType::UNKNOWN) {
+  if (it == py::LinearModelNameType.end()) {
     throw ValueError() << "Model type `" << model_type << "` is not supported";
   }
 
-  py_params_->replace(6, py_model_type.to_robj());
+  py_params_->replace(9, py_model_type.to_robj());
   dt_params_->model_type = it->second;
-
 }
 
 
@@ -1047,7 +1185,7 @@ oobj LinearModel::get_seed() const {
 
 void LinearModel::set_seed(const Arg& arg_seed) {
   size_t seed = arg_seed.to_size_t();
-  py_params_->replace(7, arg_seed.to_robj());
+  py_params_->replace(10, arg_seed.to_robj());
   dt_params_->seed = static_cast<unsigned int>(seed);
 }
 
@@ -1098,6 +1236,9 @@ void LinearModel::set_params_namedtuple(robj params_in) {
       << "`" << N_PARAMS << "` elements, instead got: " << n_params;
   }
   py::oobj py_eta = params_in.get_attr("eta");
+  py::oobj py_eta_decay = params_in.get_attr("eta_decay");
+  py::oobj py_eta_drop_rate = params_in.get_attr("eta_drop_rate");
+  py::oobj py_eta_schedule = params_in.get_attr("eta_schedule");
   py::oobj py_lambda1 = params_in.get_attr("lambda1");
   py::oobj py_lambda2 = params_in.get_attr("lambda2");
   py::oobj py_nepochs = params_in.get_attr("nepochs");
@@ -1107,6 +1248,9 @@ void LinearModel::set_params_namedtuple(robj params_in) {
   py::oobj py_seed = params_in.get_attr("seed");
 
   set_eta({py_eta, "`LinearModelParams.eta`"});
+  set_eta_decay({py_eta_decay, "`LinearModelParams.eta_decay`"});
+  set_eta_drop_rate({py_eta_drop_rate, "`LinearModelParams.eta_drop_rate`"});
+  set_eta_schedule({py_eta_schedule, "`LinearModelParams.eta_schedule`"});
   set_lambda1({py_lambda1, "`LinearModelParams.lambda1`"});
   set_lambda2({py_lambda2, "`LinearModelParams.lambda2`"});
   set_nepochs({py_nepochs, "`LinearModelParams.nepochs`"});
@@ -1119,6 +1263,9 @@ void LinearModel::set_params_namedtuple(robj params_in) {
 
 oobj LinearModel::get_params_tuple() const {
   return otuple {get_eta(),
+                 get_eta_decay(),
+                 get_eta_drop_rate(),
+                 get_eta_schedule(),
                  get_lambda1(),
                  get_lambda2(),
                  get_nepochs(),
@@ -1139,6 +1286,9 @@ void LinearModel::set_params_tuple(robj params) {
       << "` " << N_PARAMS << "` elements, instead got: " << n_params;
   }
   set_eta({params_tuple[i++], "eta"});
+  set_eta_decay({params_tuple[i++], "eta_decay"});
+  set_eta_drop_rate({params_tuple[i++], "eta_drop_rate"});
+  set_eta_schedule({params_tuple[i++], "eta_schedule"});
   set_lambda1({params_tuple[i++], "lambda1"});
   set_lambda2({params_tuple[i++], "lambda2"});
   set_nepochs({params_tuple[i++], "nepochs"});
@@ -1150,11 +1300,14 @@ void LinearModel::set_params_tuple(robj params) {
 }
 
 
-void LinearModel::init_py_params() {
+void LinearModel::init_params() {
   static onamedtupletype py_params_ntt(
     "LinearModelParams",
     args_params.doc, {
       {args_eta.name,              args_eta.doc},
+      {args_eta_decay.name,        args_eta_decay.doc},
+      {args_eta_drop_rate.name,    args_eta_drop_rate.doc},
+      {args_eta_schedule.name,     args_eta_schedule.doc},
       {args_lambda1.name,          args_lambda1.doc},
       {args_lambda2.name,          args_lambda2.doc},
       {args_nepochs.name,          args_nepochs.doc},
@@ -1170,6 +1323,9 @@ void LinearModel::init_py_params() {
   size_t i = 0;
 
   py_params_->replace(i++, py::ofloat(dt_params_->eta));
+  py_params_->replace(i++, py::ofloat(dt_params_->eta_decay));
+  py_params_->replace(i++, py::ofloat(dt_params_->eta_drop_rate));
+  py_params_->replace(i++, py::ostring("constant"));
   py_params_->replace(i++, py::ofloat(dt_params_->lambda1));
   py_params_->replace(i++, py::ofloat(dt_params_->lambda2));
   py_params_->replace(i++, py::ofloat(dt_params_->nepochs));
@@ -1212,7 +1368,7 @@ static PKArgs args___setstate__(
 void LinearModel::m__setstate__(const PKArgs& args) {
   py::otuple pickle = args[0].to_otuple();
   py::oint py_api_version = pickle[0].to_size_t(); // Not used for the moment
-  init_py_params();
+  init_params();
   set_params_tuple(pickle[1]);
 
   // Set up labels and model coefficients if available
@@ -1251,6 +1407,9 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
   // Input parameters
   xt.add(GETTER(&LinearModel::get_params_namedtuple, args_params));
   xt.add(GETSET(&LinearModel::get_eta, &LinearModel::set_eta, args_eta));
+  xt.add(GETSET(&LinearModel::get_eta_decay, &LinearModel::set_eta_decay, args_eta_decay));
+  xt.add(GETSET(&LinearModel::get_eta_drop_rate, &LinearModel::set_eta_drop_rate, args_eta_drop_rate));
+  xt.add(GETSET(&LinearModel::get_eta_schedule, &LinearModel::set_eta_schedule, args_eta_schedule));
   xt.add(GETSET(&LinearModel::get_lambda1, &LinearModel::set_lambda1, args_lambda1));
   xt.add(GETSET(&LinearModel::get_lambda2, &LinearModel::set_lambda2, args_lambda2));
   xt.add(GETSET(&LinearModel::get_nepochs, &LinearModel::set_nepochs, args_nepochs));

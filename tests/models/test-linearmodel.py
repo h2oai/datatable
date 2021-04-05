@@ -42,11 +42,15 @@ from tests import assert_equals, noop
 # Define namedtuple of test/default parameters and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("LinearModelParams",
-          ["eta", "lambda1", "lambda2", "nepochs", "double_precision",
+          ["eta", "eta_decay", "eta_drop_rate", "eta_schedule",
+           "lambda1", "lambda2", "nepochs", "double_precision",
            "negative_class", "model_type", "seed"]
          )
 
 params_test = Params(eta = 1,
+                 eta_decay = 1.0,
+                 eta_drop_rate = 2.0,
+                 eta_schedule = 'constant',
                  lambda1 = 2,
                  lambda2 = 3,
                  nepochs = 4.0,
@@ -57,6 +61,9 @@ params_test = Params(eta = 1,
 
 
 params_default = Params(eta = 0.005,
+                        eta_decay = 0.5,
+                        eta_drop_rate = 1.0,
+                        eta_schedule = 'constant',
                         lambda1 = 0,
                         lambda2 = 0,
                         nepochs = 1,
@@ -118,8 +125,8 @@ def test_linearmodel_construct_wrong_combination():
     with pytest.raises(ValueError) as e:
         noop(LinearModel(params=params_test, eta = params_test.eta))
     assert ("You can either pass all the parameters with params or any of "
-            "the individual parameters with eta, lambda1, "
-            "lambda2, nepochs, double_precision, "
+            "the individual parameters with eta, eta_decay, eta_drop_rate, "
+            "eta_schedule, lambda1, lambda2, nepochs, double_precision, "
             "negative_class, model_type or seed to LinearModel constructor, "
             "but not both at the same time"
             == str(e.value))
@@ -145,7 +152,7 @@ def test_linearmodel_construct_wrong_params_name():
     wrong_params = WrongParams(eta = 1, lambda1 = 0.01)
     with pytest.raises(ValueError) as e:
         LinearModel(wrong_params)
-    assert ("Tuple of LinearModel parameters should have 8 elements, instead got: 2"
+    assert ("Tuple of LinearModel parameters should have 11 elements, instead got: 2"
             == str(e.value))
 
 
@@ -217,6 +224,9 @@ def test_linearmodel_create_params():
 
 def test_linearmodel_create_individual():
     lm = LinearModel(eta = params_test.eta,
+              eta_decay = params_test.eta_decay,
+              eta_drop_rate = params_test.eta_drop_rate,
+              eta_schedule = params_test.eta_schedule,
               lambda1 = params_test.lambda1, lambda2 = params_test.lambda2,
               nepochs = params_test.nepochs,
               double_precision = params_test.double_precision,
@@ -224,6 +234,9 @@ def test_linearmodel_create_individual():
               model_type = params_test.model_type,
               seed = params_test.seed)
     assert lm.params == (params_test.eta,
+                         params_test.eta_decay,
+                         params_test.eta_drop_rate,
+                         params_test.eta_schedule,
                          params_test.lambda1, params_test.lambda2,
                          params_test.nepochs,
                          params_test.double_precision, params_test.negative_class,
@@ -239,18 +252,23 @@ def test_linearmodel_get_params():
     lm = LinearModel(params_test)
     params = lm.params
     assert params == params_test
-    assert (lm.eta, lm.lambda1, lm.lambda2,
+    assert (lm.eta, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
+           lm.lambda1, lm.lambda2,
            lm.nepochs, lm.double_precision, lm.negative_class,
            lm.model_type, lm.seed) == params_test
-    assert (params.eta, params.lambda1, params.lambda2,
-           params.nepochs, params.double_precision,
-           params.negative_class, params.model_type,
-           params.seed) == params_test
+    assert (params.eta, params.eta_decay, params.eta_drop_rate, params.eta_schedule,
+            params.lambda1, params.lambda2,
+            params.nepochs, params.double_precision,
+            params.negative_class, params.model_type,
+            params.seed) == params_test
 
 
 def test_linearmodel_set_individual():
     lm = LinearModel(double_precision = params_test.double_precision)
     lm.eta = params_test.eta
+    lm.eta_decay = params_test.eta_decay
+    lm.eta_drop_rate = params_test.eta_drop_rate
+    lm.eta_schedule = params_test.eta_schedule
     lm.lambda1 = params_test.lambda1
     lm.lambda2 = params_test.lambda2
     lm.nepochs = params_test.nepochs
@@ -266,14 +284,17 @@ def test_linearmodel_set_individual_after_params():
     lm.eta = params_test.eta
     params_new = lm.params
     assert params == LinearModel().params
-    assert (params_new.eta, params_new.lambda1, params_new.lambda2,
-           params_new.nepochs,
-           params_new.double_precision, params_new.negative_class,
-           params_new.model_type, params_new.seed) == params_new
-    assert (lm.eta, lm.lambda1, lm.lambda2,
-           lm.nepochs,
-           lm.double_precision, lm.negative_class,
-           lm.model_type, lm.seed) == params_new
+    assert (params_new.eta, params_new.eta_decay, params_new.eta_drop_rate,
+            params_new.eta_schedule,
+            params_new.lambda1, params_new.lambda2,
+            params_new.nepochs,
+            params_new.double_precision, params_new.negative_class,
+            params_new.model_type, params_new.seed) == params_new
+    assert (lm.eta, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
+            lm.lambda1, lm.lambda2,
+            lm.nepochs,
+            lm.double_precision, lm.negative_class,
+            lm.model_type, lm.seed) == params_new
 
 
 #-------------------------------------------------------------------------------
@@ -1024,7 +1045,6 @@ def test_linearmodel_regression_fit_none():
         lm.labels,
         dt.Frame(label=["C0"], id=[0], stypes={"id": dt.int32})
     )
-    assert lm.model_type == "regression"
     assert lm.model_type == "regression"
     assert res.epoch == 1.0
     assert res.loss is None
