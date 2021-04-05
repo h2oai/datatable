@@ -62,45 +62,44 @@ void OutputColumn::archive_data(size_t nrows_written,
     return;
   }
   xassert(nrows_written > nrows_in_chunks_);
-
-  size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
-  size_t elemsize = stype_elemsize(stype_);
-
   size_t nrows_chunk = nrows_written - nrows_in_chunks_;
-  size_t data_size = elemsize * (nrows_chunk + is_string);
-  Buffer stored_databuf, stored_strbuf;
-  if (tempfile) {
-    auto writebuf = tempfile->data_w();
-    {
-      Buffer tmpbuf;
-      tmpbuf.swap(databuf_);
-      size_t offset = writebuf->write(data_size, tmpbuf.rptr());
-      stored_databuf = Buffer::tmp(tempfile, offset, data_size);
-    }
-    if (is_string) {
-      strbuf_->finalize();
-      Buffer tmpbuf = strbuf_->get_mbuf();
-      if (tmpbuf.size() > 0) {
-        size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
-        stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
-      }
-      strbuf_ = nullptr;
-    }
-  }
-  else {
-    stored_databuf.swap(databuf_);
-    stored_databuf.resize(data_size);
-    if (is_string) {
-      strbuf_->finalize();
-      stored_strbuf = strbuf_->get_mbuf();
-      strbuf_ = nullptr;
-    }
-  }
-
   if (stype_ == dt::SType::VOID) {
     chunks_.push_back(Column::new_na_column(nrows_chunk, dt::SType::VOID));
   }
   else {
+    size_t is_string = (stype_ == SType::STR32 || stype_ == SType::STR64);
+    size_t elemsize = stype_elemsize(stype_);
+
+    size_t data_size = elemsize * (nrows_chunk + is_string);
+    Buffer stored_databuf, stored_strbuf;
+    if (tempfile) {
+      auto writebuf = tempfile->data_w();
+      {
+        Buffer tmpbuf;
+        tmpbuf.swap(databuf_);
+        size_t offset = writebuf->write(data_size, tmpbuf.rptr());
+        stored_databuf = Buffer::tmp(tempfile, offset, data_size);
+      }
+      if (is_string) {
+        strbuf_->finalize();
+        Buffer tmpbuf = strbuf_->get_mbuf();
+        if (tmpbuf.size() > 0) {
+          size_t offset = writebuf->write(tmpbuf.size(), tmpbuf.rptr());
+          stored_strbuf = Buffer::tmp(tempfile, offset, tmpbuf.size());
+        }
+        strbuf_ = nullptr;
+      }
+    }
+    else {
+      stored_databuf.swap(databuf_);
+      stored_databuf.resize(data_size);
+      if (is_string) {
+        strbuf_->finalize();
+        stored_strbuf = strbuf_->get_mbuf();
+        strbuf_ = nullptr;
+      }
+    }
+
     Column newcol = is_string
         ? Column::new_string_column(nrows_chunk, std::move(stored_databuf), std::move(stored_strbuf))
         : Column::new_mbuf_column(nrows_chunk, stype_, std::move(stored_databuf));
