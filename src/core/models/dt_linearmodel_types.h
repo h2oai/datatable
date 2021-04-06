@@ -55,7 +55,7 @@ enum class LearningRateSchedule : size_t {
  */
 struct LinearModelParams {
   LinearModelType model_type;
-  double eta;
+  double eta0;
   double eta_decay;
   double eta_drop_rate;
   LearningRateSchedule eta_schedule;
@@ -67,7 +67,7 @@ struct LinearModelParams {
   size_t : 16;
   unsigned int seed;
   LinearModelParams() : model_type(LinearModelType::AUTO),
-                        eta(0.005), eta_decay(0.0001), eta_drop_rate(10.0),
+                        eta0(0.005), eta_decay(0.0001), eta_drop_rate(10.0),
                         eta_schedule(LearningRateSchedule::CONSTANT),
                         lambda1(0.0), lambda2(0.0),
                         nepochs(1.0), double_precision(false),

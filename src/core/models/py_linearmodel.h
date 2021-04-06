@@ -70,7 +70,7 @@ class LinearModel : public XObject<LinearModel> {
     oobj get_model() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;
-    oobj get_eta() const;
+    oobj get_eta0() const;
     oobj get_eta_decay() const;
     oobj get_eta_drop_rate() const;
     oobj get_eta_schedule() const;
@@ -87,7 +87,7 @@ class LinearModel : public XObject<LinearModel> {
     void set_labels(robj);                  // Not exposed, used for unpickling only
     void set_params_tuple(robj);            // Not exposed, used for unpickling only
     void set_params_namedtuple(robj);       // Not exposed, used in `m__init__` only
-    void set_eta(const Arg&);
+    void set_eta0(const Arg&);
     void set_eta_decay(const Arg&);
     void set_eta_drop_rate(const Arg&);
     void set_eta_schedule(const Arg&);

@@ -48,7 +48,7 @@ class LinearModel : public LinearModelBase {
     dtptr dt_fi_;
 
     // Individual parameters converted to T type.
-    T eta_;
+    T eta0_;
     T eta_decay_;
     T eta_drop_rate_;
     T lambda1_;

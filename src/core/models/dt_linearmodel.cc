@@ -58,7 +58,7 @@ LinearModelFitOutput LinearModel<T>::fit(
 )
 {
   // Cast input parameters to `T`
-  eta_ = static_cast<T>(params->eta);
+  eta0_ = static_cast<T>(params->eta0);
   eta_decay_ = static_cast<T>(params->eta_decay);
   eta_drop_rate_ = static_cast<T>(params->eta_drop_rate);
   eta_schedule_ = params->eta_schedule;
@@ -154,7 +154,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   // By default, when seed is zero, modular_random_gen() will return
   // multiplier == 1 and increment == 0, so we don't do any data shuffling,
   auto mp = modular_random_gen(dt_X_fit_->nrows(), seed_);
-  T eta = eta_;
+  T eta = eta0_;
 
   dt::parallel_region(nthreads,
     [&]() {
@@ -315,16 +315,16 @@ template <typename T>
 void LinearModel<T>::adjust_eta(T& eta, size_t iter) {
   switch (eta_schedule_) {
     case LearningRateSchedule::CONSTANT:
-      eta = eta_;
+      eta = eta0_;
       break;
     case LearningRateSchedule::TIME_BASED:
       eta /= (1 + eta_decay_ * iter);
       break;
     case LearningRateSchedule::STEP_BASED:
-      eta = eta_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
+      eta = eta0_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
       break;
     case LearningRateSchedule::EXPONENTIAL:
-      eta = eta_ / exp(eta_decay_ * iter);
+      eta = eta0_ / exp(eta_decay_ * iter);
   }
 }
 

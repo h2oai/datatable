@@ -42,12 +42,12 @@ from tests import assert_equals, noop
 # Define namedtuple of test/default parameters and accuracy
 #-------------------------------------------------------------------------------
 Params = collections.namedtuple("LinearModelParams",
-          ["eta", "eta_decay", "eta_drop_rate", "eta_schedule",
+          ["eta0", "eta_decay", "eta_drop_rate", "eta_schedule",
            "lambda1", "lambda2", "nepochs", "double_precision",
            "negative_class", "model_type", "seed"]
          )
 
-params_test = Params(eta = 1,
+params_test = Params(eta0 = 1,
                  eta_decay = 1.0,
                  eta_drop_rate = 2.0,
                  eta_schedule = 'exponential',
@@ -60,7 +60,7 @@ params_test = Params(eta = 1,
                  seed = 1)
 
 
-params_default = Params(eta = 0.005,
+params_default = Params(eta0 = 0.005,
                         eta_decay = 0.0001,
                         eta_drop_rate = 10.0,
                         eta_schedule = 'constant',
@@ -81,8 +81,8 @@ epsilon = 0.01 # Accuracy required for some tests
 
 def test_linearmodel_construct_wrong_eta_type():
     with pytest.raises(TypeError) as e:
-        noop(LinearModel(eta = "1.0"))
-    assert ("Argument eta in LinearModel() constructor should be a float, instead "
+        noop(LinearModel(eta0 = "1.0"))
+    assert ("Argument eta0 in LinearModel() constructor should be a float, instead "
             "got <class 'str'>" == str(e.value))
 
 
@@ -144,9 +144,9 @@ def test_linearmodel_construct_wrong_seed_type():
 
 def test_linearmodel_construct_wrong_combination():
     with pytest.raises(ValueError) as e:
-        noop(LinearModel(params=params_test, eta = params_test.eta))
+        noop(LinearModel(params=params_test, eta0 = params_test.eta0))
     assert ("You can either pass all the parameters with params or any of "
-            "the individual parameters with eta, eta_decay, eta_drop_rate, "
+            "the individual parameters with eta0, eta_decay, eta_drop_rate, "
             "eta_schedule, lambda1, lambda2, nepochs, double_precision, "
             "negative_class, model_type or seed to LinearModel constructor, "
             "but not both at the same time"
@@ -161,16 +161,16 @@ def test_linearmodel_construct_unknown_arg():
 
 
 def test_linearmodel_construct_wrong_params_type():
-    params = params_test._replace(eta = "1.0")
+    params = params_test._replace(eta0 = "1.0")
     with pytest.raises(TypeError) as e:
         LinearModel(params)
-    assert ("LinearModelParams.eta should be a float, instead got <class 'str'>"
+    assert ("LinearModelParams.eta0 should be a float, instead got <class 'str'>"
             == str(e.value))
 
 
 def test_linearmodel_construct_wrong_params_name():
-    WrongParams = collections.namedtuple("WrongParams",["eta", "lambda1"])
-    wrong_params = WrongParams(eta = 1, lambda1 = 0.01)
+    WrongParams = collections.namedtuple("WrongParams",["eta0", "lambda1"])
+    wrong_params = WrongParams(eta0 = 1, lambda1 = 0.01)
     with pytest.raises(ValueError) as e:
         LinearModel(wrong_params)
     assert ("Tuple of LinearModel parameters should have 11 elements, instead got: 2"
@@ -183,8 +183,8 @@ def test_linearmodel_construct_wrong_params_name():
 
 def test_linearmodel_construct_wrong_eta_value():
     with pytest.raises(ValueError) as e:
-        noop(LinearModel(eta = 0.0))
-    assert ("Argument eta in LinearModel() constructor should be positive: 0.0"
+        noop(LinearModel(eta0 = 0.0))
+    assert ("Argument eta0 in LinearModel() constructor should be positive: 0.0"
             == str(e.value))
 
 def test_linearmodel_construct_wrong_eta_decay_value():
@@ -261,7 +261,7 @@ def test_linearmodel_create_params():
 
 
 def test_linearmodel_create_individual():
-    lm = LinearModel(eta = params_test.eta,
+    lm = LinearModel(eta0 = params_test.eta0,
               eta_decay = params_test.eta_decay,
               eta_drop_rate = params_test.eta_drop_rate,
               eta_schedule = params_test.eta_schedule,
@@ -271,7 +271,7 @@ def test_linearmodel_create_individual():
               negative_class = params_test.negative_class,
               model_type = params_test.model_type,
               seed = params_test.seed)
-    assert lm.params == (params_test.eta,
+    assert lm.params == (params_test.eta0,
                          params_test.eta_decay,
                          params_test.eta_drop_rate,
                          params_test.eta_schedule,
@@ -290,11 +290,11 @@ def test_linearmodel_get_params():
     lm = LinearModel(params_test)
     params = lm.params
     assert params == params_test
-    assert (lm.eta, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
+    assert (lm.eta0, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
            lm.lambda1, lm.lambda2,
            lm.nepochs, lm.double_precision, lm.negative_class,
            lm.model_type, lm.seed) == params_test
-    assert (params.eta, params.eta_decay, params.eta_drop_rate, params.eta_schedule,
+    assert (params.eta0, params.eta_decay, params.eta_drop_rate, params.eta_schedule,
             params.lambda1, params.lambda2,
             params.nepochs, params.double_precision,
             params.negative_class, params.model_type,
@@ -303,7 +303,7 @@ def test_linearmodel_get_params():
 
 def test_linearmodel_set_individual():
     lm = LinearModel(double_precision = params_test.double_precision)
-    lm.eta = params_test.eta
+    lm.eta0 = params_test.eta0
     lm.eta_decay = params_test.eta_decay
     lm.eta_drop_rate = params_test.eta_drop_rate
     lm.eta_schedule = params_test.eta_schedule
@@ -319,16 +319,16 @@ def test_linearmodel_set_individual():
 def test_linearmodel_set_individual_after_params():
     lm = LinearModel()
     params = lm.params
-    lm.eta = params_test.eta
+    lm.eta0 = params_test.eta0
     params_new = lm.params
     assert params == LinearModel().params
-    assert (params_new.eta, params_new.eta_decay, params_new.eta_drop_rate,
+    assert (params_new.eta0, params_new.eta_decay, params_new.eta_drop_rate,
             params_new.eta_schedule,
             params_new.lambda1, params_new.lambda2,
             params_new.nepochs,
             params_new.double_precision, params_new.negative_class,
             params_new.model_type, params_new.seed) == params_new
-    assert (lm.eta, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
+    assert (lm.eta0, lm.eta_decay, lm.eta_drop_rate, lm.eta_schedule,
             lm.lambda1, lm.lambda2,
             lm.nepochs,
             lm.double_precision, lm.negative_class,
@@ -342,8 +342,8 @@ def test_linearmodel_set_individual_after_params():
 def test_linearmodel_set_wrong_eta_type():
     lm = LinearModel()
     with pytest.raises(TypeError) as e:
-        lm.eta = "0.0"
-    assert (".eta should be a float, instead got <class 'str'>" == str(e.value))
+        lm.eta0 = "0.0"
+    assert (".eta0 should be a float, instead got <class 'str'>" == str(e.value))
 
 
 def test_linearmodel_set_wrong_lambda1_type():
@@ -379,15 +379,15 @@ def test_linearmodel_set_wrong_seed_type():
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('value, message',
-                         [[0.0, ".eta should be positive: 0.0"],
-                          [None, ".eta should be positive: None"],
-                          [math.nan, ".eta should be positive: nan"],
-                          [math.inf, ".eta should be finite: inf"]
+                         [[0.0, ".eta0 should be positive: 0.0"],
+                          [None, ".eta0 should be positive: None"],
+                          [math.nan, ".eta0 should be positive: nan"],
+                          [math.inf, ".eta0 should be finite: inf"]
                          ])
 def test_linearmodel_set_bad_eta_value(value, message):
     lm = LinearModel()
     with pytest.raises(ValueError) as e:
-        lm.eta = value
+        lm.eta0 = value
     assert (message == str(e.value))
 
 
@@ -583,7 +583,7 @@ def test_linearmodel_fit_unique_ignore_none():
 
 
 def test_linearmodel_fit_predict_bool():
-    lm = LinearModel(eta = 0.1, nepochs = 10000)
+    lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[True, False]])
     df_target = dt.Frame([[True, False]])
     lm.fit(df_train, df_target)
@@ -600,7 +600,7 @@ def test_linearmodel_fit_predict_bool():
 
 
 def test_linearmodel_fit_predict_int():
-    lm = LinearModel(eta = 0.1, nepochs = 10000)
+    lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0, 1]])
     df_target = dt.Frame([[True, False]])
     lm.fit(df_train, df_target)
@@ -613,7 +613,7 @@ def test_linearmodel_fit_predict_int():
 
 
 def test_linearmodel_fit_predict_float():
-    lm = LinearModel(eta = 0.1, nepochs = 10000)
+    lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0.0, 1.0, math.inf]])
     df_target = dt.Frame([[True, False, False]])
     lm.fit(df_train, df_target)
@@ -627,7 +627,7 @@ def test_linearmodel_fit_predict_float():
 
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 def test_linearmodel_fit_predict_string():
-    lm = LinearModel(eta = 0.1, nepochs = 10000)
+    lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
     df_target = dt.Frame([[True, False, False, True]])
     lm.fit(df_train, df_target)
@@ -645,7 +645,7 @@ def test_linearmodel_fit_predict_string():
                          [20, 10],
                          [0.5, -0.5]])
 def test_linearmodel_fit_predict_bool_binomial(target):
-    lm = LinearModel(eta = 0.1, nepochs = 10000, model_type = "binomial")
+    lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([True, False])
     df_target = dt.Frame(target)
     lm.fit(df_train, df_target)
@@ -722,7 +722,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 
 
 # def test_linearmodel_fit_predict_binomial_online_1_1():
-#     lm = LinearModel(eta = 0.1, nepochs = 10000, model_type = "binomial")
+#     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
 #     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
 #     lm.fit(df_train_odd, df_target_odd)
@@ -766,7 +766,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 
 
 # def test_linearmodel_fit_predict_binomial_online_1_2():
-#     lm = LinearModel(eta = 0.1, nepochs = 10000, model_type = "binomial")
+#     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
 #     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
 #     lm.fit(df_train_odd, df_target_odd)
@@ -809,7 +809,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 
 
 # def test_linearmodel_fit_predict_binomial_online_2_1():
-#     lm = LinearModel(eta = 0.1, nepochs = 10000, model_type = "binomial")
+#     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
 #     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
 #     lm.fit(df_train_even_odd, df_target_even_odd)
@@ -853,7 +853,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 
 
 # def test_linearmodel_fit_predict_binomial_online_2_2():
-#     lm = LinearModel(eta = 0.1, nepochs = 10000, model_type = "binomial")
+#     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
 #     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
 #     lm.fit(df_train_even_odd, df_target_even_odd)
@@ -941,7 +941,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 def test_linearmodel_fit_predict_multinomial(negative_class):
     negative_class_label = ["_negative_class"] if negative_class else []
     nepochs = 1000
-    lm = LinearModel(eta = 0.2, nepochs = nepochs, double_precision = True)
+    lm = LinearModel(eta0 = 0.2, nepochs = nepochs, double_precision = True)
     lm.negative_class = negative_class
     labels = negative_class_label + ["blue", "green", "red"]
 
@@ -980,7 +980,7 @@ def test_linearmodel_fit_predict_multinomial(negative_class):
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 @pytest.mark.parametrize('negative_class', [False, True])
 def test_linearmodel_fit_predict_multinomial_online(negative_class):
-    lm = LinearModel(eta = 0.2, nepochs = 1000, double_precision = True)
+    lm = LinearModel(eta0 = 0.2, nepochs = 1000, double_precision = True)
     lm.negative_class = negative_class
     negative_class_label = ["_negative_class"] if negative_class else []
 
@@ -1106,7 +1106,7 @@ def test_linearmodel_regression_fit_simple_one(eta_schedule):
     df_target = dt.Frame([1])
     lm.fit(df_train, df_target)
     assert lm.model_type == "regression"
-    assert_equals(lm.model, dt.Frame([lm.eta, lm.eta]), rel_tol = 1e-3)
+    assert_equals(lm.model, dt.Frame([lm.eta0, lm.eta0]), rel_tol = 1e-3)
 
 
 @pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
@@ -1157,7 +1157,7 @@ def test_linearmodel_regression_fit_predict(eta_schedule):
 
 def test_linearmodel_regression_fit_predict_large():
     N = 40000
-    lm = LinearModel(eta = 1e-4, nepochs = 100, double_precision = True)
+    lm = LinearModel(eta0 = 1e-4, nepochs = 100, double_precision = True)
 
     df_train0 = dt.Frame([range(N), range(0, 2*N - 1, 2)])
     df_target0 = df_train0[:, dt.float64(1 - f[0] + 2 * f[1])]
@@ -1179,7 +1179,7 @@ def test_linearmodel_wrong_validation_target_type():
     nepochs = 1234
     nepochs_validation = 56
     nrows = 78
-    lm = LinearModel(eta = 0.5, nepochs = nepochs)
+    lm = LinearModel(eta0 = 0.5, nepochs = nepochs)
     r = range(nrows)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
@@ -1197,7 +1197,7 @@ def test_linearmodel_wrong_validation_parameters():
     nepochs = 1234
     nepochs_validation = 56
     nrows = 78
-    lm = LinearModel(eta = 0.5, nepochs = nepochs)
+    lm = LinearModel(eta0 = 0.5, nepochs = nepochs)
     r = range(nrows)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r)
@@ -1219,7 +1219,7 @@ def test_linearmodel_wrong_validation_parameters():
 def test_linearmodel_no_validation_set(double_precision_value):
     nepochs = 1234
     nrows = 56
-    lm = LinearModel(eta = 0.5, nepochs = nepochs,
+    lm = LinearModel(eta0 = 0.5, nepochs = nepochs,
                      double_precision = double_precision_value)
     r = range(nrows)
     df_X = dt.Frame(r)
@@ -1243,7 +1243,7 @@ def test_linearmodel_no_early_stopping():
 
 
 def test_linearmodel_wrong_validation_stypes():
-    lm = LinearModel(eta = 0.5)
+    lm = LinearModel(eta0 = 0.5)
     r = range(10)
     df_X = dt.Frame(r)
     df_y = dt.Frame(r) # int32 stype
@@ -1349,7 +1349,7 @@ def test_linearmodel_early_stopping_regression(validation_average_niterations):
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 def test_linearmodel_early_stopping_multinomial():
     nepochs = 2000
-    lm = LinearModel(eta = 0.2, nepochs = nepochs, double_precision = True)
+    lm = LinearModel(eta0 = 0.2, nepochs = nepochs, double_precision = True)
     labels = ["blue", "green", "red"]
 
     df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange",
@@ -1400,7 +1400,7 @@ def test_linearmodel_reuse_pickled_empty_model():
     df_train = dt.Frame({"id" : [1]})
     df_target = dt.Frame([1.0])
     lm_unpickled.fit(df_train, df_target)
-    assert_equals(lm_unpickled.model, dt.Frame([lm.eta, lm.eta]/stype.float32))
+    assert_equals(lm_unpickled.model, dt.Frame([lm.eta0, lm.eta0]/stype.float32))
 
 
 def test_linearmodel_pickling_binomial():
@@ -1434,7 +1434,7 @@ def test_linearmodel_pickling_binomial():
 
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 def test_linearmodel_pickling_multinomial():
-    lm = LinearModel(eta = 0.2, nbins = 100, nepochs = 1, double_precision = False)
+    lm = LinearModel(eta0 = 0.2, nbins = 100, nepochs = 1, double_precision = False)
     df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange",
                          "ocean"])
     df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
