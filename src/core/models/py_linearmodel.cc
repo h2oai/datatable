@@ -89,7 +89,7 @@ eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
     Learning rate schedule. When it is `"constant"` the learning rate
     `eta` is constant and equals to `eta0`. Otherwise,
     after each training iteration `eta` is updated as follows:
-    - for `"time-based"` schedule as `eta / (1 + eta_decay * epoch)`;
+    - for `"time-based"` schedule as `eta0 / (1 + eta_decay * epoch)`;
     - for `"step-based"` schedule as `eta0 * eta_decay ^ floor((1 + epoch) / eta_drop_rate)`;
     - for `"exponential"` schedule as `eta0 / exp(eta_decay * epoch)`.
     By default, the size of the training iteration is one epoch, it becomes

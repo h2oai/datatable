@@ -318,7 +318,7 @@ void LinearModel<T>::adjust_eta(T& eta, size_t iter) {
       eta = eta0_;
       break;
     case LearningRateSchedule::TIME_BASED:
-      eta /= (1 + eta_decay_ * iter);
+      eta = eta0_ / (1 + eta_decay_ * iter);
       break;
     case LearningRateSchedule::STEP_BASED:
       eta = eta0_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
