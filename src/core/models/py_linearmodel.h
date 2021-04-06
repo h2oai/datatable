@@ -50,7 +50,7 @@ class LinearModel : public XObject<LinearModel> {
     // Initializers and deallocator
     void m__init__(const PKArgs&);
     void m__dealloc__();
-    void init_py_params();
+    void init_params();
     template <typename T>
     void init_dt_model(dt::LType ltype = dt::LType::MU);
     static std::map<dt::LinearModelType, std::string> create_model_type_name();
@@ -70,7 +70,10 @@ class LinearModel : public XObject<LinearModel> {
     oobj get_model() const;
     oobj get_params_namedtuple() const;
     oobj get_params_tuple() const;
-    oobj get_eta() const;
+    oobj get_eta0() const;
+    oobj get_eta_decay() const;
+    oobj get_eta_drop_rate() const;
+    oobj get_eta_schedule() const;
     oobj get_lambda1() const;
     oobj get_lambda2() const;
     oobj get_nepochs() const;
@@ -84,7 +87,10 @@ class LinearModel : public XObject<LinearModel> {
     void set_labels(robj);                  // Not exposed, used for unpickling only
     void set_params_tuple(robj);            // Not exposed, used for unpickling only
     void set_params_namedtuple(robj);       // Not exposed, used in `m__init__` only
-    void set_eta(const Arg&);
+    void set_eta0(const Arg&);
+    void set_eta_decay(const Arg&);
+    void set_eta_drop_rate(const Arg&);
+    void set_eta_schedule(const Arg&);
     void set_lambda1(const Arg&);
     void set_lambda2(const Arg&);
     void set_nepochs(const Arg&);

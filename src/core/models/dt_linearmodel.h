@@ -48,16 +48,20 @@ class LinearModel : public LinearModelBase {
     dtptr dt_fi_;
 
     // Individual parameters converted to T type.
-    T eta_;
+    T eta0_;
+    T eta_decay_;
+    T eta_drop_rate_;
     T lambda1_;
     T lambda2_;
     T nepochs_;
     unsigned int seed_;
     bool negative_class_;
-    size_t : 16;
 
     // SType that corresponds to `T`
     SType stype_;
+    size_t : 16;
+
+    LearningRateSchedule eta_schedule_;
 
     // Labels that are automatically extracted from the target column.
     // For binomial classification, labels are stored as
@@ -96,6 +100,7 @@ class LinearModel : public LinearModelBase {
     T predict_row(const tptr<T>& x, const std::vector<T*>, const size_t);
     dtptr create_p(size_t);
     virtual void finalize_predict(std::vector<T*>, const size_t, const int32_t*) {}
+    void adjust_eta(T&, size_t);
 
     // Model helper methods
     void create_model();

@@ -31,11 +31,22 @@ namespace dt {
  *  Supported linear model types.
  */
 enum class LinearModelType : size_t {
-  UNKNOWN     = 0, // Unknown model type
-  AUTO        = 1, // Automatically detect model type
-  REGRESSION  = 2, // Numerical regression
-  BINOMIAL    = 3, // Binomial logistic regression
-  MULTINOMIAL = 4  // Multinomial logistic regression
+  AUTO        = 0, // Automatically detect model type
+  REGRESSION  = 1, // Numerical regression
+  BINOMIAL    = 2, // Binomial logistic regression
+  MULTINOMIAL = 3  // Multinomial logistic regression
+};
+
+
+/**
+ *  Supported learning rate schedules, see
+ *  https://en.wikipedia.org/wiki/Learning_rate#Learning_rate_schedule
+ */
+enum class LearningRateSchedule : size_t {
+  CONSTANT    = 0, // eta = eta0
+  TIME_BASED  = 1, // eta = eta0 / (1 + decay * iteration)
+  STEP_BASED  = 2, // eta = eta0 * decay ^ floor((1 + iteration) / drop_rate)
+  EXPONENTIAL = 3, // eta = eta0 / exp(decay * iteration)
 };
 
 
@@ -44,7 +55,10 @@ enum class LinearModelType : size_t {
  */
 struct LinearModelParams {
   LinearModelType model_type;
-  double eta;
+  double eta0;
+  double eta_decay;
+  double eta_drop_rate;
+  LearningRateSchedule eta_schedule;
   double lambda1;
   double lambda2;
   double nepochs;
@@ -53,7 +67,9 @@ struct LinearModelParams {
   size_t : 16;
   unsigned int seed;
   LinearModelParams() : model_type(LinearModelType::AUTO),
-                        eta(0.005), lambda1(0.0), lambda2(0.0),
+                        eta0(0.005), eta_decay(0.0001), eta_drop_rate(10.0),
+                        eta_schedule(LearningRateSchedule::CONSTANT),
+                        lambda1(0.0), lambda2(0.0),
                         nepochs(1.0), double_precision(false),
                         negative_class(false), seed(0)
                         {}

@@ -58,7 +58,10 @@ LinearModelFitOutput LinearModel<T>::fit(
 )
 {
   // Cast input parameters to `T`
-  eta_ = static_cast<T>(params->eta);
+  eta0_ = static_cast<T>(params->eta0);
+  eta_decay_ = static_cast<T>(params->eta_decay);
+  eta_drop_rate_ = static_cast<T>(params->eta_drop_rate);
+  eta_schedule_ = params->eta_schedule;
   lambda1_ = static_cast<T>(params->lambda1);
   lambda2_ = static_cast<T>(params->lambda2);
   nepochs_ = static_cast<T>(params->nepochs);
@@ -74,13 +77,14 @@ LinearModelFitOutput LinearModel<T>::fit(
 
   auto res = fit_model();
 
-  dt_X_fit_ = nullptr; dt_y_fit_ = nullptr; dt_X_val_ = nullptr;
+  dt_X_fit_ = nullptr;
+  dt_y_fit_ = nullptr;
+  dt_X_val_ = nullptr;
   dt_y_val_ = nullptr;
   nepochs_val_ = T_NAN;
   val_error_ = T_NAN;
   return res;
 }
-
 
 
 /**
@@ -152,6 +156,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   // By default, when seed is zero, modular_random_gen() will return
   // multiplier == 1 and increment == 0, so we don't do any data shuffling,
   auto mp = modular_random_gen(dt_X_fit_->nrows(), seed_);
+  T eta = eta0_;
 
   dt::parallel_region(nthreads,
     [&]() {
@@ -198,7 +203,7 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
                 gradient += 2 * lambda2_ * betas[k][j];      // L2 regularization
 
                 if (_isfinite(gradient)) {
-                  betas[k][j] -= eta_ * gradient;
+                  betas[k][j] -= eta * gradient;
                 }
               }
             }
@@ -212,12 +217,14 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
         }); // End training
         barrier();
 
-        // Update global model coefficients by averaging the local ones
+        // Update global model coefficients by averaging the local ones.
+        // Also adjust `eta` according to the schedule.
         {
-          // First, zero out the global model
+          // First, zero out the global model and update `eta`.
           if (dt::this_thread_index() == 0) {
             init_model();
             betas_ = get_model_data(dt_model_);
+            adjust_eta(eta, iter + 1);
           }
           barrier();
 
@@ -301,6 +308,27 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
   LinearModelFitOutput res = {epoch_stopped, static_cast<double>(loss)};
 
   return res;
+}
+
+
+/**
+ *  Calculate learning rate for a particular schedule.
+ */
+template <typename T>
+void LinearModel<T>::adjust_eta(T& eta, size_t iter) {
+  switch (eta_schedule_) {
+    case LearningRateSchedule::CONSTANT:
+      eta = eta0_;
+      break;
+    case LearningRateSchedule::TIME_BASED:
+      eta = eta0_ / (1 + eta_decay_ * iter);
+      break;
+    case LearningRateSchedule::STEP_BASED:
+      eta = eta0_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
+      break;
+    case LearningRateSchedule::EXPONENTIAL:
+      eta = eta0_ / exp(eta_decay_ * iter);
+  }
 }
 
 
