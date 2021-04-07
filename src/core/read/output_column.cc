@@ -113,6 +113,7 @@ void OutputColumn::archive_data(size_t nrows_written,
         bstats->set_all_stats(colinfo_.b.count0, colinfo_.b.count1);
         break;
       }
+      case LType::DATETIME:
       case LType::INT: {
         stats->set_min(colinfo_.i.min, valid);
         stats->set_max(colinfo_.i.max, valid);
@@ -198,6 +199,7 @@ void OutputColumn::reset_colinfo() {
       break;
     }
     case SType::DATE32:
+    case SType::TIME64:
     case SType::INT8:
     case SType::INT16:
     case SType::INT32:
@@ -235,6 +237,7 @@ void OutputColumn::merge_chunk_stats(const ColInfo& info) {
       break;
     }
     case SType::DATE32:
+    case SType::TIME64:
     case SType::INT8:
     case SType::INT16:
     case SType::INT32:
