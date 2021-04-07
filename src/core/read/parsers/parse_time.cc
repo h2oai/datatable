@@ -105,6 +105,8 @@ static void parse_time64_iso(const ParseContext& ctx) {
         ndigits++;
       }
     }
+    // handle AM/PM suffixes. These are not in ISO, but they occur often
+    // in the future we may handle them in a separate parser.
     bool spaceTaken = (ch + 3 <= eof) && (*ch == ' ') && ch++;
     if (ch + 2 <= eof) {
       if ((ch[0] == 'A' && ch[1] == 'M') || (ch[0] == 'a' && ch[1] == 'm')) {
@@ -141,25 +143,33 @@ REGISTER_PARSER(PT::Time64ISO)
     ->type(Type::time64())
     ->successors({PT::Str32});
 
+
+
+
+//------------------------------------------------------------------------------
+// Tests
+//------------------------------------------------------------------------------
 #ifdef DTTEST
-  TEST(fread, test_time64_iso) {
-    auto check = [](const char* input, int64_t expected_value, size_t expected_advance) {
-      ParseContext ctx;
-      field64 output;
-      ctx.ch = input;
-      ctx.eof = input + std::strlen(input);
-      ctx.target = &output;
-      parse_time64_iso(ctx);
-      auto actual_value = output.int64;
-      auto actual_advance = static_cast<size_t>(ctx.ch - input);
-      ASSERT_EQ(actual_value, expected_value) << " when parsing '" << input << "'";
-      ASSERT_EQ(actual_advance, expected_advance) << " when parsing '" << input << "'";
-    };
-    constexpr int64_t NA = NA_INT64;
-    constexpr int64_t MILLI = 1000000;
-    constexpr int64_t SECS = 1000000000LL;
-    constexpr int64_t HOURS = 3600 * SECS;
-    constexpr int64_t DAYS = 24 * HOURS;
+  static constexpr int64_t NA = NA_INT64;
+  static constexpr int64_t MILLI = 1000000LL;
+  static constexpr int64_t SECS = 1000000000LL;
+  static constexpr int64_t HOURS = 3600LL * SECS;
+  static constexpr int64_t DAYS = 24LL * HOURS;
+
+  static void check(const char* input, int64_t expected_value, size_t expected_advance) {
+    ParseContext ctx;
+    field64 output;
+    ctx.ch = input;
+    ctx.eof = input + std::strlen(input);
+    ctx.target = &output;
+    parse_time64_iso(ctx);
+    auto actual_value = output.int64;
+    auto actual_advance = static_cast<size_t>(ctx.ch - input);
+    ASSERT_EQ(actual_value, expected_value) << " when parsing '" << input << "'";
+    ASSERT_EQ(actual_advance, expected_advance) << " when parsing '" << input << "'";
+  }
+
+  TEST(fread, test_time64_iso_basic) {
     check("", NA, 0);
     check("1970-01-01 00:00:00", 0, 19);
     check("1970-01-01T00:00:00", 0, 19);
@@ -171,6 +181,9 @@ REGISTER_PARSER(PT::Time64ISO)
     check("1970-01-01T00:00:00.123456789", 123456789LL, 29);
     check("1970-01-01T00:00:00.123456789333", 123456789LL, 32);
     check("2021-03-31 12:59:59", 18717*DAYS + 46799*SECS, 19);
+  }
+
+  TEST(fread, test_time64_iso_ampm) {
     check("1970-01-01 12:00:00 AM", 0, 22);
     check("1970-01-01 12:00:00 am", 0, 22);
     check("1970-01-01 12:00:00AM", 0, 21);
@@ -199,7 +212,14 @@ REGISTER_PARSER(PT::Time64ISO)
     check("1970-01-01 09:00:00 PM", 21*HOURS, 22);
     check("1970-01-01 10:00:00 PM", 22*HOURS, 22);
     check("1970-01-01 11:00:00 PM", 23*HOURS, 22);
+  }
 
+  TEST(fread, test_time64_iso_invalid) {
+    check("1990-00-01 00:00:00", NA, 0);
+    check("1990-13-01 00:00:00", NA, 0);
+    check("1990-01-00 00:00:00", NA, 0);
+    check("1990-01-33 00:00:00", NA, 0);
+    check("9999-01-01 00:00:00", NA, 0);
     check("1980-01-01 00:00:00 AM", NA, 0);
     check("1980-01-01 13:00:00 AM", NA, 0);
     check("1980-01-01 23:00:00 AM", NA, 0);
