@@ -42,7 +42,7 @@ REGISTER_PARSER(PT::Void)
     ->successors({PT::Bool01, PT::BoolU, PT::BoolT, PT::BoolL, PT::Int32,
                   PT::Int32Sep, PT::Int64, PT::Int64Sep, PT::Float32Hex,
                   PT::Float64Plain, PT::Float64Ext, PT::Float64Hex,
-                  PT::Date32ISO, PT::Str32});
+                  PT::Time64ISO, PT::Date32ISO, PT::Str32});
 
 
 
