@@ -23,6 +23,7 @@
 #define dt_READ2_MULTISOURCE_h
 #include "_dt.h"
 #include "read2/_declarations.h"
+#include "read2/source.h"
 namespace dt {
 namespace read2 {
 
@@ -61,20 +62,25 @@ class MultiSource
     using SourceVec = std::vector<SourcePtr>;
 
     // GenericReader reader_;
-    SourceVec     sources_;
-    size_t        iteration_index_;
+    SourceVec sources_;
+    size_t    iterationIndex_;
 
   public:
-    MultiSource(const py::XArgs&, GenericReader&&);
+    MultiSource(const char* fnName,
+                const py::robj arg0,
+                const py::robj argFile,
+                const py::robj argText,
+                const py::robj argCmd,
+                const py::robj argUrl);
     MultiSource(const MultiSource&) = delete;
     MultiSource(MultiSource&&) = delete;
 
-    py::oobj read_single();
-    py::oobj read_next();
+    py::oobj readSingle();
+    py::oobj readNext();
 };
 
 
 
 
-}}  // namespace dt::read
+}}  // namespace dt::read2
 #endif

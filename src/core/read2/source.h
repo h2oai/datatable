@@ -53,13 +53,13 @@ class Source
     // Main Source function, it will read the data from the
     // referenced input source, and return it as a python Frame
     // object.
-    virtual py::oobj read(GenericReader& reader) = 0;
+    // virtual py::oobj read(GenericReader& reader) = 0;
 
     // If the source must return more than one Frame object, the
     // first one shall be returned by the `read()` method above,
     // whereas retrieving all subsequent Frames will require
     // calling this function.
-    virtual std::unique_ptr<Source> continuation();
+    // virtual std::unique_ptr<Source> continuation();
 };
 
 
@@ -76,7 +76,7 @@ class Source_Python : public Source
 
   public:
     Source_Python(const std::string& name, py::oobj src);
-    py::oobj read(GenericReader&) override;
+    // py::oobj read(GenericReader&) override;
 };
 
 
@@ -88,7 +88,7 @@ class Source_Result : public Source
 
   public:
     Source_Result(const std::string& name, py::oobj res);
-    py::oobj read(GenericReader&) override;
+    // py::oobj read(GenericReader&) override;
 };
 
 
@@ -100,7 +100,7 @@ class Source_Text : public Source
 
   public:
     Source_Text(py::robj textsrc);
-    py::oobj read(GenericReader&) override;
+    // py::oobj read(GenericReader&) override;
 };
 
 
@@ -112,7 +112,7 @@ class Source_Url : public Source
 
   public:
     Source_Url(const std::string& url);
-    py::oobj read(GenericReader&) override;
+    // py::oobj read(GenericReader&) override;
 };
 
 

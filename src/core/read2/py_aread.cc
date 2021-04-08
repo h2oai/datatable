@@ -30,8 +30,39 @@ namespace read2 {
 //------------------------------------------------------------------------------
 
 static const char* doc_aread =
-R"(aread(arg0, ...)
+R"(aread(arg0, *, file=None, text=None, cmd=None, url=None, ...)
 --
+
+Parameters
+----------
+arg0: str | bytes | PathLike | file | List
+    The first argument designates the **source** where the data should
+    be read from. This argument can accommodate a variety of different
+    sources, and `aread()` will attempt to guess the meaning of this
+    argument based on its type and value.
+
+    If you want to avoid possible ambiguities, another wait to specify
+    the source(s) is to use one of the named arguments `file`, `text`,
+    `url`, or `cmd`.
+
+file: str | bytes | PathLike | file
+    A file source can be either the name of a file on disk, or a
+    python "file-like" object, i.e. any object having method `.read()`.
+
+    Generally, specifying a file name should be preferred, since
+    reading from a file object severely limits opportunities for
+    multi-threading.
+
+    This argument also supports addressing files inside an archive,
+    or sheets inside an Excel workbook. Simply write the name of the
+    file as if the archive was a folder: `"data.zip/train.csv"`.
+
+text: str | bytes
+
+cmd: str
+
+url: str
+
 
 See Also
 --------
@@ -41,7 +72,14 @@ See Also
 
 
 static py::oobj aread(const py::XArgs& args) {
-  return py::None();
+  auto arg0    = args[0].to_robj();
+  auto argFile = args[1].to_robj();
+  auto argText = args[2].to_robj();
+  auto argCmd  = args[3].to_robj();
+  auto argUrl  = args[4].to_robj();
+
+  MultiSource sources("aread", arg0, argFile, argText, argCmd, argUrl);
+  return sources.readSingle();
 }
 
 
@@ -49,7 +87,8 @@ DECLARE_PYFN(&aread)
     ->name("aread")
     ->docs(doc_aread)
     ->n_positional_args(1)
-    ->arg_names({"arg0"});
+    ->n_keyword_args(4)
+    ->arg_names({"arg0", "file", "text", "cmd", "url"});
 
 
 
