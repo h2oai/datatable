@@ -187,7 +187,30 @@ class XArgs : public ArgParent {
 };
 
 
-#define ARGS_NAME  PASTE_TOKENS(args_, __LINE__)
+// Example of usage:
+//
+//   DECLARE_PYFN(&py_gcd)
+//       ->name("gcd")
+//       ->docs(doc_gcd)
+//       ->arg_names({"a", "b"})
+//       ->n_positional_args(2)
+//       ->n_required_args(2);
+//
+// All possible setters:
+//
+//       ->add_info()
+//       ->add_synonym_arg()
+//       ->allow_varargs()
+//       ->allow_varkwds()
+//       ->arg_names()
+//       ->docs()
+//       ->n_keyword_args()
+//       ->n_positional_args()
+//       ->n_positional_or_keyword_args()
+//       ->n_required_args()
+//       ->name()
+//
+#define ARGS_NAME PASTE_TOKENS(args_, __LINE__)
 #define DECLARE_PYFN(fn)                                                       \
     static py::XArgs* ARGS_NAME = (new py::XArgs(fn))                          \
       ->pyfunction(                                                            \
