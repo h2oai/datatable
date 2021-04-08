@@ -122,6 +122,8 @@ Error IOWarning();
 using Warning = Error;
 
 
+
+
 //------------------------------------------------------------------------------
 // HidePythonError
 //------------------------------------------------------------------------------
@@ -140,6 +142,40 @@ class HidePythonError {
   public:
     HidePythonError();
     ~HidePythonError();
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// AutoThrowingError
+//------------------------------------------------------------------------------
+
+class AutoThrowingError {
+  private:
+    std::unique_ptr<Error> error_;
+
+  public:
+    AutoThrowingError() = default;
+    AutoThrowingError(AutoThrowingError&&) = default;
+    AutoThrowingError(Error&& error)
+      : error_(std::make_unique<Error>(std::move(error))) {}
+
+    ~AutoThrowingError() noexcept(false) {
+      // If there is another exception being propagated, do not throw
+      // as it will result in program termination.
+      if (!std::uncaught_exception() && error_) {
+        throw *error_;
+      }
+    }
+
+    template <typename T>
+    AutoThrowingError& operator<<(const T& value) {
+      if (error_) {
+        (*error_) << value;
+      }
+      return *this;
+    }
 };
 
 

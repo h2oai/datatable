@@ -78,6 +78,24 @@ def test_time64_create_from_python():
     assert DT.to_list() == [src]
 
 
+def test_time64_read_from_csv():
+    d = datetime.datetime
+    DT = dt.fread("timestamp\n"
+                  "2001-05-12T12:00:00\n"
+                  "2013-06-24T14:00:01\n"
+                  "2023-11-02T23:59:59.999999\n")
+    assert DT.types == [dt.Type.time64]
+    assert DT.shape == (3, 1)
+    assert DT.to_list()[0] == [d(2001, 5, 12, 12),
+                               d(2013, 6, 24, 14, 0, 1),
+                               d(2023, 11, 2, 23, 59, 59, 999999)]
+
+
+
+
+#-------------------------------------------------------------------------------
+# time64 convert to ...
+#-------------------------------------------------------------------------------
 
 def test_time64_repr():
     d = datetime.datetime
@@ -96,11 +114,6 @@ def test_time64_repr():
         "[4 rows x 1 column]\n"
     )
 
-
-
-#-------------------------------------------------------------------------------
-# time64 convert to ...
-#-------------------------------------------------------------------------------
 
 def test_time64_to_csv():
     d = datetime.datetime

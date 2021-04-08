@@ -1143,11 +1143,12 @@ static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
     case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
+    case dt::SType::DATE32:
     case dt::SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
+    case dt::SType::TIME64:
     case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
     case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
-    case dt::SType::DATE32:  return StatsPtr(new IntegerStats<int32_t>(col));
     case dt::SType::STR32:
     case dt::SType::STR64:   return StatsPtr(new StringStats(col));
     case dt::SType::OBJ:     return StatsPtr(new PyObjectStats(col));
@@ -1286,6 +1287,7 @@ void Stats::verify_integrity(const dt::ColumnImpl* col) {
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
     case dt::SType::DATE32:
     case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
+    case dt::SType::TIME64:
     case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
     case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
     case dt::SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
@@ -1446,6 +1448,7 @@ Column Stats::get_stat_as_column(Stat stat) {
         case dt::SType::STR32:
         case dt::SType::STR64:   return strcolwrap_stat(stat);
         case dt::SType::DATE32:  return colwrap_stat<int64_t, int32_t>(stat, dt::SType::DATE32);
+        case dt::SType::TIME64:  return colwrap_stat<int64_t, int64_t>(stat, dt::SType::TIME64);
         default:                 return _make_nacol(column->stype());
       }
     }
