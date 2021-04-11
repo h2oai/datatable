@@ -65,8 +65,8 @@ static inline T op_minus(T x) {
 
 
 template <typename T>
-static umaker_ptr _uminus(SType uptype = SType::VOID) {
-  if (uptype != SType::VOID) xassert(compatible_type<T>(uptype));
+static umaker_ptr _uminus(SType uptype = SType::AUTO) {
+  if (uptype != SType::AUTO) xassert(compatible_type<T>(uptype));
   return umaker1<T, T>::make(op_minus<T>, uptype, stype_from<T>);
 }
 
@@ -110,7 +110,7 @@ static inline int8_t op_invert_bool(int8_t x) {
 
 template <typename T>
 static umaker_ptr _uinvert() {
-  return umaker1<T, T>::make(op_invert<T>, SType::VOID, stype_from<T>);
+  return umaker1<T, T>::make(op_invert<T>, SType::AUTO, stype_from<T>);
 }
 
 
@@ -124,7 +124,7 @@ umaker_ptr resolve_op_uinvert(SType stype)
 {
   switch (stype) {
     case SType::VOID:    return umaker_ptr(new umaker_copy());
-    case SType::BOOL:    return umaker1<int8_t, int8_t>::make(op_invert_bool, SType::VOID, SType::BOOL);
+    case SType::BOOL:    return umaker1<int8_t, int8_t>::make(op_invert_bool, SType::AUTO, SType::BOOL);
     case SType::INT8:    return _uinvert<int8_t>();
     case SType::INT16:   return _uinvert<int16_t>();
     case SType::INT32:   return _uinvert<int32_t>();
@@ -183,7 +183,7 @@ umaker_ptr resolve_op_len(SType stype)
   if (stype == SType::VOID) return umaker_ptr(new umaker_nacol());
   if (stype == SType::STR32 || stype == SType::STR64) {
     return umaker2<CString, int64_t>::make(op_str_len_unicode,
-                                           SType::VOID, SType::INT64);
+                                           SType::AUTO, SType::INT64);
   }
   throw TypeError() << "Function `len` cannot be applied to a column of "
                        "type `" << stype << "`";

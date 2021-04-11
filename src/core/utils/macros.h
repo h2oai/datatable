@@ -25,6 +25,11 @@
 #include <utility>  // std::move
 
 
+#define PASTE_TOKENS1(x, y) x ## y
+#define PASTE_TOKENS(x, y) PASTE_TOKENS1(x, y)
+
+
+
 //------------------------------------------------------------------------------
 // Operating system
 //------------------------------------------------------------------------------
@@ -65,6 +70,9 @@
   #error Unknown operating system
 #endif
 
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -210,11 +218,11 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 #if DT_COMPILER_MSVC
   #define DISABLE_MSVC_WARNING(N) \
-    _Pragma("warning(push)") \
-    _Pragma(___STRINGIFY(warning(disable : N)))
+    __pragma("warning(push)") \
+    __pragma(___STRINGIFY(warning(disable : N)))
 
   #define RESTORE_MSVC_WARNING(N) \
-    _Pragma("warning(pop)")
+    __pragma("warning(pop)")
 
 #else
   #define DISABLE_MSVC_WARNING(N)

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -687,6 +687,7 @@ class SortContext {
       case dt::SType::BOOL:    _initB<ASC>(); break;
       case dt::SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
       case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case dt::SType::DATE32:
       case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
       case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
@@ -717,9 +718,10 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    uint8_t una = 128;
+    constexpr uint8_t una = 128;
     uint8_t replace_una = na_pos == NaPosition::LAST ? 3 : 0;
 
+    DISABLE_CLANG_WARNING("-Wpadded")
     if (use_order) {
       dt::parallel_for_static(n,
         [=](size_t j) {
@@ -739,6 +741,7 @@ class SortContext {
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
+    RESTORE_CLANG_WARNING("-Wpadded")
   }
 
 

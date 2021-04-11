@@ -166,7 +166,7 @@ inside the current file `expr/fexpr_gcd.cc`.
         {
           xassert(acol_.nrows() == bcol_.nrows());
           xassert(acol_.stype() == bcol_.stype());
-          xassert(compatible_type<T>(acol_.stype()));
+          xassert(acol_.can_be_read_as<T>());
         }
 
         ColumnImpl* clone() const override {

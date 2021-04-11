@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2020 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,104 +41,98 @@ created/updated.
 
 Examples
 --------
-
 .. code-block:: python
 
-    from datatable import dt, f, by, update
+    >>> from datatable import dt, f, by, update
+    >>>
+    >>> DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+    >>> DT
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     0      4
+     1 |     1      3
+     2 |     2      9
+     3 |     3     11
+     4 |     4     -1
+    [5 rows x 2 columns]
 
-    DT = dt.Frame([range(5), [4, 3, 9, 11, -1]], names=("A", "B"))
+Create new columns and update existing columns::
 
-.. dtframe::
-    :names: A, B
-    :types: int8, int8
-    :shape: 5, 2
+    >>> DT[:, update(C = f.A * 2,
+    ...              D = f.B // 3,
+    ...              A = f.A * 4,
+    ...              B = f.B + 1)]
+    >>> DT
+       |     A      B      C      D
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     0      5      0      1
+     1 |     4      4      2      1
+     2 |     8     10      4      3
+     3 |    12     12      6      3
+     4 |    16      0      8     -1
+    [5 rows x 4 columns]
 
-    0,0,4
-    1,1,3
-    2,2,9
-    3,3,11
-    4,4,−1
+Add new column with `unpacking`_; this can be handy for dynamicallly adding
+columns with dictionary comprehensions, or if the names are not valid python
+keywords::
 
+    >>> DT[:, update(**{"extra column": f.A + f.B + f.C + f.D})]
+    >>> DT
+       |     A      B      C      D  extra column
+       | int32  int32  int32  int32         int32
+    -- + -----  -----  -----  -----  ------------
+     0 |     0      5      0      1             6
+     1 |     4      4      2      1            11
+     2 |     8     10      4      3            25
+     3 |    12     12      6      3            33
+     4 |    16      0      8     -1            23
+    [5 rows x 5 columns]
 
-- Create new columns and update existing columns::
+You can update a subset of data::
 
-    DT[:, update(C = f.A * 2,
-                 D = f.B // 3,
-                 A = f.A * 4,
-                 B = f.B + 1)]
+    >>> DT[f.A > 10, update(A = f.A * 5)]
+    >>> DT
+       |     A      B      C      D  extra column
+       | int32  int32  int32  int32         int32
+    -- + -----  -----  -----  -----  ------------
+     0 |     0      5      0      1             6
+     1 |     4      4      2      1            11
+     2 |     8     10      4      3            25
+     3 |    60     12      6      3            33
+     4 |    80      0      8     -1            23
+    [5 rows x 5 columns]
 
-.. dtframe::
-    :names: A, B, C, D
-    :types: int8, int8, int8, int8
-    :shape: 5, 2
+You can also add a new column or update an existing column in a groupby
+operation, similar to SQL's `window` operation, or pandas `transform()`::
 
-    0, 0, 5, 0, 1
-    1, 4, 4, 2, 1
-    2, 8, 10, 4, 3
-    3, 12, 12, 6, 3
-    4, 16, 0, 8, −1
-
-- Add new column with `unpacking <https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists>`__; this can be handy for dynamicallly adding columns with dictionary comprehensions, or if the names are not valid python keywords ::
-
-    DT[:, update(**{"extra column": f.A + f.B + f.C + f.D})]
-    DT
-
-.. dtframe::
-    :names: A, B, C, D, extra column
-    :types: int8, int8, int8, int8, int8
-    :shape: 5, 3
-
-    0, 0, 5, 0, 1, 6
-    1, 4, 4, 2, 1, 11
-    2, 8, 10, 4, 3, 25
-    3, 12, 12, 6, 3, 33
-    4, 16, 0, 8, −1, 23
-
-
-- You can update a subset of data ::
-
-    DT[f.A > 10, update(A = f.A * 5)]
-    DT
-
-.. dtframe::
-    :names: A, B, C, D, extra column
-    :types: int8, int8, int8, int8, int8
-    :shape: 5, 3
-
-    0, 0, 5, 0, 1, 6
-    1, 4, 4, 2, 1, 11
-    2, 8, 10, 4, 3, 25
-    3, 60, 12, 6, 3, 33
-    4, 80, 0, 8, −1, 23
-
-
-- You can also add a new column or update an existing column in a groupby operation, similar to SQL's  `window` operation, or pandas `transform` ::
-
-    df = dt.Frame("""exporter assets   liabilities
-                      False      5          1
-                      True       10         8
-                      False      3          1
-                      False      24         20
-                      False      40         2
-                      True       12         11""")
-
-    # Get the ratio for each row per group
-    df[:,
-       update(ratio = dt.sum(f.liabilities) * 100 / dt.sum(f.assets)),
-       by(f.exporter)]
-
-.. dtframe::
-    :names: exporter, assets, liabilities, ratio
-    :types: int8, int8, int8, float32
-    :shape: 6, 4
+    >>> df = dt.Frame("""exporter assets   liabilities
+    ...                   False      5          1
+    ...                   True       10         8
+    ...                   False      3          1
+    ...                   False      24         20
+    ...                   False      40         2
+    ...                   True       12         11""")
+    >>>
+    >>> # Get the ratio for each row per group
+    >>> df[:,
+    ...    update(ratio = dt.sum(f.liabilities) * 100 / dt.sum(f.assets)),
+    ...    by(f.exporter)]
+    >>> df
+       | exporter  assets  liabilities    ratio
+       |    bool8   int32        int32  float64
+    -- + --------  ------  -----------  -------
+     0 |        0       5            1  33.3333
+     1 |        1      10            8  86.3636
+     2 |        0       3            1  33.3333
+     3 |        0      24           20  33.3333
+     4 |        0      40            2  33.3333
+     5 |        1      12           11  86.3636
+    [6 rows x 4 columns]
 
 
-    0, 0, 5,  1,  33.3333
-    1, 1, 10, 8,  86.3636
-    2, 0, 3,  1,  33.3333
-    3, 0, 24, 20, 33.3333
-    4, 0, 40, 2,  33.3333
-    5, 1, 12, 11, 86.3636
+.. _`unpacking` : https://docs.python.org/3/tutorial/controlflow.html#unpacking-argument-lists
 )";
 
 static PKArgs args___init__(0, 0, 0, false, true, {}, "__init__", doc_update);

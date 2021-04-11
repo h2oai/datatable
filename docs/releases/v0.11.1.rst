@@ -1,0 +1,50 @@
+
+.. changelog::
+  :version: 0.11.1
+  :released: 2020-12-10
+  :wheels: https://files.pythonhosted.org/packages/36/db/28c884529ab430ae8be73779126c439ab2d7363019d9bca0eab8cf59edf0/datatable-0.11.1-cp35-cp35m-macosx_10_6_x86_64.whl
+           https://files.pythonhosted.org/packages/35/5d/5ccc18088913495113fad5c6a505c8ad235121efe70efc6d3024fb736733/datatable-0.11.1-cp35-cp35m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/6d/cf/5fd21bfac700633759324247b293148e8e77a920468ca275de8ed849342f/datatable-0.11.1-cp35-cp35m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/62/e2/6a5d02372620ea34cca793dbe8574c1d84a37007d7d44c84622bbcca9e06/datatable-0.11.1-cp35-cp35m-win_amd64.whl
+           https://files.pythonhosted.org/packages/9d/06/964e924aa7c4da2f755aa295b8663e38d5faeda301175ee184bc05da190a/datatable-0.11.1-cp36-cp36m-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/80/cb/21810c43b687a19d194c372192049f535fba28c55ce76d37e7e407159c52/datatable-0.11.1-cp36-cp36m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/46/7a/dc5712fc91ffbe2663b03b5c1643fbafcf596266a6c2a3050caca8f66fd1/datatable-0.11.1-cp36-cp36m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/54/3c/4c7a73717e91a409ed9dcf545065ff0de71e5eb84eabab3f5cd9f9598725/datatable-0.11.1-cp36-cp36m-win_amd64.whl
+           https://files.pythonhosted.org/packages/54/18/de104fa5b669d937b82e3a95f10f92ce58f7b4abeb3498ab3831fa461d5f/datatable-0.11.1-cp37-cp37m-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/26/fc/d780b150eeae26e0a14b964f27eefcf9fad746f16e0b05c40098d84913d7/datatable-0.11.1-cp37-cp37m-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/0c/95/efbd20b20e48f6ad6840e295426bbd0e6989a56759e35904b5f8b77634dd/datatable-0.11.1-cp37-cp37m-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/4b/74/cb0bb681595330361cd0acd5e262f09f7ab3e78c957595d88e0d4753ca6b/datatable-0.11.1-cp37-cp37m-win_amd64.whl
+           https://files.pythonhosted.org/packages/da/84/abc0d0e2af9b73ee03a3f944c999912ae0ec11aa557743c589ae8efca484/datatable-0.11.1-cp38-cp38-macosx_10_9_x86_64.whl
+           https://files.pythonhosted.org/packages/58/73/922a494c94cc2ee571f7abbdf734485edf047cff51929930f59323e5f8ab/datatable-0.11.1-cp38-cp38-manylinux2010_x86_64.whl
+           https://files.pythonhosted.org/packages/b2/57/95546602bd6db1b68c504aa23cbc4d0b183c0e0280a58076064b23952b95/datatable-0.11.1-cp38-cp38-manylinux2014_ppc64le.whl
+           https://files.pythonhosted.org/packages/a1/e7/0ff9cfd8a9865c87d2f8007fa6b9463b5e4be8bfdbfc8eea3fbe0f86cb31/datatable-0.11.1-cp38-cp38-win_amd64.whl
+           https://files.pythonhosted.org/packages/6a/4c/22f3be0cb1be3caaa737abd2d84dc98ebd9de45eb0cf15eb45f96c7690a7/datatable-0.11.1.tar.gz
+
+
+  Frame
+  -----
+
+  -[fix] Fix a crash when saving frames larger than 4Gb to jay or csv
+    on Windows. [#2754]
+
+
+  Fread
+  -----
+
+  -[fix] Fix an error when reading files larger than 4Gb on Windows. [#2725]
+
+
+  General
+  -------
+  -[fix] Fixed format of the wheel file, which caused problems when datatable
+    was installed in a conda environment.
+
+
+  .. contributors::
+
+    3   @oleksiyskononenko
+    1   @st-pasha
+    --
+    1   @oleksiyskononenko
+    1   @lucasjamar          <Lucas Jamar>
+    1   @MichaelMoroz1993    <Michael Moroz>

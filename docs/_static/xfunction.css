@@ -144,17 +144,6 @@
     font-weight: normal;
 }
 
-.x-function .x-version-added {
-    font-style: italic;
-    font-size: 90%;
-    text-align: right;
-    position: relative;
-    top: -6pt;
-}
-
-.x-function .xparam-body .x-version-added {
-    top: 0;
-}
 
 
 /*------------------------------------------------------------------------------

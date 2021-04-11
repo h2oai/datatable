@@ -23,7 +23,7 @@
     operator ``or``). Beware, however, that ``|`` has higher precedence
     than ``or``, so it is advisable to always use parentheses::
 
-        DT[(f.x < -1) | (f.x > 1), :]
+        >>> DT[(f.x < -1) | (f.x > 1), :]
 
     Parameters
     ----------
@@ -38,7 +38,7 @@
     Notes
     -----
 
-    .. warning::
+    .. note::
 
         Use ``x | y`` in order to OR two boolean `FExpr`s. Using standard
         Python keyword ``or`` will result in an error.

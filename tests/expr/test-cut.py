@@ -62,11 +62,46 @@ def test_cut_error_float_nbins():
         DT[:, cut(DT, nbins = 1.5)]
 
 
+def test_cut_error_noniterable_bins():
+    msg = "bins parameter must be a list or a tuple, instead got <class 'float'>"
+    DT = dt.Frame(range(10))
+    with pytest.raises(TypeError, match=msg):
+        DT[:, cut(DT, bins = 1.5)]
+
+
+def test_cut_error_string_bins():
+    msg = "bins parameter must be a list or a tuple, instead got <class 'str'>"
+    DT = dt.Frame(range(10))
+    with pytest.raises(TypeError, match=msg):
+        DT[:, cut(DT, bins = "bin1")]
+
+
 def test_cut_error_zero_nbins():
     msg = "Number of bins must be positive, instead got: 0"
     DT = dt.Frame(range(10))
     with pytest.raises(ValueError, match=msg):
         DT[:, cut(DT, nbins = 0)]
+
+
+def test_cut_error_one_bin_edge():
+    msg = "To bin data at least two edges are required, instead for the frame 0 got: 1"
+    DT = dt.Frame(range(10))
+    with pytest.raises(ValueError, match=msg):
+        DT[:, cut(DT, bins = [dt.Frame([1])])]
+
+
+def test_cut_error_none_bin_edge():
+    msg = "Bin edges must be numeric values only, instead for the frame 0 got None at row 2"
+    DT = dt.Frame(range(10))
+    with pytest.raises(ValueError, match=msg):
+        DT[:, cut(DT, bins = [dt.Frame([1, 2, None, 3])])]
+
+
+def test_cut_error_bin_edges_not_increasing():
+    msg = "Bin edges must be strictly increasing, instead for the frame 0 at rows 2 and 3 the values are 4 and 3.99"
+    DT = dt.Frame(range(10))
+    with pytest.raises(ValueError, match=msg):
+        DT[:, cut(DT, bins = [dt.Frame([1, 2, 4.0, 3.99])])]
 
 
 def test_cut_error_negative_nbins():
@@ -84,11 +119,19 @@ def test_cut_error_negative_nbins_list():
 
 
 def test_cut_error_inconsistent_nbins():
-    msg = ("When nbins is a list or a tuple, its length must be the same as "
-           "the number of columns in the frame/expression, i.e. 2, instead got: 1")
+    msg = ("When nbins has more than one element, its length must be the same as "
+           "the number of columns in the frame/expression, i.e. 2, instead got: 3")
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
-        DT[:, cut(DT, nbins = [10])]
+        DT[:, cut(DT, nbins = [10, 11, 12])]
+
+
+def test_cut_error_inconsistent_bins():
+    msg = ("Number of elements in bins must be equal to the number of columns "
+           "in the frame/expression, i.e. 2, instead got: 1")
+    DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
+    with pytest.raises(ValueError, match=msg):
+        DT[:, cut(DT, bins = [dt.Frame([1, 2])])]
 
 
 def test_cut_error_wrong_right():
@@ -118,12 +161,23 @@ def test_cut_empty_frame():
     assert_equals(DT[:, f[:]], DT)
 
 
-def test_cut_trivial():
+def test_cut_default_nbins():
     DT = dt.Frame({"trivial": range(10)})
     DT_cut = DT[:, cut(f[:])]
     expr_cut = cut(DT)
     assert isinstance(expr_cut, FExpr)
     assert_equals(DT, DT_cut)
+
+
+def test_cut_trivial_bins():
+    DT_data = dt.Frame({"data": range(10)})
+    DT_bins = dt.Frame({"bins": range(-1, 10)})
+    cut_fexpr = cut(f[:], bins = [DT_bins])
+    for i in range(5):
+      DT_cut = DT_data[:, cut_fexpr]
+      expr_cut = cut(DT_data, bins = [DT_bins])
+      assert isinstance(expr_cut, FExpr)
+      assert_equals(DT_data, DT_cut)
 
 
 def test_cut_expr():
@@ -132,7 +186,7 @@ def test_cut_expr():
     assert_equals(dt.Frame(range(10)), DT_cut)
 
 
-def test_cut_one_row():
+def test_cut_one_row_nbins():
     nbins = [1, 2, 3, 4]
     DT = dt.Frame([[True], [404], [3.1415926], [None]])
     DT_cut_right = DT[:, cut(DT, nbins = nbins)]
@@ -141,7 +195,19 @@ def test_cut_one_row():
     assert DT_cut_left.to_list() == [[0], [1], [1], [None]]
 
 
-def test_cut_small():
+def test_cut_one_row_bins():
+    DT_bins = [dt.Frame([0, 1]),
+               dt.Frame(range(1000)),
+               dt.Frame([-100, 3.1415926, 100]),
+               dt.Frame(range(5))]
+    DT = dt.Frame([[True], [404], [3.1415926], [None]])
+    DT_cut_right = DT[:, cut(DT, bins = DT_bins)]
+    DT_cut_left = DT[:, cut(DT, bins = DT_bins, right_closed = False)]
+    assert DT_cut_right.to_list() == [[0], [403], [0], [None]]
+    assert DT_cut_left.to_list() == [[None], [404], [1], [None]]
+
+
+def test_cut_small_nbins():
     nbins = [4, 2, 5, 4, 10, 3, 2, 5]
     colnames = ["bool", "int_pos", "int_neg", "int", "float",
                 "inf_max", "inf_min", "inf"]
@@ -191,22 +257,81 @@ def test_cut_small():
     assert_equals(DT_ref_left, DT_cut_list_left)
 
 
+def test_cut_small_bins():
+    DT_bins = [dt.Frame([-1, 0, 1, 2]),
+               dt.Frame(range(10)),
+               dt.Frame(range(-10, 0)),
+               dt.Frame([-1000, 0, 314]),
+               dt.Frame(range(10)),
+               dt.Frame([0, 1.4, 2.8, 4.2, 5.6]),
+               dt.Frame([0, 1.4, 2.8, 4.2, 5.6, 7.0]),
+               dt.Frame([-5, 0, 15])]
+    colnames = ["bool", "int_pos", "int_neg", "int",
+                "float", "inf_max", "inf_min", "inf"]
+
+    DT = dt.Frame(
+           [[True, None, False, False, True, None],
+           [3, None, 4, 1, 5, 4],
+           [-5, -1, -1, -1, None, 0],
+           [None, -5, -314, 0, 5, 314],
+           [None, 1.4, 4.1, 1.5, 5.9, 1.4],
+           [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
+           [-math.inf, 1.4, -4.1, 1.5, 5.9, 1.4],
+           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
+           names = colnames
+         )
+
+    DT_ref_right = dt.Frame(
+                     [[1, None, 0, 0, 1, None],
+                     [2, None, 3, 0, 4, 3],
+                     [4, 8, 8, 8, None, None],
+                     [None, 0, 0, 0, 1, 1],
+                     [None, 1, 4, 1, 5, 1],
+                     [None, 0, 2, 1, None, 0],
+                     [None, 0, None, 1, 4, 0],
+                     [None, 1, 1, None, 1, 1]],
+                     names = colnames,
+                     stypes = [stype.int32] * DT.ncols
+                   )
+
+    DT_ref_left = dt.Frame(
+                     [[2, None, 1, 1, 2, None],
+                     [3, None, 4, 1, 5, 4],
+                     [5, None, None, None, None, None],
+                     [None, 0, 0, 1, 1, None],
+                     [None, 1, 4, 1, 5, 1],
+                     [None, 1, 2, 1, None, 1],
+                     [None, 1, None, 1, 4, 1],
+                     [None, 1, 1, None, 1, 1]],
+                     names = colnames,
+                     stypes = [stype.int32] * DT.ncols
+                   )
+
+    DT_cut_list = DT[:, cut(DT, bins = DT_bins)]
+    DT_cut_tuple = DT[:, cut(DT, bins = tuple(DT_bins))]
+    DT_cut_list_left = DT[:, cut(DT, bins = DT_bins, right_closed = False)]
+    assert_equals(DT_ref_right, DT_cut_list)
+    assert_equals(DT_ref_right, DT_cut_tuple)
+    assert_equals(DT_ref_left, DT_cut_list_left)
+
+
 
 @pytest.mark.skip(reason="This test is used for dev only as may rarely fail "
                   "due to pandas inconsistency, see test_cut_pandas_issue_35126")
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
-def test_cut_vs_pandas_random(pandas, seed):
+def test_cut_vs_pandas_random_nbins(pandas, seed):
     random.seed(seed)
-    max_size = 20
+    max_nbins = 20
+    max_elements = 20
     max_value = 100
 
-    n = random.randint(1, max_size)
+    n_elements = random.randint(1, max_elements)
 
-    nbins = [random.randint(1, max_size) for _ in range(3)]
+    nbins = [random.randint(1, max_nbins) for _ in range(3)]
     right_closed = bool(random.getrandbits(1))
     data = [[] for _ in range(3)]
 
-    for _ in range(n):
+    for _ in range(n_elements):
         data[0].append(random.randint(0, 1))
         data[1].append(random.randint(-max_value, max_value))
         data[2].append(random.random() * 2 * max_value - max_value)
@@ -229,6 +354,7 @@ def test_cut_vs_pandas_random(pandas, seed):
 # See the following issue for more details
 # https://github.com/pandas-dev/pandas/issues/35126
 #-------------------------------------------------------------------------------
+@pytest.mark.skip(reason="This test is used for dev only")
 def test_cut_pandas_issue_35126(pandas):
     nbins = 42
     data = [-97, 0, 97]
@@ -241,4 +367,41 @@ def test_cut_pandas_issue_35126(pandas):
     # Testing that Pandas results are inconsistent
     PD = pandas.cut(data, nbins, labels = False)
     assert list(PD) == [0, 21, 41]
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
+def test_cut_vs_pandas_random_bins(pandas, seed):
+    random.seed(seed)
+    max_bins = 20
+    max_elements = 20
+    max_value = 100
+
+    n_elements = random.randint(1, max_elements)
+    right_closed = bool(random.getrandbits(1))
+
+    DT_bins = []
+    bins = [[] for _ in range(3)]
+    for i in range(3):
+        nbins = random.randint(2, max_bins)
+        bins[i] = random.sample(range(-max_value, max_value), nbins)
+        bins[i].sort()
+        DT_bins.append(dt.Frame(bins[i]))
+
+    data = [[] for _ in range(3)]
+    for _ in range(n_elements):
+        data[0].append(random.randint(0, 1))
+        data[1].append(random.randint(-max_value, max_value))
+        data[2].append(random.random() * 2 * max_value - max_value)
+
+    DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
+    DT_cut = DT[:, cut(DT, bins = DT_bins, right_closed = right_closed)]
+
+    PD_cut = [pandas.cut(data[i], bins[i], labels=False, right=right_closed) for i in range(3)]
+    PD_l = [list(PD_cut[i]) for i in range(3)]
+
+    # Replace `nan`s with `None` for pandas
+    for i in range(3):
+      PD_l[i] = [None if math.isnan(PD_l[i][j]) else PD_l[i][j] for j in range(n_elements)]
+
+    assert PD_l == DT_cut.to_list()
 

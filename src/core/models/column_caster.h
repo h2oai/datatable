@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,41 +19,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/fnary/fnary.h"
-#include "expr/expr.h"
-#include "expr/head_func.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
-#include "utils/exceptions.h"
-namespace dt {
-namespace expr {
+
+#ifndef dt_MODELS_COLUMN_CASTER_h
+#define dt_MODELS_COLUMN_CASTER_h
+#include "column/func_unary.h"
 
 
-Head_Func_Nary::Head_Func_Nary(Op op) : op_(op) {}
+/**
+ *  Create a virtual column that casts numeric `col` from `T_from` to `T_to`.
+ *  Infinite values are casted into NA's. This function is only needed
+ *  as a workaround for a stats calculation: min/max on this column will never be
+ *  an inf.
+ */
+template <typename T_from, typename T_to>
+Column make_inf2na_casted_column(const Column& col, dt::SType stype) {
+  Column col_casted = Column(new dt::FuncUnary2_ColumnImpl<T_from, T_to>(
+           Column(col),
+           [](T_from x, bool x_isvalid, T_to* out) {
+             *out = static_cast<T_to>(x);
+             return x_isvalid && _isfinite(x);
+           },
+           col.nrows(),
+           stype
+         ));
 
-
-Workframe Head_Func_Nary::evaluate_n(
-    const vecExpr& args, EvalContext& ctx) const
-{
-  Workframe inputs(ctx);
-  for (const auto& arg : args) {
-    inputs.cbind(arg->evaluate_n(ctx));
-  }
-
-  Grouping gmode = inputs.get_grouping_mode();
-  std::vector<Column> columns;
-  columns.reserve(inputs.ncols());
-  for (size_t i = 0; i < inputs.ncols(); ++i) {
-    columns.emplace_back(inputs.retrieve_column(i));
-  }
-
-  Column res = naryop(op_, std::move(columns));
-  Workframe out(ctx);
-  out.add_column(std::move(res), "", gmode);
-  return out;
+  return col_casted;
 }
 
+colvec make_casted_columns(const DataTable*, const dt::SType);
 
 
-
-}}  // namespace dt::expr
+#endif

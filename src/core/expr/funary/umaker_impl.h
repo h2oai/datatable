@@ -121,7 +121,7 @@ class umaker1 : public umaker
     umaker1(func_t f, SType up, SType out)
       : func_(f), uptype_(up), outtype_(out)
     {
-      if (up != SType::VOID) xassert(compatible_type<TX>(up));
+      if (up != SType::AUTO) xassert(compatible_type<TX>(up));
       xassert(compatible_type<TR>(out));
     }
 
@@ -130,7 +130,7 @@ class umaker1 : public umaker
     }
 
     Column compute(Column&& col) const override {
-      if (uptype_ != SType::VOID) col.cast_inplace(uptype_);
+      if (uptype_ != SType::AUTO) col.cast_inplace(uptype_);
       size_t nrows = col.nrows();
       return Column(new FuncUnary1_ColumnImpl<TX, TR>(
                         std::move(col), func_, nrows, outtype_
@@ -167,7 +167,7 @@ class umaker2 : public umaker
     umaker2(func_t f, SType up, SType out)
       : func_(f), uptype_(up), outtype_(out)
     {
-      if (up != SType::VOID) xassert(compatible_type<TX>(up));
+      if (up != SType::AUTO) xassert(compatible_type<TX>(up));
       xassert(compatible_type<TR>(out));
     }
 
@@ -176,7 +176,7 @@ class umaker2 : public umaker
     }
 
     Column compute(Column&& col) const override {
-      if (uptype_ != SType::VOID) col.cast_inplace(uptype_);
+      if (uptype_ != SType::AUTO) col.cast_inplace(uptype_);
       size_t nrows = col.nrows();
       return Column(new FuncUnary2_ColumnImpl<TX, TR>(
                         std::move(col), func_, nrows, outtype_

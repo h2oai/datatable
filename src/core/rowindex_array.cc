@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -140,13 +140,15 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     return;
   }
   int8_t value;
+  Column colcopy = col;
+  colcopy.materialize();
   if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
     auto ind32 = static_cast<int32_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind32[k++] = static_cast<int32_t>(i);
       }
@@ -157,7 +159,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     auto ind64 = static_cast<int64_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind64[k++] = static_cast<int64_t>(i);
       }
@@ -211,9 +213,9 @@ const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
 
 Column ArrayRowIndexImpl::as_column() const {
   if (type == RowIndexType::ARR32) {
-    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, dt::SType::INT32, Buffer(buf_)));
   } else {
-    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, dt::SType::INT64, Buffer(buf_)));
   }
 }
 

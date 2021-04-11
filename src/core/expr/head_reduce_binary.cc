@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -79,7 +79,7 @@ class BinaryReduced_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override {
       return new BinaryReduced_ColumnImpl<T>(
-                  stype_, Column(arg1), Column(arg2), groupby, reducer);
+                  stype(), Column(arg1), Column(arg2), groupby, reducer);
     }
 
     bool get_element(size_t i, T* out) const override {
@@ -115,9 +115,9 @@ static const char* doc_cov =
 R"(cov(col1, col2)
 --
 
-Calculate
-`covariance <https://en.wikipedia.org/wiki/Covariance>`_
+Calculate `covariance <https://en.wikipedia.org/wiki/Covariance>`_
 between `col1` and `col2`.
+
 
 Parameters
 ----------
@@ -130,11 +130,36 @@ return: Expr
     the value is `NA`. The output column stype is `float32` if both `col1`
     and `col2` are `float32`, and `float64` in all the other cases.
 
-See Also
+
+Examples
 --------
 
-- :func:`corr()` -- function to calculate correlation between two columns.
+.. code-block:: python
 
+    >>> from datatable import dt, f
+    >>>
+    >>> DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
+    >>> DT
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     0      0
+     1 |     1      2
+     2 |     2      4
+     3 |     3      6
+    [4 rows x 2 columns]
+
+    >>> DT[:, dt.cov(f.A, f.B)]
+       |      C0
+       | float64
+    -- + -------
+     0 | 3.33333
+    [1 row x 1 column]
+
+
+See Also
+--------
+- :func:`corr()` -- function to calculate correlation between two columns.
 )";
 #endif
 
@@ -211,11 +236,35 @@ return: Expr
     The column stype is `float32` if both `col1` and `col2` are `float32`,
     and `float64` in all the other cases.
 
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
+    >>> DT
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     0      0
+     1 |     1      2
+     2 |     2      4
+     3 |     3      6
+    [4 rows x 2 columns]
+
+    >>> DT[:, dt.corr(f.A, f.B)]
+       |      C0
+       | float64
+    -- + -------
+     0 |       1
+    [1 row x 1 column]
+
+
 See Also
 --------
-
 - :func:`cov()` -- function to calculate covariance between two columns.
-
 )";
 #endif
 

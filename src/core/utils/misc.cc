@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <chrono>           // std::chrono::steady_clock
 #include <cstring>          // std::memcpy
 #include <stdint.h>
 #include <type_traits>      // std::is_unsigned
@@ -129,36 +130,18 @@ void set_value(void* ptr, const void* value, size_t sz, size_t count) {
 
 
 /**
- * Return current value on the system timer, in seconds. This function is
- * most suitable for profiling a piece of code: difference between two
- * consecutive calls to `wallclock()` will give the time elapsed in seconds.
- */
-#if DT_OS_WINDOWS
-  #include <time.h>
-  double wallclock(void) {
-    clock_t tv = clock();
-    return tv == clock_t(-1)? 0 : static_cast<double>(tv) / CLOCKS_PER_SEC;
-  }
-#elif defined(CLOCK_REALTIME) && !defined(DISABLE_CLOCK_REALTIME)
-  #include <time.h>
-  double wallclock(void) {
-    struct timespec tp;
-    int ret = 1;
-    #ifdef __APPLE__
-      if (__builtin_available(macos 10.12, *))
-    #endif
-    ret = clock_gettime(CLOCK_REALTIME, &tp);
-    return ret == 0? 1.0 * static_cast<double>(tp.tv_sec) +
-                     1e-9 * static_cast<double>(tp.tv_nsec) : 0.0;
-  }
-#else
-  #include <sys/time.h>
-  double wallclock(void) {
-    struct timeval tv;
-    int ret = gettimeofday(&tv, nullptr);
-    return ret == 0? 1.0 * tv.tv_sec + 1e-6 * tv.tv_usec : 0;
-  }
-#endif
+  * Return current value on the system timer, in seconds. This function is
+  * most suitable for profiling a piece of code: difference between two
+  * consecutive calls to `wallclock()` will give the time elapsed in seconds.
+  */
+double wallclock() {
+  using T = std::chrono::time_point<std::chrono::steady_clock>;
+  using D = std::chrono::duration<double>;
+  static T time0 = std::chrono::steady_clock::now();
+  T time1 = std::chrono::steady_clock::now();
+  D diff = (time1 - time0);
+  return diff.count();
+}
 
 
 /**

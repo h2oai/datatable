@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
     using Virtual_ColumnImpl::Virtual_ColumnImpl;
     static Column make_na_column(size_t nrows);
     static Column make_bool_column(size_t nrows, bool value);
-    static Column make_int_column(size_t nrows, int64_t value, SType stype = SType::VOID);
+    static Column make_int_column(size_t nrows, int64_t value, SType stype = SType::AUTO);
     static Column make_float_column(size_t nrows, double value, SType stype = SType::FLOAT64);
     static Column make_string_column(size_t nrows, const CString& value, SType stype = SType::STR32);
     static Column from_1row_column(const Column& col);
@@ -63,7 +63,11 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     ColumnImpl* clone() const override;
     void materialize(Column&, bool) override;
     void na_pad(size_t nrows, Column&) override;
+    void rbind_impl(
+        colvec& columns, size_t new_nrows, bool col_empty, dt::SType&) override;
 };
+
+
 
 
 //------------------------------------------------------------------------------
@@ -87,12 +91,12 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
     ConstInt_ColumnImpl(size_t nrows, int32_t x, SType stype)
       : Const_ColumnImpl(nrows, stype), value(x) {}
 
-    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype = SType::VOID)
+    ConstInt_ColumnImpl(size_t nrows, int64_t x, SType stype = SType::AUTO)
       : Const_ColumnImpl(nrows, normalize_stype(stype, x)),
         value(x) {}
 
     ColumnImpl* clone() const override {
-      return new ConstInt_ColumnImpl(nrows_, value, stype_);
+      return new ConstInt_ColumnImpl(nrows_, value, stype());
     }
 
     bool get_element(size_t, int8_t* out) const override {
@@ -138,7 +142,7 @@ class ConstInt_ColumnImpl : public Const_ColumnImpl {
           FALLTHROUGH;
 
         case SType::INT32:
-        case SType::VOID:
+        case SType::AUTO:
           if (x == static_cast<int32_t>(x)) return SType::INT32;
           return SType::INT64;
 

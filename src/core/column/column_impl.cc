@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,6 +26,7 @@
 #include "column/truncated.h"
 #include "parallel/api.h"
 #include "parallel/string_utils.h"
+#include "utils/macros.h"
 namespace dt {
 
 
@@ -35,8 +36,8 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 ColumnImpl::ColumnImpl(size_t nrows, SType stype)
-  : nrows_(nrows),
-    stype_(stype),
+  : type_(Type::from_stype(stype)),
+    nrows_(nrows),
     refcount_(1) {}
 
 
@@ -52,14 +53,14 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
       << " values from a column of type " << col_stype;
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype_, "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype_, "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype_, "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype_, "int64"); }
-bool ColumnImpl::get_element(size_t, float*)   const { err(stype_, "float32"); }
-bool ColumnImpl::get_element(size_t, double*)  const { err(stype_, "float64"); }
-bool ColumnImpl::get_element(size_t, CString*) const { err(stype_, "string"); }
-bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype_, "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype(), "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype(), "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype(), "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype(), "int64"); }
+bool ColumnImpl::get_element(size_t, float*)   const { err(stype(), "float32"); }
+bool ColumnImpl::get_element(size_t, double*)  const { err(stype(), "float64"); }
+bool ColumnImpl::get_element(size_t, CString*) const { err(stype(), "string"); }
+bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype(), "object"); }
 
 
 
@@ -70,8 +71,8 @@ bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype_, "object"); }
 
 template <typename T>
 void ColumnImpl::_materialize_fw(Column& out) {
-  xassert(compatible_type<T>(stype_));
-  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
+  xassert(type().can_be_read_as<T>());
+  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype());
   auto out_data = static_cast<T*>(out_column.get_data_editable(0));
   auto nthreads = NThreads(this->allow_parallel_access());
 
@@ -96,8 +97,8 @@ void ColumnImpl::_materialize_fw(Column& out) {
 
 
 void ColumnImpl::_materialize_obj(Column& out) {
-  xassert(stype_ == SType::OBJ);
-  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype_);
+  xassert(stype() == SType::OBJ);
+  auto out_column = Sentinel_ColumnImpl::make_column(nrows_, stype());
   auto out_data = static_cast<py::oobj*>(out_column.get_data_editable(0));
 
   // Treating output array as `py::oobj[]` will ensure that the elements
@@ -122,10 +123,12 @@ void ColumnImpl::_materialize_str(Column& out) {
 void ColumnImpl::materialize(Column& out, bool to_memory) {
   (void) to_memory;  // default materialization is always to memory
   this->pre_materialize_hook();
-  switch (stype_) {
+  switch (stype()) {
+    case SType::VOID:    return; //stype() = dt::SType::BOOL; FALLTHROUGH;
     case SType::BOOL:
     case SType::INT8:    return _materialize_fw<int8_t> (out);
     case SType::INT16:   return _materialize_fw<int16_t>(out);
+    case SType::DATE32:
     case SType::INT32:   return _materialize_fw<int32_t>(out);
     case SType::INT64:   return _materialize_fw<int64_t>(out);
     case SType::FLOAT32: return _materialize_fw<float>  (out);
@@ -135,7 +138,7 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
     case SType::OBJ:     return _materialize_obj(out);
     default:
       throw NotImplError() << "Cannot materialize column of stype `"
-                           << stype_ << "`";
+                           << stype() << "`";
   }
 }
 
@@ -167,7 +170,11 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
     std::fill(outmask + row0, outmask + row1, false);
     return;
   }
-  switch (stype_) {
+  switch (stype()) {
+    case SType::VOID: {
+      std::fill(outmask + row0, outmask + row1, true);
+      break;
+    }
     case SType::BOOL:
     case SType::INT8:    _fill_npmask<int8_t> (outmask, row0, row1); break;
     case SType::INT16:   _fill_npmask<int16_t>(outmask, row0, row1); break;
@@ -180,7 +187,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
     case SType::OBJ:     _fill_npmask<py::oobj>(outmask, row0, row1); break;
     default:
       throw NotImplError() << "Cannot fill_npmask() on column of stype `"
-                           << stype_ << "`";
+                           << stype() << "`";
   }
 }
 
@@ -191,8 +198,9 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 // Casts
 //------------------------------------------------------------------------------
 
-bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
-  if (new_stype == SType::BOOL) {
+void ColumnImpl::cast_replace(Type new_type, Column& thiscol) const {
+  auto new_stype = new_type.stype();
+  if (new_type.is_boolean()) {
     switch (stype()) {
       case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
       case SType::INT8:    thiscol = Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(thiscol))); break;
@@ -204,7 +212,7 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::STR32:
       case SType::STR64:   thiscol = Column(new CastStringToBool_ColumnImpl(std::move(thiscol))); break;
       case SType::OBJ:     thiscol = Column(new CastObjToBool_ColumnImpl(std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << stype() << "` into `bool8`";
+      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `bool8`";
     }
   }
   else {
@@ -217,16 +225,14 @@ bool ColumnImpl::cast_const(SType new_stype, Column& thiscol) const {
       case SType::INT64:   thiscol = Column(new CastNumeric_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT32: thiscol = Column(new CastNumeric_ColumnImpl<float>(new_stype, std::move(thiscol))); break;
       case SType::FLOAT64: thiscol = Column(new CastNumeric_ColumnImpl<double>(new_stype, std::move(thiscol))); break;
+      case SType::DATE32:  thiscol = Column(new CastDate32_ColumnImpl(new_stype, std::move(thiscol))); break;
       case SType::STR32:
       case SType::STR64:   thiscol = Column(new CastString_ColumnImpl(new_stype, std::move(thiscol))); break;
       case SType::OBJ:     thiscol = Column(new CastObject_ColumnImpl(new_stype, std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << stype() << "` into `" << new_stype << "`";
+      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `" << new_type << "`";
     }
   }
-  return true;
 }
-
-void ColumnImpl::cast_mutate(SType) {}
 
 
 

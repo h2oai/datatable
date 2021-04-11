@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_ARROW_STR_h
 #define dt_COLUMN_ARROW_STR_h
-#include "column/virtual.h"
+#include "column/arrow.h"
 namespace dt {
 
 
@@ -29,7 +29,7 @@ namespace dt {
   * TODO: make this class material instead of virtual
   */
 template <typename T>
-class ArrowStr_ColumnImpl : public Virtual_ColumnImpl {
+class ArrowStr_ColumnImpl : public Arrow_ColumnImpl {
   private:
     Buffer validity_;
     Buffer offsets_;
@@ -41,9 +41,10 @@ class ArrowStr_ColumnImpl : public Virtual_ColumnImpl {
 
     ColumnImpl* clone() const override;
     // void materialize(Column&, bool) override;
-    size_t n_children() const noexcept override;
+    size_t num_buffers() const noexcept override;
+    const void* get_buffer(size_t i) const override;
 
-    bool get_element(size_t, CString*)  const override;
+    bool get_element(size_t, CString*) const override;
 };
 
 

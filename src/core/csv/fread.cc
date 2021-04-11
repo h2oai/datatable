@@ -70,7 +70,7 @@ std::unique_ptr<DataTable> FreadReader::read_all()
         // FIXME: if the user wants to override the type, let them
         throw IOError()
             << "Attempt to override column " << i + 1 << " \"" << col.repr_name(*this)
-            << "\" with detected type '" << ParserLibrary::info(oldtypes[i]).cname()
+            << "\" with detected type '" << dt::read::parser_infos[oldtypes[i]].name()
             << "' down to '" << col.typeName() << "' which is not supported yet.";
       }
       nUserBumped += (col.get_ptype() != oldtypes[i]);

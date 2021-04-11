@@ -340,8 +340,12 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-global-constructors",
                 "-Wno-reserved-id-macro",
                 "-Wno-switch-enum",
+                "-Wno-poison-system-directories",
+                "-Wno-unknown-warning-option",
                 "-Wno-weak-template-vtables",
+                "-Wno-poison-system-directories",
                 "-Wno-weak-vtables",
+                "-Wno-unknown-warning-option",
             )
         else:
             ext.compiler.add_compiler_flag(
@@ -451,13 +455,17 @@ def generate_build_info(mode=None, strict=False):
     # get the date of the commit (HEAD), as a Unix timestamp
     git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
                          strict=strict)
-    git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
-                           strict=strict)
+    if "CHANGE_BRANCH" in os.environ:
+        git_branch = os.environ["CHANGE_BRANCH"]
+    else:
+        git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
+                               strict=strict)
     git_diff = shell_cmd(["git", "diff", "HEAD", "--stat", "--no-color"],
                          strict=strict)
     # Reformat the `git_date` as a UTC time string
-    git_date = time.strftime("%Y-%m-%d %H:%M:%S",
-                             time.gmtime(int(git_date)))
+    if git_date:
+        git_date = time.strftime("%Y-%m-%d %H:%M:%S",
+                                 time.gmtime(int(git_date)))
 
     info_file = os.path.join("src", "datatable", "_build_info.py")
     with open(info_file, "wt") as out:
@@ -537,7 +545,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         flavor = "custom" if reuse_extension else \
                  "debug" if debug_wheel else \
                  "build"
-        generate_build_info(flavor, strict=True)
+        generate_build_info(flavor, strict=not is_source_distribution())
     assert os.path.isfile("src/datatable/_build_info.py")
 
     if reuse_extension:

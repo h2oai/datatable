@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,8 +57,10 @@ class Frame : public XObject<Frame> {
     static void _init_sort(XTypeMaker&);
     static void _init_newsort(XTypeMaker&);
     static void _init_stats(XTypeMaker&);
+    static void _init_toarrow(XTypeMaker&);
     static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
+    static void _init_to_pandas(XTypeMaker&);
     static void _init_topython(XTypeMaker&);
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -79,8 +81,8 @@ class Frame : public XObject<Frame> {
     oobj m__getstate__(const PKArgs&);  // pickling support
     void m__setstate__(const PKArgs&);
     oobj m__sizeof__(const PKArgs&);
-    void m__getbuffer__(Py_buffer* view, int flags);
-    void m__releasebuffer__(Py_buffer* view);
+    int  m__getbuffer__(Py_buffer* view, int flags) noexcept;
+    void m__releasebuffer__(Py_buffer* view) noexcept;
     oobj m__iter__();
     oobj m__reversed__();
     oobj m__copy__();
@@ -107,6 +109,7 @@ class Frame : public XObject<Frame> {
     oobj get_source() const;
     oobj get_stype() const;
     oobj get_stypes() const;
+    oobj get_types() const;
     void set_key(const Arg&);
     void set_meta(const Arg&);
     void set_names(const Arg&);
@@ -127,6 +130,7 @@ class Frame : public XObject<Frame> {
     oobj export_names(const PKArgs&);
 
     // Conversion methods
+    oobj to_arrow(const PKArgs&);
     oobj to_csv(const PKArgs&);
     oobj to_dict(const PKArgs&);
     oobj to_jay(const PKArgs&);  // See jay/save_jay.cc

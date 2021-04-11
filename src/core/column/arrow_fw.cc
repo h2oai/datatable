@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,23 +28,28 @@ namespace dt {
 
 ArrowFw_ColumnImpl::ArrowFw_ColumnImpl(size_t nrows, SType stype,
                                        Buffer&& valid, Buffer&& data)
-  : Virtual_ColumnImpl(nrows, stype),
+  : Arrow_ColumnImpl(nrows, stype),
     validity_(std::move(valid)),
     data_(std::move(data))
 {
-  xassert(!validity_ || validity_.size() == (nrows + 7) / 8);
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
   xassert(data_.size() == stype_elemsize(stype) * nrows);
 }
 
 
 ColumnImpl* ArrowFw_ColumnImpl::clone() const {
   return new ArrowFw_ColumnImpl(
-                nrows_, stype_, Buffer(validity_), Buffer(data_));
+                nrows(), stype(), Buffer(validity_), Buffer(data_));
 }
 
 
-size_t ArrowFw_ColumnImpl::n_children() const noexcept {
-  return 0;
+size_t ArrowFw_ColumnImpl::num_buffers() const noexcept {
+  return 2;
+}
+
+const void* ArrowFw_ColumnImpl::get_buffer(size_t i) const {
+  return (i == 0)? validity_.rptr() :
+         (i == 1)? data_.rptr() : nullptr;
 }
 
 
@@ -57,7 +62,7 @@ size_t ArrowFw_ColumnImpl::n_children() const noexcept {
 template <typename T>
 inline bool ArrowFw_ColumnImpl::_get(size_t  i, T* out) const {
   xassert(i < nrows_);
-  xassert(compatible_type<T>(stype_));
+  xassert(type().can_be_read_as<T>());
   auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
   bool valid = !validity_data || (validity_data[i / 8] & (1 << (i & 7)));
   if (valid) {

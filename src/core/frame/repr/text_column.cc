@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,8 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>                  // std::min, std::max
+#include <iomanip>                    // std::setfill, std::setw
+#include "csv/toa.h"
 #include "frame/repr/repr_options.h"
 #include "frame/repr/text_column.h"
+#include "lib/hh/date.h"
 #include "ltype.h"
 #include "utils/assert.h"
 #include "encodings.h"
@@ -87,12 +90,12 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   xassert(max_width >= 4);
   // -2 takes into account column's margins
   max_width_ = std::min(max_width - 2, display_max_column_width);
+  std::string type_name = col.type().to_string();
   name_ = _escape_string(CString(name));
-  width_ = std::max(width_, name_.size());
-  LType ltype = col.ltype();
-  align_right_ = (ltype == LType::BOOL) ||
-                 (ltype == LType::INT) ||
-                 (ltype == LType::REAL);
+  type_ = _escape_string(CString(type_name));
+  width_ = std::max(std::max(width_, name_.size()),
+                    name_.empty()? 0 : type_.size());
+  align_right_ = col.type().is_numeric();
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
@@ -101,6 +104,15 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
 
 void Data_TextColumn::print_name(TerminalStream& out) const {
   _print_aligned_value(out, name_);
+}
+
+
+void Data_TextColumn::print_type(TerminalStream& out) const {
+  if (name_.empty()) {
+    out << std::string(margin_left_ + margin_right_ + width_, ' ');
+  } else {
+    _print_aligned_value(out, type_);
+  }
 }
 
 
@@ -161,6 +173,39 @@ tstring Data_TextColumn::_render_value_float(const Column& col, size_t i) const
   std::ostringstream out;
   out << value;
   return tstring(out.str());
+}
+
+tstring Data_TextColumn::_render_value_date(const Column& col, size_t i) const {
+  static char tmp[15];
+  int32_t value;
+  bool isvalid = col.get_element(i, &value);
+  if (isvalid) {
+    char* ch = tmp;
+    date32_toa(&ch, value);
+    return tstring(std::string(tmp, static_cast<size_t>(ch - tmp)));
+  } else {
+    return na_value_;
+  }
+}
+
+
+tstring Data_TextColumn::_render_value_time(const Column& col, size_t i) const {
+  static char tmp[30];
+  int64_t value;
+  bool isvalid = col.get_element(i, &value);
+  if (isvalid) {
+    char* ch = tmp;
+    time64_toa(&ch, value);
+    xassert(ch > tmp + 10);
+    xassert(tmp[10] == 'T');
+    tstring out;
+    out << std::string(tmp, 10);
+    out << tstring("T", style::dim);
+    out << std::string(tmp + 11, static_cast<size_t>(ch - tmp - 11));
+    return out;
+  } else {
+    return na_value_;
+  }
 }
 
 
@@ -239,11 +284,12 @@ tstring Data_TextColumn::_escape_string(const CString& str) const
     }
     // C0 block + \x7F (DEL) character
     else if (c <= 0x1F || c == 0x7F) {
-      ch++;
-      if (ch == end) remaining_width++;
+      if (ch + 1 == end) remaining_width++;
       auto escaped = _escaped_char(c);
       if (static_cast<int>(escaped.size()) > remaining_width) break;
+      remaining_width -= static_cast<int>(escaped.size());
       out << std::move(escaped);
+      ch++;
     }
     // unicode character
     else {
@@ -290,6 +336,7 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 
 tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
   switch (col.stype()) {
+    case SType::VOID:    return na_value_;
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
     case SType::INT16:   return _render_value_int<int16_t>(col, i);
@@ -299,7 +346,9 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::FLOAT64: return _render_value_float<double>(col, i);
     case SType::STR32:
     case SType::STR64:   return _render_value_string(col, i);
-    default: return tstring("");
+    case SType::DATE32:  return _render_value_date(col, i);
+    case SType::TIME64:  return _render_value_time(col, i);
+    default: return tstring("<unknown>", style::dim);
   }
 }
 
@@ -372,6 +421,10 @@ void VSep_TextColumn::print_name(TerminalStream& out) const {
   out << tstring("|", style::nobold|style::grey);
 }
 
+void VSep_TextColumn::print_type(TerminalStream& out) const {
+  out << tstring("|", style::nobold|style::nodim|style::noitalic|style::grey);
+}
+
 void VSep_TextColumn::print_separator(TerminalStream& out) const {
   out << '+';
 }
@@ -387,8 +440,9 @@ void VSep_TextColumn::print_value(TerminalStream& out, size_t) const {
 //------------------------------------------------------------------------------
 
 Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
-  ell_ = tstring(term_->unicode_allowed()? "\xE2\x80\xA6" : "~",
+  ell_ = tstring(term_->unicode_allowed()? " \xE2\x80\xA6 " : " ~ ",
                  style::dim|style::nobold);
+  space_ = tstring("   ");
   width_ = 1;
   margin_left_ = true;
   margin_right_ = true;
@@ -396,22 +450,88 @@ Ellipsis_TextColumn::Ellipsis_TextColumn() : TextColumn() {
 
 
 void Ellipsis_TextColumn::print_name(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
+}
+
+void Ellipsis_TextColumn::print_type(TerminalStream& out) const {
+  out << space_;
 }
 
 void Ellipsis_TextColumn::print_separator(TerminalStream& out) const {
-  out << std::string(margin_left_, ' ');
-  out << ' ';
-  out << std::string(margin_right_, ' ');
+  out << space_;
 }
 
 void Ellipsis_TextColumn::print_value(TerminalStream& out, size_t) const {
-  out << std::string(margin_left_, ' ');
   out << ell_;
-  out << std::string(margin_right_, ' ');
 }
+
+
+
+//------------------------------------------------------------------------------
+// RowIndex_TextColumn
+//------------------------------------------------------------------------------
+
+RowIndex_TextColumn::RowIndex_TextColumn(const sztvec& indices) {
+  row_numbers_ = indices;
+  width_ = 0;
+  if (!indices.empty()) {
+    size_t max_value = indices.back();
+    if (max_value == NA_index) {
+      max_value = indices.size() >= 2? indices[indices.size() - 2] : 0;
+    }
+    while (max_value) {
+      width_++;
+      max_value /= 10;
+    }
+  }
+  if (width_ < 2) width_ = 2;
+  if (width_ < ellipsis_.size()) {
+    bool has_ellipsis = false;
+    for (size_t k : row_numbers_) {
+      if (k == NA_index) {
+        has_ellipsis = true;
+        break;
+      }
+    }
+    if (has_ellipsis) {
+      width_ = ellipsis_.size();
+    }
+  }
+  margin_left_ = false;
+  margin_right_ = true;
+}
+
+
+void RowIndex_TextColumn::print_name(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_type(TerminalStream& out) const {
+  out << std::string(width_ + 1, ' ');
+}
+
+void RowIndex_TextColumn::print_separator(TerminalStream& out) const {
+  out << std::string(width_, '-')
+      << " ";
+}
+
+void RowIndex_TextColumn::print_value(TerminalStream& out, size_t i) const {
+  size_t row_index = row_numbers_[i];
+  if (row_index == NA_index) {
+    out << std::string(width_ - ellipsis_.size(), ' ')
+        << ellipsis_ << " ";
+  }
+  else {
+    auto rendered_value = std::to_string(row_numbers_[i]);
+    xassert(width_ >= rendered_value.size());
+    out << style::grey
+        << std::string(width_ - rendered_value.size(), ' ')
+        << rendered_value
+        << " "
+        << style::end;
+  }
+}
+
 
 
 

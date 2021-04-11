@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -92,7 +92,15 @@ class OArrowSchema {
 
   public:
     OArrowSchema() {
+      schema_.format = nullptr;
+      schema_.name = nullptr;
+      schema_.metadata = nullptr;
+      schema_.flags = 0;
+      schema_.n_children = 0;
+      schema_.children = nullptr;
+      schema_.dictionary = nullptr;
       schema_.release = nullptr;
+      schema_.private_data = nullptr;
     }
     OArrowSchema(const OArrowSchema&) = delete;
     OArrowSchema(OArrowSchema&&) = delete;
@@ -118,11 +126,36 @@ class OArrowSchema {
 };
 
 
+class OArrowArray;
+class ArrowArrayData {
+  private:
+    Column column_;
+    std::unique_ptr<OArrowArray> root_;
+    std::vector<const void*> buffers_;
+
+  public:
+    ArrowArrayData(Column&& column)
+      : column_(std::move(column)) {}
+
+    void store(std::unique_ptr<OArrowArray>&& ptr) {
+      root_ = std::move(ptr);
+    }
+
+    const Column& column() const { return column_; }
+    std::vector<const void*>& buffers() { return buffers_; }
+};
+
+
 
 /**
   * Simple wrapper around the ArrowArray structure that ensures
   * the .release() callback is automatically called when the object
-  * falls out of scope.
+  * is deleted.
+  *
+  * This class is used both when we ingest data from an external
+  * arrow object, and when when we send our data into arrow.
+  *
+  * When ingesting data from arrow, a pointern ArrowArray* struct
   */
 class OArrowArray {
   private:
@@ -145,7 +178,16 @@ class OArrowArray {
 
   public:
     OArrowArray() {
+      array_.length = 0;
+      array_.null_count = 0;
+      array_.offset = 0;
+      array_.n_buffers = 0;
+      array_.n_children = 0;
+      array_.buffers = nullptr;
+      array_.children = nullptr;
+      array_.dictionary = nullptr;
       array_.release = nullptr;
+      array_.private_data = nullptr;
     }
     OArrowArray(const OArrowArray&) = delete;
     OArrowArray(OArrowArray&& other) noexcept
@@ -180,6 +222,20 @@ class OArrowArray {
       xassert(i < static_cast<size_t>(array_.n_children));
       auto ptr = array_.children[i];
       return std::shared_ptr<OArrowArray>(new OArrowArray(ptr));
+    }
+
+    /**
+      * Store the pointer to `this` object inside its ArrowArrayData*
+      * structure. Effectively, after this call, `this` will be owned
+      * by itself.
+      *
+      * This method can only be called when there established a
+      * promise that its `->release()` callback will be called at a
+      * future time.
+      */
+    void ouroboros() {
+      auto data = static_cast<ArrowArrayData*>(array_.private_data);
+      data->store(std::unique_ptr<OArrowArray>(this));
     }
 };
 

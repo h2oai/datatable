@@ -6,6 +6,7 @@
 #-------------------------------------------------------------------------------
 import math
 import os
+import platform
 import pytest
 import random
 import sys
@@ -68,6 +69,10 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
             return True
         if abs(a - b) < max(rel_tol * max(abs(a), abs(b)), abs_tol):
             return True
+    if (isinstance(a, float) and isnan(a) and b is None):
+        return True
+    if (isinstance(b, float) and isnan(b) and a is None):
+        return True
     if isinstance(a, list) and isinstance(b, list):
         return (len(a) == len(b) and
                 all(list_equals(a[i], b[i], rel_tol = rel_tol, abs_tol = abs_tol)
@@ -76,12 +81,17 @@ def list_equals(a, b, rel_tol = 1e-7, abs_tol = None):
 
 
 
-def assert_equals(frame1, frame2):
+def assert_equals(frame1, frame2, rel_tol = 1e-7, abs_tol = None):
     """
     Helper function to assert that 2 frames are equal to each other.
     """
     frame_integrity_check(frame1)
     frame_integrity_check(frame2)
+
+    # The default value of `abs_tol` is set to `rel_tol`
+    if abs_tol is None:
+        abs_tol = rel_tol
+
     assert frame1.shape == frame2.shape, (
         "The left frame has shape %r, while the right has shape %r"
         % (frame1.shape, frame2.shape))
@@ -105,7 +115,7 @@ def assert_equals(frame1, frame2):
                 val2 = col2[j]
                 if val1 == val2: continue
                 if isinstance(val1, float) and isinstance(val2, float):
-                    if math.isclose(val1, val2): continue
+                    if math.isclose(val1, val2, rel_tol = rel_tol, abs_tol = abs_tol): continue
                 if len(col1) > 16:
                     arr1 = repr(col1[:16])[:-1] + ", ...]"
                     arr2 = repr(col2[:16])[:-1] + ", ...]"
@@ -122,7 +132,7 @@ def assert_equals(frame1, frame2):
         assert frame1.shape == frame2.shape
         assert list_equals(frame1.names, frame2.names)
         assert list_equals(frame1.stypes, frame2.stypes)
-        assert list_equals(frame1.to_list(), frame2.to_list())
+        assert list_equals(frame1.to_list(), frame2.to_list(), rel_tol, abs_tol)
 
 
 
@@ -173,6 +183,12 @@ def assert_value_error(f, msg):
 
 def isview(frame):
     return any(frame_columns_virtual(frame))
+
+
+def is_ppc64():
+    """Helper function to determine ppc64 platform"""
+    platform_hardware = [platform.machine(), platform.processor()]
+    return platform.system() == "Linux" and "ppc64le" in platform_hardware
 
 
 def get_core_tests(suite):

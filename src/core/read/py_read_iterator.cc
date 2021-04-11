@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -36,10 +36,8 @@ oobj ReadIterator::m__next__() {
 }
 
 
-oobj ReadIterator::make(std::unique_ptr<dt::read::MultiSource>&& multisource)
-{
-  robj rtype(reinterpret_cast<PyObject*>(&ReadIterator::type));
-  oobj resobj = rtype.call();
+oobj ReadIterator::make(std::unique_ptr<dt::read::MultiSource>&& multisource) {
+  oobj resobj = robj(ReadIterator::typePtr).call();
   ReadIterator* iterator = ReadIterator::cast_from(resobj);
   iterator->multisource_ = std::move(multisource);
   return resobj;

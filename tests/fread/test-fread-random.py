@@ -1,8 +1,25 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2021 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 # The "Omnibus" fread test. Here we attempt to randomly generate input files of
 # varying structure/complexity and then read them with fread. The idea is to
@@ -79,6 +96,8 @@ def test_fread_omnibus(seed):
         # Check 'bool' last, since ['0', '1'] is both int-like and bool-like
         if coltype != dt.ltype.bool and all_boollike(coldata):
             coltype = dt.ltype.bool
+        if all_voidlike(coldata):
+            coltype = dt.ltype.void
         prepared_data[i] = coldata
         colnames[i] = "x%d" % i
         coltypes[i] = coltype
@@ -137,6 +156,10 @@ def test_fread_omnibus(seed):
 #-------------------------------------------------------------------------------
 # Helper functions
 #-------------------------------------------------------------------------------
+
+def all_voidlike(coldata):
+    return all(x in ['', '""', "''"] for x in coldata)
+
 
 def all_boollike(coldata):
     for x in coldata:

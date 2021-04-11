@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -75,6 +75,22 @@ static size_t parse_as_X(const Column& inputcol, Buffer& mbuf, size_t i0,
 
 
 //------------------------------------------------------------------------------
+// Void
+//------------------------------------------------------------------------------
+
+static size_t parse_as_void(const Column& inputcol) {
+  size_t i = 0;
+  py::oobj item;
+  for (; i < inputcol.nrows(); ++i) {
+    inputcol.get_element(i, &item);
+    if (!item.is_none()) break;
+  }
+  return i;
+}
+
+
+
+//------------------------------------------------------------------------------
 // Boolean
 //------------------------------------------------------------------------------
 
@@ -101,17 +117,18 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
  * fails for any reason (for example, method `__bool__()` raised an exception)
  * then the value will be converted into NA.
  */
-static void force_as_bool(const Column& inputcol, Buffer& mbuf)
+static Column force_as_bool(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  mbuf.resize(nrows);
-  auto outdata = static_cast<int8_t*>(mbuf.xptr());
+  Buffer data = Buffer::mem(nrows);
+  auto outdata = static_cast<int8_t*>(data.xptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     outdata[i] = item.to_bool_force();
   }
+  return Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(data));
 }
 
 
@@ -177,11 +194,10 @@ static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
  * as C++'s `static_cast<T>`).
  */
 template <typename T>
-static void force_as_int(const Column& inputcol, Buffer& membuf)
-{
+static Column force_as_int(const Column& inputcol) {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(T));
+  auto outdata = static_cast<T*>(databuf.wptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
@@ -193,6 +209,7 @@ static void force_as_int(const Column& inputcol, Buffer& membuf)
     py::oint litem = item.to_pyint_force();
     outdata[i] = litem.mvalue<T>();
   }
+  return Column::new_mbuf_column(nrows, dt::stype_from<T>, std::move(databuf));
 }
 
 
@@ -226,11 +243,11 @@ static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
 
 
 template <typename T>
-static void force_as_real(const Column& inputcol, Buffer& membuf)
+static Column force_as_real(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(T));
-  T* outdata = static_cast<T*>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(T));
+  auto outdata = static_cast<T*>(databuf.xptr());
 
   int overflow = 0;
   py::oobj item;
@@ -250,7 +267,66 @@ static void force_as_real(const Column& inputcol, Buffer& membuf)
     outdata[i] = fitem.value<T>();
   }
   PyErr_Clear();  // in case an overflow occurred
+  return Column::new_mbuf_column(nrows, dt::stype_from<T>, std::move(databuf));
 }
+
+
+
+//------------------------------------------------------------------------------
+// Date32
+//------------------------------------------------------------------------------
+
+static size_t parse_as_date32(const Column& inputcol, Buffer& mbuf, size_t i0) {
+  return parse_as_X<int32_t>(inputcol, mbuf, i0,
+            [](const py::oobj& item, int32_t* out) {
+              return item.parse_date(out) ||
+                     item.parse_none(out);
+            });
+}
+
+
+static Column force_as_date32(const Column& inputcol) {
+  size_t nrows = inputcol.nrows();
+  Buffer databuf = Buffer::mem(nrows * sizeof(int32_t));
+  auto outdata = static_cast<int32_t*>(databuf.xptr());
+
+  int overflow = 0;
+  py::oobj item;
+  for (size_t i = 0; i < nrows; ++i) {
+    inputcol.get_element(i, &item);
+    if (item.is_date()) {
+      outdata[i] = item.to_odate().get_days();
+    }
+    else if (item.is_int()) {
+      outdata[i] = item.to_pyint().ovalue<int32_t>(&overflow);
+    }
+    else if (item.is_float()) {
+      outdata[i] = static_cast<int32_t>(item.to_double());
+    }
+    else {
+      outdata[i] = dt::GETNA<int32_t>();
+    }
+  }
+  PyErr_Clear();  // in case an overflow occurred
+  return Column::new_mbuf_column(nrows, dt::SType::DATE32, std::move(databuf));
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Time64
+//------------------------------------------------------------------------------
+
+static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
+  return parse_as_X<int64_t>(inputcol, mbuf, i0,
+            [](const py::oobj& item, int64_t* out) {
+              return item.parse_datetime(out) ||
+                     item.parse_date(out) ||
+                     item.parse_none(out);
+            });
+}
+
 
 
 
@@ -340,21 +416,18 @@ static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
  * `int32_t`.
  */
 template <typename T>
-static void force_as_str(const Column& inputcol, Buffer& offbuf,
-                         Buffer& strbuf)
+static Column force_as_str(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
   if (nrows > std::numeric_limits<T>::max()) {
     throw ValueError()
       << "Cannot store " << nrows << " elements in a str32 column";
   }
-  offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
-  offsets[-1] = 0;
-  if (!strbuf) {
-    strbuf.resize(nrows * 4);
-  }
+  Buffer strbuf = Buffer::mem(nrows * 4);
+  Buffer offbuf = Buffer::mem((nrows + 1) * sizeof(T));
   char* strptr = static_cast<char*>(strbuf.xptr());
+  auto offsets = static_cast<T*>(offbuf.xptr()) + 1;
+  offsets[-1] = 0;
 
   T curr_offset = 0;
   py::oobj item;
@@ -397,6 +470,7 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
     }
   }
   strbuf.resize(curr_offset);
+  return Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
 }
 
 
@@ -405,27 +479,25 @@ static void force_as_str(const Column& inputcol, Buffer& offbuf,
 // Object
 //------------------------------------------------------------------------------
 
-static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
+static Column force_as_pyobj(const Column& inputcol)
 {
   size_t nrows = inputcol.nrows();
-  membuf.resize(nrows * sizeof(PyObject*));
-  PyObject** outdata = static_cast<PyObject**>(membuf.wptr());
+  Buffer databuf = Buffer::mem(nrows * sizeof(PyObject*));
+  auto out = static_cast<PyObject**>(databuf.xptr());
 
   py::oobj item;
   for (size_t i = 0; i < nrows; ++i) {
     inputcol.get_element(i, &item);
     if (item.is_float() && std::isnan(item.to_double())) {
-      outdata[i] = py::None().release();
+      out[i] = py::None().release();
     } else {
-      outdata[i] = py::oobj(item).release();
+      out[i] = std::move(item).release();
     }
   }
-  return nrows;
+  databuf.set_pyobjects(/* clear_data = */ false);
+  return Column::new_mbuf_column(nrows, dt::SType::OBJ, std::move(databuf));
 }
 
-
-// No "force" method, because `parse_as_pyobj()` is already capable of
-// processing any pylist.
 
 
 
@@ -433,86 +505,154 @@ static size_t parse_as_pyobj(const Column& inputcol, Buffer& membuf)
 // Parse controller
 //------------------------------------------------------------------------------
 
-static dt::SType find_next_stype(dt::SType curr_stype, int stype0) {
-  int istype = static_cast<int>(curr_stype);
-  if (stype0 > 0) {
-    return static_cast<dt::SType>(stype0);
+static const std::vector<dt::SType>& successors(dt::SType stype) {
+  using styvec = std::vector<dt::SType>;
+  static styvec s_void = {
+    dt::SType::BOOL, dt::SType::INT8, dt::SType::INT16, dt::SType::INT32,
+    dt::SType::INT64, dt::SType::FLOAT32, dt::SType::FLOAT64, dt::SType::STR32,
+    dt::SType::DATE32, dt::SType::TIME64
+  };
+  static styvec s_bool8 = {dt::SType::INT8, dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int8  = {dt::SType::INT16, dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int16 = {dt::SType::INT32, dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int32 = {dt::SType::INT64, dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_int64 = {dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_float32 = {dt::SType::FLOAT64, dt::SType::STR32};
+  static styvec s_float64 = {dt::SType::STR32};
+  static styvec s_str32 = {dt::SType::STR64};
+  static styvec s_str64 = {};
+  static styvec s_date32 = {dt::SType::TIME64};
+  static styvec s_time64 = {};
+
+  switch (stype) {
+    case dt::SType::VOID:    return s_void;
+    case dt::SType::BOOL:    return s_bool8;
+    case dt::SType::INT8:    return s_int8;
+    case dt::SType::INT16:   return s_int16;
+    case dt::SType::INT32:   return s_int32;
+    case dt::SType::INT64:   return s_int64;
+    case dt::SType::FLOAT32: return s_float32;
+    case dt::SType::FLOAT64: return s_float64;
+    case dt::SType::STR32:   return s_str32;
+    case dt::SType::STR64:   return s_str64;
+    case dt::SType::DATE32:  return s_date32;
+    case dt::SType::TIME64:  return s_time64;
+    default:
+      throw RuntimeError() << "Unknown successors of type " << stype;  // LCOV_EXCL_LINE
   }
-  if (stype0 < 0) {
-    return static_cast<dt::SType>(std::min(istype + 1, -stype0));
-  }
-  if (istype == dt::STYPES_COUNT - 1) {
-    return curr_stype;
-  }
-  return static_cast<dt::SType>((istype + 1) % int(dt::STYPES_COUNT));
 }
 
 
-
-static Column resolve_column(const Column& inputcol, int stype0)
-{
-  Buffer membuf;
-  Buffer strbuf;
-  dt::SType stype = find_next_stype(dt::SType::VOID, stype0);
+/**
+  * Parse `inputcol`, auto-detecting its stype.
+  */
+static Column parse_column_auto_type(const Column& inputcol) {
+  xassert(inputcol.type().is_object());
+  Buffer databuf, strbuf;
   size_t nrows = inputcol.nrows();
-  size_t i = 0;
-  while (stype != dt::SType::VOID) {
-    dt::SType next_stype = find_next_stype(stype, stype0);
-    if (stype == next_stype) {
-      switch (stype) {
-        case dt::SType::BOOL:    force_as_bool(inputcol, membuf); break;
-        case dt::SType::INT8:    force_as_int<int8_t>(inputcol, membuf); break;
-        case dt::SType::INT16:   force_as_int<int16_t>(inputcol, membuf); break;
-        case dt::SType::INT32:   force_as_int<int32_t>(inputcol, membuf); break;
-        case dt::SType::INT64:   force_as_int<int64_t>(inputcol, membuf); break;
-        case dt::SType::FLOAT32: force_as_real<float>(inputcol, membuf); break;
-        case dt::SType::FLOAT64: force_as_real<double>(inputcol, membuf); break;
-        case dt::SType::STR32:   force_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::STR64:   force_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::OBJ:     parse_as_pyobj(inputcol, membuf); break;
-        default:
-          throw RuntimeError()
-            << "Unable to create Column of type " << stype << " from list";
+
+  // We start with the VOID type, which is upwards-compatible with all other
+  // types.
+  dt::SType stype = dt::SType::VOID;
+  size_t i = parse_as_void(inputcol);
+  while (i < nrows) {
+    size_t j = i;
+    for (dt::SType next_stype : successors(stype)) {
+      switch (next_stype) {
+        case dt::SType::BOOL:    j = parse_as_bool(inputcol, databuf, i); break;
+        case dt::SType::INT8:    j = parse_as_int8(inputcol, databuf, i); break;
+        case dt::SType::INT16:   j = parse_as_int16(inputcol, databuf, i); break;
+        case dt::SType::INT32:   j = parse_as_int<int32_t>(inputcol, databuf, i); break;
+        case dt::SType::INT64:   j = parse_as_int<int64_t>(inputcol, databuf, i); break;
+        case dt::SType::FLOAT32: j = parse_as_float32(inputcol, databuf, i); break;
+        case dt::SType::FLOAT64: j = parse_as_float64(inputcol, databuf, i); break;
+        case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
+        case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
+        case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
+        case dt::SType::TIME64:  j = parse_as_time64(inputcol, databuf, i); break;
+        default: continue;  // try another stype
       }
-      break; // while(stype)
-    } else {
-      switch (stype) {
-        case dt::SType::BOOL:    i = parse_as_bool(inputcol, membuf, i); break;
-        case dt::SType::INT8:    i = parse_as_int8(inputcol, membuf, i); break;
-        case dt::SType::INT16:   i = parse_as_int16(inputcol, membuf, i); break;
-        case dt::SType::INT32:   i = parse_as_int<int32_t>(inputcol, membuf, i); break;
-        case dt::SType::INT64:   i = parse_as_int<int64_t>(inputcol, membuf, i); break;
-        case dt::SType::FLOAT32: i = parse_as_float32(inputcol, membuf, i); break;
-        case dt::SType::FLOAT64: i = parse_as_float64(inputcol, membuf, i); break;
-        case dt::SType::STR32:   i = parse_as_str<uint32_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::STR64:   i = parse_as_str<uint64_t>(inputcol, membuf, strbuf); break;
-        case dt::SType::OBJ:     i = parse_as_pyobj(inputcol, membuf); break;
-        default: /* do nothing -- not all STypes are currently implemented. */ break;
+      if (j != i) {
+        stype = next_stype;
+        break;
       }
-      if (i == nrows) break;
-      stype = next_stype;
     }
+    if (j == i) {
+      py::oobj item;
+      inputcol.get_element(i, &item);
+      auto err = TypeError();
+      err << "Cannot create column from a python list: element at index "
+          << i << " is of type " << item.typeobj();
+      if (i) {
+        err << ", while previous elements had type `" << stype;
+      }
+      err << "`. If you meant to create a column of type obj64, then you must "
+             "request this type explicitly";
+      throw err;
+    }
+    i = j;
   }
   if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
-    return Column::new_string_column(nrows, std::move(membuf), std::move(strbuf));
+    return Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
+  }
+  else if (stype == dt::SType::VOID) {
+    return Column::new_na_column(nrows, dt::SType::VOID);
   }
   else {
-    if (stype == dt::SType::OBJ) {
-      membuf.set_pyobjects(/* clear_data = */ false);
-    }
-    return Column::new_mbuf_column(nrows, stype, std::move(membuf));
+    return Column::new_mbuf_column(nrows, stype, std::move(databuf));
   }
 }
 
 
-Column Column::from_pylist(const py::olist& list, int stype0) {
+/**
+  * Parse `inputcol` forcing it into the specific stype.
+  */
+static Column parse_column_fixed_type(const Column& inputcol, dt::SType stype) {
+  switch (stype) {
+    case dt::SType::VOID:    return Column::new_na_column(inputcol.nrows(), dt::SType::VOID);
+    case dt::SType::BOOL:    return force_as_bool(inputcol);
+    case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
+    case dt::SType::INT16:   return force_as_int<int16_t>(inputcol);
+    case dt::SType::INT32:   return force_as_int<int32_t>(inputcol);
+    case dt::SType::INT64:   return force_as_int<int64_t>(inputcol);
+    case dt::SType::FLOAT32: return force_as_real<float>(inputcol);
+    case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
+    case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
+    case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
+    case dt::SType::DATE32:  return force_as_date32(inputcol);
+    case dt::SType::OBJ:     return force_as_pyobj(inputcol);
+    default:
+      throw ValueError() << "Unable to create Column of type `"
+                         << stype << "` from list";
+  }
+}
+
+
+static Column resolve_column(const Column& inputcol, dt::SType stype0)
+{
+  if (stype0 == dt::SType::AUTO) {
+    return parse_column_auto_type(inputcol);
+  }
+  else {
+    return parse_column_fixed_type(inputcol, stype0);
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Column API
+//------------------------------------------------------------------------------
+
+Column Column::from_pylist(const py::olist& list, dt::SType stype0) {
   Column inputcol(new dt::PyList_ColumnImpl(list));
   return resolve_column(inputcol, stype0);
 }
 
 
 Column Column::from_pylist_of_tuples(
-    const py::olist& list, size_t index, int stype0)
+    const py::olist& list, size_t index, dt::SType stype0)
 {
   Column inputcol(new dt::PyTupleList_ColumnImpl(list, index));
   return resolve_column(inputcol, stype0);
@@ -520,18 +660,12 @@ Column Column::from_pylist_of_tuples(
 
 
 Column Column::from_pylist_of_dicts(
-    const py::olist& list, py::robj name, int stype0)
+    const py::olist& list, py::robj name, dt::SType stype0)
 {
   Column inputcol(new dt::PyDictList_ColumnImpl(list, name));
   return resolve_column(inputcol, stype0);
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// Create from range
-//------------------------------------------------------------------------------
 
 Column Column::from_range(
     int64_t start, int64_t stop, int64_t step, dt::SType stype)

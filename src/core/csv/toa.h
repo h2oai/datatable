@@ -1,9 +1,23 @@
 //------------------------------------------------------------------------------
-// This Source Code Form is subject to the terms of the Mozilla Public
-// License, v. 2.0. If a copy of the MPL was not distributed with this
-// file, You can obtain one at http://mozilla.org/MPL/2.0/.
+// Copyright 2018-2021 H2O.ai
 //
-// © H2O.ai 2018
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #ifndef dt_CSV_TOA_h
 #define dt_CSV_TOA_h
@@ -11,61 +25,23 @@
 #include "csv/itoa.h"   // itoa, ltoa
 
 
-inline void btoa(char** pch, int8_t value)
-{
-  char* ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  if (value >= 100) {  // the range of `value` is up to 128
-    *ch++ = '1';
-    int d = value/10;
-    *ch++ = static_cast<char>(d) - 10 + '0';
-    value -= static_cast<int8_t>(d*10);
-  } else if (value >= 10) {
-    int d = value/10;
-    *ch++ = static_cast<char>(d) + '0';
-    value -= static_cast<int8_t>(d*10);
-  }
-  *ch++ = static_cast<char>(value) + '0';
-  *pch = ch;
-}
-
-
-inline void htoa(char** pch, int16_t value)
-{
-  if (value == 0) {
-    *((*pch)++) = '0';
-    return;
-  }
-  char* ch = *pch;
-  if (value < 0) {
-    *ch++ = '-';
-    value = -value;
-  }
-  unsigned int r = (value < 1000)? 2 : 4;
-  for (; value < DIVS32[r]; r--);
-  for (; r; r--) {
-    int d = value / DIVS32[r];
-    *ch++ = static_cast<char>(d) + '0';
-    value -= static_cast<int16_t>(d * DIVS32[r]);
-  }
-  *ch = static_cast<char>(value) + '0';
-  *pch = ch + 1;
-}
-
+void int8_toa(char** pch, int8_t value);
+void int16_toa(char** pch, int16_t value);
+void date32_toa(char** pch, int32_t value);
+void time64_toa(char** pch, int64_t value);
 
 
 //---- Generic -----------------------------------------------------------------
 
 template<typename T>
            inline void toa(char**, T)              { }
-template<> inline void toa(char** pch, int8_t x)   { btoa(pch, x); }
-template<> inline void toa(char** pch, int16_t x)  { htoa(pch, x); }
+template<> inline void toa(char** pch, int8_t x)   { int8_toa(pch, x); }
+template<> inline void toa(char** pch, int16_t x)  { int16_toa(pch, x); }
 template<> inline void toa(char** pch, int32_t x)  { itoa(pch, x); }
 template<> inline void toa(char** pch, int64_t x)  { ltoa(pch, x); }
 template<> inline void toa(char** pch, float x)    { ftoa(pch, x); }
 template<> inline void toa(char** pch, double x)   { dtoa(pch, x); }
+
+
 
 #endif

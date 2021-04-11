@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 #define dt__DT_h
 #include <cstddef>      // std::size_t
 #include <cstdint>      // uint8_t
+#include <exception>    // std::exception_ptr
 #include <memory>       // std::unique_ptr
 #include <string>       // std::string
 #include <utility>      // std::move, std::pair
@@ -51,7 +52,10 @@ namespace dt {
   struct ArrowSchema;
   class OArrowArray;
   class OArrowSchema;
+  class Type;
 }
+
+extern std::exception_ptr getbuffer_exception; // Declared in __getbuffer__.cc
 
 
 using std::size_t;
@@ -73,6 +77,8 @@ namespace py {
   class buffer;  // in pybuffer.h
   class obool;
   class oby;
+  class odate;
+  class odatetime;
   class odict;
   class ofloat;
   class oint;
@@ -113,7 +119,6 @@ namespace dt {
 namespace read {
   enum PT : uint8_t;
   enum RT : uint8_t;
-  enum BT : uint8_t;
 
   struct ParseContext;
   union field64;
