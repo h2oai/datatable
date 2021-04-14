@@ -5,7 +5,7 @@ Selecting Data
 Selecting Data - Columns
 ------------------------
 
-Column selection is via the `j` section in the ``DT[i, j, ...]`` syntax. First, let's construct a simple Frame::
+Column selection is via the `j` section in the ``DT[i, j, ...]`` syntax. First, let's construct a simple `Frame`_::
 
    >>> from datatable import dt, f
    >>> from datetime import date
@@ -428,15 +428,6 @@ All the selection options above (except boolean) are also possible via :ref:`f-e
     2 |        3     12.3  NA     
     3 |        4    -13    D      
    [4 rows x 3 columns]
-   ... DT[:, f['integers'::]] 
-      | integers   floats  strings
-      |    int32  float64  str32  
-   -- + --------  -------  -------
-    0 |        1     10    A      
-    1 |        2     11.5  B      
-    2 |        3     12.3  NA     
-    3 |        4    -13    D      
-   [4 rows x 3 columns]
    ... DT[:, f['integers':]]
       | integers   floats  strings
       |    int32  float64  str32  
@@ -611,7 +602,7 @@ Any acceptable sequence of positions is applicable here. Listed below are some (
 
 
 .. note:: The `set`_ sequence is not acceptable in the ``i`` or ``j`` sections.
-.. note:: Except for lists/tuples, all the other sequence types passed into the `i` section can only contain positive integers.
+.. note:: Except for ``lists``/``tuples``, all the other sequence types passed into the ``i`` section can only contain positive integers.
 
 Via Booleans
 ^^^^^^^^^^^^
@@ -831,7 +822,7 @@ Passing single integers into the ``i`` and ``j`` sections returns a scalar value
 Deselect Rows/Columns
 ---------------------
 
-Deselection of rows/columns is possible via `list comprehension`_/`generator expression`_, which either return boolean sequences, or the exact column names/positions/data types
+Deselection of rows/columns is possible via `list comprehension`_/`generator expression`_
 
 - Deselect a Single Column/Row::
 
