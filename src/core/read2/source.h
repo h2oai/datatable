@@ -96,10 +96,11 @@ class Source_Result : public Source
 class Source_Text : public Source
 {
   private:
-    py::oobj src_;
+    const py::oobj src_;
 
   public:
-    Source_Text(py::robj textsrc);
+    Source_Text(const py::robj textsrc)
+      : Source("<text>"), src_(textsrc) {}
     // py::oobj read(GenericReader&) override;
 };
 

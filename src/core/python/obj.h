@@ -187,6 +187,7 @@ class _obj {
     bool is_pandas_categorical() const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
+    bool is_pathlike()      const noexcept;
     bool is_pytype()        const noexcept;
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
@@ -387,6 +388,8 @@ robj rstdout();
 robj rstderr();
 robj rnone();
 
+inline oobj import(const char* module) { return oobj::import(module); }
+inline oobj import(const char* module, const char* symbol) { return oobj::import(module, symbol); }
 
 /**
   * Write the string to python's `sys.stdout`, or if it is absent,

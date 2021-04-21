@@ -260,6 +260,11 @@ bool _obj::is_update_node() const noexcept {
   return py::oupdate::check(v);
 }
 
+bool _obj::is_pathlike() const noexcept {
+  auto osPathLike = oobj::import("os", "PathLike");
+  return PyObject_IsInstance(v, osPathLike.v);
+}
+
 bool _obj::is_pandas_categorical() const noexcept {
   if (!pandas_Categorical_type) init_pandas();
   if (!v || !pandas_Categorical_type) return false;
