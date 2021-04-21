@@ -30,12 +30,12 @@ namespace read2 {
 using SourcePtr = std::unique_ptr<Source>;
 using SourceVec = std::vector<SourcePtr>;
 
-static SourceVec _fromAny(const py::robj);
-static SourceVec _fromFile(const py::robj);
-static SourceVec _fromText(const py::robj);
-static SourceVec _fromCmd(const py::robj);
-static SourceVec _fromUrl(const py::robj);
-static SourceVec _fromGlob(const py::robj);
+static void _fromAny(const py::robj, SourceVec&);
+static void _fromFile(const py::robj, SourceVec&);
+static void _fromText(const py::robj, SourceVec&);
+static void _fromCmd(const py::robj, SourceVec&);
+static void _fromUrl(const py::robj, SourceVec&);
+static void _fromGlob(const py::robj, SourceVec&);
 
 
 
@@ -62,11 +62,11 @@ MultiSource::MultiSource(
                     argCmd_defined +
                     argUrl_defined;
   if (total == 1) {
-    if (arg0_defined)    sources_ = _fromAny(arg0);
-    if (argFile_defined) sources_ = _fromFile(argFile);
-    if (argText_defined) sources_ = _fromText(argText);
-    if (argCmd_defined)  sources_ = _fromCmd(argCmd);
-    if (argUrl_defined)  sources_ = _fromUrl(argUrl);
+    if (arg0_defined)    _fromAny(arg0, sources_);
+    if (argFile_defined) _fromFile(argFile, sources_);
+    if (argText_defined) _fromText(argText, sources_);
+    if (argCmd_defined)  _fromCmd(argCmd, sources_);
+    if (argUrl_defined)  _fromUrl(argUrl, sources_);
   }
   else if (total == 0) {
     throw TypeError() << "No input source for " << fnName << " was given";
@@ -136,31 +136,30 @@ static bool _looks_like_glob(const CString& text, char* evidence) {
 }
 
 
-static SourceVec _fromAny(const py::robj src) {
+static void _fromAny(const py::robj src, SourceVec& out) {
   if (src.is_string() || src.is_bytes()) {
     auto cstr = src.to_cstring();
     if (cstr.size() >= 4096) {
       // LOG() << "Input is a string of length " << cstr.size()
       //       << " => assume it's a text source";
-      return _fromText(src);
+      return _fromText(src, out);
     }
     char c;
     if (_has_control_characters(cstr, &c)) {
       // LOG() << "Input contains character '" << c << "'"
       //       << " => assume it's a text source";
-      return _fromText(src);
+      return _fromText(src, out);
     }
     if (_looks_like_url(cstr)) {
       // LOG() << "Input looks like a URL";
-      return _fromUrl(src);
+      return _fromUrl(src, out);
     }
     if (_looks_like_glob(cstr, &c)) {
       // LOG() << "Input contains character '" << c << "'"
       //       << " => assuming it's a glob pattern";
-      return _fromGlob(src);
+      return _fromGlob(src, out);
     }
   }
-  return SourceVec();
 }
 
 
@@ -169,7 +168,7 @@ static SourceVec _fromAny(const py::robj src) {
 // from File
 //------------------------------------------------------------------------------
 
-static SourceVec _fromFile(const py::robj src) {
+static void _fromFile(const py::robj src, SourceVec& out) {
   // Case 1: src is a filename (str|bytes|PathLike)
   if (src.is_string() || src.is_bytes() || src.is_pathlike()) {
     auto pyFileName = py::oobj::import("os.path", "expanduser").call({src});
@@ -204,8 +203,7 @@ static SourceVec _fromFile(const py::robj src) {
     // provided by the `fnRead`.
     // Returned source is stream source.
   }
-  (void) src;
-  return SourceVec();
+  (void) out;
 }
 
 
@@ -235,18 +233,17 @@ static SourceVec _fromFile(const py::robj src) {
 // Stream objects can be chained one after another into a single pipe.
 //
 
+
 //------------------------------------------------------------------------------
 // from Text
 //------------------------------------------------------------------------------
 
-static SourceVec _fromText(const py::robj src) {
+static void _fromText(const py::robj src, SourceVec& out) {
   if (!(src.is_string() || src.is_bytes())) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, instead got " << src.typeobj();
   }
-  SourceVec out;
   out.emplace_back(new Source_Text(src));
-  return out;
 }
 
 
@@ -255,9 +252,9 @@ static SourceVec _fromText(const py::robj src) {
 // from Cmd
 //------------------------------------------------------------------------------
 
-static SourceVec _fromCmd(const py::robj src) {
+static void _fromCmd(const py::robj src, SourceVec& out) {
   (void) src;
-  return SourceVec();
+  (void) out;
 }
 
 
@@ -266,9 +263,9 @@ static SourceVec _fromCmd(const py::robj src) {
 // from Url
 //------------------------------------------------------------------------------
 
-static SourceVec _fromUrl(const py::robj src) {
+static void _fromUrl(const py::robj src, SourceVec& out) {
   (void) src;
-  return SourceVec();
+  (void) out;
 }
 
 
@@ -277,11 +274,10 @@ static SourceVec _fromUrl(const py::robj src) {
 // from Glob
 //------------------------------------------------------------------------------
 
-static SourceVec _fromGlob(const py::robj src) {
+static void _fromGlob(const py::robj src, SourceVec& out) {
   auto globFn = py::import("glob", "glob");
   auto filesList = globFn.call({src}).to_pylist();
   auto n = filesList.size();
-  SourceVec out;
   if (n == 0) {
     // [TODO]
     // Check whether this is a glob inside an archive:
@@ -296,14 +292,9 @@ static SourceVec _fromGlob(const py::robj src) {
     // LOG() << "Glob pattern resolved into " << n << " file(s):";
     for (size_t i = 0; i < n; i++) {
       // LOG() << "  " << filesList[i].to_cstring();
-      auto resolved = _fromFile(filesList[i]);
-      out.insert(out.end(),
-          std::make_move_iterator(resolved.begin()),
-          std::make_move_iterator(resolved.end())
-      );
+      _fromFile(filesList[i], out);
     }
   }
-  return out;
 }
 
 
