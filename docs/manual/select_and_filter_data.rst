@@ -94,24 +94,14 @@ With position, you can select with a negative number - the column will be select
 .. note:: When selecting via column name or position, an error is returned if the name or position does not exist
 
    >>> DT[:, 5]
-   >>> ---------------------------------------------------------------------------
-   >>> ValueError                                Traceback (most recent call last)
-   >>> <ipython-input-63-c0dafcf7de2e> in <module>
-   >>> ----> 1 DT[:, 5]
-   >>>
    >>> ValueError: Column index 5 is invalid for a Frame with 4 columns
 
    >>> DT[:, 'categoricals']
-   >>> ---------------------------------------------------------------------------
-   >>> KeyError                                  Traceback (most recent call last)
-   >>> <ipython-input-64-0b4834f1b510> in <module>
-   >>> ----> 1 DT[:, 'categoricals']
-   >>>
    >>> KeyError: Column categoricals does not exist in the Frame
 
 By Data Type
 ^^^^^^^^^^^^
-Column selection is possible by using python's `built-in types`_:
+Column selection is possible by using python's `built-in types`_ that have corresponding datatable `ltype`_:
 ::
 
    >>> DT[:, int]
@@ -199,11 +189,6 @@ Selection via `list comprehension`_/`generator expression`_ is possible::
 .. note:: Selecting columns via a mix of column names and position(integers) is not allowed in datatable.
 
    >>> DT[:, ['dates', 2]]
-   >>> ---------------------------------------------------------------------------
-   >>> TypeError                                 Traceback (most recent call last)
-   >>> <ipython-input-82-af15fff98d55> in <module>
-   >>> ----> 1 DT[:, ['dates', 2]]
-   >>>
    >>> TypeError: Mixed selector types are not allowed. 
    >>>            Element 1 is of type integer, 
    >>>            whereas the previous element(s) were of type string
@@ -213,7 +198,7 @@ Via slicing
 When slicing on strings, both the ``start`` and ``end`` column names are included in the returned frame
 ::
 
-   >>> DT[:, 'dates' : 'strings']
+   >>> DT[:, 'dates':'strings']
       | dates       integers   floats  strings
       | date32         int32  float64  str32  
    -- + ----------  --------  -------  -------
@@ -225,7 +210,7 @@ When slicing on strings, both the ``start`` and ``end`` column names are include
 
 However, when slicing via position, the columns are returned up to, but not including the final position; this is similar to the slicing pattern for Python's sequences
 
-   >>> DT[:, 1 : 3] 
+   >>> DT[:, 1:3] 
       | integers   floats
       |    int32  float64
    -- + --------  -------
@@ -247,7 +232,7 @@ However, when slicing via position, the columns are returned up to, but not incl
 
 It is possible to select columns via slicing, even if the indices are not in the `Frame`_::
 
-   >>> DT[:, 3 : 10] # there are only four columns in the Frame
+   >>> DT[:, 3:10] # there are only four columns in the Frame
       | strings
       | str32  
    -- + -------
@@ -260,11 +245,6 @@ It is possible to select columns via slicing, even if the indices are not in the
 This fails though for string slicing::
 
    >>> DT[:, "integers" : "categoricals"]
-   >>> ---------------------------------------------------------------------------
-   >>> KeyError                                  Traceback (most recent call last)
-   >>> <ipython-input-113-c2a5329efa74> in <module>
-   >>> ----> 1 DT[:, "integers" : "categoricals"]
-   >>>
    >>> KeyError: Column categoricals does not exist in the Frame
 
 Slicing is also possible with the ``slice`` function::
@@ -315,11 +295,6 @@ Slicing on strings can be combined with column names during selection::
 But not with integers::
 
    >>> DT[:, [slice("integers", "dates"), 1]]
-   >>> ---------------------------------------------------------------------------
-   >>> TypeError                                 Traceback (most recent call last)
-   >>> <ipython-input-101-00a92609c193> in <module>
-   >>> ----> 1 DT[:, [slice("integers", "dates"), 1]]
-   >>>
    >>> TypeError: Mixed selector types are not allowed. 
    ...            Element 1 is of type integer, 
    ...            whereas the previous element(s) were of type string
@@ -339,18 +314,9 @@ Slicing on position can be combined with column position::
 But not with strings::
 
    >>> DT[:, [slice(1, 3), "dates"]]
-   >>> ---------------------------------------------------------------------------
-   >>> TypeError                                 Traceback (most recent call last)
-   >>> <ipython-input-146-05c4800ff18a> in <module>
-   >>> ----> 1 DT[:, [slice(1, 3), "dates"]]
-   >>>
    >>> TypeError: Mixed selector types are not allowed. 
    ...            Element 1 is of type string, 
    ...            whereas the previous element(s) were of type integer
-
-
-
-   
 
 Via Booleans
 ^^^^^^^^^^^^
@@ -419,7 +385,7 @@ All the selection options above (except boolean) are also possible via :ref:`f-e
     2 | NA     
     3 | D      
    [4 rows x 1 column]
-   ... DT[:, f['integers' : 'strings']]
+   ... DT[:, f['integers':'strings']]
       | integers   floats  strings
       |    int32  float64  str32  
    -- + --------  -------  -------
@@ -455,7 +421,7 @@ All the selection options above (except boolean) are also possible via :ref:`f-e
     2 | 2020-02-29         3     12.3
     3 | NA                 4    -13  
    [4 rows x 3 columns]
-   ... DT[:, f["dates" : "integers", "floats" : "strings"]]
+   ... DT[:, f["dates":"integers", "floats":"strings"]]
       | dates       integers   floats  strings
       | date32         int32  float64  str32  
    -- + ----------  --------  -------  -------
@@ -593,11 +559,6 @@ Any acceptable sequence of positions is applicable here. Listed below are some (
 .. note:: If the position passed to ``i`` does not exist, an error is returned
 
    >>> In [20]: DT[(num for num in range(7)), :]
-   >>> ---------------------------------------------------------------------------
-   >>> ValueError                                Traceback (most recent call last)
-   >>> <ipython-input-20-ebe1528be044> in <module>
-   >>> ----> 1 DT[(num for num in range(7)), :]
-   >>>
    >>> ValueError: Index 4 is invalid for a Frame with 4 rows
 
 
@@ -632,7 +593,7 @@ Via slicing
 Slicing works similarly to slicing a python ``list``
 ::
 
-   >>> DT[1 : 3, :] 
+   >>> DT[1:3, :] 
       | dates       integers   floats  strings
       | date32         int32  float64  str32  
    -- + ----------  --------  -------  -------
@@ -650,7 +611,7 @@ Slicing works similarly to slicing a python ``list``
     3 | 2000-01-05         1     10    A      
    [4 rows x 4 columns]
 
-   ... DT[-1 : -3 : -1, :]
+   ... DT[-1:-3:-1, :]
       | dates       integers   floats  strings
       | date32         int32  float64  str32  
    -- + ----------  --------  -------  -------
@@ -1005,7 +966,7 @@ Columns can also be deselected via the `remove`_ method, where the column name, 
    11 |        4    -13    D      
    [12 rows x 3 columns]
 
-   >>> DT[:, f[:].remove(f[1 : 3])]
+   >>> DT[:, f[:].remove(f[1:3])]
       | dates       strings
       | date32      str32  
    -- + ----------  -------
@@ -1023,7 +984,7 @@ Columns can also be deselected via the `remove`_ method, where the column name, 
    11 | NA          D      
    [12 rows x 2 columns]
 
-   >>> DT[:, f[:].remove(f['strings' : 'integers'])]
+   >>> DT[:, f[:].remove(f['strings':'integers'])]
       | dates     
       | date32    
    -- + ----------
@@ -1082,11 +1043,11 @@ Columns can also be deselected via the `remove`_ method, where the column name, 
 Delete Rows/Columns
 -------------------
 
-To actually delete the row/column, use the `del`_ statement; this is an in-place operation, and as such no reassignment is needed
+To actually delete a row( or a column), use the `del`_ statement; this is an in-place operation, and as such no reassignment is needed
 
 - Delete Multiple Rows::
 
-   >>> del DT[3 : 7, :]
+   >>> del DT[3:7, :]
    >>>
    >>> DT 
       | dates       integers   floats  strings
@@ -1165,7 +1126,7 @@ To actually delete the row/column, use the `del`_ statement; this is an in-place
 .. _`generator expression`: https://docs.python.org/3/reference/expressions.html?highlight=generator#generator-expressions
 .. _`Frame`: https://datatable.readthedocs.io/en/latest/api/frame.html
 .. _`set`: https://docs.python.org/3/tutorial/datastructures.html#sets
-.. _`remove`: file:///home/sam/Documents/documentation/datatable/docs/_build/html/manual/f-expressions.html#modifying-a-columnset
+.. _`remove`: https://datatable.readthedocs.io/en/latest/manual/f-expressions.html#modifying-a-columnset
 .. _`built-in types`: https://docs.python.org/3/library/stdtypes.html#built-in-types
 .. _`stype`: https://datatable.readthedocs.io/en/latest/api/stype.html
 .. _`ltype`: https://datatable.readthedocs.io/en/latest/api/ltype.html
