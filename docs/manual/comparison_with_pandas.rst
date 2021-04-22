@@ -34,6 +34,23 @@ and datatable ``Frame``.
 Row and Column Selection
 ------------------------
 
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
+
+    Select **a single** row
+    ----
+    .. code-block:: R
+
+        df.loc[2]
+
+    ----
+    .. code-block::
+
+        DT[2, :]
+
+
+
 =================================================  ============================================
 pandas                                              datatable
 =================================================  ============================================
