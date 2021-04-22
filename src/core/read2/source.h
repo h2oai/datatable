@@ -48,7 +48,7 @@ class Source
     // Each source has a name (the names need not be unique) which
     // attempts to identify the origin of the object. This name will
     // be carried in the `.source` attribute of the frame produced.
-    const std::string& name() const;
+    const std::string& name() const { return name_; }
 
     // Main Source function, it will read the data from the
     // referenced input source, and return it as a python Frame
