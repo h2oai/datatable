@@ -121,19 +121,23 @@ indented, and there has to be an empty line between the ``.. code-block::``
 declaration and the actual code.
 
 When writing python code examples, the best practice is to use python console
-format, i.e. prepend all input lines with ``>>>``, and all output lines will
-have no prefix. For example:
+format, i.e. prepend all input lines with ``>>>`` (or ``...`` for continuation
+lines), and keep all output lines without a prefix. When documenting an error,
+remove all traceback information and leave only the error message:
 
 .. code-block:: rst
 
     >>> import datatable as dt
     >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
     >>> DT
-       |  A   B  D
-    -- + --  --  ----
-     0 |  5  17  zelo
-
+       |     A      B  D
+       | int32  int32  str32
+    -- + -----  -----  -----
+     0 |     5     17  zelo
     [1 row x 3 columns]
+
+    >>> DT.hello()
+    AttributeError: 'datatable.Frame' object has no attribute 'hello'
 
 This code snippet will be rendered as follows:
 
@@ -142,11 +146,14 @@ This code snippet will be rendered as follows:
     >>> import datatable as dt
     >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
     >>> DT
-       |  A   B  D
-    -- + --  --  ----
-     0 |  5  17  zelo
-
+       |     A      B  D
+       | int32  int32  str32
+    -- + -----  -----  -----
+     0 |     5     17  zelo
     [1 row x 3 columns]
+
+    >>> DT.hello()
+    AttributeError: 'datatable.Frame' object has no attribute 'hello'
 
 
 Hyperlinks
@@ -277,6 +284,32 @@ immeditately after a heading:
 
     .. seealso:: :ref:`columnsets`
 
+Directive ``.. x-comparison-table::`` allows to create a two-column table
+specifically designed for comparing two entities across multiple comparison
+points. It is primarily used to create the "compare datatable with another
+library" manual pages. The content of this directive is comprised of multiple
+"sections" separated with ``====``, and each section has 2 or 3 parts
+(separated with ``----``): an optional common header, then the content of the
+first column, and then the second:
+
+.. code-block:: rst
+
+    .. x-comparison-table::
+        :header1: datatable
+        :header2: another-library
+
+        Section 1 header
+        ----
+        Column 1
+        ----
+        Column 2
+
+        ====
+        Section 2 header
+        ----
+        Column 1
+        ----
+        Column 2
 
 
 Changelog support
@@ -337,6 +370,7 @@ The effect of this declaration is the following:
   and it should list the contributors who participated in creation of this
   particular release. The list of contributors is prepared using the script
   ``ci/gh.py``
+
 
 
 Documenting API
