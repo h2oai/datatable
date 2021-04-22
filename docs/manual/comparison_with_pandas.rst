@@ -520,15 +520,33 @@ Add new/update existing columns
 Rename columns
 --------------
 
-=======================================================  ===============================================================
-pandas                                                      datatable
-=======================================================  ===============================================================
-Rename a column
-``df = df.rename(columns={"A":"col_A"})``                    ``DT.names = {"A" : "col_A"}``
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
 
-Rename multiple columns
-``df = df.rename(columns={"A":"col_A", "B":"col_B"})``      ``DT.names = {"A" : "col_A", "B": "col_B"}``
-=======================================================  ===============================================================
+    Rename a column
+    ----
+    .. code-block::
+
+        df = df.rename(columns={"A": "col_A"})
+
+    ----
+    .. code-block::
+
+        DT.names = {"A": "col_A"}
+
+    ====
+    Rename multiple columns
+    ----
+    .. code-block::
+
+        df = df.rename(columns={"A": "col_A", "B": "col_B"})
+
+    ----
+    .. code-block::
+
+        DT.names = {"A": "col_A", "B": "col_B"}
+
 
 In datatable, you can select and rename columns at the same time, by passing
 a dictionary of :ref:`f-expressions` into the ``j`` section::
@@ -550,48 +568,124 @@ a dictionary of :ref:`f-expressions` into the ``j`` section::
 Delete Columns
 --------------
 
-=======================================================  ===============================================================
-pandas                                                      datatable
-=======================================================  ===============================================================
-Delete a column
-``del df['B']``                                                ``del DT['B']``
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
 
-Same as above
-``df = df.drop('B', axis=1)``                                 ``DT = DT[:, f[:].remove(f.B)]``
+    ====
+    Delete a column
+    ----
+    .. code-block::
 
-Remove multiple columns
-``df = df.drop(['B', 'C'], axis=1)``                         | ``del DT[: , ['B', 'C']]`` or
-                                                             | ``DT = DT[:, f[:].remove([f.B, f.C])]``
-=======================================================  ===============================================================
+        del df['B']
+
+    ----
+    .. code-block::
+
+        del DT['B']
+
+    ====
+    Same as above
+    ----
+    .. code-block::
+
+        df = df.drop('B', axis=1)
+
+    ----
+    .. code-block::
+
+        DT = DT[:, f[:].remove(f.B)]
+
+    ====
+    Remove multiple columns
+    ----
+    .. code-block::
+
+        df = df.drop(['B', 'C'], axis=1)
+
+    ----
+    .. code-block::
+
+        del DT[: , ['B', 'C']]   # or
+        DT = DT[:, f[:].remove([f.B, f.C])]
+
 
 
 
 Sorting
 -------
 
-===========================================================  ===============================================================
-pandas                                                       datatable
-===========================================================  ===============================================================
-Sort by a column - default ascending
-``df.sort_values('A')``                                       ``DT.sort('A')`` or ``DT[:, : , sort('A')]``
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
 
-Sort by a column - descending
-``df.sort_values('A',ascending=False)``                       | ``DT.sort(-f.A)`` or ``DT[:, :, sort(-f.A)]`` or
-                                                              | ``DT[:, :, sort('A', reverse=True)]``
+    Sort by a column -- default ascending
+    ----
+    .. code-block::
 
-Sort by multiple columns - default ascending
-``df.sort_values(['A','C'])``                                 ``DT.sort('A','C')`` or ``DT[:, :, sort('A','C')]``
+        df.sort_values('A')
 
-Sort by multiple columns - both descending
-``df.sort_values(['A','C'],ascending=[False,False])``         | ``DT.sort(-f.A, -f.C)`` or
-                                                              | ``DT[:, :, sort(-f.A, -f.C)]`` or
-                                                              | ``DT[:, :, sort('A', 'C', reverse=[True, True])]``
+    ----
+    .. code-block::
 
-Sort by multiple columns - different sort directions
-``df.sort_values(['A', 'C'], ascending=[True, False])``       | ``DT.sort(f.A, -f.C)`` or
-                                                              | ``DT[:, :, sort(f.A, -f.C)]`` or
-                                                              | ``DT[:, :, sort('A', 'C', reverse=[False, True])]``
-===========================================================  ===============================================================
+        DT.sort('A')                       # or
+        DT[:, : , sort('A')]
+
+    ====
+    Sort by a column -- descending
+    ----
+    .. code-block::
+
+        df.sort_values('A',ascending=False)
+
+    ----
+    .. code-block::
+
+        DT.sort(-f.A)                      # or
+        DT[:, :, sort(-f.A)]               # or
+        DT[:, :, sort('A', reverse=True)]
+
+    ====
+    Sort by multiple columns -- default ascending
+    ----
+    .. code-block::
+
+        df.sort_values(['A', 'C'])
+
+    ----
+    .. code-block::
+
+        DT.sort('A', 'C')                  # or
+        DT[:, :, sort('A', 'C')]
+
+    ====
+    Sort by multiple columns -- both descending
+    ----
+    .. code-block::
+
+        df.sort_values(['A','C'],ascending=[False,False])
+
+    ----
+    .. code-block::
+
+        DT.sort(-f.A, -f.C)                # or
+        DT[:, :, sort(-f.A, -f.C)]         # or
+        DT[:, :, sort('A', 'C', reverse=[True, True])]
+
+    ====
+    Sort by multiple columns -- different sort directions
+    ----
+    .. code-block::
+
+        df.sort_values(['A', 'C'], ascending=[True, False])
+
+    ----
+    .. code-block::
+
+        DT.sort(f.A, -f.C)                 # or
+        DT[:, :, sort(f.A, -f.C)]          # or
+        DT[:, :, sort('A', 'C', reverse=[False, True])]
+
 
 .. note::
 
@@ -636,33 +730,108 @@ Grouping and Aggregation
     [5 rows x 3 columns]
 
 
-===========================================================  ===============================================================
-pandas                                                         datatable
-===========================================================  ===============================================================
-Group by ``a`` and sum the other columns
-``df.groupby("a").agg("sum")``                                  ``DT[:, dt.sum(f[:]), by("a")]``
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
 
-Group by ``a`` and ``b`` and sum ``c``
-``df.groupby(["a", "b"]).agg("sum")``                           ``DT[:, dt.sum(f.c), by("a", "b")]``
+    ====
+    Group by column ``a`` and sum the other columns
+    ----
+    .. code-block::
 
-Get size per group
-``df.groupby("a").size()``                                      ``DT[:, dt.count(), by("a")]``
+        df.groupby("a").agg("sum")
 
-Grouping with multiple aggregation functions
-``df.groupby("a").agg({"b": "sum", "c": "mean"})``              | ``DT[:, {"b": dt.sum(f.b), "c": dt.mean(f.c)}, by("a")]``
+    ----
+    .. code-block::
 
-Get the first row per group
-``df.groupby("a").first()``                                     ``DT[0, :, by("a")]``
+        DT[:, dt.sum(f[:]), by("a")]
 
-Get the last row per group
-``df.groupby('a').last()``                                      ``DT[-1, :, by("a")]``
+    ====
+    Group by ``a`` and ``b`` and sum ``c``
+    ----
+    .. code-block::
 
-Get the first two rows per group
-``df.groupby("a").head(2)``                                     ``DT[:2, :, by("a")]``
+        df.groupby(["a", "b"]).agg("sum")
 
-Get the last two rows per group
-``df.groupby("a").tail(2)``                                     ``DT[-2:, :, by("a")]``
-===========================================================  ===============================================================
+    ----
+    .. code-block::
+
+        DT[:, dt.sum(f.c), by("a", "b")]
+
+
+    ====
+    Get size per group
+    ----
+    .. code-block::
+
+        df.groupby("a").size()
+
+    ----
+    .. code-block::
+
+        DT[:, dt.count(), by("a")]
+
+
+    ====
+    Grouping with multiple aggregation functions
+    ----
+    .. code-block::
+
+        df.groupby("a").agg({"b": "sum", "c": "mean"})
+
+    ----
+    .. code-block::
+
+        DT[:, {"b": dt.sum(f.b), "c": dt.mean(f.c)}, by("a")]
+
+    ====
+    Get the first row per group
+    ----
+    .. code-block::
+
+        df.groupby("a").first()
+
+    ----
+    .. code-block::
+
+        DT[0, :, by("a")]
+
+    ====
+    Get the last row per group
+    ----
+    .. code-block::
+
+        df.groupby('a').last()
+
+    ----
+    .. code-block::
+
+        DT[-1, :, by("a")]
+
+    ====
+    Get the first two rows per group
+    ----
+    .. code-block::
+
+        df.groupby("a").head(2)
+
+    ----
+    .. code-block::
+
+        DT[:2, :, by("a")]
+
+    ====
+    Get the last two rows per group
+    ----
+    .. code-block::
+
+        df.groupby("a").tail(2)
+
+    ----
+    .. code-block::
+
+        DT[-2:, :, by("a")]
+
 
 Transformations within groups in pandas is done using the `pd.transform`_
 function::
