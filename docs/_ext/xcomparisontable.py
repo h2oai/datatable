@@ -46,7 +46,7 @@ class XComparisonTableDirective(SphinxDirective):
     optional_arguments = 0
     option_spec = {
         "header1": directives.unchanged_required,
-        "header2": directives.unchanged,
+        "header2": directives.unchanged_required,
     }
 
     def run(self):
