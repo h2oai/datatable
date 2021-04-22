@@ -284,6 +284,32 @@ immeditately after a heading:
 
     .. seealso:: :ref:`columnsets`
 
+Directive ``.. x-comparison-table::`` allows to create a two-column table
+specifically designed for comparing two entities across multiple comparison
+points. It is primarily used to create the "compare datatable with another
+library" manual pages. The content of this directive is comprised of multiple
+"sections" separated with ``====``, and each section has 2 or 3 parts
+(separated with ``----``): an optional common header, then the content of the
+first column, and then the second:
+
+.. code-block:: rst
+
+    .. x-comparison-table::
+        :header1: datatable
+        :header2: another-library
+
+        Section 1 header
+        ----
+        Column 1
+        ----
+        Column 2
+
+        ====
+        Section 2 header
+        ----
+        Column 1
+        ----
+        Column 2
 
 
 Changelog support
@@ -344,6 +370,7 @@ The effect of this declaration is the following:
   and it should list the contributors who participated in creation of this
   particular release. The list of contributors is prepared using the script
   ``ci/gh.py``
+
 
 
 Documenting API
