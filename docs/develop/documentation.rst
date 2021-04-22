@@ -121,19 +121,23 @@ indented, and there has to be an empty line between the ``.. code-block::``
 declaration and the actual code.
 
 When writing python code examples, the best practice is to use python console
-format, i.e. prepend all input lines with ``>>>``, and all output lines will
-have no prefix. For example:
+format, i.e. prepend all input lines with ``>>>`` (or ``...`` for continuation
+lines), and keep all output lines without a prefix. When documenting an error,
+remove all traceback information and leave only the error message:
 
 .. code-block:: rst
 
     >>> import datatable as dt
     >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
     >>> DT
-       |  A   B  D
-    -- + --  --  ----
-     0 |  5  17  zelo
-
+       |     A      B  D
+       | int32  int32  str32
+    -- + -----  -----  -----
+     0 |     5     17  zelo
     [1 row x 3 columns]
+
+    >>> DT.hello()
+    AttributeError: 'datatable.Frame' object has no attribute 'hello'
 
 This code snippet will be rendered as follows:
 
@@ -142,11 +146,14 @@ This code snippet will be rendered as follows:
     >>> import datatable as dt
     >>> DT = dt.Frame(A=[5], B=[17], D=['zelo'])
     >>> DT
-       |  A   B  D
-    -- + --  --  ----
-     0 |  5  17  zelo
-
+       |     A      B  D
+       | int32  int32  str32
+    -- + -----  -----  -----
+     0 |     5     17  zelo
     [1 row x 3 columns]
+
+    >>> DT.hello()
+    AttributeError: 'datatable.Frame' object has no attribute 'hello'
 
 
 Hyperlinks
