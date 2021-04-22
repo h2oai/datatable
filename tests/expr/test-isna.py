@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
+from datetime import date
 from datatable import dt, f, g, join
 from tests import assert_equals
 
@@ -38,19 +39,20 @@ all_sources = [
     ["foo", "bbar", "baz"],
     [None, "", " ", "  ", None, "\x00"],
     list("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-="),
+    [date(2001, 1, 4), date(2005, 7, 15), None, None, None]
 ]
 
 
 
 
 @pytest.mark.parametrize("src", all_sources)
-def test_dt_isna(src):
+def test_isna(src):
     DT = dt.Frame(src)
     RES = DT[:, dt.math.isna(f[0])]
     assert_equals(RES, dt.Frame([(x is None) for x in src]))
 
 
-def test_dt_isna2():
+def test_isna2():
     from math import nan
     DT = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
     DT1 = DT[~dt.math.isna(f.A), :]
@@ -59,7 +61,7 @@ def test_dt_isna2():
     assert DT1.to_list() == [[1.0, 2.0, 5.0, 3.6, -4.899]]
 
 
-def test_dt_isna_joined():
+def test_isna_joined():
     # See issue #2109
     DT = dt.Frame(A=[None, 4, 3, 2, 1])
     JDT = dt.Frame(A=[0, 1, 3, 7],
@@ -73,10 +75,7 @@ def test_dt_isna_joined():
     assert RES.to_list() == [[True, True, False, True, False]] * 4
 
 
-@pytest.mark.parametrize("src", all_sources)
-def test_dt_math_isna_scalar(src):
+@pytest.mark.parametrize("src", all_sources[:-1])
+def test_isna_scalar(src):
     for val in src:
         assert dt.math.isna(val) == (val is None or val is math.nan)
-
-
-
