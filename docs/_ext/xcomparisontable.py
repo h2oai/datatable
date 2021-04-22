@@ -52,19 +52,23 @@ class XComparisonTableDirective(SphinxDirective):
     def run(self):
         self.header1 = self.options["header1"].strip()
         self.header2 = self.options["header2"].strip()
-        # import pdb; pdb.set_trace()
         tbl = xnodes.table(classes=["x-comparison-table"])
-        tbl += xnodes.tr(xnodes.th(self.header1), xnodes.th(self.header2),
-                                classes=["table-header"])
+        tbl += xnodes.tr(
+            xnodes.th(xnodes.div(self.header1)),
+            xnodes.th(xnodes.div(self.header2)),
+            classes=["table-header"])
         for header, col1, col2 in self.parse_content():
-            th = xnodes.td(colspan=2)
+            classes=["section-header"]
+            if header:
+                th = xnodes.td(colspan=2)
+                self.state.nested_parse(header, 0, th)
+                tbl += xnodes.tr(th, classes=classes)
+                classes = []
             td1 = xnodes.td()
             td2 = xnodes.td()
-            self.state.nested_parse(header, 0, th)
             self.state.nested_parse(col1, 0, td1)
             self.state.nested_parse(col2, 0, td2)
-            tbl += xnodes.tr(th, classes=["section-header"])
-            tbl += xnodes.tr(td1, td2)
+            tbl += xnodes.tr(td1, td2, classes=classes)
         return [tbl]
 
     def parse_content(self):
@@ -73,7 +77,7 @@ class XComparisonTableDirective(SphinxDirective):
             if len(parts) == 3:
                 yield parts
             elif len(parts) == 2:
-                yield ("", parts[0], parts[1])
+                yield (None, parts[0], parts[1])
             else:
                 raise self.error("Wrong number of sub-sections at %s lines %d-%d" %
                                  (section.source(0), section.offset(0), section.offset(-1)))
@@ -81,8 +85,9 @@ class XComparisonTableDirective(SphinxDirective):
 
 
 def setup(app):
-    # app.setup_extension("_ext.xnodes")
+    app.setup_extension("_ext.xnodes")
     app.add_directive("x-comparison-table", XComparisonTableDirective)
+    app.add_css_file("x-comparison-table.css")
     return {"parallel_read_safe": True,
             "parallel_write_safe": True}
 

@@ -38,9 +38,9 @@ Row and Column Selection
     :header1: pandas
     :header2: datatable
 
-    Select **a single** row
+    Select a single row
     ----
-    .. code-block:: R
+    .. code-block::
 
         df.loc[2]
 
@@ -50,235 +50,470 @@ Row and Column Selection
         DT[2, :]
 
 
+    ====
+    Select several rows by their indices
+    ----
+    .. code-block::
 
-=================================================  ============================================
-pandas                                              datatable
-=================================================  ============================================
-Select a single row
-``df.loc[2]``                                        ``DT[2, :]``
+        df.iloc[[2, 3, 4]]
 
-Select several rows by their indices
-``df.iloc[[2,3,4]]``                                  ``DT[[2,3,4], :]``
+    ----
+    .. code-block::
 
-Select a slice of rows by position
-``df.iloc[2:5]``                                      ``DT[2:5, :]``
-
-
-Same as above
-``df.iloc[range(2,5)]``                               ``DT[range(2,5), :]``
+        DT[[2, 3, 4], :]
 
 
-Select every second row
-``df.iloc[::2]``                                       ``DT[::2, :]``
+    ====
+    Select a slice of rows by position
+    ----
+    .. code-block::
 
-Select rows using a Boolean mask
-``df.iloc[[True, True, False, False, True]]``            ``DT[[True, True, False, False, True], :]``
+        df.iloc[2:5]
+        # or
+        df.iloc[range(2, 5)]
 
-Select rows on a condition
-``df.loc[df['A']>3]``                                   ``DT[f.A>3, :]``
+    ----
+    .. code-block::
 
-Select rows on multiple conditions, using ``OR``
-``df.loc[(df['A'] > 3) | (df['B']<5)]``                   ``DT[(f.A>3) | (f.B<5), :]``
-
-Select rows on multiple conditions, using ``AND``
-``df.loc[(df['A'] > 3) & (df['B']<8)]``                  ``DT[(f.A>3) & (f.B<8), :]``
-
-Select a single column by column name
-       ``df['A']``                                     ``DT['A']``
-
-Same as above
-       ``df.loc[:, 'A']``                              ``DT[:, 'A']``
-
-Select a single column by position
-``df.iloc[:, 1]``                                       ``DT[1]`` or ``DT[:, 1]``
-
-Select multiple columns by column names
-``df.loc[:, ["A", "B"]]``                              ``DT[:, ["A", "B"]]``
-
-Select multiple columns by position
-``df.iloc[:, [0, 1]]``                                ``DT[:, [0, 1]]``
-
-Select multiple columns by slicing
-``df.loc[:, "A":"B"]``                                 ``DT[:, "A":"B"]``
-
-Same as above, by position
-``df.iloc[:, 1:3]``                                      ``DT[:, 1:3]``
-
-Select columns by Boolean mask
-``df.loc[:, [True,False,False,True]]``                ``DT[:, [True,False,False,True]]``
-
-Select multiple rows and columns
-``df.loc[2:5, "A":"B"]``                              ``DT[2:5, "A":"B"]``
-
-Same as above, by position
-``df.iloc[2:5, :2]``                                    ``DT[2:5, :2]``
-
-Select a single value (returns a scalar)
-``df.at[2, 'A']`` or ``df.loc[2, 'A']``                 ``DT[2,"A"]``
-
-Same as above, by position
-``df.iat[2, 0]``  or  ``df.iloc[2, 0]``                 ``DT[2, 0]``
-
-Select a single value, return as Series                Returns a Frame
-``df.loc[2, ["A"]]``                                  ``DT[2, ["A"]]``
-
-Same as above, by position
-``df.iloc[2, [0]]``                                  ``DT[2, [0]]``
-=================================================  ============================================
+        DT[2:5, :]
+        # or
+        DT[range(2, 5), :]
 
 
-In pandas every frame has a row index, and if a filtration is executed,
-the row numbers are kept::
+    ====
+    Select every second row
+    ----
+    .. code-block::
 
-    >>> # pandas
-    >>> df.loc[df['A'] > 3]
-        A   B   C    D
-    3   4   7   10   9
-    4   5   8   11  -1
+        df.iloc[::2]
 
+    ----
+    .. code-block::
 
-Datatable has no notion of a row index; the row numbers displayed are just
-for convenience::
-
-    >>> DT[f.A > 3, :]
-       |     A      B      C      D
-       | int32  int32  int32  int32
-    -- + -----  -----  -----  -----
-     0 |     4      7     10      9
-     1 |     5      8     11     -1
-    [2 rows x 4 columns]
+        DT[::2, :]
 
 
-In pandas, the index can be numbers, or characters, or intervals, or even
-``MultiIndex``es; you can subset rows on these labels::
+    ====
+    Select rows using a boolean mask
+    ----
+    .. code-block::
 
-    >>> # pandas
-    >>> df1 = df.set_index(pd.Index(['a','b','c','d','e']))
-        A   B   C    D
-    a   1   4   7    5
-    b   2   5   8    7
-    c   3   6   9    2
-    d   4   7   10   9
-    e   5   8   11  -1
+        df.iloc[[True, True, False, False, True]]
 
-    >>> df1.loc["a":"c"]
-        A   B   C   D
-    a   1   4   7   5
-    b   2   5   8   7
-    c   3   6   9   2
+    ----
+    .. code-block::
+
+        DT[[True, True, False, False, True], :]
 
 
-Datatable has the :attr:`key <dt.Frame.key>` property, which is meant as
-an equivalent of pandas indices, but its purpose at the moment is for joins,
-not for subsetting data::
+    ====
+    Select rows on a condition
+    ----
+    .. code-block::
 
-    >>> data = {"A": [1, 2, 3, 4, 5],
-    ...         "B": [4, 5, 6, 7, 8],
-    ...         "C": [7, 8, 9, 10, 11],
-    ...         "D": [5, 7, 2, 9, -1],
-    ...         "E": ['a','b','c','d','e']}
-    >>> DT1 = dt.Frame(data)
-    >>> DT1.key = 'E'
-    >>> DT1
-    E     |     A      B      C      D
-    str32 | int32  int32  int32  int32
-    ----- + -----  -----  -----  -----
-    a     |     1      4      7      5
-    b     |     2      5      8      7
-    c     |     3      6      9      2
-    d     |     4      7     10      9
-    e     |     5      8     11     -1
-    [5 rows x 5 columns]
+        df.loc[df['A']>3]
 
-    >>> DT1["a":"c", :]  # this will fail
-    TypeError: A string slice cannot be used as a row selector
+    ----
+    .. code-block::
+
+        DT[f.A>3, :]
 
 
-Pandas' ``.loc`` notation works on labels, while ``.iloc`` works on actual
-positions. This is noticeable during row selection. Datatable, however, works
-only on positions::
+    ====
+    Select rows on multiple conditions, using OR
+    ----
+    .. code-block::
 
-    >>> # pandas
-    >>> df1 = df.set_index('C')
-        A   B   D
-    C
-    7   1   4   5
-    8   2   5   7
-    9   3   6   2
-    10  4   7   9
-    11  5   8  -1
+        df.loc[(df['A'] > 3) | (df['B']<5)]
 
-Selecting with ``.loc`` for the row with number 7 returns no error::
+    ----
+    .. code-block::
 
-    >>> # pandas
-    >>> df1.loc[7]
-    A    1
-    B    4
-    D    5
-    Name: 7, dtype: int64
-
-However, selecting with ``iloc`` for the row with number 7 returns an error,
-because positionally, there is no row 7::
-
-    >>> # pandas
-    >>> df.iloc[7]
-    IndexError: single positional indexer is out-of-bounds
+        DT[(f.A>3) | (f.B<5), :]
 
 
-As stated earlier, datatable has the :attr:`dt.Frame.key` property, which is
-used for joins, not row subsetting, and as such selection similar to ``loc``
-with the row label is not possible::
+    ====
+    Select rows on multiple conditions, using AND
+    ----
+    .. code-block::
 
-    >>> DT.key = 'C'
-    >>> DT
-        C |     A      B      D
-    int32 | int32  int32  int32
-    ----- + -----  -----  -----
-        7 |     1      4      5
-        8 |     2      5      7
-        9 |     3      6      2
-       10 |     4      7      9
-       11 |     5      8     -1
-    [5 rows x 4 columns]
+        df.loc[(df['A'] > 3) & (df['B']<8)]
 
-    >>> # this will fail
-    >>> DT[7, :]
-    ValueError: Row 7 is invalid for a frame with 5 rows
+    ----
+    .. code-block::
+
+        DT[(f.A>3) & (f.B<8), :]
+
+
+    ====
+    Select a single column by column name
+    ----
+    .. code-block::
+
+        df['A']
+        df.loc[:, 'A']
+
+    ----
+    .. code-block::
+
+        DT['A']
+        DT[:, 'A']
+
+
+    ====
+    Select a single column by position
+    ----
+    .. code-block::
+
+        df.iloc[:, 1]
+
+    ----
+    .. code-block::
+
+        DT[1]
+        DT[:, 1]
+
+
+    ====
+    Select multiple columns by column names
+    ----
+    .. code-block::
+
+        df.loc[:, ["A", "B"]]
+
+    ----
+    .. code-block::
+
+        DT[:, ["A", "B"]]
+
+
+    ====
+    Select multiple columns by position
+    ----
+    .. code-block::
+
+        df.iloc[:, [0, 1]]
+
+    ----
+    .. code-block::
+
+        DT[:, [0, 1]]
+
+
+    ====
+    Select multiple columns by slicing
+    ----
+    .. code-block::
+
+        df.loc[:, "A":"B"]
+
+    ----
+    .. code-block::
+
+        DT[:, "A":"B"]
+
+
+    ====
+    Select multiple columns by position
+    ----
+    .. code-block::
+
+        df.iloc[:, 1:3]
+
+    ----
+    .. code-block::
+
+        DT[:, 1:3]
+
+
+    ====
+    Select columns by Boolean mask
+    ----
+    .. code-block::
+
+        df.loc[:, [True,False,False,True]]
+
+    ----
+    .. code-block::
+
+        DT[:, [True,False,False,True]]
+
+
+    ====
+    Select multiple rows and columns
+    ----
+    .. code-block::
+
+        df.loc[2:5, "A":"B"]
+
+    ----
+    .. code-block::
+
+        DT[2:5, "A":"B"]
+
+
+    ====
+    Select multiple rows and columns by position
+    ----
+    .. code-block::
+
+        df.iloc[2:5, :2]
+
+    ----
+    .. code-block::
+
+        DT[2:5, :2]
+
+
+    ====
+    Select a single value (returns a scalar)
+    ----
+    .. code-block::
+
+        df.at[2, 'A']
+        df.loc[2, 'A']
+
+    ----
+    .. code-block::
+
+        DT[2, "A"]
+
+
+    ====
+    Select a single value by position
+    ----
+    .. code-block::
+
+        df.iat[2, 0]
+        df.iloc[2, 0]
+
+    ----
+    .. code-block::
+
+        DT[2, 0]
+
+
+    ====
+    Select a single value, return as Series
+    ----
+    .. code-block::
+
+        df.loc[2, ["A"]]
+
+    ----
+    .. code-block::
+
+        DT[2, ["A"]]
+
+
+    ====
+    Select a single value (return as Series/Frame) by position
+    ----
+    .. code-block::
+
+        df.iloc[2, [0]]
+
+    ----
+    .. code-block::
+
+        DT[2, [0]]
+
+
+    ====
+    In pandas every frame has a row index, and if a filtration is executed,
+    the row numbers are kept::
+
+        >>> df.loc[df['A'] > 3]
+            A   B   C    D
+        3   4   7   10   9
+        4   5   8   11  -1
+
+    ----
+    Datatable has no notion of a row index; the row numbers displayed are just
+    for convenience::
+
+        >>> DT[f.A > 3, :]
+           |     A      B      C      D
+           | int32  int32  int32  int32
+        -- + -----  -----  -----  -----
+         0 |     4      7     10      9
+         1 |     5      8     11     -1
+        [2 rows x 4 columns]
+
+
+    ====
+    In pandas, the index can be numbers, or characters, or intervals, or even
+    ``MultiIndex``es; you can subset rows on these labels::
+
+        >>> df1 = df.set_index(pd.Index(['a','b','c','d','e']))
+            A   B   C    D
+        a   1   4   7    5
+        b   2   5   8    7
+        c   3   6   9    2
+        d   4   7   10   9
+        e   5   8   11  -1
+
+        >>> df1.loc["a":"c"]
+            A   B   C   D
+        a   1   4   7   5
+        b   2   5   8   7
+        c   3   6   9   2
+
+    ----
+    Datatable has the :attr:`key <dt.Frame.key>` property, which is meant as
+    an equivalent of pandas indices, but its purpose at the moment is for joins,
+    not for subsetting data::
+
+        >>> data = {"A": [1, 2, 3, 4, 5],
+        ...         "B": [4, 5, 6, 7, 8],
+        ...         "C": [7, 8, 9, 10, 11],
+        ...         "D": [5, 7, 2, 9, -1],
+        ...         "E": ['a','b','c','d','e']}
+        >>> DT1 = dt.Frame(data)
+        >>> DT1.key = 'E'
+        >>> DT1
+        E     |     A      B      C      D
+        str32 | int32  int32  int32  int32
+        ----- + -----  -----  -----  -----
+        a     |     1      4      7      5
+        b     |     2      5      8      7
+        c     |     3      6      9      2
+        d     |     4      7     10      9
+        e     |     5      8     11     -1
+        [5 rows x 5 columns]
+
+        >>> DT1["a":"c", :]  # this will fail
+        TypeError: A string slice cannot be used as a row selector
+
+
+    ====
+    Pandas' ``.loc`` notation works on labels, while ``.iloc`` works on actual
+    positions. This is noticeable during row selection. Datatable, however, works
+    only on positions::
+
+        >>> df1 = df.set_index('C')
+            A   B   D
+        C
+        7   1   4   5
+        8   2   5   7
+        9   3   6   2
+        10  4   7   9
+        11  5   8  -1
+
+    Selecting with ``.loc`` for the row with number 7 returns no error::
+
+        >>> df1.loc[7]
+        A    1
+        B    4
+        D    5
+        Name: 7, dtype: int64
+
+    However, selecting with ``iloc`` for the row with number 7 returns an error,
+    because positionally, there is no row 7::
+
+        >>> df.iloc[7]
+        IndexError: single positional indexer is out-of-bounds
+
+    ----
+    Datatable has the :attr:`dt.Frame.key` property, which is
+    used for joins, not row subsetting, and as such selection similar to ``loc``
+    with the row label is not possible::
+
+        >>> DT.key = 'C'
+        >>> DT
+            C |     A      B      D
+        int32 | int32  int32  int32
+        ----- + -----  -----  -----
+            7 |     1      4      5
+            8 |     2      5      7
+            9 |     3      6      2
+           10 |     4      7      9
+           11 |     5      8     -1
+        [5 rows x 4 columns]
+
+        >>> DT[7, :]   # this will fail
+        ValueError: Row 7 is invalid for a frame with 5 rows
 
 
 
 Add new/update existing columns
 -------------------------------
 
-=======================================================  ===============================================================
-pandas                                                      datatable
-=======================================================  ===============================================================
-Add a new column with a scalar value
-``df['new_col'] = 2``                                        ``DT['new_col'] = 2``
+.. x-comparison-table::
+    :header1: pandas
+    :header2: datatable
 
-Same as above
-``df = df.assign(new_col = 2)``                              ``DT[:, update(new_col=2)]``
+    Add a new column with a scalar value
+    ----
+    .. code-block::
 
-Add a new column with a list of values
-``df['new_col'] = range(len(df))``                           ``DT['new_col_1'] = range(DT.nrows)``
+        df['new_col'] = 2
+        df = df.assign(new_col = 2)
 
-Same as above
-``df = df.assign(new_col = range(len(df))``                  ``DT[:, update(new_col=range(DT.nrows)]``
+    ----
+    .. code-block::
 
-Update a single value
-``df.at[2, 'new_col'] = 200``                                ``DT[2, 'new_col'] = 200``
+        DT['new_col'] = 2
+        DT[:, update(new_col=2)]
 
-Update an entire column
-``df.loc[:, "A"] = 5``  or ``df["A"] = 5``                   ``DT["A"] = 5``
+    ====
+    Add a new column with a list of values
+    ----
+    .. code-block::
 
-Same as above
-``df = df.assign(A = 5)``                                    ``DT[:, update(A = 5)]``
+        df['new_col'] = range(len(df))
+        df = df.assign(new_col = range(len(df))
 
-Update multiple columns
-``df.loc[:, "A":"C"] = np.arange(15).reshape(-1,3)``        ``DT[:, "A":"C"] = np.arange(15).reshape(-1,3)``
-=======================================================  ===============================================================
+    ----
+    .. code-block::
 
-.. note:: In datatable, the :func:`update()` method is in-place; reassigment to the Frame ``DT`` is not required.
+        DT['new_col_1'] = range(DT.nrows)
+        DT[:, update(new_col=range(DT.nrows)]
+
+    ====
+    Update a single value
+    ----
+    .. code-block::
+
+        df.at[2, 'new_col'] = 200
+
+    ----
+    .. code-block::
+
+        DT[2, 'new_col'] = 200
+
+    ====
+    Update an entire column
+    ----
+    .. code-block::
+
+        df.loc[:, "A"] = 5  # or
+        df["A"] = 5
+        df = df.assign(A = 5)
+
+    ----
+    .. code-block::
+
+        DT["A"] = 5
+        DT[:, update(A = 5)]
+
+    ====
+    Update multiple columns
+    ----
+    .. code-block::
+
+        df.loc[:, "A":"C"] = np.arange(15).reshape(-1,3)
+
+    ----
+    .. code-block::
+
+        DT[:, "A":"C"] = np.arange(15).reshape(-1,3)
+
+
+.. note::
+
+    In datatable, the :func:`update()` method is in-place; reassigment to
+    the Frame ``DT`` is not required.
 
 
 
