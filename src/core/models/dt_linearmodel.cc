@@ -321,13 +321,13 @@ void LinearModel<T>::adjust_eta(T& eta, size_t iter) {
       eta = eta0_;
       break;
     case LearningRateSchedule::TIME_BASED:
-      eta = eta0_ / (1 + eta_decay_ * iter);
+      eta = eta0_ / (1 + eta_decay_ * static_cast<T>(iter));
       break;
     case LearningRateSchedule::STEP_BASED:
-      eta = eta0_ * pow(eta_decay_, floor((1 + iter) / eta_drop_rate_));
+      eta = eta0_ * std::pow(eta_decay_, std::floor(static_cast<T>(1 + iter) / eta_drop_rate_));
       break;
     case LearningRateSchedule::EXPONENTIAL:
-      eta = eta0_ / exp(eta_decay_ * iter);
+      eta = eta0_ / std::exp(eta_decay_ * static_cast<T>(iter));
   }
 }
 
