@@ -28,8 +28,59 @@ namespace dt {
 namespace read2 {
 
 class GenericReader;
+class Source;
 
 
+class SourceIterable {
+  private:
+    struct Node;
+    using UniqueSource = std::unique_ptr<Source>;
+    using UniqueNode = std::unique_ptr<Node>;
+    struct Node {
+      UniqueSource source;
+      UniqueNode next;
+      Node(UniqueSource&& src)
+        : source(std::move(src)), next(nullptr) {}
+    };
+
+    // First Node in the linked list, owned by the current class. All
+    // subsequent nodes are owned by their predecessors. Thus, second
+    // node is owned by the first, third by the second, etc.
+    UniqueNode head_;
+
+    // Pointer to the last returned Node during iteration, or nullptr
+    // if the iteration hasn't started yet or already finished.
+    Node* currentNode_;
+
+    // Pointer to the node where the next insertion will occur. This
+    // pointer is NULL only when the linked list is empty.
+    // The rules for this pointer are following: whenever an iteration
+    // step occurs, the insertion pointer moves to the currentNode_;
+    // otherwise whenever add() is called, the new node(s) will be
+    // added right after the insertion point, and the pointer is moved
+    // to the last node added. When iteration ends (next() returns
+    // NULL), the insertion point will be at the tail of the linked
+    // list.
+    Node* insertionPoint_;
+
+  public:
+    SourceIterable() noexcept;
+
+    void add(UniqueSource&&);
+    void add(SourceIterable&&);
+    Source* next();
+};
+
+
+class Source {
+  public:
+    virtual ~Source() = default;
+    virtual bool keepReading() const { return false; }
+};
+
+
+
+#if 0
 /**
   * Single input source for ?read functions. This is a base abstract
   * class, with different implementations.
@@ -115,7 +166,7 @@ class Source_Url : public Source
     Source_Url(const std::string& url);
     // py::oobj read(GenericReader&) override;
 };
-
+#endif
 
 
 

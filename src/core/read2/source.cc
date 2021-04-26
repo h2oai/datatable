@@ -20,14 +20,83 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "read2/source.h"
+#include "utils/assert.h"
 namespace dt {
 namespace read2 {
 
 
-Source::Source(const std::string& name)
-  : name_(name) {}
+//------------------------------------------------------------------------------
+// SourceIterable
+//------------------------------------------------------------------------------
 
-Source::~Source() {}
+SourceIterable::SourceIterable() noexcept
+  : head_(nullptr),
+    currentNode_(nullptr),
+    insertionPoint_(nullptr) {}
+
+
+void SourceIterable::add(UniqueSource&& source) {
+  UniqueNode newNode(new Node(std::move(source)));
+  if (insertionPoint_) {
+    newNode->next = std::move(insertionPoint_->next);
+    insertionPoint_->next = std::move(newNode);
+    insertionPoint_ = insertionPoint_->next.get();
+  } else {
+    xassert(!head_);
+    head_ = std::move(newNode);
+    insertionPoint_ = head_.get();
+  }
+}
+
+
+void SourceIterable::add(SourceIterable&& sources) {
+  UniqueNode first = std::move(sources.head_);
+  sources.currentNode_ = nullptr;
+  sources.insertionPoint_ = nullptr;
+  if (!first) return;
+  Node* last = first.get();
+  while (last->next) {
+    last = last->next.get();
+  }
+  xassert(!last->next);
+  if (insertionPoint_) {
+    last->next = std::move(insertionPoint_->next);
+    insertionPoint_->next = std::move(first);
+  } else {
+    xassert(!head_);
+    head_ = std::move(first);
+  }
+  insertionPoint_ = last;
+}
+
+
+Source* SourceIterable::next() {
+  if (currentNode_) {
+    if (!currentNode_->source->keepReading()) {
+      currentNode_ = currentNode_->next.get();
+    }
+  } else {
+    currentNode_ = head_->get();
+  }
+  if (currentNode_) {
+    insertionPoint_ = currentNode_;
+    return currentNode_->source.get();
+  } else {
+    return nullptr;
+  }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// SourceImpl_Multi
+//------------------------------------------------------------------------------
+
+void SourceImpl_Multi::add(Source&& source) {
+  sources_.emplace_back(std::move(source));
+}
+
 
 
 
