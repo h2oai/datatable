@@ -348,6 +348,7 @@ class CallLogger::Impl
     void init_function  (const py::PKArgs* pkargs, py::robj args, py::robj kwds) noexcept;
     void init_function  (const py::XArgs* xargs, py::robj args, py::robj kwds) noexcept;
     void init_method    (const py::PKArgs* pkargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
+    void init_method    (const py::XArgs* xargs, py::robj obj, py::robj args, py::robj kwds) noexcept;
     void init_dealloc   (py::robj obj) noexcept;
     void init_getset    (py::robj obj, py::robj val, void* closure) noexcept;
     void init_getattr   (py::robj obj, py::robj attr) noexcept;
@@ -418,6 +419,18 @@ void CallLogger::Impl::init_method(
 {
   safe_init([&] {
     *out_ << R(obj) << '.' << pkargs->get_short_name() << '(';
+    print_arguments(args, kwds);
+    *out_ << ')';
+  });
+}
+
+
+void CallLogger::Impl::init_method(
+    const py::XArgs* xargs, py::robj obj, py::robj args, py::robj kwds)
+    noexcept
+{
+  safe_init([&] {
+    *out_ << R(obj) << '.' << xargs->qualified_name() << '(';
     print_arguments(args, kwds);
     *out_ << ')';
   });
@@ -661,6 +674,18 @@ CallLogger CallLogger::method(const py::PKArgs* pkargs,
   CallLogger cl;
   if (cl.impl_) {
     cl.impl_->init_method(pkargs, py::robj(pyobj), py::robj(pyargs),
+                          py::robj(pykwds));
+  }
+  return cl;
+}
+
+
+CallLogger CallLogger::method(const py::XArgs* xargs,
+    PyObject* pyobj, PyObject* pyargs, PyObject* pykwds) noexcept
+{
+  CallLogger cl;
+  if (cl.impl_) {
+    cl.impl_->init_method(xargs, py::robj(pyobj), py::robj(pyargs),
                           py::robj(pykwds));
   }
   return cl;

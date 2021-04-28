@@ -409,7 +409,7 @@ PyObject* XArgs::exec_function(PyObject* args, PyObject* kwds) noexcept {
 }
 
 PyObject* XArgs::exec_method(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
-  // auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
   try {
     bind(args, kwds);
     return (obj->*ccfn_.meth)(*this).release();
@@ -422,7 +422,7 @@ PyObject* XArgs::exec_method(PyObject* obj, PyObject* args, PyObject* kwds) noex
 
 
 PyObject* XArgs::exec_methodv(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
-  // auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
   try {
     bind(args, kwds);
     (obj->*ccfn_.methv)(*this);
