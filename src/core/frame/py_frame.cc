@@ -81,17 +81,6 @@ See also
 - :meth:`.tail` -- return the last `n` rows of the Frame.
 )";
 
-// static PKArgs args_head(
-//     1, 0, 0, false, false, {"n"}, "head", doc_head);
-
-
-// oobj Frame::head(const PKArgs& args) {
-//   size_t n = std::min(args.get<size_t>(0, 10),
-//                       dt->nrows());
-//   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
-//                              None()));
-// }
-
 oobj Frame::head(const XArgs& args) {
   size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
@@ -155,18 +144,20 @@ See also
 - :meth:`.head` -- return the first `n` rows of the Frame.
 )";
 
-static PKArgs args_tail(
-    1, 0, 0, false, false, {"n"}, "tail", doc_tail);
-
-
-oobj Frame::tail(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+oobj Frame::tail(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
   int64_t start = static_cast<int64_t>(dt->nrows() - n);
   return m__getitem__(otuple(oslice(start, oslice::NA, 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::tail)
+    ->name("tail")
+    ->docs(doc_tail)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -1213,8 +1204,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_types, args_types));
 
-  // xt.add(METHOD(&Frame::head, args_head));
-  xt.add(METHOD(&Frame::tail, args_tail));
   xt.add(METHOD(&Frame::copy, args_copy));
   xt.add(METHOD(&Frame::materialize, args_materialize));
   xt.add(METHOD(&Frame::export_names, args_export_names));

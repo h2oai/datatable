@@ -917,14 +917,12 @@ def test_head_bad():
 
 def test_tail_bad():
     d0 = dt.Frame(range(10))
-    with pytest.raises(ValueError) as e:
+    msg = r"The argument in method datatable.Frame.tail\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg) as e:
         d0.tail(-5)
-    assert ("The argument in Frame.tail() cannot be negative"
-            in str(e.value))
+    msg = r"The argument in method datatable.Frame.tail\(\) should be an integer"
     with pytest.raises(TypeError) as e:
         d0.tail(5.0)
-    assert ("The argument in Frame.tail() should be an integer"
-            in str(e.value))
 
 
 
