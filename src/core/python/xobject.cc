@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/xobject.h"
+#include "python/xargs.h"
 namespace py {
 
 
@@ -211,6 +212,17 @@ void XTypeMaker::add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
     reinterpret_cast<PyCFunction>(meth),
     METH_VARARGS | METH_KEYWORDS,
     args.get_docstring()
+  });
+}
+
+void XTypeMaker::add(PyCFunctionWithKeywords meth, XArgs* args, MethodTag) {
+  xassert(type);
+  args->set_class_name(type->tp_name);
+  meth_defs.push_back(PyMethodDef {
+    args->proper_name().data(),
+    reinterpret_cast<PyCFunction>(meth),
+    METH_VARARGS | METH_KEYWORDS,
+    args->get_docstring()
   });
 }
 

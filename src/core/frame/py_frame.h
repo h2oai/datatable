@@ -119,7 +119,8 @@ class Frame : public XObject<Frame> {
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const PKArgs&);
-    oobj head(const PKArgs&);
+    // oobj head(const PKArgs&);
+    oobj head(const XArgs&);
     void materialize(const PKArgs&);
     void rbind(const PKArgs&);
     void repeat(const PKArgs&);

@@ -25,6 +25,7 @@
 #include "ltype.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "types/py_type.h"
 namespace py {
@@ -80,16 +81,29 @@ See also
 - :meth:`.tail` -- return the last `n` rows of the Frame.
 )";
 
-static PKArgs args_head(
-    1, 0, 0, false, false, {"n"}, "head", doc_head);
+// static PKArgs args_head(
+//     1, 0, 0, false, false, {"n"}, "head", doc_head);
 
 
-oobj Frame::head(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+// oobj Frame::head(const PKArgs& args) {
+//   size_t n = std::min(args.get<size_t>(0, 10),
+//                       dt->nrows());
+//   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
+//                              None()));
+// }
+
+oobj Frame::head(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::head)
+    ->name("head")
+    ->docs(doc_head)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -1199,7 +1213,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_types, args_types));
 
-  xt.add(METHOD(&Frame::head, args_head));
+  // xt.add(METHOD(&Frame::head, args_head));
   xt.add(METHOD(&Frame::tail, args_tail));
   xt.add(METHOD(&Frame::copy, args_copy));
   xt.add(METHOD(&Frame::materialize, args_materialize));
@@ -1207,6 +1221,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
   xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
+
+  INIT_METHODS_FOR_CLASS(Frame);
 }
 
 
