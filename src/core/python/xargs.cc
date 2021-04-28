@@ -33,8 +33,7 @@ namespace py {
 //------------------------------------------------------------------------------
 
 XArgs::XArgs()
-  : ccfn_{.fn = nullptr},
-    pyfn_(nullptr),
+  : pyfn_(nullptr),
     docstring_(nullptr),
     classId_(0),
     nargs_required_(0),
