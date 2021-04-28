@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -122,8 +122,6 @@ See also
 
 - :meth:`.rbind()` -- method for row-binding frames.
 )";
-
-// static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
 
 void Frame::cbind(const XArgs& args) {
   std::vector<py::oobj> frame_objs;
