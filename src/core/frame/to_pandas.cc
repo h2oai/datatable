@@ -22,6 +22,7 @@
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/xargs.h"
 #include "stype.h"
 namespace py {
 
@@ -45,11 +46,7 @@ except: ImportError
     If the `pandas` module is not installed.
 )";
 
-static PKArgs args_to_pandas(
-    0, 0, 0, false, false, {}, "to_pandas", doc_to_pandas);
-
-
-oobj Frame::to_pandas(const PKArgs&) {
+oobj Frame::to_pandas(const XArgs&) {
   const size_t ncols = dt->ncols();
   const size_t nkeys = dt->nkeys();
 
@@ -94,9 +91,9 @@ oobj Frame::to_pandas(const PKArgs&) {
 }
 
 
-void Frame::_init_to_pandas(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::to_pandas, args_to_pandas));
-}
+DECLARE_METHOD(&Frame::to_pandas)
+    ->name("to_pandas")
+    ->docs(doc_to_pandas);
 
 
 

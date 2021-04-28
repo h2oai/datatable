@@ -59,7 +59,6 @@ class Frame : public XObject<Frame> {
     static void _init_toarrow(XTypeMaker&);
     static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
-    static void _init_to_pandas(XTypeMaker&);
     static void _init_topython(XTypeMaker&);
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -135,7 +134,7 @@ class Frame : public XObject<Frame> {
     oobj to_jay(const PKArgs&);  // See jay/save_jay.cc
     oobj to_list(const PKArgs&);
     oobj to_numpy(const PKArgs&);
-    oobj to_pandas(const PKArgs&);
+    oobj to_pandas(const XArgs&);
     oobj to_tuples(const PKArgs&);
 
     // Stats functions

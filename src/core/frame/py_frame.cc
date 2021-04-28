@@ -1197,7 +1197,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_tocsv(xt);
   _init_tonumpy(xt);
   _init_topython(xt);
-  _init_to_pandas(xt);
 
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
   xt.add(GETSET(&Frame::get_meta, &Frame::set_meta, args_meta));
