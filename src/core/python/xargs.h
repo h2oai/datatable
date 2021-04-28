@@ -39,10 +39,12 @@ namespace py {
 class XArgs : public ArgParent {
   using impl_function_t = oobj(*)(const XArgs&);
   using impl_method_t = oobj(PyObject::*)(const XArgs&);
+  using impl_methodv_t = void(PyObject::*)(const XArgs&);
   private:
     union {
         impl_function_t  fn;
         impl_method_t    meth;
+        impl_methodv_t   methv;
     } ccfn_;
     PyCFunctionWithKeywords pyfn_;
     std::string class_name_;
@@ -74,6 +76,7 @@ class XArgs : public ArgParent {
   public:
     XArgs(impl_function_t fn);
     XArgs(impl_method_t method, size_t classId);
+    XArgs(impl_methodv_t method, size_t classId);
     XArgs(const XArgs&) = delete;
     XArgs(XArgs&&) = delete;
     XArgs* pyfunction(PyCFunctionWithKeywords f);  // "private"
@@ -126,6 +129,7 @@ class XArgs : public ArgParent {
 
     PyObject* exec_function(PyObject* args, PyObject* kwds) noexcept;
     PyObject* exec_method(PyObject* self, PyObject* args, PyObject* kwds) noexcept;
+    PyObject* exec_methodv(PyObject* self, PyObject* args, PyObject* kwds) noexcept;
 
     // //---- API for XTypeMaker ----------
     // void set_class_name(const char* name);
@@ -199,6 +203,10 @@ class XArgs : public ArgParent {
 };
 
 
+// #define RESULT_OF(fn) \
+//     typename std::result_of<decltype(fn)(CLASS_OF(fn), const XArgs&)>::type
+
+
 #define ARGS_NAME  PASTE_TOKENS(args_, __LINE__)
 #define DECLARE_PYFN(fn)                                                       \
     static py::XArgs* ARGS_NAME = (new py::XArgs(fn))                          \
@@ -214,6 +222,15 @@ class XArgs : public ArgParent {
       )->pyfunction(                                                           \
           [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
             return ARGS_NAME->exec_method(self, args, kwds);                   \
+          })
+
+#define DECLARE_METHODv(fn)                                                    \
+    static py::XArgs* ARGS_NAME = (new py::XArgs(                              \
+        reinterpret_cast<void(PyObject::*)(const XArgs&)>(fn),                 \
+        typeid(CLASS_OF(fn)).hash_code())                                      \
+      )->pyfunction(                                                           \
+          [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
+            return ARGS_NAME->exec_methodv(self, args, kwds);                  \
           })
 
 #define INIT_METHODS_FOR_CLASS(CLASS)                                          \

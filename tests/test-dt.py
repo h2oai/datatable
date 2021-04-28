@@ -968,7 +968,7 @@ def test_materialize_to_memory(tempfile_jay):
 
 def test_materialize_to_memory_bad_type():
     DT = dt.Frame(range(5))
-    msg = r"Argument to_memory in Frame.materialize\(\) should be a boolean"
+    msg = r"Argument to_memory in method datatable.Frame.materialize\(\) should be a boolean"
     with pytest.raises(TypeError, match=msg):
         DT.materialize(to_memory=0)
 

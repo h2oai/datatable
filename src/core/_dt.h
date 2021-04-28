@@ -26,6 +26,7 @@
 #include <exception>    // std::exception_ptr
 #include <memory>       // std::unique_ptr
 #include <string>       // std::string
+#include <type_traits>  //
 #include <utility>      // std::move, std::pair
 #include <vector>       // std::vector
 

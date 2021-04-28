@@ -58,6 +58,11 @@ XArgs::XArgs(impl_method_t method, size_t classId) : XArgs() {
   classId_ = classId;
 }
 
+XArgs::XArgs(impl_methodv_t method, size_t classId) : XArgs() {
+  ccfn_.methv = method;
+  classId_ = classId;
+}
+
 std::vector<XArgs*>& XArgs::store() {
   static std::vector<XArgs*> xargs_repo;
   return xargs_repo;
@@ -408,6 +413,20 @@ PyObject* XArgs::exec_method(PyObject* obj, PyObject* args, PyObject* kwds) noex
   try {
     bind(args, kwds);
     return (obj->*ccfn_.meth)(*this).release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+PyObject* XArgs::exec_methodv(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
+  // auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  try {
+    bind(args, kwds);
+    (obj->*ccfn_.methv)(*this);
+    return py::None().release();
   }
   catch (const std::exception& e) {
     exception_to_python(e);

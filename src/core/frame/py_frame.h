@@ -120,14 +120,14 @@ class Frame : public XObject<Frame> {
     oobj colindex(const PKArgs&);
     oobj copy(const XArgs&);
     oobj head(const XArgs&);
-    void materialize(const PKArgs&);
+    void materialize(const XArgs&);
     void rbind(const PKArgs&);
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
     oobj sort(const PKArgs&);
     oobj newsort(const PKArgs&);
     oobj tail(const XArgs&);
-    oobj export_names(const PKArgs&);
+    oobj export_names(const XArgs&);
 
     // Conversion methods
     oobj to_arrow(const PKArgs&);

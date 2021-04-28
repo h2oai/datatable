@@ -353,10 +353,7 @@ Notes
 
 )";
 
-static PKArgs args_export_names(
-  0, 0, 0, false, false, {}, "export_names", doc_export_names);
-
-oobj Frame::export_names(const PKArgs&) {
+oobj Frame::export_names(const XArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
   py::otuple names = dt->get_pynames();
   py::otuple out_vars(names.size());
@@ -365,6 +362,10 @@ oobj Frame::export_names(const PKArgs&) {
   }
   return std::move(out_vars);
 }
+
+DECLARE_METHOD(&Frame::export_names)
+    ->name("export_names")
+    ->docs(doc_export_names);
 
 
 
@@ -460,13 +461,17 @@ return: None
     This operation modifies the frame in-place.
 )";
 
-static PKArgs args_materialize(
-  0, 1, 0, false, false, {"to_memory"}, "materialize", doc_materialize);
-
-void Frame::materialize(const PKArgs& args) {
+void Frame::materialize(const XArgs& args) {
   bool to_memory = args[0].to<bool>(false);
   dt->materialize(to_memory);
 }
+
+DECLARE_METHODv(&Frame::materialize)
+    ->name("materialize")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"to_memory"})
+    ->docs(doc_materialize);
+
 
 
 //------------------------------------------------------------------------------
@@ -1206,8 +1211,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_types, args_types));
 
-  xt.add(METHOD(&Frame::materialize, args_materialize));
-  xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
 
