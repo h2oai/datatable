@@ -44,7 +44,6 @@ class Frame : public XObject<Frame> {
 
   public:
     static void impl_init_type(XTypeMaker&);
-    static void _init_cbind(XTypeMaker&);
     static void _init_init(XTypeMaker&);
     static void _init_iter(XTypeMaker&);
     static void _init_jay(XTypeMaker&);
@@ -116,7 +115,7 @@ class Frame : public XObject<Frame> {
     void set_nrows(const Arg&);
     void set_source(const std::string&);  // internal use only
 
-    void cbind(const PKArgs&);
+    void cbind(const XArgs&);
     oobj colindex(const PKArgs&);
     oobj copy(const XArgs&);
     oobj head(const XArgs&);

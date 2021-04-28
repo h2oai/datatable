@@ -16,6 +16,7 @@
 #include <functional>
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/xargs.h"
 #include "utils/assert.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -122,12 +123,9 @@ See also
 - :meth:`.rbind()` -- method for row-binding frames.
 )";
 
-static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
+// static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
 
-
-
-void Frame::cbind(const PKArgs& args)
-{
+void Frame::cbind(const XArgs& args) {
   std::vector<py::oobj> frame_objs;
   std::vector<DataTable*> datatables;
 
@@ -171,6 +169,12 @@ void Frame::cbind(const PKArgs& args)
   _clear_types();
 }
 
+DECLARE_METHODv(&Frame::cbind)
+    ->name("cbind")
+    ->docs(doc_cbind)
+    ->n_keyword_args(1)
+    ->allow_varargs()
+    ->arg_names({"force"});
 
 
 
@@ -264,10 +268,7 @@ the `force` parameter to `True`::
     [4 rows x 3 columns]
 )";
 
-static PKArgs args_py_cbind(
-  0, 0, 1, true, false, {"force"}, "cbind", doc_py_cbind);
-
-static oobj py_cbind(const PKArgs& args) {
+static oobj py_cbind(const XArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   xassert(r.is_frame());
   PyObject* rv = r.to_borrowed_ref();
@@ -275,15 +276,12 @@ static oobj py_cbind(const PKArgs& args) {
   return r;
 }
 
-
-
-void Frame::_init_cbind(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::cbind, args_cbind));
-}
-
-void DatatableModule::init_methods_cbind() {
-  ADD_FN(&py_cbind, args_py_cbind);
-}
+DECLARE_PYFN(&py_cbind)
+    ->name("cbind")
+    ->n_keyword_args(1)
+    ->allow_varargs()
+    ->arg_names({"force"})
+    ->docs(doc_py_cbind);
 
 
 

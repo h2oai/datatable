@@ -282,7 +282,7 @@ def test_debug_logger_default_without_report_args(capsys):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
-        assert "dt.cbind() {" in out
+        assert "datatable.cbind() {" in out
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
@@ -302,7 +302,7 @@ def test_debug_logger_default_with_report_args(capsys):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
-        assert "dt.cbind(3) {" in out
+        assert "datatable.cbind(3) {" in out
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
