@@ -86,7 +86,7 @@ class Frame : public XObject<Frame> {
     oobj m__iter__();
     oobj m__reversed__();
     oobj m__copy__();
-    oobj m__deepcopy__(const PKArgs&);
+    oobj m__deepcopy__(const XArgs&);
     size_t m__len__() const;
 
     // Frame display
@@ -118,7 +118,7 @@ class Frame : public XObject<Frame> {
 
     void cbind(const PKArgs&);
     oobj colindex(const PKArgs&);
-    oobj copy(const PKArgs&);
+    oobj copy(const XArgs&);
     oobj head(const XArgs&);
     void materialize(const PKArgs&);
     void rbind(const PKArgs&);

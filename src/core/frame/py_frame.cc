@@ -250,10 +250,7 @@ Notes
 
 )";
 
-static PKArgs args_copy(0, 0, 1, false, false, {"deep"}, "copy", doc_copy);
-
-
-oobj Frame::copy(const PKArgs& args) {
+oobj Frame::copy(const XArgs& args) {
   bool deepcopy = args[0].to<bool>(false);
 
   oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
@@ -266,21 +263,26 @@ oobj Frame::copy(const PKArgs& args) {
   return res;
 }
 
+DECLARE_METHOD(&Frame::copy)
+    ->name("copy")
+    ->n_keyword_args(1)
+    ->arg_names({"deep"})
+    ->docs(doc_copy);
 
 
-static PKArgs args___deepcopy__(
-  0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
 
-oobj Frame::m__deepcopy__(const PKArgs&) {
-  py::odict dict_arg;
-  dict_arg.set(py::ostring("deep"), py::True());
-  args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
-  return copy(args_copy);
+oobj Frame::m__deepcopy__(const XArgs&) {
+  return robj(this).get_attr("copy")
+          .call({}, {py::ostring("deep"), py::True()});
 }
 
+DECLARE_METHOD(&Frame::m__deepcopy__)
+    ->name("__deepcopy__")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"memo"});
+
 oobj Frame::m__copy__() {
-  args_copy.bind(nullptr, nullptr);
-  return copy(args_copy);
+  return robj(this).invoke("copy");
 }
 
 
@@ -1204,12 +1206,10 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_types, args_types));
 
-  xt.add(METHOD(&Frame::copy, args_copy));
   xt.add(METHOD(&Frame::materialize, args_materialize));
   xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
-  xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
 
   INIT_METHODS_FOR_CLASS(Frame);
 }
