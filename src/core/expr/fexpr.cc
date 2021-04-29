@@ -328,10 +328,11 @@ oobj PyFExpr::re_match(const PKArgs& args) {
 // Miscellaneous
 //------------------------------------------------------------------------------
 
-const char* doc_sum =
+static const char* doc_sum =
 R"(sum()
+--
 
-Equivalent to `dt.sum(self)`.
+Equivalent to :func:`dt.sum(self)`.
 )";
 
 oobj PyFExpr::sum(const XArgs&) {

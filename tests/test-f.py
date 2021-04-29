@@ -218,3 +218,15 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:5].remove(f[int])], DT[:, [1, 3]])
     assert_equals(DT[:, f[:].remove(f[100:])], DT)
     assert_equals(DT[:, f[:].remove(f["F":])], DT[:, :"E"])
+
+
+
+#-------------------------------------------------------------------------------
+# Misc methods
+#-------------------------------------------------------------------------------
+
+def test_sum():
+    assert str(dt.sum(f.A)) == str(f.A.sum())
+    assert str(dt.sum(f[:])) == str(f[:].sum())
+    DT = dt.Frame(A=range(1, 10))
+    assert_equals(DT[:, f.A.sum()], DT[:, dt.sum(f.A)])
