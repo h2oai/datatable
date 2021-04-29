@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -504,16 +504,14 @@ def test_quoting():
 def test_quoting_invalid():
     DT = dt.Frame(A=range(5))
 
-    with pytest.raises(TypeError) as e:
+    msg = r"Argument quoting in method datatable.Frame.to_csv\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
         DT.to_csv(quoting=1.7)
-    assert ("Argument quoting in Frame.to_csv() should be an integer"
-            in str(e.value))
 
     for q in [-1, 4, 99, "ANY"]:
-        with pytest.raises(ValueError) as e:
+        msg = r"Invalid value of the quoting parameter in Frame.to_csv\(\)"
+        with pytest.raises(ValueError, match=msg):
             DT.to_csv(quoting=q)
-        assert ("Invalid value of the quoting parameter in Frame.to_csv()"
-                in str(e.value))
 
 
 def test_compress1():
@@ -553,10 +551,10 @@ def test_compress2(tempfile):
 
 def test_compress_invalid():
     DT = dt.Frame()
-    with pytest.raises(TypeError) as e:
+    msg = (r"Argument compression in method datatable.Frame.to_csv\(\) "
+           r"should be a string, instead got <class 'int'>")
+    with pytest.raises(TypeError, match=msg):
         DT.to_csv(compression=0)
-    assert ("Argument compression in Frame.to_csv() should be a string, "
-            "instead got <class 'int'>" in str(e.value))
 
     msg = r"Unsupported compression method 'rar' in Frame\.to_csv\(\)"
     with pytest.raises(ValueError, match=msg):
@@ -596,7 +594,7 @@ def test_header_valid():
 
 
 def test_header_invalid():
-    msg = r"Argument header in Frame\.to_csv\(\) should be a boolean"
+    msg = r"Argument header in method datatable\.Frame\.to_csv\(\) should be a boolean"
     DT = dt.Frame()
     with pytest.raises(TypeError, match=msg):
         DT.to_csv(header=1)
@@ -656,7 +654,7 @@ def test_append_valid(tempfile):
 
 def test_append_invalid(tempfile):
     os.unlink(tempfile)
-    msg = r"Argument append in Frame\.to_csv\(\) should be a boolean"
+    msg = r"Argument append in method datatable\.Frame\.to_csv\(\) should be a boolean"
     DT = dt.Frame()
     with pytest.raises(TypeError, match=msg):
         DT.to_csv('tmp', append=1)
