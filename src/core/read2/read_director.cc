@@ -19,20 +19,26 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ2_DECLARATIONS_h
-#define dt_READ2_DECLARATIONS_h
-#include "_dt.h"
+#include "read2/read_director.h"
 namespace dt {
 namespace read2 {
 
 
-class ReadDirector;
-class ReadOptions;
-class SourceIterator;
-class Source;
+ReadDirector::ReadDirector(SourceIterator&& sources, ReadOptions&& options)
+    : sources_(std::move(sources)),
+      options_(std::move(options)) {}
 
-enum SeparatorKind : int8_t;
+
+py::oobj ReadDirector::readSingle() {
+  return py::None();
+}
+
+
+py::oobj ReadDirector::readNext() {
+  return py::None();
+}
+
+
 
 
 }}  // namespace dt::read2
-#endif

@@ -20,7 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/xargs.h"
-#include "read2/multisource.h"
+#include "read2/read_director.h"
+#include "read2/read_options.h"
+#include "read2/source_iterator.h"
 namespace dt {
 namespace read2 {
 
@@ -72,14 +74,27 @@ See Also
 
 
 static py::oobj aread(const py::XArgs& args) {
-  auto arg0    = args[0].to_robj();
-  auto argFile = args[1].to_robj();
-  auto argText = args[2].to_robj();
-  auto argCmd  = args[3].to_robj();
-  auto argUrl  = args[4].to_robj();
+  size_t k = 0;
+  auto arg0    = args[k++].to_robj();
+  auto argFile = args[k++].to_robj();
+  auto argText = args[k++].to_robj();
+  auto argCmd  = args[k++].to_robj();
+  auto argUrl  = args[k++].to_robj();
 
-  MultiSource sources("aread", arg0, argFile, argText, argCmd, argUrl);
-  return sources.readSingle();
+  const py::Arg& argLogger    = args[k++];
+  const py::Arg& argVerbose   = args[k++];
+
+  ReadOptions options;
+  options.initLogger(argLogger, argVerbose);
+  {
+    auto section = options.logger().section("[0] Process input parameters");
+  }
+
+  auto sources = SourceIterator::fromArgs(
+      "aread", arg0, argFile, argText, argCmd, argUrl
+  );
+  ReadDirector reader(std::move(sources), std::move(options));
+  return reader.readSingle();
 }
 
 
@@ -87,8 +102,9 @@ DECLARE_PYFN(&aread)
     ->name("aread")
     ->docs(doc_aread)
     ->n_positional_args(1)
-    ->n_keyword_args(4)
-    ->arg_names({"arg0", "file", "text", "cmd", "url"});
+    ->n_keyword_args(6)
+    ->arg_names({"arg0", "file", "text", "cmd", "url",
+                 "logger", "verbose"});
 
 
 

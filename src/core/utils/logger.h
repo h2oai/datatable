@@ -24,6 +24,7 @@
 #include <iomanip>
 #include <sstream>    // std::ostringstream
 #include "_dt.h"
+#include "python/obj.h"
 namespace py { class DefaultLogger; }
 namespace dt {
 namespace log {

@@ -19,19 +19,41 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ2_DECLARATIONS_h
-#define dt_READ2_DECLARATIONS_h
-#include "_dt.h"
+#ifndef dt_READ2_READ_OPTIONS_h
+#define dt_READ2_READ_OPTIONS_h
+#include "read2/_declarations.h"
+#include "utils/logger.h"
 namespace dt {
 namespace read2 {
 
 
-class ReadDirector;
-class ReadOptions;
-class SourceIterator;
-class Source;
+enum SeparatorKind : int8_t {
+  AUTO,       // auto-detect, this is the default
+  NONE,       // read input in single-column mode
+  CHAR,       // single-character separator
+  STRING,     // multi-character separator
+  WHITESPACE, // separator is the regex /\s+/
+  // in the future we may also support regex separator
+};
 
-enum SeparatorKind : int8_t;
+
+class ReadOptions {
+  private:
+    dt::log::Logger logger_;
+    std::string     separator_;
+    SeparatorKind   separatorKind_;
+    size_t : 56;
+
+  public:
+    ReadOptions();
+
+    dt::log::Logger& logger();
+
+    void initLogger(const py::Arg& logger, const py::Arg& verbose);
+    void initSeparator(const py::Arg& separator);
+};
+
+
 
 
 }}  // namespace dt::read2

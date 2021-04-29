@@ -21,21 +21,93 @@
 //------------------------------------------------------------------------------
 #include "frame/py_frame.h"
 #include "python/obj.h"
-#include "read2/multisource.h"
+#include "read2/source_iterator.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace read2 {
 
 using SourcePtr = std::unique_ptr<Source>;
-using SourceVec = std::vector<SourcePtr>;
+static void _fromAny(const py::robj, SourceIterator&);
+static void _fromFile(const py::robj, SourceIterator&);
+static void _fromText(const py::robj, SourceIterator&);
+static void _fromCmd(const py::robj, SourceIterator&);
+static void _fromUrl(const py::robj, SourceIterator&);
+static void _fromGlob(const py::robj, SourceIterator&);
 
-static void _fromAny(const py::robj, SourceVec&);
-static void _fromFile(const py::robj, SourceVec&);
-static void _fromText(const py::robj, SourceVec&);
-static void _fromCmd(const py::robj, SourceVec&);
-static void _fromUrl(const py::robj, SourceVec&);
-static void _fromGlob(const py::robj, SourceVec&);
+
+
+
+//------------------------------------------------------------------------------
+// SourceIterator
+//------------------------------------------------------------------------------
+
+SourceIterator::SourceIterator() noexcept
+  : head_(nullptr),
+    currentNode_(nullptr),
+    insertionPoint_(nullptr) {}
+
+SourceIterator::SourceIterator(SourceIterator&& other) noexcept
+  : head_(std::move(other.head_)),
+    currentNode_(other.currentNode_),
+    insertionPoint_(other.insertionPoint_)
+{
+  other.currentNode_ = nullptr;
+  other.insertionPoint_ = nullptr;
+}
+
+
+void SourceIterator::add(UniqueSource&& source) {
+  UniqueNode newNode(new Node(std::move(source)));
+  if (insertionPoint_) {
+    newNode->next = std::move(insertionPoint_->next);
+    insertionPoint_->next = std::move(newNode);
+    insertionPoint_ = insertionPoint_->next.get();
+  } else {
+    xassert(!head_);
+    head_ = std::move(newNode);
+    insertionPoint_ = head_.get();
+  }
+}
+
+
+void SourceIterator::add(SourceIterator&& sources) {
+  UniqueNode first = std::move(sources.head_);
+  sources.currentNode_ = nullptr;
+  sources.insertionPoint_ = nullptr;
+  if (!first) return;
+  Node* last = first.get();
+  while (last->next) {
+    last = last->next.get();
+  }
+  xassert(!last->next);
+  if (insertionPoint_) {
+    last->next = std::move(insertionPoint_->next);
+    insertionPoint_->next = std::move(first);
+  } else {
+    xassert(!head_);
+    head_ = std::move(first);
+  }
+  insertionPoint_ = last;
+}
+
+
+Source* SourceIterator::next() {
+  if (currentNode_) {
+    if (!currentNode_->source->keepReading()) {
+      currentNode_ = currentNode_->next.get();
+    }
+  } else {
+    currentNode_ = head_.get();
+  }
+  if (currentNode_) {
+    insertionPoint_ = currentNode_;
+    return currentNode_->source.get();
+  } else {
+    return nullptr;
+  }
+}
+
 
 
 
@@ -43,14 +115,14 @@ static void _fromGlob(const py::robj, SourceVec&);
 // Constructors
 //------------------------------------------------------------------------------
 
-MultiSource::MultiSource(
-    const char* fnName,
+SourceIterator SourceIterator::fromArgs(
+    const char* functionName,
     const py::robj arg0,
     const py::robj argFile,
     const py::robj argText,
     const py::robj argCmd,
-    const py::robj argUrl)
-{
+    const py::robj argUrl
+) {
   const bool arg0_defined    = arg0 && !arg0.is_none();
   const bool argFile_defined = argFile && !argFile.is_none();
   const bool argText_defined = argText && !argText.is_none();
@@ -62,14 +134,16 @@ MultiSource::MultiSource(
                     argCmd_defined +
                     argUrl_defined;
   if (total == 1) {
-    if (arg0_defined)    _fromAny(arg0, sources_);
-    if (argFile_defined) _fromFile(argFile, sources_);
-    if (argText_defined) _fromText(argText, sources_);
-    if (argCmd_defined)  _fromCmd(argCmd, sources_);
-    if (argUrl_defined)  _fromUrl(argUrl, sources_);
+    SourceIterator sourceIterator;
+    if (arg0_defined)         _fromAny(arg0, sourceIterator);
+    else if (argFile_defined) _fromFile(argFile, sourceIterator);
+    else if (argText_defined) _fromText(argText, sourceIterator);
+    else if (argCmd_defined)  _fromCmd(argCmd, sourceIterator);
+    else if (argUrl_defined)  _fromUrl(argUrl, sourceIterator);
+    return sourceIterator;
   }
   else if (total == 0) {
-    throw TypeError() << "No input source for " << fnName << " was given";
+    throw TypeError() << "No input source for " << functionName << " was given";
   }
   else {
     std::vector<const char*> extraArgs;
@@ -79,14 +153,14 @@ MultiSource::MultiSource(
     if (argUrl_defined)  extraArgs.push_back("url");
     if (arg0_defined) {
       throw TypeError()
-          << "When an unnamed argument is passed to " << fnName
+          << "When an unnamed argument is passed to " << functionName
           << ", it is invalid to also provide the `" << extraArgs[0]
           << "` parameter";
     } else {
       xassert(extraArgs.size() >= 2);
       throw TypeError()
           << "Both parameters `" << extraArgs[0] << "` and `" << extraArgs[1]
-          << "` cannot be passed to " << fnName << " simultaneously";
+          << "` cannot be passed to " << functionName << " simultaneously";
     }
   }
 }
@@ -136,7 +210,7 @@ static bool _looks_like_glob(const CString& text, char* evidence) {
 }
 
 
-static void _fromAny(const py::robj src, SourceVec& out) {
+static void _fromAny(const py::robj src, SourceIterator& out) {
   if (src.is_string() || src.is_bytes()) {
     auto cstr = src.to_cstring();
     if (cstr.size() >= 4096) {
@@ -168,7 +242,7 @@ static void _fromAny(const py::robj src, SourceVec& out) {
 // from File
 //------------------------------------------------------------------------------
 
-static void _fromFile(const py::robj src, SourceVec& out) {
+static void _fromFile(const py::robj src, SourceIterator& out) {
   // Case 1: src is a filename (str|bytes|PathLike)
   if (src.is_string() || src.is_bytes() || src.is_pathlike()) {
     auto pyFileName = py::oobj::import("os.path", "expanduser").call({src});
@@ -238,12 +312,12 @@ static void _fromFile(const py::robj src, SourceVec& out) {
 // from Text
 //------------------------------------------------------------------------------
 
-static void _fromText(const py::robj src, SourceVec& out) {
+static void _fromText(const py::robj src, SourceIterator& out) {
   if (!(src.is_string() || src.is_bytes())) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, instead got " << src.typeobj();
   }
-  out.emplace_back(new Source_Text(src));
+  out.add(SourcePtr(new Source_Text(src)));
 }
 
 
@@ -252,7 +326,7 @@ static void _fromText(const py::robj src, SourceVec& out) {
 // from Cmd
 //------------------------------------------------------------------------------
 
-static void _fromCmd(const py::robj src, SourceVec& out) {
+static void _fromCmd(const py::robj src, SourceIterator& out) {
   (void) src;
   (void) out;
 }
@@ -263,7 +337,7 @@ static void _fromCmd(const py::robj src, SourceVec& out) {
 // from Url
 //------------------------------------------------------------------------------
 
-static void _fromUrl(const py::robj src, SourceVec& out) {
+static void _fromUrl(const py::robj src, SourceIterator& out) {
   (void) src;
   (void) out;
 }
@@ -274,7 +348,7 @@ static void _fromUrl(const py::robj src, SourceVec& out) {
 // from Glob
 //------------------------------------------------------------------------------
 
-static void _fromGlob(const py::robj src, SourceVec& out) {
+static void _fromGlob(const py::robj src, SourceIterator& out) {
   auto globFn = py::import("glob", "glob");
   auto filesList = globFn.call({src}).to_pylist();
   auto n = filesList.size();
@@ -304,24 +378,24 @@ static void _fromGlob(const py::robj src, SourceVec& out) {
 // Process sources, and return the results
 //------------------------------------------------------------------------------
 
-py::oobj MultiSource::readSingle() {
-  xassert(iterationIndex_ == 0);
-  if (sources_.empty()) {
-    return py::Frame::oframe(new DataTable);
-  }
+// py::oobj MultiSource::readSingle() {
+//   xassert(iterationIndex_ == 0);
+//   if (sources_.empty()) {
+//     return py::Frame::oframe(new DataTable);
+//   }
 
-  // bool err = (reader_.multisource_strategy == FreadMultiSourceStrategy::Error);
-  // bool warn = (reader_.multisource_strategy == FreadMultiSourceStrategy::Warn);
-  // if (sources_.size() > 1 && err) throw _multisrc_error();
+//   // bool err = (reader_.multisource_strategy == FreadMultiSourceStrategy::Error);
+//   // bool warn = (reader_.multisource_strategy == FreadMultiSourceStrategy::Warn);
+//   // if (sources_.size() > 1 && err) throw _multisrc_error();
 
-  // py::oobj res = read_next();
-  // if (iterationIndex_ < sources_.size()) {
-  //   if (err) throw _multisrc_error();
-  //   if (warn) emit_multisrc_warning();
-  // }
-  // return res;
-  return py::None();
-}
+//   // py::oobj res = read_next();
+//   // if (iterationIndex_ < sources_.size()) {
+//   //   if (err) throw _multisrc_error();
+//   //   if (warn) emit_multisrc_warning();
+//   // }
+//   // return res;
+//   return py::None();
+// }
 
 
 
