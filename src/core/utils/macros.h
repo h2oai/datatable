@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -233,7 +233,7 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 
 //------------------------------------------------------------------------------
-// Types
+// Miscellaneous
 //------------------------------------------------------------------------------
 
 #if LONG_MAX==9223372036854775807
@@ -243,6 +243,20 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 #else
   #error "Cannot determine size of `long`"
 #endif
+
+
+DISABLE_CLANG_WARNING("-Wunused-template")
+
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...));
+
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...) const);
+
+#define CLASS_OF(METHOD) decltype(_class_of_impl(METHOD))
+
+RESTORE_CLANG_WARNING("-Wunused-template")
+
 
 
 #endif

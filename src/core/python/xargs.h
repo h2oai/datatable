@@ -37,13 +37,20 @@ namespace py {
   * and helps verify / parse them.
   */
 class XArgs : public ArgParent {
-  using implfn_t = oobj(*)(const XArgs&);
+  using impl_function_t = oobj(*)(const XArgs&);
+  using impl_method_t = oobj(PyObject::*)(const XArgs&);
+  using impl_methodv_t = void(PyObject::*)(const XArgs&);
   private:
-    implfn_t                ccfn_;
+    union {
+        impl_function_t  fn;
+        impl_method_t    meth;
+        impl_methodv_t   methv;
+    } ccfn_;
     PyCFunctionWithKeywords pyfn_;
     std::string class_name_;
     std::string function_name_;
     const char* docstring_;
+    size_t classId_;
 
     std::vector<const char*> arg_names_;
     size_t nargs_required_;
@@ -67,7 +74,9 @@ class XArgs : public ArgParent {
     PyObject* kwds_dict_;   // for var-kwds iteration
 
   public:
-    XArgs(implfn_t fn);
+    XArgs(impl_function_t fn);
+    XArgs(impl_method_t method, size_t classId);
+    XArgs(impl_methodv_t method, size_t classId);
     XArgs(const XArgs&) = delete;
     XArgs(XArgs&&) = delete;
     XArgs* pyfunction(PyCFunctionWithKeywords f);  // "private"
@@ -83,6 +92,7 @@ class XArgs : public ArgParent {
     XArgs* docs(const char*);
     XArgs* add_info(int);
     XArgs* add_synonym_arg(const char* new_name, const char* old_name);
+    XArgs* set_class_name(const char* name);
 
     size_t n_positional_args() const override;
     size_t n_positional_or_keyword_args() const override;
@@ -105,17 +115,21 @@ class XArgs : public ArgParent {
     //       "Method `datatable.Frame.cbind()`". For constructor, it
     //       returns "`datatable.Frame()` constructor".
     //
-    std::string proper_name() const;
+    const std::string& proper_name() const;
     std::string qualified_name() const;
     std::string descriptive_name(bool lowercase = false) const override;
 
     static std::vector<XArgs*>& store();
     PyMethodDef get_method_def();
+    PyCFunctionWithKeywords get_pyfunction();
+    const char* get_docstring() const;
 
     // void add_synonym_arg(const char* new_name, const char* old_name);
 
 
     PyObject* exec_function(PyObject* args, PyObject* kwds) noexcept;
+    PyObject* exec_method(PyObject* self, PyObject* args, PyObject* kwds) noexcept;
+    PyObject* exec_methodv(PyObject* self, PyObject* args, PyObject* kwds) noexcept;
 
     // //---- API for XTypeMaker ----------
     // void set_class_name(const char* name);
@@ -137,6 +151,7 @@ class XArgs : public ArgParent {
     size_t num_varkwds() const noexcept;
     py::robj vararg(size_t i) const;
     int get_info() const;
+    size_t get_class_id() const { return classId_; }
 
 
     class VarArgsIterator {
@@ -175,6 +190,7 @@ class XArgs : public ArgParent {
     // template <typename T> T get(size_t i, T default_value) const;
 
   private:
+    XArgs();
     void finish_initialization();
 
     Error error_too_few_args(size_t) const;
@@ -186,6 +202,8 @@ class XArgs : public ArgParent {
     // friend class VarKwdsIterator;
 };
 
+// #define RESULT_OF(fn) \
+//     typename std::result_of<decltype(fn)(CLASS_OF(fn), const XArgs&)>::type
 
 // Example of usage:
 //
@@ -218,6 +236,32 @@ class XArgs : public ArgParent {
             return ARGS_NAME->exec_function(args, kwds);                       \
           })
 
+#define DECLARE_METHOD(fn)                                                     \
+    static py::XArgs* ARGS_NAME = (new py::XArgs(                              \
+        reinterpret_cast<oobj(PyObject::*)(const XArgs&)>(fn),                 \
+        typeid(CLASS_OF(fn)).hash_code())                                      \
+      )->pyfunction(                                                           \
+          [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
+            return ARGS_NAME->exec_method(self, args, kwds);                   \
+          })
+
+#define DECLARE_METHODv(fn)                                                    \
+    static py::XArgs* ARGS_NAME = (new py::XArgs(                              \
+        reinterpret_cast<void(PyObject::*)(const XArgs&)>(fn),                 \
+        typeid(CLASS_OF(fn)).hash_code())                                      \
+      )->pyfunction(                                                           \
+          [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
+            return ARGS_NAME->exec_methodv(self, args, kwds);                  \
+          })
+
+#define INIT_METHODS_FOR_CLASS(CLASS)                                          \
+    do {                                                                       \
+      for (XArgs* xargs : XArgs::store()) {                                    \
+        if (xargs->get_class_id() == typeid(CLASS).hash_code()) {              \
+          xt.add(xargs->get_pyfunction(), xargs, py::XTypeMaker::method_tag);  \
+        }                                                                      \
+      }                                                                        \
+    } while(0)
 
 
 

@@ -115,6 +115,7 @@ class XTypeMaker {
 
     // PyCFunctionWithKeywords = PyObject*(*)(PyObject*, PyObject*, PyObject*)
     void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag);
+    void add(PyCFunctionWithKeywords meth, XArgs* args, MethodTag);
 
     // unaryfunc = PyObject*(*)(PyObject*)
     void add(unaryfunc meth, const char* name, Method0Tag);
@@ -574,19 +575,6 @@ PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
 //------------------------------------------------------------------------------
 // Helper macros
 //------------------------------------------------------------------------------
-
-DISABLE_CLANG_WARNING("-Wunused-template")
-
-template <typename T, typename R, typename... Args>
-static T _class_of_impl(R(T::*)(Args...));
-
-template <typename T, typename R, typename... Args>
-static T _class_of_impl(R(T::*)(Args...) const);
-
-#define CLASS_OF(METH) decltype(_class_of_impl(METH))
-
-RESTORE_CLANG_WARNING("-Wunused-template")
-
 
 #define CONSTRUCTOR(METH, ARGS)                                                \
     [](PyObject* self, PyObject* args, PyObject* kwds) noexcept -> int {       \

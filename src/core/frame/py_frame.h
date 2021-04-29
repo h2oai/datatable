@@ -44,7 +44,6 @@ class Frame : public XObject<Frame> {
 
   public:
     static void impl_init_type(XTypeMaker&);
-    static void _init_cbind(XTypeMaker&);
     static void _init_init(XTypeMaker&);
     static void _init_iter(XTypeMaker&);
     static void _init_jay(XTypeMaker&);
@@ -57,10 +56,7 @@ class Frame : public XObject<Frame> {
     static void _init_sort(XTypeMaker&);
     static void _init_newsort(XTypeMaker&);
     static void _init_stats(XTypeMaker&);
-    static void _init_toarrow(XTypeMaker&);
-    static void _init_tocsv(XTypeMaker&);
     static void _init_tonumpy(XTypeMaker&);
-    static void _init_to_pandas(XTypeMaker&);
     static void _init_topython(XTypeMaker&);
 
     // Internal "constructor" of Frame objects. We do not use real constructors
@@ -86,7 +82,7 @@ class Frame : public XObject<Frame> {
     oobj m__iter__();
     oobj m__reversed__();
     oobj m__copy__();
-    oobj m__deepcopy__(const PKArgs&);
+    oobj m__deepcopy__(const XArgs&);
     size_t m__len__() const;
 
     // Frame display
@@ -116,27 +112,27 @@ class Frame : public XObject<Frame> {
     void set_nrows(const Arg&);
     void set_source(const std::string&);  // internal use only
 
-    void cbind(const PKArgs&);
+    void cbind(const XArgs&);
     oobj colindex(const PKArgs&);
-    oobj copy(const PKArgs&);
-    oobj head(const PKArgs&);
-    void materialize(const PKArgs&);
+    oobj copy(const XArgs&);
+    oobj head(const XArgs&);
+    void materialize(const XArgs&);
     void rbind(const PKArgs&);
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
     oobj sort(const PKArgs&);
     oobj newsort(const PKArgs&);
-    oobj tail(const PKArgs&);
-    oobj export_names(const PKArgs&);
+    oobj tail(const XArgs&);
+    oobj export_names(const XArgs&);
 
     // Conversion methods
-    oobj to_arrow(const PKArgs&);
-    oobj to_csv(const PKArgs&);
+    oobj to_arrow(const XArgs&);
+    oobj to_csv(const XArgs&);
     oobj to_dict(const PKArgs&);
     oobj to_jay(const PKArgs&);  // See jay/save_jay.cc
     oobj to_list(const PKArgs&);
     oobj to_numpy(const PKArgs&);
-    oobj to_pandas(const PKArgs&);
+    oobj to_pandas(const XArgs&);
     oobj to_tuples(const PKArgs&);
 
     // Stats functions

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
     void init_methods();
     void init_methods_aggregate(); // models/aggregate.cc
-    void init_methods_cbind();     // frame/cbind.cc
     void init_methods_csv();       // csv/py_csv.cc
     void init_methods_isclose();   // expr/head_func_isclose.cc
     void init_methods_jay();       // open_jay.cc

@@ -23,6 +23,7 @@
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "write/csv_writer.h"
 #include "options.h"
 
@@ -138,15 +139,7 @@ return: None | str | bytes
     turned on, a bytes object will be returned instead.
 )";
 
-static PKArgs args_to_csv(
-    0, 1, 8, false, false,
-    {"path", "quoting", "append", "header", "bom", "hex", "compression",
-     "verbose", "method"},
-    "to_csv", doc_to_csv);
-
-
-oobj Frame::to_csv(const PKArgs& args)
-{
+oobj Frame::to_csv(const XArgs& args) {
   const Arg& arg_path     = args[0];
   const Arg& arg_quoting  = args[1];
   const Arg& arg_append   = args[2];
@@ -253,17 +246,16 @@ oobj Frame::to_csv(const PKArgs& args)
   return writer.get_result();
 }
 
+DECLARE_METHOD(&Frame::to_csv)
+    ->name("to_csv")
+    ->docs(doc_to_csv)
+    ->n_positional_or_keyword_args(1)
+    ->n_keyword_args(8)
+    ->arg_names({"path", "quoting", "append", "header", "bom", "hex",
+                 "compression", "verbose", "method"})
+    ->add_synonym_arg("_strategy", "method");
 
 
-
-//------------------------------------------------------------------------------
-// Declare Frame methods
-//------------------------------------------------------------------------------
-
-void Frame::_init_tocsv(XTypeMaker& xt) {
-  args_to_csv.add_synonym_arg("_strategy", "method");
-  xt.add(METHOD(&Frame::to_csv, args_to_csv));
-}
 
 
 }  // namespace py
