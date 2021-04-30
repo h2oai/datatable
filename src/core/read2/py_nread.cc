@@ -28,11 +28,12 @@ namespace read2 {
 
 
 //------------------------------------------------------------------------------
-// aread() python function
+// nread() python function
 //------------------------------------------------------------------------------
 
-static const char* doc_aread =
-R"(aread(arg0, *, file=None, text=None, cmd=None, url=None, ...)
+static const char* doc_nread =
+R"(nread(arg0, *, file=None, text=None, cmd=None, url=None,
+         sep="auto", logger=None, verbose=False)
 --
 
 Parameters
@@ -40,7 +41,7 @@ Parameters
 arg0: str | bytes | PathLike | file | List
     The first argument designates the **source** where the data should
     be read from. This argument can accommodate a variety of different
-    sources, and `aread()` will attempt to guess the meaning of this
+    sources, and `nread()` will attempt to guess the meaning of this
     argument based on its type and value.
 
     If you want to avoid possible ambiguities, another wait to specify
@@ -73,7 +74,7 @@ See Also
 )";
 
 
-static py::oobj aread(const py::XArgs& args) {
+static py::oobj nread(const py::XArgs& args) {
   size_t k = 0;
   auto arg0    = args[k++].to_robj();
   auto argFile = args[k++].to_robj();
@@ -93,16 +94,16 @@ static py::oobj aread(const py::XArgs& args) {
   }
 
   auto sources = SourceIterator::fromArgs(
-      "aread", arg0, argFile, argText, argCmd, argUrl
+      "nread", arg0, argFile, argText, argCmd, argUrl
   );
   ReadDirector reader(std::move(sources), std::move(options));
   return reader.readSingle();
 }
 
 
-DECLARE_PYFN(&aread)
-    ->name("aread")
-    ->docs(doc_aread)
+DECLARE_PYFN(&nread)
+    ->name("nread")
+    ->docs(doc_nread)
     ->n_positional_args(1)
     ->n_keyword_args(7)
     ->arg_names({"arg0", "file", "text", "cmd", "url",
