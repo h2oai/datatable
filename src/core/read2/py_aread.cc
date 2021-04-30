@@ -81,6 +81,7 @@ static py::oobj aread(const py::XArgs& args) {
   auto argCmd  = args[k++].to_robj();
   auto argUrl  = args[k++].to_robj();
 
+  const py::Arg& argSeparator = args[k++];
   const py::Arg& argLogger    = args[k++];
   const py::Arg& argVerbose   = args[k++];
 
@@ -88,6 +89,7 @@ static py::oobj aread(const py::XArgs& args) {
   options.initLogger(argLogger, argVerbose);
   {
     auto section = options.logger().section("[0] Process input parameters");
+    options.initSeparator(argSeparator);
   }
 
   auto sources = SourceIterator::fromArgs(
@@ -102,9 +104,9 @@ DECLARE_PYFN(&aread)
     ->name("aread")
     ->docs(doc_aread)
     ->n_positional_args(1)
-    ->n_keyword_args(6)
+    ->n_keyword_args(7)
     ->arg_names({"arg0", "file", "text", "cmd", "url",
-                 "logger", "verbose"});
+                 "sep", "logger", "verbose"});
 
 
 

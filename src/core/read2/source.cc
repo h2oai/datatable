@@ -19,21 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "read2/read_director.h"
 #include "read2/source.h"
 #include "utils/assert.h"
 namespace dt {
 namespace read2 {
 
 
+//------------------------------------------------------------------------------
+// Source
+//------------------------------------------------------------------------------
+
+Source::Source(const std::string& name)
+  : name_(name) {}
+
+Source::~Source() {}
+
+const std::string& Source::getName() const {
+  return name_;
+}
+
+bool Source::keepReading() const {
+  return false;
+}
+
+
 
 
 //------------------------------------------------------------------------------
-// SourceImpl_Multi
+// Source_Text
 //------------------------------------------------------------------------------
 
-// void SourceImpl_Multi::add(Source&& source) {
-//   sources_.emplace_back(std::move(source));
-// }
+Source_Text::Source_Text(const py::robj textsrc)
+  : Source("<text>"),
+    src_(textsrc) {}
+
+
+py::oobj Source_Text::readWith(ReadDirector* director) {
+  return py::None();
+}
 
 
 

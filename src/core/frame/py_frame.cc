@@ -685,6 +685,10 @@ void Frame::set_source(const std::string& src) {
   source_ = src.empty()? py::None() : py::ostring(src);
 }
 
+void Frame::setSource(py::robj src) {
+  source_ = src;
+}
+
 
 
 //------------------------------------------------------------------------------

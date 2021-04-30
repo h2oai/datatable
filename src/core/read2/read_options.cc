@@ -32,6 +32,7 @@ ReadOptions::ReadOptions()
 {}
 
 
+
 void ReadOptions::initLogger(
     const py::Arg& argLogger, const py::Arg& argVerbose)
 {
@@ -87,11 +88,11 @@ void ReadOptions::initSeparator(const py::Arg& argSep) {
   }
   if (logger_.enabled()) {
     switch (separatorKind_) {
-      case AUTO: logger_.info() << "sep = <auto>"; break;
-      case NONE: logger_.info() << "sep = <single-column mode>"; break;
-      case CHAR: logger_.info() << "sep = <char>'" << separator_[0] << "'"; break;
-      case STRING: logger_.info() << "sep = <string>\"" << separator_ << "\""; break;
-      case WHITESPACE: logger_.info() << "sep = <whitespace>"; break;
+      case SeparatorKind::AUTO: logger_.info() << "sep = <auto>"; break;
+      case SeparatorKind::NONE: logger_.info() << "sep = <single-column mode>"; break;
+      case SeparatorKind::CHAR: logger_.info() << "sep = <char>'" << separator_[0] << "'"; break;
+      case SeparatorKind::STRING: logger_.info() << "sep = <string>\"" << separator_ << "\""; break;
+      case SeparatorKind::WHITESPACE: logger_.info() << "sep = <whitespace>"; break;
     }
   }
 }

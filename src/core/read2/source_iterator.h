@@ -100,35 +100,5 @@ class SourceIterator {
 
 
 
-//------------------------------------------------------------------------------
-// DEPRECATED
-//------------------------------------------------------------------------------
-
-// class MultiSource {
-//   private:
-//     using SourcePtr = std::unique_ptr<Source>;
-//     using SourceVec = std::vector<SourcePtr>;
-
-//     // GenericReader reader_;
-//     SourceVec sources_;
-//     size_t    iterationIndex_;
-
-//   public:
-//     MultiSource(const char* fnName,
-//                 const py::robj arg0,
-//                 const py::robj argFile,
-//                 const py::robj argText,
-//                 const py::robj argCmd,
-//                 const py::robj argUrl);
-//     MultiSource(const MultiSource&) = delete;
-//     MultiSource(MultiSource&&) = delete;
-
-//     py::oobj readSingle();
-//     py::oobj readNext();
-// };
-
-
-
-
 }}  // namespace dt::read2
 #endif

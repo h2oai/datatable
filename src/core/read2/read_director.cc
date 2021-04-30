@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "read2/read_director.h"
+#include "frame/py_frame.h"
 namespace dt {
 namespace read2 {
 
@@ -30,12 +31,60 @@ ReadDirector::ReadDirector(SourceIterator&& sources, ReadOptions&& options)
 
 
 py::oobj ReadDirector::readSingle() {
-  return py::None();
+  return readNext();
 }
 
 
 py::oobj ReadDirector::readNext() {
-  return py::None();
+  Source* src = sources_.next();
+  if (!src) {
+    return py::oobj();
+  }
+
+  auto srcName = py::ostring(src->getName());
+  auto result = src->readWith(this);
+  py::Frame::cast_from(result)->setSource(srcName);
+  return result;
+
+  // py::oobj res;
+  // GenericReader new_reader(reader_);
+  // auto& src = sources_[iteration_index_];
+  // if (reader_.errors_strategy == IreadErrorHandlingStrategy::Error) {
+  //   res = src->read(new_reader);
+  //   py::Frame::cast_from(res)->set_source(src->name());
+  // }
+  // else {
+  //   try {
+  //     res = src->read(new_reader);
+  //     py::Frame::cast_from(res)->set_source(src->name());
+  //   }
+  //   catch (const Error& e) {
+  //     if (reader_.errors_strategy == IreadErrorHandlingStrategy::Warn) {
+  //       emit_badsrc_warning(src->name(), e);
+  //     }
+  //     if (reader_.errors_strategy == IreadErrorHandlingStrategy::Store) {
+  //       exception_to_python(e);
+  //       PyObject* etype = nullptr;
+  //       PyObject* evalue = nullptr;
+  //       PyObject* etraceback = nullptr;
+  //       PyErr_Fetch(&etype, &evalue, &etraceback);
+  //       PyErr_NormalizeException(&etype, &evalue, &etraceback);
+  //       if (etraceback) PyException_SetTraceback(evalue, etraceback);
+  //       Py_XDECREF(etype);
+  //       Py_XDECREF(etraceback);
+  //       res = py::oobj::from_new_reference(evalue);
+  //     }
+  //   }
+  // }
+  // SourcePtr next = src->continuation();
+  // if (next) {
+  //   sources_[iteration_index_] = std::move(next);
+  // } else {
+  //   iteration_index_++;
+  // }
+  // if (!res) goto start;
+  // return res;
+
 }
 
 

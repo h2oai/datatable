@@ -30,11 +30,33 @@ namespace read2 {
 
 
 
+/**
+  * Single input source for ?read functions. This is a base abstract
+  * class, with different implementations.
+  *
+  * The objects of this class are used by the SourceIterator class only.
+  */
 class Source {
+  protected:
+    std::string name_;
+
   public:
-    Source(const std::string&) {}
-    virtual ~Source() = default;
-    virtual bool keepReading() const { return false; }
+    Source(const std::string& name);
+    virtual ~Source();
+
+    // Each source has a name (the names need not be unique) which
+    // attempts to identify the origin of the object. This name will
+    // be carried in the `.source` attribute of the frame produced.
+    const std::string& getName() const;
+
+    // This function can be overridden in a subclass to indicate that
+    // not all data have been read yet, and that ReadDirector should
+    // invoke `readWith()` again to read the next Frame object.
+    virtual bool keepReading() const;
+
+    // Primary Source function, it will read the data from the
+    // current source, and return it as a python Frame object.
+    virtual py::oobj readWith(ReadDirector*) = 0;
 };
 
 
@@ -48,46 +70,12 @@ class Source_Text : public Source {
     const py::oobj src_;
 
   public:
-    Source_Text(const py::robj textsrc)
-      : Source("<text>"), src_(textsrc) {}
-    // py::oobj read(GenericReader&) override;
+    Source_Text(const py::robj textsrc);
+    py::oobj readWith(ReadDirector*) override;
 };
 
 
 #if 0
-/**
-  * Single input source for ?read functions. This is a base abstract
-  * class, with different implementations.
-  *
-  * The objects of this class are used by the MultiSource class only.
-  */
-class Source
-{
-  protected:
-    std::string name_;
-
-  public:
-    Source(const std::string& name);
-    virtual ~Source();
-
-    // Each source has a name (the names need not be unique) which
-    // attempts to identify the origin of the object. This name will
-    // be carried in the `.source` attribute of the frame produced.
-    const std::string& name() const { return name_; }
-
-    // Main Source function, it will read the data from the
-    // referenced input source, and return it as a python Frame
-    // object.
-    // virtual py::oobj read(GenericReader& reader) = 0;
-
-    // If the source must return more than one Frame object, the
-    // first one shall be returned by the `read()` method above,
-    // whereas retrieving all subsequent Frames will require
-    // calling this function.
-    // virtual std::unique_ptr<Source> continuation();
-};
-
-
 
 
 // temporary

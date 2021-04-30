@@ -27,15 +27,6 @@ namespace dt {
 namespace read2 {
 
 
-enum SeparatorKind : int8_t {
-  AUTO,       // auto-detect, this is the default
-  NONE,       // read input in single-column mode
-  CHAR,       // single-character separator
-  STRING,     // multi-character separator
-  WHITESPACE, // separator is the regex /\s+/
-  // in the future we may also support regex separator
-};
-
 
 class ReadOptions {
   private:

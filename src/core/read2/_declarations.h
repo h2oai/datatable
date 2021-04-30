@@ -31,7 +31,17 @@ class ReadOptions;
 class SourceIterator;
 class Source;
 
-enum SeparatorKind : int8_t;
+
+enum class SeparatorKind : int8_t {
+  AUTO,       // auto-detect, this is the default
+  NONE,       // read input in single-column mode
+  CHAR,       // single-character separator
+  STRING,     // multi-character separator
+  WHITESPACE, // separator is the regex /\s+/
+  // in the future, arbitrary regex separators may also be separated
+};
+
+
 
 
 }}  // namespace dt::read2

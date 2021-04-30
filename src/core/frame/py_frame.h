@@ -111,6 +111,7 @@ class Frame : public XObject<Frame> {
     void set_names(const Arg&);
     void set_nrows(const Arg&);
     void set_source(const std::string&);  // internal use only
+    void setSource(py::robj);  // internal use only
 
     void cbind(const XArgs&);
     oobj colindex(const PKArgs&);
