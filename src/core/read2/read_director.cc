@@ -88,6 +88,10 @@ py::oobj ReadDirector::readNext() {
 }
 
 
+py::oobj ReadDirector::readBuffer(Buffer buf) {
+  (void) buf;
+  return py::None();
+}
 
 
 }}  // namespace dt::read2

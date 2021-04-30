@@ -42,6 +42,8 @@ class ReadDirector {
 
     py::oobj readSingle();
     py::oobj readNext();
+
+    py::oobj readBuffer(Buffer buf);
 };
 
 

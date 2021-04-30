@@ -395,11 +395,12 @@ class PyBytes_BufferImpl : public BufferImpl {
     py::oobj owner_;
 
   public:
-    PyBytes_BufferImpl(const py::oobj& src) {
+    PyBytes_BufferImpl(const py::oobj& src, bool includeFinalNul) {
       xassert(src.is_bytes() || src.is_string());
       dt::CString cstr = src.to_cstring();
       data_ = const_cast<char*>(cstr.data());
-      size_ = cstr.size() + 1;  // for last \0 byte
+      size_ = cstr.size();
+      if (includeFinalNul && src.is_string()) size_++;
       resizable_ = false;
       writable_ = false;
       owner_ = src;
@@ -839,8 +840,8 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
   }
 
 
-  Buffer Buffer::pybytes(const py::oobj& src) {
-    return Buffer(new PyBytes_BufferImpl(src));
+  Buffer Buffer::pybytes(const py::oobj& src, bool includeFinalNul) {
+    return Buffer(new PyBytes_BufferImpl(src, includeFinalNul));
   }
 
   Buffer Buffer::view(const Buffer& src, size_t n, size_t offset) {

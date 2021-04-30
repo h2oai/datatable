@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,69 +19,42 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "read2/read_director.h"
-#include "read2/source.h"
-#include "utils/assert.h"
+#include "buffer.h"
+#include "parallel/python_lock.h"
+#include "python/int.h"
+#include "python/tuple.h"
+#include "read2/stream.h"
 namespace dt {
 namespace read2 {
 
 
-//------------------------------------------------------------------------------
-// Source
-//------------------------------------------------------------------------------
-
-Source::Source(const std::string& name)
-  : name_(name) {}
-
-Source::~Source() {}
-
-const std::string& Source::getName() const {
-  return name_;
-}
-
-bool Source::keepReading() const {
-  return false;
-}
-
+Stream::~Stream() {}
 
 
 
 //------------------------------------------------------------------------------
-// Source_Text
+// Stream_FileLike
 //------------------------------------------------------------------------------
 
-Source_Text::Source_Text(const py::robj textsrc)
-  : Source("<text>"),
-    pyText_(textsrc)
-{
-  xassert(textsrc.is_string() || textsrc.is_bytes());
-}
+Stream_FileLike::Stream_FileLike(py::robj src)
+  : pyReadFn_(src.get_attr("read")) {}
 
 
-py::oobj Source_Text::readWith(ReadDirector* director) {
-  auto buf = Buffer::pybytes(pyText_);
-  return director->readBuffer(buf);
+Buffer Stream_FileLike::readChunk(size_t requestedSize) {
+  PythonLock pylock;
+  auto pyChunk = pyReadFn_.call(py::otuple{ py::oint(requestedSize) });
+  return Buffer::pybytes(pyChunk, /* includeFinalNul = */ false);
 }
 
 
 
-
 //------------------------------------------------------------------------------
-// Source_File
+// Stream_Encoding
 //------------------------------------------------------------------------------
 
-Source_File::Source_File(std::string&& filename)
-  : Source(filename),
-    filename_(std::move(filename))
-{}
-
-
-py::oobj Source_File::readWith(ReadDirector* director) {
-  auto buf = Buffer::mmap(filename_);
-  return director->readBuffer(buf);
-}
+// Buffer Stream_Encoding::readChunk(size_t requestedSize) {}
 
 
 
 
-}}
+}}  // dt::read2

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,69 +19,60 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "read2/read_director.h"
-#include "read2/source.h"
-#include "utils/assert.h"
+#ifndef dt_READ2_STREAM_h
+#define dt_READ2_STREAM_h
+#include "read2/_declarations.h"
+#include "python/obj.h"
 namespace dt {
 namespace read2 {
 
 
-//------------------------------------------------------------------------------
-// Source
-//------------------------------------------------------------------------------
+class Stream {
+  private:
+  public:
+    virtual ~Stream();
 
-Source::Source(const std::string& name)
-  : name_(name) {}
-
-Source::~Source() {}
-
-const std::string& Source::getName() const {
-  return name_;
-}
-
-bool Source::keepReading() const {
-  return false;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Source_Text
-//------------------------------------------------------------------------------
-
-Source_Text::Source_Text(const py::robj textsrc)
-  : Source("<text>"),
-    pyText_(textsrc)
-{
-  xassert(textsrc.is_string() || textsrc.is_bytes());
-}
-
-
-py::oobj Source_Text::readWith(ReadDirector* director) {
-  auto buf = Buffer::pybytes(pyText_);
-  return director->readBuffer(buf);
-}
+    // Read the next chunk of data from the stream, and return to
+    // the caller as a Buffer object. The `requestedSize` is a hint,
+    // not a requirement. The implementation is allowed to return
+    // either more or less data than requested.
+    //
+    // When the stream reaches its end, this function will return an
+    // empty Buffer (0 size). It must not return empty Buffer if
+    // there is still data to read in the stream.
+    //
+    virtual Buffer readChunk(size_t requestedSize) = 0;
+};
 
 
 
 
 //------------------------------------------------------------------------------
-// Source_File
+// Implementations
 //------------------------------------------------------------------------------
 
-Source_File::Source_File(std::string&& filename)
-  : Source(filename),
-    filename_(std::move(filename))
-{}
+class Stream_FileLike : public Stream {
+  private:
+    py::oobj pyReadFn_;
 
+  public:
+    Stream_FileLike(py::robj src);
 
-py::oobj Source_File::readWith(ReadDirector* director) {
-  auto buf = Buffer::mmap(filename_);
-  return director->readBuffer(buf);
-}
-
+    Buffer readChunk(size_t requestedSize) override;
+};
 
 
 
-}}
+// provisional, NYI
+class Stream_Encoding : public Stream {
+  private:
+    std::unique_ptr<Stream> upstream_;
+  public:
+    Buffer readChunk(size_t requestedSize) override;
+};
+
+
+
+
+}}  // dt::read2
+#endif

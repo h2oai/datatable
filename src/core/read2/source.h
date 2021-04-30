@@ -61,16 +61,28 @@ class Source {
 
 
 
+
 //------------------------------------------------------------------------------
 // Implementations
 //------------------------------------------------------------------------------
 
 class Source_Text : public Source {
   private:
-    const py::oobj src_;
+    const py::oobj pyText_;
 
   public:
     Source_Text(const py::robj textsrc);
+    py::oobj readWith(ReadDirector*) override;
+};
+
+
+
+class Source_File : public Source {
+  private:
+    std::string filename_;
+
+  public:
+    Source_File(std::string&& filename);
     py::oobj readWith(ReadDirector*) override;
 };
 
