@@ -19,31 +19,32 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_READ2_STREAM_h
-#define dt_READ2_STREAM_h
+#ifndef dt_READ2_BUFFERED_STREAM_h
+#define dt_READ2_BUFFERED_STREAM_h
+#include <deque>
+#include "buffer.h"
 #include "read2/_declarations.h"
-#include "python/obj.h"
 namespace dt {
 namespace read2 {
 
 
-class Stream {
-  private:
+class BufferedStream {
+  using BufferedStreamPtr = std::unique_ptr<BufferedStream>;
   public:
-    virtual ~Stream();
+    virtual ~BufferedStream();
+    static BufferedStreamPtr fromBuffer(Buffer);
+    static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&&);
 
-    // Read the next chunk of data from the stream, and return to
-    // the caller as a Buffer object. The `requestedSize` is a hint,
-    // not a requirement. The implementation is allowed to return
-    // either more or less data than requested.
-    //
-    // When the stream reaches its end, this function will return an
-    // empty Buffer (0 size). It must not return empty Buffer if
-    // there is still data to read in the stream.
-    //
-    virtual Buffer readChunk(size_t requestedSize) = 0;
+    virtual Buffer getChunk(size_t start, size_t size) = 0;
+
+
+    virtual void release(size_t upTo) = 0;
+
+    // Read data from the source stream.
+    // This method will be executed from a dedicated thread, and the
+    // implementation is allowed to be long-running.
+    virtual void stream() = 0;
 };
-
 
 
 
@@ -51,32 +52,10 @@ class Stream {
 // Implementations
 //------------------------------------------------------------------------------
 
-class Stream_FileLike : public Stream {
-  private:
-    py::oobj pyReadFn_;
-
-  public:
-    Stream_FileLike(py::robj src);
-
-    Buffer readChunk(size_t requestedSize) override;
-};
 
 
 
-// provisional, NYI
-class Stream_Encoding : public Stream {
-  private:
-    std::unique_ptr<Stream> upstream_;
-  public:
-    Buffer readChunk(size_t requestedSize) override;
-};
 
 
-// NYI
-class Stream_LineProcessor : public Stream {
-};
-
-
-
-}}  // dt::read2
+}}  // namespace dt::read2
 #endif

@@ -26,10 +26,12 @@ namespace dt {
 namespace read2 {
 
 
+class BufferedStream;
 class ReadDirector;
 class ReadOptions;
 class SourceIterator;
 class Source;
+class Stream;
 
 
 enum class SeparatorKind : int8_t {

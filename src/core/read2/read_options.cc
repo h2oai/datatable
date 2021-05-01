@@ -32,6 +32,11 @@ ReadOptions::ReadOptions()
 {}
 
 
+dt::log::Logger& ReadOptions::logger() {
+  return logger_;
+}
+
+
 
 void ReadOptions::initLogger(
     const py::Arg& argLogger, const py::Arg& argVerbose)
