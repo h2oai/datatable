@@ -35,24 +35,32 @@ class BufferedStream {
     static BufferedStreamPtr fromBuffer(Buffer);
     static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&&);
 
+    // Request data chunk `[start; start+size)`. This function is
+    // blocking: if the data is not available yet, it will wait
+    // until the data was received. In particular, it is highly
+    // discouraged to perform random data access.
+    //
+    // This method is thread-safe and can be invoked from multiple
+    // threads at the same time.
+    //
+    // The returned chunk will have the exact size `size`, except
+    // when requesting data past the end of the stream, in which
+    // case the buffer `[start; eof)` will be returned. If the
+    // initial offset `start` is past the end of stream, then an
+    // empty Buffer will be returned.
+    //
     virtual Buffer getChunk(size_t start, size_t size) = 0;
 
-
-    virtual void release(size_t upTo) = 0;
+    // Call this method to inform the BufferedStream that data
+    // at offsets `[0; upTo)` will no longer be needed. This will
+    // allow some space to be freed (potentially).
+    virtual void releaseChunk(size_t upTo) = 0;
 
     // Read data from the source stream.
     // This method will be executed from a dedicated thread, and the
     // implementation is allowed to be long-running.
     virtual void stream() = 0;
 };
-
-
-
-//------------------------------------------------------------------------------
-// Implementations
-//------------------------------------------------------------------------------
-
-
 
 
 
