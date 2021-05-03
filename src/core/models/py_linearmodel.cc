@@ -1396,7 +1396,7 @@ void LinearModel::m__setstate__(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_LinearModel =
-R"(Generalized linear model with stochastic gradient descent learning.
+R"(Linear model with stochastic gradient descent learning.
 
 )";
 
