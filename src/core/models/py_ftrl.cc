@@ -1640,9 +1640,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_Ftrl =
-R"(Follow the Regularized Leader (FTRL) model.
-
-FTRL model is a datatable implementation of the
+R"(
+This class implements the Follow the Regularized Leader (FTRL) model,
+that is based on the
 `FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
 online learning algorithm for binomial logistic regression. Multinomial
 classification and regression for continuous targets are also implemented,

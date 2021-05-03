@@ -287,7 +287,9 @@ R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
     validation_average_niterations=1)
 --
 
-Train model on the input samples and targets.
+Train model on the input samples and targets using the
+`parallel stochastic gradient descent <http://martin.zinkevich.org/publications/nips2010.pdf>`_
+method.
 
 Parameters
 ----------
@@ -1399,8 +1401,12 @@ void LinearModel::m__setstate__(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_LinearModel =
-R"(Linear model with stochastic gradient descent learning.
-
+R"(This class implements the
+`Linear model <https://en.wikipedia.org/wiki/Linear_model>`_
+with the
+`stochastic gradient descent <https://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_
+learning. It supports linear regression, as well as binomial and multinomial
+classifications. Both :meth:`.fit` and :meth:`.predict` methods are fully parallel.
 )";
 
 void LinearModel::impl_init_type(XTypeMaker& xt) {
