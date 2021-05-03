@@ -85,7 +85,7 @@
           - All the input model parameters as a named tuple.
 
         * - :attr:`seed <datatable.models.LinearModel.seed>`
-          - Seed for the random data shuffling.
+          - Seed for the quasi-random data shuffling.
 
 
 .. toctree::
