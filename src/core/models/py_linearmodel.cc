@@ -668,8 +668,11 @@ Parameters
 ----------
 return: Frame
     A frame of shape `(nfeatures + 1, nlabels)`, where `nlabels` is
-    the total number of labels the model was trained on, and
-    `nfeatures` is the total number of features.
+    the number of labels the model was trained on, and
+    `nfeatures` is the number of features. Each column contains
+    model coefficients for the corresponding label: starting from
+    the intercept and following by the coefficients for each of
+    of the `nfeatures` features.
 )";
 
 static GSArgs args_model("model", doc_model);
