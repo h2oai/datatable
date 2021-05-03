@@ -78,8 +78,8 @@ eta0: float
     The initial learning rate, should be positive.
 
 eta_decay: float
-    Decay for the `"time-based"` and `"step-based"` learning rate schedules,
-    should be non-negative.
+    Decay for the `"time-based"` and `"step-based"`
+    learning rate schedules, should be non-negative.
 
 eta_drop_rate: float
     Drop rate for the `"step-based"` learning rate schedule,
@@ -89,9 +89,11 @@ eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
     Learning rate schedule. When it is `"constant"` the learning rate
     `eta` is constant and equals to `eta0`. Otherwise,
     after each training iteration `eta` is updated as follows:
+
     - for `"time-based"` schedule as `eta0 / (1 + eta_decay * epoch)`;
     - for `"step-based"` schedule as `eta0 * eta_decay ^ floor((1 + epoch) / eta_drop_rate)`;
     - for `"exponential"` schedule as `eta0 / exp(eta_decay * epoch)`.
+
     By default, the size of the training iteration is one epoch, it becomes
     `nepochs_validation` when validation dataset is specified.
 
@@ -132,7 +134,8 @@ model_type: "binomial" | "multinomial" | "regression" | "auto"
     then the model type will be automatically chosen based on
     the target column `stype`.
 
-seed: seed for the quasi-random number generator that is used for
+seed: int
+    seed for the quasi-random number generator that is used for
     data shuffling when fitting the model, should be non-negative.
     If seed is zero, no shuffling is performed.
 
@@ -284,7 +287,7 @@ R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
     validation_average_niterations=1)
 --
 
-Train linear model on a dataset.
+Train model on the input samples and targets.
 
 Parameters
 ----------
@@ -321,7 +324,7 @@ return: LinearModelFitOutput
 
 See also
 --------
-- :meth:`.predict` -- predict on a dataset.
+- :meth:`.predict` -- predict for the input samples.
 - :meth:`.reset` -- reset the model.
 
 )";
@@ -510,7 +513,7 @@ static const char* doc_predict =
 R"(predict(self, X)
 --
 
-Make predictions for a dataset.
+Predict for the input samples.
 
 Parameters
 ----------
@@ -525,7 +528,7 @@ return: Frame
 
 See also
 --------
-- :meth:`.fit` -- train model on a dataset.
+- :meth:`.fit` -- train model on the input samples and targets.
 - :meth:`.reset` -- reset the model.
 
 )";
@@ -632,7 +635,7 @@ static const char* doc_is_fitted =
 R"(is_fitted(self)
 --
 
-Report the status of the model.
+Report model status.
 
 Parameters
 ----------
@@ -666,8 +669,7 @@ Parameters
 return: Frame
     A frame of shape `(nfeatures + 1, nlabels)`, where `nlabels` is
     the total number of labels the model was trained on, and
-    :attr:`nfeatures <datatable.models.LinearModel.nfeatures>` is
-    the total number of features.
+    `nfeatures` is the total number of features.
 )";
 
 static GSArgs args_model("model", doc_model);
@@ -1160,7 +1162,7 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
 static const char* doc_seed =
 R"(
 Seed for the quasi-random number generator that is used for
-data shuffling when fitting the model. If seed is zero,
+data shuffling when fitting the model. If seed is `0`,
 no shuffling is performed.
 
 Parameters
@@ -1394,7 +1396,7 @@ void LinearModel::m__setstate__(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_LinearModel =
-R"(Regularized linear model with stochastic gradient descent learning.
+R"(Generalized linear model with stochastic gradient descent learning.
 
 )";
 
@@ -1419,7 +1421,7 @@ void LinearModel::impl_init_type(XTypeMaker& xt) {
   xt.add(GETSET(&LinearModel::get_seed, &LinearModel::set_seed, args_seed));
   xt.add(GETSET(&LinearModel::get_model_type, &LinearModel::set_model_type, args_model_type));
 
-  // Model and features
+  // Model and labels
   xt.add(GETTER(&LinearModel::get_labels, args_labels));
   xt.add(GETTER(&LinearModel::get_model, args_model));
 

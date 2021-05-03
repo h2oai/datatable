@@ -59,7 +59,7 @@ class LinearModel : public XObject<LinearModel> {
     oobj m__getstate__(const PKArgs&);
     void m__setstate__(const PKArgs&);
 
-    // Learning and predicting methods
+    // Model related methods
     oobj fit(const PKArgs&);
     oobj predict(const PKArgs&);
     void reset(const PKArgs&);

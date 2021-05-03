@@ -25,10 +25,10 @@
         :class: api-table
 
         * - :meth:`fit() <datatable.models.Ftrl.fit>`
-          - Train the model.
+          - Train model on the input samples and targets.
 
         * - :meth:`predict() <datatable.models.Ftrl.predict>`
-          - Predict for a trained model.
+          - Predict for the input samples.
 
         * - :meth:`reset() <datatable.models.Ftrl.reset>`
           - Reset the model.
