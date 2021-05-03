@@ -109,5 +109,5 @@
     .params                   <LinearModel/params>
     .predict()                <LinearModel/predict>
     .reset()                  <LinearModel/reset>
-    .seed()                   <LinearModel/seed>
+    .seed                     <LinearModel/seed>
 
