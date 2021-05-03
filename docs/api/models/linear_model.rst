@@ -13,7 +13,7 @@
         :class: api-table
 
         * - :meth:`LinearModel() <datatable.models.LinearModel.__init__>`
-          - Construct the `LinearModel` object.
+          - Construct a `LinearModel` object.
 
 
 

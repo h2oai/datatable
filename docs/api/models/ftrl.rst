@@ -13,7 +13,7 @@
         :class: api-table
 
         * - :meth:`Ftrl() <datatable.models.Ftrl.__init__>`
-          - Construct the `Ftrl` object.
+          - Construct an `Ftrl` object.
 
 
 
