@@ -23,6 +23,7 @@
 #define dt_READ2_READ_DIRECTOR_h
 #include "read2/_declarations.h"
 #include "read2/source_iterator.h"
+#include "buffered_stream.h"
 #include "read2/read_options.h"
 namespace dt {
 namespace read2 {
@@ -44,6 +45,7 @@ class ReadDirector {
     py::oobj readNext();
 
     py::oobj readBuffer(Buffer buf);
+    py::oobj readStream(std::unique_ptr<BufferedStream>&& stream);
 };
 
 

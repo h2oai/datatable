@@ -89,9 +89,16 @@ py::oobj ReadDirector::readNext() {
 
 
 py::oobj ReadDirector::readBuffer(Buffer buf) {
-  (void) buf;
+  return readStream(BufferedStream::fromBuffer(buf));
+}
+
+
+py::oobj ReadDirector::readStream(std::unique_ptr<BufferedStream>&& stream) {
+  (void) stream;
   return py::None();
 }
+
+
 
 
 }}  // namespace dt::read2

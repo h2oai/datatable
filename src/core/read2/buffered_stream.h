@@ -35,7 +35,23 @@ namespace read2 {
 //   2. When there is no parallel loop running, this should still be
 //      able to read and return data.
 //
-
+// Do we even need a separate thread of execution?
+//
+// [Option 1]
+//    A dedicated thread constantly runs `stream()` in a loop, putting
+//    data chunks in a queue. The worker threads (which perform data
+//    parsing) query the queue, and if it is missing the required
+//    chunk, wait for the stream thread.
+//
+// [Option 2]
+//    Each worker thread, if it finds that data queue is empty, turns
+//    on a mutex and proceeds to fetch the next piece of data from the
+//    stream.
+//
+//    PROs:
+//      - no need to implement a special scheduler;
+//      - single- and multi-threaded cases work exactly the same;
+//      - no need memory limit parameter
 
 
 class BufferedStream : public Stream {
@@ -43,8 +59,7 @@ class BufferedStream : public Stream {
   public:
     virtual ~BufferedStream();
     static BufferedStreamPtr fromBuffer(Buffer);
-    static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&& stream,
-                                        size_t memoryLimit = (1<<30));
+    static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&& stream);
 
     // Request data chunk `[start; start+size)`. This function is
     // blocking: if the data is not available yet, it will wait
