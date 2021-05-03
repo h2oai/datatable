@@ -22,6 +22,7 @@
 #include <deque>
 #include "read2/buffered_stream.h"
 #include "read2/stream.h"
+#include "utils/assert.h"
 namespace dt {
 namespace read2 {
 
@@ -48,6 +49,12 @@ class BufferedStream_Buffer : public BufferedStream {
 
     void stream() override {}
     void releaseChunk(size_t) override {}
+
+    Buffer readChunk(size_t) override {
+      Buffer res = std::move(buffer_);
+      xassert(!buffer_);
+      return res;
+    }
 };
 
 
@@ -69,14 +76,21 @@ class BufferedStream_Stream : public BufferedStream {
     std::deque<Piece> pieces_;
     size_t nPiecesRead_;
     size_t nBytesRead_;
+    size_t memoryLimit_;
+    size_t memoryUsed_;
     std::mutex mutex_;
     std::condition_variable cv_;
 
   public:
-    BufferedStream_Stream(std::unique_ptr<Stream>&& stream)
+    BufferedStream_Stream(std::unique_ptr<Stream>&& stream, size_t memoryLimit)
       : stream_(std::move(stream)),
         nPiecesRead_(0),
-        nBytesRead_(0) {}
+        nBytesRead_(0),
+        memoryLimit_(memoryLimit),
+        memoryUsed_(0)
+    {
+      xassert(memoryLimit_ > 0);
+    }
 
 
     Buffer getChunk(size_t start, size_t size) override {
@@ -120,6 +134,10 @@ class BufferedStream_Stream : public BufferedStream {
     void stream() override {
       bool done = false;
       while (!done) {
+        if (memoryUsed_ > memoryLimit_) {
+          std::unique_lock<std::mutex> lock(mutex_);
+          cv_.wait(lock, [&]{ return memoryUsed_ < memoryLimit_; });
+        }
         auto buffer = stream_->readChunk(1024*1024);
         auto size = buffer.size();
         {
@@ -131,6 +149,7 @@ class BufferedStream_Stream : public BufferedStream {
             pieces_.push_back({ nBytesRead_, nBytesRead_ + size, buffer });
             nPiecesRead_++;
             nBytesRead_ += size;
+            memoryUsed_ += size;
           }
         }
         cv_.notify_all();
@@ -138,13 +157,32 @@ class BufferedStream_Stream : public BufferedStream {
     }
 
     void releaseChunk(size_t upTo) override {
-      std::lock_guard<std::mutex> lock(mutex_);
-      for (const auto& piece : pieces_) {
-        if (piece.offset1 > upTo) break;
-        pieces_.pop_front();
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        for (const auto& piece : pieces_) {
+          if (piece.offset1 > upTo) break;
+          pieces_.pop_front();
+        }
       }
+      cv_.notify_all();
     }
 
+    Buffer readChunk(size_t requestedSize) override {
+      if (!pieces_.empty()) {
+        Buffer res = std::move(pieces_.front().buffer);
+        pieces_.pop_front();
+        return res;
+      }
+      if (nPiecesRead_ == ALL) {
+        return Buffer();
+      } else {
+        Buffer buf = stream_->readChunk(requestedSize);
+        if (!buf) {
+          nPiecesRead_ = ALL;
+        }
+        return buf;
+      }
+    }
 
   private:
     Buffer concatenateBuffers(const std::vector<Buffer>& buffers) {
@@ -184,8 +222,11 @@ BufferedStreamPtr BufferedStream::fromBuffer(Buffer buf) {
 }
 
 
-BufferedStreamPtr BufferedStream::fromStream(std::unique_ptr<Stream>&& stream) {
-  return BufferedStreamPtr(new BufferedStream_Stream(std::move(stream)));
+BufferedStreamPtr BufferedStream::fromStream(
+    std::unique_ptr<Stream>&& stream, size_t memoryLimit)
+{
+  return BufferedStreamPtr(
+      new BufferedStream_Stream(std::move(stream), memoryLimit));
 }
 
 

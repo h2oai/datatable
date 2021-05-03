@@ -24,16 +24,27 @@
 #include <deque>
 #include "buffer.h"
 #include "read2/_declarations.h"
+#include "read2/stream.h"
 namespace dt {
 namespace read2 {
 
 
-class BufferedStream {
+// TODO:
+//   1. Figure out how to run this in multi-threaded, parallel to the
+//      standard ordered loop.
+//   2. When there is no parallel loop running, this should still be
+//      able to read and return data.
+//
+
+
+
+class BufferedStream : public Stream {
   using BufferedStreamPtr = std::unique_ptr<BufferedStream>;
   public:
     virtual ~BufferedStream();
     static BufferedStreamPtr fromBuffer(Buffer);
-    static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&&);
+    static BufferedStreamPtr fromStream(std::unique_ptr<Stream>&& stream,
+                                        size_t memoryLimit = (1<<30));
 
     // Request data chunk `[start; start+size)`. This function is
     // blocking: if the data is not available yet, it will wait
@@ -60,6 +71,9 @@ class BufferedStream {
     // This method will be executed from a dedicated thread, and the
     // implementation is allowed to be long-running.
     virtual void stream() = 0;
+
+    // Stream API: return a chunk of the most appropriate size
+    // Buffer readChunk(size_t requestedSize) override;
 };
 
 

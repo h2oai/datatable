@@ -28,7 +28,6 @@ namespace read2 {
 
 
 class Stream {
-  private:
   public:
     virtual ~Stream();
 
@@ -39,7 +38,7 @@ class Stream {
     //
     // When the stream reaches its end, this function will return an
     // empty Buffer (0 size). It must not return empty Buffer if
-    // there is still data to read in the stream.
+    // there is still data to be read in the stream.
     //
     virtual Buffer readChunk(size_t requestedSize) = 0;
 };
