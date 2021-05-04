@@ -99,4 +99,33 @@ py::oobj Source_Filelike::readWith(ReadDirector* director) {
 
 
 
+//------------------------------------------------------------------------------
+// Source_Url
+//------------------------------------------------------------------------------
+
+Source_Url::Source_Url(const std::string& url)
+  : Source(url),
+    url_(url) {}
+
+
+Source_Url::~Source_Url() {
+  try {
+    if (fileObject_) {
+      fileObject_.invoke("close");
+    }
+  } catch (const std::exception&) {}
+}
+
+
+py::oobj Source_Url::readWith(ReadDirector* director) {
+  auto urllib = py::oobj::import("urllib.request");
+  fileObject_ = urllib.invoke("urlopen", {py::ostring(url_)});
+  return director->readStream(BufferedStream::fromStream(
+      std::unique_ptr<Stream>(new Stream_Filelike(fileObject_))
+  ));
+}
+
+
+
+
 }}  // namespace dt::read2

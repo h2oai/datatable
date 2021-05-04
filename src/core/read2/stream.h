@@ -27,6 +27,7 @@ namespace dt {
 namespace read2 {
 
 
+
 class Stream {
   public:
     virtual ~Stream();

@@ -98,6 +98,11 @@ class Source_File : public Source {
 
 
 
+/**
+  * Source is a python "file-like" object, which is any object that
+  * has `.read()` method. This source will read the file using the
+  * stream interface.
+  */
 class Source_Filelike : public Source {
   private:
     py::oobj fileObject_;
@@ -109,46 +114,18 @@ class Source_Filelike : public Source {
 
 
 
-#if 0
 
-// temporary
-class Source_Python : public Source
-{
-  private:
-    py::oobj src_;
-
-  public:
-    Source_Python(const std::string& name, py::oobj src);
-    // py::oobj read(GenericReader&) override;
-};
-
-
-// temporary
-class Source_Result : public Source
-{
-  private:
-    py::oobj result_;
-
-  public:
-    Source_Result(const std::string& name, py::oobj res);
-    // py::oobj read(GenericReader&) override;
-};
-
-
-
-
-
-
-class Source_Url : public Source
-{
+class Source_Url : public Source {
   private:
     std::string url_;
+    py::oobj fileObject_;
 
   public:
     Source_Url(const std::string& url);
-    // py::oobj read(GenericReader&) override;
+    ~Source_Url() override;
+    py::oobj readWith(ReadDirector*) override;
 };
-#endif
+
 
 
 
