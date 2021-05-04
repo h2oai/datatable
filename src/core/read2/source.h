@@ -49,11 +49,6 @@ class Source {
     // be carried in the `.source` attribute of the frame produced.
     const std::string& getName() const;
 
-    // This function can be overridden in a subclass to indicate that
-    // not all data have been read yet, and that ReadDirector should
-    // invoke `readWith()` again to read the next Frame object.
-    virtual bool keepReading() const;
-
     // Primary Source function, it will read the data from the
     // current source, and return it as a python Frame object.
     virtual py::oobj readWith(ReadDirector*) = 0;

@@ -31,7 +31,7 @@ namespace read2 {
 
 /**
   * Central class that oversees all the work performed by *read
-  * functionns.
+  * functions.
   */
 class ReadDirector {
   private:

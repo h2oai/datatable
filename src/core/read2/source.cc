@@ -39,10 +39,6 @@ const std::string& Source::getName() const {
   return name_;
 }
 
-bool Source::keepReading() const {
-  return false;
-}
-
 
 
 

@@ -94,9 +94,9 @@ void SourceIterator::add(SourceIterator&& sources) {
 
 Source* SourceIterator::next() {
   if (currentNode_) {
-    if (!currentNode_->source->keepReading()) {
+    // if (!currentNode_->source->keepReading()) {
       currentNode_ = currentNode_->next.get();
-    }
+    // }
   } else {
     currentNode_ = head_.get();
   }
@@ -269,15 +269,16 @@ static void _fromFile(const py::robj src, SourceIterator& out) {
     //         the path as the subpath.
     //         Check that archive's extension: process separately for
     //         each known extension.
+    out.add(SourcePtr(new Source_File(pyFileName.to_string())));
+    return;
   }
   // Case 2: src is a file object (has method `.read()`)
   if (src.has_attr("read")) {
-    auto fnRead = src.get_attr("read");
-    // Create a source which could read data from async stream
-    // provided by the `fnRead`.
-    // Returned source is stream source.
+    out.add(SourcePtr(new Source_Filelike(src)));
+    return;
   }
-  (void) out;
+  throw TypeError() << "Invalid parameter `file` in fread: expected a "
+      "string or a file object, instead got " << src.typeobj();
 }
 
 
@@ -338,8 +339,11 @@ static void _fromCmd(const py::robj src, SourceIterator& out) {
 //------------------------------------------------------------------------------
 
 static void _fromUrl(const py::robj src, SourceIterator& out) {
-  (void) src;
-  (void) out;
+  if (!src.is_string()) {
+    throw TypeError() << "Invalid parameter `url` in fread: expected a string, "
+                         "instead got " << src.typeobj();
+  }
+  out.add(SourcePtr(new Source_Url(src.to_string())));
 }
 
 
