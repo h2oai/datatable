@@ -317,7 +317,7 @@ static void _fromText(const py::robj src, SourceIterator& out) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, instead got " << src.typeobj();
   }
-  out.add(SourcePtr(new Source_Text(src)));
+  out.add(SourcePtr(new Source_Memory(src)));
 }
 
 

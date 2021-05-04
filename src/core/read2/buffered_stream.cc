@@ -63,10 +63,11 @@ class BufferedStream_Buffer : public BufferedStream {
 //------------------------------------------------------------------------------
 // BufferedStream_Stream
 //------------------------------------------------------------------------------
+#undef EOF
 
 class BufferedStream_Stream : public BufferedStream {
   private:
-    static constexpr size_t ALL = size_t(-1);
+    static constexpr size_t EOF = size_t(-1);
     struct Piece {
       size_t offset0;
       size_t offset1;
@@ -74,6 +75,8 @@ class BufferedStream_Stream : public BufferedStream {
     };
     std::unique_ptr<Stream> stream_;
     std::deque<Piece> pieces_;
+    // Number of bytes read from the stream so far. When the stream reaches
+    // end-of-file, this value will be set to `EOF`.
     size_t piecesNBytes_;
     std::mutex piecesMutex_;
     std::mutex streamMutex_;
@@ -111,7 +114,7 @@ class BufferedStream_Stream : public BufferedStream {
             if (remainingSize == 0) break;
           }
         }  // `piecesMutex_` unlocked
-        if (remainingSize == 0 || nBytes == ALL) {
+        if (remainingSize == 0 || nBytes == EOF) {
           return concatenateBuffers(fragments);
         }
         // otherwise, not all required pieces have been read yet -- need to
@@ -124,33 +127,29 @@ class BufferedStream_Stream : public BufferedStream {
     }
 
     void stream() override {
-      bool done = false;
-      while (!done) {
-        auto buffer = stream_->readChunk(1024*1024);
-        auto size = buffer.size();
-        {
-          std::lock_guard<std::mutex> lock(piecesMutex_);
-          if (size == 0) {
-            piecesNBytes_ = ALL;
-            done = true;
-          } else {
-            pieces_.push_back({ piecesNBytes_, piecesNBytes_ + size, buffer });
-            piecesNBytes_ += size;
-          }
-        }
-        piecesCV_.notify_all();
-      }
-    }
-
-    void releaseChunk(size_t upTo) override {
+      std::lock_guard<std::mutex> lock0(streamMutex_);
+      auto chunk = stream_->readChunk(1024*1024);
+      auto size = chunk.size();
+      // The chunk should be put into the queue `pieces_` before unlocking
+      // the `streamMutex_`.
       {
         std::lock_guard<std::mutex> lock(piecesMutex_);
-        for (const auto& piece : pieces_) {
-          if (piece.offset1 > upTo) break;
-          pieces_.pop_front();
+        if (size == 0) {
+          piecesNBytes_ = EOF;
+        } else {
+          pieces_.push_back({ piecesNBytes_, piecesNBytes_ + size, chunk });
+          piecesNBytes_ += size;
         }
       }
       piecesCV_.notify_all();
+    }
+
+    void releaseChunk(size_t upTo) override {
+      std::lock_guard<std::mutex> lock(piecesMutex_);
+      for (const auto& piece : pieces_) {
+        if (piece.offset1 > upTo) break;
+        pieces_.pop_front();
+      }
     }
 
     Buffer readChunk(size_t requestedSize) override {
@@ -159,12 +158,12 @@ class BufferedStream_Stream : public BufferedStream {
         pieces_.pop_front();
         return res;
       }
-      if (piecesNBytes_ == ALL) {
+      if (piecesNBytes_ == EOF) {
         return Buffer();
       } else {
         Buffer buf = stream_->readChunk(requestedSize);
         if (!buf) {
-          piecesNBytes_ = ALL;
+          piecesNBytes_ = EOF;
         }
         return buf;
       }

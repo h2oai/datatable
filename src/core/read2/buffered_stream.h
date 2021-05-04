@@ -29,30 +29,6 @@ namespace dt {
 namespace read2 {
 
 
-// TODO:
-//   1. Figure out how to run this in multi-threaded, parallel to the
-//      standard ordered loop.
-//   2. When there is no parallel loop running, this should still be
-//      able to read and return data.
-//
-// Do we even need a separate thread of execution?
-//
-// [Option 1]
-//    A dedicated thread constantly runs `stream()` in a loop, putting
-//    data chunks in a queue. The worker threads (which perform data
-//    parsing) query the queue, and if it is missing the required
-//    chunk, wait for the stream thread.
-//
-// [Option 2]
-//    Each worker thread, if it finds that data queue is empty, turns
-//    on a mutex and proceeds to fetch the next piece of data from the
-//    stream.
-//
-//    PROs:
-//      - no need to implement a special scheduler;
-//      - single- and multi-threaded cases work exactly the same;
-//      - no need memory limit parameter
-
 
 class BufferedStream : public Stream {
   using BufferedStreamPtr = std::unique_ptr<BufferedStream>;
@@ -63,7 +39,7 @@ class BufferedStream : public Stream {
 
     // Request data chunk `[start; start+size)`. This function is
     // blocking: if the data is not available yet, it will wait
-    // until the data was received. In particular, it is highly
+    // until the data is received. In particular, it is highly
     // discouraged to perform random data access.
     //
     // This method is thread-safe and can be invoked from multiple
@@ -82,13 +58,12 @@ class BufferedStream : public Stream {
     // allow some space to be freed (potentially).
     virtual void releaseChunk(size_t upTo) = 0;
 
-    // Read data from the source stream.
-    // This method will be executed from a dedicated thread, and the
-    // implementation is allowed to be long-running.
-    virtual void stream() = 0;
-
     // Stream API: return a chunk of the most appropriate size
     // Buffer readChunk(size_t requestedSize) override;
+
+  private:
+    // Read data from the source stream.
+    virtual void stream() = 0;
 };
 
 

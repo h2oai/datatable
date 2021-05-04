@@ -50,12 +50,12 @@ class Stream {
 // Implementations
 //------------------------------------------------------------------------------
 
-class Stream_FileLike : public Stream {
+class Stream_Filelike : public Stream {
   private:
     py::oobj pyReadFn_;
 
   public:
-    Stream_FileLike(py::robj src);
+    Stream_Filelike(py::robj src);
 
     Buffer readChunk(size_t requestedSize) override;
 };

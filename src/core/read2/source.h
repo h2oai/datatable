@@ -66,17 +66,27 @@ class Source {
 // Implementations
 //------------------------------------------------------------------------------
 
-class Source_Text : public Source {
+/**
+  * Source is an object that represents a contiguous piece of data that
+  * already resides in memory. Typically, this is created from a string
+  * or bytes object.
+  */
+class Source_Memory : public Source {
   private:
-    const py::oobj pyText_;
+    Buffer buffer_;
 
   public:
-    Source_Text(const py::robj textsrc);
+    Source_Memory(py::robj textsrc);
     py::oobj readWith(ReadDirector*) override;
 };
 
 
 
+/**
+  * Source is a regular file residing on disk, the name of the file is
+  * provided by the user. This source memory-maps the file and then
+  * reads the resulting buffer.
+  */
 class Source_File : public Source {
   private:
     std::string filename_;
@@ -87,8 +97,19 @@ class Source_File : public Source {
 };
 
 
-#if 0
 
+class Source_Filelike : public Source {
+  private:
+    py::oobj fileObject_;
+
+  public:
+    Source_Filelike(py::robj file);
+    py::oobj readWith(ReadDirector*) override;
+};
+
+
+
+#if 0
 
 // temporary
 class Source_Python : public Source

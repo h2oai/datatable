@@ -47,20 +47,17 @@ bool Source::keepReading() const {
 
 
 //------------------------------------------------------------------------------
-// Source_Text
+// Source_Memory
 //------------------------------------------------------------------------------
 
-Source_Text::Source_Text(const py::robj textsrc)
+Source_Memory::Source_Memory(py::robj textsrc)
   : Source("<text>"),
-    pyText_(textsrc)
-{
-  xassert(textsrc.is_string() || textsrc.is_bytes());
-}
+    buffer_(Buffer::pybytes(textsrc))
+{}
 
 
-py::oobj Source_Text::readWith(ReadDirector* director) {
-  auto buf = Buffer::pybytes(pyText_);
-  return director->readBuffer(buf);
+py::oobj Source_Memory::readWith(ReadDirector* director) {
+  return director->readBuffer(buffer_);
 }
 
 
@@ -84,4 +81,22 @@ py::oobj Source_File::readWith(ReadDirector* director) {
 
 
 
-}}
+//------------------------------------------------------------------------------
+// Source_Filelike
+//------------------------------------------------------------------------------
+
+Source_Filelike::Source_Filelike(py::robj file)
+  : Source(file.safe_repr().to_string()),
+    fileObject_(file) {}
+
+
+py::oobj Source_Filelike::readWith(ReadDirector* director) {
+  return director->readStream(BufferedStream::fromStream(
+      std::unique_ptr<Stream>(new Stream_Filelike(fileObject_))
+  ));
+}
+
+
+
+
+}}  // namespace dt::read2
