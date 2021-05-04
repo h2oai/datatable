@@ -99,6 +99,56 @@ py::oobj ReadDirector::readStream(std::unique_ptr<BufferedStream>&& stream) {
 }
 
 
+#if 0
+static_assert(static_cast<char>(0x7F) > 0 &&
+              static_cast<char>(0x80) < 0 &&
+              static_cast<char>(0xFF) < 0);
+
+void detectCSVSettings() {
+  Buffer chunk = stream->getChunk(0, 65536);
+  const char* sof = static_cast<const char*>(chunk.rptr());
+  const char* eof = sof + chunk.size();
+  const char* ch = sof;
+  char quote = '\0';
+  int characterCounts[128];
+  while (ch < eof) {
+    char c = *ch;
+    if (c >= 0) {  // ASCII
+      characterCounts[c]++;
+      if (c == '\'' || c == '"') {
+        quote = c;
+        break;
+      }
+      // maybe also break if newline count becomes > 100
+    }
+    ch++;
+  }
+  if (quote) {
+    if (ch == sof) {
+      quote_at_line_start = true;
+    } else {
+      char prevCh = ch[-1];
+      if (prevCh == ' ') {
+        whitespace_before_quote = true;
+        for (i = 1; i <= ch - sof && ch[-i] == ' '; i++);
+      }
+      if (prevCh < 0) {
+        not_a_valid_quote
+      }
+      else if (prevCh == '\n' || prevCh == '\r') {
+        quote_at_line_start = true;
+      }
+      else if (prevCh in illegalQuotes) {
+        not_a_valid_quote
+      }
+      else if (prevCh == ' ') {
+        while
+      }
+    }
+  }
+}
+
+#endif
 
 
 }}  // namespace dt::read2

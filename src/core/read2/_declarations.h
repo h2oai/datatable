@@ -19,6 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+//
+// The *read process begins with the user calling function `py_fread()` from
+// python (see "py_fread.cc"). The function accepts many different parameters,
+// so the first thing we do is parse/validate those parameters.
+//
+// The parameters to *read
+//
+//------------------------------------------------------------------------------
 #ifndef dt_READ2_DECLARATIONS_h
 #define dt_READ2_DECLARATIONS_h
 #include "_dt.h"
