@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Copyright 2019-2020 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,32 +20,42 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import pytest
 import datatable as dt
 from datatable import f
 from tests import assert_equals, noop
 
+
 @pytest.fixture()
 def DT():
-    return dt.Frame([
-        [2, 7, 0, 0],
-        [True, False, False, True],
-        [1, 1, 1, 1],
-        [0.1, 2, -4, 4.4],
-        [None, None, None, None],
-        [0, 0, 0, 0],
-        ["1", "2", "hello", "world"],
-    ],
-    names=list("ABCDEFG"),
-    stypes=[dt.int32, dt.bool8, dt.int64, dt.float32, dt.int16,
-            dt.float64, dt.str32])
+    return dt.Frame(
+        [
+            [2, 7, 0, 0],
+            [True, False, False, True],
+            [1, 1, 1, 1],
+            [0.1, 2, -4, 4.4],
+            [None, None, None, None],
+            [0, 0, 0, 0],
+            ["1", "2", "hello", "world"],
+        ],
+        names=list("ABCDEFG"),
+        stypes=[
+            dt.int32,
+            dt.bool8,
+            dt.int64,
+            dt.float32,
+            dt.int16,
+            dt.float64,
+            dt.str32,
+        ],
+    )
 
 
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Plain `f`
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def test_f():
     assert str(f) == "Namespace(0)"
@@ -56,10 +66,10 @@ def test_f():
         f.__name__
 
 
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Stringify
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def test_f_col_selector_unbound():
     # Check that unbounded col-selectors can be stringified. The precise
@@ -88,11 +98,14 @@ def test_f_col_selector_unbound():
 def test_f_col_selector_invalid():
     with pytest.raises(TypeError) as e:
         noop(f[2.5])
-    assert str(e.value) == ("Column selector should be an integer, string, or "
-                            "slice, or list/tuple, not <class 'float'>")
+    assert str(e.value) == (
+        "Column selector should be an integer, string, or "
+        "slice, or list/tuple, not <class 'float'>"
+    )
     # Note: at some point we may start supporting all the expressions below:
     with pytest.raises(TypeError):
         noop(f[lambda: 1])
+
 
 def test_f_col_selector_list_tuple():
     assert str(f[[7, 4]]) == "FExpr<f[[7, 4]]>"
@@ -111,7 +124,7 @@ def test_f_columnset_str():
     assert str(f[:]) == "FExpr<f[:]>"
     assert str(f[:7]) == "FExpr<f[:7]>"
     assert str(f[::-1]) == "FExpr<f[::-1]>"
-    assert str(f['Z':'A']) == "FExpr<f['Z':'A']>"
+    assert str(f["Z":"A"]) == "FExpr<f['Z':'A']>"
     assert str(f[bool]) == "FExpr<f[bool]>"
     assert str(f[int]) == "FExpr<f[int]>"
     assert str(f[float]) == "FExpr<f[float]>"
@@ -121,38 +134,43 @@ def test_f_columnset_str():
     assert str(f[dt.float64]) == "FExpr<f[stype.float64]>"
     assert str(f[dt.ltype.int]) == "FExpr<f[ltype.int]>"
     assert str(f[int, float]) == "FExpr<f[[int, float]]>"
-    assert str(f[dt.int32, dt.float64, dt.str32]) == \
-        "FExpr<f[[stype.int32, stype.float64, stype.str32]]>"
+    assert (
+        str(f[dt.int32, dt.float64, dt.str32])
+        == "FExpr<f[[stype.int32, stype.float64, stype.str32]]>"
+    )
 
 
 def test_f_columnset_extend():
-    assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
-    assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
-    assert str(f.A.extend(f['B','C'])) == \
-        "Expr:setplus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    assert str(f[:].extend(f.A)) == "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
+    assert str(f[int].extend(f[str])) == "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
+    assert (
+        str(f.A.extend(f["B", "C"]))
+        == "Expr:setplus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    )
 
 
 def test_f_columnset_remove():
     assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
     assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
-    assert str(f.A.remove(f['B','C'])) == \
-        "Expr:setminus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    assert (
+        str(f.A.remove(f["B", "C"]))
+        == "Expr:setminus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    )
 
 
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Select individual columns
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def test_f_int(DT):
     assert_equals(DT[:, f[3]], DT[:, 3])
     assert_equals(DT[:, f[-1]], DT[:, 6])
     assert_equals(DT[f[0] > 0, f[-1]], dt.Frame(G=["1", "2"]))
 
-    with pytest.raises(ValueError, match="Column index 10 is invalid for a "
-                                         "Frame with 7 columns"):
+    with pytest.raises(
+        ValueError, match="Column index 10 is invalid for a " "Frame with 7 columns"
+    ):
         assert DT[:, f[10]]
 
 
@@ -165,15 +183,15 @@ def test_f_str(DT):
 
     with pytest.raises(KeyError) as e:
         noop(DT[:, f["d"]])
-    assert ("Column d does not exist in the Frame; "
-            "did you mean D, A or B?" == str(e.value))
+    assert "Column d does not exist in the Frame; " "did you mean D, A or B?" == str(
+        e.value
+    )
 
 
-
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Select columnsets
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def test_f_columnset(DT):
     assert_equals(DT[:, f[:]], DT)
@@ -192,24 +210,29 @@ def test_f_columnset(DT):
 
 def test_f_columnset_stypes(DT):
     for st in dt.stype:
-        assert_equals(DT[:, f[st]],
-                      DT[:, [i for i in range(DT.ncols)
-                             if DT.stypes[i] == st]])
+        assert_equals(
+            DT[:, f[st]], DT[:, [i for i in range(DT.ncols) if DT.stypes[i] == st]]
+        )
 
 
 def test_f_columnset_ltypes(DT):
     for lt in dt.ltype:
-        assert_equals(DT[:, f[lt]],
-                      DT[:, [i for i in range(DT.ncols)
-                             if DT.ltypes[i] == lt]])
+        assert_equals(
+            DT[:, f[lt]], DT[:, [i for i in range(DT.ncols) if DT.ltypes[i] == lt]]
+        )
+
 
 def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
-    assert_equals( DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
-    assert_equals(DT[:, f.A.extend(f.B)], DT[:, ['A', 'B']])
-    assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
-                  dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
+    assert_equals(
+        DT[:, f["A", "B", "C"].extend(f["E", "F", "G"])], DT[:, [0, 1, 2, -3, -2, -1]]
+    )
+    assert_equals(DT[:, f.A.extend(f.B)], DT[:, ["A", "B"]])
+    assert_equals(
+        DT[:, f[:].extend({"extra": f.A + f.C})],
+        dt.cbind(DT, DT[:, {"extra": f.A + f.C}]),
+    )
 
 
 def test_columnset_diff(DT):
@@ -220,13 +243,20 @@ def test_columnset_diff(DT):
     assert_equals(DT[:, f[:].remove(f["F":])], DT[:, :"E"])
 
 
-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Misc methods
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
+
 
 def test_sum():
     assert str(dt.sum(f.A)) == str(f.A.sum())
     assert str(dt.sum(f[:])) == str(f[:].sum())
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.sum()], DT[:, dt.sum(f.A)])
+
+
+def test_max():
+    assert str(dt.max(f.A)) == str(f.A.max())
+    assert str(dt.max(f[:])) == str(f[:].max())
+    DT = dt.Frame(A=range(1, 10))
+    assert_equals(DT[:, f.A.max()], DT[:, dt.max(f.A)])
