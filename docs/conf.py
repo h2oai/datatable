@@ -50,6 +50,7 @@ needs_sphinx = '1.8'
 # ones.
 extensions = [
     '_ext.xcode',
+    '_ext.xcomparisontable',
     '_ext.xcontributors',
     '_ext.xfunction',
     '_ext.xpython',

@@ -32,10 +32,10 @@ namespace py {
 // Construction
 //------------------------------------------------------------------------------
 
-XArgs::XArgs(implfn_t fn)
-  : ccfn_(fn),
-    pyfn_(nullptr),
+XArgs::XArgs()
+  : pyfn_(nullptr),
     docstring_(nullptr),
+    classId_(0),
     nargs_required_(0),
     nargs_posonly_(0),
     nargs_pos_kwd_(0),
@@ -48,6 +48,19 @@ XArgs::XArgs(implfn_t fn)
   store().push_back(this);
 }
 
+XArgs::XArgs(impl_function_t fn) : XArgs() {
+  ccfn_.fn = fn;
+}
+
+XArgs::XArgs(impl_method_t method, size_t classId) : XArgs() {
+  ccfn_.meth = method;
+  classId_ = classId;
+}
+
+XArgs::XArgs(impl_methodv_t method, size_t classId) : XArgs() {
+  ccfn_.methv = method;
+  classId_ = classId;
+}
 
 std::vector<XArgs*>& XArgs::store() {
   static std::vector<XArgs*> xargs_repo;
@@ -65,6 +78,15 @@ PyMethodDef XArgs::get_method_def() {
   };
 }
 
+PyCFunctionWithKeywords XArgs::get_pyfunction() {
+  finish_initialization();
+  return pyfn_;
+}
+
+const char* XArgs::get_docstring() const {
+  return docstring_;
+}
+
 
 void XArgs::finish_initialization() {
   nargs_all_ = nargs_posonly_ + nargs_pos_kwd_ + nargs_kwdonly_;
@@ -75,7 +97,7 @@ void XArgs::finish_initialization() {
 
   xassert(arg_names_.size() == nargs_all_);
   xassert(nargs_required_ <= nargs_all_);
-  xassert(ccfn_);
+  xassert(ccfn_.fn);
   xassert(pyfn_);
   xassert(!function_name_.empty());
   xassert(function_name_.find('.') == std::string::npos);
@@ -161,6 +183,10 @@ XArgs* XArgs::add_synonym_arg(const char* new_name, const char* old_name) {
   return this;
 }
 
+XArgs* XArgs::set_class_name(const char* className) {
+  class_name_ = className;
+  return this;
+}
 
 
 size_t XArgs::n_positional_args() const {
@@ -198,13 +224,15 @@ int XArgs::get_info() const {
 // Names
 //------------------------------------------------------------------------------
 
-std::string XArgs::proper_name() const {
+const std::string& XArgs::proper_name() const {
   return function_name_;
 }
 
 std::string XArgs::qualified_name() const {
-  std::string out = "datatable.";
-  if (!class_name_.empty()) {
+  std::string out;
+  if (class_name_.empty()) {
+    out += "datatable.";
+  } else {
     out += class_name_;
     out += '.';
   }
@@ -214,7 +242,7 @@ std::string XArgs::qualified_name() const {
 
 std::string XArgs::descriptive_name(bool lowercase) const {
   if (function_name_ == "__init__") {
-    return "`datatable." + class_name_ + "()` constructor";
+    return "`" + class_name_ + "()` constructor";
   }
   std::string out = lowercase? (class_name_.empty()? "function" : "method")
                              : (class_name_.empty()? "Function" : "Method");
@@ -371,9 +399,35 @@ PyObject* XArgs::exec_function(PyObject* args, PyObject* kwds) noexcept {
   auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
-    return ccfn_(*this).release();
+    return (ccfn_.fn)(*this).release();
 
   } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+PyObject* XArgs::exec_method(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  try {
+    bind(args, kwds);
+    return (obj->*ccfn_.meth)(*this).release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+PyObject* XArgs::exec_methodv(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  try {
+    bind(args, kwds);
+    (obj->*ccfn_.methv)(*this);
+    return py::None().release();
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }

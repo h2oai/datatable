@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -282,7 +282,7 @@ def test_debug_logger_default_without_report_args(capsys):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
-        assert "dt.cbind() {" in out
+        assert "datatable.cbind() {" in out
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 
@@ -302,7 +302,7 @@ def test_debug_logger_default_with_report_args(capsys):
             dt.cbind(3)
         out, err = capsys.readouterr()
         assert not err
-        assert "dt.cbind(3) {" in out
+        assert "datatable.cbind(3) {" in out
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", out)
 
 

@@ -217,7 +217,9 @@ umaker_ptr resolve_op_isna(SType stype) {
     case SType::BOOL:
     case SType::INT8:    return umaker_ptr(new isna_umaker<int8_t>());
     case SType::INT16:   return umaker_ptr(new isna_umaker<int16_t>());
+    case SType::DATE32:
     case SType::INT32:   return umaker_ptr(new isna_umaker<int32_t>());
+    case SType::TIME64:
     case SType::INT64:   return umaker_ptr(new isna_umaker<int64_t>());
     case SType::FLOAT32: return umaker_ptr(new isna_umaker<float>());
     case SType::FLOAT64: return umaker_ptr(new isna_umaker<double>());

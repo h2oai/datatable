@@ -39,6 +39,9 @@
       information, if any, as set by datatable functions/methods or
       by the user.
 
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.sum() <dt.FExpr.sum>`,
+      which behaves exactly as the base level function :func:`dt.sum()`.
+
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.

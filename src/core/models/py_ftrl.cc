@@ -298,7 +298,7 @@ R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
     validation_average_niterations=1)
 --
 
-Train FTRL model on a dataset.
+Train model on the input samples and targets.
 
 Parameters
 ----------
@@ -335,7 +335,7 @@ return: FtrlFitOutput
 
 See also
 --------
-- :meth:`.predict` -- predict on a dataset.
+- :meth:`.predict` -- predict for the input samples.
 - :meth:`.reset` -- reset the model.
 
 )";
@@ -515,7 +515,7 @@ static const char* doc_predict =
 R"(predict(self, X)
 --
 
-Make predictions for a dataset.
+Predict for the input samples.
 
 Parameters
 ----------
@@ -530,7 +530,7 @@ return: Frame
 
 See also
 --------
-- :meth:`.fit` -- train model on a dataset.
+- :meth:`.fit` -- train model on the input samples and targets.
 - :meth:`.reset` -- reset the model.
 
 )";
@@ -1640,9 +1640,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_Ftrl =
-R"(Follow the Regularized Leader (FTRL) model.
-
-FTRL model is a datatable implementation of the
+R"(
+This class implements the Follow the Regularized Leader (FTRL) model,
+that is based on the
 `FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
 online learning algorithm for binomial logistic regression. Multinomial
 classification and regression for continuous targets are also implemented,

@@ -25,6 +25,7 @@
 #include "ltype.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "types/py_type.h"
 namespace py {
@@ -80,16 +81,18 @@ See also
 - :meth:`.tail` -- return the last `n` rows of the Frame.
 )";
 
-static PKArgs args_head(
-    1, 0, 0, false, false, {"n"}, "head", doc_head);
-
-
-oobj Frame::head(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+oobj Frame::head(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::head)
+    ->name("head")
+    ->docs(doc_head)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -141,18 +144,20 @@ See also
 - :meth:`.head` -- return the first `n` rows of the Frame.
 )";
 
-static PKArgs args_tail(
-    1, 0, 0, false, false, {"n"}, "tail", doc_tail);
-
-
-oobj Frame::tail(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+oobj Frame::tail(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
   int64_t start = static_cast<int64_t>(dt->nrows() - n);
   return m__getitem__(otuple(oslice(start, oslice::NA, 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::tail)
+    ->name("tail")
+    ->docs(doc_tail)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -245,10 +250,7 @@ Notes
 
 )";
 
-static PKArgs args_copy(0, 0, 1, false, false, {"deep"}, "copy", doc_copy);
-
-
-oobj Frame::copy(const PKArgs& args) {
+oobj Frame::copy(const XArgs& args) {
   bool deepcopy = args[0].to<bool>(false);
 
   oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
@@ -261,21 +263,26 @@ oobj Frame::copy(const PKArgs& args) {
   return res;
 }
 
+DECLARE_METHOD(&Frame::copy)
+    ->name("copy")
+    ->n_keyword_args(1)
+    ->arg_names({"deep"})
+    ->docs(doc_copy);
 
 
-static PKArgs args___deepcopy__(
-  0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
 
-oobj Frame::m__deepcopy__(const PKArgs&) {
-  py::odict dict_arg;
-  dict_arg.set(py::ostring("deep"), py::True());
-  args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
-  return copy(args_copy);
+oobj Frame::m__deepcopy__(const XArgs&) {
+  return robj(this).get_attr("copy")
+          .call({}, {py::ostring("deep"), py::True()});
 }
 
+DECLARE_METHOD(&Frame::m__deepcopy__)
+    ->name("__deepcopy__")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"memo"});
+
 oobj Frame::m__copy__() {
-  args_copy.bind(nullptr, nullptr);
-  return copy(args_copy);
+  return robj(this).invoke("copy");
 }
 
 
@@ -346,10 +353,7 @@ Notes
 
 )";
 
-static PKArgs args_export_names(
-  0, 0, 0, false, false, {}, "export_names", doc_export_names);
-
-oobj Frame::export_names(const PKArgs&) {
+oobj Frame::export_names(const XArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
   py::otuple names = dt->get_pynames();
   py::otuple out_vars(names.size());
@@ -358,6 +362,10 @@ oobj Frame::export_names(const PKArgs&) {
   }
   return std::move(out_vars);
 }
+
+DECLARE_METHOD(&Frame::export_names)
+    ->name("export_names")
+    ->docs(doc_export_names);
 
 
 
@@ -453,13 +461,17 @@ return: None
     This operation modifies the frame in-place.
 )";
 
-static PKArgs args_materialize(
-  0, 1, 0, false, false, {"to_memory"}, "materialize", doc_materialize);
-
-void Frame::materialize(const PKArgs& args) {
+void Frame::materialize(const XArgs& args) {
   bool to_memory = args[0].to<bool>(false);
   dt->materialize(to_memory);
 }
+
+DECLARE_METHODv(&Frame::materialize)
+    ->name("materialize")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"to_memory"})
+    ->docs(doc_materialize);
+
 
 
 //------------------------------------------------------------------------------
@@ -1169,7 +1181,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__GETBUFFER__(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
   Frame_Type = xt.get_type_object();
 
-  _init_cbind(xt);
   _init_key(xt);
   _init_init(xt);
   _init_iter(xt);
@@ -1182,11 +1193,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_stats(xt);
   _init_sort(xt);
   _init_newsort(xt);
-  _init_toarrow(xt);
-  _init_tocsv(xt);
   _init_tonumpy(xt);
   _init_topython(xt);
-  _init_to_pandas(xt);
 
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
   xt.add(GETSET(&Frame::get_meta, &Frame::set_meta, args_meta));
@@ -1199,14 +1207,10 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
   xt.add(GETTER(&Frame::get_types, args_types));
 
-  xt.add(METHOD(&Frame::head, args_head));
-  xt.add(METHOD(&Frame::tail, args_tail));
-  xt.add(METHOD(&Frame::copy, args_copy));
-  xt.add(METHOD(&Frame::materialize, args_materialize));
-  xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
-  xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
+
+  INIT_METHODS_FOR_CLASS(Frame);
 }
 
 

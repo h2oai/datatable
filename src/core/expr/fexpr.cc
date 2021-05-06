@@ -26,6 +26,7 @@
 #include "expr/fexpr_literal.h"
 #include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
@@ -322,6 +323,34 @@ oobj PyFExpr::re_match(const PKArgs& args) {
 
 
 
+
+//------------------------------------------------------------------------------
+// Miscellaneous
+//------------------------------------------------------------------------------
+
+static const char* doc_sum =
+R"(sum()
+--
+
+Equivalent to :func:`dt.sum(self)`.
+)";
+
+oobj PyFExpr::sum(const XArgs&) {
+  auto sumFn = oobj::import("datatable", "sum");
+  return sumFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::sum)
+    ->name("sum")
+    ->docs(doc_sum);
+
+
+
+
+//------------------------------------------------------------------------------
+// Class decoration
+//------------------------------------------------------------------------------
+
 static const char* doc_fexpr =
 R"(
 FExpr is an object that encapsulates computations to be done on a frame.
@@ -393,6 +422,8 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
 
   FExpr_Type = xt.get_type_object();
+
+  INIT_METHODS_FOR_CLASS(PyFExpr);
 }
 
 

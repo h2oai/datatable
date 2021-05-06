@@ -27,6 +27,7 @@
 #include "column/arrow_void.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "utils/arrow_structs.h"
 namespace py {
@@ -54,11 +55,7 @@ except: ImportError
     If the `pyarrow` module is not installed.
 )";
 
-static PKArgs args_to_arrow(
-    0, 0, 0, false, false, {}, "to_arrow", doc_to_arrow);
-
-
-oobj Frame::to_arrow(const PKArgs&) {
+oobj Frame::to_arrow(const XArgs&) {
   oobj pyarrow = oobj::import("pyarrow");
   oobj pa_Array = pyarrow.get_attr("Array");
   oobj pa_Table = pyarrow.get_attr("Table");
@@ -82,13 +79,10 @@ oobj Frame::to_arrow(const PKArgs&) {
   return res;
 }
 
+DECLARE_METHOD(&Frame::to_arrow)
+    ->name("to_arrow")
+    ->docs(doc_to_arrow);
 
-
-
-
-void Frame::_init_toarrow(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::to_arrow, args_to_arrow));
-}
 
 
 
