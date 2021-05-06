@@ -76,8 +76,16 @@ code.literal {
   background: #f2f2f2;
   border: 1px solid #e2e2e2;
   border-radius: 3px;
+  color: #c13094;
   padding: 0 3px;
 }
+
+a > code.literal {
+  background: inherit;
+  border: inherit;
+  color: inherit;
+}
+
 
 
 /*------------------------------------------------------------------------------
@@ -575,6 +583,7 @@ table.api-table tr td > p {
 
 table.api-table td:first-child code.xref.literal {
   background: transparent;
+  border: none;
   padding: 0;
 }
 

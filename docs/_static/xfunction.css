@@ -94,6 +94,7 @@
 }
 .x-function .sig-parameters .param .default.literal {
     background: none;
+    border: none;
     color: #8da4d2;
     font-size: inherit;
     padding: 0;
@@ -199,6 +200,7 @@
 
 .xparam-head .types code.literal {
     background: none;
+    border: none;
     color: rgba(0, 0, 0, 0.35);
     padding: 0;
 }
