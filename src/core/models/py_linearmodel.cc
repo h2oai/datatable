@@ -135,7 +135,7 @@ model_type: "binomial" | "multinomial" | "regression" | "auto"
     the target column `stype`.
 
 seed: int
-    seed for the quasi-random number generator that is used for
+    Seed for the quasi-random number generator that is used for
     data shuffling when fitting the model, should be non-negative.
     If seed is zero, no shuffling is performed.
 
@@ -1406,7 +1406,7 @@ R"(This class implements the
 with the
 `stochastic gradient descent <https://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_
 learning. It supports linear regression, as well as binomial and multinomial
-classifications. Both :meth:`.fit` and :meth:`.predict` methods are fully parallel.
+classification. Both :meth:`.fit` and :meth:`.predict` methods are fully parallel.
 )";
 
 void LinearModel::impl_init_type(XTypeMaker& xt) {

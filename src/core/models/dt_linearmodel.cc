@@ -162,14 +162,13 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
     [&]() {
       // Each thread gets a private storage for observations and feature importances.
       tptr<T> x = tptr<T>(new T[nfeatures_]);
+      dtptr dt_model;
 
       for (size_t iter = 0; iter < niterations; ++iter) {
-
         // Each thread gets its own copy of the model
-        dtptr dt_model;
         std::vector<T*> betas;
         {
-          std::lock_guard<std::mutex> lock(m);
+          PythonLock pylock;
           dt_model = dtptr(new DataTable(*dt_model_));
           betas = get_model_data(dt_model);
         }
@@ -299,6 +298,11 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
         } // End validation
 
       } // End iteration
+
+      {
+        PythonLock pylock;
+        dt_model = nullptr;
+      }
 
     }
   );
