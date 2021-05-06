@@ -27,14 +27,14 @@
         * - :meth:`fit() <datatable.models.LinearModel.fit>`
           - Train model on the input samples and targets.
 
+        * - :meth:`is_fitted() <datatable.models.LinearModel.is_fitted>`
+          - Report model status.
+
         * - :meth:`predict() <datatable.models.LinearModel.predict>`
           - Predict for the input samples.
 
         * - :meth:`reset() <datatable.models.LinearModel.reset>`
           - Reset the model.
-
-        * - :meth:`is_fitted() <datatable.models.LinearModel.is_fitted>`
-          - Report model status.
 
 
     Properties
