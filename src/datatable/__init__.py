@@ -24,7 +24,6 @@ from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
 from .lib._datatable import (
-    aread,
     as_type,
     by,
     cbind,
@@ -37,6 +36,7 @@ from .lib._datatable import (
     iread,
     join,
     Namespace,
+    nread,
     qcut,
     rbind,
     repeat,

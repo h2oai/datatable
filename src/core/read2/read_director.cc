@@ -130,7 +130,7 @@ void detectCSVSettings() {
       char prevCh = ch[-1];
       if (prevCh == ' ') {
         whitespace_before_quote = true;
-        for (i = 1; i <= ch - sof && ch[-i] == ' '; i++);
+        for (i = 1; i <= ch - sof && (prevCh = ch[-i]) == ' '; i++);
       }
       if (prevCh < 0) {
         not_a_valid_quote
@@ -141,11 +141,28 @@ void detectCSVSettings() {
       else if (prevCh in illegalQuotes) {
         not_a_valid_quote
       }
-      else if (prevCh == ' ') {
-        while
+      else {
+        sep_before_quote = prevCh;
       }
     }
   }
+}
+
+int scanLine(const char** ch, const char* eof, int[] counts) {
+  const char* ch = *pch;
+  while (ch < eof) {
+    char c = *ch;
+    if (c >= 0) {
+      if (c == '\n') { *pch = ch; return NEWLINE; }
+      if (c == '\r') { *pch = ch; return CR; }
+      if (c == '\'') { *pch = ch; return SINGLE_QUOTE; }
+      if (c == '"')  { *pch = ch; return DOUBLE_QUOTE; }
+      counts[c]++;
+    }
+    ch++;
+  }
+  *pch = eof;
+  return END;
 }
 
 #endif

@@ -135,7 +135,7 @@ Source_Text::Source_Text(py::robj textsrc)
 py::oobj Source_Text::read(GenericReader& reader) {
   reader.source_name = &name_;
   auto buf = Buffer::pybytes(src_);
-  auto res = reader.read_buffer(buf, 1);
+  auto res = reader.read_buffer(buf, src_.is_string());
   reader.source_name = nullptr;
   return res;
 }

@@ -22,9 +22,26 @@
 //
 // The *read process begins with the user calling function `py_fread()` from
 // python (see "py_fread.cc"). The function accepts many different parameters,
-// so the first thing we do is parse/validate those parameters.
+// so the first thing we do is parse/validate those parameters. Also, the
+// parameters fall into 2 categories: those describing _what_ to read, and
+// those that tell _how_ to read.
 //
-// The parameters to *read
+// The "what" parameters are then converted into a `SourceIterable` object,
+// while "how" parameters are collected into `ParseOptions`. Both of these
+// objects are combined to create a `ReadDirector`, which then assumes the
+// central role in the process.
+//
+// The entry point for ReadDirector class are `readSingle()` / `readNext()`
+// methods. The first one is used by `fread()`, the second by `iread()`. Both
+// methods are very similar, with the only difference that `readSingle()` emits
+// a warning/error if there is more than one input source.
+//
+// When `readNext()` is called, the first thing it does is determines the
+// relevant `Source*`. This could be either the Source left over from the
+// previous call to `readNext()`, or a new source retrieved from the
+// `SourceIterator`.
+//
+//
 //
 //------------------------------------------------------------------------------
 #ifndef dt_READ2_DECLARATIONS_h
