@@ -165,6 +165,17 @@ int scanLine(const char** ch, const char* eof, int[] counts) {
   return END;
 }
 
+
+enum NewlineKind : int8_t {
+  AUTO,   // auto-detect: either ANY or NOCR
+  ANY,    // (\n|\r|\r\n)
+  NOCR,   // (\n|\r\n)
+  LF,     // \n
+  CR,     // \r
+  CRLF,   // \r\n
+};
+
+
 #endif
 
 
