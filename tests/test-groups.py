@@ -141,7 +141,17 @@ def test_group_reduce_all_columns():
                            veg=[57, 343]/dt.int64))
 
 
-
+def test_group_reverse_sort():
+    DT = dt.Frame(
+        {
+         "object": [1, 2, 1, 2, 2, 3, 3],
+         "period": [2, 2, 4, 4, 23, 5, 30],
+         "value": [24, 67, 89, 5, 23, 6, 29],
+       }
+    )
+    EXPECTED = DT[:, :, dt.by(dt.f.object), dt.sort(-dt.f.period)]
+    RES = DT[:, :, dt.by(dt.f.object), dt.sort(dt.f.period, reverse=True)]
+    assert_equals(EXPECTED, RES)
 
 #-------------------------------------------------------------------------------
 # Groupby on small datasets

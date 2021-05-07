@@ -29,7 +29,6 @@
 #include "ltype.h"
 #include "sort.h"
 #include "stype.h"
-#include <algorithm>
 namespace dt {
 namespace expr {
 
@@ -255,7 +254,7 @@ void EvalContext::compute_groupby_and_sort() {
     if (byexpr_) {
       byexpr_->prepare_by(*this, wf, flags);
       n_group_cols = wf.ncols();
-      if (n_group_cols > 0) {
+      if (!flags.empty()) {
         for (auto & f : flags) {
           f = SortFlag::NONE;
         }
