@@ -330,7 +330,11 @@ void FExpr_List::prepare_by(
   if (kind == Kind::Str || kind == Kind::Int) {
     for (const auto& arg : args_) {
       outwf.cbind( arg->evaluate_f(ctx, 0) );
-      outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+      if (ctx.get_mod_type() == ModType::BY) {
+        outflags.push_back(SortFlag::NONE);
+      } else {
+        outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+      }
     }
   }
   else if (kind == Kind::Func) {
@@ -338,10 +342,18 @@ void FExpr_List::prepare_by(
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
-        outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
+        if (ctx.get_mod_type() == ModType::BY) {
+          outflags.push_back(SortFlag::DESCENDING);
+        } else {
+          outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
+        }
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
-        outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+        if (ctx.get_mod_type() == ModType::BY) {
+          outflags.push_back(SortFlag::NONE);
+        } else {
+          outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+        }
       }
     }
   }
