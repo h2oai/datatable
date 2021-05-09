@@ -352,8 +352,8 @@ Equivalent to :func:`dt.max(self)`.
 )";
 
 oobj PyFExpr::max(const XArgs&) {
-  auto sumFn = oobj::import("datatable", "max");
-  return sumFn.call({this});
+  auto maxFn = oobj::import("datatable", "max");
+  return maxFn.call({this});
 }
 
 DECLARE_METHOD(&PyFExpr::max)
