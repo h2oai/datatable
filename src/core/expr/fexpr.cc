@@ -356,7 +356,7 @@ oobj PyFExpr::max(const XArgs&) {
   return sumFn.call({this});
 }
 
-DECLARE_METHOD(&PyFExpr::sum)
+DECLARE_METHOD(&PyFExpr::max)
     ->name("max")
     ->docs(doc_max);
 
