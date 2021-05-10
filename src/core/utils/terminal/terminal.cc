@@ -150,7 +150,8 @@ void Terminal::_check_ipython() {
   if (ipython) {
     auto ipy = ipython.invoke("get_ipython");
     std::string ipy_type = ipy.typestr();
-    if (ipy_type.find("ZMQInteractiveShell") != std::string::npos) {
+    if (ipy_type.find("ZMQInteractiveShell") != std::string::npos ||
+        ipy_type.find("google.colab") != std::string::npos) {
       display_allow_unicode = true;
       is_jupyter_ = true;
     }
