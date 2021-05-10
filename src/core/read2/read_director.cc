@@ -148,32 +148,56 @@ void detectCSVSettings() {
   }
 }
 
-int scanLine(const char** ch, const char* eof, int[] counts) {
-  const char* ch = *pch;
+
+
+int scanQuoted(ScanOptions& opts, const char** pch, const char* eof) {
+  char quote = opts.quoteChar;
+  // the initial quote was already skipped
+  const char*& ch = *pch;
   while (ch < eof) {
-    char c = *ch;
-    if (c >= 0) {
-      if (c == '\n') { *pch = ch; return NEWLINE; }
-      if (c == '\r') { *pch = ch; return CR; }
-      if (c == '\'') { *pch = ch; return SINGLE_QUOTE; }
-      if (c == '"')  { *pch = ch; return DOUBLE_QUOTE; }
-      counts[c]++;
+    char c = *ch++;
+    // if (c == '\\') {
+    //   bool nextQuote = (ch < eof) && (*ch == quote);
+    //   if (opts.autoQuoteRule)
+    // }
+    if (c == quote) {
+      bool nextCharIsAlsoQuote = (ch < eof) && (*ch == quote);
+      if (nextCharIsAlsoQuote) {
+        if (opts.quoteRule == QuoteRule::AUTO) {
+          opts.quoteRule = QuoteRule::DOUBLED;
+        }
+        if (opts.quoteRule == QuoteRule::ESCAPED) {
+          return INVALID_STRING;
+        }
+        ch++;
+      } else if (ch == eof && opts.quoteRule != QuoteRule::ESCAPED && !opts.eofExact) {
+        return END_OF_DATA;
+      } else {
+        return VALID_STRING;
+      }
     }
-    ch++;
   }
-  *pch = eof;
-  return END;
+  return opts.eofExact? INVALID_STRING : END_OF_DATA;
 }
 
 
-enum NewlineKind : int8_t {
-  AUTO,   // auto-detect: either ANY or NOCR
-  ANY,    // (\n|\r|\r\n)
-  NOCR,   // (\n|\r\n)
-  LF,     // \n
-  CR,     // \r
-  CRLF,   // \r\n
-};
+
+
+void detectCSVSettings(NewlineKind newline) {
+  Buffer chunk = stream->getChunk(0, 65536);
+  const char* sof = static_cast<const char*>(chunk.rptr());
+  const char* eof = sof + chunk.size();
+  const char* ch = sof;
+  char quote = '\0';
+  int characterCounts[128];
+  ScanOptions opts;
+
+  int ret = scanLine(opts, &ch, eof, characterCounts);
+}
+
+
+
+
 
 
 #endif
