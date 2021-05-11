@@ -86,6 +86,15 @@ a > code.literal {
   color: inherit;
 }
 
+.align-default {
+  text-align: left;
+}
+
+table.docutils td, table.docutils th {
+  padding: 0;
+  border: none;
+}
+
 
 
 /*------------------------------------------------------------------------------
@@ -136,11 +145,12 @@ a.headerlink::after {
   visibility: visible;
 }
 
-h1:hover a.headerlink,
-h2:hover a.headerlink,
-h3:hover a.headerlink,
-h4:hover a.headerlink {
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink {
   display: initial;
+  visibility: hidden;
 }
 
 
@@ -619,13 +629,13 @@ table.api-table td:first-child a:hover code.literal {
  * admonitions
  *----------------------------------------------------------------------------*/
 
-.admonition {
+div.admonition {
     margin-bottom: 1rem;
     padding: .5rem 1rem .5rem 2.7rem;
     position: relative;
 }
 
-.admonition:before {
+div.admonition:before {
     font-family: 'FontAwesome';
     left: 0;
     padding: 0.5rem 1rem;
@@ -633,11 +643,11 @@ table.api-table td:first-child a:hover code.literal {
     top: 1px;
 }
 
-.admonition .admonition-title {
+div.admonition .admonition-title {
     display: none;
 }
 
-.admonition > p:last-child {
+div.admonition > p:last-child {
     margin-bottom: 0;
 }
 
@@ -647,24 +657,24 @@ p.admonition-title + .simple {
 }
 
 
-.admonition.note {
+div.admonition.note {
     background: #dbf8ff;
     border: 1px solid #ccdddd;
     color: #055160;
 }
 
-.admonition.note:before {
+div.admonition.note:before {
     content: "\f05a";
 }
 
 
-.admonition.warning {
+div.admonition.warning {
     background-color: #fff3cd;
     border: 1px solid #edb;
     color: #856404;
 }
 
-.admonition.warning:before {
+div.admonition.warning:before {
     content: "\f071";
     color: darkred;
 }
