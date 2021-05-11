@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,11 @@
 #define dt_UTILS_MACROS_h
 #include <climits>
 #include <utility>  // std::move
+
+
+#define PASTE_TOKENS1(x, y) x ## y
+#define PASTE_TOKENS(x, y) PASTE_TOKENS1(x, y)
+
 
 
 //------------------------------------------------------------------------------
@@ -65,6 +70,9 @@
   #error Unknown operating system
 #endif
 
+#if DT_OS_WINDOWS
+  #undef copysign
+#endif
 
 
 //------------------------------------------------------------------------------
@@ -210,11 +218,11 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 #if DT_COMPILER_MSVC
   #define DISABLE_MSVC_WARNING(N) \
-    _Pragma("warning(push)") \
-    _Pragma(___STRINGIFY(warning(disable : N)))
+    __pragma("warning(push)") \
+    __pragma(___STRINGIFY(warning(disable : N)))
 
   #define RESTORE_MSVC_WARNING(N) \
-    _Pragma("warning(pop)")
+    __pragma("warning(pop)")
 
 #else
   #define DISABLE_MSVC_WARNING(N)
@@ -225,7 +233,7 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 
 //------------------------------------------------------------------------------
-// Types
+// Miscellaneous
 //------------------------------------------------------------------------------
 
 #if LONG_MAX==9223372036854775807
@@ -235,6 +243,20 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 #else
   #error "Cannot determine size of `long`"
 #endif
+
+
+DISABLE_CLANG_WARNING("-Wunused-template")
+
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...));
+
+template <typename T, typename R, typename... Args>
+static T _class_of_impl(R(T::*)(Args...) const);
+
+#define CLASS_OF(METHOD) decltype(_class_of_impl(METHOD))
+
+RESTORE_CLANG_WARNING("-Wunused-template")
+
 
 
 #endif

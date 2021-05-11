@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,9 @@
 #include "ltype.h"
 #include "python/_all.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "stype.h"
+#include "types/py_type.h"
 namespace py {
 
 PyObject* Frame_Type = nullptr;
@@ -65,13 +67,12 @@ Examples
 ...                  "eggplants", "figs", "grapes", "kiwi"])
 >>> DT.head(4)
    | A
-   | <str32>
+   | str32
 -- + --------
  0 | apples
  1 | bananas
  2 | cherries
  3 | dates
---
 [4 rows x 1 column]
 
 
@@ -80,16 +81,18 @@ See also
 - :meth:`.tail` -- return the last `n` rows of the Frame.
 )";
 
-static PKArgs args_head(
-    1, 0, 0, false, false, {"n"}, "head", doc_head);
-
-
-oobj Frame::head(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+oobj Frame::head(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   return m__getitem__(otuple(oslice(0, static_cast<int64_t>(n), 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::head)
+    ->name("head")
+    ->docs(doc_head)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -128,12 +131,11 @@ Examples
 ...                  "eggplants", "figs", "grapes", "kiwi"])
 >>> DT.tail(3)
    | A
-   | <str32>
--- + -------
+   | str32
+-- + ------
  0 | figs
  1 | grapes
  2 | kiwi
---
 [3 rows x 1 column]
 
 
@@ -142,18 +144,20 @@ See also
 - :meth:`.head` -- return the first `n` rows of the Frame.
 )";
 
-static PKArgs args_tail(
-    1, 0, 0, false, false, {"n"}, "tail", doc_tail);
-
-
-oobj Frame::tail(const PKArgs& args) {
-  size_t n = std::min(args.get<size_t>(0, 10),
+oobj Frame::tail(const XArgs& args) {
+  size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
   // Note: usual slice `-n::` doesn't work as expected when `n = 0`
   int64_t start = static_cast<int64_t>(dt->nrows() - n);
   return m__getitem__(otuple(oslice(start, oslice::NA, 1),
                              None()));
 }
+
+DECLARE_METHOD(&Frame::tail)
+    ->name("tail")
+    ->docs(doc_tail)
+    ->n_positional_args(1)
+    ->arg_names({"n"});
 
 
 
@@ -200,10 +204,26 @@ Examples
 >>> DT1 = dt.Frame(range(5))
 >>> DT2 = DT1.copy()
 >>> DT2[0, 0] = -1
->>> DT2.to_list()
-[[-1, 1, 2, 3, 4]]
->>> DT1.to_list()
-[[0, 1, 2, 3, 4]]
+>>> DT2
+   |    C0
+   | int32
+-- + -----
+ 0 |    -1
+ 1 |     1
+ 2 |     2
+ 3 |     3
+ 4 |     4
+[5 rows x 1 column]
+>>> DT1
+   |    C0
+   | int32
+-- + -----
+ 0 |     0
+ 1 |     1
+ 2 |     2
+ 3 |     3
+ 4 |     4
+[5 rows x 1 column]
 
 
 Notes
@@ -219,21 +239,18 @@ Notes
 - Another way to create a copy of the frame is using a `DT[i, j]`
   expression (however, this will not copy the key property)::
 
-    DT[:, :]
+    >>> DT[:, :]
 
 - `Frame` class also supports copying via the standard Python library
   ``copy``::
 
-    import copy
-    DT_shallow_copy = copy.copy(DT)
-    DT_deep_copy = copy.deepcopy(DT)
+    >>> import copy
+    >>> DT_shallow_copy = copy.copy(DT)
+    >>> DT_deep_copy = copy.deepcopy(DT)
 
 )";
 
-static PKArgs args_copy(0, 0, 1, false, false, {"deep"}, "copy", doc_copy);
-
-
-oobj Frame::copy(const PKArgs& args) {
+oobj Frame::copy(const XArgs& args) {
   bool deepcopy = args[0].to<bool>(false);
 
   oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
@@ -241,25 +258,31 @@ oobj Frame::copy(const PKArgs& args) {
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
   newframe->stypes = stypes;  Py_XINCREF(stypes);
   newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
+  newframe->meta_ = meta_;
   newframe->source_ = source_;
   return res;
 }
 
+DECLARE_METHOD(&Frame::copy)
+    ->name("copy")
+    ->n_keyword_args(1)
+    ->arg_names({"deep"})
+    ->docs(doc_copy);
 
 
-static PKArgs args___deepcopy__(
-  0, 1, 0, false, false, {"memo"}, "__deepcopy__", nullptr);
 
-oobj Frame::m__deepcopy__(const PKArgs&) {
-  py::odict dict_arg;
-  dict_arg.set(py::ostring("deep"), py::True());
-  args_copy.bind(nullptr, dict_arg.to_borrowed_ref());
-  return copy(args_copy);
+oobj Frame::m__deepcopy__(const XArgs&) {
+  return robj(this).get_attr("copy")
+          .call({}, {py::ostring("deep"), py::True()});
 }
 
+DECLARE_METHOD(&Frame::m__deepcopy__)
+    ->name("__deepcopy__")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"memo"});
+
 oobj Frame::m__copy__() {
-  args_copy.bind(nullptr, nullptr);
-  return copy(args_copy);
+  return robj(this).invoke("copy");
 }
 
 
@@ -283,7 +306,7 @@ size_t Frame::m__len__() const {
 static const char* doc_export_names =
 R"(export_names(self)
 --
-.. xversionadded:: 0.10
+.. x-version-added:: 0.10
 
 Return a tuple of :ref:`f-expressions` for all columns of the frame.
 
@@ -293,8 +316,8 @@ assign these to, say, variables ``A``, ``B``, and ``C``, then you
 will be able to write column expressions using the column names
 directly, without using the ``f`` symbol::
 
-    A, B, C = DT.export_names()
-    DT[A + B > C, :]
+    >>> A, B, C = DT.export_names()
+    >>> DT[A + B > C, :]
 
 The variables that are "exported" refer to each column *by name*. This
 means that you can use the variables even after reordering the
@@ -304,7 +327,7 @@ with the same names.
 
 Parameters
 ----------
-(return): Tuple[Expr, ...]
+return: Tuple[Expr, ...]
     The length of the tuple is equal to the number of columns in the
     frame. Each element of the tuple is a datatable *expression*, and
     can be used primarily with the ``DT[i,j]`` notation.
@@ -313,27 +336,24 @@ Notes
 -----
 - This method is effectively equivalent to::
 
-    def export_names(self):
-        return tuple(f[name] for name in self.names)
+    >>> def export_names(self):
+    ...     return tuple(f[name] for name in self.names)
 
 - If you want to export only a subset of column names, then you can
   either subset the frame first, or use ``*``-notation to ignore the
   names that you do not plan to use::
 
-    A, B = DT[:, :2].export_names()  # export the first two columns
-    A, B, *_ = DT.export_names()     # same
+    >>> A, B = DT[:, :2].export_names()  # export the first two columns
+    >>> A, B, *_ = DT.export_names()     # same
 
 - Variables that you use in code do not have to have the same names
   as the columns::
 
-    Price, Quantity = DT[:, ["sale price", "quant"]].export_names()
+    >>> Price, Quantity = DT[:, ["sale price", "quant"]].export_names()
 
 )";
 
-static PKArgs args_export_names(
-  0, 0, 0, false, false, {}, "export_names", doc_export_names);
-
-oobj Frame::export_names(const PKArgs&) {
+oobj Frame::export_names(const XArgs&) {
   py::oobj f = py::oobj::import("datatable", "f");
   py::otuple names = dt->get_pynames();
   py::otuple out_vars(names.size());
@@ -342,6 +362,10 @@ oobj Frame::export_names(const PKArgs&) {
   }
   return std::move(out_vars);
 }
+
+DECLARE_METHOD(&Frame::export_names)
+    ->name("export_names")
+    ->docs(doc_export_names);
 
 
 
@@ -353,6 +377,7 @@ bool Frame::internal_construction = false;
 
 
 oobj Frame::oframe(DataTable* dt) {
+  xassert(Frame_Type);
   Frame::internal_construction = true;
   PyObject* res = PyObject_CallObject(Frame_Type, nullptr);
   Frame::internal_construction = false;
@@ -436,14 +461,66 @@ return: None
     This operation modifies the frame in-place.
 )";
 
-static PKArgs args_materialize(
-  0, 1, 0, false, false, {"to_memory"}, "materialize", doc_materialize);
-
-void Frame::materialize(const PKArgs& args) {
+void Frame::materialize(const XArgs& args) {
   bool to_memory = args[0].to<bool>(false);
   dt->materialize(to_memory);
 }
 
+DECLARE_METHODv(&Frame::materialize)
+    ->name("materialize")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"to_memory"})
+    ->docs(doc_materialize);
+
+
+
+//------------------------------------------------------------------------------
+// .meta
+//------------------------------------------------------------------------------
+
+static const char* doc_meta =
+R"(
+.. x-version-added:: 1.0
+
+Frame's meta information.
+
+This property contains meta information, if any, as set by datatable
+functions and methods. It is a settable property, so that users can also
+update it with any information relevant to a particular frame.
+
+It is not guaranteed that the existing meta information will be preserved
+by the functions and methods called on the frame. In particular,
+it is not preserved when exporting data into a Jay file or pickling the data.
+This behavior may change in the future.
+
+The default value for this property is `None`.
+
+
+Parameters
+----------
+return: dict | None
+    If the frame carries any meta information, the corresponding meta
+    information dictionary is returned, `None` is returned otherwise.
+
+new_meta: dict | None
+    New meta information.
+
+)";
+
+static GSArgs args_meta("meta", doc_meta);
+
+oobj Frame::get_meta() const {
+  return meta_? meta_ : py::None();
+}
+
+
+void Frame::set_meta(const Arg& meta) {
+  if (!meta.is_dict() && !meta.is_none()) {
+    throw TypeError() << "`.meta` must be a dictionary or `None`, "
+      << "instead got: " << meta.typeobj();
+  }
+  meta_ = meta.is_none()? py::None() : meta.to_pydict();
+}
 
 
 
@@ -571,7 +648,7 @@ oobj Frame::get_ndims() const {
 
 static const char* doc_source =
 R"(
-.. xversionadded:: 0.11
+.. x-version-added:: 0.11
 
 The name of the file where this frame was loaded from.
 
@@ -606,6 +683,37 @@ oobj Frame::get_source() const {
 
 void Frame::set_source(const std::string& src) {
   source_ = src.empty()? py::None() : py::ostring(src);
+}
+
+
+
+//------------------------------------------------------------------------------
+// .types
+//------------------------------------------------------------------------------
+
+static const char* doc_types =
+R"(
+The list of `Type`s for each column of the frame.
+
+Parameters
+----------
+return: List[Type]
+    The length of the list is the same as the number of columns in the frame.
+
+
+See also
+--------
+- :attr:`.stypes` -- old interface for column types
+)";
+
+static GSArgs args_types("types", doc_types);
+
+oobj Frame::get_types() const {
+  py::olist result(dt->ncols());
+  for (size_t i = 0; i < dt->ncols(); i++) {
+    result.set(i, dt::PyType::make(dt->get_column(i).type()));
+  }
+  return std::move(result);
 }
 
 
@@ -652,7 +760,7 @@ oobj Frame::get_stypes() const {
 
 static const char* doc_stype =
 R"(
-.. xversionadded:: v0.10.0
+.. x-version-added:: v0.10.0
 
 The common :class:`dt.stype` for all columns.
 
@@ -801,9 +909,9 @@ arguments `**cols` are mutually exclusive: they cannot be used at the
 same time. However, it is possible to use neither and construct an
 empty frame::
 
-    dt.Frame()       # empty 0x0 frame
-    dt.Frame(None)   # same
-    dt.Frame([])     # same
+    >>> dt.Frame()       # empty 0x0 frame
+    >>> dt.Frame(None)   # same
+    >>> dt.Frame([])     # same
 
 The varkwd arguments `**cols` can be used to construct a Frame by
 columns. In this case the keys become column names, and the values
@@ -811,11 +919,24 @@ are column initializers. This form is mostly used for convenience;
 it is equivalent to converting `cols` into a `dict` and passing as
 the first argument::
 
-    dt.Frame(A = range(7),
-             B = [0.1, 0.3, 0.5, 0.7, None, 1.0, 1.5],
-             C = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
-    # equivalent to
-    dt.Frame({"A": range(7), "B": [0.1, 0.3, ...], "C": ["red", "orange", ...]})
+    >>> dt.Frame(A = range(7),
+    ...          B = [0.1, 0.3, 0.5, 0.7, None, 1.0, 1.5],
+    ...          C = ["red", "orange", "yellow", "green", "blue", "indigo", "violet"])
+    >>> # equivalent to
+    >>> dt.Frame({"A": range(7),
+    ...           "B": [0.1, 0.3, 0.5, 0.7, None, 1.0, 1.5],
+    ...           "C": ["red", "orange", "yellow", "green", "blue", "indigo", "violet"]})
+       |     A        B  C
+       | int32  float64  str32
+    -- + -----  -------  ------
+     0 |     0      0.1  red
+     1 |     1      0.3  orange
+     2 |     2      0.5  yellow
+     3 |     3      0.7  green
+     4 |     4     NA    blue
+     5 |     5      1    indigo
+     6 |     6      1.5  violet
+    [7 rows x 3 columns]
 
 The argument `_data` accepts a wide range of input types. The
 following list describes possible choices:
@@ -832,14 +953,14 @@ following list describes possible choices:
 
         >>> dt.Frame([[1, 3, 5, 7, 11],
         ...           [12.5, None, -1.1, 3.4, 9.17]])
-           | C0     C1
-        -- + --  -----
-         0 |  1  12.5
-         1 |  3  NA
-         2 |  5  -1.1
-         3 |  7   3.4
-         4 | 11   9.17
-        --
+           |    C0       C1
+           | int32  float64
+        -- + -----  -------
+         0 |     1    12.5
+         1 |     3    NA
+         2 |     5    -1.1
+         3 |     7     3.4
+         4 |    11     9.17
         [5 rows x 2 columns]
 
     Note that unlike `pandas` and `numpy`, we treat a list of lists
@@ -859,12 +980,12 @@ following list describes possible choices:
         >>> dt.Frame([{"A": 3, "B": 7},
         ...           {"A": 0, "B": 11, "C": -1},
         ...           {"C": 5}])
-           |  A   B   C
-        -- + --  --  --
-         0 |  3   7  NA
-         1 |  0  11  -1
-         2 | NA  NA   5
-        --
+           |     A      B      C
+           | int32  int32  int32
+        -- + -----  -----  -----
+         0 |     3      7     NA
+         1 |     0     11     -1
+         2 |    NA     NA      5
         [3 rows x 3 columns]
 
     If the `names` parameter is given, then only the keys given
@@ -879,12 +1000,12 @@ following list describes possible choices:
         >>> dt.Frame([(39, "Mary"),
         ...           (17, "Jasmine"),
         ...           (23, "Lily")], names=['age', 'name'])
-           | age  name
-        -- + ---  -------
-         0 |  39  Mary
-         1 |  17  Jasmine
-         2 |  23  Lily
-        --
+           |   age  name
+           | int32  str32
+        -- + -----  -------
+         0 |    39  Mary
+         1 |    17  Jasmine
+         2 |    23  Lily
         [3 rows x 2 columns]
 
     If the tuples are in fact `namedtuple`s, then the field names
@@ -956,12 +1077,18 @@ following list describes possible choices:
     string may simply contain a table of data.
 
         >>> DT1 = dt.Frame("train.csv")
-        >>> DT2 = dt.Frame("""
+        >>> dt.Frame("""
         ...    Name    Age
         ...    Mary     39
         ...    Jasmine  17
-        ...    Lily     23
-        ... """)
+        ...    Lily     23 """)
+           | Name       Age
+           | str32    int32
+        -- + -------  -----
+         0 | Mary        39
+         1 | Jasmine     17
+         2 | Lily        NA
+        [3 rows x 2 columns]
 
 `pd.DataFrame | pd.Series`
     A pandas DataFrame (Series) will be converted into a datatable
@@ -983,6 +1110,13 @@ following list describes possible choices:
     If possible, we will create a Frame without copying the data
     (however, this is subject to numpy's approval). The resulting
     frame will have a copy-on-write semantics.
+
+`pyarrow.Table`
+    An arrow table will be converted into a datatable Frame, preserving
+    column names and types.
+
+    If the arrow table has columns of types not supported by datatable
+    (for example lists or structs), an exception will be raised.
 
 `None`
     When the source is not given at all, then a 0x0 frame will be
@@ -1021,17 +1155,17 @@ and ``frame[j]`` will return the column at index ``j`` (each "column"
 will be a Frame with ``ncols == 1``). Similarly, you can iterate over
 the columns of a Frame in a loop, or use it in a ``*``-expansion::
 
-    for column in frame:
-        ...
-
-    list_of_columns = [*frame]
+    >>> for column in frame:
+    ...    # do something
+    ...
+    >>> list_of_columns = [*frame]
 
 A Frame can also be viewed as a ``dict`` of columns, where the key
 associated with each column is its name. Thus, ``frame[name]`` will
 return the column with the requested name. A Frame can also work with
 standard python ``**``-expansion::
 
-    dict_of_columns = {**frame}
+    >>> dict_of_columns = {**frame}
 )";
 
 
@@ -1044,10 +1178,9 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__LEN__(&Frame::m__len__));
   xt.add(METHOD__GETITEM__(&Frame::m__getitem__));
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
-  xt.add(BUFFERS(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
-  Frame_Type = reinterpret_cast<PyObject*>(&Frame::type);
+  xt.add(METHOD__GETBUFFER__(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
+  Frame_Type = xt.get_type_object();
 
-  _init_cbind(xt);
   _init_key(xt);
   _init_init(xt);
   _init_iter(xt);
@@ -1060,11 +1193,11 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_stats(xt);
   _init_sort(xt);
   _init_newsort(xt);
-  _init_tocsv(xt);
   _init_tonumpy(xt);
   _init_topython(xt);
 
   xt.add(GETTER(&Frame::get_ltypes, args_ltypes));
+  xt.add(GETSET(&Frame::get_meta, &Frame::set_meta, args_meta));
   xt.add(GETTER(&Frame::get_ncols, args_ncols));
   xt.add(GETTER(&Frame::get_ndims, args_ndims));
   xt.add(GETSET(&Frame::get_nrows, &Frame::set_nrows, args_nrows));
@@ -1072,15 +1205,12 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_source, args_source));
   xt.add(GETTER(&Frame::get_stype,  args_stype));
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_types, args_types));
 
-  xt.add(METHOD(&Frame::head, args_head));
-  xt.add(METHOD(&Frame::tail, args_tail));
-  xt.add(METHOD(&Frame::copy, args_copy));
-  xt.add(METHOD(&Frame::materialize, args_materialize));
-  xt.add(METHOD(&Frame::export_names, args_export_names));
   xt.add(METHOD0(&Frame::get_names, "keys"));
   xt.add(METHOD0(&Frame::m__copy__, "__copy__"));
-  xt.add(METHOD(&Frame::m__deepcopy__, args___deepcopy__));
+
+  INIT_METHODS_FOR_CLASS(Frame);
 }
 
 

@@ -19,21 +19,21 @@
   from a frame at once, so-called *columnsets*. The primary use case here is to
   select a slice of columns, or to select columns based on their type::
 
-      f[:]         # select all columns
-      f[:5]        # select the first 5 columns
-      f["A":"Z"]   # select columns from 'A' to 'Z'
-      f[float]     # select all floating point columns
-      f[dt.int32]  # select all columns with stype int32
-      f[int   if select_ints else
-        float if select_floats else
-        None]
+      >>> f[:]         # select all columns
+      >>> f[:5]        # select the first 5 columns
+      >>> f["A":"Z"]   # select columns from 'A' to 'Z'
+      >>> f[float]     # select all floating point columns
+      >>> f[dt.int32]  # select all columns with stype int32
+      >>> f[int   if select_ints else
+      ...   float if select_floats else
+      ...   None]
 
   In addition, columnsets can be added/subtracted, allowing to express a richer
   selection of columns::
 
-      f[int].extend(f[float])   # all integers and floating point columns
-      f[:].remove(f[str])       # all columns except those of string type
-      f[:10].extend(f[-1])      # first 10, plus the last column
+      >>> f[int].extend(f[float])   # all integers and floating point columns
+      >>> f[:].remove(f[str])       # all columns except those of string type
+      >>> f[:10].extend(f[-1])      # first 10, plus the last column
 
   The columnsets can be used in places where a list/sequence of columns is
   expected, such as the ``j`` node of ``DT[i,j,...]``, the ``by()`` function, etc.
@@ -47,16 +47,16 @@
   function aggregate across rows instead of columns (like traditional reducers),
   and therefore they all have prefix ``row``::
 
-      rowall()    # are all values True?
-      rowany()    # is there any True value?
-      rowcount()  # count non-missing values in a row
-      rowfirst()  # find the first non-missing value
-      rowlast()   # the last non-missing value
-      rowmax()    # largest value in a row
-      rowmean()   # mean of all values in a row
-      rowmin()    # smallest value in a row
-      rowsd()     # standard deviation of all row values
-      rowsum()    # the sum of values in a row
+      >>> rowall()    # are all values True?
+      >>> rowany()    # is there any True value?
+      >>> rowcount()  # count non-missing values in a row
+      >>> rowfirst()  # find the first non-missing value
+      >>> rowlast()   # the last non-missing value
+      >>> rowmax()    # largest value in a row
+      >>> rowmean()   # mean of all values in a row
+      >>> rowmin()    # smallest value in a row
+      >>> rowsd()     # standard deviation of all row values
+      >>> rowsum()    # the sum of values in a row
 
   These functions are equivalent to pandas' aggregation functions with parameter
   ``(axis=1)``. In addition, the first two of these functions (``rowall()`` and
@@ -70,7 +70,7 @@
   functions found in numpy or in standard Python math module. These functions
   work with Frame objects, and can be used in ``DT[i,j,...]`` expressions::
 
-      DT[:, f.X * dt.math.cos(f.Phi) + f.Y * dt.math.sin(f.Phi)]
+      >>> DT[:, f.X * dt.math.cos(f.Phi) + f.Y * dt.math.sin(f.Phi)]
 
   There are 48 functions in total.
 
@@ -83,20 +83,20 @@
     expression. This function can be used in the ``j`` place, and it allows the
     user to create new columns in a Frame, or update the existing ones::
 
-      DT = dt.Frame(A=range(5))
-      DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
+      >>> DT = dt.Frame(A=range(5))
+      >>> DT[:, update(A=f.A * 2, B=dt.str32(f.A), Z=0)]
 
   -[new] Added method :meth:`.export_names()`
     which returns a tuple of variables referencing each column in the Frame::
 
-      PROC_ID, SORT_NR, *other = DT.export_names()
-      DT[(PROC_ID == "A") & (SORT_NR > 2), :]
+      >>> PROC_ID, SORT_NR, *other = DT.export_names()
+      >>> DT[(PROC_ID == "A") & (SORT_NR > 2), :]
 
     If you need to export only a subset of columns, you can select those columns
     first via the standard ``DT[i,j]`` syntax::
 
-      # Only create variables for the first 5 columns
-      A, B, C, D, E = DT[:, :5].export_names()
+      >>> # Only create variables for the first 5 columns
+      >>> A, B, C, D, E = DT[:, :5].export_names()
 
   -[new] Added frame property :attr:`.stype` which is
     similar to :attr:`.stypes` except that it returns
@@ -122,18 +122,18 @@
     floats. The resulting Frame will have the stype corresponding to the largest
     dtype among all elements in the list::
 
-      import numpy as np
-      DT = dt.Frame([np.int32(1), np.int32(3), np.int64(8)])
-      assert DT.shape == (3, 1)
-      assert DT.stype == dt.int64
+      >>> import numpy as np
+      >>> DT = dt.Frame([np.int32(1), np.int32(3), np.int64(8)])
+      >>> assert DT.shape == (3, 1)
+      >>> assert DT.stype == dt.int64
 
   -[enh] When an integer column is used to select rows from a Frame, that column
     is now allowed to contain NA values, which produces a row filled with missing
     values::
 
-      DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
-      rows = dt.Frame([2, 0, None, 1, 2])
-      assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
+      >>> DT = dt.Frame(A=['a', 'b', 'c', 'd', 'e'])
+      >>> rows = dt.Frame([2, 0, None, 1, 2])
+      >>> assert DT[rows, :].to_list() == [['c', 'a', None, 'b', 'c']]
 
   -[new] Added option ``display.max_column_width``. Cells whose content is larger
     than this value will be automatically truncated when a Frame is rendered into
@@ -148,17 +148,17 @@
     ``append=`` parameter allows the CSV content to be appended to an existing
     file instead of overwriting it::
 
-      DT.to_csv("out.log", append=True)  # infer that header=False if file exists
+      >>> DT.to_csv("out.log", append=True)  # infer that header=False if file exists
 
   -[enh] Range objects can now be used directly in ``DT[i,j]`` expressions in any
     place where a column could be expected::
 
-      DT["id"] = range(1000)
+      >>> DT["id"] = range(1000)
 
   -[enh] Implemented ability to select a specific row within each group, using
     the syntax::
 
-      DT[2, :, by(f.GRP)]
+      >>> DT[2, :, by(f.GRP)]
 
     If the index is invalid for some of the groups, those groups will be
     discarded.
@@ -166,15 +166,15 @@
   -[enh] Assigning a python type or an stype to a column or set of columns will
     now perform a type-cast on those columns::
 
-      DT["A"] = int            # Column A in frame DT will become integer
-      DT[:, int] = dt.float64  # All integer columns will be converted to float64
+      >>> DT["A"] = int            # Column A in frame DT will become integer
+      >>> DT[:, int] = dt.float64  # All integer columns will be converted to float64
 
   -[enh] Method ``Frame.materialize()`` gains a new option ``to_memory=False``.
     If set to True, it will force the Frame's data to be lifted from disk into
     the main memory (if the frame was opened from disk)::
 
-      DT = dt.fread("data.jay")
-      DT.materialize(to_memory=True)
+      >>> DT = dt.fread("data.jay")
+      >>> DT.materialize(to_memory=True)
 
   -[api] The name deduplication algorithm now starts looking for candidate names
     starting from ``name + dt.options.frame.name_auto_index``. For example, if
@@ -187,10 +187,10 @@
     ``int32``, instead of ``int8`` or ``int16`` as before. One can still create
     a column of type ``int8`` by requesting this stype explicitly::
 
-      DT1 = dt.Frame([1, 2, 3])
-      DT2 = dt.Frame([1, 2, 3], stype=dt.int8)
-      assert DT1.stype == dt.int32
-      assert DT2.stype == dt.int8
+      >>> DT1 = dt.Frame([1, 2, 3])
+      >>> DT2 = dt.Frame([1, 2, 3], stype=dt.int8)
+      >>> assert DT1.stype == dt.int32
+      >>> assert DT2.stype == dt.int8
 
     Thanks to @Viktor-Demin for the contribution. (#2127)
 
@@ -233,9 +233,9 @@
   -[fix] Groupby operation on an empty (0-rows) frame now works correctly,
     returning a 0-row result frame. (#2078) For example::
 
-      DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
-      DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
-      DT[:, sum(f.Value)]             # produces a 1x1 frame
+      >>> DT = dt.Frame(Id=[], Value=[])  # create a 0x2 frame
+      >>> DT[:, sum(f.Value), by(f.Id)]   # produces a 0x2 frame
+      >>> DT[:, sum(f.Value)]             # produces a 1x1 frame
 
   -[fix] Deleting columns from a keyed Frame no longer results in a crash
     when the deleted columns are part of the key. (#2083)
@@ -287,7 +287,7 @@
   -[enh] Datatable module now exports symbol ``dt``, which is the handle to
     the module itself. For example, you can now write::
 
-      from datatable import dt, f, by, join
+      >>> from datatable import dt, f, by, join
 
     The symbol ``dt`` is also exported by default, i.e. it will be available if
     you do ``from datatable import *``.
@@ -296,18 +296,18 @@
     and Pearson correlation coefficient between columns of a Frame. These
     functions can be used in a group-by too::
 
-      # Compute correlation of columns A and B, group-wise by ID
-      DT[:, corr(f.A, f.B), by(f.ID)]
+      >>> # Compute correlation of columns A and B, group-wise by ID
+      >>> DT[:, corr(f.A, f.B), by(f.ID)]
 
   -[new] Added function :func:`shift` which can be used to generate lags/leads
     of a column. For example::
 
-      DT[:, {"lag2": shift(f.A, n=2),
-             "lag1": shift(f.A),       # same as shift(f.A, n=1)
-             "lag0": f.A,              # same as shift(f.A, n=0)
-             "lead1": shift(f.A, -1),
-             "lead2": shift(f.A, -2),
-             }]
+      >>> DT[:, {"lag2": shift(f.A, n=2),
+      ...        "lag1": shift(f.A),       # same as shift(f.A, n=1)
+      ...        "lag0": f.A,              # same as shift(f.A, n=0)
+      ...        "lead1": shift(f.A, -1),
+      ...        "lead2": shift(f.A, -2),
+      ...        }]
 
     This function is group-aware: when used in an expression containing a groupby,
     it will apply the shift separately within each group.

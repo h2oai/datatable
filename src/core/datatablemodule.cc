@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -43,6 +43,7 @@
 #include "ltype.h"
 #include "models/aggregate.h"
 #include "models/py_ftrl.h"
+#include "models/py_linearmodel.h"
 #include "options.h"
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
@@ -53,6 +54,7 @@
 #include "python/xargs.h"
 #include "read/py_read_iterator.h"
 #include "sort.h"
+#include "types/py_type.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "utils/macros.h"
@@ -114,6 +116,7 @@ _unpack_frame_column_args(const py::PKArgs& args)
 static const char* doc_frame_columns_virtual =
 R"(frame_columns_virtual(frame)
 --
+.. x-version-deprecated:: 0.11.0
 
 Return the list indicating which columns in the `frame` are virtual.
 
@@ -125,7 +128,6 @@ return: List[bool]
 
 Notes
 -----
-.. deprecated:: 0.11.0
 
 This function will be expanded and moved into the main :class:`dt.Frame` class.
 )";
@@ -215,9 +217,9 @@ static void frame_integrity_check(const py::PKArgs& args) {
 
 static const char* doc_in_debug_mode =
 R"(
-Return `True` if :mod:`datatable` was compiled in debug mode.
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Return `True` if :mod:`datatable` was compiled in debug mode.
 )";
 
 static py::PKArgs args_in_debug_mode(
@@ -299,9 +301,9 @@ static void _register_function(const py::PKArgs& args) {
 
 static const char* doc_compiler_version =
 R"(
-Return the version of the C++ compiler used to compile this module.
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Return the version of the C++ compiler used to compile this module.
 )";
 
 static py::PKArgs args_compiler_version(
@@ -337,9 +339,9 @@ static py::oobj compiler_version(const py::PKArgs&) {
 
 static const char* doc_regex_supported =
 R"(
-Was the datatable built with regular expression support?
+.. x-version-deprecated:: 0.11.0
 
-.. deprecated:: 0.11.0
+Was the datatable built with regular expression support?
 )";
 
 static py::PKArgs args_regex_supported(
@@ -412,12 +414,15 @@ static void initialize_options(const py::PKArgs& args) {
 }
 
 
-static py::PKArgs args_initialize_final(
-  0, 0, 0, false, false, {}, "initialize_final", "");
-
-static void initialize_final(const py::PKArgs&) {
+static py::oobj initialize_final(const py::XArgs&) {
   init_exceptions();
+  return py::None();
 }
+DECLARE_PYFN(&initialize_final)
+    ->name("initialize_final")
+    ->docs("Called once at the end of initialization of the python datatable "
+           "module. This function will import some of the objects defined "
+           "in the python module into the extension.");
 
 
 
@@ -434,7 +439,6 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
-  ADD_FN(&initialize_final, args_initialize_final);
   ADD_FN(&compiler_version, args_compiler_version);
   ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
@@ -444,8 +448,6 @@ void py::DatatableModule::init_methods() {
   }
 
   init_methods_aggregate();
-  init_methods_buffers();
-  init_methods_cbind();
   init_methods_csv();
   init_methods_isclose();
   init_methods_jay();
@@ -459,7 +461,6 @@ void py::DatatableModule::init_methods() {
   init_methods_styles();
 
   init_fbinary();
-  init_fnary();
   init_funary();
   init_fuzzy();
 
@@ -487,15 +488,18 @@ extern "C" {
 
       py::Frame::init_type(m);
       py::Ftrl::init_type(m);
+      py::LinearModel::init_type(m);
       py::ReadIterator::init_type(m);
       py::Namespace::init_type(m);
       dt::expr::PyFExpr::init_type(m);
+      dt::PyType::init_type(m);
 
       dt::init_config_option(m);
       py::oby::init(m);
       py::ojoin::init(m);
       py::osort::init(m);
       py::oupdate::init(m);
+      py::datetime_init();
 
     } catch (const std::exception& e) {
       exception_to_python(e);

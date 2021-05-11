@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -60,7 +60,7 @@ class Sorter_Int : public SSorter<T>
     Sorter_Int(const Column& col)
       : column_(col)
     {
-      xassert(compatible_type<TI>(col.stype()));
+      xassert(col.can_be_read_as<TI>());
     }
 
 

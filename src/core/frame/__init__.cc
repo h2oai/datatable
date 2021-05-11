@@ -26,6 +26,7 @@
 #include "column/npmasked.h"
 #include "python/_all.h"
 #include "utils/alloc.h"
+#include "utils/arrow_structs.h"
 #include "stype.h"
 namespace py {
 
@@ -64,6 +65,7 @@ class FrameInitializationManager {
         names_arg(args[1]),
         stypes_arg(args[2]),
         stype_arg(args[3]),
+        stype0(dt::SType::AUTO),
         frame(f)
     {
       defined_names  = !(names_arg.is_undefined() || names_arg.is_none());
@@ -81,6 +83,7 @@ class FrameInitializationManager {
       }
     }
 
+
     void run()
     {
       if (src.is_list_or_tuple()) {
@@ -91,7 +94,7 @@ class FrameInitializationManager {
         py::robj item0 = collist[0];
         // This check should come first, because numpy ints implement
         // buffer protocol...
-        if (item0.is_numpy_int() || item0.is_numpy_float()) {
+        if (item0.is_numpy_int() || item0.is_numpy_float() || item0.is_numpy_bool()) {
           return init_from_list_of_primitives();
         }
         if (item0.is_list() || item0.is_range() || item0.is_buffer()) {
@@ -132,6 +135,9 @@ class FrameInitializationManager {
       }
       if (src.is_numpy_array()) {
         return init_from_numpy();
+      }
+      if (src.is_arrow_table()) {
+        return init_from_arrow();
       }
       if (src.is_ellipsis() &&
                !defined_names && !defined_stypes && !defined_stype) {
@@ -236,7 +242,7 @@ class FrameInitializationManager {
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
         dt::SType s = get_stype_for_column(j, &name);
-        cols.push_back(Column::from_pylist_of_dicts(srclist, name, int(s)));
+        cols.push_back(Column::from_pylist_of_dicts(srclist, name, s));
       }
       make_datatable(nameslist);
     }
@@ -268,7 +274,7 @@ class FrameInitializationManager {
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
         dt::SType s = get_stype_for_column(j);
-        cols.push_back(Column::from_pylist_of_tuples(srclist, j, int(s)));
+        cols.push_back(Column::from_pylist_of_tuples(srclist, j, s));
       }
       if (names_arg || !item0.has_attr("_fields")) {
         make_datatable(names_arg);
@@ -328,7 +334,7 @@ class FrameInitializationManager {
 
 
     void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, dt::SType::VOID));
+      cols.push_back(Column::from_range(42, 43, 1, dt::SType::AUTO));
       make_datatable(strvec { "?" });
     }
 
@@ -407,7 +413,7 @@ class FrameInitializationManager {
           }
           index.replace(1, py::oint(i++));
           py::oobj colsrc = pd_iloc.get_item(index).get_attr("values");
-          make_column(colsrc, dt::SType::VOID);
+          make_column(colsrc, dt::SType::AUTO);
         }
         if (ncols == size_t(-1)) {
           check_names_count(cols.size());
@@ -421,7 +427,7 @@ class FrameInitializationManager {
           colnames.append(std::move(pyname));
         }
         py::oobj colsrc = pdsrc.get_attr("values");
-        make_column(colsrc, dt::SType::VOID);
+        make_column(colsrc, dt::SType::AUTO);
       }
       if (colnames.size() > 0) {
         make_datatable(colnames);
@@ -471,12 +477,69 @@ class FrameInitializationManager {
         for (size_t i = 0; i < ncols; ++i) {
           col_key.replace(1, py::oint(i));
           auto colsrc = npsrc.get_item(col_key);  // npsrc[:, i]
-          make_column(colsrc, dt::SType::VOID);
+          make_column(colsrc, dt::SType::AUTO);
         }
       }
       make_datatable(names_arg);
     }
 
+
+    void init_from_arrow() {
+      if (stypes_arg || stype_arg) {
+        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+            "constructor when creating a Frame from an arrow Table";
+      }
+      auto pasrc = src.to_robj();
+      // batches: List[pa.RecordBatch]
+      py::olist batches = pasrc.invoke("to_batches").to_pylist();
+      size_t n_batches = batches.size();
+      if (!n_batches) {
+        return init_empty_frame();
+      }
+
+      dt::OArrowSchema schema;
+      std::vector<dt::OArrowArray> arrays(n_batches);
+      batches[0].invoke("_export_to_c", {
+                          py::oint(arrays[0].intptr()),
+                          py::oint(schema.intptr())
+      });
+      for (size_t i = 1; i < n_batches; ++i) {
+        batches[i].invoke("_export_to_c", {py::oint(arrays[i].intptr())});
+      }
+
+      XAssert(schema->release != nullptr);
+      XAssert(std::string(schema->format) == "+s");
+      XAssert(schema->dictionary == nullptr);
+      XAssert(schema->n_children >= 0);
+
+      size_t ncols = static_cast<size_t>(schema->n_children);
+      size_t nrows = 0;
+      for (const auto& array : arrays) {
+        XAssert(array->release != nullptr);
+        XAssert(array->length > 0);
+        XAssert(array->null_count == 0);
+        XAssert(array->offset == 0);
+        XAssert(array->n_buffers == 1);
+        XAssert(static_cast<size_t>(array->n_children) == ncols);
+        XAssert(array->dictionary == nullptr);
+        nrows += static_cast<size_t>(array->length);
+      }
+
+      strvec colnames;
+      if (n_batches == 1) {
+        for (size_t i = 0; i < ncols; ++i) {
+          auto col_schema = schema->children[i];
+          auto col_array = arrays[0].detach_child(i);
+          XAssert(static_cast<size_t>((*col_array)->length) == nrows);
+          colnames.push_back(col_schema->name);
+          cols.push_back(Column::from_arrow(std::move(col_array), col_schema));
+        }
+        make_datatable(colnames);
+      }
+      else {
+        throw NotImplError() << "Multi-batch Arrow arrays not supported yet";
+      }
+    }
 
 
   //----------------------------------------------------------------------------
@@ -536,7 +599,7 @@ class FrameInitializationManager {
      * otherwise it will be retrieved from `names_arg` if necessary.
      *
      * If no SType is specified for the given column, this method returns
-     * `SType::VOID`.
+     * `SType::AUTO`.
      *
      */
     dt::SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
@@ -565,11 +628,11 @@ class FrameInitializationManager {
           if (res) {
             return res.to_stype();
           } else {
-            return dt::SType::VOID;
+            return dt::SType::AUTO;
           }
         }
       }
-      return dt::SType::VOID;
+      return dt::SType::AUTO;
     }
 
 
@@ -612,11 +675,11 @@ class FrameInitializationManager {
         col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
-        if (s == dt::SType::VOID && colsrc.has_attr("type")) {
+        if (s == dt::SType::AUTO && colsrc.has_attr("type")) {
           auto srctype = colsrc.get_attr("type");
           s = srctype.to_stype();
         }
-        col = Column::from_pylist(colsrc.to_pylist(), int(s));
+        col = Column::from_pylist(colsrc.to_pylist(), s);
       }
       else if (colsrc.is_range()) {
         auto r = colsrc.to_orange();

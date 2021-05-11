@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -187,8 +187,8 @@ template <typename TX, typename TJ>
 FwCmp<TX, TJ>::FwCmp(const Column& xcol, const Column& jcol)
   : colX(xcol), colJ(jcol)
 {
-  xassert(dt::compatible_type<TX>(xcol.stype()));
-  xassert(dt::compatible_type<TJ>(jcol.stype()));
+  xassert(xcol.can_be_read_as<TX>());
+  xassert(jcol.can_be_read_as<TJ>());
 }
 
 template <typename TX, typename TJ>
@@ -311,6 +311,7 @@ static void _init_comparators() {
   size_t flt64 = static_cast<size_t>(dt::SType::FLOAT64);
   size_t str32 = static_cast<size_t>(dt::SType::STR32);
   size_t str64 = static_cast<size_t>(dt::SType::STR64);
+  size_t dat32 = static_cast<size_t>(dt::SType::DATE32);
   cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;
@@ -364,6 +365,7 @@ static void _init_comparators() {
   cmps[str32][str64] = StringCmp::make;
   cmps[str64][str32] = StringCmp::make;
   cmps[str64][str64] = StringCmp::make;
+  cmps[dat32][dat32] = FwCmp<int32_t, int32_t>::make;
 }
 
 

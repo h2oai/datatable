@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>         // std::min
-#include <cstring>           // std::strncmp
+#include <cstring>           // std::strncmp, std::strlen
 #include <string>            // std::string
 #include "buffer.h"
 #include "cstring.h"
@@ -46,6 +46,10 @@ CString::CString(const char* ptr, size_t sz)
 
 CString::CString(const std::string& str)
   : ptr_(str.data()), size_(str.size()) {}
+
+CString CString::from_null_terminated_string(const char* cstr) {
+  return CString(cstr, std::strlen(cstr));
+}
 
 
 CString& CString::operator=(CString&& other) {

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,7 +45,7 @@ ColumnImpl* NpMasked_ColumnImpl::clone() const {
 
 template <typename T>
 void NpMasked_ColumnImpl::_apply_mask(Column& out) {
-  xassert(compatible_type<T>(arg_.stype()));
+  xassert(arg_.can_be_read_as<T>());
   auto mask_data = static_cast<const bool*>(mask_.rptr());
   auto col_data = static_cast<T*>(arg_.get_data_editable());
 
@@ -61,10 +61,11 @@ void NpMasked_ColumnImpl::materialize(Column& out, bool to_memory) {
       arg_.is_fixedwidth() &&
       arg_.is_data_editable())
   {
-    switch (stype_) {
+    switch (stype()) {
       case SType::BOOL:
       case SType::INT8:    return _apply_mask<int8_t>(out);
       case SType::INT16:   return _apply_mask<int16_t>(out);
+      case SType::DATE32:
       case SType::INT32:   return _apply_mask<int32_t>(out);
       case SType::INT64:   return _apply_mask<int64_t>(out);
       case SType::FLOAT32: return _apply_mask<float>(out);

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -65,7 +65,7 @@ template class CastNumericToBool_ColumnImpl<double>;
 
 CastStringToBool_ColumnImpl::CastStringToBool_ColumnImpl(Column&& arg)
   : Cast_ColumnImpl(SType::BOOL, std::move(arg))
-{ xassert(compatible_type<CString>(arg_.stype())); }
+{ xassert(arg_.can_be_read_as<CString>()); }
 
 
 ColumnImpl* CastStringToBool_ColumnImpl::clone() const {

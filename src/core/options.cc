@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -119,8 +119,7 @@ void register_option(const char* name,
                      const char* docstring)
 {
   xassert(dt_options);
-  auto pytype = reinterpret_cast<PyObject*>(&py::config_option::type);
-  auto v = PyObject_CallObject(pytype, nullptr);
+  auto v = PyObject_CallObject(py::config_option::typePtr, nullptr);
   if (!v) throw PyError();
   py::oobj opt = py::oobj::from_new_reference(v);
   auto p = static_cast<py::config_option*>(v);

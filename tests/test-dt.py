@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -175,15 +175,17 @@ def test_dt_help():
 def test_dt_properties(dt0):
     assert isinstance(dt0, dt.Frame)
     frame_integrity_check(dt0)
+    assert dt0.source is None
+    assert dt0.meta is None
     assert dt0.nrows == 4
     assert dt0.ncols == 7
     assert dt0.shape == (4, 7)
     assert dt0.ndims == 2
     assert dt0.names == ("A", "B", "C", "D", "E", "F", "G")
     assert dt0.ltypes == (ltype.int, ltype.bool, ltype.int, ltype.real,
-                          ltype.bool, ltype.int, ltype.str)
+                          ltype.void, ltype.int, ltype.str)
     assert dt0.stypes == (stype.int32, stype.bool8, stype.int8, stype.float64,
-                          stype.bool8, stype.int8, stype.str32)
+                          stype.void, stype.int8, stype.str32)
     assert sys.getsizeof(dt0) > 500
 
 
@@ -199,7 +201,7 @@ def test_check_suites():
     # created in order to cover that suite. See test_core_coverage()
     # above for an example.
     found = core.get_test_suites()
-    expected = ["parallel", "progress", "coverage"]
+    expected = ["parallel", "progress", "coverage", "fread"]
     assert set(found) == set(expected)
 
 
@@ -373,13 +375,40 @@ def test_random_attack():
 
 
 #-------------------------------------------------------------------------------
+# Types
+#-------------------------------------------------------------------------------
+
+def test_dt0_types(dt0):
+    T = dt.Type
+    assert dt0.types == \
+        [T.int32, T.bool8, T.int8, T.float64, T.void, T.int8, T.str32]
+
+
+def test_empty_frame_types():
+    DT = dt.Frame([])
+    assert DT.types == []
+    DT.nrows = 11
+    assert DT.types == []
+
+
+def test_modify_types_list():
+    DT = dt.Frame(A=[1, 4], B=['g', 'r'])
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+    types = DT.types
+    types[0] = 42
+    assert DT.types == [dt.Type.int32, dt.Type.str32]
+
+
+
+
+#-------------------------------------------------------------------------------
 # Stype
 #-------------------------------------------------------------------------------
 
 def test_dt_stype(dt0):
     assert dt0[0].stype == stype.int32
     assert dt0[1].stype == stype.bool8
-    assert dt0[:, [1, 4]].stype == stype.bool8
+    assert dt0[:, [2, 5]].stype == stype.int8
     assert dt0[-1].stype == stype.str32
 
 
@@ -390,6 +419,21 @@ def test_dt_stype_heterogenous(dt0):
             "from the stype of the previous column" in str(e.value))
 
 
+#-------------------------------------------------------------------------------
+# Meta information
+#-------------------------------------------------------------------------------
+
+def test_meta():
+    DT = dt.Frame([[3, 1, 4, 1, 5], ["three", "one", "four", "one", "five"]])
+    assert DT.meta is None
+    DT.meta = {"C0" : "numbers"}
+    assert DT.meta == {"C0" : "numbers"}
+    DT.meta["C1"] = "strings"
+    DT1 = DT.copy()
+    assert DT.meta == {"C0" : "numbers", "C1" : "strings"}
+    assert DT.meta == DT1.meta
+    frame_integrity_check(DT)
+    frame_integrity_check(DT1)
 
 
 #-------------------------------------------------------------------------------
@@ -613,6 +657,7 @@ def test_repeat_empty_frame2():
 
 def test_rename_list():
     d0 = dt.Frame([[7], [2], [5]])
+    assert d0.names == ("C0", "C1", "C2")
     d0.names = ("A", "B", "E")
     d0.names = ["a", "c", "e"]
     frame_integrity_check(d0)
@@ -624,7 +669,7 @@ def test_rename_list():
 
 def test_rename_dict():
     d0 = dt.Frame([[1], [2], ["hello"]])
-    assert d0.names == ("C0", "C1", "C2")
+    # Do not access `.names` before renaming (even with `assert`), see #2829.
     d0.names = {"C0": "x", "C2": "z"}
     d0.names = {"C1": "y"}
     frame_integrity_check(d0)
@@ -632,6 +677,16 @@ def test_rename_dict():
     assert d0.colindex("x") == 0
     assert d0.colindex("y") == 1
     assert d0.colindex("z") == 2
+
+
+def test_rename_dict_after_del():
+    d0 = dt.Frame([[1], [2], ["hello"]])
+    del d0["C1"]
+    d0.names = {"C0": "x", "C2": "C1"}
+    frame_integrity_check(d0)
+    assert d0.names == ("x", "C1")
+    assert d0.colindex("x") == 0
+    assert d0.colindex("C1") == 1
 
 
 def test_rename_bad1():
@@ -727,257 +782,6 @@ def test_to_dict():
 
 
 
-#-------------------------------------------------------------------------------
-# Test conversions into Pandas / Numpy
-#-------------------------------------------------------------------------------
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas():
-    d0 = dt.Frame({"A": [1, 5], "B": ["hello", "you"], "C": [True, False]})
-    p0 = d0.to_pandas()
-    assert p0.shape == (2, 3)
-    assert list_equals(p0.columns.tolist(), ["A", "B", "C"])
-    assert p0["A"].values.tolist() == [1, 5]
-    assert p0["B"].values.tolist() == ["hello", "you"]
-    assert p0["C"].values.tolist() == [True, False]
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_view():
-    d0 = dt.Frame([[1, 5, 2, 0, 199, -12],
-                   ["alpha", "beta", None, "delta", "epsilon", "zeta"],
-                   [.3, 1e2, -.5, 1.9, 2.2, 7.9]], names=["A", "b", "c"])
-    d1 = d0[::-2, :]
-    p1 = d1.to_pandas()
-    assert p1.shape == d1.shape
-    assert p1.columns.tolist() == ["A", "b", "c"]
-    assert p1.values.T.tolist() == d1.to_list()
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_nas():
-    d0 = dt.Frame([[True, None, None, None, False],
-                   [1, 5, None, -16, 100],
-                   [249, None, 30000, 1, None],
-                   [4587074, None, 109348, 1394, -343],
-                   [None, None, None, None, 134918374091834]])
-    frame_integrity_check(d0)
-    assert d0.stypes == (dt.bool8, dt.int32, dt.int32, dt.int32, dt.int64)
-    p0 = d0.to_pandas()
-    # Check that each column in Pandas DataFrame has the correct number of NAs
-    assert p0.count().tolist() == [2, 4, 3, 4, 1]
-
-
-@pytest.mark.usefixtures("pandas")
-def test_topandas_view_mixed():
-    d0 = dt.Frame(A=range(100))
-    d1 = d0[7:17, :]
-    d2 = dt.Frame(B=['foo', 'bar', 'buzz'] * 3 + ['finale'])
-    d3 = dt.Frame(V=[2.2222])
-    d3.nrows = 10
-    dd = dt.cbind(d1, d2, d3)
-    pp = dd.to_pandas()
-    assert pp.columns.tolist() == ["A", "B", "V"]
-    assert pp["A"].tolist() == list(range(7, 17))
-    assert pp["B"].tolist() == d2.to_list()[0]
-    assert pp["V"].tolist()[0] == 2.2222
-    assert all(math.isnan(x) for x in pp["V"].tolist()[1:])
-
-
-@pytest.mark.usefixtures("pandas", "numpy")
-def test_topandas_bool_nas():
-    d0 = dt.Frame(A=[True, False, None, True])
-    pf = d0.to_pandas()
-    pf_values = pf["A"].values.tolist()
-    assert pf_values[0] is True
-    assert pf_values[1] is False
-    assert pf_values[2] is None or (isinstance(pf_values[2], float) and
-                                    math.isnan(pf_values[2]))
-    d1 = dt.Frame(pf)
-    assert_equals(d0, d1)
-    d2 = dt.Frame(d0.to_numpy(), names=["A"])
-    assert_equals(d0, d2)
-
-
-def test_tonumpy0(numpy):
-    d0 = dt.Frame([1, 3, 5, 7, 9])
-    assert d0.stype == dt.int32
-    a0 = d0.to_numpy()
-    assert a0.shape == d0.shape
-    assert a0.dtype == numpy.dtype("int32")
-    assert a0.tolist() == [[1], [3], [5], [7], [9]]
-    a1 = numpy.array(d0)
-    assert (a0 == a1).all()
-
-
-def test_tonumpy1(numpy):
-    d0 = dt.Frame({"A": [1, 5], "B": ["helo", "you"],
-                   "C": [True, False], "D": [3.4, None]})
-    a0 = d0.to_numpy()
-    assert a0.shape == d0.shape
-    assert a0.dtype == numpy.dtype("object")
-    assert list_equals(a0.T.tolist(), d0.to_list())
-    a1 = numpy.array(d0)
-    assert (a0 == a1).all()
-
-
-def test_numpy_constructor_simple(numpy):
-    tbl = [[1, 4, 27, 9, 22], [-35, 5, 11, 2, 13], [0, -1, 6, 100, 20]]
-    d0 = dt.Frame(tbl)
-    assert d0.shape == (5, 3)
-    assert d0.stypes == (stype.int32, stype.int32, stype.int32)
-    assert d0.to_list() == tbl
-    n0 = numpy.array(d0)
-    assert n0.shape == d0.shape
-    assert n0.dtype == numpy.dtype("int32")
-    assert n0.T.tolist() == tbl
-
-
-def test_numpy_constructor_empty(numpy):
-    d0 = dt.Frame()
-    assert d0.shape == (0, 0)
-    n0 = numpy.array(d0)
-    assert n0.shape == (0, 0)
-    assert n0.tolist() == []
-
-
-def test_numpy_constructor_multi_types(numpy):
-    # Test that multi-types datatable will be promoted into a common type
-    tbl = [[1, 5, 10],
-           [True, False, False],
-           [30498, 1349810, -134308],
-           [1.454, 4.9e-23, 10000000]]
-    d0 = dt.Frame(tbl)
-    assert d0.stypes == (dt.int32, dt.bool8, dt.int32, dt.float64)
-    n0 = numpy.array(d0)
-    assert n0.dtype == numpy.dtype("float64")
-    assert n0.T.tolist() == [[1.0, 5.0, 10.0],
-                             [1.0, 0, 0],
-                             [30498, 1349810, -134308],
-                             [1.454, 4.9e-23, 1e7]]
-    assert (d0.to_numpy() == n0).all()
-
-
-def test_numpy_constructor_view(numpy):
-    d0 = dt.Frame([range(100), range(0, 1000000, 10000)])
-    d1 = d0[::-2, :]
-    assert isview(d1)
-    n1 = numpy.array(d1)
-    assert n1.dtype == numpy.dtype("int32")
-    assert n1.T.tolist() == [list(range(99, 0, -2)),
-                             list(range(990000, 0, -20000))]
-    assert (d1.to_numpy() == n1).all()
-
-
-def test_numpy_constructor_single_col(numpy):
-    d0 = dt.Frame([1, 1, 3, 5, 8, 13, 21, 34, 55])
-    assert d0.stype == dt.int32
-    n0 = numpy.array(d0)
-    assert n0.shape == d0.shape
-    assert n0.dtype == numpy.dtype("int32")
-    assert (n0 == d0.to_numpy()).all()
-
-
-def test_numpy_constructor_single_string_col(numpy):
-    d = dt.Frame(["adf", "dfkn", "qoperhi"])
-    assert d.shape == (3, 1)
-    assert d.stypes == (stype.str32, )
-    a = numpy.array(d)
-    assert a.shape == d.shape
-    assert a.dtype == numpy.dtype("object")
-    assert a.T.tolist() == d.to_list()
-    assert (a == d.to_numpy()).all()
-
-
-def test_numpy_constructor_view_1col(numpy):
-    d0 = dt.Frame({"A": [1, 2, 3, 4], "B": [True, False, True, False]})
-    d2 = d0[::2, "B"]
-    a = d2.to_numpy()
-    assert a.T.tolist() == [[True, True]]
-    assert (a == numpy.array(d2)).all()
-
-
-def test_tonumpy_with_stype(numpy):
-    """
-    Test using dt.to_numpy() with explicit `stype` argument.
-    """
-    src = [[1.5, 2.6, 5.4], [3, 7, 10]]
-    d0 = dt.Frame(src)
-    assert d0.stypes == (stype.float64, stype.int32)
-    a1 = d0.to_numpy("float32")
-    a2 = d0.to_numpy()
-    del d0
-    # Check using list_equals(), which allows a tolerance of 1e-6, because
-    # conversion to float32 resulted in loss of precision
-    assert list_equals(a1.T.tolist(), src)
-    assert a2.T.tolist() == src
-    assert a1.dtype == numpy.dtype("float32")
-    assert a2.dtype == numpy.dtype("float64")
-
-
-def test_tonumpy_with_NAs1(numpy):
-    src = [1, 5, None, 187, None, 103948]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert a0.T.tolist() == [src]
-
-
-def test_tonumpy_with_NAs2(numpy):
-    src = [[2.3, 11.89, None, math.inf], [4, None, None, -12]]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert a0.T.tolist() == src
-
-
-def test_tonumpy_with_NAs3(numpy):
-    src = ["faa", None, "", "hooray", None]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert a0.T.tolist() == [src]
-
-
-def test_tonumpy_with_NAs4(numpy):
-    src = [True, False, None]
-    d0 = dt.Frame(src)
-    a0 = d0.to_numpy()
-    assert a0.dtype == numpy.dtype("bool")
-    assert a0.T.tolist() == [src]
-
-
-@pytest.mark.parametrize("seed", [random.getrandbits(32)])
-def test_tonumpy_with_NAs_random(seed, numpy):
-    random.seed(seed)
-    n = int(random.expovariate(0.001) + 1)
-    m = int(random.expovariate(0.2) + 1)
-    data = [None] * m
-    for j in range(m):
-        threshold = 0.1 * (m + 1);
-        vec = [random.random() for i in range(n)]
-        for i, x in enumerate(vec):
-            if x < threshold:
-                vec[i] = None
-        data[j] = vec
-    DT = dt.Frame(data)
-    ar = DT.to_numpy()
-    assert ar.T.tolist() == data
-
-
-@pytest.mark.usefixtures("numpy")
-def test_tonumpy_with_NAs_view():
-    # See issue #1738
-    X = dt.Frame(A=[5.7, 2.3, None, 4.4, 9.8, None])[1:, :]
-    a = X.to_numpy()
-    assert a.tolist() == [[2.3], [None], [4.4], [9.8], [None]]
-
-
-@pytest.mark.usefixtures("numpy")
-def test_tonumpy_issue2050():
-    n = 1234
-    DT = dt.Frame(A=[1,2,None,4,5], B=range(5), C=[4, None, None, None, 4], stype=int)
-    DT = dt.repeat(DT[:, ["A", "B", "C"]], n)
-    assert DT.sum().to_list() == [[12*n], [10*n], [8*n]]
-    assert DT.to_numpy().sum() == 30*n
-
 
 
 #-------------------------------------------------------------------------------
@@ -1026,15 +830,20 @@ def test_single_element_extraction_from_view(dt0):
 
 @pytest.mark.parametrize('st', list(dt.stype))
 def test_single_element_all_stypes(st):
+    from datetime import date as dd
+    if st == dt.stype.time64:
+        return
     pt = (bool if st == dt.stype.bool8 else
           int if st.ltype == dt.ltype.int else
           float if st.ltype == dt.ltype.real else
           str if st.ltype == dt.ltype.str else
+          dd if st == dt.stype.date32 else
           object)
     src = [True, False, True, None] if pt is bool else \
           [1, 7, -99, 214, None, 3333] if pt is int else \
           [2.5, 3.4e15, -7.909, None] if pt is float else \
           ['Oh', 'gobbly', None, 'sproo'] if pt is str else \
+          [dd(2000, 5, 5), dd(2012, 12, 12), None] if pt is dd else \
           [dt, st, list, None, {3, 2, 1}]
     df = dt.Frame(A=src, stype=st)
     frame_integrity_check(df)
@@ -1044,7 +853,7 @@ def test_single_element_all_stypes(st):
         x = df[i, 0]
         y = df[i, "A"]
         assert x == y
-        if item is None:
+        if item is None or st == dt.stype.void:
             assert x is None
         else:
             assert isinstance(x, pt)
@@ -1098,26 +907,22 @@ def test_tail():
 
 def test_head_bad():
     d0 = dt.Frame(range(10))
-    with pytest.raises(ValueError) as e:
+    msg = r"The argument in method datatable.Frame.head\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
         d0.head(-5)
-    assert ("The argument in Frame.head() cannot be negative"
-            in str(e.value))
-    with pytest.raises(TypeError) as e:
+    msg = r"The argument in method datatable.Frame.head\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg) as e:
         d0.head(5.0)
-    assert ("The argument in Frame.head() should be an integer"
-            in str(e.value))
 
 
 def test_tail_bad():
     d0 = dt.Frame(range(10))
-    with pytest.raises(ValueError) as e:
+    msg = r"The argument in method datatable.Frame.tail\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg) as e:
         d0.tail(-5)
-    assert ("The argument in Frame.tail() cannot be negative"
-            in str(e.value))
+    msg = r"The argument in method datatable.Frame.tail\(\) should be an integer"
     with pytest.raises(TypeError) as e:
         d0.tail(5.0)
-    assert ("The argument in Frame.tail() should be an integer"
-            in str(e.value))
 
 
 
@@ -1139,13 +944,13 @@ def test_materialize_object_col():
     class A:
         pass
 
-    DT = dt.Frame([A() for i in range(5)])
+    DT = dt.Frame([A() for i in range(5)], stype=dt.obj64)
     DT = DT[::-1, :]
     frame_integrity_check(DT)
     DT.materialize()
     frame_integrity_check(DT)
     assert DT.shape == (5, 1)
-    assert DT.stypes == (dt.obj64,)
+    assert DT.stype == dt.obj64
     assert all(isinstance(x, A) and sys.getrefcount(x) > 0
                for x in DT.to_list()[0])
 
@@ -1163,7 +968,7 @@ def test_materialize_to_memory(tempfile_jay):
 
 def test_materialize_to_memory_bad_type():
     DT = dt.Frame(range(5))
-    msg = r"Argument to_memory in Frame.materialize\(\) should be a boolean"
+    msg = r"Argument to_memory in method datatable.Frame.materialize\(\) should be a boolean"
     with pytest.raises(TypeError, match=msg):
         DT.materialize(to_memory=0)
 
@@ -1201,7 +1006,7 @@ def test_issue898():
     results (previously this was crashing).
     """
     class A: pass
-    f0 = dt.Frame([A() for i in range(1111)])
+    f0 = dt.Frame([A() for i in range(1111)] / dt.obj64)
     assert f0.stypes == (dt.stype.obj64, )
     f1 = f0[:-1, :]
     del f0
@@ -1239,3 +1044,20 @@ def test_issue2269():
     DT = dt.Frame(range(10000))
     ptr = dt.internal.frame_column_data_r(DT, 0)
     assert isinstance(ptr, ctypes.c_void_p)
+
+
+def test_issue2873():
+    from time import time
+    DT = dt.Frame([[1]] * 10000)
+    names10000 = DT.names
+    names1000 = names10000[:1000]
+    t0 = time()
+    DT[:, names10000]
+    t10000 = time() - t0
+    t0 = time()
+    DT[:, names1000]
+    t1000 = time() - t0
+    assert t10000 < 1.0
+    # The timer can have low resolution and produce `t1000 == 0`
+    if t1000 > 0:
+        assert t10000 / t1000 < 50

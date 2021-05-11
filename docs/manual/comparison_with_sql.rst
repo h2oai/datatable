@@ -1,42 +1,58 @@
-.. py:currentmodule:: datatable
 
 Comparison with SQL
-====================
+===================
 
-This page provides some examples of how various `SQL <https://en.wikipedia.org/wiki/SQL>`__ operations can be performed in ``datatable``. The ``datatable`` library is still growing; as such, not all functions in ``SQL`` can be replicated yet. If there is a feature you would love to have in ``datatable``, please make a feature request on the `github issues <https://github.com/h2oai/datatable/issues>`__ page.
+This page provides some examples of how various `SQL`_ operations can be
+performed in ``datatable``. The ``datatable`` library is still growing; as such,
+not all functions in ``SQL`` can be replicated yet. If there is a feature you
+would love to have in ``datatable``, please make a feature request on the
+`github issues`_ page.
 
-Most of the examples will be based on the famous `iris <https://en.wikipedia.org/wiki/Iris_flower_data_set>`__ dataset. `SQLite <https://www.sqlite.org/>`__ will be the flavour of SQL used in the comparison.
+Most of the examples will be based on the famous `iris`_ dataset. `SQLite`_
+will be the flavour of SQL used in the comparison.
 
-Let's import ``datatable`` and read in the data:
+Let's import ``datatable`` and read in the data using its :func:`fread()`
+function::
 
-.. code-block:: python
+    >>> from datatable import dt, f, g, by, join, sort, update, fread
+    >>>
+    >>> iris = fread('https://raw.githubusercontent.com/h2oai/datatable/main/docs/_static/iris.csv')
+    >>> iris
+        | sepal_length  sepal_width  petal_length  petal_width  species
+        |      float64      float64       float64      float64  str32
+    --- + ------------  -----------  ------------  -----------  ---------
+      0 |          5.1          3.5           1.4          0.2  setosa
+      1 |          4.9          3             1.4          0.2  setosa
+      2 |          4.7          3.2           1.3          0.2  setosa
+      3 |          4.6          3.1           1.5          0.2  setosa
+      4 |          5            3.6           1.4          0.2  setosa
+      5 |          5.4          3.9           1.7          0.4  setosa
+      6 |          4.6          3.4           1.4          0.3  setosa
+      7 |          5            3.4           1.5          0.2  setosa
+      8 |          4.4          2.9           1.4          0.2  setosa
+      9 |          4.9          3.1           1.5          0.1  setosa
+     10 |          5.4          3.7           1.5          0.2  setosa
+     11 |          4.8          3.4           1.6          0.2  setosa
+     12 |          4.8          3             1.4          0.1  setosa
+     13 |          4.3          3             1.1          0.1  setosa
+     14 |          5.8          4             1.2          0.2  setosa
+      … |            …            …             …            …  …
+    145 |          6.7          3             5.2          2.3  virginica
+    146 |          6.3          2.5           5            1.9  virginica
+    147 |          6.5          3             5.2          2    virginica
+    148 |          6.2          3.4           5.4          2.3  virginica
+    149 |          5.9          3             5.1          1.8  virginica
+    [150 rows x 5 columns]
 
-    from datatable import dt, f, g, by, join, sort, update, fread
-
-    file_path = 'https://github.com/h2oai/datatable/tree/main/docs/_static/iris.csv'
-    iris = fread(file_path)
-
-    iris.head(5)
-
-
-.. csv-table:: iris dataset
-    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
-    :widths: 10,10,10,10,20
-
-    5.1,	3.5,	1.4,	0.2,	setosa
-    	4.9,	3,	1.4,	0.2,	setosa
-    	4.7,	3.2,	1.3,	0.2,	setosa
-    	4.6,	3.1,	1.5,	0.2,	setosa
-    	5,	3.6,	1.4,	0.2,	setosa
-
-Loading data into an SQL table is a bit more involved, where you need to create the structure of the table (a schema), before importing the csv file. Have a look `here <https://www.sqlitetutorial.net/sqlite-import-csv/>`__ for an example on loading data into an `SQLite <https://www.sqlite.org/>`__ datatabase. The :func:`fread()` function makes it quite easy to read delimited files.
-
-We'll assume that the data has been loaded into a database.
+Loading data into an SQL table is a bit more involved, where you need to create
+the structure of the table (a schema), before importing the csv file. Have a
+look at `SQLite import tutorial`_ for an example on loading data into a
+`SQLite`_ datatabase.
 
 
 
 SELECT
--------
+------
 
 In ``SQL``, you can select a subset of the columns with the ``SELECT`` clause:
 
@@ -48,24 +64,20 @@ In ``SQL``, you can select a subset of the columns with the ``SELECT`` clause:
     FROM iris
     LIMIT 5;
 
-In ``datatable``, columns are selected in the ``j`` section :
+In ``datatable``, columns are selected in the ``j`` section::
 
-.. code-block:: python
+    >>> iris[:5, ['sepal_length', 'sepal_width', 'petal_length']]
+       | sepal_length  sepal_width  petal_length
+       |      float64      float64       float64
+    -- + ------------  -----------  ------------
+     0 |          5.1          3.5           1.4
+     1 |          4.9          3             1.4
+     2 |          4.7          3.2           1.3
+     3 |          4.6          3.1           1.5
+     4 |          5            3.6           1.4
+    [5 rows x 3 columns]
 
-    iris[:5, ('sepal_length', 'sepal_width', 'petal_length')]
-
-
-.. csv-table:: select columns
-    :header: "sepal\\_length", "sepal\\_width", "petal\\_length"
-    :widths: 10,10,10
-
-    5.1,	3.5,	1.4
-    4.9,	3,	1.4
-	4.7,	3.2,	1.3
-	4.6,	3.1,	1.5
-	5,	3.6,	1.4
-
-In ``SQL``, you can select all columns with the ``*`` symbol :
+In ``SQL``, you can select all columns with the ``*`` symbol:
 
 .. code-block:: SQL
 
@@ -73,23 +85,23 @@ In ``SQL``, you can select all columns with the ``*`` symbol :
     FROM iris
     LIMIT 5;
 
-In ``datatable``, all columns can be selected with the :ref:`f-expressions` :
+In ``datatable``, all columns can be selected with a simple "select-all" slice
+``:``, or with :ref:`f-expressions`::
 
-.. code-block:: python
+    >>> iris[:5, :]
+       | sepal_length  sepal_width  petal_length  petal_width  species
+       |      float64      float64       float64      float64  str32
+    -- + ------------  -----------  ------------  -----------  -------
+     0 |          5.1          3.5           1.4          0.2  setosa
+     1 |          4.9          3             1.4          0.2  setosa
+     2 |          4.7          3.2           1.3          0.2  setosa
+     3 |          4.6          3.1           1.5          0.2  setosa
+     4 |          5            3.6           1.4          0.2  setosa
+    [5 rows x 5 columns]
 
-    iris[:5, f[:]]
-
-.. csv-table:: select all columns
-    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
-    :widths: 10,10,10,10,10
-
-    5.1,	3.5,	1.4,	0.2,	setosa
-    	4.9,	3,	1.4,	0.2,	setosa
-    	4.7,	3.2,	1.3,	0.2,	setosa
-    	4.6,	3.1,	1.5,	0.2,	setosa
-    	5,	3.6,	1.4,	0.2,	setosa
-
-If you are selecting a single column, ``datatable`` allows you to access just the ``j`` section within the square brackets; you do not need to include the ``i`` section --> ``DT[j]``
+If you are selecting a single column, ``datatable`` allows you to access just
+the ``j`` section within the square brackets; you do not need to include the
+``i`` section: ``DT[j]``
 
 .. code-block:: SQL
 
@@ -99,59 +111,61 @@ If you are selecting a single column, ``datatable`` allows you to access just th
 
 .. code-block:: python
 
-    # datatable
-    iris['species'].head(5)
+    >>> # datatable
+    >>> iris['sepal_length'].head(5)
+       | sepal_length
+       |      float64
+    -- + ------------
+     0 |          5.1
+     1 |          4.9
+     2 |          4.7
+     3 |          4.6
+     4 |          5
+    [5 rows x 1 column]
 
-.. csv-table::
-    :header: sepal\\_length
-    :widths: 20
-
-	5.1
-	4.9
-	4.7
-	4.6
-	5
-
-
-
-
-How about adding new columns? In ``SQL``, this is done also in the ``SELECT`` clause :
+How about adding new columns? In ``SQL``, this is done also in the ``SELECT``
+clause:
 
 .. code-block:: SQL
 
     SELECT *,
-          sepal_length*2 AS sepal_length_doubled
+           sepal_length*2 AS sepal_length_doubled
     FROM iris
     LIMIT 5;
 
-In ``datatable``, addition of new columns occurs in the ``j`` column :
+In ``datatable``, addition of new columns occurs in the ``j`` section::
 
-.. code-block:: python
+    >>> iris[:5,
+    ...      f[:].extend({"sepal_length_doubled": f.sepal_length * 2})]
+       | sepal_length  sepal_width  petal_length  petal_width  species  sepal_length_doubled
+       |      float64      float64       float64      float64  str32                 float64
+    -- + ------------  -----------  ------------  -----------  -------  --------------------
+     0 |          5.1          3.5           1.4          0.2  setosa                   10.2
+     1 |          4.9          3             1.4          0.2  setosa                    9.8
+     2 |          4.7          3.2           1.3          0.2  setosa                    9.4
+     3 |          4.6          3.1           1.5          0.2  setosa                    9.2
+     4 |          5            3.6           1.4          0.2  setosa                   10
+    [5 rows x 6 columns]
 
-    iris[:5,
-         f[:].extend({"sepal_length_doubled": f.sepal_length * 2})]
+The :func:`update` function can also be used to add new columns. The operation
+occurs in-place; reassignment is not required::
 
-The :func:`update` option can also be used to add new columns. The operation occurs in-place; reassignment is not required.
-
-.. code-block:: python
-
-    iris[:, update(sepal_length_doubled = f.sepal_length * 2)]
-
-    iris[:5, :]
-
-.. csv-table:: Add a new column
-    :header:    sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species,	sepal\\_length\\_doubled
-    :widths: 10,10,10,10,10,10
-
-    	5.1,	3.5,1.4,	0.2,	setosa,	10.2
-	    4.9,	3,	1.4,	0.2,	setosa,	9.8
-	    4.7	,3.2,	1.3,	0.2,	setosa,	9.4
-	    4.6,	3.1,	1.5,	0.2,	setosa,	9.2
-	    5,	3.6,	1.4,	0.2,	setosa,	10
+    >>> iris[:, update(sepal_length_doubled = f.sepal_length * 2)]
+    >>> iris[:5, :]
+       | sepal_length  sepal_width  petal_length  petal_width  species  sepal_length_doubled
+       |      float64      float64       float64      float64  str32                 float64
+    -- + ------------  -----------  ------------  -----------  -------  --------------------
+     0 |          5.1          3.5           1.4          0.2  setosa                   10.2
+     1 |          4.9          3             1.4          0.2  setosa                    9.8
+     2 |          4.7          3.2           1.3          0.2  setosa                    9.4
+     3 |          4.6          3.1           1.5          0.2  setosa                    9.2
+     4 |          5            3.6           1.4          0.2  setosa                   10
+    [5 rows x 6 columns]
 
 
-FILTER
--------
+
+WHERE
+-----
 
 Filtering in ``SQL`` is done via the ``WHERE`` clause.
 
@@ -162,63 +176,64 @@ Filtering in ``SQL`` is done via the ``WHERE`` clause.
     WHERE species = 'virginica'
     LIMIT 5;
 
-In ``datatable``, filtration is done in the ``i`` section :
+In ``datatable``, filtration is done in the ``i`` section::
 
-.. code-block:: python
+    >>> iris[f.species=="virginica", :].head(5)
+       | sepal_length  sepal_width  petal_length  petal_width  species    sepal_length_doubled
+       |      float64      float64       float64      float64  str32                   float64
+    -- + ------------  -----------  ------------  -----------  ---------  --------------------
+     0 |          6.3          3.3           6            2.5  virginica                  12.6
+     1 |          5.8          2.7           5.1          1.9  virginica                  11.6
+     2 |          7.1          3             5.9          2.1  virginica                  14.2
+     3 |          6.3          2.9           5.6          1.8  virginica                  12.6
+     4 |          6.5          3             5.8          2.2  virginica                  13
+    [5 rows x 6 columns]
 
-    iris[f.species=="virginica", :].head(5)
-
-.. csv-table:: Filtration
-    :header:    sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
-    :widths: 10,10,10,10,10
-
-    6.3,	3.3,	6,	2.5,	virginica
-	5.8,	2.7,	5.1,	1.9,	virginica
-	7.1,	3,	5.9,	2.1,	virginica
-	6.3,	2.9,	5.6,	1.8,	virginica
-	6.5,	3,	5.8,	2.2,	virginica
-
-Note that in ``SQL``, equality comparison is done with the ``=`` symbol, whereas in ``python``, it is with the ``==`` operator.
-You can filter with multple conditions :
+Note that in ``SQL``, equality comparison is done with the ``=`` symbol,
+whereas in ``python``, it is with the ``==`` operator. You can filter with
+multple conditions too:
 
 .. code-block:: SQL
 
     SELECT *
     FROM iris
-    WHERE species = 'setosa'
-    AND sepal_length = 5;
+    WHERE species = 'setosa' AND sepal_length = 5;
 
-In ``datatable`` each condition is wrapped in parentheses; the ``&`` operator is the equivalent of ``AND``, while ``|`` is the equivalent of ``OR``.
+In ``datatable`` each condition is wrapped in parentheses; the ``&`` operator
+is the equivalent of ``AND``, while ``|`` is the equivalent of ``OR``::
 
-.. code-block:: python
+    >>> iris[(f.species=="setosa") & (f.sepal_length==5), :]
+       | sepal_length  sepal_width  petal_length  petal_width  species  sepal_length_doubled
+       |      float64      float64       float64      float64  str32                 float64
+    -- + ------------  -----------  ------------  -----------  -------  --------------------
+     0 |            5          3.6           1.4          0.2  setosa                     10
+     1 |            5          3.4           1.5          0.2  setosa                     10
+     2 |            5          3             1.6          0.2  setosa                     10
+     3 |            5          3.4           1.6          0.4  setosa                     10
+     4 |            5          3.2           1.2          0.2  setosa                     10
+     5 |            5          3.5           1.3          0.3  setosa                     10
+     6 |            5          3.5           1.6          0.6  setosa                     10
+     7 |            5          3.3           1.4          0.2  setosa                     10
+    [8 rows x 6 columns]
 
-    iris[(f.species=="setosa") & (f.sepal_length==5), :]
+Now suppose you have a frame where some values are missing (NA)::
 
-.. csv-table:: Filtering on Multiple Conditions
-    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
-    :widths: 10,10,10,10,10
+    >>> null_data = dt.Frame(""" a    b    c
+    ...                          1    2    3
+    ...                          1    NaN  4
+    ...                          2    1    3
+    ...                          1    2    2""")
+    >>> null_data
+       |     a        b      c
+       | int32  float64  int32
+    -- + -----  -------  -----
+     0 |     1        2      3
+     1 |     1       NA      4
+     2 |     2        1      3
+     3 |     1        2      2
+    [4 rows x 3 columns]
 
-	5,	3.6,	1.4,	0.2,	setosa
-	5,	3.4,	1.5,	0.2,	setosa
-	5,	3,	1.6,	0.2,	setosa
-	5,	3.4,	1.6,	0.4,	setosa
-	5,	3.2,	1.2,	0.2,	setosa
-	5,	3.5,	1.3,	0.3,	setosa
-	5,	3.5,	1.6,	0.6,	setosa
-	5,	3.3,	1.4,	0.2,	setosa
-
-Null rows can be filtered out as well :
-
-.. csv-table:: Null Data
-    :header: a, b, c
-    :widths: 10,10,10
-
-    1,    2,  3
-    1,   NA,  4
-    2,    1,  3
-    1,    2,  2
-
-The code below is how SQL would filter out the null rows :
+In SQL you could filter out those values like this:
 
 .. code-block:: SQL
 
@@ -226,36 +241,30 @@ The code below is how SQL would filter out the null rows :
     FROM null_data
     WHERE b is NOT NULL;
 
-In ``datatable``, the ``NOT`` operator is replicated with the ``!=`` symbol :
+In ``datatable``, the ``NOT`` operator is replicated with the ``!=`` symbol::
 
-.. code-block:: python
+    >>> null_data[f.b!=None, :]
+       |     a        b      c
+       | int32  float64  int32
+    -- + -----  -------  -----
+     0 |     1        2      3
+     1 |     2        1      3
+     2 |     1        2      2
+    [3 rows x 3 columns]
 
-    null_data = dt.Frame(""" a    b    c
-                             1    2    3
-                             1    NaN  4
-                             2    1    3
-                             1    2    2""")
+You could also use :func:`isna <dt.math.isna>` function with the ``~`` operator
+which inverts boolean expressions::
 
-    null_data[f.b!=None, :]
+    >>> null_data[~dt.math.isna(f.b), :]
+       |     a        b      c
+       | int32  float64  int32
+    -- + -----  -------  -----
+     0 |     1        2      3
+     1 |     2        1      3
+     2 |     1        2      2
+    [3 rows x 3 columns]
 
-You could also use the :func:`isna <dt.math.isna>` function with the ``~`` (tilde) symbol, which inverts the boolean selection :
-
-.. code-block:: python
-
-    null_data[~dt.isna(f.b), :]
-
-
-.. csv-table:: Null Data Filtered out
-    :header: a, b, c
-    :widths: 10,10,10
-
-    	1,	2,	3
-    	2,	1,	3
-    	1,	2,	2
-
-Keeping the null rows is easily achievable; it is simply the inverse of the above code
-
-``SQL``
+Keeping the null rows is easily achievable; it is simply the inverse of the above code:
 
 .. code-block:: SQL
 
@@ -263,30 +272,29 @@ Keeping the null rows is easily achievable; it is simply the inverse of the abov
     FROM null_data
     WHERE b is NULL;
 
-``datatable``
-
 .. code-block:: python
+
+    >>> null_data[dt.isna(f.b), :]
+       |     a        b      c
+       | int32  float64  int32
+    -- + -----  -------  -----
+     0 |     1       NA      4
+    [1 row x 3 columns]
 
     null_data[dt.isna(f.b), :]
 
-or :
+.. note::
 
-.. code-block:: python
+    ``SQL`` has the ``IN`` operator, which does not have an equivalent in
+    ``datatable`` yet.
 
-    null_data[f.b==None, :]
 
-.. csv-table:: Null Rows only
-    :header: a, b, c
-    :widths: 10,10,10
-
-    	1,	NA,	4
-
-Note : ``SQL`` has the ``IN`` operator, which does not have an equivalent in ``datatable`` yet.
 
 ORDER BY
 --------
 
-In SQL, sorting is executed with the ``ORDER BY`` clause, while in ``datatable`` it is handled by the :func:`sort()` function.
+In SQL, sorting is executed with the ``ORDER BY`` clause, while in ``datatable``
+it is handled by the :func:`sort()` function.
 
 .. code-block:: SQL
 
@@ -297,18 +305,16 @@ In SQL, sorting is executed with the ``ORDER BY`` clause, while in ``datatable``
 
 .. code-block:: python
 
-    #datatable
-    iris[:5, :, sort('sepal_length')]
-
-.. csv-table:: Sorting in Ascending Order
-    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
-    :widths: 10,10,10,10,10
-
-    	4.3,	3,	1.1,	0.1,	setosa
-    	4.4,	2.9,	1.4,	0.2,	setosa
-    	4.4,	3,	1.3,	0.2,	setosa
-    	4.4,	3.2,	1.3,	0.2,	setosa
-    	4.5,	2.3,	1.3,	0.3,	setosa
+    >>> iris[:5, :, sort('sepal_length')]
+       | sepal_length  sepal_width  petal_length  petal_width  species  sepal_length_doubled
+       |      float64      float64       float64      float64  str32                 float64
+    -- + ------------  -----------  ------------  -----------  -------  --------------------
+     0 |          4.3          3             1.1          0.1  setosa                    8.6
+     1 |          4.4          2.9           1.4          0.2  setosa                    8.8
+     2 |          4.4          3             1.3          0.2  setosa                    8.8
+     3 |          4.4          3.2           1.3          0.2  setosa                    8.8
+     4 |          4.5          2.3           1.3          0.3  setosa                    9
+    [5 rows x 6 columns]
 
 Sorting in descending order in SQL is with the ``DESC``.
 
@@ -319,40 +325,47 @@ Sorting in descending order in SQL is with the ``DESC``.
     ORDER BY sepal_length DESC
     limit 5;
 
-In datatable, this can be achieved in two ways :
+In datatable, this can be achieved in two ways::
 
-.. code-block:: python
+    >>> iris[:5, :, sort('sepal_length', reverse=True)]
+       | sepal_length  sepal_width  petal_length  petal_width  species    sepal_length_doubled
+       |      float64      float64       float64      float64  str32                   float64
+    -- + ------------  -----------  ------------  -----------  ---------  --------------------
+     0 |          7.9          3.8           6.4          2    virginica                  15.8
+     1 |          7.7          3.8           6.7          2.2  virginica                  15.4
+     2 |          7.7          2.6           6.9          2.3  virginica                  15.4
+     3 |          7.7          2.8           6.7          2    virginica                  15.4
+     4 |          7.7          3             6.1          2.3  virginica                  15.4
+    [5 rows x 6 columns]
 
-    #datatable
-    iris[:5, :, sort('sepal_length', reverse=True)]
+or, you could negate the sorting column; datatable will correctly interprete the
+negation(``-``) as descending order::
 
-or, you could negate the sorting column; datatable will correctly interprete the negation(``-``) as descending order :
-
-.. code-block:: python
-
-    #datatable
-    iris[:5, :, sort(-f.sepal_length)]
-
-.. csv-table:: Sorting in Descending Order
-    :header: sepal\\_length,	sepal\\_width,	petal\\_length,	petal\\_width,	species
-    :widths: 10,10,10,10,10
-
-    	7.9,	3.8,	6.4,	2,	virginica
-    	7.7,	3.8,	6.7,	2.2,	virginica
-    	7.7,	2.6,	6.9,	2.3,	virginica
-    	7.7,	2.8,	6.7,	2,	virginica
-    	7.7,	3,	6.1,	2.3,	virginica
+    >>> iris[:5, :, sort(-f.sepal_length)]
+       | sepal_length  sepal_width  petal_length  petal_width  species    sepal_length_doubled
+       |      float64      float64       float64      float64  str32                   float64
+    -- + ------------  -----------  ------------  -----------  ---------  --------------------
+     0 |          7.9          3.8           6.4          2    virginica                  15.8
+     1 |          7.7          3.8           6.7          2.2  virginica                  15.4
+     2 |          7.7          2.6           6.9          2.3  virginica                  15.4
+     3 |          7.7          2.8           6.7          2    virginica                  15.4
+     4 |          7.7          3             6.1          2.3  virginica                  15.4
+    [5 rows x 6 columns]
 
 
 
-GROUPBY
--------
+GROUP BY
+--------
 
-SQL's ``GROUP BY`` operations can be performed in ``datatable`` with the :func:`by()` function.  Have a look at the :func:`by()` API, as well as the `Grouping with by <https://datatable.readthedocs.io/en/latest/manual/groupby_examples.html>`__ user guide.
+SQL's ``GROUP BY`` operations can be performed in ``datatable`` with the
+:func:`by()` function.  Have a look at the :func:`by()` API, as well as the
+:ref:`Grouping with by` user guide.
 
-Let's look at some common grouping operations in ``SQL``, and its equivalent in ``datatable``.
+Let's look at some common grouping operations in ``SQL``, and their equivalents
+in ``datatable``.
 
-- Single Aggregation per group
+Single aggregation per group
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: SQL
 
@@ -364,19 +377,18 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
 .. code-block:: python
 
-    # datatable
-    iris[:, dt.count(), by('species')]
-
-.. csv-table:: Count per Group
-    :header: species, count
-    :widths: 10,10
-
-    setosa,	50
-    versicolor,	50
-	virginica,	50
+    >>> iris[:, dt.count(), by('species')]
+       | species     count
+       | str32       int64
+    -- + ----------  -----
+     0 | setosa         50
+     1 | versicolor     50
+     2 | virginica      50
+    [3 rows x 2 columns]
 
 
-- Multiple Aggregations per group
+Multiple aggregations per group
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: SQL
 
@@ -389,41 +401,44 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
 .. code-block:: python
 
-    # datatable
-    iris[:,
-        {"mean_sepal_length": dt.mean(f.sepal_length),
-        "N": dt.count()},
-        by('species')]
+    >>> iris[:,
+    ...     {"mean_sepal_length": dt.mean(f.sepal_length),
+    ...     "N": dt.count()},
+    ...     by('species')]
+       | species     mean_sepal_length      N
+       | str32                 float64  int64
+    -- + ----------  -----------------  -----
+     0 | setosa                  5.006     50
+     1 | versicolor              5.936     50
+     2 | virginica               6.588     50
+    [3 rows x 3 columns]
 
-.. csv-table:: Multiple Aggregations
-    :header: species, mean\\_sepal\\_length, N
-    :widths: 10,10, 10
 
-    setosa,	5.006, 50
-    versicolor,	5.936, 50
-	virginica,	6.588, 50
+Grouping on multiple columns
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-- Grouping is also possible on multiple columns
+.. code-block:: python
 
-.. csv-table:: Fruits Data
-    :header:  Fruit,   Date,       Name,  Number
-    :widths: 10,10,10,10
-
-                  Apples,  10/6/2016,  Bob,     7
-                  Apples,  10/6/2016,  Bob,     8
-                  Apples,  10/6/2016,  Mike,    9
-                  Apples,  10/7/2016,  Steve,  10
-                  Apples,  10/7/2016,  Bob,     1
-                  Oranges, 10/7/2016,  Bob,     2
-                  Oranges, 10/6/2016,  Tom,    15
-                  Oranges, 10/6/2016,  Mike,   57
-                  Oranges, 10/6/2016,  Bob,    65
-                  Oranges, 10/7/2016, Tony,    1
-                  Grapes,  10/7/2016,  Bob,     1
-                  Grapes,  10/7/2016,  Tom,    87
-                  Grapes,  10/7/2016,  Bob,    22
-                  Grapes,  10/7/2016, Bob,    12
-                  Grapes,  10/7/2016,  Tony,   15
+    >>> fruits_data
+       | Fruit    Date       Name   Number
+       | str32    str32      str32   int32
+    -- + -------  ---------  -----  ------
+     0 | Apples   10/6/2016  Bob         7
+     1 | Apples   10/6/2016  Bob         8
+     2 | Apples   10/6/2016  Mike        9
+     3 | Apples   10/7/2016  Steve      10
+     4 | Apples   10/7/2016  Bob         1
+     5 | Oranges  10/7/2016  Bob         2
+     6 | Oranges  10/6/2016  Tom        15
+     7 | Oranges  10/6/2016  Mike       57
+     8 | Oranges  10/6/2016  Bob        65
+     9 | Oranges  10/7/2016  Tony        1
+    10 | Grapes   10/7/2016  Bob         1
+    11 | Grapes   10/7/2016  Tom        87
+    12 | Grapes   10/7/2016  Bob        22
+    13 | Grapes   10/7/2016  Bob        12
+    14 | Grapes   10/7/2016  Tony       15
+    [15 rows x 4 columns]
 
 .. code-block:: SQL
 
@@ -433,30 +448,29 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
     FROM fruits_data
     GROUP BY fruit, name;
 
-
 .. code-block:: python
 
-    # datatable
-    fruits_data[:,
-                {"sum_num": dt.sum(f.Number)},
-                by('Fruit', 'Name')]
+    >>> fruits_data[:,
+    ...             {"sum_num": dt.sum(f.Number)},
+    ...             by('Fruit', 'Name')]
+       | Fruit    Name   sum_num
+       | str32    str32    int64
+    -- + -------  -----  -------
+     0 | Apples   Bob         16
+     1 | Apples   Mike         9
+     2 | Apples   Steve       10
+     3 | Grapes   Bob         35
+     4 | Grapes   Tom         87
+     5 | Grapes   Tony        15
+     6 | Oranges  Bob         67
+     7 | Oranges  Mike        57
+     8 | Oranges  Tom         15
+     9 | Oranges  Tony         1
+    [10 rows x 3 columns]
 
-.. csv-table:: Aggregations on Multiple COlumns
-    :header: Fruit, Name, sum\\_num
-    :widths: 10,10, 10
 
-    Apples,	Bob,	16
-	Apples,	Mike,	9
-	Apples,	Steve,	10
-	Grapes,	Bob,	35
-	Grapes,	Tom,	87
-	Grapes,	Tony,	15
-	Oranges,	Bob,	67
-	Oranges,	Mike,	57
-	Oranges,	Tom,	15
-	Oranges,	Tony,	1
-
-- We can replicate SQL's ``WHERE`` clause in a ``GROUP BY``
+WHERE with GROUP BY
+~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: SQL
 
@@ -466,23 +480,22 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
     WHERE sepal_width > 3
     GROUP BY species;
 
-
 .. code-block:: python
 
-    # datatable
-    iris[f.sepal_width >=3, :][:,
-                              {"avg_sepal_length": dt.mean(f.sepal_length)},
-                              by('species')]
+    >>> iris[f.sepal_width >=3, :][:,
+    ...                           {"avg_sepal_length": dt.mean(f.sepal_length)},
+    ...                           by('species')]
+       | species     avg_sepal_length
+       | str32                float64
+    -- + ----------  ----------------
+     0 | setosa               5.02917
+     1 | versicolor           6.21875
+     2 | virginica            6.76897
+    [3 rows x 2 columns]
 
-.. csv-table:: Filtration in a Group By
-    :header: species, avg\\_sepal\\_length
-    :widths: 10,10
 
-    setosa,	5.02917
-    versicolor,	6.21875
-	virginica,	6.76897
-
-- We can also replicate SQL's ``HAVING`` clause in a ``GROUP BY``
+HAVING with GROUP BY
+~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: SQL
 
@@ -496,21 +509,20 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
 
 .. code-block:: python
 
-    # datatable
-    fruits_data[:,
-               {'sum_num': dt.sum(f.Number)},
-               by('Fruit','Name')][f.sum_num > 50, :]
-
-.. csv-table:: Filtration after a Group By
-    :header: Fruit, Name, sum\\_num
-    :widths: 10,10, 10
-
-    Grapes,	Tom,	87
-	Oranges,	Bob,	67
-	Oranges,	Mike,	57
+    >>> fruits_data[:,
+    ...            {'sum_num': dt.sum(f.Number)},
+    ...            by('Fruit','Name')][f.sum_num > 50, :]
+       | Fruit    Name   sum_num
+       | str32    str32    int64
+    -- + -------  -----  -------
+     0 | Grapes   Tom         87
+     1 | Oranges  Bob         67
+     2 | Oranges  Mike        57
+    [3 rows x 3 columns]
 
 
-- Grouping on a condition
+Grouping on a condition
+~~~~~~~~~~~~~~~~~~~~~~~
 
 .. code-block:: SQL
 
@@ -519,39 +531,41 @@ Let's look at some common grouping operations in ``SQL``, and its equivalent in 
     FROM iris
     GROUP BY sepal_width>=3;
 
-
 .. code-block:: python
 
-    # datatable
-    iris[:,
-         {"avg_sepal_length": dt.mean(f.sepal_length)},
-         by(f.sepal_width >= 3)]
-
-.. csv-table:: Grouping on a Condition
-    :header: CO, avg\\_sepal\\_length
-    :widths: 10,10
-
-    	0,	5.95263
-    	1,	5.77634
+    >>> iris[:,
+    ...      {"avg_sepal_length": dt.mean(f.sepal_length)},
+    ...      by(f.sepal_width >= 3)]
+       |    C0  avg_sepal_length
+       | bool8           float64
+    -- + -----  ----------------
+     0 |     0           5.95263
+     1 |     1           5.77634
+    [2 rows x 2 columns]
 
 At the moment, names cannot be assigned in the ``by`` section.
+
 
 LEFT OUTER JOIN
 ----------------
 
-We will compare the left outer join, as that is the only join currently implemented in ``datatable``. Another aspect is that the frame being joined must be keyed, the column or columns to be keyed must not have duplicates, and the joining column has to have the same name in both frames. You can read more about the :func:`join()` API and have a look at the `Tutorial on the join operator <https://datatable.readthedocs.io/en/latest/start/quick-start.html#join>`_
+We will compare the left outer join, as that is the only join currently
+implemented in ``datatable``. Another aspect is that the frame being joined
+must be keyed, the column or columns to be keyed must not have duplicates,
+and the joining column has to have the same name in both frames. You can read
+more about the :func:`join()` API and have a look at the :ref:`join tutorial`.
 
-Example data ::
+Example data::
 
-    DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
-                  y = [1, 3, 6] * 3,
-                  v = range(1, 10))
+    >>> DT = dt.Frame(x = ["b"]*3 + ["a"]*3 + ["c"]*3,
+    ...               y = [1, 3, 6] * 3,
+    ...               v = range(1, 10))
+    >>>
+    >>> X = dt.Frame({"x":('c','b'),
+    ...               "v":(8,7),
+    ...               "foo":(4,2)})
 
-    X = dt.Frame({"x":('c','b'),
-                  "v":(8,7),
-                  "foo":(4,2)})
-
-A left outer join in SQL :
+A left outer join in SQL:
 
 .. code-block:: SQL
 
@@ -563,31 +577,30 @@ A left outer join in SQL :
     left JOIN X
     ON DT.x = X.x
 
-A left outer join in ``datatable`` :
+A left outer join in ``datatable``::
 
-.. code-block:: python
+    >>> X.key = 'x'
+    >>> DT[:, [f.x, f.y, f.v, g.foo], join(X)]
+       | x          y      v    foo
+       | str32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 | b          1      1      2
+     1 | b          3      2      2
+     2 | b          6      3      2
+     3 | a          1      4     NA
+     4 | a          3      5     NA
+     5 | a          6      6     NA
+     6 | c          1      7      4
+     7 | c          3      8      4
+     8 | c          6      9      4
+    [9 rows x 4 columns]
 
-    X.key = 'x'
-    DT[:, [f.x, f.y, f.v, g.foo], join(X)]
-
-.. csv-table:: Left Outer Jion
-    :header:     x,	y,	v,	foo
-    :widths: 10,10,10,10
-
-	b,	1,	1,	2
-	b,	3,	2,	2
-	b,	6,	3,	2
-	a,	1,	4,	NA
-	a,	3,	5,	NA
-	a,	6,	6,	NA
-	c,	1,	7,	4
-	c,	3,	8,	4
-	c,	6,	9,	4
 
 UNION
-------
+-----
 
-The ``UNION ALL`` clause in SQL can be replicated in ``datatable`` with :func:`rbind()`.
+The ``UNION ALL`` clause in SQL can be replicated in ``datatable`` with
+:func:`rbind()`.
 
 .. code-block:: SQL
 
@@ -597,31 +610,32 @@ The ``UNION ALL`` clause in SQL can be replicated in ``datatable`` with :func:`r
     SELECT x, v
     FROM x
 
-In ``datatable``, :func:`rbind()` takes a list/tuple of frames and lumps into one :
+In ``datatable``, :func:`rbind()` takes a list/tuple of frames and lumps into one::
 
-.. code-block:: python
+    >>> dt.rbind([DT[:, ('x','v')], X[:, ('x', 'v')]])
+       | x          v
+       | str32  int32
+    -- + -----  -----
+     0 | b          1
+     1 | b          2
+     2 | b          3
+     3 | a          4
+     4 | a          5
+     5 | a          6
+     6 | c          7
+     7 | c          8
+     8 | c          9
+     9 | b          7
+    10 | c          8
+    [11 rows x 2 columns]
 
-    dt.rbind([DT[:, ('x','v')], X[:, ('x', 'v')]])
+SQL's ``UNION`` removes duplicate rows after combining the results of the
+individual queries; there is no built-in function in ``datatable`` yet that
+handles duplicates.
 
-.. csv-table:: Union all
-    :header: x, v
-    :widths: 10,10
 
-    	b,	1
-    	b,	2
-    	b,	3
-    	a,	4
-    	a,	5
-    	a,	6
-    	c,	7
-    	c,	8
-    	c,	9
-    	b,	7
-    	c,	8
 
-SQL's ``UNION`` removes duplicate rows after combining the results of the individual queries; there is no built-in function in ``datatable`` yet that handles duplicates.
-
-SQL's WINDOW FUNCTIONS
+SQL's WINDOW functions
 ----------------------
 
 Some SQL window functions can be replicated in ``datatable`` (`rank` is one of the windows function not currently implemented in datatable) :
@@ -638,24 +652,22 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 
 .. code-block:: python
 
-    #datatable
-    iris[:3, :, by('species'), sort(-f.sepal_length)]
+    >>> iris[:3, :, by('species'), sort(-f.sepal_length)]
+       | species     sepal_length  sepal_width  petal_length  petal_width
+       | str32            float64      float64       float64      float64
+    -- + ----------  ------------  -----------  ------------  -----------
+     0 | setosa               5.8          4             1.2          0.2
+     1 | setosa               5.7          4.4           1.5          0.4
+     2 | setosa               5.7          3.8           1.7          0.3
+     3 | versicolor           7            3.2           4.7          1.4
+     4 | versicolor           6.9          3.1           4.9          1.5
+     5 | versicolor           6.8          2.8           4.8          1.4
+     6 | virginica            7.9          3.8           6.4          2
+     7 | virginica            7.7          3.8           6.7          2.2
+     8 | virginica            7.7          2.6           6.9          2.3
+    [9 rows x 5 columns]
 
-.. csv-table:: Top N rows per group
-    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
-    :widths: 10,10,10,10,10
-
-    setosa,	5.8,	4,	1.2,	0.2
-	setosa,	5.7,	4.4,	1.5,	0.4
-	setosa,	5.7,	3.8,	1.7,	0.3
-	versicolor,	7,	3.2,	4.7,	1.4
-	versicolor,	6.9,	3.1,	4.9,	1.5
-	versicolor,	6.8,	2.8,	4.8,	1.4
-	virginica,	7.9,	3.8,	6.4,	2
-	virginica,	7.7,	3.8,	6.7,	2.2
-	virginica,	7.7,	2.6,	6.9,	2.3
-
-- Filter for rows above the mean sepal length
+Filter for rows above the mean sepal length:
 
 .. code-block:: SQL
 
@@ -673,35 +685,22 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 
 .. code-block:: python
 
-    #datatable
-    iris[:,
-         update(temp = f.sepal_length > dt.mean(f.sepal_length)),
-         by('species')]
+    >>> iris[:,
+    ...      update(temp = f.sepal_length > dt.mean(f.sepal_length)),
+    ...      by('species')]
+    >>>
+    >>> iris[f.temp == 1, f[:-1]].head(5)
+       | sepal_length  sepal_width  petal_length  petal_width  species
+       |      float64      float64       float64      float64  str32
+    -- + ------------  -----------  ------------  -----------  -------
+     0 |          5.1          3.5           1.4          0.2  setosa
+     1 |          5.4          3.9           1.7          0.4  setosa
+     2 |          5.4          3.7           1.5          0.2  setosa
+     3 |          5.8          4             1.2          0.2  setosa
+     4 |          5.7          4.4           1.5          0.4  setosa
+    [5 rows x 5 columns]
 
-    iris[f.temp == 1, f[:-1]].head(5)
-
-.. csv-table:: Rows above the mean sepal length
-    :header: "sepal\\_length", "sepal\\_width", "petal\\_length", "petal\\_width",	"species"
-    :widths: 10,10,10,10,10
-
-        5.1,	3.5,	1.4,	0.2,	setosa
-	    5.4,	3.9,	1.7,	0.4,	setosa
-	    5.4,	3.7,	1.5,	0.2,	setosa
-	    5.8,	4,	1.2,	0.2,	setosa
-    	5.7,	4.4,	1.5,	0.4,	setosa
-
-- Lead and Lag
-
-.. csv-table:: Source Data
-    :header: name,	destination,	dep\\_date,	duration
-    :widths: 10,10,10,10
-
-	Ann,	Japan,	2019-02-02,	7
-	Ann,	Korea,	2019-01-01,	21
-	Ann,	Switzerland,	2020-01-11,	14
-	Bob,	USA,	2019-05-05,	10
-	Bob,	Switzerland,	2020-01-11,	14
-
+Lead and lag
 
 .. code-block:: SQL
 
@@ -716,46 +715,49 @@ Some SQL window functions can be replicated in ``datatable`` (`rank` is one of t
 
 .. code-block:: python
 
-    #datatable
-    source_data = dt.Frame({'name': ['Ann', 'Ann', 'Ann', 'Bob', 'Bob'],
-                            'destination': ['Japan', 'Korea', 'Switzerland',
-                                            'USA', 'Switzerland'],
-                            'dep_date': ['2019-02-02', '2019-01-01',
-                                         '2020-01-11', '2019-05-05',
-                                         '2020-01-11'],
-                            'duration': [7, 21, 14, 10, 14]})
+    >>> source_data = dt.Frame({'name': ['Ann', 'Ann', 'Ann', 'Bob', 'Bob'],
+    ...                         'destination': ['Japan', 'Korea', 'Switzerland',
+    ...                                         'USA', 'Switzerland'],
+    ...                         'dep_date': ['2019-02-02', '2019-01-01',
+    ...                                      '2020-01-11', '2019-05-05',
+    ...                                      '2020-01-11'],
+    ...                         'duration': [7, 21, 14, 10, 14]})
+    >>> source_data[:,
+    ...             f[:].extend({"lead1": dt.shift(f.dep_date, -1),
+    ...                          "lead2": dt.shift(f.dep_date, -2),
+    ...                          "lag1": dt.shift(f.dep_date),
+    ...                          "lag3": dt.shift(f.dep_date,3)
+    ...                          }),
+    ...             sort('dep_date','name')]
+       | name   destination  dep_date    duration  lead1       lead2       lag1        lag3
+       | str32  str32        str32          int32  str32       str32       str32       str32
+    -- + -----  -----------  ----------  --------  ----------  ----------  ----------  ----------
+     0 | Ann    Korea        2019-01-01        21  2019-02-02  2019-05-05  NA          NA
+     1 | Ann    Japan        2019-02-02         7  2019-05-05  2020-01-11  2019-01-01  NA
+     2 | Bob    USA          2019-05-05        10  2020-01-11  2020-01-11  2019-02-02  NA
+     3 | Ann    Switzerland  2020-01-11        14  2020-01-11  NA          2019-05-05  2019-01-01
+     4 | Bob    Switzerland  2020-01-11        14  NA          NA          2020-01-11  2019-02-02
+    [5 rows x 8 columns]
 
-    source_data[:,
-                f[:].extend({"lead1": dt.shift(f.dep_date, -1),
-                             "lead2": dt.shift(f.dep_date, -2),
-                             "lag1": dt.shift(f.dep_date),
-                             "lag3": dt.shift(f.dep_date,3)
-                             }),
-                sort('dep_date','name')]
 
-.. csv-table:: Source Data with Lead and Lag
-    :header: name,	destination,	dep\\_date,	duration,	lead1,	lead2,	lag1,	lag3
-    :widths: 10,10,10,10,10,10,10,10
+The equivalent of SQL's ``LAG`` is :func:`shift()` with a positive number,
+while SQL's ``LEAD`` is :func:`shift()` with a negative number.
 
-	Ann,	Korea,	2019-01-01,	21,	2019-02-02,	2019-05-05,	NA,	NA
-	Ann,	Japan,	2019-02-02,	7,	2019-05-05,	2020-01-11,	2019-01-01,	NA
-	Bob,	USA,	2019-05-05,	10,	2020-01-11,	2020-01-11,	2019-02-02,	NA
-	Ann,	Switzerland,	2020-01-11,	14,	2020-01-11,	NA,	2019-05-05,	2019-01-01
-	Bob,	Switzerland,	2020-01-11,	14,	NA,	NA,	2020-01-11,	2019-02-02
+.. note::
 
-The equivalent of SQL's ``LAG`` is :func:`shift()` with a positive number, while SQL's ``LEAD`` is :func:`shift()` with a negative number.
+    ``datatable`` does not natively support datetimes yet.
 
-Note: ``datatable`` does not natively support datetimes yet.
+Total sum and the proportions::
 
-- Get the total sum and the proportions
-
-.. csv-table:: proportions
-    :header: t
-    :widths: 10
-
-	1
-	2
-	3
+    >>> proportions = dt.Frame({"t": [1, 2, 3]})
+    >>> proportions
+       |     t
+       | int32
+    -- + -----
+     0 |     1
+     1 |     2
+     2 |     3
+    [3 rows x 1 column]
 
 .. code-block:: SQL
 
@@ -766,17 +768,21 @@ Note: ``datatable`` does not natively support datetimes yet.
 
 .. code-block:: python
 
-    # datatable
-    proportions = dt.Frame({"t": [1, 2, 3]})
+    >>> proportions[:,
+    ...             f[:].extend({"sum": dt.sum(f.t),
+    ...                         "pct": f.t/dt.sum(f.t)})]
+       |     t    sum       pct
+       | int32  int64   float64
+    -- + -----  -----  --------
+     0 |     1      6  0.166667
+     1 |     2      6  0.333333
+     2 |     3      6  0.5
+    [3 rows x 3 columns]
 
-    proportions[:,
-                f[:].extend({"sum": dt.sum(f.t),
-                            "pct": f.t/dt.sum(f.t)})]
 
-.. csv-table:: sum and proportions
-    :header: t, sum, pct
-    :widths: 10, 10, 10
 
-    1,	6,	0.166667
-	2,	6,	0.333333
-	3,	6,	0.5
+.. _`SQL` : https://en.wikipedia.org/wiki/SQL
+.. _`SQLite` : https://www.sqlite.org/
+.. _`SQLite import tutorial` : https://www.sqlitetutorial.net/sqlite-import-csv/
+.. _`github issues` : https://github.com/h2oai/datatable/issues
+.. _`iris` : https://en.wikipedia.org/wiki/Iris_flower_data_set

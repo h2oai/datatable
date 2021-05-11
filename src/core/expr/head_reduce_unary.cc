@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -79,7 +79,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     ColumnImpl* clone() const override {
-      return new Reduced_ColumnImpl<T, U>(stype_, Column(arg), groupby,
+      return new Reduced_ColumnImpl<T, U>(stype(), Column(arg), groupby,
                                           reducer);
     }
 
@@ -110,7 +110,7 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 //------------------------------------------------------------------------------
 // first(A), last(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_first =
 R"(first(cols)
 --
@@ -126,11 +126,89 @@ return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
 
+
+Examples
+--------
+:func:`first()` returns the first column in a frame::
+
+    >>> from datatable import dt, f, by, sort, first
+    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, 5]})
+    >>> df
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+     1 |  1   2
+     2 |  2   3
+     3 |  1   4
+     4 |  2   5
+
+    [5 rows x 2 columns]
+    >>> dt.first(df)
+       |  A
+    -- + --
+     0 |  1
+     1 |  1
+     2 |  2
+     3 |  1
+     4 |  2
+
+    [5 rows x 1 column]
+
+Within a frame, it returns the first row::
+
+    >>> df[:, first(f[:])]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+
+    [1 row x 2 columns]
+
+Of course, you can replicate this by passing 0 to the ``i`` section instead::
+
+    >>> df[0, :]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+
+    [1 row x 2 columns]
+
+:func:`first()` comes in handy if you wish to get the first non null value in a
+column::
+
+    >>> df[f.B != None, first(f.B)]
+       |  B
+    -- + --
+     0 |  2
+
+    [1 row x 1 column]
+
+:func:`first()` returns the first row per group in a :func:`by()` operation::
+
+    >>> df[:, first(f[:]), by("A")]
+       |  A   B
+    -- + --  --
+     0 |  1  NA
+     1 |  2   3
+
+    [2 rows x 2 columns]
+
+To get the first non-null value per row in a :func:`by()` operation, you can
+use the :func:`sort()` function, and set the ``na_position`` argument as
+``last``::
+
+    >>> df[:, first(f[:]), by("A"), sort("B", na_position="last")]
+       |  A   B
+    -- + --  --
+     0 |  1   2
+     1 |  2   3
+
+    [2 rows x 2 columns]
+
+
 See Also
 --------
-
 - :func:`last()` -- function that returns the last row.
-
 )";
 
 
@@ -149,13 +227,95 @@ return: Expr
     f-expression having one row, and the same names, stypes and
     number of columns as in `cols`.
 
-See Also
+
+Examples
 --------
 
+``last()`` returns the last column in a frame::
+
+    >>> from datatable import dt, f, by, sort, last
+    >>>
+    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
+    ...                "B": [None, 2, 3, 4, None]})
+    >>>
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1     NA
+     1 |     1      2
+     2 |     2      3
+     3 |     1      4
+     4 |     2     NA
+    [5 rows x 2 columns]
+
+    >>> dt.last(df)
+       |     B
+       | int32
+    -- + -----
+     0 |    NA
+     1 |     2
+     2 |     3
+     3 |     4
+     4 |    NA
+    [5 rows x 1 column]
+
+Within a frame, it returns the last row::
+
+    >>> df[:, last(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     2     NA
+    [1 row x 2 columns]
+
+The above code can be replicated by passing -1 to the ``i`` section instead::
+
+    >>> df[-1, :]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     2     NA
+    [1 row x 2 columns]
+
+Like ``first()``, ``last()`` can be handy if you wish to get the last
+non null value in a column::
+
+    >>> df[f.B != None, dt.last(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |     4
+    [1 row x 1 column]
+
+``last()`` returns the last row per group in a :func:`by()` operation::
+
+    >>> df[:, last(f[:]), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     2     NA
+    [2 rows x 2 columns]
+
+To get the last non-null value per row in a :func:`by()` operation, you can
+use the :func:`sort()` function, and set the ``na_position`` argument as
+``first`` (this will move the ``NAs`` to the top of the column)::
+
+    >>> df[:, last(f[:]), by("A"), sort("B", na_position="first")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     2      3
+    [2 rows x 2 columns]
+
+
+See Also
+--------
 - :func:`first()` -- function that returns the first row.
-
 )";
-
+#endif
 
 template <bool FIRST>
 class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
@@ -231,7 +391,7 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sum(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_sum =
 R"(sum(cols)
 --
@@ -253,12 +413,71 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
-See Also
+
+Examples
 --------
 
-- :func:`count()` -- function to calculate a number of non-missing values.
+.. code-block:: python
 
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Get the sum of column A::
+
+    >>> df[:, dt.sum(f.A)]
+       |     A
+       | int64
+    -- + -----
+     0 |     7
+    [1 row x 1 column]
+
+Get the sum of multiple columns::
+
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)]]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
+
+Same as above, but more convenient::
+
+    >>> df[:, dt.sum(f[:2])]
+       |     A      B
+       | int64  int64
+    -- + -----  -----
+     0 |     7     14
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the sum of the specified columns per group::
+
+    >>> df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
+       |     C      A      B
+       | int32  int64  int64
+    -- + -----  -----  -----
+     0 |     1      4      7
+     1 |     2      3      7
+    [2 rows x 3 columns]
+
+
+See Also
+--------
+- :func:`count()` -- function to calculate a number of non-missing values.
 )";
+#endif
 
 template <typename T, typename U>
 bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -344,7 +563,7 @@ static Column compute_gsum(Column&& arg, const Groupby& gby) {
 // mean(A)
 //------------------------------------------------------------------------------
 
-
+#if 0
 static const char* doc_mean =
 R"(mean(cols)
 --
@@ -371,7 +590,75 @@ See Also
 - :func:`median()` -- function to calculate median values.
 - :func:`sd()` -- function to calculate standard deviation.
 
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>>
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+
+Get the mean from column A::
+
+    >>> df[:, dt.mean(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 |     1.4
+    [1 row x 1 column]
+
+Get the mean of multiple columns::
+
+    >>> df[:, dt.mean([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      3.5
+    [1 row x 2 columns]
+
+Same as above, but applying to a column slice::
+
+    >>> df[:, dt.mean(f[:2])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      3.5
+    [1 row x 2 columns]
+
+You can pass in a dictionary with new column names::
+
+    >>> df[:, dt.mean({"A_mean": f.A, "C_avg": f.C})]
+       |  A_mean    C_avg
+       | float64  float64
+    -- + -------  -------
+     0 |     1.4      1.4
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the average of each column per group::
+
+    >>> df[:, dt.mean({"A_mean": f.A, "B_mean": f.B}), by("C")]
+       |     C   A_mean   B_mean
+       | int32  float64  float64
+    -- + -----  -------  -------
+     0 |     1  1.33333      3.5
+     1 |     2  1.5          3.5
+    [2 rows x 3 columns]
 )";
+#endif
 
 
 template <typename T, typename U>
@@ -438,6 +725,7 @@ static Column compute_gmean(Column&& arg, const Groupby&) {
 // sd(A)
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_sd =
 R"(sd(cols)
 --
@@ -458,6 +746,46 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
+
+Examples
+--------
+
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
+    >>> DT
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     0      0
+     1 |     1      2
+     2 |     2      4
+     3 |     3      6
+    [4 rows x 2 columns]
+
+
+Get the standard deviation of column A::
+
+    >>> DT[:, dt.sd(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 | 1.29099
+    [1 row x 1 column]
+
+
+Get the standard deviation of columns A and B::
+
+    >>> DT[:, dt.sd([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 | 1.29099  2.58199
+    [1 row x 2 columns]
+
+
 See Also
 --------
 
@@ -465,6 +793,7 @@ See Also
 - :func:`median()` -- function to calculate median values.
 
 )";
+#endif
 
 template <typename T, typename U>
 bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -535,7 +864,7 @@ class SdGrouped_ColumnImpl : public Virtual_ColumnImpl {
         groupby(grpby) {}
 
     ColumnImpl* clone() const override {
-      return new SdGrouped_ColumnImpl(stype_, Column(arg), groupby);
+      return new SdGrouped_ColumnImpl(stype(), Column(arg), groupby);
     }
 
     bool get_element(size_t i, float* out) const override {
@@ -584,6 +913,7 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
 // count(A)
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_count =
 R"(count(cols)
 --
@@ -608,7 +938,47 @@ See Also
 
 - :func:`sum()` -- function to calculate the sum of values.
 
+Examples
+--------
+
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Get the count of all rows::
+
+    >>> df[:, dt.count()]
+       | count
+       | int32
+    -- + -----
+     0 |     5
+    [1 row x 1 column]
+
+Get the count of column `B` (note how the null row is excluded from the
+count result)::
+
+    >>> df[:, dt.count(f.B)]
+       |     B
+       | int64
+    -- + -----
+     0 |     4
+    [1 row x 1 column]
 )";
+#endif
 
 template <typename T>
 bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
@@ -638,6 +1008,7 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
     case SType::BOOL:
     case SType::INT8:    return _count<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _count<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
     case SType::INT32:   return _count<int32_t>(std::move(arg), gby);
     case SType::INT64:   return _count<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _count<float>(std::move(arg), gby);
@@ -708,6 +1079,7 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
     case SType::BOOL:
     case SType::INT8:    return _gcount<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _gcount<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
     case SType::INT32:   return _gcount<int32_t>(std::move(arg), gby);
     case SType::INT64:   return _gcount<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _gcount<float>(std::move(arg), gby);
@@ -724,7 +1096,7 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // min(A), max(A)
 //------------------------------------------------------------------------------
-
+#if 0
 static const char* doc_min =
 R"(min(cols)
 --
@@ -745,6 +1117,71 @@ return: Expr
 except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
+
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+    >>>
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     1      2
+     2 |     1     20
+     3 |     2      1
+     4 |     2      6
+     5 |     2      2
+     6 |     3      3
+     7 |     3     22
+     8 |     3      1
+    [9 rows x 2 columns]
+
+Get the minimum from column B::
+
+    >>> df[:, dt.min(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |     1
+    [1 row x 1 column]
+
+Get the minimum of all columns::
+
+    >>> df[:, [dt.min(f.A), dt.min(f.B)]]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
+
+Same as above, but using the slice notation::
+
+    >>> df[:, dt.min(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      1
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the row with the minimum value
+per group::
+
+    >>> df[:, dt.min(f.B), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      2
+     1 |     2      1
+     2 |     3      1
+    [3 rows x 2 columns]
+
 
 See Also
 --------
@@ -773,10 +1210,75 @@ except: TypeError
     The exception is raised when one of the columns from `cols`
     has a non-numeric type.
 
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
+    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
+    >>> df
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      3
+     1 |     1      2
+     2 |     1     20
+     3 |     2      1
+     4 |     2      6
+     5 |     2      2
+     6 |     3      3
+     7 |     3     22
+     8 |     3      1
+    [9 rows x 2 columns]
+
+Get the maximum from column B::
+
+    >>> df[:, dt.max(f.B)]
+       |     B
+       | int32
+    -- + -----
+     0 |    22
+    [1 row x 1 column]
+
+Get the maximum of all columns::
+
+    >>> df[:, [dt.max(f.A), dt.max(f.B)]]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     3     22
+    [1 row x 2 columns]
+
+Same as above, but more convenient::
+
+    >>> df[:, dt.max(f[:])]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     3     22
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the row with the maximum
+value per group::
+
+    >>> df[:, dt.max(f.B), by("A")]
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1     20
+     1 |     2      6
+     2 |     3     22
+    [3 rows x 2 columns]
+
+
 See Also
 --------
 - :func:`min()` -- function to calculate minimum values.
 )";
+#endif
 
 template <typename T, bool MIN>
 bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
@@ -798,24 +1300,26 @@ bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
 
 
 template <typename T, bool MM>
-static Column _minmax(Column&& arg, const Groupby& gby) {
+static Column _minmax(SType stype, Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
-                 stype_from<T>, std::move(arg), gby, minmax_reducer<T, MM>
+                 stype, std::move(arg), gby, minmax_reducer<T, MM>
             )));
 }
 
 template <bool MIN>
 static Column compute_minmax(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
+  auto st = arg.stype();
+  switch (st) {
     case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, MIN>(std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, MIN>(std::move(arg), gby);
-    case SType::INT32:   return _minmax<int32_t, MIN>(std::move(arg), gby);
-    case SType::INT64:   return _minmax<int64_t, MIN>(std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, MIN>(std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, MIN>(std::move(arg), gby);
+    case SType::INT8:    return _minmax<int8_t, MIN>(st, std::move(arg), gby);
+    case SType::INT16:   return _minmax<int16_t, MIN>(st, std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _minmax<int32_t, MIN>(st, std::move(arg), gby);
+    case SType::INT64:   return _minmax<int64_t, MIN>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _minmax<float, MIN>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _minmax<double, MIN>(st, std::move(arg), gby);
     default: throw _error(MIN? "min" : "max", arg.stype());
   }
 }
@@ -827,6 +1331,7 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 // Median
 //------------------------------------------------------------------------------
 
+#if 0
 static const char* doc_median =
 R"(median(cols)
 --
@@ -852,7 +1357,75 @@ See Also
 - :func:`mean()` -- function to calculate mean values.
 - :func:`sd()` -- function to calculate standard deviation.
 
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f, by
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
+    ...                'B': [None, 2, 3,4, 5],
+    ...                'C': [1, 2, 1, 1, 2]})
+    >>>
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |     1      4      1
+     4 |     2      5      2
+    [5 rows x 3 columns]
+
+Get the median from column A::
+
+    >>> df[:, dt.median(f.A)]
+       |       A
+       | float64
+    -- + -------
+     0 |       1
+    [1 row x 1 column]
+
+Get the median of multiple columns::
+
+    >>> df[:, dt.median([f.A, f.B])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
+
+Same as above, but more convenient::
+
+    >>> df[:, dt.median(f[:2])]
+       |       A        B
+       | float64  float64
+    -- + -------  -------
+     0 |       1      3.5
+    [1 row x 2 columns]
+
+You can pass in a dictionary with new column names::
+
+    >>> df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
+       | A_median    C_mid
+       |  float64  float64
+    -- + --------  -------
+     0 |        1        1
+    [1 row x 2 columns]
+
+In the presence of :func:`by()`, it returns the median of each column
+per group::
+
+    >>> df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
+       |     C  A_median  B_median
+       | int32   float64   float64
+    -- + -----  --------  --------
+     0 |     1       1         3.5
+     1 |     2       1.5       3.5
+    [2 rows x 3 columns]
 )";
+#endif
 
 
 template <typename T, typename U>

@@ -112,6 +112,20 @@
           - Greater than or equal ``x >= y``.
 
 
+    Equivalents of base datatable functions
+    ---------------------------------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`.sum()`
+          - Same as :func:`dt.sum()`.
+
+        * - :meth:`.max()`
+          - Same as :func:`dt.max()`.
+
+
     Miscellaneous
     -------------
 
@@ -163,3 +177,5 @@
     .len()          <fexpr/len>
     .re_match()     <fexpr/re_match>
     .remove()       <fexpr/remove>
+    .sum()          <fexpr/sum>
+    .max()          <fexpr/max>

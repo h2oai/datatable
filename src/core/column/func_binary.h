@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -118,7 +118,7 @@ FuncBinary1_ColumnImpl<T1, T2, TO>::FuncBinary1_ColumnImpl(
 template <typename T1, typename T2, typename TO>
 ColumnImpl* FuncBinary1_ColumnImpl<T1, T2, TO>::clone() const {
   return new FuncBinary1_ColumnImpl<T1, T2, TO>(
-                Column(arg1_), Column(arg2_), func_, nrows_, stype_);
+                Column(arg1_), Column(arg2_), func_, nrows_, stype());
 }
 
 
@@ -137,7 +137,7 @@ template <typename T1, typename T2, typename TO>
 void FuncBinary1_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   arg1_.verify_integrity();
   arg2_.verify_integrity();
-  xassert(compatible_type<TO>(stype_));
+  xassert(compatible_type<TO>(stype()));
   xassert(compatible_type<T1>(arg1_.stype()));
   xassert(compatible_type<T2>(arg2_.stype()));
   XAssert(nrows_ <= arg2_.nrows());
@@ -182,7 +182,7 @@ FuncBinary2_ColumnImpl<T1, T2, TO>::FuncBinary2_ColumnImpl(
 template <typename T1, typename T2, typename TO>
 ColumnImpl* FuncBinary2_ColumnImpl<T1, T2, TO>::clone() const {
   return new FuncBinary2_ColumnImpl<T1, T2, TO>(
-                Column(arg1_), Column(arg2_), func_, nrows_, stype_);
+                Column(arg1_), Column(arg2_), func_, nrows_, stype());
 }
 
 template <typename T1, typename T2, typename TO>
@@ -197,9 +197,9 @@ template <typename T1, typename T2, typename TO>
 void FuncBinary2_ColumnImpl<T1, T2, TO>::verify_integrity() const {
   arg1_.verify_integrity();
   arg2_.verify_integrity();
-  xassert(compatible_type<TO>(stype_));
-  xassert(compatible_type<T1>(arg1_.stype()));
-  xassert(compatible_type<T2>(arg2_.stype()));
+  xassert(type_.can_be_read_as<TO>());
+  xassert(arg1_.can_be_read_as<T1>());
+  xassert(arg2_.can_be_read_as<T2>());
   XAssert(nrows_ <= arg2_.nrows());
   XAssert(nrows_ <= arg1_.nrows());
   XAssert(func_ != nullptr);

@@ -137,8 +137,10 @@ def test_equal_columnset():
     DT = dt.Frame([[1, 2, 3], [5, 4, 1]], names=["A", "B"])
     DT2 = DT[:, f[:] == 1]
     DT3 = DT[:, 2 < f[:]]
+    DT4 = DT[:, 2<f["A", "B"]] # test f-expressions with sequence
     assert_equals(DT2, dt.Frame([[True, False, False], [False, False, True]]))
     assert_equals(DT3, dt.Frame([[False, False, True], [True, True, False]]))
+    assert_equals(DT4, dt.Frame([[False, False, True], [True, True, False]]))
 
 
 

@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_READ_INPUT_COLUMN_h
 #define dt_READ_INPUT_COLUMN_h
-#include "csv/reader_parsers.h"
 #include "read/output_column.h"
 #include "buffer.h"       // Buffer
 #include "python/obj.h"   // py::oobj

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -156,11 +156,13 @@ class _obj {
     // Type tests
     //--------------------------------------------------------------------------
     bool is_anytype()       const noexcept;
+    bool is_arrow_table()   const noexcept;
     bool is_bool()          const noexcept;
     bool is_buffer()        const noexcept;
     bool is_by_node()       const noexcept;
     bool is_bytes()         const noexcept;
     bool is_callable()      const noexcept;
+    bool is_date()          const noexcept;
     bool is_dict()          const noexcept;
     bool is_dtexpr()        const noexcept;
     bool is_ellipsis()      const noexcept;
@@ -178,12 +180,14 @@ class _obj {
     bool is_none()          const noexcept;
     bool is_numeric()       const noexcept;
     bool is_numpy_array()   const noexcept;
+    bool is_numpy_bool()    const noexcept;
     int  is_numpy_int()     const noexcept;
     int  is_numpy_float()   const noexcept;
     bool is_numpy_marray()  const noexcept;
     bool is_pandas_categorical() const noexcept;
     bool is_pandas_frame()  const noexcept;
     bool is_pandas_series() const noexcept;
+    bool is_pytype()        const noexcept;
     bool is_range()         const noexcept;
     bool is_slice()         const noexcept;
     bool is_sort_node()     const noexcept;
@@ -213,6 +217,7 @@ class _obj {
     bool parse_int(int32_t*) const;
     bool parse_int(int64_t*) const;
     bool parse_int(double*) const;
+    bool parse_numpy_bool(int8_t*) const;
     bool parse_numpy_int(int8_t*) const;
     bool parse_numpy_int(int16_t*) const;
     bool parse_numpy_int(int32_t*) const;
@@ -220,6 +225,9 @@ class _obj {
     bool parse_numpy_float(float*) const;
     bool parse_numpy_float(double*) const;
     bool parse_double(double*) const;
+    bool parse_date(int32_t*) const;
+    bool parse_date(int64_t*) const;
+    bool parse_datetime(int64_t*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;
@@ -249,6 +257,7 @@ class _obj {
     py::orange  to_orange         (const error_manager& = _em0) const;
     py::oiter   to_oiter          (const error_manager& = _em0) const;
     py::oslice  to_oslice         (const error_manager& = _em0) const;
+    py::odate   to_odate          (const error_manager& = _em0) const;
 
     py::otuple  to_otuple         (const error_manager& = _em0) const;
     py::rtuple  to_rtuple_lax     () const;
@@ -256,6 +265,8 @@ class _obj {
     DataTable*  to_datatable      (const error_manager& = _em0) const;
     py::Frame*  to_pyframe        (const error_manager& = _em0) const;
     dt::SType   to_stype          (const error_manager& = _em0) const;
+    dt::Type    to_type           (const error_manager& = _em0) const;
+    dt::Type    to_type_force     (const error_manager& = _em0) const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;
@@ -282,11 +293,13 @@ class _obj {
       virtual Error error_not_rowindex       (PyObject*) const;
       virtual Error error_not_frame          (PyObject*) const;
       virtual Error error_not_column         (PyObject*) const;
+      virtual Error error_not_date           (PyObject*) const;
       virtual Error error_not_list           (PyObject*) const;
       virtual Error error_not_dict           (PyObject*) const;
       virtual Error error_not_range          (PyObject*) const;
       virtual Error error_not_slice          (PyObject*) const;
       virtual Error error_not_stype          (PyObject*) const;
+      virtual Error error_not_type           (PyObject*) const;
       virtual Error error_not_iterable       (PyObject*) const;
       virtual Error error_int32_overflow     (PyObject*) const;
       virtual Error error_int64_overflow     (PyObject*) const;
@@ -328,7 +341,9 @@ class robj : public _obj {
 class oobj : public _obj {
   public:
     oobj();
+    oobj(std::nullptr_t);
     oobj(PyObject* p);
+    oobj(PyTypeObject* p);
     oobj(const oobj&);
     oobj(const robj&);
     oobj(oobj&&);
@@ -380,11 +395,14 @@ robj rnone();
 void write_to_stdout(const std::string& str);
 
 
+bool is_python_system_attr(py::robj attr);
+bool is_python_system_attr(const dt::CString& attr);
+
 oobj get_module(const char* name);
 
 
 extern PyObject* Expr_Type;
-extern PyTypeObject* FExpr_Type;
+extern PyObject* FExpr_Type;
 
 
 }  // namespace py

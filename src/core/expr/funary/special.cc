@@ -46,10 +46,10 @@ static umaker_ptr _resolve_special(SType stype, const char* name,
     return umaker_ptr(new umaker_copy());
   }
   if (stype == SType::FLOAT64) {
-    return umaker1<double, double>::make(fn64, SType::VOID, SType::FLOAT64);
+    return umaker1<double, double>::make(fn64, SType::AUTO, SType::FLOAT64);
   }
   if (stype == SType::FLOAT32) {
-    return umaker1<float, float>::make(fn32, SType::VOID, SType::FLOAT32);
+    return umaker1<float, float>::make(fn32, SType::AUTO, SType::FLOAT32);
   }
   if (stype == SType::BOOL || stype_to_ltype(stype) == LType::INT) {
     return umaker1<double, double>::make(fn64, SType::FLOAT64, SType::FLOAT64);
@@ -73,7 +73,7 @@ Error function ``erf(x)``, which is defined as the integral
 
 .. math::
 
-    \operatorname{erf}(x) = \sqrt{\frac{8}{\tau}} \int^x_0 e^{-t^2}dt
+    \operatorname{erf}(x) = \frac{2}{\sqrt{\tau}} \int^{x/\sqrt{2}}_0 e^{-\frac12 t^2}dt
 
 This function is used in computing probabilities arising from the normal
 distribution.
@@ -106,7 +106,7 @@ The complementary error function is defined as the integral
 
 .. math::
 
-    \operatorname{erfc}(x) = \sqrt{\frac{8}{\tau}} \int^{\infty}_x e^{-t^2}dt
+    \operatorname{erfc}(x) = \frac{2}{\sqrt{\tau}} \int^{\infty}_{x/\sqrt{2}} e^{-\frac12 t^2}dt
 
 Although mathematically `erfc(x) = 1-erf(x)`, in practice the RHS
 suffers catastrophic loss of precision at large values of `x`. This

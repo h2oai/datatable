@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -531,7 +531,7 @@ class SortContext {
     container_o.ensure_size(n * sizeof(int32_t));
     o = static_cast<int32_t*>(container_o.ptr);
     if (rowindex) {
-      Buffer oview = Buffer::external(o, n * sizeof(int32_t));
+      Buffer oview = Buffer::unsafe(o, n * sizeof(int32_t));
       rowindex.extract_into(oview, RowIndex::ARR32);
       use_order = true;
     }
@@ -546,7 +546,7 @@ class SortContext {
               bool make_groups)
     : SortContext(nrows, rowindex, make_groups)
   {
-    groups = Buffer::external(groupby.offsets_r(),
+    groups = Buffer::unsafe(groupby.offsets_r(),
                               (groupby.size() + 1) * sizeof(int32_t));
     gg.init(nullptr, 0, groupby.size());
     if (!rowindex) {
@@ -585,6 +585,7 @@ class SortContext {
 
 
   void continue_sort(const Column& col, bool desc, bool make_groups) {
+    xassert(!col.is_virtual());
     column = col;
     nradixes = gg.size();
     descending = desc;
@@ -686,6 +687,7 @@ class SortContext {
       case dt::SType::BOOL:    _initB<ASC>(); break;
       case dt::SType::INT8:    _initI<ASC, int8_t,  uint8_t>(); break;
       case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
+      case dt::SType::DATE32:
       case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
       case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
@@ -716,9 +718,10 @@ class SortContext {
     nsigbits = 2;
     allocate_x();
     uint8_t* xo = x.data<uint8_t>();
-    uint8_t una = 128;
+    constexpr uint8_t una = 128;
     uint8_t replace_una = na_pos == NaPosition::LAST ? 3 : 0;
 
+    DISABLE_CLANG_WARNING("-Wpadded")
     if (use_order) {
       dt::parallel_for_static(n,
         [=](size_t j) {
@@ -738,6 +741,7 @@ class SortContext {
                      : static_cast<uint8_t>(128 - xi[j]) >> 6;
         });
     }
+    RESTORE_CLANG_WARNING("-Wpadded")
   }
 
 
@@ -1504,9 +1508,18 @@ void dt::ArrayView_ColumnImpl<T>::sort_grouped(
     const Groupby& grps, Column& out)
 {
   (void) out.stats();
+  arg.materialize();
   SortContext sc(nrows(), rowindex_container, grps, /*make_groups=*/ false);
   sc.continue_sort(arg, /*desc=*/ false, /*make_groups=*/ false);
-  set_rowindex(sc.get_result_rowindex());
+  if (sizeof(T) == 4) {
+    set_rowindex(sc.get_result_rowindex());
+  } else {
+    // Since SortContext produces an ARR32 rowindex, and the current
+    // ArrayView_ColumnImpl is int64, we need to replace the column
+    // with the new which uses int32s.
+    out = Column(new dt::ArrayView_ColumnImpl<int32_t>(
+                  std::move(arg), sc.get_result_rowindex(), nrows_));
+  }
 }
 
 template class dt::ArrayView_ColumnImpl<int32_t>;

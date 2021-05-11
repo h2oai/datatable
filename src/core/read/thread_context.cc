@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -90,14 +90,18 @@ void ThreadContext::preorder() {
   size_t j = 0;
   for (const auto& col : preframe_) {
     switch (col.get_stype()) {
+      case SType::VOID:    break;
       case SType::BOOL:    preorder_bool_column(j); break;
+      case SType::DATE32:
       case SType::INT32:   preorder_int32_column(j); break;
+      case SType::TIME64:
       case SType::INT64:   preorder_int64_column(j); break;
       case SType::FLOAT32: preorder_float32_column(j); break;
       case SType::FLOAT64: preorder_float64_column(j); break;
       case SType::STR32:
       case SType::STR64:   preorder_string_column(j); break;
-      default: throw RuntimeError() << "Unknown column type";
+      default: throw RuntimeError()
+        << "Unknown column type in ThreadContext::preorder()";
     }
     ++j;
   }
@@ -259,8 +263,11 @@ void ThreadContext::postorder() {
   for (auto& col : preframe_) {
     auto& outcol = col.outcol();
     switch (col.get_stype()) {
+      case SType::VOID:    break;
       case SType::BOOL:    postorder_bool_column(outcol, j); break;
+      case SType::DATE32:
       case SType::INT32:   postorder_int32_column(outcol, j); break;
+      case SType::TIME64:
       case SType::INT64:   postorder_int64_column(outcol, j); break;
       case SType::FLOAT32: postorder_float32_column(outcol, j); break;
       case SType::FLOAT64: postorder_float64_column(outcol, j); break;

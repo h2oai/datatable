@@ -1,50 +1,392 @@
 
-.xcode {
+div.xcode {
     font-family: SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, Courier, monospace;
     font-size: 12px;
     line-height: 1.4;
-    margin: 0 0 12pt 36pt;
-    overflow-x: auto;
-    padding: 8px 12px;
+    margin-bottom: 1rem;
+    position: relative;
     white-space: pre;
 }
 
-div.document p + .xcode {
-    margin-top: -12px;
+
+div.xcode code {
+    background: #fffdf6;
+    border: 1px solid #f3e6ca;
+    border-top-right-radius: 5px;
+    color: inherit;
+    display: block;
+    font-size: inherit;
+    margin-left: 3rem;
+    overflow: auto;
+    padding: 8px 12px;
 }
 
-.section ol li>p + .xcode,
-.section ul li>p + .xcode,
-.section dl dd>p + .xcode {
-    margin-left: 24px;
-    margin-top: 0;
+div.xcode code:before {
+    background: #eae2c2;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    box-shadow: 0 0 2px #a58a26 inset;
+    color: #a58a26;
+    font-size: 80%;
+    padding: 1px 8px;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+p + div.notranslate div.xcode {
+    margin-top: -0.5rem;
+}
+
+li > p + div.notranslate div.xcode {
+    margin-top: -0.3rem;
 }
 
 
 /*------------------------------------------------------------------------------
- * console
+ * Generic styles (apply to all languages)
  *-----------------------------------------------------------------------------*/
 
-.xcode.console {
+.xcode .kn,   /* Keyword.Namespace */
+.xcode .k {   /* Keyword */
+    color: #5fa5dc;
+    font-weight: bold;
+}
+
+.xcode .kc {  /* Keyword.Constant */
+    color: green;
+    font-weight: bold;
+}
+
+
+.xcode code .s,    /* String */
+.xcode code .s1,   /* String.Single */
+.xcode code .s2 {  /* String.Double */
+    color: #d48a02;
+}
+
+.xcode .se,   /* String.Escape */
+.xcode .si {  /* String.Interpol */
+    color: #d48a0244;
+}
+
+.xcode .sd {  /* String.Doc */
+    color: #7dbfbf;
+}
+
+
+.xcode .na {  /* Name.Attribute */
+    color: orange;
+}
+
+.xcode .nb {  /* Name.Builtin */
+    font-weight: bold;
+}
+
+.xcode .bp {  /* Name.Builtin.Pseudo */
+    font-style: italic;
+}
+
+.xcode .ne {  /* Name.Exception */
+    color: #e62222;
+    font-weight: bold;
+}
+
+.xcode .fm,   /* Name.Function.Magic */
+.xcode .vm {  /* Name.Variable.Magic */
+    color: #e24aac;
+}
+
+.xcode .nf,   /* Name.Function */
+.xcode .nc {  /* Name.Class */
+}
+
+.xcode .nd {  /* Name.Decorator */
+    color: #829ee0;
+}
+
+.xcode .nt {  /* Name.Tag */
+    color: blue;
+}
+
+.xcode .nv {  /* Name.Variable */
+    color: #c17d00;
+}
+
+
+.xcode .o,    /* Operator */
+.xcode .ow {  /* Operator.Word */
+    color: #5fa5dc;
+}
+
+.xcode .c1,   /* Comment.Single */
+.xcode .ch {  /* Comment.Hashbang */
+    color: #bbb;
+    font-style: italic;
+}
+
+.xcode .cpf,  /* Comment.PreprocFile */
+.xcode .cp {  /* Comment.Preproc */
+    color: #00a500;
+}
+
+.xcode .m,    /* Number */
+.xcode .mi,   /* Number.Integer */
+.xcode .mf,   /* Number.Float */
+.xcode .mo,   /* Number.Octal */
+.xcode .mh,   /* Number.Hex */
+.xcode .mb {  /* Number.Bin */
+    color: #2db533;
+}
+
+.xcode .gh {  /* Generic.Heading */
+    color: #8340d8;
+    font-weight: bold;
+}
+
+.xcode .gs {  /* Generic.Strong */
+    font-weight: bold;
+}
+
+.xcode .ge {  /* Generic.Emphasis */
+    font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
+ * python
+ *-----------------------------------------------------------------------------*/
+
+.xcode .input-numbered-block {
+    counter-increment: cc;
+}
+
+.xcode .input-numbered-block::before {
+    color: #ccc;
+    content: "[" counter(cc) "]:";
+    font-family: "Source Code Pro", monospace;
+    font-size: 80%;
+    line-height: 24px;
+    padding-right: 6px;
+    position: absolute;
+    text-align: right;
+    width: 3rem;
+}
+
+.xcode code.python {
+    background: whitesmoke;
+    border: 1px solid #e0e0e0;
+    border-top-right-radius: 0;
+}
+
+.xcode code.python.input {
+    display: block;
+    padding: 4px 8px;
+    position: relative;
+}
+
+.xcode div.output {
+    margin-bottom: 0.5rem;
+    margin-left: 3rem;
+    overflow-x: auto;
+    padding: 4px 8px;
+    white-space: pre;
+}
+
+.xcode div.output div.exception {
+    background-color: #fdd;
+    border-radius: 5px;
+    border: 1px solid #faa;
+    color: #b33;
+    margin: 0 -8px;
+    padding: 4px 8px;
+    white-space: break-spaces;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * bash
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.bash:before {
+    background: #222;
+    box-shadow: 0 0 2px #000 inset;
+    color: #ccc;
+    content: "bash";
+}
+
+.xcode code.bash {
     background-color: #444;
     border: none;
     color: #dadada;
 }
 
-.xcode.console .prompt {
+.xcode code.bash .gp {  /* prompt */
     color: #ffdd77;
     user-select: none;
 }
 
-.xcode.console .program {
-    color: #ffffae;
-}
-
-.xcode.console .comment {
+.xcode code.bash .c1 {  /* comments */
     color: #558080;
     font-style: italic;
 }
 
-.xcode.console .output {
+.xcode code.bash .go {  /* output */
     opacity: 0.6;
+}
+
+.xcode code.bash .s2,
+.xcode code.bash .s1 {  /* strings */
+    color: #ffae19;
+}
+
+.xcode code.bash .si,
+.xcode code.bash .nv {  /* variables */
+    color: #6f6;
+}
+
+
+/*------------------------------------------------------------------------------
+ * restructuredtext
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.restructuredtext:before {
+    content: "RST";
+}
+
+.xcode code.restructuredtext .na,
+.xcode code.restructuredtext .nc {  /* Name.Class */
+    color: orange;
+}
+
+/* Regular comments in RST are emitted as "preprocessor" */
+.xcode code.restructuredtext .cp {  /* Comment.Preproc */
+    color: #bbb;
+    font-style: italic;
+}
+
+
+/*------------------------------------------------------------------------------
+ * R
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.s:before {
+    content: "R";
+}
+
+
+/*------------------------------------------------------------------------------
+ * C++
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.cpp:before {
+    content: "C++";
+}
+
+
+/*------------------------------------------------------------------------------
+ * SQL
+ *-----------------------------------------------------------------------------*/
+
+div.xcode > code.sql:before {
+    content: "SQL";
+}
+
+
+/*------------------------------------------------------------------------------
+ * datatable frame
+ *-----------------------------------------------------------------------------*/
+
+.dtframe {
+    background: #eff5ff;
+    border: 1px solid #bec4cc;
+    border-radius: 5px;
+    display: inline-block;
+    margin: 0 -8px;
+}
+
+.dtframe table {
+    font-size: 11px;
+    margin: 0;
+}
+
+.dtframe table thead {
+    border-bottom: 1px solid #95a8bf;
+}
+
+.dtframe tr.colnames th {
+    background: #aaa4;
+    min-width: 35px;
+    text-align: right;
+    padding: .2em .5em;
+}
+
+.dtframe tr.colnames th.key,
+.dtframe tr.coltypes th.key {
+    background: #3333;
+    min-width: 25px;
+}
+
+.dtframe thead tr th:last-child {
+    min-width: 0;
+    padding: 0;
+    width: 100%;
+}
+
+.dtframe tr.coltypes th {
+    background: #aaa4;
+    color: #0006;
+    font-size: 70%;
+    font-style: italic;
+    font-weight: normal;
+    padding: 2px .7em 0 .7em;
+    text-align: right;
+}
+
+.dtframe tbody {
+    background: linear-gradient(#0004, #0001 3px, #0000 6px);
+}
+
+.dtframe tbody tr:hover {
+    background: #fff9;
+}
+
+.dtframe td {
+    padding: .2em .5em;
+    text-align: right;
+}
+
+.dtframe td.row_index {
+    background-color: #3331;
+    font-size: 80%;
+    color: #aaa;
+}
+
+.dtframe td.key {
+    background-color: #3331;
+}
+
+.dtframe td.key + td:not(.key),
+.dtframe th.key + th:not(.key) {
+    border-left: 1px solid #0003;
+}
+
+.dtframe td.etc {
+    color: #0003;
+}
+
+.dtframe td.NA {
+    color: #0003;
+}
+
+.dtframe td:last-child {
+    padding: 0;
+}
+
+.dtframe .dtframe-footer {
+    color: #789;
+    padding: 3px 8px;
+    font-size: 80%;
+    background: linear-gradient(#9caebf, #d1deea 25%);
 }

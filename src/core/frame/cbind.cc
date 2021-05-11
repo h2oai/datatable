@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #include <functional>
 #include "frame/py_frame.h"
 #include "python/_all.h"
+#include "python/xargs.h"
 #include "utils/assert.h"
 #include "datatable.h"
 #include "datatablemodule.h"
@@ -71,11 +72,11 @@ force: bool
     exception of Frames having just 1 row, which will be replicated
     instead of filling with NAs).
 
-(return): None
+return: None
     This method alters the current frame in-place, and doesn't return
     anything.
 
-(except): InvalidOperationError
+except: InvalidOperationError
     If trying to cbind frames with the number of rows different from
     the current frame's, and the option `force` is not set.
 
@@ -92,11 +93,11 @@ instead of cbinding them one-by-one.
 
 It is possible to cbind frames using the standard `DT[i,j]` syntax::
 
-    df[:, update(**frame1, **frame2, ...)]
+    >>> df[:, update(**frame1, **frame2, ...)]
 
 Or, if you need to append just a single column::
 
-    df["newcol"] = frame1
+    >>> df["newcol"] = frame1
 
 
 Examples
@@ -105,12 +106,12 @@ Examples
 >>> frame1 = dt.Frame(N=[-1, -2, -5])
 >>> DT.cbind(frame1)
 >>> DT
-   |  A   B   N
--- + --  --  --
- 0 |  1   4  -1
- 1 |  2   7  -2
- 2 |  3   0  -5
---
+   |     A      B      N
+   | int32  int32  int32
+-- + -----  -----  -----
+ 0 |     1      4     -1
+ 1 |     2      7     -2
+ 2 |     3      0     -5
 [3 rows x 3 columns]
 
 
@@ -122,12 +123,7 @@ See also
 - :meth:`.rbind()` -- method for row-binding frames.
 )";
 
-static PKArgs args_cbind(0, 0, 1, true, false, {"force"}, "cbind", doc_cbind);
-
-
-
-void Frame::cbind(const PKArgs& args)
-{
+void Frame::cbind(const XArgs& args) {
   std::vector<py::oobj> frame_objs;
   std::vector<DataTable*> datatables;
 
@@ -171,6 +167,12 @@ void Frame::cbind(const PKArgs& args)
   _clear_types();
 }
 
+DECLARE_METHODv(&Frame::cbind)
+    ->name("cbind")
+    ->docs(doc_cbind)
+    ->n_keyword_args(1)
+    ->allow_varargs()
+    ->arg_names({"force"});
 
 
 
@@ -186,7 +188,7 @@ Create a new Frame by appending columns from several `frames`.
 
 This function is exactly equivalent to::
 
-  dt.Frame().cbind(*frames, force=force)
+    >>> dt.Frame().cbind(*frames, force=force)
 
 Parameters
 ----------
@@ -194,7 +196,7 @@ frames: Frame | List[Frame] | None
 
 force: bool
 
-(return): Frame
+return: Frame
 
 
 See also
@@ -202,12 +204,69 @@ See also
 - :func:`rbind()` -- function for row-binding several frames.
 - :meth:`dt.Frame.cbind()` -- Frame method for cbinding some frames to
   another.
+
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+    >>> DT
+       |     A      B
+       | int32  int32
+    -- + -----  -----
+     0 |     1      4
+     1 |     2      7
+     2 |     3      0
+    [3 rows x 2 columns]
+
+    >>> frame1 = dt.Frame(N=[-1, -2, -5])
+    >>> frame1
+       |     N
+       | int32
+    -- + -----
+     0 |    -1
+     1 |    -2
+     2 |    -5
+    [3 rows x 1 column]
+
+    >>> dt.cbind([DT, frame1])
+       |     A      B      N
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1      4     -1
+     1 |     2      7     -2
+     2 |     3      0     -5
+    [3 rows x 3 columns]
+
+If the number of rows are not equal, you can force the binding by setting
+the `force` parameter to `True`::
+
+    >>> frame2 = dt.Frame(N=[-1, -2, -5, -20])
+    >>> frame2
+       |     N
+       | int32
+    -- + -----
+     0 |    -1
+     1 |    -2
+     2 |    -5
+     3 |   -20
+    [4 rows x 1 column]
+
+    >>> dt.cbind([DT, frame2], force=True)
+       |     A      B      N
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1      4     -1
+     1 |     2      7     -2
+     2 |     3      0     -5
+     3 |    NA     NA    -20
+    [4 rows x 3 columns]
 )";
 
-static PKArgs args_py_cbind(
-  0, 0, 1, true, false, {"force"}, "cbind", doc_py_cbind);
-
-static oobj py_cbind(const PKArgs& args) {
+static oobj py_cbind(const XArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   xassert(r.is_frame());
   PyObject* rv = r.to_borrowed_ref();
@@ -215,15 +274,12 @@ static oobj py_cbind(const PKArgs& args) {
   return r;
 }
 
-
-
-void Frame::_init_cbind(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::cbind, args_cbind));
-}
-
-void DatatableModule::init_methods_cbind() {
-  ADD_FN(&py_cbind, args_py_cbind);
-}
+DECLARE_PYFN(&py_cbind)
+    ->name("cbind")
+    ->n_keyword_args(1)
+    ->allow_varargs()
+    ->arg_names({"force"})
+    ->docs(doc_py_cbind);
 
 
 

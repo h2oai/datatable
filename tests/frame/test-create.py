@@ -266,7 +266,7 @@ def test_create_from_empty_list_of_lists():
     frame_integrity_check(d6)
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
-    assert d6.ltypes == (ltype.bool, )
+    assert d6.ltypes == (ltype.void, )
 
 
 
@@ -574,7 +574,7 @@ def test_create_from_list_of_dicts_with_names1():
     frame_integrity_check(d0)
     assert d0.shape == (5, 4)
     assert d0.names == ("c", "a", "d", "e")
-    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.bool)
+    assert d0.ltypes == (ltype.str, ltype.int, ltype.real, ltype.void)
     assert d0.to_list() == [["Rose", None, "Lily", None, None],
                             [12, 37, 80, None, None],
                             [None, None, 3.14159, 1.7e10, None],
@@ -697,16 +697,10 @@ def test_auto_int32_2():
     assert d0.to_list()[0] == src
 
 
-def test_auto_int32_3(numpy):
-    i8 = numpy.int8
-    i16 = numpy.int16
-    i32 = numpy.int32
-    src = [None, False, 0, i8(0), i16(0), i32(0)]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list() == [[None, 0, 0, 0, 0, 0]]
-
+def test_auto_int32_3(np):
+    src = [None, 0, np.int8(0), np.int16(0), np.int32(0)]
+    DT = dt.Frame(src)
+    assert_equals(DT, dt.Frame([None, 0, 0, 0, 0] / dt.int32))
 
 
 def test_auto_int64():
@@ -732,10 +726,10 @@ def test_auto_str32_1():
 
 
 def test_auto_str32_2():
-    DT = dt.Frame([None, 1, 12, "fini"])
+    DT = dt.Frame([None, "1a", "12", "fini"])
     frame_integrity_check(DT)
     assert DT.stype == stype.str32
-    assert DT.to_list() == [[None, "1", "12", "fini"]]
+    assert DT.to_list() == [[None, "1a", "12", "fini"]]
 
 
 def test_auto_str32_3():
@@ -760,6 +754,18 @@ def test_create_large_string_column():
     assert DT[-1, 0] == s
 
 
+def test_no_auto_object_column():
+    src = [3, "ha!", dt, [0]]
+    msg = r"Cannot create column from a python list"
+    with pytest.raises(TypeError, match=msg):
+        dt.Frame(src)
+    # Requesting 'object' stype explicitly should create a valid frame
+    DT = dt.Frame(src, stype=object)
+    assert DT.shape == (4, 1)
+    assert DT.types == [dt.Type.obj64]
+    assert DT.to_list() == [src]
+
+
 
 #-------------------------------------------------------------------------------
 # Create specific stypes
@@ -768,7 +774,7 @@ def test_create_large_string_column():
 def test_create_from_nones():
     d0 = dt.Frame([None, None, None])
     frame_integrity_check(d0)
-    assert d0.stypes == (stype.bool8, )
+    assert d0.stypes == (stype.void, )
     assert d0.shape == (3, 1)
 
 
@@ -1174,6 +1180,49 @@ def test_create_from_datetime_array(numpy):
     assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
 
 
+def test_create_from_numpy_bools1(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t]), dt.Frame([True]))
+    assert_equals(dt.Frame([f]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools2(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([[t]]), dt.Frame([True]))
+    assert_equals(dt.Frame([[f]]), dt.Frame([False]))
+
+
+def test_create_from_numpy_bools3(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([t, f, f, t]),
+                  dt.Frame([True, False, False, True]))
+
+
+def test_create_from_numpy_bools4(np):
+    t = np.bool_(1)
+    f = np.bool_(0)
+    assert_equals(dt.Frame([True, t, f, False, None]),
+                  dt.Frame([True, True, False, False, None]))
+
+
+@pytest.mark.parametrize("seed", [random.getrandbits(32)])
+def test_create_from_numpy_bools_random(np, seed):
+    random.seed(seed)
+    src1 = [random.choice([True, False, None, np.bool_(1), np.bool_(0)])
+            for i in range(int(random.expovariate(0.1) + 1))]
+    src2 = [x if x is None else bool(x)
+            for x in src1]
+    if random.random() > 0.5:
+        src1 = [src1]
+    DT1 = dt.Frame(src1)
+    DT2 = dt.Frame(src2)
+    assert_equals(DT1, DT2)
+
+
+
 def test_create_from_numpy_ints(numpy):
     DT = dt.Frame(A=[numpy.int32(3), numpy.int32(78), numpy.int32(0)])
     frame_integrity_check(DT)
@@ -1268,6 +1317,70 @@ def test_from_random_numpy_masked_and_sliced(numpy, seed):
 
 
 #-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow1(pa):
+    df = pa.Table.from_pydict({
+        "A": [3, 7, 11, 4],
+        "B": [True, False, True, False],
+        "C": [1.1, -2.5, 23, 0],
+        "D": [2, 3, 4, -1],
+        "E": ['make', 'love', 'not', 'war'],
+    }, schema = pa.schema([
+        pa.field("A", pa.int64()),
+        pa.field("B", pa.bool_()),
+        pa.field("C", pa.float64()),
+        pa.field("D", pa.int8()),
+        pa.field("E", pa.string())
+    ]))
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A=[3, 7, 11, 4] / dt.int64,
+                 B=[True, False, True, False],
+                 C=[1.1, -2.5, 23, 0],
+                 D=[2, 3, 4, -1] / dt.int8,
+                 E=['make', 'love', 'not', 'war'])
+    )
+
+
+def test_create_from_arrow2(pa):
+    df = pa.Table.from_pydict({
+        "A1": [2, None, 17, -1, 3],
+        "B2": ['what', 'if', None, 'munroe', None],
+        "C3": [2.17, math.nan, None, -math.nan, 0.1],
+        "D4": [None, None, None, True, False],
+        })
+    assert_equals(
+        dt.Frame(df),
+        dt.Frame(A1=[2, None, 17, -1, 3] / dt.int64,
+                 B2=['what', 'if', None, 'munroe', None],
+                 C3=[2.17, None, None, None, 0.1],
+                 D4=[None, None, None, True, False])
+    )
+
+
+def test_create_from_arrow_null(pa):
+    tbl = pa.Table.from_arrays(
+            [pa.array([None] * 5)],
+            names=["A"])
+    assert_equals(dt.Frame(tbl),
+                  dt.Frame(A = [None] * 5))
+
+
+@pytest.mark.parametrize("slice_", [slice(None, None, 2), # slice(1, None),
+                                    slice(None, -1), # slice(2, 5)
+                                    slice(0, 3)])
+def test_create_from_arrow_sliced(pa, slice_):
+    src = [1, None, 2, None, 3, None, 4, 5]
+    df = pa.Table.from_pydict({"A": src})
+    assert_equals(dt.Frame(df[slice_]),
+                  dt.Frame(A=src[slice_], stype=dt.int64))
+
+
+
+
+#-------------------------------------------------------------------------------
 # Issues
 #-------------------------------------------------------------------------------
 
@@ -1298,7 +1411,7 @@ def test_issue_42():
     frame_integrity_check(d)
     assert d.shape == (1, 1)
     assert d.ltypes == (ltype.int, )
-    d = dt.Frame([-1, 2, {5}, "hooray"])
+    d = dt.Frame([-1, 2, {5}, "hooray"], stype='obj64')
     frame_integrity_check(d)
     assert d.shape == (4, 1)
     assert d.ltypes == (ltype.obj, )

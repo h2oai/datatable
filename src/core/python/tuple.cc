@@ -84,11 +84,13 @@ rtuple rtuple::unchecked(const robj& src) {
 //------------------------------------------------------------------------------
 
 robj otuple::operator[](size_t i) const {
+  xassert(i < size());
   return robj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
   // return this->operator[](static_cast<int64_t>(i));
 }
 
 robj rtuple::operator[](size_t i) const {
+  xassert(i < size());
   return robj(PyTuple_GET_ITEM(v, static_cast<int64_t>(i)));
 }
 

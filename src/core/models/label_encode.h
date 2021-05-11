@@ -230,6 +230,11 @@ void label_encode_str(const Column& ocol,
 }
 
 
+// These functions do label encoding and set up mapping information
+void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&, dtptr& dt_labels);
+size_t create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, dtptr&,
+                            const bool, bool validation = false);
+void add_negative_class(dtptr&);
 
 
 } // namespace dt

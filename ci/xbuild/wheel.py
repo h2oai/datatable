@@ -298,7 +298,7 @@ class Wheel:
             "name", "version", "summary", "keywords", "description",
             "description_content_type", "home_page", "author", "author_email",
             "maintainer", "maintainer_email", "license", "classifiers",
-            "requirements", "requires_python", "audit"}
+            "requirements", "requires_python", "audit", "reuse_version"}
         unknown_fields = set(meta.keys()) - known_fields
         if unknown_fields:
             raise KeyError("Unknown meta parameters %r" % unknown_fields)
@@ -568,7 +568,7 @@ class Wheel:
         digest = hashlib.sha256(bcontent).digest()
         hashstr = base64.urlsafe_b64encode(digest).rstrip(b'=').decode()
         assert isinstance(hashstr, str)
-        self._record_file.write("%s,%s,%d\n"
+        self._record_file.write("%s,sha256=%s,%d\n"
                                 % (target_file, hashstr, len(bcontent)))
         self.log.report_added_file_to_wheel(target_file, len(bcontent))
 

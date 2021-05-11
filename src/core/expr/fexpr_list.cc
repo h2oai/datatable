@@ -37,6 +37,9 @@ FExpr_List::FExpr_List(vecExpr&& args)
   : args_(std::move(args))
 {}
 
+ptrExpr FExpr_List::empty() {
+  return ptrExpr(new FExpr_List());
+}
 
 ptrExpr FExpr_List::make(py::robj src) {
   vecExpr args;
@@ -55,6 +58,9 @@ ptrExpr FExpr_List::make(py::robj src) {
   return ptrExpr(new FExpr_List(std::move(args)));
 }
 
+void FExpr_List::add_expr(ptrExpr&& expr) {
+  args_.push_back(std::move(expr));
+}
 
 
 
@@ -98,9 +104,12 @@ Workframe FExpr_List::evaluate_r(
 
 
 
-Workframe FExpr_List::evaluate_f(EvalContext&, size_t) const {
-  throw TypeError()
-      << "A list or a sequence cannot be used inside an f-selector";
+Workframe FExpr_List::evaluate_f(EvalContext& ctx, size_t i) const {
+  Workframe outputs(ctx);
+  for (const auto& arg : args_) {
+    outputs.cbind( arg->evaluate_f(ctx, i) );
+  }
+  return outputs;
 }
 
 

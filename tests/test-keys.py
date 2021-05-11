@@ -134,7 +134,7 @@ def test_key_duplicate():
 
 
 def test_set_empty_key():
-    dt0 = dt.Frame([range(5), [None] * 5], names=["A", "B"])
+    dt0 = dt.Frame(A = range(5), B = [None] * 5)
     dt0.key = []
     assert dt0.key == tuple()
     dt0.key = "A"

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -67,6 +67,7 @@ class Arg : public _obj::error_manager {
     bool is_numpy_array() const;
     bool is_pandas_frame() const;
     bool is_pandas_series() const;
+    bool is_arrow_table() const;
     bool is_range() const;
     bool is_string() const;
     bool is_tuple() const;
@@ -91,6 +92,7 @@ class Arg : public _obj::error_manager {
     py::oobj    to_oobj_or_none       () const { return pyobj? oobj(pyobj) : py::None(); }
     py::robj    to_robj               () const { return pyobj; }
     py::oiter   to_oiter              () const;
+    dt::Type    to_type_force         () const;
     DataTable*  to_datatable          () const;
 
 

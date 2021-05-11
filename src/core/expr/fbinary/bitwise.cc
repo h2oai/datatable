@@ -65,8 +65,8 @@ static SType _find_types_for_andor(
     throw TypeError() << "Operator `" << name << "` cannot be applied to "
         "columns with types `" << stype1 << "` and `" << stype2 << "`";
   }
-  *uptype1 = (stype1 == stype0)? SType::VOID : stype0;
-  *uptype2 = (stype2 == stype0)? SType::VOID : stype0;
+  *uptype1 = (stype1 == stype0)? SType::AUTO : stype0;
+  *uptype2 = (stype2 == stype0)? SType::AUTO : stype0;
   return stype0;
 }
 
@@ -83,7 +83,7 @@ static void _find_types_for_shifts(
   LType ltype1 = stype_to_ltype(stype1);
   LType ltype2 = stype_to_ltype(stype2);
   if (ltype1 == LType::INT && (ltype2 == LType::INT || ltype2 == LType::BOOL)) {
-    *uptype2 = (stype2 == SType::INT32)? SType::VOID : SType::INT32;
+    *uptype2 = (stype2 == SType::INT32)? SType::AUTO : SType::INT32;
   }
   else {
     throw TypeError() << "Operator `" << name << "` cannot be applied to "
@@ -306,8 +306,8 @@ inline static T op_or(T x, T y) {
 template <typename T>
 static inline bimaker_ptr _or(SType uptype1, SType uptype2, SType outtype) {
   xassert(compatible_type<T>(outtype));
-  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
-  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
+  if (uptype1 != SType::AUTO) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::AUTO) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_or<T>, uptype1, uptype2, outtype);
 }
 
@@ -344,8 +344,8 @@ inline static T op_xor(T x, T y) {
 template <typename T>
 static inline bimaker_ptr _xor(SType uptype1, SType uptype2, SType outtype) {
   xassert(compatible_type<T>(outtype));
-  if (uptype1 != SType::VOID) xassert(compatible_type<T>(uptype1));
-  if (uptype2 != SType::VOID) xassert(compatible_type<T>(uptype2));
+  if (uptype1 != SType::AUTO) xassert(compatible_type<T>(uptype1));
+  if (uptype2 != SType::AUTO) xassert(compatible_type<T>(uptype2));
   return bimaker1<T, T, T>::make(op_xor<T>, uptype1, uptype2, outtype);
 }
 
@@ -380,7 +380,7 @@ inline static T op_lshift(T x, int32_t y) {
 template <typename T>
 static inline bimaker_ptr _lshift(SType outtype, SType uptype2) {
   xassert(compatible_type<T>(outtype));
-  return bimaker1<T, int32_t, T>::make(op_lshift<T>, SType::VOID,
+  return bimaker1<T, int32_t, T>::make(op_lshift<T>, SType::AUTO,
                                        uptype2, outtype);
 }
 
@@ -414,7 +414,7 @@ inline static T op_rshift(T x, int32_t y) {
 template <typename T>
 static inline bimaker_ptr _rshift(SType outtype, SType uptype2) {
   xassert(compatible_type<T>(outtype));
-  return bimaker1<T, int32_t, T>::make(op_rshift<T>, SType::VOID,
+  return bimaker1<T, int32_t, T>::make(op_rshift<T>, SType::AUTO,
                                        uptype2, outtype);
 }
 

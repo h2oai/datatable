@@ -17,7 +17,6 @@ import os
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../src/datatable'))
 
 
 # -- Project information -----------------------------------------------------
@@ -50,12 +49,12 @@ needs_sphinx = '1.8'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxext.dtframe_directive',
-    'sphinxext.xcode',
-    'sphinxext.xcontributors',
-    'sphinxext.xfunction',
-    'sphinxext.xpython',
-    'sphinxext.dt_changelog',
+    '_ext.xcode',
+    '_ext.xcomparisontable',
+    '_ext.xcontributors',
+    '_ext.xfunction',
+    '_ext.xpython',
+    '_ext.changelog',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',  # links to external documentation
@@ -185,7 +184,9 @@ def get_local_toc(document):
     html_text = "<div id='toc-local' class='list-group'>\n"
     html_text += " <b>Table of contents</b>\n"
     for title, node_id, level in titles:
-        html_text += f"  <a href='#{node_id}' class='list-group-item'>{title}</a>\n"
+        if level <= 1:
+            return document.reporter.error("More than one <h1> title on the page")
+        html_text += f"  <a href='#{node_id}' class='list-group-item level-{level-1}'>{title}</a>\n"
     html_text += "</div>\n"
     return html_text
 
@@ -197,10 +198,27 @@ def on_html_page_context(app, pagename, templatename, context, doctree):
     context["get_local_toc"] = lambda: get_local_toc(doctree)
 
 
+def patch_list_table():
+    """
+    Modifies docutils' builtin ListTable class so that the rendered table
+    is wrapped in a div. This is necessary in order to be able to prevent
+    a table from overflowing the width of the page.
+    """
+    from docutils.parsers.rst.directives.tables import ListTable
+    from _ext.xnodes import div
+
+    def new_run(self):
+        ret = self._run()
+        ret[0] = div(ret[0], classes=["list-table"])
+        return ret
+
+    ListTable._run = ListTable.run
+    ListTable.run = new_run
+
+
 
 def setup(app):
-    app.add_css_file("pygments.css")
-    app.add_css_file("code.css")
+    patch_list_table()
 
     if html_theme == "wren":
         app.add_css_file("bootstrap.min.css")

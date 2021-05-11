@@ -64,12 +64,12 @@ constexpr uint8_t NSTATS = 14;
  *                 /         +---------+            \
  *                /               |                  \
  *  +---------------+    +--------------------+    +-------------+
- *  | PyObjectStats |    |    NumericStats    |    | StringStats |
- *  +---------------+    +--------------------+    +-------------+
- *                      /          |           \
- *       +--------------+   +--------------+   +-----------+
- *       | BooleanStats |   | IntegerStats |   | RealStats |
- *       +--------------+   +--------------+   +-----------+
+ *  | PyObjectStats |    |    NumericStats    |_   | StringStats |
+ *  +---------------+    +--------------------+ \  +-------------+
+ *                      /          |           \ \--------------\
+ *       +--------------+   +--------------+   +-----------+   +-----------+
+ *       | BooleanStats |   | IntegerStats |   | RealStats |   | VoidStats |
+ *       +--------------+   +--------------+   +-----------+   +-----------+
  *
  *
  * `NumericStats` acts as a base class for all numeric STypes.
@@ -309,6 +309,25 @@ class NumericStats : public Stats {
     void compute_moments34() override;
     void compute_nunique() override;
     void compute_sorted_stats() override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// VoidStats class
+//------------------------------------------------------------------------------
+
+class VoidStats : public Stats {
+  public:
+    using Stats::Stats;
+    size_t memory_footprint() const noexcept override;
+    std::unique_ptr<Stats> clone() const override;
+
+    size_t nacount(bool* isvalid = nullptr) override;
+    size_t nunique(bool* isvalid = nullptr) override;
+    size_t nmodal(bool* isvalid = nullptr) override;
+    double sum(bool* isvalid) override;
 };
 
 

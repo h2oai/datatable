@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <algorithm>             // std::min
+#include <cstring>               // std::strcmp
 #include "call_logger.h"
 #include "python/xargs.h"
 #include "utils/assert.h"
@@ -31,10 +32,10 @@ namespace py {
 // Construction
 //------------------------------------------------------------------------------
 
-XArgs::XArgs(implfn_t fn)
-  : ccfn_(fn),
-    pyfn_(nullptr),
+XArgs::XArgs()
+  : pyfn_(nullptr),
     docstring_(nullptr),
+    classId_(0),
     nargs_required_(0),
     nargs_posonly_(0),
     nargs_pos_kwd_(0),
@@ -47,6 +48,19 @@ XArgs::XArgs(implfn_t fn)
   store().push_back(this);
 }
 
+XArgs::XArgs(impl_function_t fn) : XArgs() {
+  ccfn_.fn = fn;
+}
+
+XArgs::XArgs(impl_method_t method, size_t classId) : XArgs() {
+  ccfn_.meth = method;
+  classId_ = classId;
+}
+
+XArgs::XArgs(impl_methodv_t method, size_t classId) : XArgs() {
+  ccfn_.methv = method;
+  classId_ = classId;
+}
 
 std::vector<XArgs*>& XArgs::store() {
   static std::vector<XArgs*> xargs_repo;
@@ -64,6 +78,15 @@ PyMethodDef XArgs::get_method_def() {
   };
 }
 
+PyCFunctionWithKeywords XArgs::get_pyfunction() {
+  finish_initialization();
+  return pyfn_;
+}
+
+const char* XArgs::get_docstring() const {
+  return docstring_;
+}
+
 
 void XArgs::finish_initialization() {
   nargs_all_ = nargs_posonly_ + nargs_pos_kwd_ + nargs_kwdonly_;
@@ -74,7 +97,7 @@ void XArgs::finish_initialization() {
 
   xassert(arg_names_.size() == nargs_all_);
   xassert(nargs_required_ <= nargs_all_);
-  xassert(ccfn_);
+  xassert(ccfn_.fn);
   xassert(pyfn_);
   xassert(!function_name_.empty());
   xassert(function_name_.find('.') == std::string::npos);
@@ -137,6 +160,34 @@ XArgs* XArgs::docs(const char* str) {
   return this;
 }
 
+XArgs* XArgs::add_info(int info) {
+  info_ = info;
+  return this;
+}
+
+XArgs* XArgs::add_synonym_arg(const char* new_name, const char* old_name) {
+  constexpr size_t NPOS = size_t(-1);
+  has_renamed_args_ = true;
+  size_t iold = NPOS;
+  size_t inew = NPOS;
+  for (size_t i = 0; i < arg_names_.size(); ++i) {
+    const char* name = arg_names_[i];
+    if (std::strcmp(name, old_name) == 0) iold = i;
+    if (std::strcmp(name, new_name) == 0) inew = i;
+  }
+  xassert(iold != NPOS);  // make sure that `old_name` exists
+  xassert(inew == NPOS);  (void)inew;
+  PyObject* py_new_name = PyUnicode_FromString(new_name);
+  xassert(py_new_name);
+  kwd_map_[py_new_name] = iold;
+  return this;
+}
+
+XArgs* XArgs::set_class_name(const char* className) {
+  class_name_ = className;
+  return this;
+}
+
 
 size_t XArgs::n_positional_args() const {
   return nargs_posonly_;
@@ -163,6 +214,9 @@ const char* XArgs::arg_name(size_t i) const {
   return arg_names_[i];
 }
 
+int XArgs::get_info() const {
+  return info_;
+}
 
 
 
@@ -170,13 +224,15 @@ const char* XArgs::arg_name(size_t i) const {
 // Names
 //------------------------------------------------------------------------------
 
-std::string XArgs::proper_name() const {
+const std::string& XArgs::proper_name() const {
   return function_name_;
 }
 
 std::string XArgs::qualified_name() const {
-  std::string out = "datatable.";
-  if (!class_name_.empty()) {
+  std::string out;
+  if (class_name_.empty()) {
+    out += "datatable.";
+  } else {
     out += class_name_;
     out += '.';
   }
@@ -186,7 +242,7 @@ std::string XArgs::qualified_name() const {
 
 std::string XArgs::descriptive_name(bool lowercase) const {
   if (function_name_ == "__init__") {
-    return "`datatable." + class_name_ + "()` constructor";
+    return "`" + class_name_ + "()` constructor";
   }
   std::string out = lowercase? (class_name_.empty()? "function" : "method")
                              : (class_name_.empty()? "Function" : "Method");
@@ -343,9 +399,35 @@ PyObject* XArgs::exec_function(PyObject* args, PyObject* kwds) noexcept {
   auto cl = dt::CallLogger::function(this, args, kwds);
   try {
     bind(args, kwds);
-    return ccfn_(*this).release();
+    return (ccfn_.fn)(*this).release();
 
   } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+PyObject* XArgs::exec_method(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  try {
+    bind(args, kwds);
+    return (obj->*ccfn_.meth)(*this).release();
+  }
+  catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
+
+PyObject* XArgs::exec_methodv(PyObject* obj, PyObject* args, PyObject* kwds) noexcept {
+  auto cl = dt::CallLogger::method(this, obj, args, kwds);
+  try {
+    bind(args, kwds);
+    (obj->*ccfn_.methv)(*this);
+    return py::None().release();
+  }
+  catch (const std::exception& e) {
     exception_to_python(e);
     return nullptr;
   }
@@ -357,14 +439,20 @@ const Arg& XArgs::operator[](size_t i) const {
   return bound_args_[i];
 }
 
-size_t XArgs::num_varargs() const noexcept {
-  return n_varargs_;
-}
-
 size_t XArgs::num_varkwds() const noexcept {
   return n_varkwds_;
 }
 
+
+
+
+//------------------------------------------------------------------------------
+// varargs
+//------------------------------------------------------------------------------
+
+size_t XArgs::num_varargs() const noexcept {
+  return n_varargs_;
+}
 
 py::robj XArgs::vararg(size_t i) const {
   xassert(i < n_varargs_);
@@ -372,6 +460,48 @@ py::robj XArgs::vararg(size_t i) const {
   // PyTuple_GET_ITEM() returns a borrowed reference
   return py::robj(PyTuple_GET_ITEM(args_tuple_, j));
 }
+
+XArgs::VarArgsIterable XArgs::varargs() const noexcept {
+  return XArgs::VarArgsIterable(*this);
+}
+
+
+
+XArgs::VarArgsIterable::VarArgsIterable(const XArgs& args)
+  : parent_(args) {}
+
+XArgs::VarArgsIterator XArgs::VarArgsIterable::begin() const {
+  size_t i0 = parent_.n_bound_args_;
+  return XArgs::VarArgsIterator(parent_, i0);
+}
+
+XArgs::VarArgsIterator XArgs::VarArgsIterable::end() const {
+  size_t i1 = parent_.n_bound_args_ + parent_.n_varargs_;
+  return XArgs::VarArgsIterator(parent_, i1);
+}
+
+
+
+XArgs::VarArgsIterator::VarArgsIterator(const XArgs& args, size_t i0)
+  : parent_(args), pos_(static_cast<Py_ssize_t>(i0)) {}
+
+XArgs::VarArgsIterator& XArgs::VarArgsIterator::operator++() {
+  ++pos_;
+  return *this;
+}
+
+py::robj XArgs::VarArgsIterator::operator*() const {
+  return py::robj(PyTuple_GET_ITEM(parent_.args_tuple_, pos_));
+}
+
+bool XArgs::VarArgsIterator::operator==(const VarArgsIterator& other) const {
+  return (pos_ == other.pos_);
+}
+
+bool XArgs::VarArgsIterator::operator!=(const VarArgsIterator& other) const {
+  return (pos_ != other.pos_);
+}
+
 
 
 
