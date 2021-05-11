@@ -42,6 +42,11 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.sum() <dt.FExpr.sum>`,
       which behaves exactly as the base level function :func:`dt.sum()`.
 
+    -[new] Class :class:`dt.FExpr` now has methods :meth:`.max() <dt.FExpr.max>`,
+      :meth:`.min() <dt.FExpr.min>`, :meth:`.mean() <dt.FExpr.mean>`,
+      and :meth:`.median() <dt.FExpr.median>`, which behaves exactly as the
+      equivalent base level functions.
+
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.
