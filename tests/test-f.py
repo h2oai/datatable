@@ -254,3 +254,4 @@ def test_min():
     assert str(dt.min(f[:])) == str(f[:].min())
     DT = dt.Frame(A=[2, 3, 5, 5, 9, -1, 2.2])
     assert_equals(DT[:, f.A.min()], DT[:, dt.min(f.A)])
+
