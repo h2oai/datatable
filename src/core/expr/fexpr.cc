@@ -344,7 +344,21 @@ DECLARE_METHOD(&PyFExpr::sum)
     ->name("sum")
     ->docs(doc_sum);
 
+static const char* doc_max =
+R"(max()
+--
 
+Equivalent to :func:`dt.max(self)`.
+)";
+
+oobj PyFExpr::max(const XArgs&) {
+  auto maxFn = oobj::import("datatable", "max");
+  return maxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::max)
+    ->name("max")
+    ->docs(doc_max);
 
 
 //------------------------------------------------------------------------------

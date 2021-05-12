@@ -122,6 +122,9 @@
         * - :meth:`.sum()`
           - Same as :func:`dt.sum()`.
 
+        * - :meth:`.max()`
+          - Same as :func:`dt.max()`.
+
 
     Miscellaneous
     -------------
@@ -175,3 +178,4 @@
     .re_match()     <fexpr/re_match>
     .remove()       <fexpr/remove>
     .sum()          <fexpr/sum>
+    .max()          <fexpr/max>

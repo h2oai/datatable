@@ -181,6 +181,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj re_match(const py::PKArgs&);   // [DEPRECATED]
 
     py::oobj sum(const py::XArgs&);
+    py::oobj max(const py::XArgs&);
 
     static void impl_init_type(py::XTypeMaker& xt);
 };
