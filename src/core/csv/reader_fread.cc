@@ -29,7 +29,6 @@
 #include "stype.h"
 #include "utils/logger.h"
 #include "utils/misc.h"          // wallclock
-#include <iostream>
 #define D() if (verbose) d()
 
 
@@ -280,7 +279,7 @@ void FreadReader::detect_sep_and_qr() {
   // `numLines` has the number of lines in each group.
   int numFields[JUMPLINES+1];
   int numLines[JUMPLINES+1];
-  int countInvalidQuoteRules = 0;
+  int8_t countInvalidQuoteRules = 0;
   bool setQuoteRuleInvalid;
   for (quoteRule=0; quoteRule<4; quoteRule++) {  // quote rule in order of preference
     setQuoteRuleInvalid = false;
