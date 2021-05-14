@@ -15,13 +15,13 @@ evaluated within the context of the frame ``DT``.
 
 For example, consider the expression::
 
-    f.price
+    >>> f.price
 
 By itself, it just means *a column named "price", in an unspecified frame*.
 This expression becomes concrete, however, when used with a particular frame.
 For example::
 
-    train_dt[f.price > 0, :]
+    >>> train_dt[f.price > 0, :]
 
 selects all rows in ``train_dt`` where the price is positive. Thus, within the
 call to ``train_dt[...]``, the symbol ``f`` refers to the frame ``train_dt``.
@@ -30,17 +30,17 @@ The standalone f-expression may occasionally be useful too: it can be saved in
 a variable and then re-applied to several different frames. Each time ``f``
 will refer to the frame to which it is being applied::
 
-    price_filter = (f.price > 0)
-    train_filtered = train_dt[price_filter, :]
-    test_filtered = test_dt[price_filter, :]
+    >>> price_filter = (f.price > 0)
+    >>> train_filtered = train_dt[price_filter, :]
+    >>> test_filtered = test_dt[price_filter, :]
 
 The simple expression ``f.price`` can be saved in a variable too. In fact,
 there is a Frame helper method ``.export_names()`` which does exactly that:
 returns a tuple of variables for each column name in the frame, allowing you to
 omit the ``f.`` prefix::
 
-    Id, Price, Quantity = DT.export_names()
-    DT[:, [Id, Price, Quantity, Price * Quantity]]
+    >>> Id, Price, Quantity = DT.export_names()
+    >>> DT[:, [Id, Price, Quantity, Price * Quantity]]
 
 
 
@@ -53,8 +53,8 @@ contains spaces or unicode characters? Or if a column's name is not known, only
 its index? Or if the name is in a variable? For these purposes ``f`` supports
 the square-bracket selectors::
 
-    f[-1]           # select the last column
-    f["Price ($)"]  # select column names "Price ($)"
+    >>> f[-1]           # select the last column
+    >>> f["Price ($)"]  # select column names "Price ($)"
 
 Generally, ``f[i]`` means either the column at index ``i`` if ``i`` is an
 integer, or the column with name ``i`` if ``i`` is a string.
@@ -69,9 +69,9 @@ dynamically, i.e. if its name is not known in advance. For example, suppose
 there is a frame with columns ``"2017_01"``, ``"2017_02"``, ..., ``"2019_12"``.
 Then all these columns can be addressed as::
 
-    [f["%d_%02d" % (year, month)]
-     for month in range(1, 13)
-     for year in [2017, 2018, 2019]]
+    >>> [f["%d_%02d" % (year, month)]
+    ...  for month in range(1, 13)
+    ...  for year in [2017, 2018, 2019]]
 
 
 .. _`columnsets`:
@@ -83,15 +83,15 @@ In the previous section you have seen that ``f[i]`` refers to a single column
 when ``i`` is either an integer or a string. However we alo support the case
 when ``i`` is a slice or a type::
 
-    f[:]          # select all columns
-    f[::-1]       # select all columns in reverse order
-    f[:5]         # select the first 5 columns
-    f[3:4]        # select the fourth column
-    f["B":"H"]    # select columns from B to H, inclusive
-    f[int]        # select all integer columns
-    f[float]      # select all floating-point columns
-    f[dt.str32]   # select all columns with stype `str32`
-    f[None]       # select no columns (empty columnset)
+    >>> f[:]          # select all columns
+    >>> f[::-1]       # select all columns in reverse order
+    >>> f[:5]         # select the first 5 columns
+    >>> f[3:4]        # select the fourth column
+    >>> f["B":"H"]    # select columns from B to H, inclusive
+    >>> f[int]        # select all integer columns
+    >>> f[float]      # select all floating-point columns
+    >>> f[dt.str32]   # select all columns with stype `str32`
+    >>> f[None]       # select no columns (empty columnset)
 
 In all these cases a *columnset* is returned. This columnset may contain a
 variable number of columns or even no columns at all, depending on the frame
@@ -112,10 +112,10 @@ and it is not possible to specify a step. If the range is ``x:y``, yet column
 reverse order: first ``x``, then the column preceding ``x``, and so on, until
 column ``y`` is selected last::
 
-    f["C1":"C9"]   # Select columns from C1 up to C9
-    f["C9":"C1"]   # Select columns C9, C8, C7, ..., C2, C1
-    f[:"C3"]       # Select all columns up to C3
-    f["C5":]       # Select all columns after C5
+    >>> f["C1":"C9"]   # Select columns from C1 up to C9
+    >>> f["C9":"C1"]   # Select columns C9, C8, C7, ..., C2, C1
+    >>> f[:"C3"]       # Select all columns up to C3
+    >>> f["C5":]       # Select all columns after C5
 
 Finally, you can select all columns of a particular type by using that type
 as an f-selector. You can pass either common python types ``bool``, ``int``,
@@ -124,9 +124,9 @@ as an f-selector. You can pass either common python types ``bool``, ``int``,
 this may not be very useful, but occasionally you may need this as a fallback
 in conditional expressions::
 
-    f[int if select_types == "integer" else
-      float if select_types == "floating" else
-      None]  # otherwise don't select any columns
+    >>> f[int if select_types == "integer" else
+    ...   float if select_types == "floating" else
+    ...   None]  # otherwise don't select any columns
 
 A columnset can be used in situations where a sequence of columns is expected,
 such as:
@@ -138,10 +138,10 @@ such as:
 - many other functions that normally operate on a single column will
   automatically map over all columns in columnset::
 
-    sum(f[:])       # equivalent to [sum(f[i]) for i in range(DT.ncols)]
-    f[:3] + f[-3:]  # same as [f[0]+f[-3], f[1]+f[-2], f[2]+f[-1]]
+    >>> sum(f[:])       # equivalent to [sum(f[i]) for i in range(DT.ncols)]
+    >>> f[:3] + f[-3:]  # same as [f[0]+f[-3], f[1]+f[-2], f[2]+f[-1]]
 
-.. versionadded:: 0.10.0
+.. x-version-added:: 0.10.0
 
 
 Modifying a columnset
@@ -156,14 +156,14 @@ original and the new columns. The columns need not be unique: the same column
 may appear multiple times in a columnset. This method allows to add transformed
 columns into the columnset as well::
 
-    f[int].extend(f[float])          # integer and floating-point columns
-    f[:3].extend(f[-3:])             # the first and the last 3 columns
-    f.A.extend(f.B)                  # columns "A" and "B"
-    f[str].extend(dt.str32(f[int]))  # string columns, and also all integer
-                                     # columns converted to strings
-    # All columns, and then one additional column named 'cost', which contains
-    # column `price` multiplied by `quantity`:
-    f[:].extend({"cost": f.price * f.quantity})
+    >>> f[int].extend(f[float])          # integer and floating-point columns
+    >>> f[:3].extend(f[-3:])             # the first and the last 3 columns
+    >>> f.A.extend(f.B)                  # columns "A" and "B"
+    >>> f[str].extend(dt.str32(f[int]))  # string columns, and also all integer
+    >>>                                  # columns converted to strings
+    >>> # All columns, and then one additional column named 'cost', which contains
+    >>> # column `price` multiplied by `quantity`:
+    >>> f[:].extend({"cost": f.price * f.quantity})
 
 When a columnset is extended, the order of the elements is preserved. Thus, a
 columnset is closer in functionality to a python list than to a set. In
@@ -173,10 +173,10 @@ is created from a dictionary. The names may be non-unique too.
 The ``.remove()`` method is the opposite of ``.extend()``: it takes an existing
 columnset and then removes all columns that are passed as the argument::
 
-    f[:].remove(f[str])    # all columns except columns of type string
-    f[:10].remove(f.A)     # the first 10 columns without column "A"
-    f[:].remove(f[3:-3])   # same as `f[:3].extend(f[-3:])`, at least in the
-                           # context of a frame with 6+ columns
+    >>> f[:].remove(f[str])    # all columns except columns of type string
+    >>> f[:10].remove(f.A)     # the first 10 columns without column "A"
+    >>> f[:].remove(f[3:-3])   # same as `f[:3].extend(f[-3:])`, at least in the
+    >>>                        # context of a frame with 6+ columns
 
 Removing a column that is not in the columnset is not considered an error,
 similar to how set-difference operates. Thus, ``f[:].remove(f.A)`` may be
@@ -190,7 +190,7 @@ removed. Generally, the multiplicity of some column "A" in columnset
 multiplicity of "A" in ``cs2``, or 0 if such difference would be negative.
 Thus,::
 
-    f[:].extend(f[int]).remove(f[int])
+    >>> f[:].extend(f[int]).remove(f[int])
 
 will have the effect of moving all integer columns to the end of the columnset
 (since ``.remove()`` removes the first occurrence of a column it finds).
@@ -200,5 +200,5 @@ will be thrown if the argument of ``.remove()`` contains any transformed
 columns.
 
 
-.. versionadded:: 0.10.0
+.. x-version-added:: 0.10.0
 

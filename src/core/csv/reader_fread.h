@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 #define dt_CSV_READER_FREAD_h
 #include <vector>                 // std::vector
 #include "csv/reader.h"           // GenericReader
-#include "csv/reader_parsers.h"   // ParserLibrary, ParserFnPtr
+#include "read/parsers/info.h"    // ParserFnPtr
 #include "read/field64.h"         // dt::read::field64
 #include "parallel/atomic.h"      // dt::atomic
 
@@ -95,8 +95,7 @@ class FreadReader : public dt::read::GenericReader
   //     Number of rows in the allocated DataTable
   // meanLineLen:
   //     Average length (in bytes) of a single line in the input file
-  ParserLibrary parserlib;
-  const ParserFnPtr* parsers;
+  const dt::read::ParserFnPtr* parsers;
   FreadObserver fo;
   char* targetdir;
   size_t allocnrow;

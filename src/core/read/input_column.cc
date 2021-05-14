@@ -21,10 +21,11 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "csv/reader.h"
-#include "csv/reader_parsers.h"
 #include "python/string.h"
-#include "read/output_column.h"
 #include "read/input_column.h"
+#include "read/output_column.h"
+#include "read/parsers/info.h"
+#include "read/parsers/rt.h"
 #include "stype.h"
 #include "utils/temporary_file.h"
 namespace dt {
@@ -37,7 +38,7 @@ namespace read {
 //------------------------------------------------------------------------------
 
 InputColumn::InputColumn()
-  : parse_type_(PT::Mu),
+  : parse_type_(PT::Void),
     requested_type_(RT::RAuto) {}
 
 
@@ -81,7 +82,7 @@ RT InputColumn::get_rtype() const noexcept {
 }
 
 SType InputColumn::get_stype() const {
-  return ParserLibrary::info(parse_type_).stype;
+  return parser_infos[parse_type_].type().stype();
 }
 
 
@@ -105,12 +106,15 @@ void InputColumn::set_rtype(int64_t it) {
     case RFloat64: parse_type_ = PT::Float64Plain; break;
     case RStr:     parse_type_ = PT::Str32; break;
     case RStr32:   parse_type_ = PT::Str32; break;
-    case RStr64:   parse_type_ = PT::Str64; break;
+    // If at some point we implement creating str64 columns from fread directly,
+    // then this line will have to be changed. For now, though, if the user
+    // requests a str64 column type, we'll create a regular str32 instead.
+    case RStr64:   parse_type_ = PT::Str32; break;
   }
 }
 
 const char* InputColumn::typeName() const {
-  return ParserLibrary::info(parse_type_).name.data();
+  return parser_infos[parse_type_].name().data();
 }
 
 
@@ -118,7 +122,7 @@ const char* InputColumn::typeName() const {
 //---- Column info -------------------------------------------------------------
 
 bool InputColumn::is_string() const {
-  return ParserLibrary::info(parse_type_).isstring();
+  return parser_infos[parse_type_].type().is_string();
 }
 
 bool InputColumn::is_dropped() const noexcept {
@@ -126,7 +130,7 @@ bool InputColumn::is_dropped() const noexcept {
 }
 
 size_t InputColumn::elemsize() const {
-  return static_cast<size_t>(ParserLibrary::info(parse_type_).elemsize);
+  return stype_elemsize(get_stype());
 }
 
 
@@ -164,7 +168,7 @@ py::oobj InputColumn::py_descriptor() const {
   static PyTypeObject* name_type_pytuple = init_nametypepytuple();
   PyObject* nt_tuple = PyStructSequence_New(name_type_pytuple);  // new ref
   if (!nt_tuple) throw PyError();
-  PyObject* stype = stype_to_pyobj(ParserLibrary::info(parse_type_).stype).release();
+  PyObject* stype = stype_to_pyobj(get_stype()).release();
   PyObject* cname = py::ostring(name_).release();
   PyStructSequence_SetItem(nt_tuple, 0, cname);
   PyStructSequence_SetItem(nt_tuple, 1, stype);

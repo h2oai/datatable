@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,7 +30,7 @@ namespace dt {
 
 template <typename T>
 ColumnImpl* CastNumeric_ColumnImpl<T>::clone() const {
-  return new CastNumeric_ColumnImpl<T>(stype_, Column(arg_));
+  return new CastNumeric_ColumnImpl<T>(stype(), Column(arg_));
 }
 
 

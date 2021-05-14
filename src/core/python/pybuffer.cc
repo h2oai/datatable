@@ -157,7 +157,7 @@ dt::SType buffer::stype() const {
   const char* format = info_->format;
   int64_t itemsize = info_->itemsize;
 
-  dt::SType stype = dt::SType::VOID;
+  dt::SType stype = dt::SType::INVALID;
   char c = format[0];
   if (c == '@' || c == '=') c = format[1];
 
@@ -166,14 +166,14 @@ dt::SType buffer::stype() const {
     stype = itemsize == 1 ? dt::SType::INT8 :
             itemsize == 2 ? dt::SType::INT16 :
             itemsize == 4 ? dt::SType::INT32 :
-            itemsize == 8 ? dt::SType::INT64 : dt::SType::VOID;
+            itemsize == 8 ? dt::SType::INT64 : dt::SType::INVALID;
   }
   else if (c == 'd' || c == 'f') {
     stype = itemsize == 4 ? dt::SType::FLOAT32 :
-            itemsize == 8 ? dt::SType::FLOAT64 : dt::SType::VOID;
+            itemsize == 8 ? dt::SType::FLOAT64 : dt::SType::INVALID;
   }
   else if (c == '?') {
-    stype = itemsize == 1 ? dt::SType::BOOL : dt::SType::VOID;
+    stype = itemsize == 1 ? dt::SType::BOOL : dt::SType::INVALID;
   }
   else if (c == 'O') {
     stype = dt::SType::OBJ;
@@ -186,7 +186,7 @@ dt::SType buffer::stype() const {
       }
     }
   }
-  if (stype == dt::SType::VOID) {
+  if (stype == dt::SType::INVALID) {
     throw ValueError()
         << "Unknown format '" << format << "' with itemsize " << itemsize;
   }
@@ -207,12 +207,12 @@ Column buffer::to_column() &&
   }
   else if (stride_ == 1) {
     size_t datasize = itemsize() * nrows;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     return Column::new_mbuf_column(nrows, stype, std::move(databuf));
   }
   else if (static_cast<int64_t>(stride_) > 0) {
     size_t datasize = itemsize() * nrows * stride_;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     Column internal_col = Column::new_mbuf_column(nrows * stride_, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(
@@ -225,7 +225,7 @@ Column buffer::to_column() &&
 
     size_t datasize = itemsize() * nrows * minus_stride;
     ptr = static_cast<char*>(ptr) - itemsize() * (nrows - 1) * minus_stride;
-    Buffer databuf = Buffer::external(ptr, datasize, std::move(*this));
+    Buffer databuf = Buffer::from_pybuffer(ptr, datasize, std::move(*this));
     Column internal_col = Column::new_mbuf_column(nrows * minus_stride, stype,
                                                   std::move(databuf));
     return Column(new dt::SliceView_ColumnImpl(

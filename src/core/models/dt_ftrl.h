@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,10 +32,11 @@ namespace dt {
 
 
 /**
- *  Class template that implements all the virtual methods declared in dt::Ftrl.
+ *  Class template that implements all the virtual methods declared in
+ *  dt::FtrlBase.
  */
 template <typename T /* float or double */>
-class Ftrl : public dt::FtrlBase {
+class Ftrl : public FtrlBase {
   private:
     // Model datatable of shape (nbins, 2 * nlabels),
     // a vector of weight pointers, and the model type.
@@ -117,22 +118,16 @@ class Ftrl : public dt::FtrlBase {
     void hash_row(uint64ptr&, std::vector<hasherptr>&, size_t);
 
     // Model helper methods
-    void add_negative_class();
     void create_model();
     void adjust_model();
     void init_model();
     void init_weights();
     void reset_model_stats();
 
-    // Do label encoding and set up mapping information
-    void create_y_binomial(const DataTable*, dtptr&, std::vector<size_t>&);
-    void create_y_multinomial(const DataTable*, dtptr&, std::vector<size_t>&, bool validation = false);
-
     // Feature importance helper methods
     void create_fi();
     void init_fi();
     void define_features();
-    void normalize_rows(dtptr&);
 
     // Parameter helper methods.
     void init_helper_params();

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -122,6 +122,7 @@ bool Arg::is_frame()             const { return pyobj.is_frame(); }
 bool Arg::is_pandas_frame()      const { return pyobj.is_pandas_frame(); }
 bool Arg::is_pandas_series()     const { return pyobj.is_pandas_series(); }
 bool Arg::is_numpy_array()       const { return pyobj.is_numpy_array(); }
+bool Arg::is_arrow_table()       const { return pyobj.is_arrow_table(); }
 
 bool Arg::is_auto() const {
   return pyobj.is_string() &&
@@ -148,6 +149,7 @@ std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 dt::SType   Arg::to_stype()        const { return pyobj.to_stype(*this); }
 dt::SType   Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
+dt::Type    Arg::to_type_force()   const { return pyobj.to_type_force(*this); }
 py::oiter   Arg::to_oiter()        const { return pyobj.to_oiter(*this); }
 DataTable*  Arg::to_datatable()    const { return pyobj.to_datatable(*this); }
 

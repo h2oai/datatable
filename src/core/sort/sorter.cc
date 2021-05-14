@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -47,6 +47,7 @@ static std::unique_ptr<SSorter<T>> _make_sorter(const Column& col)
     case SType::BOOL:    return make_sorter_bool<T, ASC>(col);
     case SType::INT8:    return so(new Sorter_Int<T, ASC, int8_t>(col));
     case SType::INT16:   return so(new Sorter_Int<T, ASC, int16_t>(col));
+    case SType::DATE32:
     case SType::INT32:   return so(new Sorter_Int<T, ASC, int32_t>(col));
     case SType::INT64:   return so(new Sorter_Int<T, ASC, int64_t>(col));
     case SType::FLOAT32: return so(new Sorter_Float<T, ASC, float>(col));

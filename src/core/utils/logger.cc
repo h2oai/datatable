@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -68,8 +68,7 @@ class DefaultLogger : public XObject<DefaultLogger>
 
   public:
     static oobj make(const dt::log::Logger& logger) {
-      robj rtype(reinterpret_cast<PyObject*>(&DefaultLogger::type));
-      oobj resobj = rtype.call();
+      oobj resobj = robj(DefaultLogger::typePtr).call();
       DefaultLogger* dlogger = DefaultLogger::cast_from(resobj);
       dlogger->prefix_ = std::make_unique<std::string>(logger.prefix_);
       dlogger->use_colors_ = logger.use_colors_;

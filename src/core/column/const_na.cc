@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -44,7 +44,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, py::oobj*) const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::clone() const {
-  return new ConstNa_ColumnImpl(nrows_, stype_);
+  return new ConstNa_ColumnImpl(nrows_, stype());
 }
 
 
@@ -59,7 +59,24 @@ void ConstNa_ColumnImpl::na_pad(size_t nrows, Column&) {
 //------------------------------------------------------------------------------
 
 template <typename T, typename ColClass>
-static Column _fw_col(size_t nrows) {
+static Column _fw_col(size_t nrows, SType stype) {
+  Buffer buf = Buffer::mem(nrows * sizeof(T));
+  T* data = static_cast<T*>(buf.xptr());
+
+  parallel_for_static(nrows,
+    [=](size_t i) {
+      data[i] = GETNA<T>();
+    });
+
+  if (std::is_same<T, PyObject*>::value) {
+    Py_None->ob_refcnt += nrows;
+    buf.set_pyobjects(/* clear_data= */ false);
+  }
+  return Column(new ColClass(nrows, stype, std::move(buf)));
+}
+
+template <typename T, typename ColClass>
+static Column _special_col(size_t nrows) {
   Buffer buf = Buffer::mem(nrows * sizeof(T));
   T* data = static_cast<T*>(buf.xptr());
 
@@ -90,20 +107,22 @@ static Column _str_col(size_t nrows) {
 
 
 void ConstNa_ColumnImpl::materialize(Column& out, bool) {
-  switch (stype_) {
-    case SType::VOID:
-    case SType::BOOL:    out = _fw_col<int8_t,  SentinelBool_ColumnImpl>(nrows_); break;
-    case SType::INT8:    out = _fw_col<int8_t,  SentinelFw_ColumnImpl<int8_t>>(nrows_); break;
-    case SType::INT16:   out = _fw_col<int16_t, SentinelFw_ColumnImpl<int16_t>>(nrows_); break;
-    case SType::INT32:   out = _fw_col<int32_t, SentinelFw_ColumnImpl<int32_t>>(nrows_); break;
-    case SType::INT64:   out = _fw_col<int64_t, SentinelFw_ColumnImpl<int64_t>>(nrows_); break;
-    case SType::FLOAT32: out = _fw_col<float,   SentinelFw_ColumnImpl<float>>(nrows_); break;
-    case SType::FLOAT64: out = _fw_col<double,  SentinelFw_ColumnImpl<double>>(nrows_); break;
-    case SType::OBJ:     out = _fw_col<PyObject*, SentinelObj_ColumnImpl>(nrows_); break;
+  auto st = stype();
+  switch (st) {
+    case SType::VOID:    break;
+    case SType::BOOL:    out = _special_col<int8_t,  SentinelBool_ColumnImpl>(nrows_); break;
+    case SType::INT8:    out = _fw_col<int8_t,  SentinelFw_ColumnImpl<int8_t>>(nrows_, st); break;
+    case SType::INT16:   out = _fw_col<int16_t, SentinelFw_ColumnImpl<int16_t>>(nrows_, st); break;
+    case SType::DATE32:
+    case SType::INT32:   out = _fw_col<int32_t, SentinelFw_ColumnImpl<int32_t>>(nrows_, st); break;
+    case SType::INT64:   out = _fw_col<int64_t, SentinelFw_ColumnImpl<int64_t>>(nrows_, st); break;
+    case SType::FLOAT32: out = _fw_col<float,   SentinelFw_ColumnImpl<float>>(nrows_, st); break;
+    case SType::FLOAT64: out = _fw_col<double,  SentinelFw_ColumnImpl<double>>(nrows_, st); break;
+    case SType::OBJ:     out = _special_col<PyObject*, SentinelObj_ColumnImpl>(nrows_); break;
     case SType::STR32:   out = _str_col<uint32_t>(nrows_); break;
     case SType::STR64:   out = _str_col<uint64_t>(nrows_); break;
     default:
-      throw NotImplError() << "Cannot materialize NaColumn of type " << stype_;
+      throw NotImplError() << "Cannot materialize NaColumn of type " << stype();
   }
 }
 

@@ -1,5 +1,6 @@
+
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +24,7 @@
 #define dt_COLUMN_h
 #include "_dt.h"
 #include "stats.h"       // Stat (enum), Stats
+#include "types/type.h"
 
 namespace dt {
   class ColumnImpl;
@@ -97,10 +99,11 @@ class Column
     static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
     static Column from_pybuffer(const py::robj& buffer);
-    static Column from_pylist(const py::olist& list, int stype0 = 0);
-    static Column from_pylist_of_tuples(const py::olist& list, size_t index, int stype0);
-    static Column from_pylist_of_dicts(const py::olist& list, py::robj name, int stype0);
+    static Column from_pylist(const py::olist& list, dt::SType stype0);
+    static Column from_pylist_of_tuples(const py::olist& list, size_t index, dt::SType stype0);
+    static Column from_pylist_of_dicts(const py::olist& list, py::robj name, dt::SType stype0);
     static Column from_range(int64_t start, int64_t stop, int64_t step, dt::SType);
+    static Column from_arrow(std::shared_ptr<dt::OArrowArray>&&, const dt::ArrowSchema*);
 
     // Move-semantics for the pointer here indicates to the user that
     // the class overtakes ownership of that pointer.
@@ -115,6 +118,7 @@ class Column
   public:
     size_t nrows() const noexcept;
     size_t na_count() const;
+    const dt::Type& type() const noexcept;
     dt::SType stype() const noexcept;
     dt::LType ltype() const noexcept;
     size_t elemsize() const noexcept;
@@ -124,7 +128,6 @@ class Column
     bool   allow_parallel_access() const;
     size_t memory_footprint() const noexcept;
     operator bool() const noexcept;
-
     dt::ColumnImpl* release() &&;
 
   //------------------------------------
@@ -233,7 +236,9 @@ class Column
     void materialize(bool to_memory = false);
     void rbind(colvec& columns);
     void cast_inplace(dt::SType stype);
+    void cast_inplace(dt::Type type);
     Column cast(dt::SType stype) const;
+    Column cast(dt::Type type) const;
     void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
@@ -274,6 +279,16 @@ class Column
         flatbuffers::FlatBufferBuilder&,
         WritableBuffer*);
     void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
+
+    // See frame/to_arrow.cc
+    std::unique_ptr<dt::OArrowArray> to_arrow() const;
+    std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
+
+    // A shortcut for `.type().can_be_read_as<T>()`. The latter call
+    // is not compatible with some compilers, for instance Clang 11.
+    template<typename T> bool can_be_read_as() const {
+      return type().can_be_read_as<T>();
+    }
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

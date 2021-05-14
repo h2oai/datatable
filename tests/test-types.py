@@ -1,12 +1,223 @@
 #!/usr/bin/env python
-# © H2O.ai 2018; -*- encoding: utf-8 -*-
-#   This Source Code Form is subject to the terms of the Mozilla Public
-#   License, v. 2.0. If a copy of the MPL was not distributed with this
-#   file, You can obtain one at http://mozilla.org/MPL/2.0/.
+# -*- coding: utf-8 -*-
+#-------------------------------------------------------------------------------
+# Copyright 2018-2021 H2O.ai
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the "Software"),
+# to deal in the Software without restriction, including without limitation
+# the rights to use, copy, modify, merge, publish, distribute, sublicense,
+# and/or sell copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import pytest
 import datatable as dt
+from datatable import Type
 
+
+#-------------------------------------------------------------------------------
+# Test Type class
+#-------------------------------------------------------------------------------
+
+def test_type_singletons():
+    assert Type.void
+    assert Type.bool8
+    assert Type.int8
+    assert Type.int16
+    assert Type.int32
+    assert Type.int64
+    assert Type.float32
+    assert Type.float64
+    assert Type.str32
+    assert Type.str64
+    assert Type.obj64
+
+
+def test_type_repr():
+    assert repr(Type.void) == "Type.void"
+    assert repr(Type.bool8) == "Type.bool8"
+    assert repr(Type.int8) == "Type.int8"
+    assert repr(Type.int16) == "Type.int16"
+    assert repr(Type.int32) == "Type.int32"
+    assert repr(Type.int64) == "Type.int64"
+    assert repr(Type.float32) == "Type.float32"
+    assert repr(Type.float64) == "Type.float64"
+    assert repr(Type.str32) == "Type.str32"
+    assert repr(Type.str64) == "Type.str64"
+    assert repr(Type.obj64) == "Type.obj64"
+
+
+def test_type_names():
+    assert Type.void.name == "void"
+    assert Type.bool8.name == "bool8"
+    assert Type.int8.name == "int8"
+    assert Type.int16.name == "int16"
+    assert Type.int32.name == "int32"
+    assert Type.int64.name == "int64"
+    assert Type.float32.name == "float32"
+    assert Type.float64.name == "float64"
+    assert Type.str32.name == "str32"
+    assert Type.str64.name == "str64"
+    assert Type.obj64.name == "obj64"
+
+
+def test_type_cmp():
+    assert Type.int8 == Type.int8
+    assert Type.int8 != Type.int32
+    assert not(Type.int8 == Type.int32)
+    assert not(Type.int32 == Type.float32)
+    assert not(Type.void == Type.obj64)
+
+
+def test_type_create_from_strings():
+    assert Type("V") == Type.void
+    assert Type("bool") == Type.bool8
+    assert Type("boolean") == Type.bool8
+    assert Type("int") == Type.int64
+    assert Type("integer") == Type.int64
+    assert Type("float") == Type.float32
+    assert Type("double") == Type.float64
+    assert Type("<U") == Type.str32
+    assert Type("str") == Type.str32
+    assert Type("string") == Type.str32
+    assert Type("obj") == Type.obj64
+    assert Type("object") == Type.obj64
+
+
+def test_type_create_from_names():
+    assert Type("void") == Type.void
+    assert Type("bool8") == Type.bool8
+    assert Type("int8") == Type.int8
+    assert Type("int16") == Type.int16
+    assert Type("int32") == Type.int32
+    assert Type("int64") == Type.int64
+    assert Type("float32") == Type.float32
+    assert Type("float64") == Type.float64
+    assert Type("str32") == Type.str32
+    assert Type("str64") == Type.str64
+    assert Type("obj64") == Type.obj64
+
+
+def test_type_create_from_stypes():
+    assert Type(dt.stype.void) == Type.void
+    assert Type(dt.stype.bool8) == Type.bool8
+    assert Type(dt.stype.int8) == Type.int8
+    assert Type(dt.stype.int16) == Type.int16
+    assert Type(dt.stype.int32) == Type.int32
+    assert Type(dt.stype.int64) == Type.int64
+    assert Type(dt.stype.float32) == Type.float32
+    assert Type(dt.stype.float64) == Type.float64
+    assert Type(dt.stype.str32) == Type.str32
+    assert Type(dt.stype.str64) == Type.str64
+    assert Type(dt.stype.obj64) == Type.obj64
+
+
+def test_type_create_from_types():
+    assert Type(Type.void) == Type.void
+    assert Type(Type.bool8) == Type.bool8
+    assert Type(Type.int8) == Type.int8
+    assert Type(Type.int16) == Type.int16
+    assert Type(Type.int32) == Type.int32
+    assert Type(Type.int64) == Type.int64
+    assert Type(Type.float32) == Type.float32
+    assert Type(Type.float64) == Type.float64
+    assert Type(Type.str32) == Type.str32
+    assert Type(Type.str64) == Type.str64
+    assert Type(Type.obj64) == Type.obj64
+
+
+def test_type_create_from_python_types():
+    assert Type(None) == Type.void
+    assert Type(bool) == Type.bool8
+    assert Type(int) == Type.int64
+    assert Type(float) == Type.float64
+    assert Type(str) == Type.str32
+    assert Type(object) == Type.obj64
+
+
+def test_type_create_from_numpy_classes(np):
+    assert Type(np.void) == Type.void
+    assert Type(np.bool_) == Type.bool8
+    assert Type(np.int8) == Type.int8
+    assert Type(np.int16) == Type.int16
+    assert Type(np.int32) == Type.int32
+    assert Type(np.int64) == Type.int64
+    assert Type(np.float16) == Type.float32
+    assert Type(np.float32) == Type.float32
+    assert Type(np.float64) == Type.float64
+    assert Type(np.str_) == Type.str32
+
+
+def test_type_create_from_numpy_dtypes(np):
+    assert Type(np.dtype("void")) == Type.void
+    assert Type(np.dtype("bool")) == Type.bool8
+    assert Type(np.dtype("int8")) == Type.int8
+    assert Type(np.dtype("int16")) == Type.int16
+    assert Type(np.dtype("int32")) == Type.int32
+    assert Type(np.dtype("int64")) == Type.int64
+    assert Type(np.dtype("float16")) == Type.float32
+    assert Type(np.dtype("float32")) == Type.float32
+    assert Type(np.dtype("float64")) == Type.float64
+    assert Type(np.dtype("str")) == Type.str32
+
+
+def test_type_create_invalid():
+    msg = "Cannot create Type object from"
+    with pytest.raises(ValueError, match=msg):
+        Type(0)
+    with pytest.raises(ValueError, match=msg):
+        Type(0.5)
+    with pytest.raises(ValueError, match=msg):
+        Type("nothing")
+    with pytest.raises(ValueError, match=msg):
+        Type(type)
+    with pytest.raises(TypeError):
+        Type()
+
+
+def test_type_hashable():
+    m = {dt.Type.int32: 'ok', dt.Type.str64: 'yep'}
+    assert dt.Type.int32 in m
+    assert dt.Type('int32') in m
+    assert dt.Type.str64 in m
+    assert dt.Type('str64') in m
+    assert dt.Type.int64 not in m
+
+
+def test_type_minmax():
+    assert dt.Type.bool8.min is False
+    assert dt.Type.bool8.max is True
+    assert dt.Type.int8.min == -127
+    assert dt.Type.int8.max == 127
+    assert dt.Type.int16.min == -32767
+    assert dt.Type.int16.max == 32767
+    assert dt.Type.int32.min == -(2**31 - 1)
+    assert dt.Type.int32.max == +(2**31 - 1)
+    assert dt.Type.int64.min == -(2**63 - 1)
+    assert dt.Type.int64.max == +(2**63 - 1)
+    assert dt.Type.float32.min == float.fromhex("-0x1.fffffep+127")
+    assert dt.Type.float32.max == float.fromhex("+0x1.fffffep+127")
+    assert dt.Type.float64.min == float.fromhex("-0x1.fffffffffffffp+1023")
+    assert dt.Type.float64.max == float.fromhex("+0x1.fffffffffffffp+1023")
+    assert dt.Type.void.min is None
+    assert dt.Type.void.max is None
+    assert dt.Type.str32.min is None
+    assert dt.Type.str32.max is None
+    assert dt.Type.str64.min is None
+    assert dt.Type.str64.max is None
+    assert dt.Type.obj64.min is None
+    assert dt.Type.obj64.max is None
 
 
 
@@ -16,6 +227,7 @@ import datatable as dt
 
 def test_stype():
     from datatable import stype
+    assert stype.void
     assert stype.bool8
     assert stype.int8
     assert stype.int16
@@ -25,13 +237,16 @@ def test_stype():
     assert stype.float64
     assert stype.str32
     assert stype.str64
+    assert stype.date32
+    assert stype.time64
     assert stype.obj64
     # When new stypes are added, don't forget to update this test suite
-    assert len(stype) == 10
+    assert len(stype) == 13
 
 
 def test_stype_names():
     from datatable import stype
+    assert stype.void.name == "void"
     assert stype.bool8.name == "bool8"
     assert stype.int8.name == "int8"
     assert stype.int16.name == "int16"
@@ -41,6 +256,8 @@ def test_stype_names():
     assert stype.float64.name == "float64"
     assert stype.str32.name == "str32"
     assert stype.str64.name == "str64"
+    assert stype.date32.name == "date32"
+    assert stype.time64.name == "time64"
     assert stype.obj64.name == "obj64"
 
 
@@ -67,6 +284,7 @@ def test_stype_codes():
 def test_stype_ctypes():
     from datatable import stype
     import ctypes
+    assert stype.void.ctype == None
     assert stype.bool8.ctype == ctypes.c_int8
     assert stype.int8.ctype == ctypes.c_int8
     assert stype.int16.ctype == ctypes.c_int16
@@ -127,6 +345,7 @@ def test_stype_instantiate():
 
 def test_stype_instantiate_from_numpy(numpy):
     from datatable import stype
+    assert stype(numpy.dtype("void")) is stype.void
     assert stype(numpy.dtype("bool")) is stype.bool8
     assert stype(numpy.dtype("int8")) is stype.int8
     assert stype(numpy.dtype("int16")) is stype.int16
@@ -143,7 +362,7 @@ def test_stype_instantiate_bad():
     with pytest.raises(dt.exceptions.ValueError):
         print(stype(-1))
     with pytest.raises(dt.exceptions.ValueError):
-        print(stype(0))
+        print(stype(0.01))
     with pytest.raises(dt.exceptions.ValueError):
         print(stype(["i", "4"]))
     with pytest.raises(dt.exceptions.ValueError):
@@ -156,7 +375,8 @@ def test_stype_instantiate_bad():
 @pytest.mark.parametrize("st", list(dt.stype))
 def test_stype_minmax(st):
     from datatable import stype, ltype
-    if st in (stype.str32, stype.str64, stype.obj64):
+    if st in (stype.void, stype.str32, stype.str64, stype.obj64, stype.time64,
+              stype.date32):
         assert st.min is None
         assert st.max is None
     else:
@@ -192,6 +412,7 @@ def test_stype_minmax(st):
 
 def test_ltype():
     from datatable import ltype
+    assert ltype.void
     assert ltype.bool
     assert ltype.int
     assert ltype.real
@@ -199,11 +420,12 @@ def test_ltype():
     assert ltype.str
     assert ltype.obj
     # When new stypes are added, don't forget to update this test suite
-    assert len(ltype) == 6
+    assert len(ltype) == 7
 
 
 def test_ltype_names():
     from datatable import ltype
+    assert ltype.void.name is "void"
     assert ltype.bool.name is "bool"
     assert ltype.int.name is "int"
     assert ltype.real.name is "real"
@@ -220,10 +442,11 @@ def test_ltype_repr():
 
 def test_ltype_stypes():
     from datatable import stype, ltype
+    assert ltype.void.stypes == [stype.void]
     assert ltype.bool.stypes == [stype.bool8]
     assert set(ltype.int.stypes) == {stype.int8, stype.int16, stype.int32,
                                      stype.int64}
     assert set(ltype.real.stypes) == {stype.float32, stype.float64}
     assert set(ltype.str.stypes) == {stype.str32, stype.str64}
-    assert set(ltype.time.stypes) == set()
+    assert set(ltype.time.stypes) == {stype.time64, stype.date32}
     assert set(ltype.obj.stypes) == {stype.obj64}

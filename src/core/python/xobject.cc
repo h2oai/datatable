@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "python/xobject.h"
+#include "python/xargs.h"
 namespace py {
 
 
@@ -38,6 +39,7 @@ XTypeMaker::BuffersTag       XTypeMaker::buffers_tag;
 XTypeMaker::IterTag          XTypeMaker::iter_tag;
 XTypeMaker::NextTag          XTypeMaker::next_tag;
 XTypeMaker::CallTag          XTypeMaker::call_tag;
+XTypeMaker::HashTag          XTypeMaker::hash_tag;
 XTypeMaker::RichCompareTag   XTypeMaker::rich_compare_tag;
 XTypeMaker::NbAddTag         XTypeMaker::nb_add_tag;
 XTypeMaker::NbSubtractTag    XTypeMaker::nb_subtract_tag;
@@ -61,59 +63,101 @@ XTypeMaker::NbFloorDivideTag XTypeMaker::nb_floordivide_tag;
 XTypeMaker::NbTrueDivideTag  XTypeMaker::nb_truedivide_tag;
 
 
-XTypeMaker::XTypeMaker(PyTypeObject* t, size_t objsize) : type(t) {
-  std::memset(type, 0, sizeof(PyTypeObject));
-  Py_INCREF(type);
-  type->tp_basicsize = static_cast<Py_ssize_t>(objsize);
-  type->tp_itemsize = 0;
-  type->tp_flags = Py_TPFLAGS_DEFAULT;
-  type->tp_alloc = &PyType_GenericAlloc;
-  type->tp_new   = &PyType_GenericNew;
+XTypeMaker::XTypeMaker(size_t objsize, bool dynamic)
+  : type(nullptr),
+    object_size(objsize),
+    dynamic_type_(dynamic)
+{}
+
+
+// The type can only be initialized after its name is known
+void XTypeMaker::initialize_type() {
+  xassert(type == nullptr);
+  xassert(class_name_ != nullptr);
+  if (dynamic_type_) {  // dynamically created python type
+    py::odict defs;
+    defs.set(py::ostring("__module__"), py::ostring("datatable"));
+    auto typeObj = py::oobj(&PyType_Type).call({
+        py::ostring(class_name_), py::otuple(0), defs
+    });
+    type = reinterpret_cast<PyTypeObject*>(std::move(typeObj).release());
+    xassert(type->tp_basicsize == sizeof(PyObject) + 16);
+    type->tp_basicsize = static_cast<Py_ssize_t>(object_size);
+  }
+  else {
+    type = new PyTypeObject;
+    std::memset(type, 0, sizeof(PyTypeObject));
+    Py_INCREF(type);
+    type->tp_basicsize = static_cast<Py_ssize_t>(object_size);
+    type->tp_itemsize = 0;
+    type->tp_flags = Py_TPFLAGS_DEFAULT;
+    type->tp_alloc = &PyType_GenericAlloc;
+    type->tp_new   = &PyType_GenericNew;
+    type->tp_name  = class_name_;
+  }
 }
 
 
-void XTypeMaker::attach_to_module(PyObject* module) {
+void XTypeMaker::finalize() {
   xassert(type->tp_dealloc);
   xassert(type->tp_init);
   xassert(type->tp_name);
-
-  if (get_defs.size()) {
-    type->tp_getset = finalize_getsets();
-  }
-  if (meth_defs.size()) {
-    type->tp_methods = finalize_methods();
-  }
-
-  int r = PyType_Ready(type);
-  if (r < 0) throw PyError();
-
-  if (module) {
-    const char* dot = std::strrchr(type->tp_name, '.');
-    const char* name = dot? dot + 1 : type->tp_name;
-    r = PyModule_AddObject(module, name, reinterpret_cast<PyObject*>(type));
+  finalize_getsets();
+  if (!dynamic_type_) {
+    finalize_methods();
+    int r = PyType_Ready(type);
     if (r < 0) throw PyError();
   }
 }
 
 
+PyObject* XTypeMaker::get_type_object() const {
+  return reinterpret_cast<PyObject*>(type);
+}
+
+
+void XTypeMaker::attach_to_module(PyObject* module) {
+  if (!module) return;
+  const char* dot = std::strrchr(type->tp_name, '.');
+  const char* name = dot? dot + 1 : type->tp_name;
+  int r = PyModule_AddObject(module, name, reinterpret_cast<PyObject*>(type));
+  if (r < 0) throw PyError();
+}
+
+
 void XTypeMaker::set_class_name(const char* name) {
-  xassert(meth_defs.size() == 0);
-  xassert(type->tp_init == nullptr);
-  type->tp_name = name;
+  class_name_ = name;
+  initialize_type();
 }
 
 
 void XTypeMaker::set_class_doc(const char* doc) {
-  type->tp_doc = doc;
+  xassert(type);
+  if (dynamic_type_) {
+    // For dynamic type, the documentation must be stored both in `tp_doc`
+    // (as a copy of the original string), and as a `__doc__` attribute in
+    // the class' __dict__.
+    size_t len = std::strlen(doc);
+    char* doc_copy = static_cast<char*>(PyObject_MALLOC(len + 1));
+    std::memcpy(doc_copy, doc, len + 1);
+    type->tp_doc = doc_copy;
+    py::rdict::unchecked(type->tp_dict)
+        .set(py::ostring("__doc__"), py::ostring(doc));
+  }
+  else {
+    type->tp_doc = doc;
+  }
 }
 
 
 void XTypeMaker::set_base_class(PyTypeObject* base_type) {
+  xassert(type);
   type->tp_base = base_type;
 }
 
 
 void XTypeMaker::set_subclassable(bool flag /* = true */) {
+  xassert(type);
   if (flag) {
     type->tp_flags |= Py_TPFLAGS_BASETYPE;
   } else {
@@ -122,8 +166,17 @@ void XTypeMaker::set_subclassable(bool flag /* = true */) {
 }
 
 
+// An attribute can only be set on a dynamically allocated type
+void XTypeMaker::add_attr(const char* name, py::oobj value) {
+  xassert(type);
+  xassert(dynamic_type_);
+  py::robj(type).set_attr(name, value);
+}
+
+
 // initproc = int(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(initproc _init, PKArgs& args, ConstructorTag) {
+  xassert(type);
   args.set_class_name(type->tp_name);
   type->tp_init = _init;
 }
@@ -131,6 +184,7 @@ void XTypeMaker::add(initproc _init, PKArgs& args, ConstructorTag) {
 
 // destructor = void(*)(PyObject*)
 void XTypeMaker::add(destructor _dealloc, DestructorTag) {
+  xassert(type);
   type->tp_dealloc = _dealloc;
 }
 
@@ -138,6 +192,7 @@ void XTypeMaker::add(destructor _dealloc, DestructorTag) {
 // getter = PyObject*(*)(PyObject*, void*)
 // setter = int(*)(PyObject*, PyObject*, void*)
 void XTypeMaker::add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
+  xassert(type);
   args.class_name = type->tp_name;
   get_defs.push_back(PyGetSetDef {
     const_cast<char*>(args.name),
@@ -150,6 +205,7 @@ void XTypeMaker::add(getter getfunc, setter setfunc, GSArgs& args, GetSetTag) {
 
 // PyCFunctionWithKeywords = PyObject*(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
+  xassert(type);
   args.set_class_name(type->tp_name);
   meth_defs.push_back(PyMethodDef {
     args.get_short_name(),
@@ -159,9 +215,21 @@ void XTypeMaker::add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
   });
 }
 
+void XTypeMaker::add(PyCFunctionWithKeywords meth, XArgs* args, MethodTag) {
+  xassert(type);
+  args->set_class_name(type->tp_name);
+  meth_defs.push_back(PyMethodDef {
+    args->proper_name().data(),
+    reinterpret_cast<PyCFunction>(meth),
+    METH_VARARGS | METH_KEYWORDS,
+    args->get_docstring()
+  });
+}
+
 
 // unaryfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(unaryfunc meth, const char* name, Method0Tag) {
+  xassert(type);
   meth_defs.push_back(PyMethodDef {
     name, reinterpret_cast<PyCFunction>(meth),
     METH_NOARGS, nullptr
@@ -171,31 +239,41 @@ void XTypeMaker::add(unaryfunc meth, const char* name, Method0Tag) {
 
 // reprfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(reprfunc _repr, ReprTag) {
+  xassert(type);
   type->tp_repr = _repr;
 }
 
 
 // reprfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(reprfunc _str, StrTag) {
+  xassert(type);
   type->tp_str = _str;
 }
 
 
 // lenfunc = Py_ssize_t(*)(PyObject*)
 void XTypeMaker::add(lenfunc _length, LengthTag) {
+  xassert(type);
   init_tp_as_mapping();
   type->tp_as_mapping->mp_length = _length;
 }
 
+// hashfunc - Py_hash_t(*)(PyObject*)
+void XTypeMaker::add(hashfunc _hash, HashTag) {
+  xassert(type);
+  type->tp_hash = _hash;
+}
 
 // getattrofunc = PyObject*(*)(PyObject*, PyObject*)
 void XTypeMaker::add(getattrofunc getattr, GetattrTag) {
+  xassert(type);
   type->tp_getattro = getattr;
 }
 
 
 // binaryfunc = PyObject*(*)(PyObject*, PyObject*)
 void XTypeMaker::add(binaryfunc _getitem, GetitemTag) {
+  xassert(type);
   init_tp_as_mapping();
   type->tp_as_mapping->mp_subscript = _getitem;
 }
@@ -203,6 +281,7 @@ void XTypeMaker::add(binaryfunc _getitem, GetitemTag) {
 
 // objobjargproc = int(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(objobjargproc _setitem, SetitemTag) {
+  xassert(type);
   init_tp_as_mapping();
   type->tp_as_mapping->mp_ass_subscript = _setitem;
 }
@@ -211,6 +290,7 @@ void XTypeMaker::add(objobjargproc _setitem, SetitemTag) {
 // getbufferproc = int(*)(PyObject*, Py_buffer*, int)
 // releasebufferproc = void(*)(PyObject*, Py_buffer*)
 void XTypeMaker::add(getbufferproc _get, releasebufferproc _del, BuffersTag) {
+  xassert(type);
   xassert(type->tp_as_buffer == nullptr);
   PyBufferProcs* bufs = new PyBufferProcs();
   bufs->bf_getbuffer = _get;
@@ -221,12 +301,14 @@ void XTypeMaker::add(getbufferproc _get, releasebufferproc _del, BuffersTag) {
 
 // getiterfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(getiterfunc _iter, IterTag) {
+  xassert(type);
   type->tp_iter = _iter;
 }
 
 
 // iternextfunc = PyObject*(*)(PyObject*)
 void XTypeMaker::add(iternextfunc _next, NextTag) {
+  xassert(type);
   if (!type->tp_iter) {
     type->tp_iter = PyObject_SelfIter;
   }
@@ -236,12 +318,14 @@ void XTypeMaker::add(iternextfunc _next, NextTag) {
 
 // ternaryfunc = PyObject*(*)(PyObject*, PyObject*, PyObject*)
 void XTypeMaker::add(ternaryfunc meth, CallTag) {
+  xassert(type);
   type->tp_call = meth;
 }
 
 
 // richcmpfunc = PyObject*(*)(PyObject*, PyObject*, int)
 void XTypeMaker::add(richcmpfunc meth, RichCompareTag) {
+  xassert(type);
   type->tp_richcompare = meth;
 }
 
@@ -270,26 +354,52 @@ void XTypeMaker::add(inquiry fn, NbBoolTag)           { tp_as_number()->nb_bool 
 void XTypeMaker::add(ternaryfunc fn, NbPowerTag)      { tp_as_number()->nb_power = fn; }
 
 
-
-PyGetSetDef* XTypeMaker::finalize_getsets() {
+void XTypeMaker::finalize_getsets() {
   size_t n = get_defs.size();
-  PyGetSetDef* res = new PyGetSetDef[n + 1];
-  std::memcpy(res, get_defs.data(), n * sizeof(PyGetSetDef));
-  std::memset(res + n, 0, sizeof(PyGetSetDef));
-  return res;
+  size_t n0 = 0;
+  if (!n) return;
+  if (type->tp_getset) {
+    while ((type->tp_getset)[n0].name != nullptr) n0++;
+  }
+  PyGetSetDef* res = new PyGetSetDef[n + n0 + 1];
+  if (n0) {
+    std::memcpy(res, type->tp_getset, n0 * sizeof(PyGetSetDef));
+    // type->tp_getset is allocated statically in typeobject.c, so
+    // it doesn't need to be freed. It also means that the pointer `res` will
+    // never be freed either (but that's ok since we want our types to live
+    // forever anyways).
+  }
+  std::memcpy(res + n0, get_defs.data(), n * sizeof(PyGetSetDef));
+  std::memset(res + n0 + n, 0, sizeof(PyGetSetDef));
+  type->tp_getset = res;
+
+  if (dynamic_type_) {
+    // See CPython:typeobject.cc:add_getset()
+    for (size_t i = n0; i < n + n0; i++) {
+      PyObject* descr = PyDescr_NewGetSet(type, type->tp_getset + i);
+      if (!descr) throw PyError();
+      py::rdict(type->tp_dict).set(
+          py::robj(PyDescr_NAME(descr)),
+          py::oobj::from_new_reference(descr)
+      );
+    }
+  }
 }
 
 
-PyMethodDef* XTypeMaker::finalize_methods() {
+void XTypeMaker::finalize_methods() {
   size_t n = meth_defs.size();
-  PyMethodDef* res = new PyMethodDef[n + 1];
-  std::memcpy(res, meth_defs.data(), n * sizeof(PyMethodDef));
-  std::memset(res + n, 0, sizeof(PyMethodDef));
-  return res;
+  if (n) {
+    PyMethodDef* res = new PyMethodDef[n + 1];
+    std::memcpy(res, meth_defs.data(), n * sizeof(PyMethodDef));
+    std::memset(res + n, 0, sizeof(PyMethodDef));
+    type->tp_methods = res;
+  }
 }
 
 
 void XTypeMaker::init_tp_as_mapping() {
+  xassert(type);
   if (type->tp_as_mapping) return;
   type->tp_as_mapping = new PyMappingMethods;
   type->tp_as_mapping->mp_length = nullptr;
@@ -299,6 +409,7 @@ void XTypeMaker::init_tp_as_mapping() {
 
 
 PyNumberMethods* XTypeMaker::tp_as_number() {
+  xassert(type);
   if (!type->tp_as_number) {
     auto num = new PyNumberMethods;
     num->nb_add = nullptr;

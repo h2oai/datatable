@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -74,6 +74,7 @@ class TextColumn {
     int get_width() const;
 
     virtual void print_name(TerminalStream&) const = 0;
+    virtual void print_type(TerminalStream&) const = 0;
     virtual void print_separator(TerminalStream&) const = 0;
     virtual void print_value(TerminalStream&, size_t i) const = 0;
 };
@@ -84,6 +85,7 @@ class Data_TextColumn : public TextColumn {
   private:
     sstrvec data_;
     tstring name_;
+    tstring type_;
     int max_width_;
     int : 32;
 
@@ -96,6 +98,7 @@ class Data_TextColumn : public TextColumn {
     Data_TextColumn(Data_TextColumn&&) noexcept = default;
 
     void print_name(TerminalStream&) const override;
+    void print_type(TerminalStream&) const override;
     void print_separator(TerminalStream&) const override;
     void print_value(TerminalStream&, size_t i) const override;
 
@@ -111,6 +114,8 @@ class Data_TextColumn : public TextColumn {
     tstring _render_value_int(const Column&, size_t i) const;
     tstring _render_value_bool(const Column&, size_t i) const;
     tstring _render_value_string(const Column&, size_t i) const;
+    tstring _render_value_date(const Column&, size_t i) const;
+    tstring _render_value_time(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
     tstring _escape_string(const CString&) const;
@@ -125,6 +130,7 @@ class VSep_TextColumn : public TextColumn {
     VSep_TextColumn(VSep_TextColumn&&) noexcept = default;
 
     void print_name(TerminalStream&) const override;
+    void print_type(TerminalStream&) const override;
     void print_separator(TerminalStream&) const override;
     void print_value(TerminalStream&, size_t i) const override;
 };
@@ -134,6 +140,7 @@ class VSep_TextColumn : public TextColumn {
 class Ellipsis_TextColumn : public TextColumn {
   private:
     tstring ell_;
+    tstring space_;
 
   public:
     Ellipsis_TextColumn();
@@ -141,6 +148,24 @@ class Ellipsis_TextColumn : public TextColumn {
     Ellipsis_TextColumn(Ellipsis_TextColumn&&) noexcept = default;
 
     void print_name(TerminalStream&) const override;
+    void print_type(TerminalStream&) const override;
+    void print_separator(TerminalStream&) const override;
+    void print_value(TerminalStream&, size_t i) const override;
+};
+
+
+
+class RowIndex_TextColumn : public TextColumn {
+  private:
+    sztvec row_numbers_;
+
+  public:
+    RowIndex_TextColumn(const sztvec& indices);
+    RowIndex_TextColumn(const RowIndex_TextColumn&) = default;
+    RowIndex_TextColumn(RowIndex_TextColumn&&) noexcept = default;
+
+    void print_name(TerminalStream&) const override;
+    void print_type(TerminalStream&) const override;
     void print_separator(TerminalStream&) const override;
     void print_value(TerminalStream&, size_t i) const override;
 };

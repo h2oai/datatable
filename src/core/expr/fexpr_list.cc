@@ -24,6 +24,7 @@
 #include "expr/workframe.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
+#include <algorithm>             // std::sort
 namespace dt {
 namespace expr {
 
@@ -36,6 +37,9 @@ FExpr_List::FExpr_List(vecExpr&& args)
   : args_(std::move(args))
 {}
 
+ptrExpr FExpr_List::empty() {
+  return ptrExpr(new FExpr_List());
+}
 
 ptrExpr FExpr_List::make(py::robj src) {
   vecExpr args;
@@ -54,6 +58,9 @@ ptrExpr FExpr_List::make(py::robj src) {
   return ptrExpr(new FExpr_List(std::move(args)));
 }
 
+void FExpr_List::add_expr(ptrExpr&& expr) {
+  args_.push_back(std::move(expr));
+}
 
 
 
@@ -97,9 +104,12 @@ Workframe FExpr_List::evaluate_r(
 
 
 
-Workframe FExpr_List::evaluate_f(EvalContext&, size_t) const {
-  throw TypeError()
-      << "A list or a sequence cannot be used inside an f-selector";
+Workframe FExpr_List::evaluate_f(EvalContext& ctx, size_t i) const {
+  Workframe outputs(ctx);
+  for (const auto& arg : args_) {
+    outputs.cbind( arg->evaluate_f(ctx, i) );
+  }
+  return outputs;
 }
 
 
@@ -259,6 +269,9 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
   auto inrows = static_cast<int64_t>(ctx.nrows());
   Buffer databuf = Buffer::mem(args.size() * sizeof(int32_t));
   int32_t* data = static_cast<int32_t*>(databuf.xptr());
+  bool is_list_to_negate_sorted = true;
+  EvalMode eval_mode = ctx.get_mode();
+  int64_t max_value = args[0]->evaluate_int();
   size_t data_index = 0;
   for (size_t i = 0; i < args.size(); ++i) {
     auto ikind = args[i]->get_expr_kind();
@@ -267,6 +280,9 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
       if (x < -inrows || x >= inrows) {
         throw ValueError() << "Index " << x << " is invalid for a Frame with "
             << inrows << " rows";
+      }
+      if (eval_mode == EvalMode::DELETE && is_list_to_negate_sorted) {
+        if (x >= max_value) max_value = x; else is_list_to_negate_sorted = false;
       }
       data[data_index++] = static_cast<int32_t>((x >= 0)? x : x + inrows);
     }
@@ -280,6 +296,7 @@ static RowIndex _evaluate_i_ints(const vecExpr& args, EvalContext& ctx) {
     }
   }
   databuf.resize(data_index * sizeof(int32_t));
+  if (!is_list_to_negate_sorted) std::sort(data, data + data_index);
   return RowIndex(std::move(databuf), RowIndex::ARR32);
 }
 

@@ -1,8 +1,13 @@
 image: Visual Studio 2019
 
+init:
+  # Uncomment the line below to enable RDP access
+  # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
+
 branches:
   only:
     - main
+    - /^rel\-*/
 
 pull_requests:
   do_not_increment_build_number: true
@@ -27,17 +32,20 @@ build_script:
 
     # Do not take into account the AppVeyor's additional merge commit
 
-    $BRANCH_BUILD_ID = (git rev-list --count main..) - 1
+    $BRANCH_BUILD_ID = (git rev-list --count main) - 1
 
-    if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel-") {
-      $env:DT_RELEASE = "True"
-      git checkout $env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH
-    }
-    elseif ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
-      $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+    if ($env:APPVEYOR_PULL_REQUEST_NUMBER -ne $null) {
+      if ($env:APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH -match "^rel\-") {
+        $env:DT_RELEASE = "True"
+      } else {
+        $env:DT_BUILD_SUFFIX = "PR$env:APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+      }
     }
     elseif ($env:APPVEYOR_REPO_BRANCH -eq "main") {
       $env:DT_BUILD_NUMBER = $MAIN_BUILD_ID
+    }
+    elseif ($env:APPVEYOR_REPO_BRANCH -match "^rel\-") {
+      $env:DT_RELEASE = "True"
     }
     else {
       $env:DT_BUILD_SUFFIX = "$env:APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
@@ -67,7 +75,6 @@ build_script:
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
-
     # Build and test wheel for Python 3.6
 
     # =======================================================================
@@ -86,7 +93,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
 
 
 
@@ -108,7 +115,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
 
 
 
@@ -130,4 +137,4 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\

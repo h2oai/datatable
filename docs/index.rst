@@ -1,36 +1,22 @@
+.. title:: Home
 
 .. raw:: html
 
     <style type="text/css">
-      footer {display:none;}
       div#dtcontainer {
-        height: 300pt;
-        position: relative;
-      }
-      div#description {
-        width: 430pt;
-      }
-      div#logo {
-        position: absolute;
-        right: 0;
-        top: 0;
-        width: 80px;
-      }
-      div#badges {
-        position: absolute;
-        right: 0;
-        top: 120px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
       }
       div#badges a {
-        display: block;
         padding: 1pt 0;
         text-align: right;
       }
       div#collage {
-        left: 100pt;
-        position: relative;
-        top: 10pt;
+        height: 280px;
+        margin: 20px;
         transform: matrix(1, 0, -0.29, 1, 0, 0);
+        width: 395px;
       }
       div#collage a.box {
         border-radius: 5px;
@@ -110,24 +96,26 @@
     </style>
 
     <div id="dtcontainer">
-      <div id="description"><p>
-        <b>Datatable</b> is a python library for manipulating tabular data.
-        It supports out-of-memory datasets, multi-threaded data processing,
-        and flexible API.
-      </p></div>
-      <div id="logo">
-        <img src="_static/py_datatable_logo.png" id="dt-logo" />
-      </div>
-      <div id="badges">
-        <a href="https://pypi.org/project/datatable/">
-          <img src="https://img.shields.io/pypi/v/datatable.svg">
-        </a>
-        <a href="https://travis-ci.org/h2oai/datatable">
-          <img src="https://travis-ci.org/h2oai/datatable.svg?branch=main">
-        </a>
-        <a href="https://datatable.readthedocs.io/en/latest/?badge=latest">
-          <img src="https://readthedocs.org/projects/datatable/badge/?version=latest">
-        </a>
+      <div>
+        <div id="description"><p>
+          <b>Datatable</b> is a python library for manipulating tabular data.
+          It supports out-of-memory datasets, multi-threaded data processing,
+          and flexible API.
+        </p></div>
+        <div id="badges">
+          <a href="https://gitter.im/h2oai/datatable">
+            <img src="https://badges.gitter.im/Join%20Chat.svg">
+          </a>
+          <a href="https://pypi.org/project/datatable/">
+            <img src="https://img.shields.io/pypi/v/datatable.svg">
+          </a>
+          <a href="https://travis-ci.org/h2oai/datatable">
+            <img src="https://travis-ci.org/h2oai/datatable.svg?branch=main">
+          </a>
+          <a href="https://datatable.readthedocs.io/en/latest/?badge=latest">
+            <img src="https://readthedocs.org/projects/datatable/badge/?version=latest">
+          </a>
+        </div>
       </div>
       <div id="collage">
         <a class="box" id="box1" href="start/quick-start.html">

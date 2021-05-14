@@ -12,11 +12,11 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
+import docutils
 import os
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
-sys.path.insert(0, os.path.abspath('../src/datatable'))
 
 
 # -- Project information -----------------------------------------------------
@@ -49,12 +49,12 @@ needs_sphinx = '1.8'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    'sphinxext.dtframe_directive',
-    'sphinxext.xcode',
-    'sphinxext.xcontributors',
-    'sphinxext.xfunction',
-    'sphinxext.xpython',
-    'sphinxext.dt_changelog',
+    '_ext.xcode',
+    '_ext.xcomparisontable',
+    '_ext.xcontributors',
+    '_ext.xfunction',
+    '_ext.xpython',
+    '_ext.changelog',
     'sphinx.ext.mathjax',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',  # links to external documentation
@@ -126,44 +126,108 @@ except subprocess.CalledProcessError:
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = 'sphinx_rtd_theme'
+html_theme = 'wren'
+# html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 # See: https://sphinx-rtd-theme.readthedocs.io/en/latest/configuring.html
-html_theme_options = {
-    "canonical_url": "https://datatable.readthedocs.io/en/latest/",
-    "style_external_links": True,
-    "collapse_navigation": False,
-    "sticky_navigation": True,
-    "titles_only": True,
-}
-
-html_show_sphinx = False
-html_show_copyright = False
-html_show_sourcelink = False
+html_theme_options = {}
+html_favicon = "_static/datatable_small_icon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-# Custom sidebar templates, must be a dictionary that maps document names
-# to template names.
-#
-# The default sidebars (for documents that don't match any pattern) are
-# defined by theme itself.  Builtin themes are using these templates by
-# default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
-# 'searchbox.html']``.
-#
-# html_sidebars = {}
-
 
 
 # -- Custom setup ------------------------------------------------------------
+class TitleCollector(docutils.nodes.SparseNodeVisitor):
+    def __init__(self, document):
+        self.level = 0
+        self.titles = []
+        super().__init__(document)
+
+    def visit_section(self, node):
+        title_class = docutils.nodes.title
+        self.level += 1
+        if node.children and isinstance(node.children[0], title_class):
+            title = node.children[0].astext()
+            node_id = node.get("ids")[0]
+            self.titles.append([title, node_id, self.level])
+
+    def depart_section(self, node):
+        self.level -= 1
+
+
+
+def get_local_toc(document):
+    if not document:
+        return ""
+    visitor = TitleCollector(document)
+    document.walkabout(visitor)
+    titles = visitor.titles
+    if not titles:
+        return ""
+
+    levels = sorted(set(item[2] for item in titles))
+    if levels.index(titles[0][2]) != 0:
+        return document.reporter.error(
+            "First title on the page is not <h1/>")
+    del titles[0]  # remove the <h1> title
+
+    h1_seen = False
+    ul_level = 0
+    html_text = "<div id='toc-local' class='list-group'>\n"
+    html_text += " <b>Table of contents</b>\n"
+    for title, node_id, level in titles:
+        if level <= 1:
+            return document.reporter.error("More than one <h1> title on the page")
+        html_text += f"  <a href='#{node_id}' class='list-group-item level-{level-1}'>{title}</a>\n"
+    html_text += "</div>\n"
+    return html_text
+
+
+
+# Emitted when the HTML builder has created a context dictionary to render
+# a template with – this can be used to add custom elements to the context.
+def on_html_page_context(app, pagename, templatename, context, doctree):
+    context["get_local_toc"] = lambda: get_local_toc(doctree)
+
+
+def patch_list_table():
+    """
+    Modifies docutils' builtin ListTable class so that the rendered table
+    is wrapped in a div. This is necessary in order to be able to prevent
+    a table from overflowing the width of the page.
+    """
+    from docutils.parsers.rst.directives.tables import ListTable
+    from _ext.xnodes import div
+
+    def new_run(self):
+        ret = self._run()
+        ret[0] = div(ret[0], classes=["list-table"])
+        return ret
+
+    ListTable._run = ListTable.run
+    ListTable.run = new_run
+
+
 
 def setup(app):
-    app.add_css_file("code.css")
+    patch_list_table()
+
+    if html_theme == "wren":
+        app.add_css_file("bootstrap.min.css")
+        app.add_js_file("bootstrap.min.js")
+        app.add_css_file("wren.css")
+
+        thisdir = os.path.dirname(__file__)
+        themedir = os.path.abspath(os.path.join(thisdir, "_theme"))
+        app.add_html_theme("wren", themedir)
+
+        app.connect("html-page-context", on_html_page_context)
 

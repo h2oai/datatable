@@ -5,6 +5,88 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] Property :attr:`.types` returns the list of :class:`dt.Type`
+      objects for each column of the frame. These types are a generalization
+      of previous stypes, and will eventually replace them.
+
+    -[new] New column type :attr:`dt.Type.date32` added, which can store a
+      calendar date [#2858]::
+
+          >>> import datetime
+          >>> DT = dt.Frame([datetime.date(2021, 2, 17)])
+
+    -[new] New column type :attr:`dt.Type.time64` added, which cat store
+      timestamps within a certain time zone (in a single column all times
+      must be in the same time zone) [#2911]::
+
+          >>> import datetime
+          >>> DT = dt.Frame([datetime.datetime(2021, 3, 17, 9, 0, 0)])
+
+    -[new] A Frame can now be constructed from an Arrow
+      table::
+
+          >>> DT = dt.Frame(arrow_table)
+
+      This process uses data Arrow C Data interface, and therefore does
+      not entail data copying.
+
+    -[new] A Frame can now be converted into an Arrow table, using the
+      :meth:`.to_arrow()` method::
+
+          >>> pa_table = DT.to_arrow()
+
+    -[new] :attr:`.meta` property now provides access to frame's meta
+      information, if any, as set by datatable functions/methods or
+      by the user.
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.sum() <dt.FExpr.sum>`,
+      which behaves exactly as the base level function :func:`dt.sum()`.
+
+    -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
+      can now be an unsorted list. The list can also contain duplicate
+      values.
+
+    -[enh] When a keyed Frame is converted into a pandas DataFrame, the
+      key columns will now become the DataFrame's index, not regulat
+      columns. [#2883]
+
+    -[enh] When a Frame is shown in a python console, it will now display
+      the stype of each column, as a second line under the column names.
+      [#2810]
+
+    -[fix] A Frame can now be created properly from a list of numpy bool
+      objects. [#2762]
+
+    -[fix] Frames with 1000000+ columns will now be correctly stored in Jay.
+      [#2876]
+
+    -[fix] Passing an invalid value to the ``column=`` argument of the
+      :meth:`.to_numpy()` method will no longer result in a crash.
+
+    -[fix] Frame terminal display no longer overflows terminal's width if
+      it contains strings with special characters. [#2844]
+
+    -[api] Converting a frame with incompatible types into a numpy array will
+      now raise an error (instead of auto-promoting to object type). However,
+      if the user explicitly requests promotion into the object type then
+      there won't be any error.
+
+    -[api] Rbinding frames with columns of incompatible types will now raise
+      an error instead of auto-promoting to string type. [#2790]
+
+    -[api] When a frame is converted into a numpy array of floatinng type,
+      then we will produce a regular ``np.ndarray`` instead of a masked array.
+
+    -[api] Properties :attr:`.stypes` and :attr:`.ltypes` are now considered
+      deprecated and will be removed in a future version. Currently they
+      continue to work as before, however.
+
+    -[api] When a frame is created from a list of python objects of disparate
+      types, we will no longer create a column of type ``object`` -- instead,
+      a :exc:`dt.exceptions.TypeError` will  be thrown. An ``object`` column
+      can still be created by an explicit request via the ``stype=``
+      parameter in the constructor.
+
 
     FExpr
     -----
@@ -14,18 +96,57 @@
       implementing a chained-if functionality. This is equivalent to
       ``CASE WHEN`` in SQL. [#2656]
 
-    -[enh] Function :func:`sort()` can now accept a third argument na_positon.
-      It can take three values: "first"(default), "last" and "remove". The
-      values describe the position assigned to NAs after sorting.
+    -[new] New function :func:`as_type()` that allows casting columns into
+      a different stype. This function is an alternative to the already
+      existing functionality of using the stype itself as a cast function.
+
+    -[new] Function :func:`dt.time.ymd()` can create ``date32`` columns out of
+      individual year/month/day parts.
+
+    -[new] Functions :func:`dt.time.year()`, :func:`dt.time.month()` and
+      :func:`dt.time.day()` for retrieving individual components of a date.
+
+    -[new] New function :func:`dt.time.day_of_week()` for computing the day
+      of week (Monday to Sunday) for the given date column.
+
+    -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
+      It can take three values: ``"first"`` (default), ``"last"`` and
+      ``"remove"``. The values describe the position assigned to NAs after
+      sorting. [#793]
+
+    -[enh] Function :func:`cut()` can now accept argument ``bins``, that
+     is a list or a tuple of frames containing edges of the binning
+     intervals. [#2819]
 
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
+
+    -[fix] Fix a crash that occurred when using `median()` on virtual
+      columns of type ArrayView64. [#2802]
+
+    -[fix] Fix poor performance when selecting columns from a frame with a
+      large number of columns (10k+). [#2873]
+
+    -[enh] :ref:`f-expressions` now accepts a list/tuple of
+      column names/column positions/column types in the ``j`` section. [#2797]
+
 
     fread
     -----
 
     -[fix] Fix an error when reading a file with uneven number of fields
       and having Windows-style newlines. [#2681]
+
+    -[fix] Fread no longer throws an exception when the list of column types
+      passed to parameter ``columns=`` contains ``str64``. [#2704]
+
+
+    Models
+    ------
+
+    -[new] Implemented a linear model with stochastic gradient descent learning.
+      It supports binomial and multinomial regressions, as well as
+      regression for continous targets. [#2871]
 
 
     General
@@ -38,3 +159,6 @@
 
     -[fix] Fixed a memory leak when creating a large number of datatable
       objects. [#2701]
+
+    -[fix] Datatable can now be properly installed from a source distribution.
+      [#2846]

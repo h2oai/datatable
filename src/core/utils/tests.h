@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,8 @@
 // Simplified test framework. Use as follows:
 //
 // In a C++ file:
+//
+//      #include "utils/tests.h"
 //
 //      TEST(suite_name, test_name) {
 //        ... test body ...
@@ -124,13 +126,14 @@ class TestCase {
 #endif
 
 template <typename T>
-void assert_cmp(bool ok, T x, T y, const char* xstr, const char* ystr,
+AutoThrowingError assert_cmp(bool ok, T x, T y, const char* xstr, const char* ystr,
                 const char* opstr, const char* filename, int lineno)
 {
-  if (ok) return;
-  throw AssertionError() << '(' << xstr << ')' << opstr << '(' << ystr << ')'
-      << " failed in " << filename << ":" << lineno << ", where "
-      << "lhs = " << x << " and rhs = " << y;
+  if (ok) return AutoThrowingError();
+  Error err = AssertionError();
+  err << xstr << opstr << ystr << " failed in " << filename << ":" << lineno
+      << ", where lhs = " << x << " and rhs = " << y;
+  return AutoThrowingError(std::move(err));
 }
 
 template <typename T>
@@ -190,27 +193,27 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 #define ASSERT_EQ(x, y)                                                        \
     dt::tests::assert_cmp(((x)==(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
-                          "==", __FILE__, __LINE__)
+                          " == ", __FILE__, __LINE__)
 
 #define ASSERT_NE(x, y)                                                        \
     dt::tests::assert_cmp(((x)!=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
-                          "!=", __FILE__, __LINE__)
+                          " != ", __FILE__, __LINE__)
 
 #define ASSERT_LT(x, y)                                                        \
     dt::tests::assert_cmp(((x)<(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
-                          "<", __FILE__, __LINE__)
+                          " < ", __FILE__, __LINE__)
 
 #define ASSERT_GT(x, y)                                                        \
     dt::tests::assert_cmp(((x)>(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),   \
-                          ">", __FILE__, __LINE__)
+                          " > ", __FILE__, __LINE__)
 
 #define ASSERT_LE(x, y)                                                        \
     dt::tests::assert_cmp(((x)<=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
-                          "<=", __FILE__, __LINE__)
+                          " <= ", __FILE__, __LINE__)
 
 #define ASSERT_GE(x, y)                                                        \
     dt::tests::assert_cmp(((x)>=(y)), x, y, ___STRINGIFY(x), ___STRINGIFY(y),  \
-                          ">=", __FILE__, __LINE__)
+                          " >= ", __FILE__, __LINE__)
 
 // Similar to ASSERT_EQ(x, y), but for floating-point arguments:
 //   - NaNs compare equal to each other;

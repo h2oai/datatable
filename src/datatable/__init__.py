@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@ from .frame import Frame
 from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr)
 from .lib._datatable import (
+    as_type,
     by,
     cbind,
     cut,
@@ -52,6 +53,7 @@ from .lib._datatable import (
     shift,
     sort,
     symdiff,
+    Type,
     union,
     unique,
     update,
@@ -62,6 +64,7 @@ import datatable.math
 import datatable.internal
 import datatable.exceptions
 import datatable.options
+import datatable.time
 try:
     from ._build_info import build_info
     __version__ = build_info.version
@@ -70,6 +73,7 @@ except ImportError:
 
 
 __all__ = (
+    "as_type",
     "bool8",
     "by",
     "cbind",
@@ -127,6 +131,7 @@ __all__ = (
     "str64",
     "stype",
     "symdiff",
+    "Type",
     "union",
     "unique",
 )
@@ -153,7 +158,7 @@ dt.lib._datatable.initialize_final()
 
 def open(path):
     """
-    .. deprecated:: 0.10.0
+    .. x-version-deprecated:: 0.10.0
         Use :func:`fread` instead.
     """
     import warnings

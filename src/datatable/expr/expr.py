@@ -34,7 +34,6 @@ class OpCodes(enum.Enum):
 
     # Misc
     NOOP = 0
-    CAST = 2
     SETPLUS = 3
     SETMINUS = 4
     SHIFTFN = 5
@@ -134,18 +133,6 @@ class OpCodes(enum.Enum):
     FMOD = 552
     MAXIMUM = 553
     MINIMUM = 554
-
-    # Row-functions
-    ROWALL = 601
-    ROWANY = 602
-    ROWCOUNT = 603
-    ROWFIRST = 604
-    ROWLAST = 605
-    ROWMAX = 606
-    ROWMEAN = 607
-    ROWMIN = 608
-    ROWSD = 609
-    ROWSUM = 610
 
 
 

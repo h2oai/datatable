@@ -1,0 +1,816 @@
+
+@font-face { font-family: Lato; src: url("fonts/lato-regular.woff2")     format("woff2"); font-weight: 400; font-style: normal; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-bold.woff2")        format("woff2"); font-weight: 700; font-style: normal; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-bold-italic.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: block; }
+@font-face { font-family: Lato; src: url("fonts/lato-italic.woff2")      format("woff2"); font-weight: 400; font-style: italic; font-display: block; }
+
+:root {
+  --highlight-color: 255, 233, 92;
+  --top-menu-height: 50px;
+  --left-menu-width: clamp(200px, 25vw, 270px);
+  --right-menu-width: 240px;
+  --document-width: 900px;
+  --document-x-margin: clamp(10px, 2.5vw, 40px);
+  --document-padding: min(40px, 4vw);
+
+  --font-sans: Lato,proxima-nova,"Segoe UI",Roboto,Helvetica Neue,Arial,sans-serif;
+  --font-mono: SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;
+}
+
+
+/*------------------------------------------------------------------------------
+ * General properties
+ *----------------------------------------------------------------------------*/
+
+html {
+  /* Ensure that anchors within the page scroll past the top header */
+  scroll-padding-top: calc(var(--top-menu-height) + 25px);
+}
+
+body {
+  background-color: #E5E5E5;
+  counter-reset: cc;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  /* required for ScrollSpy plugin */
+  position: relative;
+}
+
+a {
+  color: #6395d4;
+}
+
+a:hover {
+  text-decoration: none;
+}
+
+a.reference.external::after {
+  content: "\f08e";
+  font-family: 'FontAwesome';
+  font-size: 50%;
+  opacity: 60%;
+  padding-left: 2px;
+  position: relative;
+  top: -5px;
+}
+
+span.guilabel {
+  border: 1px solid #7fbbe3;
+  background: #e7f2fa;
+  font-size: 80%;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 2.4px 6px;
+  margin: auto 2px;
+}
+
+table {
+  margin-bottom: 1rem;   /* same as a paragraph */
+}
+
+.list-table {
+  overflow-x: scroll;
+}
+
+code.literal {
+  background: #f2f2f2;
+  border: 1px solid #e2e2e2;
+  border-radius: 3px;
+  color: #c13094;
+  padding: 0 3px;
+}
+
+a > code.literal {
+  background: inherit;
+  border: inherit;
+  color: inherit;
+}
+
+.align-default {
+  text-align: left;
+}
+
+table.docutils td, table.docutils th {
+  padding: 0;
+  border: none;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Headers
+ *----------------------------------------------------------------------------*/
+
+h1 {
+  border-bottom: 1px solid #ccc;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 0 0 20px 0;
+}
+
+h2 {
+  font-size: 22px;
+  font-weight: bold;
+  margin-top: 40px;
+}
+
+h3 {
+  font-size: 19px;
+  font-weight: bold;
+}
+
+h4 {
+  font-size: 17px;
+  font-weight: bold;
+}
+
+/* Level-3 and level-4 sections, corresponding to <h3> and <h4> */
+.section > .section > .section,
+.section > .section > .section > .section {
+  margin-left: calc(var(--document-padding) / 2);
+}
+
+a.headerlink {
+  display: none;
+  font-size: 60%;
+  visibility: hidden;
+}
+
+a.headerlink::after {
+  content: "\f0c1";
+  font-family: 'FontAwesome';
+  left: -3px;
+  position: relative;
+  top: -2px;
+  visibility: visible;
+}
+
+h1:hover > a.headerlink,
+h2:hover > a.headerlink,
+h3:hover > a.headerlink,
+h4:hover > a.headerlink {
+  display: initial;
+  visibility: hidden;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Lists
+ *----------------------------------------------------------------------------*/
+
+dl, ol, ul {
+  padding-inline-start: calc(var(--document-padding) * 0.6 + 40px * 0.4);
+}
+
+li {
+  margin-bottom: 1rem;
+}
+
+li > p {
+  margin-bottom: 0.5rem;
+}
+
+ul:last-child,
+ol:last-child {
+  margin-bottom: 0;
+}
+
+p + .simple {
+  margin-top: -1rem;
+}
+
+li > p + .simple {
+  margin-top: -0.5rem;
+}
+
+.simple > li > p + .simple {
+  margin-top: 0;
+}
+
+.simple li {
+  margin: 0;
+}
+
+.simple li > p {
+  margin: 0;
+}
+
+/* Table of contents always display compactly */
+.toctree-wrapper > ul li {
+  margin: 0;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Top navigation bar
+ *----------------------------------------------------------------------------*/
+
+div.topbar {
+  align-items: center;
+  background: white;
+  box-shadow: 0px 3px 7px rgba(80,80,80,0.25), 0 1px 2px rgba(50,50,50,0.35);
+  contain: strict;
+  display: flex;
+  height: var(--top-menu-height);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 5px 15px;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  z-index: 1010;
+}
+
+div.topbar a.logo_image {
+  border-radius: 6px;
+  padding: 4px 8px;
+}
+
+div.topbar a.logo_image:hover {
+  background: #eee;
+}
+
+div.topbar a.logo_image img {
+  height: 26px;
+}
+
+div.expander {
+  flex: 1;
+}
+
+div.topbar div.searchbox {
+  flex: 0;
+}
+
+div.topbar div.searchbox form {
+  transition: width 0.3s;
+  width: 200px;
+}
+
+div.topbar div.searchbox form:focus-within {
+  width: 500px;
+}
+
+
+div.topbar div.searchbox form input[type="text"] {
+  background-color: #eee;
+  border-style: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  width: 100%;
+}
+
+div.topbar div.searchbox form input[type="text"]:focus {
+  outline: none;
+  box-shadow: 0 0 3px #888 inset, 0 0 1px #333 inset;
+}
+
+div.topbar #menu-button {
+  display: none;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Left navigation bar
+ *----------------------------------------------------------------------------*/
+
+div.sidebar-left-bg {
+  background: #FAFAFD;
+  bottom: 0;
+  box-shadow: 2px 0 4px rgba(80, 80, 80, 0.25);
+  contain: strict;
+  position: fixed;
+  top: 0;
+  width: var(--left-menu-width);
+  z-index: 1005;
+}
+
+div.sidebar-left {
+  bottom: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 20px 0 0 6px;
+  position: fixed;
+  top: var(--top-menu-height);
+  width: var(--left-menu-width);
+  z-index: 1007;
+}
+
+div.nav-left {
+  margin-bottom: 70px;
+}
+
+div.nav-left ul {
+  display: none;
+  padding: 0 0 0 16px;
+}
+
+div.nav-left ul.current,
+div.nav-left > ul {
+  display: block;
+}
+
+div.nav-left li {
+  list-style-type: none;
+  position: relative;
+  margin: 0;
+}
+
+div.nav-left li > a {
+  border-radius: 5px 0 0 5px;
+  color: #696e8e;
+  display: block;
+  font-size: 13px;
+  margin-left: -12px;
+  padding: 2px 0 2px 12px;
+  text-decoration: none;
+}
+
+div.nav-left li > a:hover {
+  background-color: #E5E5E5;
+}
+
+div.nav-left li > a:not(:only-child)::before {
+  color: #b1cbde;
+  content: "\f0da";
+  font-family: 'FontAwesome';
+  font-size: 70%;
+  left: -7px;
+  position: absolute;
+  top: 5px;
+}
+
+div.nav-left li > a:not(:only-child):not(.current):hover::before {
+  color: #69698e;
+}
+
+div.nav-left li.current > a.current {
+  background: #FFF;
+  box-shadow: 0 0 2px #999;
+  color: #333;
+  position: relative;
+  /* Ensure that box-shadow is above the adjacent list items,
+     even when they are hovered */
+  z-index: 1001;
+}
+
+div.nav-left li.current > a:not(:only-child)::before {
+  content: "\f0d7";
+  left: -8px;
+}
+
+div.nav-left li.current > a.current:not(:only-child)::before {
+  left: 4px;
+}
+
+div.nav-left li.current > ul {
+  display: block;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Right navigation bar
+ *----------------------------------------------------------------------------*/
+
+body > div.main-area {
+  display: flex;
+  margin-bottom: 0;
+  margin-left: var(--left-menu-width);
+  margin-right: 0;
+  margin-top: var(--top-menu-height);
+  min-height: calc(100vh - var(--top-menu-height));
+}
+
+div.sidebar-right {
+  flex: 5;
+  height: calc(100vh - 25px - var(--top-menu-height));
+  margin-right: 20px;
+  max-width: var(--right-menu-width);
+  position: sticky;
+  top: calc(25px + var(--top-menu-height));
+}
+
+div.nav-right > #toc-local {
+  border-left: 4px solid #2d659c;
+  border-radius: 0;
+  margin: 0 0 0 20px;
+  max-width: var(--right-menu-width);
+  padding: 0 0 0 10px;
+}
+
+div.nav-right > #toc-local a.list-group-item {
+  background: transparent;
+  border: none;
+  border-left: 4px solid transparent;
+  color: #696e8e;
+  font-size: 13px;
+  line-height: 1.2;
+  list-style-type: none;
+  padding: 4px 0 4px 6px;
+  margin-left: -9px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-2 {
+  padding-left: 15px;
+  font-size: 12px;
+}
+
+div.nav-right > #toc-local a.list-group-item.level-3 {
+  padding-left: 25px;
+  font-size: 11px;
+}
+
+div.nav-right > #toc-local a:first-child {
+  padding-top: 0;
+}
+
+div.nav-right > #toc-local a:last-child {
+  padding-bottom: 0;
+}
+
+div.nav-right > #toc-local a:hover {
+  color: black;
+  text-decoration: none;
+}
+
+div.nav-right > #toc-local a.list-group-item.active {
+  border-left-color: #4684b6;
+  color: #212529;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Main document
+ *----------------------------------------------------------------------------*/
+
+div.document-wrapper {
+  flex: 25;
+  max-width: var(--document-width);
+  min-width: min(100vw, calc(var(--document-width) * 2/3));
+  margin-bottom: 25px;
+  margin-left: var(--document-x-margin);
+  margin-top: 25px;
+}
+
+div.document {
+  background-color: white;
+  border-radius: 2pt;
+  box-shadow: 0 0 4px 1px rgba(80, 80, 80, 0.25);
+  padding: var(--document-padding);
+}
+
+div.copyright {
+  font-size: 12px;
+  margin-top: 3px;
+  opacity: 0.5;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Search results
+ *----------------------------------------------------------------------------*/
+
+div[role="main"] span.highlighted:not(.off) {
+  background-color: rgb(var(--highlight-color));
+  border-radius: 5px;
+  box-shadow: 0 0 0 3px rgb(var(--highlight-color)),
+              0 0 0 4px rgba(0, 0, 0, 0.3);
+  color: #000;
+}
+
+div#search-results h2 {
+  display: none;
+}
+
+div#search-results p.search-summary {
+  opacity: 0.25;
+}
+
+ul.search {
+  padding: 0;
+}
+
+ul.search > li {
+  list-style: none;
+  margin: 0 0 20px 0;
+}
+
+ul.search > li > a {
+  font-size: 18px;
+}
+
+ul.search > li > div.context {
+  color: #555;
+}
+
+ul.search > li > div.context span.highlighted {
+  background: none;
+  box-shadow: none;
+  font-weight: bold;
+  color: #000;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Search highlight box
+ *----------------------------------------------------------------------------*/
+
+div.highlight-box {
+  background: black linear-gradient(rgba(var(--highlight-color), 100%),
+                                    rgba(var(--highlight-color), 85%),
+                                    rgba(var(--highlight-color), 50%));
+  border: 1px solid #5a441b;
+  border-style: none solid;
+  display: flex;
+  height: 100%;
+  left: calc(var(--left-menu-width) + var(--document-x-margin));
+  padding: 3px 8px;
+  position: absolute;
+  top: 0;
+}
+
+div.highlight-box div.title {
+  font-size: 12px;
+  font-variant: small-caps;
+  line-height: 16px;
+  opacity: 0.5;
+}
+
+div.highlight-box div.content {
+  display: flex;
+}
+
+div.highlight-box div.content > span {
+  background: rgb(var(--highlight-color));
+  border: 1px solid rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+  cursor: pointer;
+  margin-right: 4px;
+  padding: 1px 6px 2px 6px;
+}
+
+div.highlight-box div.content > span.off {
+  background: none;
+  border-style: dashed;
+}
+
+div.highlight-box button.close {
+  margin: 0 0 0 20px;
+}
+
+
+
+
+/*------------------------------------------------------------------------------
+ * .api-table
+ *----------------------------------------------------------------------------*/
+
+table.api-table {
+  border: none;
+  margin-bottom: 18px;
+}
+
+table.api-table tr td {
+  border-style: none;
+  font-size: 100%;
+  padding: 0 16px 6px 0;
+  vertical-align: top;
+  white-space: normal;
+}
+
+table.api-table tr td > p {
+  font-size: inherit;
+  line-height: inherit;
+  margin: 0 !important;
+}
+
+table.api-table td:first-child code.xref.literal {
+  background: transparent;
+  border: none;
+  padding: 0;
+}
+
+table.api-table td:first-child a {
+}
+
+table.api-table td:first-child a code.literal {
+  color: #6395d4;
+  font-weight: bold;
+}
+
+table.api-table td:first-child a:hover code.literal {
+  color: #223d5a;
+}
+
+
+/*------------------------------------------------------------------------------
+ * x-version
+ *----------------------------------------------------------------------------*/
+
+.x-version-added {
+    padding: 4px 8px;
+    display: inline-block;
+    background: #356ae414;
+    color: #888;
+    font-size: 80%;
+    border-left: 4px solid #68a;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * admonitions
+ *----------------------------------------------------------------------------*/
+
+div.admonition {
+    margin-bottom: 1rem;
+    padding: .5rem 1rem .5rem 2.7rem;
+    position: relative;
+}
+
+div.admonition:before {
+    font-family: 'FontAwesome';
+    left: 0;
+    padding: 0.5rem 1rem;
+    position: absolute;
+    top: 1px;
+}
+
+div.admonition .admonition-title {
+    display: none;
+}
+
+div.admonition > p:last-child {
+    margin-bottom: 0;
+}
+
+p.admonition-title + .simple {
+    padding-inline-start: 20px;
+    margin-top: 0;
+}
+
+
+div.admonition.note {
+    background: #dbf8ff;
+    border: 1px solid #ccdddd;
+    color: #055160;
+}
+
+div.admonition.note:before {
+    content: "\f05a";
+}
+
+
+div.admonition.warning {
+    background-color: #fff3cd;
+    border: 1px solid #edb;
+    color: #856404;
+}
+
+div.admonition.warning:before {
+    content: "\f071";
+    color: darkred;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * Footnotes
+ *----------------------------------------------------------------------------*/
+
+a.footnote-reference {
+  font-size: 60%;
+  position: relative;
+  top: -4px;
+}
+
+p.rubric {
+  border-top: 1px solid #ccc;
+  font-weight: bold;
+  font-size: 0;
+  margin: 40px 0 6px 0;
+}
+
+dl.footnote dt {
+  display: inline;
+  font-size: 60%;
+  position: relative;
+  top: -4px;
+  padding-right: 6px;
+}
+
+dl.footnote dd {
+  display: inline-block;
+}
+
+
+
+/*------------------------------------------------------------------------------
+ * ReadTheDocs menu
+ *----------------------------------------------------------------------------*/
+
+div.rst-versions.rst-badge {
+  background: #1f1f1fe5;
+  border-radius: 10px;
+  bottom: 20px;
+}
+
+div.rst-versions.rst-badge .rst-current-version {
+  align-items: center;
+  background-color: #6e758869;
+  border-radius: 10px;
+  color: #87dc72;
+  display: flex;
+  height: auto;
+  line-height: normal;
+  padding: 6px 10px;
+}
+
+div.rst-versions.rst-badge.shift-up .rst-current-version {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:first-child {
+  flex: 1;
+  padding-right: 8px;
+  text-align: left;
+}
+
+div.rst-versions.rst-badge .rst-current-version span:last-child {
+  padding-left: 4px;
+}
+
+div.rst-versions div.rst-other-versions dl:nth-child(2) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(4) { display: none; }
+div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
+
+
+
+/*------------------------------------------------------------------------------
+ * Responsive design adjustments
+ *----------------------------------------------------------------------------*/
+
+@media (max-width: 1200px) {
+  div.sidebar-right {
+    display: none;
+  }
+}
+
+
+@media (max-width: 900px) {
+  :root {
+    --left-menu-width: min(270px, 80vw);
+  }
+
+  div.topbar #menu-button {
+    display: inline-block;
+    margin-left: -8px;
+  }
+  #menu-button:focus {
+    box-shadow: none;
+  }
+  #menu-button:hover {
+    background-color: rgba(0,0,0,0.07);
+  }
+  #menu-button.active {
+    background-color: #a2c1d9;
+  }
+
+  div.sidebar-left-area {
+    position: absolute;
+    left: calc(0px - var(--left-menu-width));
+    transition: left 0.3s;
+  }
+
+  div.sidebar-left-area:not(.active) .sidebar-left-bg {
+    box-shadow: none;
+  }
+
+  div.sidebar-left-area.active {
+    left: 0;
+  }
+
+  body > div.main-area {
+    margin-left: 0;
+  }
+
+  div.highlight-box {
+    left: 55px;
+  }
+
+  body > div.main-area > div.document-wrapper {
+    margin: 0;
+  }
+
+  body > div.main-area > div.expander {
+    display: none;
+  }
+}

@@ -60,6 +60,9 @@
         :widths: auto
         :class: api-table
 
+        * - :meth:`.to_arrow()`
+          - Convert the frame into an Arrow table.
+
         * - :meth:`.to_csv(file)`
           - Write the frame's data into CSV format.
 
@@ -95,6 +98,9 @@
         * - :attr:`.ltypes`
           - Logical types (:class:`dt.ltype`s) of all columns.
 
+        * - :attr:`.meta`
+          - The frame's meta information.
+
         * - :attr:`.names`
           - The names of all columns in the frame.
 
@@ -115,6 +121,9 @@
 
         * - :attr:`.stypes`
           - Storage types (:class:`dt.stype`s) of all columns.
+
+        * - :attr:`.types`
+          - types (:class:`dt.Type`s) of all columns.
 
 
     Other methods
@@ -236,6 +245,7 @@
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .meta            <frame/meta>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>
@@ -247,6 +257,7 @@
     .stype           <frame/stype>
     .stypes          <frame/stypes>
     .tail()          <frame/tail>
+    .to_arrow()      <frame/to_arrow>
     .to_csv()        <frame/to_csv>
     .to_dict()       <frame/to_dict>
     .to_jay()        <frame/to_jay>
@@ -254,4 +265,5 @@
     .to_numpy()      <frame/to_numpy>
     .to_pandas()     <frame/to_pandas>
     .to_tuples()     <frame/to_tuples>
+    .types           <frame/types>
     .view()          <frame/view>

@@ -63,6 +63,7 @@ class CString
     CString& operator=(const std::string& str);
     CString& operator=(const CString&) = delete;
     CString& operator=(std::string&& str) = delete;
+    static CString from_null_terminated_string(const char* cstr);
 
     bool operator==(const CString&) const noexcept;
     bool operator<(const CString&)  const noexcept;

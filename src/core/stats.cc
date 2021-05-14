@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -96,6 +96,10 @@ void Stats::set_valid(Stat stat, bool isvalid) {
   _valid.set(static_cast<size_t>(stat), isvalid);
 }
 
+
+size_t VoidStats::memory_footprint() const noexcept {
+  return sizeof(VoidStats);
+}
 
 template <typename T>
 size_t NumericStats<T>::memory_footprint() const noexcept {
@@ -499,21 +503,33 @@ void StringStats::set_mode(const dt::CString& value, bool isvalid) {
 
 template <typename T>
 static size_t _compute_nacount(const dt::ColumnImpl* col) {
-  xassert(dt::compatible_type<T>(col->stype()));
-  std::atomic<size_t> total_countna { 0 };
-  dt::parallel_region(
-    dt::NThreads(col->allow_parallel_access()),
-    [&] {
-      T target;
-      size_t thread_countna = 0;
-      dt::nested_for_static(col->nrows(),
-        [&](size_t i) {
-          bool isvalid = col->get_element(i, &target);
-          thread_countna += !isvalid;
-        });
-      total_countna += thread_countna;
-    });
-  return total_countna.load();
+  xassert(col->type().can_be_read_as<T>());
+  size_t n = col->nrows();
+  if (n <= 32) {
+    T target;
+    size_t countna = 0;
+    for (size_t i = 0; i < n; ++i) {
+      bool isvalid = col->get_element(i, &target);
+      countna += !isvalid;
+    }
+    return countna;
+  }
+  else {
+    std::atomic<size_t> total_countna { 0 };
+    dt::parallel_region(
+      dt::NThreads(col->allow_parallel_access()),
+      [&] {
+        T target;
+        size_t thread_countna = 0;
+        dt::nested_for_static(n,
+          [&](size_t i) {
+            bool isvalid = col->get_element(i, &target);
+            thread_countna += !isvalid;
+          });
+        total_countna += thread_countna;
+      });
+    return total_countna.load();
+  }
 }
 
 void Stats::compute_nacount() { throw NotImplError(); }
@@ -560,7 +576,7 @@ void BooleanStats::compute_minmax() {
 
 template <typename T>
 void NumericStats<T>::compute_minmax() {
-  xassert(dt::compatible_type<T>(column->stype()));
+  xassert(column->type().can_be_read_as<T>());
   size_t nrows = column->nrows();
   size_t count_valid = 0;
   T min = infinity<T>();
@@ -606,6 +622,7 @@ void NumericStats<T>::compute_minmax() {
 void Stats::compute_nunique() {
   set_valid(Stat::NUnique, false);
 }
+
 
 template <typename T>
 void NumericStats<T>::compute_nunique() {
@@ -1088,6 +1105,32 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 
 
 
+//------------------------------------------------------------------------------
+// VoidStats: compute all
+//------------------------------------------------------------------------------
+
+double VoidStats::sum(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+size_t VoidStats::nacount(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return column->nrows();
+}
+
+size_t VoidStats::nunique(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+size_t VoidStats::nmodal(bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0;
+}
+
+
+
 
 //------------------------------------------------------------------------------
 // Column's API
@@ -1096,10 +1139,13 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
   switch (col->stype()) {
+    case dt::SType::VOID:    return StatsPtr(new VoidStats(col));
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
     case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
+    case dt::SType::DATE32:
     case dt::SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
+    case dt::SType::TIME64:
     case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
     case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
@@ -1169,6 +1215,7 @@ std::unique_ptr<Stats> Stats::_clone(const S* inp) const {
 }
 
 
+std::unique_ptr<Stats> VoidStats::clone()       const { return this->_clone(this); }
 template <typename T>
 std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this); }
 template <typename T>
@@ -1196,17 +1243,22 @@ std::unique_ptr<Stats> StringStats::clone() const {
 //------------------------------------------------------------------------------
 
 template <typename T>
+inline T _tol(T a, T b, T tol) {
+  return std::max(tol * std::max(std::abs(a), std::abs(b)), tol);
+}
+
+template <typename T>
 inline bool _equal(T a, T b) { return a == b; }
 
 template<>
 inline bool _equal(float a, float b) {
   // Equality check is needed to ensure that inf==inf
-  return (a == b) || (std::abs(a - b) < 1e-7f);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-7f));
 }
 
 template<>
 inline bool _equal(double a, double b) {
-  return (a == b) || (std::abs(a - b) < 1e-12);
+  return (a == b) || (std::abs(a - b) < _tol(a, b, 1e-12));
 }
 
 template <typename T>
@@ -1229,10 +1281,13 @@ static void check_stat(Stat stat, Stats* curr_stats, Stats* new_stats) {
 void Stats::verify_integrity(const dt::ColumnImpl* col) {
   XAssert(column == col);
   switch (col->stype()) {
+    case dt::SType::VOID:    XAssert(dynamic_cast<VoidStats*>(this)); break;
     case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
     case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
+    case dt::SType::DATE32:
     case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
+    case dt::SType::TIME64:
     case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
     case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
     case dt::SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
@@ -1296,6 +1351,11 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
         case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
         case dt::LType::REAL: return pywrap_stat<double>(stat);
         case dt::LType::STRING: return pywrap_stat<dt::CString>(stat);
+        case dt::LType::DATETIME: {
+          int64_t value;
+          bool isvalid = get_stat(stat, &value);
+          return isvalid? py::odate(static_cast<int32_t>(value)) : py::None();
+        }
         default: return py::None();
       }
     }
@@ -1387,6 +1447,8 @@ Column Stats::get_stat_as_column(Stat stat) {
         case dt::SType::FLOAT64: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
         case dt::SType::STR32:
         case dt::SType::STR64:   return strcolwrap_stat(stat);
+        case dt::SType::DATE32:  return colwrap_stat<int64_t, int32_t>(stat, dt::SType::DATE32);
+        case dt::SType::TIME64:  return colwrap_stat<int64_t, int64_t>(stat, dt::SType::TIME64);
         default:                 return _make_nacol(column->stype());
       }
     }

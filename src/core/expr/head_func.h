@@ -56,18 +56,6 @@ class Head_Func : public Head {
 // Derived classes
 //------------------------------------------------------------------------------
 
-class Head_Func_Cast : public Head_Func {
-  private:
-    SType stype;
-    size_t : 56;
-
-  public:
-    explicit Head_Func_Cast(SType);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-};
-
-
-
 class Head_Func_Colset : public Head_Func {
   private:
     Op op;
@@ -98,17 +86,6 @@ class Head_Func_Binary : public Head_Func {
 
   public:
     explicit Head_Func_Binary(Op);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
-};
-
-
-
-class Head_Func_Nary : public Head_Func {
-  private:
-    Op op_;
-
-  public:
-    explicit Head_Func_Nary(Op);
     Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
 };
 

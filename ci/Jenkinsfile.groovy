@@ -71,7 +71,7 @@ DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
 
 // These variables will be initialized at the <checkout> stage
 doLargeFreadTests = false
-isMainJob       = false
+isMainJob         = false
 isRelease         = false
 doExtraTests      = false
 doPpcTests        = false
@@ -146,7 +146,7 @@ ansiColor('xterm') {
                                                   params.FORCE_ALL_TESTS)
                             doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
                             doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
+                            doPpcBuild         = doPpcBuild || doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
@@ -302,24 +302,26 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        docker run --rm --init \
-                                            -v `pwd`:/dot \
-                                            -e DT_RELEASE=${DT_RELEASE} \
-                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
-                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                            --entrypoint /bin/bash \
-                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
-                                            -c "cd /dot && \
-                                                ls -la && \
-                                                ls -la src/datatable && \
-                                                groupadd -g `id -g` jenkins && \
-                                                useradd -u `id -u` -g jenkins jenkins && \
-                                                su jenkins && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
-                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
-                                                ls -la dist"
+                                        docker run \
+                                           -u `id -u`:`id -g` \
+                                           -e USER=$USER \
+                                           -v /etc/passwd:/etc/passwd:ro \
+                                           -v /etc/group:/etc/group:ro \
+                                           --rm --init \
+                                           -v `pwd`:/dot \
+                                           -e DT_RELEASE=${DT_RELEASE} \
+                                           -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                           -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                           --entrypoint /bin/bash \
+                                           ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
+                                           -c "cd /dot && \
+                                               ls -la && \
+                                               ls -la src/datatable && \
+                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
+                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                               /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                               /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
+                                               ls -la dist"
                                     """
                                     stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
                                     stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
@@ -680,14 +682,6 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             docker_args += "-e DT_LARGE_TESTS_ROOT=/data "
         }
         docker_args += "-e DT_HARNESS=Jenkins "
-        def pip_args = ""
-        if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
-            // On a PPC machine use our own repository which contains pre-built
-            // binary wheels for pandas & numpy.
-            pip_args += "-i https://h2oai.github.io/py-repo/ "
-            pip_args += "--extra-index-url https://pypi.org/simple/ "
-            pip_args += "--prefer-binary "
-        }
         def python = get_python_for_docker(pyver, docker_image)
         def docker_cmd = ""
         docker_cmd += "cd /dt && ls dist/ && "
@@ -698,7 +692,16 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
         docker_cmd += "pip install --upgrade pip && "
         docker_cmd += "pip install dist/datatable-*-cp" + pyver + "-*.whl && "
         docker_cmd += "pip install -r requirements_tests.txt && "
-        docker_cmd += "pip install ${pip_args} -r requirements_extra.txt && "
+        if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
+            // On a PPC machine use our own repository which contains pre-built
+            // binary wheels for pandas & numpy.
+            docker_cmd += "pip install -i https://h2oai.github.io/py-repo/ "
+            docker_cmd += "--extra-index-url https://pypi.org/simple/ "
+            docker_cmd += "--prefer-binary "
+            docker_cmd += "numpy pandas xlrd && "
+        } else {
+            docker_cmd += "pip install -r requirements_extra.txt && "
+        }
         docker_cmd += "pip freeze && "
         docker_cmd += "python -c 'import datatable; print(datatable.__file__)' && "
         docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +

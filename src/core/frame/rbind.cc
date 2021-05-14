@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,16 +23,17 @@
 #include <functional>   // std::function
 #include <numeric>
 #include <unordered_map>
+#include "column/const.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
+#include "datatable.h"
+#include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
+#include "stype.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
-#include "datatable.h"
-#include "datatablemodule.h"
-#include "stype.h"
 
 
 static void _check_ncols(size_t n0, size_t n1) {
@@ -67,8 +68,13 @@ This method modifies the current frame in-place. If you do not want
 the current frame modified, then use the :func:`dt.rbind()` function.
 
 If frame(s) being appended have columns of types different from the
-current frame, then these columns will be promoted to the largest of
-their types: bool -> int -> float -> string.
+current frame, then these columns will be promoted according to the
+standard promotion rules. In particular, booleans can be promoted into
+integers, which in turn get promoted into floats. However, they are
+not promoted into strings or objects.
+
+If frames have columns of incompatible types, a TypeError will be
+raised.
 
 If you need to append multiple frames, then it is more efficient to
 collect them into an array first and then do a single `rbind()`, than
@@ -246,14 +252,14 @@ void Frame::rbind(const PKArgs& args) {
 //------------------------------------------------------------------------------
 
 static const char* doc_py_rbind =
-R"(rbind(*frames, force=False, by_names=True)
+R"(rbind(*frames, force=False, bynames=True)
 --
 
-Produce a new frame by appending rows of `frames`.
+Produce a new frame by appending rows of several `frames`.
 
 This function is equivalent to::
 
-  dt.Frame().rbind(*frames, force=force, by_names=by_names)
+    >>> dt.Frame().rbind(*frames, force=force, by_names=by_names)
 
 
 Parameters
@@ -262,9 +268,89 @@ frames: Frame | List[Frame] | None
 
 force: bool
 
-by_names: bool
+bynames: bool
 
-(return): Frame
+return: Frame
+
+
+Examples
+--------
+.. code-block:: python
+
+    >>> from datatable import dt
+    >>>
+    >>> DT1 = dt.Frame({"Weight": [5, 4, 6], "Height": [170, 172, 180]})
+    >>> DT1
+       | Weight  Height
+       |  int32   int32
+    -- + ------  ------
+     0 |      5     170
+     1 |      4     172
+     2 |      6     180
+    [3 rows x 2 columns]
+
+    >>> DT2 = dt.Frame({"Height": [180, 181, 169], "Weight": [4, 4, 5]})
+    >>> DT2
+       | Weight  Height
+       |  int32   int32
+    -- + ------  ------
+     0 |      4     180
+     1 |      4     181
+     2 |      5     169
+    [3 rows x 2 columns]
+
+    >>> dt.rbind(DT1, DT2)
+       | Weight  Height
+       |  int32   int32
+    -- + ------  ------
+     0 |      5     170
+     1 |      4     172
+     2 |      6     180
+     3 |      4     180
+     4 |      4     181
+     5 |      5     169
+    [6 rows x 2 columns]
+
+:func:`rbind()` by default combines frames by names. The frames can also be
+bound by column position by setting the `bynames` parameter to ``False``::
+
+    >>> dt.rbind(DT1, DT2, bynames = False)
+       | Weight  Height
+       |  int32   int32
+    -- + ------  ------
+     0 |      5     170
+     1 |      4     172
+     2 |      6     180
+     3 |    180       4
+     4 |    181       4
+     5 |    169       5
+    [6 rows x 2 columns]
+
+
+If the number of columns are not equal or the column names are different,
+you can force the row binding by setting the `force` parameter to `True`::
+
+    >>> DT2["Age"] = dt.Frame([25, 50, 67])
+    >>> DT2
+       | Weight  Height    Age
+       |  int32   int32  int32
+    -- + ------  ------  -----
+     0 |      4     180     25
+     1 |      4     181     50
+     2 |      5     169     67
+    [3 rows x 3 columns]
+
+    >>> dt.rbind(DT1, DT2, force = True)
+       | Weight  Height    Age
+       |  int32   int32  int32
+    -- + ------  ------  -----
+     0 |      5     170     NA
+     1 |      4     172     NA
+     2 |      6     180     NA
+     3 |      4     180     25
+     4 |      4     181     50
+     5 |      5     169     67
+    [6 rows x 3 columns]
 
 
 See also
@@ -360,17 +446,21 @@ void Column::rbind(colvec& columns) {
   _get_mutable_impl();
   // Is the current column "empty" ?
   bool col_empty = (stype() == dt::SType::VOID);
-  if (!col_empty) this->materialize();
 
   // Compute the final number of rows and stype
   size_t new_nrows = nrows();
-  dt::SType new_stype = col_empty? dt::SType::BOOL : stype();
+  dt::Type new_type = type();
   for (auto& col : columns) {
     col.materialize();
     new_nrows += col.nrows();
-    // TODO: need better stype promotion mechanism than mere max()
-    new_stype = std::max(new_stype, col.stype());
+    auto next_type = dt::Type::common(new_type, col.type());
+    if (next_type.is_invalid()) {
+      throw TypeError() << "Cannot rbind column of type `" << col.type()
+          << "` to a column of type `" << new_type << "`";
+    }
+    new_type = std::move(next_type);
   }
+  auto new_stype = new_type.stype();
 
   // Create the resulting Column object. It can be either: an empty column
   // filled with NAs; the current column; or a type-cast of the current column.
@@ -404,6 +494,25 @@ void Column::rbind(colvec& columns) {
 
 
 //------------------------------------------------------------------------------
+// rbind VOID column
+//------------------------------------------------------------------------------
+
+void dt::ConstNa_ColumnImpl::rbind_impl(
+        colvec& columns, size_t new_nrows, bool, dt::SType&)
+{
+  #if DT_DEBUG
+    for (const Column& col : columns) {
+      xassert(col.type().is_void());
+    }
+  #endif
+  (void)columns;
+  nrows_ = new_nrows;
+}
+
+
+
+
+//------------------------------------------------------------------------------
 // rbind string columns
 //------------------------------------------------------------------------------
 
@@ -421,7 +530,7 @@ void dt::SentinelStr_ColumnImpl<T>::rbind_impl(
     Column& col = columns[i];
     if (col.stype() == dt::SType::VOID) continue;
     if (col.ltype() != LType::STRING) {
-      col.cast_inplace(stype_);
+      col.cast_inplace(stype());
       col.materialize();
     }
     new_strbuf_size += col.get_data_size(1);
@@ -532,8 +641,8 @@ void dt::SentinelFw_ColumnImpl<T>::rbind_impl(
         resptr += rows_to_fill * sizeof(T);
         rows_to_fill = 0;
       }
-      if (col.stype() != stype_) {
-        col.cast_inplace(stype_);
+      if (col.stype() != stype()) {
+        col.cast_inplace(stype());
         col.materialize();
       }
       size_t col_data_size = sizeof(T) * col.nrows();

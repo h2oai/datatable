@@ -91,9 +91,8 @@ def test_aggregate_1d_na():
     assert_equals(
         d_exemplars,
         dt.Frame(
-            [[None], [53]],
-            names = ["C0", "members_count"],
-            stypes = [dt.stype.bool8, dt.stype.int32]
+            C0 = [None],
+            members_count = [53]
         )
     )
     assert_equals(d_in, d_in_copy)
@@ -294,9 +293,9 @@ def test_aggregate_2d_na():
     assert_equals(
         d_exemplars,
         dt.Frame(
-            [[None], [None], [53]],
-            names = ["C0", "C1", "members_count"],
-            stypes = [dt.stype.bool8, dt.stype.bool8, dt.stype.int32]
+            C0 = [None],
+            C1 = [None],
+            members_count = [53]
         )
     )
     assert_equals(d_in, d_in_copy)
@@ -466,9 +465,9 @@ def test_aggregate_2d_mixed_na():
     assert_equals(
         d_exemplars,
         dt.Frame(
-            [["Hello world"], [None], [53]],
-            names = ["C0", "C1", "members_count"],
-            stypes = [dt.stype.str32, dt.stype.bool8, dt.stype.int32]
+            C0 = ["Hello world"],
+            C1 = [None],
+            members_count = [53]
         )
     )
     assert_equals(d_in, d_in_copy)
@@ -487,9 +486,9 @@ def test_aggregate_2d_mixed_distinct_na():
     assert_equals(
         d_exemplars,
         dt.Frame(
-            [["a"], [None], [6]],
-            names = ["C0", "C1", "members_count"],
-            stypes = [dt.stype.str32, dt.stype.bool8, dt.stype.int32]
+            C0 = ['a'],
+            C1 = [None],
+            members_count = [6]
         )
     )
     assert_equals(d_in, d_in_copy)

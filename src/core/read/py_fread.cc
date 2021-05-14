@@ -214,7 +214,8 @@ memory_limit: int
 return: Frame
     A single :class:`Frame` object is always returned.
 
-    .. versionchanged:: 0.11.0
+    .. x-version-changed:: 0.11.0
+
         Previously, a ``dict`` of Frames was returned when multiple
         input sources were provided.
 
@@ -223,6 +224,9 @@ except: dt.exceptions.IOError
 See Also
 --------
 - :func:`iread()`
+
+- :ref:`Fread Examples` user guide for usage examples.
+
 
 )";
 

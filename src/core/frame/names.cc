@@ -164,13 +164,13 @@ except: KeyError | IndexError
         :widths: auto
         :class: api-table
 
-        * - :exc:`KeyError`
+        * - :exc:`dt.exceptions.KeyError`
           - raised if the `column` argument is a string, and the column with
             such name does not exist in the frame. When this exception is
             thrown, the error message may contain suggestions for up to 3
             similarly looking column names that actually exist in the Frame.
 
-        * - :exc:`IndexError`
+        * - :exc:`dt.exceptions.IndexError`
           - raised if the `column` argument is an integer that is either greater
             than or equal to :attr:`.ncols` or less than `-ncols`.
 
@@ -297,11 +297,11 @@ except: ValueError | KeyError
         :widths: auto
         :class: api-table
 
-        * - :exc:`ValueError`
+        * - :exc:`dt.exceptions.ValueError`
           - raised If the length of the list/tuple `new_names` does not match the
             number of columns in the frame.
 
-        * - :exc:`KeyError`
+        * - :exc:`dt.exceptions.KeyError`
           - raised If `new_names` is a dictionary containing entries that do not
             match any of the existing columns in the frame.
 
@@ -533,6 +533,7 @@ void DataTable::set_names(const strvec& names_list, bool warn) {
 
 void DataTable::replace_names(py::odict replacements, bool warn) {
   py::olist newnames(ncols_);
+  if (!py_names_) _init_pynames();
 
   for (size_t i = 0; i < ncols_; ++i) {
     newnames.set(i, py_names_[i]);

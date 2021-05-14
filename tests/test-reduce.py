@@ -434,6 +434,20 @@ def test_median_wrong_stype():
             "type str64" in str(e.value))
 
 
+def test_median_issue2802_1():
+    I = dt.Frame(list(range(10)), stype=dt.int64)
+    DT = dt.Frame(A=list(range(10)))[I, :]
+    RES = DT[:, median(f.A)]
+    assert_equals(RES, dt.Frame(A=[4.5]))
+
+
+def test_median_issue2802_2():
+    I = dt.Frame(list(range(13)), stype=dt.int64)
+    DT = dt.Frame(A=range(13))[I, :]
+    RES = DT[:, median(f.A)]
+    assert_equals(RES, dt.Frame(A=[6.0]))
+
+
 
 #-------------------------------------------------------------------------------
 # Cov

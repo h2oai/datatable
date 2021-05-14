@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -29,7 +29,7 @@
 import math
 import pytest
 import datatable as dt
-from datatable import f, stype, ltype
+from datatable import f, stype, ltype, as_type
 from datatable.internal import frame_columns_virtual, frame_integrity_check
 from tests import noop, assert_equals
 
@@ -194,6 +194,14 @@ def test_cast_object_to_numeric(target_stype):
     assert_equals(RES, dt.Frame(W=[0, 1, 2], stype=target_stype))
 
 
+@pytest.mark.parametrize("target_stype", ltype.int.stypes + ltype.real.stypes)
+def test_cast_date32_to_numeric(target_stype):
+    from datetime import date as d
+    DT = dt.Frame([d(1970,1,10), d(1969, 12, 30)])
+    assert DT.types == [dt.Type.date32]
+    RES = DT[:, target_stype(f[0])]
+    assert_equals(RES, dt.Frame([9, -2], stype=target_stype))
+
 
 
 #-------------------------------------------------------------------------------
@@ -289,7 +297,7 @@ def test_cast_str_to_str(source_stype):
 
 def test_cast_obj_to_str():
     src = [noop, "Hello!", ..., {}, dt, print, None]
-    DT = dt.Frame(src)
+    DT = dt.Frame(src, stype=object)
     assert DT.stypes == (dt.obj64,)
     RES = DT[:, [dt.str32(f[0]), dt.str64(f[0])]]
     frame_integrity_check(RES)
@@ -322,6 +330,16 @@ def test_cast_empty_str32_to_str64():
     assert_equals(DT, dt.Frame(A=[], stype=dt.str32))
 
 
+@pytest.mark.parametrize("target_stype", [dt.str32, dt.str64])
+def test_cast_date32_to_str(target_stype):
+    from datetime import date as d
+    DT = dt.Frame(A=[d(2000, 1, 5), d(2001, 6, 2), None, d(831, 11, 11)])
+    assert DT.types == [dt.Type.date32]
+    DT['A'] = target_stype
+    assert_equals(DT,
+        dt.Frame(A=["2000-01-05", "2001-06-02", None, "0831-11-11"],
+                 stype=target_stype))
+
 
 
 #-------------------------------------------------------------------------------
@@ -353,7 +371,8 @@ def test_cast_obj_to_obj():
 
     a = AA()
     b = AA()
-    DT = dt.Frame([a, b, AA, {"believe": "in something"}])
+    DT = dt.Frame([a, b, AA, {"believe": "in something"}],
+                  stype=dt.obj64)
     assert DT.stypes == (dt.obj64,)
     RES = DT[:, dt.obj64(f[0])]
     assert RES.stypes == (dt.obj64,)
@@ -363,6 +382,14 @@ def test_cast_obj_to_obj():
     assert ans[2] is AA
     assert ans[3] == {"believe": "in something"}
 
+
+def test_cast_date32_to_obj():
+    from datetime import date as d
+    src = [d(2000, 1, 5), d(2001, 6, 2), None, d(831, 11, 11)]
+    DT = dt.Frame(A=src)
+    assert DT.types == [dt.Type.date32]
+    DT['A'] = object
+    assert_equals(DT, dt.Frame(A=src, stype=dt.obj64))
 
 
 
@@ -401,3 +428,37 @@ def test_cast_views_all(viewtype, source_stype, target_stype):
     DT.materialize()
     ans2 = DT[:, target_stype(f.A)].to_list()[0]
     assert ans1 == ans2
+
+
+
+#-------------------------------------------------------------------------------
+# as_type() function
+#-------------------------------------------------------------------------------
+
+def test_as_type_arguments():
+    msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
+          r"arguments, but none were given"
+    with pytest.raises(TypeError,  match=msg):
+        as_type()
+
+    msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
+          r"arguments, but only 1 was given"
+    with pytest.raises(TypeError,  match=msg):
+        as_type(f.A)
+
+    msg = r"Function datatable.as_type\(\) takes at most 2 positional " \
+          r"arguments, but 3 were given"
+    with pytest.raises(TypeError,  match=msg):
+        as_type(f.A, f.B, f.C)
+
+
+def test_as_type_repr():
+    assert repr(as_type(f.A, dt.int64)) == 'FExpr<as_type(f.A, int64)>'
+    assert repr(as_type(f[1], dt.str32)) == 'FExpr<as_type(f[1], str32)>'
+
+
+@pytest.mark.parametrize("target", [dt.int64, int, dt.str32, dt.float32])
+def test_as_type(target):
+    DT = dt.Frame(A=range(5))
+    assert_equals(DT[:, as_type(f.A, target)],
+                  dt.Frame(A=range(5), stype=target))

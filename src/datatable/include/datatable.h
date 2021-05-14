@@ -38,6 +38,7 @@ extern "C" {
 #define DtStype_FLOAT64  7
 #define DtStype_STR32    11
 #define DtStype_STR64    12
+#define DtStype_DATE32   17
 #define DtStype_OBJ      21
 
 /**

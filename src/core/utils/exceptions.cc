@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -257,6 +257,13 @@ Error& Error::operator<<(const dt::LType& ltype) {
 
 
 template <>
+Error& Error::operator<<(const dt::Type& type) {
+  error_message_ << type.to_string();
+  return *this;
+}
+
+
+template <>
 Error& Error::operator<<(const char& c) {
   uint8_t uc = static_cast<uint8_t>(c);
   if (uc < 0x20 || uc >= 0x80 || uc == '`' || uc == '\\') {
@@ -352,6 +359,7 @@ void Error::emit_warning() const {
 //==============================================================================
 
 Error AssertionError()        { return Error(PyExc_AssertionError); }
+Error AttributeError()        { return Error(PyExc_AttributeError); }
 Error RuntimeError()          { return Error(PyExc_RuntimeError); }
 Error ImportError()           { return Error(DtExc_ImportError); }
 Error IndexError()            { return Error(DtExc_IndexError); }

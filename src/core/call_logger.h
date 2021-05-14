@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -77,6 +77,7 @@ class CallLogger {
     static CallLogger function  (const py::PKArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger function  (const py::XArgs*, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger method    (const py::PKArgs*, PyObject* pyobj, PyObject* pyargs, PyObject* pykwds) noexcept;
+    static CallLogger method    (const py::XArgs*, PyObject* pyobj, PyObject* pyargs, PyObject* pykwds) noexcept;
     static CallLogger dealloc   (PyObject* pyobj) noexcept;
     static CallLogger getset    (PyObject* pyobj, PyObject* val, void* closure) noexcept;
     static CallLogger getattr   (PyObject* pyobj, PyObject* key) noexcept;
@@ -84,6 +85,7 @@ class CallLogger {
     static CallLogger getbuffer (PyObject* pyobj, Py_buffer* buf, int flags) noexcept;
     static CallLogger delbuffer (PyObject* pyobj, Py_buffer* buf) noexcept;
     static CallLogger len       (PyObject* pyobj) noexcept;
+    static CallLogger hash      (PyObject* pyobj) noexcept;
     static CallLogger unaryfn   (PyObject* pyobj, int op) noexcept;
     static CallLogger binaryfn  (PyObject* pyobj, PyObject* other, int op) noexcept;
     static CallLogger ternaryfn (PyObject* x, PyObject* y, PyObject* z, int op) noexcept;

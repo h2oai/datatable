@@ -37,13 +37,13 @@ these steps in order to set up your local development environment:
 
 3. Clone the repository on your local computer:
 
-   .. xcode:: shell
+   .. code-block:: console
 
       $ git clone https://github.com/your_user_name/datatable
 
 4. Lastly, add the original ``datatable`` repository as the upstream:
 
-   .. xcode:: shell
+   .. code-block:: console
 
       $ cd datatable
       $ git remote add upstream https://github.com/h2oai/datatable
@@ -63,7 +63,7 @@ Creating a contribution
 Start by fetching any changes that might have occurred since the last time
 you were working with the repository:
 
-.. xcode:: shell
+.. code-block:: console
 
    $ git checkout main
    $ git pull
@@ -75,7 +75,7 @@ recognize what this branch is about. It's a good idea to prefix the branch
 name with your initials so that it doesn't conflict with branches from other
 developers:
 
-.. xcode:: shell
+.. code-block:: console
 
    $ git checkout -b your_branch_name
 
@@ -94,7 +94,7 @@ order by running ``git status`` -- it should say "nothing to commit, working
 tree clean". At this point the changes need to be pushed into the "origin",
 which is your repository fork:
 
-.. xcode:: shell
+.. code-block:: console
 
    $ git push origin your_branch_name
 

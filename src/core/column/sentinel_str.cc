@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@
 #include "utils/misc.h"
 namespace dt {
 
-template <typename T> constexpr SType stype_for() { return SType::VOID; }
+template <typename T> constexpr SType stype_for() { return SType::INVALID; }
 template <> constexpr SType stype_for<uint32_t>() { return SType::STR32; }
 template <> constexpr SType stype_for<uint64_t>() { return SType::STR64; }
 
@@ -170,7 +170,7 @@ void SentinelStr_ColumnImpl<T>::replace_values(
   Column with;
   if (replace_with) {
     with = replace_with;  // copy
-    if (with.stype() != stype_) with = with.cast(stype_);
+    if (with.stype() != stype()) with = with.cast(stype());
   }
 
   if (!with || with.nrows() == 1) {

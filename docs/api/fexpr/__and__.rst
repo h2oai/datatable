@@ -23,7 +23,7 @@
     operator ``and``). Beware, however, that ``&`` has higher precedence
     than ``and``, so it is advisable to always use parentheses::
 
-        DT[(f.x >= 0) & (f.x <= 1), :]
+        >>> DT[(f.x >= 0) & (f.x <= 1), :]
 
     Parameters
     ----------
@@ -38,7 +38,7 @@
     Notes
     -----
 
-    .. warning::
+    .. note::
 
         Use ``x & y`` in order to AND two boolean `FExpr`s. Using standard
         Python keyword ``and`` will result in an error.

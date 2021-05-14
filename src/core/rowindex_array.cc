@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,6 @@
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "stype.h"
-
 #if DT_DEBUG
   inline static void test(ArrayRowIndexImpl* o) {
     o->refcount++;
@@ -141,13 +140,15 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     return;
   }
   int8_t value;
+  Column colcopy = col;
+  colcopy.materialize();
   if (length <= INT32_MAX && col.nrows() <= INT32_MAX) {
     type = RowIndexType::ARR32;
     _resize_data();
     auto ind32 = static_cast<int32_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind32[k++] = static_cast<int32_t>(i);
       }
@@ -158,7 +159,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
     auto ind64 = static_cast<int64_t*>(buf_.xptr());
     size_t k = 0;
     for (size_t i = 0; i < col.nrows(); ++i) {
-      bool isvalid = col.get_element(i, &value);
+      bool isvalid = colcopy.get_element(i, &value);
       if (value && isvalid) {
         ind64[k++] = static_cast<int64_t>(i);
       }
@@ -212,9 +213,9 @@ const int64_t* ArrayRowIndexImpl::indices64() const noexcept {
 
 Column ArrayRowIndexImpl::as_column() const {
   if (type == RowIndexType::ARR32) {
-    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int32_t>(length, dt::SType::INT32, Buffer(buf_)));
   } else {
-    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, Buffer(buf_)));
+    return Column(new dt::SentinelFw_ColumnImpl<int64_t>(length, dt::SType::INT64, Buffer(buf_)));
   }
 }
 
@@ -319,35 +320,37 @@ template <typename TI, typename TO>
 RowIndexImpl* ArrayRowIndexImpl::negate_impl(size_t nrows) const
 {
   auto inputs = static_cast<const TI*>(buf_.rptr());
-  size_t newsize = nrows - length;
+  size_t newsize = nrows;
   size_t inpsize = length;
   Buffer outbuf = Buffer::mem(newsize * sizeof(TO));
   auto outputs = static_cast<TO*>(outbuf.xptr());
   TO orows = static_cast<TO>(nrows);
 
   TO next_index_to_skip = static_cast<TO>(inputs[0]);
-  size_t j = 1;  // next index to read from the `inputs` array
+  size_t count_indices_skipped = 0;
+  size_t j = 0;  // index to read from the `inputs` array
   size_t k = 0;  // next index to write into the `outputs` array
   for (TO i = 0; i < orows; ++i) {
     if (i == next_index_to_skip) {
-      next_index_to_skip =
-        j < inpsize? static_cast<TO>(inputs[j++]) : orows;
-      if (next_index_to_skip <= i) {
-        throw ValueError() << "Cannot invert RowIndex which is not sorted";
+      ++count_indices_skipped;
+      while ( (j+1 < inpsize) && (inputs[j] == inputs[j+1]) ) {
+        ++j;
       }
+      ++j;
+      next_index_to_skip = j < inpsize? static_cast<TO>(inputs[j]) : orows;
     } else {
       outputs[k++] = i;
     }
   }
-
+  xassert(nrows >= count_indices_skipped);
   int flags = RowIndex::SORTED;
   flags |= (sizeof(TO) == sizeof(int32_t))? RowIndex::ARR32 : RowIndex::ARR64;
+  outbuf.resize((newsize - count_indices_skipped) * sizeof(TO));
   return new ArrayRowIndexImpl(std::move(outbuf), flags);
 }
 
 
 RowIndexImpl* ArrayRowIndexImpl::negate(size_t nrows) const {
-  xassert(nrows >= length);
   if (type == RowIndexType::ARR32) {
     if (nrows <= INT32_MAX)
       return negate_impl<int32_t, int32_t>(nrows);

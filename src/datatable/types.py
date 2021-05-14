@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,6 @@
 import ctypes
 import enum
 from datatable.exceptions import ValueError
-from datatable.expr.expr import Expr, OpCodes
 from datatable.lib import core
 
 __all__ = ("stype", "ltype")
@@ -47,6 +46,7 @@ class stype(enum.Enum):
     Notably, :mod:`datatable` does not support arbitrary structures as
     elements of a Column, so the set of stypes is small.
     """
+    void = 0
     bool8 = 1
     int8 = 2
     int16 = 3
@@ -56,13 +56,15 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
+    date32 = 17
+    time64 = 18
     obj64 = 21
 
     def __repr__(self):
         return str(self)
 
     def __call__(self, arg):
-        return Expr(OpCodes.CAST, (arg,), (self,))
+        return core.as_type(arg, self)
 
     @property
     def code(self):
@@ -149,6 +151,7 @@ class ltype(enum.Enum):
     ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
     between ltypes and stypes.
     """
+    void = 0
     bool = 1
     int = 2
     real = 3
@@ -199,6 +202,7 @@ setattr(ltype, "__new__", ___new___)
 
 
 _stype_2_short = {
+    stype.void: "n0",
     stype.bool8: "b1",
     stype.int8: "i1",
     stype.int16: "i2",
@@ -208,10 +212,13 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
+    stype.time64: "t8",
+    stype.date32: "d4",
     stype.obj64: "o8",
 }
 
 _stype_2_ltype = {
+    stype.void: ltype.void,
     stype.bool8: ltype.bool,
     stype.int8: ltype.int,
     stype.int16: ltype.int,
@@ -221,10 +228,13 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
+    stype.date32: ltype.time,
+    stype.time64: ltype.time,
     stype.obj64: ltype.obj,
 }
 
 _stype_2_ctype = {
+    stype.void: None,
     stype.bool8: ctypes.c_int8,
     stype.int8: ctypes.c_int8,
     stype.int16: ctypes.c_int16,
@@ -259,6 +269,7 @@ def _init_numpy_transforms():
     try:
         import numpy as np
         _stype_2_dtype = {
+            stype.void: np.dtype("void"),
             stype.bool8: np.dtype("bool"),
             stype.int8: np.dtype("int8"),
             stype.int16: np.dtype("int16"),
@@ -271,6 +282,7 @@ def _init_numpy_transforms():
             stype.obj64: np.dtype("object"),
         }
         _init_value2members_from([
+            (np.dtype("void"), stype.void),
             (np.dtype("bool"), stype.bool8),
             (np.dtype("int8"), stype.int8),
             (np.dtype("int16"), stype.int16),
@@ -286,6 +298,7 @@ def _init_numpy_transforms():
 
 
 _stype_2_struct = {
+    stype.void: "",
     stype.bool8: "b",
     stype.int8: "b",
     stype.int16: "=h",

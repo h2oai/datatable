@@ -26,6 +26,7 @@
 #include "expr/fexpr_literal.h"
 #include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
 namespace dt {
 namespace expr {
@@ -108,7 +109,8 @@ using namespace py;
 
 // static "constructor"
 oobj PyFExpr::make(FExpr* expr) {
-  oobj res = robj(reinterpret_cast<PyObject*>(FExpr_Type)).call();
+  xassert(FExpr_Type);
+  oobj res = robj(FExpr_Type).call();
   auto fexpr = reinterpret_cast<PyFExpr*>(res.to_borrowed_ref());
   fexpr->expr_ = ptrExpr(expr);
   return res;
@@ -285,7 +287,7 @@ static const char* doc_re_match =
 R"(re_match(self, pattern, flags=None)
 --
 
-.. deprecated:: 0.11
+.. x-version-deprecated:: 0.11
 
 Test whether values in a string column match a regular expression.
 
@@ -320,6 +322,48 @@ oobj PyFExpr::re_match(const PKArgs& args) {
 }
 
 
+
+
+//------------------------------------------------------------------------------
+// Miscellaneous
+//------------------------------------------------------------------------------
+
+static const char* doc_sum =
+R"(sum()
+--
+
+Equivalent to :func:`dt.sum(self)`.
+)";
+
+oobj PyFExpr::sum(const XArgs&) {
+  auto sumFn = oobj::import("datatable", "sum");
+  return sumFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::sum)
+    ->name("sum")
+    ->docs(doc_sum);
+
+static const char* doc_max =
+R"(max()
+--
+
+Equivalent to :func:`dt.max(self)`.
+)";
+
+oobj PyFExpr::max(const XArgs&) {
+  auto maxFn = oobj::import("datatable", "max");
+  return maxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::max)
+    ->name("max")
+    ->docs(doc_max);
+
+
+//------------------------------------------------------------------------------
+// Class decoration
+//------------------------------------------------------------------------------
 
 static const char* doc_fexpr =
 R"(
@@ -391,7 +435,9 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__POS__(&PyFExpr::nb__pos__));
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
 
-  FExpr_Type = &type;
+  FExpr_Type = xt.get_type_object();
+
+  INIT_METHODS_FOR_CLASS(PyFExpr);
 }
 
 

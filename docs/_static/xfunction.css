@@ -94,6 +94,7 @@
 }
 .x-function .sig-parameters .param .default.literal {
     background: none;
+    border: none;
     color: #8da4d2;
     font-size: inherit;
     padding: 0;
@@ -114,16 +115,7 @@
  *-----------------------------------------------------------------------------*/
 
 .x-function .x-function-body {
-    margin: 8pt 0 0 16pt;
-}
-
-.x-function .x-function-body p {
-    margin: 0 0 16px 0;
-    text-align: justify;
-}
-
-.x-function .x-function-body h2 {
-    font-size: 130%;
+    margin: 8pt 0 0 0;
 }
 
 
@@ -153,17 +145,6 @@
     font-weight: normal;
 }
 
-.x-function .x-version-added {
-    font-style: italic;
-    font-size: 90%;
-    text-align: right;
-    position: relative;
-    top: -6pt;
-}
-
-.x-function .xparam-body .x-version-added {
-    top: 0;
-}
 
 
 /*------------------------------------------------------------------------------
@@ -219,6 +200,7 @@
 
 .xparam-head .types code.literal {
     background: none;
+    border: none;
     color: rgba(0, 0, 0, 0.35);
     padding: 0;
 }

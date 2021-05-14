@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,7 @@
 #include "column/sentinel.h"
 #include "column/virtual.h"
 #include "frame/py_frame.h"
-#include "jay/jay_generated.h"
+#include "jay/jay_nowarnings.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/args.h"
@@ -137,6 +137,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
       jsto = saveStats<int16_t, jay::StatsInt16>(colstats, fbb);
       jsttype = jay::Stats_Int16;
       break;
+    case dt::SType::DATE32:
     case dt::SType::INT32:
       jsto = saveStats<int32_t, jay::StatsInt32>(colstats, fbb);
       jsttype = jay::Stats_Int32;
@@ -164,7 +165,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
   cbb.add_nullcount(na_count());
   write_data_to_jay(cbb, wb);
 
-  if (jsttype != jay::Stats_NONE) {
+  if (!jsto.IsNull()) {
     cbb.add_stats_type(jsttype);
     cbb.add_stats(jsto);
   }
@@ -207,7 +208,7 @@ void dt::Rbound_ColumnImpl::_write_fw_to_jay(
   size_t pos0 = 0;
   size_t size_total = 0;
   for (const Column& col : chunks_) {
-    xassert(col.stype() == stype_);
+    xassert(col.stype() == stype());
     xassert(col.get_num_data_buffers() == 1);
     const void* data = col.get_data_readonly(0);
     size_t size = col.get_data_size(0);
@@ -258,14 +259,15 @@ void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
     }
     if (strdata_size > Column::MAX_ARR32_SIZE ||
         nrows_ > Column::MAX_ARR32_SIZE) {
-      stype_ = SType::STR64;
+      // [FIXME]
+      // stype_ = SType::STR64;
       cbb.add_type(stype_to_jaytype[static_cast<int>(SType::STR64)]);
     }
   }
 
   // Write initial zero
   size_t pos0 = 0;
-  size_t elemsize0 = stype_elemsize(stype_);
+  size_t elemsize0 = stype_elemsize(stype());
   pos0 = wb->write(elemsize0, &pos0);
 
   size_t offsets_size = elemsize0;  // total size of all offsets written so far
@@ -281,18 +283,18 @@ void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
     // can be written into the output as-is without the need for additional
     // offsetting. However, this wouldn't apply in a case of a STR32->STR64
     // type bump.
-    if (strdata_size == 0 && col.stype() == stype_) {
+    if (strdata_size == 0 && col.stype() == stype()) {
       wb->write(size, data);
       offsets_size += size;
     }
     // For all subsequent chunks we need to modify the offsets and
     // remove the initial 0 from the `data` array.
     else {
-      xassert((col.stype() == stype_) ||
-              (col.stype() == SType::STR32 && stype_ == SType::STR64));
+      xassert((col.stype() == stype()) ||
+              (col.stype() == SType::STR32 && stype() == SType::STR64));
       size_t n = col.nrows();
       Buffer newbuf = (col.stype() == dt::SType::STR32)
-          ? (stype_ == dt::SType::STR32
+          ? (stype() == dt::SType::STR32
               ? _recode_offsets<uint32_t, uint32_t>(data, n, strdata_size)
               : _recode_offsets<uint32_t, uint64_t>(data, n, strdata_size))
           : _recode_offsets<uint64_t, uint64_t>(data, n, strdata_size);
@@ -346,7 +348,7 @@ void dt::Rbound_ColumnImpl::write_data_to_jay(
     col.materialize();
   }
 
-  if (stype_ == dt::SType::STR32 || stype_ == dt::SType::STR64) {
+  if (stype() == dt::SType::STR32 || stype() == dt::SType::STR64) {
     _write_str_offsets_to_jay(cbb, wb);
     _write_str_data_to_jay(cbb, wb);
   } else {
@@ -480,6 +482,7 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::INT64)]   = jay::Type_Int64;
   stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::Type_Float32;
   stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::Type_Float64;
+  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::Type_Date32;
   stype_to_jaytype[int(dt::SType::STR32)]   = jay::Type_Str32;
   stype_to_jaytype[int(dt::SType::STR64)]   = jay::Type_Str64;
 }

@@ -35,14 +35,6 @@ class writing_context {
   public:
     char* ch;   // current writing position
 
-    union {
-      int32_t value_i32;
-      int64_t value_i64;
-      float   value_f32;
-      double  value_f64;
-      CString value_str;
-    };
-
   private:
     CString output;
     // do not write var-width fields past this pointer, need to reallocate

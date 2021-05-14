@@ -25,6 +25,7 @@ from datatable.lib._datatable import (
     Ftrl,
     kfold,
     kfold_random,
+    LinearModel,
 )
 
-__all__ = ("aggregate", "Ftrl", "kfold", "kfold_random")
+__all__ = ("aggregate", "Ftrl", "kfold", "kfold_random", "LinearModel")

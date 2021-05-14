@@ -50,10 +50,6 @@ tparams = Params(alpha = 1, beta = 2, lambda1 = 3, lambda2 = 4, nbins = 5,
                  negative_class = True, interactions = (("C0",),),
                  model_type = 'binomial')
 
-tmodel = dt.Frame([[random.random() for _ in range(tparams.nbins)],
-                   [random.random() for _ in range(tparams.nbins)]],
-                   names=['z', 'n'])
-
 default_params = Params(alpha = 0.005, beta = 1, lambda1 = 0, lambda2 = 0,
                         nbins = 10**6, mantissa_nbits = 10, nepochs = 1,
                         double_precision = False, negative_class = False,
@@ -513,7 +509,7 @@ def test_ftrl_fit_wrong_empty_target():
 def test_ftrl_fit_wrong_target_obj64():
     ft = Ftrl()
     df_train = dt.Frame(list(range(8)))
-    df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"])
+    df_target = dt.Frame([3, "point", None, None, 14, 15, {92}, "6"], stype='obj')
     with pytest.raises(TypeError) as e:
         ft.fit(df_train, df_target)
     assert ("Target column type obj64 is not supported" ==
@@ -630,6 +626,16 @@ def test_ftrl_fit_none():
     assert ft.model_type_trained == "none"
     assert res.epoch == 0.0
     assert res.loss is None
+
+
+def test_ftrl_fit_one():
+    ft = Ftrl(model_type = "binomial", nepochs = 1)
+    df_train = dt.Frame(["cat"])
+    df_target = dt.Frame(["animal"])
+    ft.fit(df_train, df_target)
+    p = ft.predict(df_train)
+    p_ref = dt.Frame({"animal" : [0.5]/dt.float32})
+    assert_equals(p, p_ref, 1e-3)
 
 
 def test_ftrl_fit_unique():
@@ -1340,6 +1346,7 @@ def test_ftrl_early_stopping_float(validation_average_niterations):
     assert_equals(ft.model, ft1.model)
     assert_equals(p, p1)
 
+
 @pytest.mark.parametrize('validation_average_niterations', [1,5,10])
 def test_ftrl_early_stopping_regression(validation_average_niterations):
     nepochs = 10000
@@ -1585,7 +1592,7 @@ def test_ftrl_reuse_pickled_empty_model():
     df_target = dt.Frame([True] * ft_unpickled.nbins)
     ft_unpickled.fit(df_train, df_target)
     model = [[0.5] * ft_unpickled.nbins, [0.25] * ft_unpickled.nbins]
-    fi = dt.Frame([["id"], [0.0]])[:, [f[0], dt.float32(f[1])]]
+    fi = dt.Frame([["id"], [0.0]/stype.float32])
     fi.names = ["feature_name", "feature_importance"]
     assert ft_unpickled.model.to_list() == model
     assert_equals(ft_unpickled.feature_importances, fi)

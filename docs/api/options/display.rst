@@ -1,5 +1,6 @@
 
-.. xdata:: datatable.options.display
+.. xclass:: datatable.options.display
+    :qual-type: class
     :src: --
 
     This namespace contains the following display options:

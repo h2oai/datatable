@@ -40,21 +40,15 @@ struct output_options {
   bool floats_as_hex;
   bool integers_as_hex;
   bool booleans_as_words;
-  bool strings_never_quote;
-  bool strings_always_quote;
-  bool strings_escape_quotes;
   bool bom;
   Quoting quoting_mode;
-  size_t : 56;
+  size_t : 16;
 
   output_options()
     : compress_zlib(false),
       floats_as_hex(false),
       integers_as_hex(false),
       booleans_as_words(false),
-      strings_never_quote(false),
-      strings_always_quote(false),
-      strings_escape_quotes(false),
       bom(false),
       quoting_mode(Quoting::MINIMAL) {}
 };

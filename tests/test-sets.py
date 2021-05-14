@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -97,7 +97,7 @@ def test_setfns_between_empty_frames1(fn):
 def test_setfns_between_empty_frames2(fn):
     DT = dt.Frame(A=[])
     res = fn(DT, DT)
-    assert_equals(res, DT)
+    assert_equals(res, dt.Frame(A=[]))
 
 
 def test_union_badargs():

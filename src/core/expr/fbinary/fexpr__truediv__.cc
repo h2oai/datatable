@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 20202-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -62,10 +62,10 @@ class FExpr__truediv__ : public FExpr_BinaryOp {
   private:
     template <typename T>
     static Column make(Column&& a, Column&& b, SType stype) {
-      xassert(compatible_type<T>(stype));
       size_t nrows = a.nrows();
       a.cast_inplace(stype);
       b.cast_inplace(stype);
+      xassert(a.can_be_read_as<T>());
       return Column(new FuncBinary1_ColumnImpl<T, T, T>(
         std::move(a), std::move(b),
         [](T x, T y){

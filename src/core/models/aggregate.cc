@@ -20,13 +20,13 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <random>
-#include "column/func_unary.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "models/aggregate.h"
-#include "models/utils.h"
+#include "models/column_caster.h"
 #include "models/py_validator.h"
+#include "models/utils.h"
 #include "options.h"
 #include "parallel/api.h"       // dt::parallel_for_static
 #include "progress/work.h"      // dt::progress::work
@@ -290,26 +290,6 @@ Aggregator<T>::Aggregator(size_t min_rows_in, size_t n_bins_in,
 }
 
 
-/**
- *  Continuous column maker returns virtual column
- *  that casts a numeric column to type `T` and converts
- *  infinite values into missings.
- */
-template <typename T>
-template <typename TI>
-Column Aggregator<T>::contcol_maker(const Column& col_, dt::SType stype) {
-  Column col = Column(new dt::FuncUnary2_ColumnImpl<TI, T>(
-                 Column(col_),
-                 [](TI x, bool x_isvalid, T* out) {
-                   *out = static_cast<T>(x);
-                   return x_isvalid && _isfinite(x);
-                 },
-                 col_.nrows(),
-                 stype
-               ));
-  return col;
-}
-
 
 /**
  *  Main Aggregator method, convert all the numeric columns to `T`,
@@ -354,21 +334,23 @@ void Aggregator<T>::aggregate(DataTable* dt_in,
       const Column& col = dt->get_column(i);
       dt::SType col_stype = col.stype();
       switch (col_stype) {
+        case dt::SType::VOID:
         case dt::SType::BOOL:
-        case dt::SType::INT8:    contcol = contcol_maker<int8_t>(col, agg_stype); break;
-        case dt::SType::INT16:   contcol = contcol_maker<int16_t>(col, agg_stype); break;
-        case dt::SType::INT32:   contcol = contcol_maker<int32_t>(col, agg_stype); break;
-        case dt::SType::INT64:   contcol = contcol_maker<int64_t>(col, agg_stype); break;
-        case dt::SType::FLOAT32: contcol = contcol_maker<float>(col, agg_stype); break;
-        case dt::SType::FLOAT64: contcol = contcol_maker<double>(col, agg_stype); break;
+        case dt::SType::INT8:    contcol = make_inf2na_casted_column<int8_t, T>(col, agg_stype); break;
+        case dt::SType::INT16:   contcol = make_inf2na_casted_column<int16_t, T>(col, agg_stype); break;
+        case dt::SType::INT32:   contcol = make_inf2na_casted_column<int32_t, T>(col, agg_stype); break;
+        case dt::SType::INT64:   contcol = make_inf2na_casted_column<int64_t, T>(col, agg_stype); break;
+        case dt::SType::FLOAT32: contcol = make_inf2na_casted_column<float, T>(col, agg_stype); break;
+        case dt::SType::FLOAT64: contcol = make_inf2na_casted_column<double, T>(col, agg_stype); break;
+        case dt::SType::DATE32:  contcol = col.cast(agg_stype); break;
         case dt::SType::STR32:
         case dt::SType::STR64:   is_continuous = false;
-                             if (ncols < ND_COLS) {
-                               catcols.push_back(dt->get_column(i));
-                             }
-                             break;
-        default:             throw TypeError() << "Columns with stype `"
-                               << col_stype << "` are not supported";
+                                 if (ncols < ND_COLS) {
+                                   catcols.push_back(dt->get_column(i));
+                                 }
+                                 break;
+        default:  throw TypeError() << "Columns with stype `"
+                  << col_stype << "` are not supported";
       }
       if (is_continuous) {
         double min, max;
@@ -807,7 +789,7 @@ bool Aggregator<T>::group_2d_categorical() {
       }
     });
 
-    std::vector<size_t> na_bins {na_bin1, na_bin2, na_bin3};
+    sztvec na_bins {na_bin1, na_bin2, na_bin3};
     size_t n_groups_merged = n_merged_nas(na_bins);
     size_t n_na_bins = (na_bin1 > 0) + (na_bin2 > 0) + (na_bin3 > 0);
 
@@ -922,8 +904,8 @@ bool Aggregator<T>::group_nd() {
   size_t ndims = std::min(max_dimensions, ncols);
 
   std::vector<exptr> exemplars; // Current exemplars
-  std::vector<size_t> ids; // All the exemplar's ids, including the merged ones
-  std::vector<size_t> coprimes;
+  sztvec ids; // All the exemplar's ids, including the merged ones
+  sztvec coprimes;
   size_t nexemplars = 0;
   size_t ncoprimes = 0;
 
@@ -1020,7 +1002,7 @@ bool Aggregator<T>::group_nd() {
             if (exemplars.size() > max_bins) {
               adjust_delta(delta, exemplars, ids, ndims);
             }
-            calculate_coprimes(exemplars.size(), coprimes);
+            coprimes = calculate_coprimes(exemplars.size());
             nexemplars = exemplars.size();
             ncoprimes = coprimes.size();
           } else {
@@ -1051,7 +1033,7 @@ bool Aggregator<T>::group_nd() {
  */
 template <typename T>
 void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
-                                 std::vector<size_t>& ids, size_t ndims) {
+                                 sztvec& ids, size_t ndims) {
   size_t n = exemplars.size();
   size_t n_distances = (n * n - n) / 2;
   size_t k = 0;
@@ -1106,7 +1088,7 @@ void Aggregator<T>::adjust_delta(T& delta, std::vector<exptr>& exemplars,
  *  i.e. set which exemplar they belong to.
  */
 template <typename T>
-void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
+void Aggregator<T>::adjust_members(sztvec& ids) {
   auto d_members = static_cast<int32_t*>(dt_members->get_column(0).get_data_editable());
   auto map = std::unique_ptr<size_t[]>(new size_t[ids.size()]);
   auto nids = ids.size();
@@ -1129,7 +1111,7 @@ void Aggregator<T>::adjust_members(std::vector<size_t>& ids) {
  *  For each exemplar find the one it was merged to.
  */
 template <typename T>
-size_t Aggregator<T>::calculate_map(std::vector<size_t>& ids, size_t id) {
+size_t Aggregator<T>::calculate_map(sztvec& ids, size_t id) {
   if (id == ids[id]) {
     return id;
   } else {
