@@ -463,7 +463,6 @@ DECLARE_METHOD(&PyFExpr::rowmax)
     ->docs(doc_rowmax);
 
 
-
 static const char* doc_rowmean =
 R"(rowmean()
 --

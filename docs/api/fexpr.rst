@@ -154,7 +154,7 @@
 
         * - :meth:`.rowsum()`
           - Same as :func:`dt.rowsum()`.
-          
+
 
     Miscellaneous
     -------------
@@ -219,3 +219,4 @@
     .rowmin()       <fexpr/rowmin>
     .rowsd()        <fexpr/rowsd>
     .rowsum()       <fexpr/rowsum>
+

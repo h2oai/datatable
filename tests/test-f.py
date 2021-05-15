@@ -317,3 +317,4 @@ def test_rowsd():
                    "D": [10, 8, 20, 20, 1]})
 
     assert_equals(DT[:, f[:].rowsd()], DT[:, dt.rowsd(f[:])])
+
