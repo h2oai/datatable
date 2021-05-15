@@ -42,6 +42,9 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.sum() <dt.FExpr.sum>`,
       which behaves exactly as the base level function :func:`dt.sum()`.
 
+    -[new] Class :class:`dt.FExpr` now has methods for all the 
+      row functions (:func:`dt.rowsum()`, :func:`dt.rowall()`, etc).
+
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
       values.
