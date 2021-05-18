@@ -361,6 +361,56 @@ DECLARE_METHOD(&PyFExpr::max)
     ->docs(doc_max);
 
 
+static const char* doc_mean =
+R"(mean()
+--
+
+Equivalent to :func:`dt.mean(self)`.
+)";
+
+oobj PyFExpr::mean(const XArgs&) {
+  auto meanFn = oobj::import("datatable", "mean");
+  return meanFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::mean)
+    ->name("mean")
+    ->docs(doc_mean);
+
+
+static const char* doc_median =
+R"(median()
+--
+
+Equivalent to :func:`dt.median(self)`.
+)";
+
+oobj PyFExpr::median(const XArgs&) {
+  auto medianFn = oobj::import("datatable", "median");
+  return medianFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::median)
+    ->name("median")
+    ->docs(doc_median);
+
+
+static const char* doc_min =
+R"(min()
+--
+
+Equivalent to :func:`dt.min(self)`.
+)";
+
+oobj PyFExpr::min(const XArgs&) {
+  auto minFn = oobj::import("datatable", "min");
+  return minFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::min)
+    ->name("min")
+    ->docs(doc_min);
+
 //------------------------------------------------------------------------------
 // Class decoration
 //------------------------------------------------------------------------------

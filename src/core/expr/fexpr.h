@@ -182,6 +182,9 @@ class PyFExpr : public py::XObject<PyFExpr> {
 
     py::oobj sum(const py::XArgs&);
     py::oobj max(const py::XArgs&);
+    py::oobj mean(const py::XArgs&);
+    py::oobj median(const py::XArgs&);
+    py::oobj min(const py::XArgs&);
 
     static void impl_init_type(py::XTypeMaker& xt);
 };

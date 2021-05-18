@@ -236,3 +236,22 @@ def test_max():
     assert str(dt.max(f[:])) == str(f[:].max())
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.max()], DT[:, dt.max(f.A)])
+
+def test_mean():
+    assert str(dt.mean(f.A)) == str(f.A.mean())
+    assert str(dt.mean(f[:])) == str(f[:].mean())
+    DT = dt.Frame(A=range(1, 10))
+    assert_equals(DT[:, f.A.mean()], DT[:, dt.mean(f.A)])
+
+def test_median():
+    assert str(dt.median(f.A)) == str(f.A.median())
+    assert str(dt.median(f[:])) == str(f[:].median())
+    DT = dt.Frame(A=[2, 3, 5, 5, 9, -1, 2.2])
+    assert_equals(DT[:, f.A.median()], DT[:, dt.median(f.A)])
+
+def test_min():
+    assert str(dt.min(f.A)) == str(f.A.min())
+    assert str(dt.min(f[:])) == str(f[:].min())
+    DT = dt.Frame(A=[2, 3, 5, 5, 9, -1, 2.2])
+    assert_equals(DT[:, f.A.min()], DT[:, dt.min(f.A)])
+

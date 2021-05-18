@@ -125,6 +125,14 @@
         * - :meth:`.max()`
           - Same as :func:`dt.max()`.
 
+        * - :meth:`.mean()`
+          - Same as :func:`dt.mean()`.
+
+        * - :meth:`.median()`
+          - Same as :func:`dt.median()`.
+
+        * - :meth:`.min()`
+          - Same as :func:`dt.min()`.
 
     Miscellaneous
     -------------
@@ -179,3 +187,6 @@
     .remove()       <fexpr/remove>
     .sum()          <fexpr/sum>
     .max()          <fexpr/max>
+    .mean()         <fexpr/mean>
+    .median()       <fexpr/median>
+    .min()          <fexpr/min>
