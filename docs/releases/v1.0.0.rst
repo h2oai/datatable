@@ -47,6 +47,7 @@
       and :meth:`.median() <dt.FExpr.median>`, which behaves exactly as the
       equivalent base level functions :func:`dt.max()`, :func:`dt.min()`,
       :func:`dt.mean()`,  and :func:`dt.median()` respectively.
+      
     -[new] Class :class:`dt.FExpr` now has methods for all the 
       row functions (:func:`dt.rowsum()`, :func:`dt.rowall()`, etc).
 
