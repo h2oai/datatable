@@ -217,11 +217,9 @@
     .remove()       <fexpr/remove>
     .sum()          <fexpr/sum>
     .max()          <fexpr/max>
-<<<<<<< HEAD
     .mean()         <fexpr/mean>
     .median()       <fexpr/median>
     .min()          <fexpr/min>
-=======
     .rowall()       <fexpr/rowall>
     .rowany()       <fexpr/rowany>
     .rowcount()     <fexpr/rowcount>
@@ -233,4 +231,3 @@
     .rowsd()        <fexpr/rowsd>
     .rowsum()       <fexpr/rowsum>
 
->>>>>>> 021fd0cc894db34ea07d2f3b52e3bad03a7afdb7
