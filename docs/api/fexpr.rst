@@ -155,7 +155,7 @@
           - Same as :func:`dt.rowmean()`.
 
         * - :meth:`.rowmin()`
-          - Same as :func:`dt.rowmean()`.
+          - Same as :func:`dt.rowmin()`.
 
         * - :meth:`.rowsd()`
           - Same as :func:`dt.rowsd()`.
