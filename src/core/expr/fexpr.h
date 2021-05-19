@@ -185,6 +185,17 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj mean(const py::XArgs&);
     py::oobj median(const py::XArgs&);
     py::oobj min(const py::XArgs&);
+    py::oobj rowsum(const py::XArgs&);
+    py::oobj rowall(const py::XArgs&);
+    py::oobj rowany(const py::XArgs&);
+    py::oobj rowcount(const py::XArgs&);
+    py::oobj rowfirst(const py::XArgs&);
+    py::oobj rowlast(const py::XArgs&);
+    py::oobj rowmax(const py::XArgs&);
+    py::oobj rowmin(const py::XArgs&);
+    py::oobj rowmean(const py::XArgs&);
+    py::oobj rowsd(const py::XArgs&);
+
 
     static void impl_init_type(py::XTypeMaker& xt);
 };

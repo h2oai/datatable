@@ -133,6 +133,36 @@
 
         * - :meth:`.min()`
           - Same as :func:`dt.min()`.
+        * - :meth:`.rowall()`
+          - Same as :func:`dt.rowall()`.
+
+        * - :meth:`.rowany()`
+          - Same as :func:`dt.rowany()`.
+
+        * - :meth:`.rowcount()`
+          - Same as :func:`dt.rowcount()`.
+
+        * - :meth:`.rowfirst()`
+          - Same as :func:`dt.rowfirst()`.
+
+        * - :meth:`.rowlast()`
+          - Same as :func:`dt.rowlast()`.
+
+        * - :meth:`.rowmax()`
+          - Same as :func:`dt.rowmax()`.
+
+        * - :meth:`.rowmean()`
+          - Same as :func:`dt.rowmean()`.
+
+        * - :meth:`.rowmin()`
+          - Same as :func:`dt.rowmean()`.
+
+        * - :meth:`.rowsd()`
+          - Same as :func:`dt.rowsd()`.
+
+        * - :meth:`.rowsum()`
+          - Same as :func:`dt.rowsum()`.
+
 
     Miscellaneous
     -------------
@@ -187,6 +217,20 @@
     .remove()       <fexpr/remove>
     .sum()          <fexpr/sum>
     .max()          <fexpr/max>
+<<<<<<< HEAD
     .mean()         <fexpr/mean>
     .median()       <fexpr/median>
     .min()          <fexpr/min>
+=======
+    .rowall()       <fexpr/rowall>
+    .rowany()       <fexpr/rowany>
+    .rowcount()     <fexpr/rowcount>
+    .rowfirst()     <fexpr/rowfirst>
+    .rowlast()      <fexpr/rowlast>
+    .rowmax()       <fexpr/rowmax>
+    .rowmean()      <fexpr/rowmean>
+    .rowmin()       <fexpr/rowmin>
+    .rowsd()        <fexpr/rowsd>
+    .rowsum()       <fexpr/rowsum>
+
+>>>>>>> 021fd0cc894db34ea07d2f3b52e3bad03a7afdb7
