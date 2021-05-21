@@ -65,9 +65,42 @@ enum class SeparatorKind : int8_t {
   CHAR,       // single-character separator
   STRING,     // multi-character separator
   WHITESPACE, // separator is the regex /\s+/
-  // in the future, arbitrary regex separators may also be separated
 };
 
+
+enum class NewlineKind : int8_t {
+  AUTO,   // auto-detect: either CR or NOCR
+  ANY,    // \n | \r | \r\n
+  NOCR,   // \n | \r\n
+  CR,     // \r
+  LF,     // \n
+  CRLF,   // \r\n
+
+  QCR     // like CR, but used during auto-detection
+};
+
+
+enum class QuoteKind : int8_t {
+  AUTO,      // DOUBLE or SINGLE or NONE
+  SINGLE,
+  DOUBLE,
+  ITALIC,
+  NONE,
+  NOSINGLE,  // DOUBLE or NONE
+  NODOUBLE,  // SINGLE or NONE
+};
+
+
+enum QuoteRule : int8_t {
+  AUTO,
+  ESCAPED,
+  DOUBLED,
+};
+
+
+
+// Defined in csv/constants.cc
+extern const int8_t separatorLikelihood[128];
 
 
 

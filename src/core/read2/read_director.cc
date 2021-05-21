@@ -100,9 +100,7 @@ py::oobj ReadDirector::readStream(std::unique_ptr<BufferedStream>&& stream) {
 
 
 #if 0
-static_assert(static_cast<char>(0x7F) > 0 &&
-              static_cast<char>(0x80) < 0 &&
-              static_cast<char>(0xFF) < 0);
+
 
 void detectCSVSettings() {
   Buffer chunk = stream->getChunk(0, 65536);
@@ -149,36 +147,6 @@ void detectCSVSettings() {
 }
 
 
-
-int scanQuoted(ScanOptions& opts, const char** pch, const char* eof) {
-  char quote = opts.quoteChar;
-  // the initial quote was already skipped
-  const char*& ch = *pch;
-  while (ch < eof) {
-    char c = *ch++;
-    // if (c == '\\') {
-    //   bool nextQuote = (ch < eof) && (*ch == quote);
-    //   if (opts.autoQuoteRule)
-    // }
-    if (c == quote) {
-      bool nextCharIsAlsoQuote = (ch < eof) && (*ch == quote);
-      if (nextCharIsAlsoQuote) {
-        if (opts.quoteRule == QuoteRule::AUTO) {
-          opts.quoteRule = QuoteRule::DOUBLED;
-        }
-        if (opts.quoteRule == QuoteRule::ESCAPED) {
-          return INVALID_STRING;
-        }
-        ch++;
-      } else if (ch == eof && opts.quoteRule != QuoteRule::ESCAPED && !opts.eofExact) {
-        return END_OF_DATA;
-      } else {
-        return VALID_STRING;
-      }
-    }
-  }
-  return opts.eofExact? INVALID_STRING : END_OF_DATA;
-}
 
 
 
