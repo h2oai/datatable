@@ -36,11 +36,6 @@ static_assert('\t' == '\x09' &&
               '\r' == '\x0d', "Invalid ASCII codes");
 
 
-static constexpr bool isWhitespace(char c) {
-  return (c == ' ') || (c <= '\r' && c >= '\t');
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -79,6 +74,7 @@ class CsvParseSettingsDetector {
     char separatorChar_;
     bool skipBlankLines_;
     bool unevenRows_;         // aka "fill = True"
+    int : 16;
     std::string separatorString_;
 
   public:
@@ -86,42 +82,28 @@ class CsvParseSettingsDetector {
       : ch_(nullptr),
         eof_(nullptr),
         sol_(nullptr),
+        chBeforeWhitespace_(nullptr),
         counts_(nullptr),
         maxLinesToRead_(10),
         nLinesRead_(0),
+        moreDataAvailable_(false),
         error_(false),
-        isFallbackTheory_(false) {}
+        done_(false),
+        atStartOfLine_(false),
+        atEndOfLine_(false),
+        atSeparator_(false),
+        isFallbackTheory_(false),
+        separatorKind_(SeparatorKind::AUTO),
+        newlineKind_(NewlineKind::AUTO),
+        quoteKind_(QuoteKind::AUTO),
+        quoteRule_(QuoteRule::AUTO),
+        separatorChar_('\xff'),
+        skipBlankLines_(false),
+        unevenRows_(false) {}
 
-  private:
-    CsvParseSettingsDetector(const CsvParseSettingsDetector& other)
-      : buffer_(other.buffer_),
-        ch_(other.sol_),
-        eof_(other.eof_),  // move the parse pointer to start-of-line
-        sol_(other.sol_),
-        counts_(other.counts_),
-        nLinesRead_(other.nLinesRead_),
-        moreDataAvailable_(other.moreDataAvailable_),
-        newlineKind_(other.newlineKind_),
-        quoteKind_(other.quoteKind_),
-        quoteRule_(other.quoteRule_) {}
-
-    CsvParseSettingsDetector* newHypothesis() {
-      auto hypo = std::unique_ptr<CsvParseSettingsDetector>(
-                      new CsvParseSettingsDetector(*this));
-      hypo->nextHypothesis_ = std::move(this->nextHypothesis_);
-      this->nextHypothesis_ = std::move(hypo);
-      return nextHypothesis_.get();
-    }
-
-    void replaceBuffer(Buffer newBuffer) {
-      auto offset = ch_ - static_cast<const char*>(buffer_.rptr());
-      buffer_ = std::move(newBuffer);
-      auto ch0 = static_cast<const char*>(buffer_.rptr());
-      ch_ = ch0 + offset;
-      eof_ = ch0 + buffer_.size();
-      if (nextHypothesis_) {
-        nextHypothesis_->replaceBuffer(buffer_);
-      }
+    CsvParseSettingsDetector* setBuffer(Buffer buf) {
+      replaceBuffer(buf);
+      return this;
     }
 
     CsvParseSettingsDetector* setQuoteKind(QuoteKind qk) {
@@ -140,13 +122,9 @@ class CsvParseSettingsDetector {
       return this;
     }
 
-    CsvParseSettingsDetector* setFallback() {
-      isFallbackTheory_ = true;
+    CsvParseSettingsDetector* setNewlineKind(NewlineKind nk) {
+      newlineKind_ = nk;
       return this;
-    }
-
-    void expandBuffer() {
-      // ...
     }
 
 
@@ -160,6 +138,57 @@ class CsvParseSettingsDetector {
       }
       auto alternative = nextHypothesis_->detect();
       return alternative? bestHypothesis(this, alternative) : this;
+    }
+
+
+
+  private:
+    CsvParseSettingsDetector(const CsvParseSettingsDetector& other)
+      : buffer_(other.buffer_),
+        ch_(other.sol_),
+        eof_(other.eof_),  // move the parse pointer to start-of-line
+        sol_(other.sol_),
+        counts_(other.counts_),
+        nLinesRead_(other.nLinesRead_),
+        moreDataAvailable_(other.moreDataAvailable_),
+        separatorKind_(other.separatorKind_),
+        newlineKind_(other.newlineKind_),
+        quoteKind_(other.quoteKind_),
+        quoteRule_(other.quoteRule_),
+        separatorChar_(other.separatorChar_),
+        skipBlankLines_(other.skipBlankLines_),
+        unevenRows_(other.unevenRows_),
+        separatorString_(other.separatorString_) {}
+
+    CsvParseSettingsDetector* newHypothesis() {
+      auto hypo = std::unique_ptr<CsvParseSettingsDetector>(
+                      new CsvParseSettingsDetector(*this));
+      hypo->nextHypothesis_ = std::move(this->nextHypothesis_);
+      this->nextHypothesis_ = std::move(hypo);
+      return nextHypothesis_.get();
+    }
+
+    void replaceBuffer(Buffer newBuffer) {
+      auto delta = static_cast<const char*>(newBuffer.rptr()) -
+                   static_cast<const char*>(buffer_.rptr());
+      buffer_ = std::move(newBuffer);
+      ch_ += delta;
+      sol_ += delta;
+      chBeforeWhitespace_ += delta;
+      eof_ = static_cast<const char*>(buffer_.rptr()) + buffer_.size();
+      if (nextHypothesis_) {
+        nextHypothesis_->replaceBuffer(buffer_);
+      }
+    }
+
+
+    CsvParseSettingsDetector* setFallback() {
+      isFallbackTheory_ = true;
+      return this;
+    }
+
+    void expandBuffer() {
+      // ...
     }
 
 
@@ -217,7 +246,7 @@ class CsvParseSettingsDetector {
                     parseSeparator() ||
                     skip1Char();
           xassert(ok);
-          if (!error) skipWhitespace();
+          if (!error_) skipWhitespace();
           if (atEndOfLine_ || error_) return;
         }
       } while (moreDataAvailable());
@@ -483,6 +512,7 @@ class CsvParseSettingsDetector {
       // Revert the effects of `skipWhitespace()`.
       ch_ = ch0;
       atEndOfLine_ = false;
+      return true;
     }
 
 
@@ -709,10 +739,6 @@ class CsvParseSettingsDetector {
     bool error() {
       error_ = true;
       return false;
-    }
-
-    void doneParsing() {
-
     }
 
 

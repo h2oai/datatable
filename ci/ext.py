@@ -335,6 +335,7 @@ def build_extension(cmd, verbosity=3):
                 "-Weverything",
                 "-Wno-c++98-compat-pedantic",
                 "-Wno-c99-extensions",
+                "-Wno-documentation-unknown-command",
                 "-Wno-exit-time-destructors",
                 "-Wno-float-equal",
                 "-Wno-global-constructors",
