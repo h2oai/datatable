@@ -59,6 +59,11 @@ class SourceIterator;
 class Stream;
 
 
+
+//------------------------------------------------------------------------------
+// CSV
+//------------------------------------------------------------------------------
+
 enum class SeparatorKind : int8_t {
   AUTO,       // auto-detect, this is the default
   NONE,       // read input in single-column mode
@@ -97,6 +102,20 @@ enum QuoteRule : int8_t {
   DOUBLED,
 };
 
+
+struct CsvParseSettings {
+  NewlineKind   newlineKind;
+  QuoteKind     quoteKind;
+  QuoteRule     quoteRule;
+  SeparatorKind separatorKind;
+  char          separatorChar;
+  bool          skipBlankLines;
+  bool          unevenRows;
+  int : 8;
+  std::string   separatorString;
+};
+
+void detectCsvParseSettings(CsvParseSettings&, Buffer);
 
 
 // Defined in csv/constants.cc

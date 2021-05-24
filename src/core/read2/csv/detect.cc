@@ -802,8 +802,31 @@ class CsvParseSettingsDetector {
         separatorKind_ = SeparatorKind::NONE;
       }
     }
+
+    friend void detectCsvParseSettings(CsvParseSettings&, Buffer);
 };
 
+
+
+void detectCsvParseSettings(CsvParseSettings& params, Buffer buffer) {
+  CsvParseSettingsDetector in;
+  in.replaceBuffer(buffer);
+  in.newlineKind_ = params.newlineKind;
+  in.quoteKind_ = params.quoteKind;
+  in.quoteRule_ = params.quoteRule;
+  in.separatorKind_ = params.separatorKind;
+  in.separatorChar_ = params.separatorChar;
+  in.separatorString_ = params.separatorString;
+  in.skipBlankLines_ = params.skipBlankLines;
+  in.unevenRows_ = params.unevenRows;
+
+  auto out = in.detect();
+  params.newlineKind = out->newlineKind_;
+  params.quoteKind = out->quoteKind_;
+  params.quoteRule = out->quoteRule_;
+  params.separatorKind = out->separatorKind_;
+  params.separatorChar = out->separatorChar_;
+}
 
 
 
