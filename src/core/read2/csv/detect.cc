@@ -191,40 +191,6 @@ class CsvParseSettingsDetector {
     }
 
 
-    // void parseLine() {
-    //   sol_ = ch_;
-    //   atEndOfLine_ = false;
-    //   while (ch_ < eof_ && !atEndOfLine_) {
-    //     char c = *ch_;
-    //     // Note: \n and \r characters are considered whitespace
-    //     if (isWhitespace(c)) {
-    //       auto ch0 = ch_;
-    //       bool ws = skipWhitespace();
-    //       if (ws) {
-    //         for (auto ch = ch0; ch < ch_; ch++) {
-    //           if (*ch != '\n')
-    //             counts_[static_cast<int>(*ch)]++;
-    //         }
-    //         counts_[0x0A]++;
-    //       }
-    //     }
-    //     if (false);
-    //     // else if (c == '\n') parseLF();
-    //     // else if (c == '\r') parseCR();
-    //     else if (c == '\"') parseDoubleQuote();
-    //     else if (c == '\'') parseSingleQuote();
-    //     else if (c == '`' ) parseItalicQuote();
-    //     else {
-    //       if (c >= 0) {
-    //         counts_[static_cast<int>(c)]++;
-    //       }
-    //       ch_++;  // all other characters: skip over
-    //     }
-    //     if (error_) return;
-    //   }
-    // }
-
-
     void parseLine() {
       // First, we skip whitespace at the start of the line, and handle the
       // blank lines.
@@ -247,26 +213,11 @@ class CsvParseSettingsDetector {
           xassert(!atEndOfLine_);
           xassert(!atWhitespace());
           xassert(!error_);
-          bool ok = parseQuotedFieldAndWhitespace()  || error_ ||
-                    skipSeparator()                  || error_ ||
-                    skipWhitespace()                 || error_ ||
-                    atEndOfLine_;
+          bool ok = parseAndCheckQuotedField() ||
+                    parseSeparator() ||
+                    skip1Char();
           xassert(ok);
-          // char c = *ch_;
-          // if (false);
-          // else if (c == '\"') parseDoubleQuote();
-          // else if (c == '\'') parseSingleQuote();
-          // else if (c == '`' ) parseItalicQuote();
-          // else {
-          //   chBeforeWhitespace_ = ch_;
-          //   ch_++;
-          //   if (c >= 0) {
-          //     if (c != WHITESPACE) {
-          //       counts_[static_cast<int>(c)]++;
-          //     }
-          //   }
-          // }
-          // skipWhitespace();
+          if (!error) skipWhitespace();
           if (atEndOfLine_ || error_) return;
         }
       } while (moreDataAvailable());
@@ -283,74 +234,27 @@ class CsvParseSettingsDetector {
       * alternatives. In addition, this method may return with an error status,
       * in which case the parse location may or may not be modified.
       *
+      * Prerequisites: the following fields must be correctly set:
+      *   - `atStartOfLine_`
+      *   - `atSeparator_`
+      *   - `chBeforeWhitespace_` (may be NULL if atStartOfLine_ is true)
+      *
+      * Returns true if a quoted field was found, moving the parse location
+      * to the first character after the closing quote. Returns false if
+      * there is no quoted field at the current position, or if there was an
+      * error during parsing.
+      *
+      * This method may create additional hypotheses and/or resolve several
+      * AUTO parameters, including `quoteKind_`, `quoteRule_`, `separatorKind_`
+      * and `separatorChar_`.
       */
-    bool parseQuotedFieldAndWhitespace() {
-      bool ok = atQuoteCharacter() &&
-                validateBeforeQuoted() &&
-                manageHypothesesBeforeQuoted() &&
-                parseQuotedField();
-      if (!ok) return false;
-      if (error_) return false;
-
-      // After the quoted field was parsed, we verify that what follows is a
-      // separator / end of line.
-      {
-        const char* ch0 = ch_;
-        bool hasWhitespace = skipWhitespace();
-        xassert(atEndOfLine_ || ch_ < eof_);
-        switch (separatorKind_) {
-          case SeparatorKind::AUTO: {
-            // This could have happened only if the quoted field started at the
-            // beginning of a line.
-            if (atEndOfLine_) {
-              separatorKind_ = SeparatorKind::NONE;
-            } else {
-              if (hasWhitespace) {
-                newHypothesis()->setSeparatorKind(SeparatorKind::WHITESPACE);
-                int mask = 0;
-                for (const char* ch = ch0; ch < ch_; ch++) {
-                  char c = *ch;
-                  if (c == ' ' || c == '\t' || c == '\f' || c == '\v') {
-                    if (mask & (1 << (c - 9))) continue;
-                    mask |= (1 << (c - 9));
-                    newHypothesis()->setSeparatorChar(c);
-                  }
-                }
-              }
-              char sep = *ch_;
-              if (separatorLikelihood[static_cast<int>(sep)] == 0) goto fail;
-              separatorKind_ = SeparatorKind::CHAR;
-              separatorChar_ = sep;
-            }
-            break;
-          }
-          case SeparatorKind::WHITESPACE: {
-            if (!hasWhitespace) goto fail;
-            break;
-          }
-          case SeparatorKind::NONE: {
-            if (!atEndOfLine_) goto fail;
-            break;
-          }
-          case SeparatorKind::CHAR: {
-            if (!atEndOfLine_) {
-              if (*ch_ != separatorChar_) goto fail;
-            }
-            break;
-          }
-          case SeparatorKind::STRING: {
-            // TODO
-            break;
-          }
-        }
-      }
-
-      // THE END
-      return true;
-      fail: {
-        error_ = true;
-        return false;
-      }
+    bool parseAndCheckQuotedField() {
+      return atQuoteCharacter() &&
+             validateBeforeQuoted() &&
+             manageHypothesesBeforeQuoted() &&
+             parseQuotedField() &&
+             validateAfterQuoted() &&
+             !error_;
     }
 
 
@@ -466,7 +370,7 @@ class CsvParseSettingsDetector {
 
 
     /**
-      * Called by `parseQuotedFieldAndWhitespace()`, the job of this method
+      * Called by `parseAndCheckQuotedField()`, the job of this method
       * is to actually read the quoted field, advancing the current parse
       * location.
       *
@@ -475,70 +379,139 @@ class CsvParseSettingsDetector {
     bool parseQuotedField() {
       char quote = *ch_++;
       xassert(quote == '"' || quote == '\'' || quote == '`');
-      start:
-      while (ch_ < eof_) {
-        char c = *ch_++;
-        if (c == quote) {
-          bool nextCharIsQuote = (ch_ < eof_) && (*ch_ == quote);
-          if (nextCharIsQuote) {
-            switch (quoteRule_) {
-              case QuoteRule::AUTO:    quoteRule_ = QuoteRule::DOUBLED; FALLTHROUGH;
-              case QuoteRule::DOUBLED: ch_++; break;  // skip the next quote char
-              case QuoteRule::ESCAPED: return error();
+      atSeparator_ = false;
+      do {
+        while (ch_ < eof_) {
+          char c = *ch_++;
+          if (c == quote) {
+            if (quoteRule_ == QuoteRule::ESCAPED) {
+              return true;
             }
-          }
-          else if (ch_ == eof_ && quoteRule_ != QuoteRule::ESCAPED && moreDataAvailable_) {
-            // Last character in the data chunk is '"', which could potentially be a
-            // doubled quote if only we could see the next byte... Request more
-            // data to disambiguate.
-            ch_--;
-            expandBuffer();
-          }
-          else {
-            return true;  // normal return
-          }
-        }
-        if (c == '\\') {
-          switch (quoteRule_) {
-            case QuoteRule::ESCAPED: ch_++; break;
-            case QuoteRule::DOUBLED: break;
-            case QuoteRule::AUTO: {
-              // Only r'\"' sequence triggers detection of the quote rule
-              bool nextCharIsQuote = (ch_ < eof_) && (*ch_ == quote);
-              if (nextCharIsQuote) {
-                quoteRule_ = QuoteRule::ESCAPED;
+            if (ch_ == eof_ && moreDataAvailable()) {
+              ch_--;
+              continue;
+            }
+            bool nextCharIsQuote = (ch_ < eof_) && (*ch_ == quote);
+            if (nextCharIsQuote) {
+              if (quoteRule_ == QuoteRule::AUTO) {
+                quoteRule_ = QuoteRule::DOUBLED;
               }
-              ch_++;  // skip the next character regardless
+              ch_++;  // skip the second quote
+            } else {
+              return true;  // normal return
+            }
+          }
+          if (c == '\\') {
+            switch (quoteRule_) {
+              case QuoteRule::ESCAPED: ch_++; break;
+              case QuoteRule::DOUBLED: break;
+              case QuoteRule::AUTO: {
+                // Only r'\"' sequence triggers detection of the quote rule
+                bool nextCharIsQuote = (ch_ < eof_) && (*ch_ == quote);
+                if (nextCharIsQuote) {
+                  quoteRule_ = QuoteRule::ESCAPED;
+                }
+                ch_++;  // skip the next character regardless
+              }
             }
           }
         }
-      }
-      // Reached EOF without finding the closing quote, but there's more data
-      // in the buffer. Just to be sure, let's expand the bufffer and try again.
-      if (moreDataAvailable_) {
-        expandBuffer();
-        goto start;
-      }
+      } while (moreDataAvailable());
+      // No more data, but the quoted field hasn't finished: this is invalid.
       return error();
     }
 
 
+    /**
+      * Called after a quoted field was parsed, this method verifies that
+      * what follows is valid under the current hypothesis. Namely, after
+      * a quoted field there could be some whitespace, followed by a
+      * separator or an end of line.
+      *
+      * Returns true (without advancing the parse position) if everything is
+      * ok, and sets an error status + returns false otherwise.
+      */
+    bool validateAfterQuoted() {
+      const char* ch0 = ch_;
+      bool hasWhitespace = skipWhitespace();
+      xassert(atEndOfLine_ || ch_ < eof_);
+      switch (separatorKind_) {
+        case SeparatorKind::AUTO: {
+          if (atEndOfLine_) {
+            // This could have happened only if the quoted field started at the
+            // beginning of a line.
+            separatorKind_ = SeparatorKind::NONE;
+          } else {
+            if (hasWhitespace) {
+              newHypothesis()->setSeparatorKind(SeparatorKind::WHITESPACE);
+              int mask = 0;
+              for (const char* ch = ch0; ch < ch_; ch++) {
+                char c = *ch;
+                if (c == ' ' || c == '\t' || c == '\f' || c == '\v') {
+                  if (mask & (1 << (c - 9))) continue;
+                  mask |= (1 << (c - 9));
+                  newHypothesis()->setSeparatorChar(c);
+                }
+              }
+            }
+            char sep = *ch_;
+            if (separatorLikelihood[static_cast<int>(sep)] == 0) return error();
+            separatorKind_ = SeparatorKind::CHAR;
+            separatorChar_ = sep;
+          }
+          break;
+        }
+        case SeparatorKind::WHITESPACE: {
+          if (!hasWhitespace) return error();
+          break;
+        }
+        case SeparatorKind::NONE: {
+          if (!atEndOfLine_) return error();
+          break;
+        }
+        case SeparatorKind::CHAR: {
+          if (!atEndOfLine_) {
+            if (*ch_ != separatorChar_) return error();
+          }
+          break;
+        }
+        case SeparatorKind::STRING: {
+          // TODO
+          break;
+        }
+      }
+      // Revert the effects of `skipWhitespace()`.
+      ch_ = ch0;
+      atEndOfLine_ = false;
+    }
+
 
     /**
+      * Attempt to detect a separator at the current parsing location. If
+      * there is one, this method will move over it, stopping at the next
+      * character after. It will also return `true` and set `atSeparator_`
+      * flag to true. If there is no separator at the current location, the
+      * method returns false and sets `atSeparator_` to false. In addition,
+      * the method returns false if there was any error.
+      *
+      * The case of AUTO separator has special handling. Basically, this case
+      * means that it is unknown whether `separatorKind_` is `WHITESPACE`,
+      * `NONE` or `CHAR`, and in the latter case the value of `separatorChar_`
+      * is likewise unknown. This method does not attempt to disambiguate
+      * between these possibilities
       */
-    bool skipSeparator() {
+    bool parseSeparator() {
       switch (separatorKind_) {
-        case SeparatorKind::AUTO: throw RuntimeError();
-        case SeparatorKind::NONE: break;
+        case SeparatorKind::NONE: {
+          // Nothing is a separator in this case...
+          break;
+        }
         case SeparatorKind::CHAR: {
           do {
             if (ch_ < eof_) {
-              if (*ch_ == separatorChar_) {
-                ch_++;
-                return true;
-              } else {
-                return false;
-              }
+              atSeparator_ = (*ch_ == separatorChar_);
+              ch_ += atSeparator_;
+              return atSeparator_;
             }
           } while (moreDataAvailable());
           break;
@@ -547,22 +520,28 @@ class CsvParseSettingsDetector {
           auto n = separatorString_.size();
           do {
             if (ch_ + n <= eof_) {
-              if (std::memcmp(ch_, separatorString_.data(), n) == 0) {
-                ch_ += n;
-                return true;
-              } else {
-                return false;
-              }
+              const char* sepStr = separatorString_.data();
+              atSeparator_ = (std::memcmp(ch_, sepStr, n) == 0);
+              if (atSeparator_) ch_ += n;
+              return atSeparator_;
             }
           } while (moreDataAvailable());
           break;
         }
         case SeparatorKind::WHITESPACE: {
-          return skipWhitespace();
+          atSeparator_ = skipWhitespace();
+          return atSeparator_;
+        }
+        case SeparatorKind::AUTO: {
+          atSeparator_ = true;
+          ch_++;
+          return true;
         }
       }
+      atSeparator_ = false;
       return false;
     }
+
 
     /**
       * Used during line parsing, this method is called when a CR character
@@ -605,134 +584,6 @@ class CsvParseSettingsDetector {
     }
 
 
-
-
-    // void checkBeforeQuoted() {
-    //   xassert(*ch_ == '"' || *ch_ == '\'' || *ch_ == '`');
-    //   const char* ch = ch_ - 1;
-    //   bool ws = skipBackWhitespace(&ch, sol_);
-
-    //   bool ok = true;
-    //   switch (separatorKind_) {
-    //     case SeparatorKind::AUTO: {
-    //       if (ws) {
-    //         auto hypo = newHypothesis();
-    //         hypo->separatorKind_ = SeparatorKind::WHITESPACE;
-    //       }
-    //       if (ch >= sol_) {
-    //         char c = *ch;
-    //         if (c >= 0 && separatorLikelihood[static_cast<int>(c)] > 0) {
-    //           separatorKind_ = SeparatorKind::CHAR;
-    //           separatorChar_ = c;
-    //         } else {
-    //           ok = false;
-    //         }
-    //       }
-    //       break;
-    //     }
-    //     case SeparatorKind::NONE: {
-    //       ok = (ch < sol_);
-    //       break;
-    //     }
-    //     case SeparatorKind::CHAR: {
-    //       ok = (ch >= sol_) && (*ch == separatorChar_);
-    //       break;
-    //     }
-    //     case SeparatorKind::STRING: {
-    //       auto n = separatorString_.size();
-    //       auto sepStart = ch - n + 1;
-    //       ok = (sepStart >= sol_) &&
-    //            (std::memcmp(sepStart, separatorString_.data(), n) == 0);
-    //       break;
-    //     }
-    //     case SeparatorKind::WHITESPACE: {
-    //       ok = ws;
-    //       break;
-    //     }
-    //   }
-    //   if (!ok) error();
-    // }
-
-
-    // void checkAfterQuoted() {
-    //   bool ws = skipWhitespace();
-    //   xassert(!atEndOfLine_);
-
-    //   bool ok = true;
-    //   switch (separatorKind_) {
-    //     case SeparatorKind::AUTO: {
-    //       if (ws) {
-    //         auto hypo = newHypothesis();
-    //         hypo->separatorKind_ = SeparatorKind::WHITESPACE;
-    //       }
-    //       if (ch_ < eof_) {
-    //         char c = *ch_;
-    //         if (c == '\n') parseLF();
-    //         if (c == '\r') parseCR();
-    //         if (atEndOfLine_) {
-    //           separatorKind_ = SeparatorKind::NONE;
-    //         } else if (c >= 0 && separatorLikelihood[static_cast<int>(c)] > 0) {
-    //           separatorKind_ = SeparatorKind::CHAR;
-    //           separatorChar_ = c;
-    //         } else {
-    //           ok = false;
-    //         }
-    //       }
-    //       break;
-    //     }
-    //     case SeparatorKind::NONE: {
-    //       if (ch_ < eof_) {
-    //         if (*ch_ == '\n') parseLF();
-    //         if (*ch_ == '\r') parseCR();
-    //         if (!atEndOfLine_) ok = false;
-    //       }
-    //       break;
-    //     }
-    //     case SeparatorKind::CHAR: {
-    //       ok = (ch_ < eof_) && (*ch_ == separatorChar_);
-    //       break;
-    //     }
-    //     case SeparatorKind::STRING: {
-    //       auto n = separatorString_.size();
-    //       ok = (ch_ + n <= eof_) &&
-    //            (std::memcmp(ch_, separatorString_.data(), n) == 0);
-    //       break;
-    //     }
-    //     case SeparatorKind::WHITESPACE: {
-    //       ok = ws;
-    //       break;
-    //     }
-    //   }
-    //   if (!ok) error();
-    // }
-
-
-    /**
-      * Move the parsing position `*pch` back (up to `sof`), skipping
-      * over all whitespace characters. Currently only ASCII whitespace
-      * is recognized.
-      *
-      * This function does nothing if the character at `*pch` is not
-      * whitespace. Otherwise, it will move the pointer `*pch` backwards
-      * stopping at the first non-whitespace character, or at `sof - 1`.
-      *
-      * Returns true if any whitespace was skipped, and false otherwise.
-      */
-    // bool skipBackWhitespace(const char** pch, const char* sof) {
-    //   const char* ch = *pch;
-    //   while (ch >= sof) {
-    //     if (isWhitespace(*ch)) ch--;
-    //     else break;
-    //   }
-    //   if (ch < *pch) {
-    //     *pch = ch;
-    //     return true;
-    //   } else {
-    //     return false;
-    //   }
-    // }
-
-
     /**
       * Skip any whitespace characters at the current parsing location, and
       * return true if there were any.
@@ -742,6 +593,7 @@ class CsvParseSettingsDetector {
       */
     bool skipWhitespace() {
       xassert(!atEndOfLine_);
+      chBeforeWhitespace_ = ch_ - 1;
       bool ret = false;
       do {
         while (ch_ < eof_) {
@@ -770,6 +622,12 @@ class CsvParseSettingsDetector {
       }
       xassert(atEndOfLine_ || !atWhitespace());
       return ret;
+    }
+
+
+    bool skip1Char() {
+      ch_++;
+      return true;
     }
 
 
