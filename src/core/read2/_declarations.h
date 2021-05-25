@@ -65,8 +65,8 @@ class Stream;
 //------------------------------------------------------------------------------
 
 enum class SeparatorKind : int8_t {
-  AUTO,       // auto-detect, this is the default
-  NONE,       // read input in single-column mode
+  AUTO,       // auto-detect (default)
+  NONE,       // single-column mode
   CHAR,       // single-character separator
   STRING,     // multi-character separator
   WHITESPACE, // separator is the regex /\s+/
@@ -91,6 +91,8 @@ enum class QuoteKind : int8_t {
   DOUBLE,
   ITALIC,
   NONE,
+
+  // used during auto-detection
   NOSINGLE,  // DOUBLE or NONE
   NODOUBLE,  // SINGLE or NONE
 };
