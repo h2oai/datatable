@@ -542,6 +542,11 @@ def test_issue2523():
     with pytest.raises(IOError):
         dt.fread("{\n  \"cells\": [\n    {\n\"import numpy \\n\",\n")
 
+# Note: Realised after adding this test that it's similar to test_issue1036
+def test_issue2680():
+    src = '1\tWild Hogs (2007)\tAdevnture\n' * 500 + '2\t"Great Performances" Cats (1998)\tMusical\n' * 500
+    DT = dt.fread(src, fill=True)
+    assert DT.to_tuples()[900] == (2, '"Great Performances" Cats (1998)', 'Musical')
 
 def test_issue934():
     DT = dt.fread("A,B,C\n1,2,3\n3,4,5\n0,0,\"moo\n\n")
