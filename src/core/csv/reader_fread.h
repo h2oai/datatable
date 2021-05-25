@@ -138,7 +138,6 @@ public:
 
 private:
   void parse_column_names(dt::read::ParseContext& ctx);
-  void detect_sep(dt::read::ParseContext& ctx);
 
   void detect_lf();
   void skip_preamble();

@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>  // std::log10
+#include <iostream>
 #include "buffer.h"
 #include "read2/_declarations.h"
 #include "utils/assert.h"
@@ -35,6 +36,7 @@ static_assert('\t' == '\x09' &&
               '\f' == '\x0c' &&
               '\r' == '\x0d', "Invalid ASCII codes");
 
+static int COUNTS_BUFFER[128 * 100];
 
 
 
@@ -42,6 +44,55 @@ static_assert('\t' == '\x09' &&
 // Main
 //------------------------------------------------------------------------------
 
+/**
+  * This class's job is to auto-detect various parse settings for a
+  * CSV file (see `CsvParseSettings` struct). Some of these settings
+  * may be fixed by the user to explicit values, in which case we
+  * want to stick to the user's wishes.
+  *
+  * The way this class works is built upon two observations:
+  *
+  * 1) If a certain punctuation character, such as '\t', is a
+  *    separator then this character will appear the same number of
+  *    times in each row (outside of quoted fields). This is assuming
+  *    we have a "regular" file with same number of fields in each
+  *    row.
+  *
+  *    Thus, counting occurrences of each character in each row and
+  *    then selecting the character that had the most stable count of
+  *    appearances in all rows, is a good method of finding the
+  *    separator in a single pass.
+  *
+  * 2) If there is a quoted field in the data, then it must be both
+  *    preceded/followed by a separator. This allows us to infer the
+  *    separator, or at least significantly narrow the set of possible
+  *    alternatives.
+  *
+  * When applying these heuristics in practice, however, we quickly
+  * find ourselves in ambiguous situations. For example, if there is
+  * a '\r' character, it may or may not signify a line break. If we
+  * encounter a quote '"', it could indicate a beginning of a quoted
+  * field, or it may not. And so on.
+  *
+  * When such ambiguous situations arise, we want to explore all the
+  * possibilities, and then choose the one that works best (or at
+  * least the one that does not produce an error). This is achieved
+  * by creating "alternative hypotheses" -- copies of the
+  * `CsvParseSettingsDetector` class that are connected into a linked
+  * list.
+  *
+  * Thus, when an ambiguous parse is encountered, we clone the current
+  * class, and resolve a parse parameters differently in the current
+  * instance and in the clone. The clone is then inserted into the
+  * linked list after the current instance. In the end, we check
+  * which instance was able to parse the input without errors, and
+  * ultimately use a heuristic to decide which of the several parse
+  * instances to choose (for example, separator ',' is considered
+  * "better" than any other). Some hypotheses are even marked as
+  * "fallback", meaning that we won't even try to use them if the
+  * previous hypothesis succeeded.
+  *
+  */
 class CsvParseSettingsDetector {
   private:
     static constexpr int WHITESPACE = 0x57;
@@ -83,7 +134,7 @@ class CsvParseSettingsDetector {
         eof_(nullptr),
         sol_(nullptr),
         chBeforeWhitespace_(nullptr),
-        counts_(nullptr),
+        counts_(COUNTS_BUFFER),
         maxLinesToRead_(10),
         nLinesRead_(0),
         moreDataAvailable_(false),
@@ -203,6 +254,7 @@ class CsvParseSettingsDetector {
 
     void parseAll() {
       while (nLinesRead_ < maxLinesToRead_) {
+        xassert(counts_);
         // Clear the array where character counts are accumulated
         std::memset(counts_, 0, 128 * sizeof(int));
         parseLine();
@@ -216,6 +268,15 @@ class CsvParseSettingsDetector {
       if (separatorKind_ == SeparatorKind::AUTO) {
         counts_ -= nLinesRead_ * 128;
         finalChooseSeparator();
+      }
+      if (newlineKind_ == NewlineKind::AUTO) {
+        newlineKind_ = NewlineKind::NOCR;
+      }
+      if (quoteKind_ == QuoteKind::AUTO) {
+        quoteKind_ = QuoteKind::DOUBLE;
+      }
+      if (quoteRule_ == QuoteRule::AUTO) {
+        quoteRule_ = QuoteRule::DOUBLED;
       }
     }
 
@@ -563,9 +624,15 @@ class CsvParseSettingsDetector {
           return atSeparator_;
         }
         case SeparatorKind::AUTO: {
-          atSeparator_ = true;
-          ch_++;
-          return true;
+          do {
+            if (ch_ < eof_) {
+              counts_[static_cast<int>(*ch_)]++;
+              ch_++;
+              atSeparator_ = true;
+              return true;
+            }
+          } while (moreDataAvailable());
+          break;
         }
       }
       atSeparator_ = false;
@@ -760,6 +827,9 @@ class CsvParseSettingsDetector {
 
 
     void finalChooseSeparator() {
+      // std::cout << "### finalChooseSeparator\n";
+      // std::cout << "### counts[0] = "; for (int i = 0; i < 128; i++) std::cout << counts_[i]; std::cout << "\n";
+      // std::cout << "### counts[1] = "; for (int i = 0; i < 128; i++) std::cout << counts_[i+128]; std::cout << "\n";
       xassert(separatorKind_ == SeparatorKind::AUTO);
       char bestSeparator = '\xff';
       double bestScore = 0;
@@ -769,6 +839,7 @@ class CsvParseSettingsDetector {
         if (likelihood == 0) continue;
         int count0 = counts_[i];
         int count1 = counts_[i + 128];
+        if (count1 == 0) continue;
         bool same = true;
         for (int j = 2; j < nLinesRead_; j++) {
           int countj = counts_[i + 128*j];
@@ -784,11 +855,11 @@ class CsvParseSettingsDetector {
         int mul = same? (count0 == count1? 3 : 2)
                       : (unevenRows_? 1 : 0);
         if (!mul) continue;
-        if (count1 == 0) continue;
         double score = likelihood * (mul + 0.5 * std::log10(count1 + 1));
         if (score > bestScore) {
           bestSeparator = static_cast<char>(i);
           bestScore = score;
+          // std::cout << "### sep = '" << bestSeparator << "', score = " << score << "\n";
         }
       }
 
