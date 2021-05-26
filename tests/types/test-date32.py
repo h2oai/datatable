@@ -173,7 +173,7 @@ def test_with_stats(tempfile_jay):
 
 
 #-------------------------------------------------------------------------------
-# Write to csv
+# Convert to/from csv
 #-------------------------------------------------------------------------------
 
 def test_write_to_csv():
@@ -208,6 +208,24 @@ def test_write_huge_dates():
     assert DT.to_csv() == ("Kind,Value\n"
                            "min,-5877641-06-24\n"
                            "max,5879610-09-09\n")
+
+
+
+
+def test_read_date32_from_csv():
+    d = datetime.date
+    DT = dt.fread("a-b-c\n1999-01-01\n2010-11-11\n2020-12-31\n")
+    assert_equals(DT, dt.Frame([d(1999,1,1), d(2010,11,11), d(2020,12,31)],
+                               names=["a-b-c"]))
+
+
+def test_do_not_read_from_csv():
+    d = datetime.date
+    assert dt.options.fread.parse_dates is True
+    with dt.options.context(**{"fread.parse_dates": False}):
+        DT = dt.fread("X\n1990-10-10\n2011-11-11\n2020-02-05\n")
+        assert_equals(DT,
+                      dt.Frame(X=["1990-10-10", "2011-11-11", "2020-02-05"]))
 
 
 

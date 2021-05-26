@@ -65,6 +65,8 @@ def test_options_all():
     assert set(dir(dt.options.fread)) == {
         "anonymize",
         "log",
+        "parse_dates",
+        "parse_times",
     }
     assert set(dir(dt.options.progress)) == {
         "callback",

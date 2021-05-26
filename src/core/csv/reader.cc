@@ -88,8 +88,26 @@ new_escape_unicode: bool
 
 )";
 
+static const char * doc_options_fread_parse_dates =
+R"(
+If True, fread will attempt to detect columns of date32 type. If False,
+then columns with date values will be returned as strings.
+
+This option is temporary and will be removed in the future.
+)";
+
+static const char * doc_options_fread_parse_times =
+R"(
+If True, fread will attempt to detect columns of time64 type. If False,
+then columns with timestamps will be returned as strings.
+
+This option is temporary and will be removed in the future.
+)";
+
 static bool log_anonymize = false;
 static bool log_escape_unicode = false;
+bool parse_dates = true;
+bool parse_times = true;
 
 
 static py::oobj get_anonymize() {
@@ -129,6 +147,20 @@ void GenericReader::init_options() {
     get_escape_unicode,
     set_escape_unicode,
     doc_options_fread_log_escape_unicode
+  );
+
+  dt::register_option(
+    "fread.parse_dates",
+    []{ return py::obool(parse_dates); },
+    [](const py::Arg& value){ parse_dates = value.to_bool_strict(); },
+    doc_options_fread_parse_dates
+  );
+
+  dt::register_option(
+    "fread.parse_times",
+    []{ return py::obool(parse_times); },
+    [](const py::Arg& value){ parse_times = value.to_bool_strict(); },
+    doc_options_fread_parse_times
   );
 }
 
