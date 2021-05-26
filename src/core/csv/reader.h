@@ -31,6 +31,9 @@
 namespace dt {
 namespace read {
 
+extern bool parse_dates;
+extern bool parse_times;
+
 
 // What fread() should do if the input contains multiple sources
 enum class FreadMultiSourceStrategy : int8_t {
