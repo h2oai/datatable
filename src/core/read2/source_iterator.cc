@@ -230,7 +230,10 @@ void SourceIterator::initFromAny(const py::robj src) {
     // In all other cases assume it's a file
     return initFromFile(src);
   }
-  throw TypeError() << "Source is of unsupported type " << src.typeobj();
+  if (src.has_attr("read")) {
+    return initFromFile(src);
+  }
+  throw TypeError() << "Unsupported source type: " << src.typeobj();
 }
 
 
@@ -291,18 +294,6 @@ void SourceIterator::initFromFile(const py::robj src) {
 // subprocess.Popen() with STDOUT set to a manually opened pipe
 // (either os.pipe() or _winapi.CreatePipe()). Then we can simply read
 // from the resulting file handle, avoiding python's overhead.
-//
-//
-// Streaming interface basically follows the API of unix' `read(2)`
-// (https://linux.die.net/man/2/read):
-//
-//    ssize_t read(int fd, void *buf, size_t count);
-//
-// with the exception that the Stream object will probably be returning
-// its Buffer, which may be either smaller or larger than the count of
-// bytes requested.
-//
-// Stream objects can be chained one after another into a single pipe.
 //
 
 

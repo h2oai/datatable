@@ -27,17 +27,24 @@ namespace dt {
 namespace read2 {
 
 
+
 //------------------------------------------------------------------------------
 // BufferedStream_Buffer
 //------------------------------------------------------------------------------
 
+/**
+  * Buffered stream class that wraps a regular Buffer.
+  */
 class BufferedStream_Buffer : public BufferedStream {
   private:
     Buffer buffer_;
+    bool doneReading_;
+    size_t : 56;
 
   public:
     BufferedStream_Buffer(Buffer&& buf)
-      : buffer_(std::move(buf)) {}
+      : buffer_(std::move(buf)),
+        doneReading_(false) {}
 
 
     Buffer getChunk(size_t start, size_t size) override {
@@ -47,13 +54,20 @@ class BufferedStream_Buffer : public BufferedStream {
       return Buffer::view(buffer_, size, start);
     }
 
-    void stream() override {}
     void releaseChunk(size_t) override {}
 
-    Buffer readChunk(size_t) override {
-      Buffer res = std::move(buffer_);
-      xassert(!buffer_);
-      return res;
+    Buffer readNextChunk(size_t) override {
+      if (doneReading_) {
+        return Buffer();
+      }
+      else {
+        doneReading_ = true;
+        return buffer_;
+      }
+    }
+
+    void reset() override {
+      doneReading_ = false;
     }
 };
 
@@ -75,16 +89,17 @@ class BufferedStream_Stream : public BufferedStream {
     };
     std::unique_ptr<Stream> stream_;
     std::deque<Piece> pieces_;
+    size_t iterationIndex_;
     // Number of bytes read from the stream so far. When the stream reaches
     // end-of-file, this value will be set to `EOF`.
     size_t piecesNBytes_;
     std::mutex piecesMutex_;
     std::mutex streamMutex_;
-    std::condition_variable piecesCV_;
 
   public:
     BufferedStream_Stream(std::unique_ptr<Stream>&& stream)
       : stream_(std::move(stream)),
+        iterationIndex_(0),
         piecesNBytes_(0) {}
 
 
@@ -93,14 +108,14 @@ class BufferedStream_Stream : public BufferedStream {
       while (true) {
         std::vector<Buffer> fragments;
         size_t remainingSize = size;
-        size_t nBytes;
+        size_t piecesNBytes;
         {
           // pieces_ array must be read under the protection of a mutex because
           // it is modified in `stream()` and `releaseChunk()`, which could be
           // invoked from other threads.
           std::lock_guard<std::mutex> lock(piecesMutex_);
           xassert(pieces_.empty() || start >= pieces_.front().offset0);
-          nBytes = piecesNBytes_;
+          piecesNBytes = piecesNBytes_;
           for (const auto& piece : pieces_) {
             const size_t offset0 = piece.offset0;
             const size_t offset1 = piece.offset1;
@@ -114,37 +129,26 @@ class BufferedStream_Stream : public BufferedStream {
             if (remainingSize == 0) break;
           }
         }  // `piecesMutex_` unlocked
-        if (remainingSize == 0 || nBytes == EOF) {
+        if (remainingSize == 0 || piecesNBytes == EOF) {
           return concatenateBuffers(fragments);
         }
         // otherwise, not all required pieces have been read yet -- need to
-        // wait until more data becomes available.
+        // request additional data.
         {
-          std::unique_lock<std::mutex> lock(piecesMutex_);
-          piecesCV_.wait(lock, [&]{ return piecesNBytes_ > nBytes; });
+          std::unique_lock<std::mutex> lock1(streamMutex_);
+          // If these are not equal, it means some other thread has already read
+          // the next piece of data while we were waiting for the lock. If this
+          // is the case, we simply continue the main loop in order to check if
+          // this new piece of data will satisfy our needs.
+          if (piecesNBytes == piecesNBytes_) {
+            readChunkUnchecked(std::max(remainingSize, size_t(1<<20)));
+          }
         }
       }
-    }
-
-    void stream() override {
-      std::lock_guard<std::mutex> lock0(streamMutex_);
-      auto chunk = stream_->readChunk(1024*1024);
-      auto size = chunk.size();
-      // The chunk should be put into the queue `pieces_` before unlocking
-      // the `streamMutex_`.
-      {
-        std::lock_guard<std::mutex> lock(piecesMutex_);
-        if (size == 0) {
-          piecesNBytes_ = EOF;
-        } else {
-          pieces_.push_back({ piecesNBytes_, piecesNBytes_ + size, chunk });
-          piecesNBytes_ += size;
-        }
-      }
-      piecesCV_.notify_all();
     }
 
     void releaseChunk(size_t upTo) override {
+      xassert(iterationIndex_ == 0);
       std::lock_guard<std::mutex> lock(piecesMutex_);
       for (const auto& piece : pieces_) {
         if (piece.offset1 > upTo) break;
@@ -152,22 +156,25 @@ class BufferedStream_Stream : public BufferedStream {
       }
     }
 
-    Buffer readChunk(size_t requestedSize) override {
-      if (!pieces_.empty()) {
-        Buffer res = std::move(pieces_.front().buffer);
-        pieces_.pop_front();
-        return res;
-      }
-      if (piecesNBytes_ == EOF) {
-        return Buffer();
-      } else {
-        Buffer buf = stream_->readChunk(requestedSize);
-        if (!buf) {
-          piecesNBytes_ = EOF;
+    Buffer readNextChunk(size_t requestedSize) override {
+      xassert(pieces_.empty() || pieces_.front().offset0 == 0);
+      while (true) {
+        if (iterationIndex_ < pieces_.size()) {
+          const auto& piece = pieces_[iterationIndex_];
+          iterationIndex_++;
+          return piece.buffer;
         }
-        return buf;
+        if (piecesNBytes_ == EOF) {
+          return Buffer();
+        }
+        readChunkUnchecked(requestedSize);
       }
     }
+
+    void reset() override {
+      iterationIndex_ = 0;
+    }
+
 
   private:
     Buffer concatenateBuffers(const std::vector<Buffer>& buffers) {
@@ -188,6 +195,19 @@ class BufferedStream_Stream : public BufferedStream {
         outPtr += buf.size();
       }
       return out;
+    }
+
+    void readChunkUnchecked(size_t requestedSize) {
+      Buffer chunk = stream_->readNextChunk(requestedSize);
+      size_t size = chunk.size();
+
+      std::lock_guard<std::mutex> lock(piecesMutex_);
+      if (size == 0) {
+        piecesNBytes_ = EOF;
+      } else {
+        pieces_.push_back({ piecesNBytes_, piecesNBytes_ + size, chunk });
+        piecesNBytes_ += size;
+      }
     }
 };
 

@@ -41,7 +41,7 @@ class Stream {
     // empty Buffer (0 size). It must not return empty Buffer if
     // there is still data to be read in the stream.
     //
-    virtual Buffer readChunk(size_t requestedSize) = 0;
+    virtual Buffer readNextChunk(size_t requestedSize) = 0;
 };
 
 
@@ -58,7 +58,7 @@ class Stream_Filelike : public Stream {
   public:
     Stream_Filelike(py::robj src);
 
-    Buffer readChunk(size_t requestedSize) override;
+    Buffer readNextChunk(size_t requestedSize) override;
 };
 
 
@@ -68,7 +68,7 @@ class Stream_Encoding : public Stream {
   private:
     std::unique_ptr<Stream> upstream_;
   public:
-    Buffer readChunk(size_t requestedSize) override;
+    Buffer readNextChunk(size_t requestedSize) override;
 };
 
 

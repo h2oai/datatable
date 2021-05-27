@@ -59,11 +59,9 @@ class BufferedStream : public Stream {
     virtual void releaseChunk(size_t upTo) = 0;
 
     // Stream API: return a chunk of the most appropriate size
-    // Buffer readChunk(size_t requestedSize) override;
+    // Buffer readNextChunk(size_t requestedSize) override;
 
-  private:
-    // Read data from the source stream.
-    virtual void stream() = 0;
+    virtual void reset() = 0;
 };
 
 

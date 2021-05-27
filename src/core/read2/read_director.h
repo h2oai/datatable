@@ -46,6 +46,9 @@ class ReadDirector {
 
     py::oobj readBuffer(Buffer buf);
     py::oobj readStream(std::unique_ptr<BufferedStream>&& stream);
+
+  private:
+    void readCsv(BufferedStream*);
 };
 
 

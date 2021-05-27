@@ -40,7 +40,7 @@ Stream_Filelike::Stream_Filelike(py::robj src)
   : pyReadFn_(src.get_attr("read")) {}
 
 
-Buffer Stream_Filelike::readChunk(size_t requestedSize) {
+Buffer Stream_Filelike::readNextChunk(size_t requestedSize) {
   PythonLock pylock;
   auto pyChunk = pyReadFn_.call(py::otuple{ py::oint(requestedSize) });
   return Buffer::pybytes(pyChunk, /* includeFinalNul = */ false);
@@ -52,7 +52,7 @@ Buffer Stream_Filelike::readChunk(size_t requestedSize) {
 // Stream_Encoding
 //------------------------------------------------------------------------------
 
-// Buffer Stream_Encoding::readChunk(size_t requestedSize) {}
+// Buffer Stream_Encoding::readNextChunk(size_t requestedSize) {}
 
 
 

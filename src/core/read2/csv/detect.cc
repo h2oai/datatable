@@ -290,7 +290,7 @@ class CsvParseSettingsDetector {
         atEndOfLine_ = false;
         skipWhitespace();  // may set atEndOfLine_
         if (atEndOfLine_) {
-          if (skipBlankLines_) continue;
+          if (skipBlankLines_ || nLinesRead_ == 0) continue;
           done_ = true;
           return;
         }
