@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "read2/read_director.h"
 #include "frame/py_frame.h"
+#include "python/obj.h"
 namespace dt {
 namespace read2 {
 
@@ -43,7 +44,7 @@ py::oobj ReadDirector::readNext() {
 
   auto srcName = py::ostring(src->getName());
   auto result = src->readWith(this);
-  py::Frame::cast_from(result)->setSource(srcName);
+  // py::Frame::cast_from(result)->setSource(srcName);
   return result;
 
   // py::oobj res;
@@ -94,81 +95,16 @@ py::oobj ReadDirector::readBuffer(Buffer buf) {
 
 
 py::oobj ReadDirector::readStream(std::unique_ptr<BufferedStream>&& stream) {
-  (void) stream;
-  return py::None();
+  // [Temporary]: return the content of the input buffer as a bytes object
+  Buffer all = stream->getChunk(0, (1ull << 60));
+  PyObject* out = PyBytes_FromStringAndSize(
+                      static_cast<const char*>(all.rptr()),
+                      static_cast<Py_ssize_t>(all.size())
+  );
+  return py::oobj::from_new_reference(out);
 }
 
 
-#if 0
-
-
-void detectCSVSettings() {
-  Buffer chunk = stream->getChunk(0, 65536);
-  const char* sof = static_cast<const char*>(chunk.rptr());
-  const char* eof = sof + chunk.size();
-  const char* ch = sof;
-  char quote = '\0';
-  int characterCounts[128];
-  while (ch < eof) {
-    char c = *ch;
-    if (c >= 0) {  // ASCII
-      characterCounts[c]++;
-      if (c == '\'' || c == '"') {
-        quote = c;
-        break;
-      }
-      // maybe also break if newline count becomes > 100
-    }
-    ch++;
-  }
-  if (quote) {
-    if (ch == sof) {
-      quote_at_line_start = true;
-    } else {
-      char prevCh = ch[-1];
-      if (prevCh == ' ') {
-        whitespace_before_quote = true;
-        for (i = 1; i <= ch - sof && (prevCh = ch[-i]) == ' '; i++);
-      }
-      if (prevCh < 0) {
-        not_a_valid_quote
-      }
-      else if (prevCh == '\n' || prevCh == '\r') {
-        quote_at_line_start = true;
-      }
-      else if (prevCh in illegalQuotes) {
-        not_a_valid_quote
-      }
-      else {
-        sep_before_quote = prevCh;
-      }
-    }
-  }
-}
-
-
-
-
-
-
-void detectCSVSettings(NewlineKind newline) {
-  Buffer chunk = stream->getChunk(0, 65536);
-  const char* sof = static_cast<const char*>(chunk.rptr());
-  const char* eof = sof + chunk.size();
-  const char* ch = sof;
-  char quote = '\0';
-  int characterCounts[128];
-  ScanOptions opts;
-
-  int ret = scanLine(opts, &ch, eof, characterCounts);
-}
-
-
-
-
-
-
-#endif
 
 
 }}  // namespace dt::read2

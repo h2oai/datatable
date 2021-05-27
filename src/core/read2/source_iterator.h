@@ -95,6 +95,14 @@ class SourceIterator {
     void add(UniqueSource&&);
     void add(SourceIterator&&);
     Source* next();
+
+  private:
+    void initFromAny(const py::robj src);
+    void initFromCmd(const py::robj src);
+    void initFromFile(const py::robj src);
+    void initFromGlob(const py::robj src);
+    void initFromText(const py::robj src);
+    void initFromUrl(const py::robj src);
 };
 
 

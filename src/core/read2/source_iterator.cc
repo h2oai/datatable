@@ -28,12 +28,6 @@ namespace dt {
 namespace read2 {
 
 using SourcePtr = std::unique_ptr<Source>;
-static void _fromAny(const py::robj, SourceIterator&);
-static void _fromFile(const py::robj, SourceIterator&);
-static void _fromText(const py::robj, SourceIterator&);
-static void _fromCmd(const py::robj, SourceIterator&);
-static void _fromUrl(const py::robj, SourceIterator&);
-static void _fromGlob(const py::robj, SourceIterator&);
 
 
 
@@ -135,11 +129,11 @@ SourceIterator SourceIterator::fromArgs(
                     argUrl_defined;
   if (total == 1) {
     SourceIterator sourceIterator;
-    if (arg0_defined)         _fromAny(arg0, sourceIterator);
-    else if (argFile_defined) _fromFile(argFile, sourceIterator);
-    else if (argText_defined) _fromText(argText, sourceIterator);
-    else if (argCmd_defined)  _fromCmd(argCmd, sourceIterator);
-    else if (argUrl_defined)  _fromUrl(argUrl, sourceIterator);
+    if (arg0_defined)         sourceIterator.initFromAny(arg0);
+    else if (argFile_defined) sourceIterator.initFromFile(argFile);
+    else if (argText_defined) sourceIterator.initFromText(argText);
+    else if (argCmd_defined)  sourceIterator.initFromCmd(argCmd);
+    else if (argUrl_defined)  sourceIterator.initFromUrl(argUrl);
     return sourceIterator;
   }
   else if (total == 0) {
@@ -210,30 +204,33 @@ static bool _looks_like_glob(const CString& text, char* evidence) {
 }
 
 
-static void _fromAny(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromAny(const py::robj src) {
   if (src.is_string() || src.is_bytes()) {
     auto cstr = src.to_cstring();
     if (cstr.size() >= 4096) {
       // LOG() << "Input is a string of length " << cstr.size()
       //       << " => assume it's a text source";
-      return _fromText(src, out);
+      return initFromText(src);
     }
     char c;
     if (_has_control_characters(cstr, &c)) {
       // LOG() << "Input contains character '" << c << "'"
       //       << " => assume it's a text source";
-      return _fromText(src, out);
+      return initFromText(src);
     }
     if (_looks_like_url(cstr)) {
       // LOG() << "Input looks like a URL";
-      return _fromUrl(src, out);
+      return initFromUrl(src);
     }
     if (_looks_like_glob(cstr, &c)) {
       // LOG() << "Input contains character '" << c << "'"
       //       << " => assuming it's a glob pattern";
-      return _fromGlob(src, out);
+      return initFromGlob(src);
     }
+    // In all other cases assume it's a file
+    return initFromFile(src);
   }
+  throw TypeError() << "Source is of unsupported type " << src.typeobj();
 }
 
 
@@ -242,7 +239,7 @@ static void _fromAny(const py::robj src, SourceIterator& out) {
 // from File
 //------------------------------------------------------------------------------
 
-static void _fromFile(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromFile(const py::robj src) {
   // Case 1: src is a filename (str|bytes|PathLike)
   if (src.is_string() || src.is_bytes() || src.is_pathlike()) {
     auto pyFileName = py::oobj::import("os.path", "expanduser").call({src});
@@ -269,12 +266,12 @@ static void _fromFile(const py::robj src, SourceIterator& out) {
     //         the path as the subpath.
     //         Check that archive's extension: process separately for
     //         each known extension.
-    out.add(SourcePtr(new Source_File(pyFileName.to_string())));
+    add(SourcePtr(new Source_File(pyFileName.to_string())));
     return;
   }
   // Case 2: src is a file object (has method `.read()`)
   if (src.has_attr("read")) {
-    out.add(SourcePtr(new Source_Filelike(src)));
+    add(SourcePtr(new Source_Filelike(src)));
     return;
   }
   throw TypeError() << "Invalid parameter `file` in fread: expected a "
@@ -313,12 +310,12 @@ static void _fromFile(const py::robj src, SourceIterator& out) {
 // from Text
 //------------------------------------------------------------------------------
 
-static void _fromText(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromText(const py::robj src) {
   if (!(src.is_string() || src.is_bytes())) {
     throw TypeError() << "Invalid parameter `text` in fread: expected "
                          "str or bytes, instead got " << src.typeobj();
   }
-  out.add(SourcePtr(new Source_Memory(src)));
+  add(SourcePtr(new Source_Memory(src)));
 }
 
 
@@ -327,9 +324,9 @@ static void _fromText(const py::robj src, SourceIterator& out) {
 // from Cmd
 //------------------------------------------------------------------------------
 
-static void _fromCmd(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromCmd(const py::robj src) {
   (void) src;
-  (void) out;
+  throw NotImplError();
 }
 
 
@@ -338,12 +335,12 @@ static void _fromCmd(const py::robj src, SourceIterator& out) {
 // from Url
 //------------------------------------------------------------------------------
 
-static void _fromUrl(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromUrl(const py::robj src) {
   if (!src.is_string()) {
     throw TypeError() << "Invalid parameter `url` in fread: expected a string, "
                          "instead got " << src.typeobj();
   }
-  out.add(SourcePtr(new Source_Url(src.to_string())));
+  add(SourcePtr(new Source_Url(src.to_string())));
 }
 
 
@@ -352,7 +349,7 @@ static void _fromUrl(const py::robj src, SourceIterator& out) {
 // from Glob
 //------------------------------------------------------------------------------
 
-static void _fromGlob(const py::robj src, SourceIterator& out) {
+void SourceIterator::initFromGlob(const py::robj src) {
   auto globFn = py::import("glob", "glob");
   auto filesList = globFn.call({src}).to_pylist();
   auto n = filesList.size();
@@ -370,7 +367,7 @@ static void _fromGlob(const py::robj src, SourceIterator& out) {
     // LOG() << "Glob pattern resolved into " << n << " file(s):";
     for (size_t i = 0; i < n; i++) {
       // LOG() << "  " << filesList[i].to_cstring();
-      _fromFile(filesList[i], out);
+      initFromFile(filesList[i]);
     }
   }
 }

@@ -28,11 +28,11 @@ namespace read2 {
 
 
 //------------------------------------------------------------------------------
-// fread() python function
+// nread() python function
 //------------------------------------------------------------------------------
 
 static const char* doc_fread =
-R"(fread(arg0, *, file=None, text=None, cmd=None, url=None,
+R"(nread(arg0, *, file=None, text=None, cmd=None, url=None,
          sep="auto", logger=None, verbose=False)
 --
 
@@ -74,7 +74,7 @@ See Also
 )";
 
 
-static py::oobj fread(const py::XArgs& args) {
+static py::oobj nread(const py::XArgs& args) {
   size_t k = 0;
   auto arg0    = args[k++].to_robj();
   auto argFile = args[k++].to_robj();
@@ -94,14 +94,14 @@ static py::oobj fread(const py::XArgs& args) {
   }
 
   auto sources = SourceIterator::fromArgs(
-      "fread", arg0, argFile, argText, argCmd, argUrl
+      "nread", arg0, argFile, argText, argCmd, argUrl
   );
   ReadDirector reader(std::move(sources), std::move(options));
   return reader.readSingle();
 }
 
 
-DECLARE_PYFN(&fread)
+DECLARE_PYFN(&nread)
     ->name("nread")
     ->docs(doc_fread)
     ->n_positional_args(1)

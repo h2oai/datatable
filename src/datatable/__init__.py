@@ -36,7 +36,7 @@ from .lib._datatable import (
     iread,
     join,
     Namespace,
-    # nread,
+    nread,
     qcut,
     rbind,
     repeat,
