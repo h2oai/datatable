@@ -290,6 +290,9 @@ class CsvParseSettingsDetector {
       if (newlineKind_ == NewlineKind::AUTO) {
         newlineKind_ = NewlineKind::NOCR;
       }
+      if (newlineKind_ == NewlineKind::QCR) {
+        newlineKind_ = NewlineKind::CR;
+      }
       if (quoteKind_ == QuoteKind::AUTO) {
         quoteKind_ = QuoteKind::DOUBLE;
       }
