@@ -23,6 +23,8 @@
 #include <iostream>
 #include "buffer.h"
 #include "read2/_declarations.h"
+#include "read2/buffered_stream.h"
+#include "read2/read_options.h"
 #include "utils/assert.h"
 namespace dt {
 namespace read2 {
@@ -98,6 +100,7 @@ class CsvParseSettingsDetector {
     static constexpr int WHITESPACE = 0x57;
 
     std::unique_ptr<CsvParseSettingsDetector> nextHypothesis_;
+    BufferedStream* stream_;
     Buffer buffer_;
     const char* ch_;          // current scan position
     const char* eof_;         // end of the data buffer
@@ -129,8 +132,9 @@ class CsvParseSettingsDetector {
     std::string separatorString_;
 
   public:
-    CsvParseSettingsDetector()
-      : ch_(nullptr),
+    CsvParseSettingsDetector(const ReadOptions& params, BufferedStream* stream)
+      : stream_(stream),
+        ch_(nullptr),
         eof_(nullptr),
         sol_(nullptr),
         chBeforeWhitespace_(nullptr),
@@ -144,18 +148,26 @@ class CsvParseSettingsDetector {
         atEndOfLine_(false),
         atSeparator_(false),
         isFallbackTheory_(false),
-        separatorKind_(SeparatorKind::AUTO),
-        newlineKind_(NewlineKind::AUTO),
-        quoteKind_(QuoteKind::AUTO),
-        quoteRule_(QuoteRule::AUTO),
-        separatorChar_('\xff'),
+        separatorKind_(params.getSeparatorKind()),
+        newlineKind_(params.getNewlineKind()),
+        quoteKind_(params.getQuoteKind()),
+        quoteRule_(params.getQuoteRule()),
+        separatorChar_(params.getSeparatorChar()),
         skipBlankLines_(false),
-        unevenRows_(false) {}
-
-    CsvParseSettingsDetector* setBuffer(Buffer buf) {
-      replaceBuffer(buf);
-      return this;
+        unevenRows_(false)
+    {
+      replaceBuffer(stream->readNextChunk(1024*1024));
+      moreDataAvailable_ = true;
     }
+
+    void exportSettings(ReadOptions& out) {
+      out.setNewlineKind(newlineKind_);
+      out.setSeparatorKind(separatorKind_);
+      out.setSeparatorChar(separatorChar_);
+      out.setQuoteKind(quoteKind_);
+      out.setQuoteRule(quoteRule_);
+    }
+
 
     CsvParseSettingsDetector* setQuoteKind(QuoteKind qk) {
       quoteKind_ = qk;
@@ -195,7 +207,8 @@ class CsvParseSettingsDetector {
 
   private:
     CsvParseSettingsDetector(const CsvParseSettingsDetector& other)
-      : buffer_(other.buffer_),
+      : stream_(other.stream_),
+        buffer_(other.buffer_),
         ch_(other.sol_),
         eof_(other.eof_),  // move the parse pointer to start-of-line
         sol_(other.sol_),
@@ -239,7 +252,12 @@ class CsvParseSettingsDetector {
     }
 
     void expandBuffer() {
-      // ...
+      xassert(stream_ != nullptr);
+      size_t size = buffer_.size();
+      size_t newSize = size * 2;
+      Buffer newBuffer = stream_->getChunk(0, newSize);
+      replaceBuffer(newBuffer);
+      moreDataAvailable_ = (newBuffer.size() == newSize);
     }
 
 
@@ -879,24 +897,11 @@ class CsvParseSettingsDetector {
 
 
 
-void detectCsvParseSettings(CsvParseSettings& params, Buffer buffer) {
-  CsvParseSettingsDetector in;
-  in.replaceBuffer(buffer);
-  in.newlineKind_ = params.newlineKind;
-  in.quoteKind_ = params.quoteKind;
-  in.quoteRule_ = params.quoteRule;
-  in.separatorKind_ = params.separatorKind;
-  in.separatorChar_ = params.separatorChar;
-  in.separatorString_ = params.separatorString;
-  in.skipBlankLines_ = params.skipBlankLines;
-  in.unevenRows_ = params.unevenRows;
 
-  auto out = in.detect();
-  params.newlineKind = out->newlineKind_;
-  params.quoteKind = out->quoteKind_;
-  params.quoteRule = out->quoteRule_;
-  params.separatorKind = out->separatorKind_;
-  params.separatorChar = out->separatorChar_;
+void detectCsvParseSettings(ReadOptions& params, BufferedStream* stream) {
+  CsvParseSettingsDetector in(params, stream);
+  CsvParseSettingsDetector* out = in.detect();
+  out->exportSettings(params);
 }
 
 

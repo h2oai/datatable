@@ -31,17 +31,38 @@ namespace read2 {
 class ReadOptions {
   private:
     dt::log::Logger logger_;
-    std::string     separator_;
+    NewlineKind     newlineKind_;
+    QuoteKind       quoteKind_;
+    QuoteRule       quoteRule_;
     SeparatorKind   separatorKind_;
-    size_t : 56;
+    char            separatorChar_;
+    bool            skipBlankLines_;
+    bool            unevenRows_;
+    int : 8;
+    std::string     separatorString_;
 
   public:
     ReadOptions();
+    ReadOptions(const ReadOptions&) = default;
 
     dt::log::Logger& logger();
 
     void initLogger(const py::Arg& logger, const py::Arg& verbose);
     void initSeparator(const py::Arg& separator);
+
+    NewlineKind        getNewlineKind() const;
+    QuoteKind          getQuoteKind() const;
+    QuoteRule          getQuoteRule() const;
+    SeparatorKind      getSeparatorKind() const;
+    char               getSeparatorChar() const;
+    const std::string& getSeparatorString() const;
+
+    void setNewlineKind(NewlineKind);
+    void setSeparatorKind(SeparatorKind);
+    void setQuoteKind(QuoteKind);
+    void setQuoteRule(QuoteRule);
+    void setSeparatorChar(char);
+    void setSeparatorString(const std::string&);
 };
 
 

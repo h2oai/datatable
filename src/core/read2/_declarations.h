@@ -117,7 +117,7 @@ struct CsvParseSettings {
   std::string   separatorString;
 };
 
-void detectCsvParseSettings(CsvParseSettings&, Buffer);
+void detectCsvParseSettings(ReadOptions&, BufferedStream*);
 
 
 // Defined in csv/constants.cc

@@ -62,13 +62,14 @@ void ReadOptions::initSeparator(const py::Arg& argSep) {
   }
   else {
     // this will throw if argSep is not a string
-    separator_ = argSep.to_string();
-    if (separator_.size() == 0) {
+    separatorString_ = argSep.to_string();
+    if (separatorString_.size() == 0) {
       separatorKind_ = SeparatorKind::NONE;
     }
-    else if (separator_.size() == 1) {
+    else if (separatorString_.size() == 1) {
       separatorKind_ = SeparatorKind::CHAR;
-      char c = separator_[0];
+      char c = separatorString_[0];
+      separatorChar_ = c;
       if (c == '\n' || c == '\r') {
         separatorKind_ = SeparatorKind::NONE;
       }
@@ -79,27 +80,81 @@ void ReadOptions::initSeparator(const py::Arg& argSep) {
     }
     else {
       separatorKind_ = SeparatorKind::STRING;
-      if (separator_ == "\\s+") {
+      if (separatorString_ == "\\s+") {
         separatorKind_ = SeparatorKind::WHITESPACE;
       }
-      if (separator_ == "auto") {
+      if (separatorString_ == "auto") {
         separatorKind_ = SeparatorKind::AUTO;
       }
     }
   }
   if (!(separatorKind_ == SeparatorKind::CHAR ||
         separatorKind_ == SeparatorKind::STRING)) {
-    separator_.clear();
+    separatorString_.clear();
   }
   if (logger_.enabled()) {
     switch (separatorKind_) {
       case SeparatorKind::AUTO: logger_.info() << "sep = <auto>"; break;
       case SeparatorKind::NONE: logger_.info() << "sep = <single-column mode>"; break;
-      case SeparatorKind::CHAR: logger_.info() << "sep = <char>'" << separator_[0] << "'"; break;
-      case SeparatorKind::STRING: logger_.info() << "sep = <string>\"" << separator_ << "\""; break;
+      case SeparatorKind::CHAR: logger_.info() << "sep = <char>'" << separatorChar_ << "'"; break;
+      case SeparatorKind::STRING: logger_.info() << "sep = <string>\"" << separatorString_ << "\""; break;
       case SeparatorKind::WHITESPACE: logger_.info() << "sep = <whitespace>"; break;
     }
   }
+}
+
+
+//------------------------------------------------------------------------------
+// Parameters getters/setters
+//------------------------------------------------------------------------------
+
+NewlineKind ReadOptions::getNewlineKind() const {
+  return newlineKind_;
+}
+
+QuoteKind ReadOptions::getQuoteKind() const {
+  return quoteKind_;
+}
+
+QuoteRule ReadOptions::getQuoteRule() const {
+  return quoteRule_;
+}
+
+SeparatorKind ReadOptions::getSeparatorKind() const {
+  return separatorKind_;
+}
+
+char ReadOptions::getSeparatorChar() const {
+  return separatorChar_;
+}
+
+const std::string& ReadOptions::getSeparatorString() const {
+  return separatorString_;
+}
+
+
+void ReadOptions::setNewlineKind(NewlineKind nk) {
+  newlineKind_ = nk;
+}
+
+void ReadOptions::setSeparatorKind(SeparatorKind sk) {
+  separatorKind_ = sk;
+}
+
+void ReadOptions::setQuoteKind(QuoteKind qk) {
+  quoteKind_ = qk;
+}
+
+void ReadOptions::setQuoteRule(QuoteRule qr) {
+  quoteRule_ = qr;
+}
+
+void ReadOptions::setSeparatorChar(char c) {
+  separatorChar_ = c;
+}
+
+void ReadOptions::setSeparatorString(const std::string& s) {
+  separatorString_ = s;
 }
 
 
