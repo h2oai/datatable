@@ -985,25 +985,24 @@ class XobjectDirective(SphinxDirective):
                                      classes=["sig-open-paren"])
             params = xnodes.div(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
-            printed = False
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
+                comma = None
                 if param == "self": continue
                 if param in ["*" , "/", "..."]: classes += ["special"]
-                if i == last_i: classes += ["final"]
+                if i == last_i:
+                    classes += ["final"]
+                else:
+                    comma = nodes.inline("", nodes.Text(", "), classes=["punct"])
                 if isinstance(param, str):
-                    if printed:
-                        params += nodes.inline("", nodes.Text(", "), classes=["punct"])
                     if param in ["self", "*", "/", "..."]:
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param.lstrip("*"))
-                    params += xnodes.div(ref, classes=classes)
+                    params += xnodes.div(children=[ref, comma], classes=classes)
                 else:
                     assert isinstance(param, tuple)
                     if len(param) == 2:
-                        if printed:
-                            params += nodes.inline("", nodes.Text(", "), classes=["punct"])
                         param_node = a_node(text=param[0], href="#" + param[0])
                         equal_sign_node = nodes.inline("", nodes.Text("="), classes=["punct"])
                         # Add as nodes.literal, so that Sphinx wouldn't try to
@@ -1013,17 +1012,17 @@ class XobjectDirective(SphinxDirective):
                         params += xnodes.div(classes=classes, children=[
                                                 param_node,
                                                 equal_sign_node,
-                                                default_value_node
+                                                default_value_node,
+                                                comma
                                              ])
                     else:
                         assert len(param) == 1
-                        params += nodes.inline("", nodes.Text("["), classes=["punct"])
-                        if printed:
-                            params += nodes.inline("", nodes.Text(", "), classes=["punct"])
-                        param_node = a_node(text=param[0], href="#" + param[0])
-                        params += xnodes.div(param_node, classes=classes)
-                        params += nodes.inline("", nodes.Text("]"), classes=["punct"])
-                printed = True
+                        params += xnodes.div(classes=classes, children=[
+                                nodes.inline("", nodes.Text("["), classes=["punct"]),
+                                a_node(text=param[0], href="#" + param[0]),
+                                nodes.inline("", nodes.Text("]"), classes=["punct"]),
+                                comma
+                            ])
 
             if self.obj_name in square_bracket_functions:
                 params += nodes.inline("", nodes.Text(']'), classes=["sig-name"])

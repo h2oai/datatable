@@ -51,6 +51,8 @@ class xElement(nodes.Element):
         if args:
             assert not children
             children = [a for a in args if a is not None]
+        else:
+            children = [a for a in children if a is not None]
         for i, child in enumerate(children):
             if isinstance(child, str):
                 children[i] = nodes.Text(child)

@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "csv/reader.h"
 #include "read/parsers/ptype_iterator.h"
 namespace dt {
 namespace read {
@@ -37,12 +38,16 @@ RT PTypeIterator::get_rtype() const {
 }
 
 PTypeIterator& PTypeIterator::operator++() {
-  if (curr_ptype < PT::Str32) {
-    curr_ptype = static_cast<PT>(curr_ptype + 1);
-  } else {
-    *pqr = *pqr + 1;
+  while (true) {
+    if (curr_ptype < PT::Str32) {
+      curr_ptype = static_cast<PT>(curr_ptype + 1);
+      if (curr_ptype == PT::Date32ISO && !parse_dates) continue;
+      if (curr_ptype == PT::Time64ISO && !parse_times) continue;
+    } else {
+      *pqr = *pqr + 1;
+    }
+    return *this;
   }
-  return *this;
 }
 
 bool PTypeIterator::has_incremented() const {
