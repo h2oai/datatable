@@ -789,8 +789,8 @@ void GenericReader::detect_and_skip_bom() {
 void GenericReader::skip_initial_whitespace() {
   const char* ch = sof;
   if (!sof) return;
-  while ((ch < eof) && (*ch <= ' ') &&
-         (*ch==' ' || *ch=='\n' || *ch=='\r' || *ch=='\t')) {
+  while ((ch < eof) && (*ch <= ' ')  &&
+         (*ch==' ' || *ch=='\n' || *ch=='\r' || (*ch=='\t' && *(ch+1) <= ' '))) {
     ch++;
   }
   if (!strip_whitespace) {
