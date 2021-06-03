@@ -611,6 +611,9 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
 }
 
 inline bool VerifyStats(flatbuffers::Verifier &verifier, const void *obj, Stats type) {
+  // DO NOT REMOVE THIS LINE!
+  // Needed for tests/test-jay.py::test_jay_backward_compatibility
+  if (!obj) return true;
   switch (type) {
     case Stats_NONE: {
       return true;

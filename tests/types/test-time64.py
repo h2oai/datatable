@@ -131,3 +131,44 @@ def test_time64_to_csv():
         "\n"
         "1690-10-17T12:00:00.000001\n"
     )
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to/from Jay
+#-------------------------------------------------------------------------------
+
+def test_save_to_jay(tempfile_jay):
+    d = datetime.datetime
+    src = [d(1901, 2, 3, 4, 5, 6), d(2001, 12, 13, 0, 30), d(2026, 5, 9, 12),
+           None, d(1956, 11, 11, 11, 11, 11)]
+    DT = dt.Frame(src)
+    DT.to_jay(tempfile_jay)
+    del DT
+    DT2 = dt.fread(tempfile_jay)
+    assert DT2.shape == (5, 1)
+    assert DT2.types == [dt.Type.time64]
+    assert DT2.to_list()[0] == src
+
+
+@pytest.mark.xfail
+def test_with_stats(tempfile_jay):
+    d = datetime.datetime
+    src = [d(1901, 12, 13, 0, 11, 59),
+           d(2001, 2, 17, 0, 30),
+           None,
+           d(2026, 5, 19, 12, 0, 1, 1111),
+           None,
+           d(1956, 11, 11, 11, 11, 11)]
+    DT = dt.Frame(src)
+    # precompute stats so that they get stored in the Jay file
+    assert DT.countna1() == 2
+    assert DT.min1() == d(1901, 12, 13, 0, 11, 59)
+    assert DT.max1() == d(2026, 5, 19, 12, 0, 1, 1111)
+    DT.to_jay(tempfile_jay)
+    DTnew = dt.fread(tempfile_jay)
+    # assert_equals() also checks frame integrity, including validity of stats
+    assert_equals(DTnew, DT)
+    assert DTnew.countna1() == 2
+    assert DTnew.min1() == d(1901, 12, 13, 0, 11, 59)
+    assert DTnew.max1() == d(2026, 5, 19, 12, 0, 1, 1111)
