@@ -43,6 +43,7 @@ enum Type : uint8 {
   Str32,
   Str64,
   Date32,
+  Time64,
 }
 
 union Stats {

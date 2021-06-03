@@ -142,6 +142,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
       jsto = saveStats<int32_t, jay::StatsInt32>(colstats, fbb);
       jsttype = jay::Stats_Int32;
       break;
+    case dt::SType::TIME64:
     case dt::SType::INT64:
       jsto = saveStats<int64_t, jay::StatsInt64>(colstats, fbb);
       jsttype = jay::Stats_Int64;
@@ -483,6 +484,7 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::Type_Float32;
   stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::Type_Float64;
   stype_to_jaytype[int(dt::SType::DATE32)]  = jay::Type_Date32;
+  stype_to_jaytype[int(dt::SType::TIME64)]  = jay::Type_Time64;
   stype_to_jaytype[int(dt::SType::STR32)]   = jay::Type_Str32;
   stype_to_jaytype[int(dt::SType::STR64)]   = jay::Type_Str64;
 }
