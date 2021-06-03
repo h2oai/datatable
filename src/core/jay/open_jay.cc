@@ -184,6 +184,7 @@ static Column column_from_jay(
     case jay::Type_Str32:   stype = dt::SType::STR32; break;
     case jay::Type_Str64:   stype = dt::SType::STR64; break;
     case jay::Type_Date32:  stype = dt::SType::DATE32; break;
+    case jay::Type_Time64:  stype = dt::SType::TIME64; break;
   }
 
   Column col;
@@ -202,6 +203,7 @@ static Column column_from_jay(
     case jay::Type_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
     case jay::Type_Date32:
     case jay::Type_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
+    case jay::Type_Time64:
     case jay::Type_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
     case jay::Type_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;
     case jay::Type_Float64: initStats<double,  jay::StatsFloat64>(stats, jcol); break;

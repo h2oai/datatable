@@ -1354,7 +1354,13 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
         case dt::LType::DATETIME: {
           int64_t value;
           bool isvalid = get_stat(stat, &value);
-          return isvalid? py::odate(static_cast<int32_t>(value)) : py::None();
+          if (!isvalid) return py::None();
+          if (column->stype() == dt::SType::DATE32) {
+            return py::odate(static_cast<int32_t>(value));
+          } else {
+            // return py::otime(value);
+            throw NotImplError() << "Cannot create time literals";
+          }
         }
         default: return py::None();
       }
