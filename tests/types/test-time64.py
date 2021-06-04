@@ -214,3 +214,31 @@ def test_convert_to_numpy(np):
     assert arr[3, 0] == np.datetime64('2077-05-17T23:59:01.002345000')
     assert repr(arr[4, 0]) == repr(np.datetime64('NaT'))
     assert arr[5, 0] == np.datetime64('1911-11-11T11:11:11.000011000')
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to/from pandas
+#-------------------------------------------------------------------------------
+
+def test_convert_to_pandas(pd, np):
+    d = datetime.datetime
+    src = [d(1901, 12, 13, 0, 11, 59),
+           d(2001, 2, 17, 0, 30),
+           None,
+           d(2077, 5, 17, 23, 59, 1, 2345),
+           None,
+           d(1911, 11, 11, 11, 11, 11, 11)]
+    DT = dt.Frame(A=src, B=[3, 987, 5, 7, -1, 0])
+    assert DT.types == [dt.Type.time64, dt.Type.int32]
+    pf = DT.to_pandas()
+    assert pf.columns.tolist() == ['A', 'B']
+    assert pf.dtypes.tolist() == [np.dtype('<M8[ns]'), np.dtype('int32')]
+    assert pf.values.tolist() == [
+        [pd.Timestamp('1901-12-13 00:11:59'), 3],
+        [pd.Timestamp('2001-02-17 00:30:00'), 987],
+        [pd.NaT, 5],
+        [pd.Timestamp('2077-05-17 23:59:01.002345'), 7],
+        [pd.NaT, -1],
+        [pd.Timestamp('1911-11-11 11:11:11.000011'), 0]
+    ]
