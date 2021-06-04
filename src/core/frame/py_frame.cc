@@ -688,11 +688,61 @@ void Frame::set_source(const std::string& src) {
 
 
 //------------------------------------------------------------------------------
+// .type
+//------------------------------------------------------------------------------
+
+static const char* doc_type =
+R"(
+.. x-version-added:: v1.0.0
+
+The common :class:`dt.Type` for all columns.
+
+This property is well-defined only for frames where all columns have
+the same type.
+
+Parameters
+----------
+return: Type | None
+    For frames where all columns have the same type, this common
+    type is returned. If a frame has 0 columns, `None` will be
+    returned.
+
+except: InvalidOperationError
+    This exception will be raised if the columns in the frame have
+    different types.
+
+See also
+--------
+- :attr:`.types` -- list of types for all columns.
+)";
+
+static GSArgs args_type("type", doc_type);
+
+oobj Frame::get_type() const {
+  if (dt->ncols() == 0) return None();
+  auto type = dt->get_column(0).type();
+  for (size_t i = 1; i < dt->ncols(); ++i) {
+    auto colType = dt->get_column(i).type();
+    if (!(colType == type)) {
+      throw InvalidOperationError()
+          << "The type of column '" << dt->get_names()[i]
+          << "' is `" << colType << "`, which is different from the "
+          "type of the previous column" << (i>1? "s" : "");
+    }
+  }
+  return dt::PyType::make(type);
+}
+
+
+
+//------------------------------------------------------------------------------
 // .types
 //------------------------------------------------------------------------------
 
 static const char* doc_types =
 R"(
+.. x-version-added:: v1.0.0
+
 The list of `Type`s for each column of the frame.
 
 Parameters
@@ -1205,6 +1255,7 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(GETTER(&Frame::get_source, args_source));
   xt.add(GETTER(&Frame::get_stype,  args_stype));
   xt.add(GETTER(&Frame::get_stypes, args_stypes));
+  xt.add(GETTER(&Frame::get_type, args_type));
   xt.add(GETTER(&Frame::get_types, args_types));
 
   xt.add(METHOD0(&Frame::get_names, "keys"));

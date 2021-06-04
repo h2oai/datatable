@@ -122,6 +122,9 @@
         * - :attr:`.stypes`
           - Storage types (:class:`dt.stype`s) of all columns.
 
+        * - :attr:`.type`
+          - The common type (:class:`dt.Type`) for the entire frame.
+
         * - :attr:`.types`
           - types (:class:`dt.Type`s) of all columns.
 
@@ -265,5 +268,6 @@
     .to_numpy()      <frame/to_numpy>
     .to_pandas()     <frame/to_pandas>
     .to_tuples()     <frame/to_tuples>
+    .type            <frame/type>
     .types           <frame/types>
     .view()          <frame/view>
