@@ -72,7 +72,7 @@ def test_time64_create_from_python():
            d(2010, 11, 13, 15, 11, 59),
            d(2020, 2, 29, 20, 20, 20, 20), None]
     DT = dt.Frame(src)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [src]
 
 
@@ -119,7 +119,7 @@ def test_time64_read_from_csv():
                   "2001-05-12T12:00:00\n"
                   "2013-06-24T14:00:01\n"
                   "2023-11-02T23:59:59.999999\n")
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.shape == (3, 1)
     assert DT.to_list()[0] == [d(2001, 5, 12, 12),
                                d(2013, 6, 24, 14, 0, 1),
@@ -194,7 +194,7 @@ def test_convert_to_numpy(np):
            None,
            d(1911, 11, 11, 11, 11, 11, 11)]
     DT = dt.Frame(src)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     arr = DT.to_numpy()
     assert isinstance(arr, np.ndarray)
     assert arr.shape == DT.shape
@@ -214,7 +214,7 @@ def test_convert_from_numpy(np):
                     '2021-06-01 23:18:30'],
                    dtype='datetime64[ns]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     # we use stringification here only because converting to python
     # literals would have lost the nanosecond precision
     assert str(DT) == (
@@ -232,7 +232,7 @@ def test_convert_from_numpy(np):
 def test_convert_from_numpy_us(np):
     arr = np.array([-1, 5, 9], dtype='datetime64[us]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [[
         d(1969, 12, 31, 23, 59, 59, 999999),
         d(1970, 1, 1, 0, 0, 0, 5),
@@ -243,7 +243,7 @@ def test_convert_from_numpy_us(np):
 def test_convert_from_numpy_ms(np):
     arr = np.array([-1, 5, 9], dtype='datetime64[ms]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [[
         d(1969, 12, 31, 23, 59, 59, 999000),
         d(1970, 1, 1, 0, 0, 0, 5000),
@@ -254,7 +254,7 @@ def test_convert_from_numpy_ms(np):
 def test_convert_from_numpy_s(np):
     arr = np.array([-1, 5, 9], dtype='datetime64[s]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [[
         d(1969, 12, 31, 23, 59, 59),
         d(1970, 1, 1, 0, 0, 5),
@@ -265,7 +265,7 @@ def test_convert_from_numpy_s(np):
 def test_convert_from_numpy_min(np):
     arr = np.array([-1, 5, 9], dtype='datetime64[m]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [[
         d(1969, 12, 31, 23, 59, 0),
         d(1970, 1, 1, 0, 5, 0),
@@ -276,7 +276,7 @@ def test_convert_from_numpy_min(np):
 def test_convert_from_numpy_hour(np):
     arr = np.array([-1, 5, 9], dtype='datetime64[h]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.time64]
+    assert DT.type == dt.Type.time64
     assert DT.to_list() == [[
         d(1969, 12, 31, 23, 0, 0),
         d(1970, 1, 1, 5, 0, 0),

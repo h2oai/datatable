@@ -56,14 +56,14 @@ def test_date32_create_from_python():
     d = datetime.date
     src = [d(2000, 1, 5), d(2010, 11, 23), d(2020, 2, 29), None]
     DT = dt.Frame(src)
-    assert DT.types == [dt.Type.date32]
+    assert DT.type == dt.Type.date32
     assert DT.to_list() == [src]
 
 
 def test_date32_create_from_python_force():
     d = datetime.date
     DT = dt.Frame([18675, -100000, None, 0.75, 'hello'], stype='date32')
-    assert DT.types == [dt.Type.date32]
+    assert DT.type == dt.Type.date32
     assert DT.to_list() == [
         [d(2021, 2, 17), d(1696, 3, 17), None, d(1970, 1, 1), None]
     ]
@@ -123,14 +123,14 @@ def test_date32_minmax():
 def test_date32_from_numpy_datetime64(np, scale):
     arr = np.array(range(-100, 1000), dtype=f'datetime64[{scale}]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.date32]
+    assert DT.type == dt.Type.date32
     assert DT.to_list() == [arr.tolist()]
 
 
 def test_from_numpy_with_nats(np):
     arr = np.array(['2000-01-01', '2020-05-11', 'NaT'], dtype='datetime64[D]')
     DT = dt.Frame(arr)
-    assert DT.types == [dt.Type.date32]
+    assert DT.type == dt.Type.date32
     assert DT.to_list() == [
         [datetime.date(2000, 1, 1), datetime.date(2020, 5, 11), None]
     ]
@@ -149,7 +149,7 @@ def test_save_to_jay(tempfile_jay):
     del DT
     DT2 = dt.fread(tempfile_jay)
     assert DT2.shape == (5, 1)
-    assert DT2.types == [dt.Type.date32]
+    assert DT2.type == dt.Type.date32
     assert DT2.to_list()[0] == src
 
 
