@@ -27,6 +27,7 @@
 #include "column/date_from_weeks.h"
 #include "column/date_from_months.h"
 #include "column/date_from_years.h"
+#include "column/time_scaled.h"
 #include "column/view.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
@@ -68,9 +69,24 @@ Column Column::from_pybuffer(const py::robj& pyobj) {
         tmp.cast_inplace(dt::SType::DATE32);
         return tmp;
       }
+      if (str == "<M8[ns]") {
+        tmp.cast_inplace(dt::SType::TIME64);
+        return tmp;
+      }
       if (str == "<M8[W]") return Column(new dt::DateFromWeeks_ColumnImpl(std::move(tmp)));
       if (str == "<M8[M]") return Column(new dt::DateFromMonths_ColumnImpl(std::move(tmp)));
       if (str == "<M8[Y]") return Column(new dt::DateFromYears_ColumnImpl(std::move(tmp)));
+      constexpr int64_t NANOS    = 1;
+      constexpr int64_t MICROS   = 1000 * NANOS;
+      constexpr int64_t MILLIS   = 1000000 * NANOS;
+      constexpr int64_t SECONDS  = 1000000000 * NANOS;
+      constexpr int64_t MINUTES  = 60 * SECONDS;
+      constexpr int64_t HOURS    = 3600 * SECONDS;
+      if (str == "<M8[h]") return Column(new dt::TimeScaled_ColumnImpl(std::move(tmp), HOURS));
+      if (str == "<M8[m]") return Column(new dt::TimeScaled_ColumnImpl(std::move(tmp), MINUTES));
+      if (str == "<M8[s]") return Column(new dt::TimeScaled_ColumnImpl(std::move(tmp), SECONDS));
+      if (str == "<M8[ms]") return Column(new dt::TimeScaled_ColumnImpl(std::move(tmp), MILLIS));
+      if (str == "<M8[us]") return Column(new dt::TimeScaled_ColumnImpl(std::move(tmp), MICROS));
     }
     if (kind == "M" || kind == "m") {
       return Column::from_pybuffer(pyobj.invoke("astype", py::ostring("str")));
