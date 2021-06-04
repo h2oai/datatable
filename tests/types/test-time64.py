@@ -65,7 +65,7 @@ def test_time64_type_minmax():
 
 
 #-------------------------------------------------------------------------------
-# time64 column: create
+# time64 convert to/from list of primitives
 #-------------------------------------------------------------------------------
 
 def test_time64_create_from_python():
@@ -78,23 +78,9 @@ def test_time64_create_from_python():
     assert DT.to_list() == [src]
 
 
-def test_time64_read_from_csv():
-    d = datetime.datetime
-    DT = dt.fread("timestamp\n"
-                  "2001-05-12T12:00:00\n"
-                  "2013-06-24T14:00:01\n"
-                  "2023-11-02T23:59:59.999999\n")
-    assert DT.types == [dt.Type.time64]
-    assert DT.shape == (3, 1)
-    assert DT.to_list()[0] == [d(2001, 5, 12, 12),
-                               d(2013, 6, 24, 14, 0, 1),
-                               d(2023, 11, 2, 23, 59, 59, 999999)]
-
-
-
 
 #-------------------------------------------------------------------------------
-# time64 convert to ...
+# Basic properties
 #-------------------------------------------------------------------------------
 
 def test_time64_repr():
@@ -113,6 +99,36 @@ def test_time64_repr():
         " 3 | NA                       \n"
         "[4 rows x 1 column]\n"
     )
+
+
+def test_time64_minmax():
+    d = datetime.datetime
+    src = [None,
+           d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src)
+    assert DT.min1() == d(2000, 10, 18, 3, 30)
+    assert DT.max1() == d(2020, 2, 29, 20, 20, 20, 20)
+    assert DT.countna1() == 2
+
+
+
+#-------------------------------------------------------------------------------
+# time64 convert to/from CSV
+#-------------------------------------------------------------------------------
+
+def test_time64_read_from_csv():
+    d = datetime.datetime
+    DT = dt.fread("timestamp\n"
+                  "2001-05-12T12:00:00\n"
+                  "2013-06-24T14:00:01\n"
+                  "2023-11-02T23:59:59.999999\n")
+    assert DT.types == [dt.Type.time64]
+    assert DT.shape == (3, 1)
+    assert DT.to_list()[0] == [d(2001, 5, 12, 12),
+                               d(2013, 6, 24, 14, 0, 1),
+                               d(2023, 11, 2, 23, 59, 59, 999999)]
 
 
 def test_time64_to_csv():
@@ -151,7 +167,6 @@ def test_save_to_jay(tempfile_jay):
     assert DT2.to_list()[0] == src
 
 
-@pytest.mark.xfail
 def test_with_stats(tempfile_jay):
     d = datetime.datetime
     src = [d(1901, 12, 13, 0, 11, 59),
@@ -172,3 +187,30 @@ def test_with_stats(tempfile_jay):
     assert DTnew.countna1() == 2
     assert DTnew.min1() == d(1901, 12, 13, 0, 11, 59)
     assert DTnew.max1() == d(2026, 5, 19, 12, 0, 1, 1111)
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to/from numpy
+#-------------------------------------------------------------------------------
+
+def test_convert_to_numpy(np):
+    d = datetime.datetime
+    src = [d(1901, 12, 13, 0, 11, 59),
+           d(2001, 2, 17, 0, 30),
+           None,
+           d(2077, 5, 17, 23, 59, 1, 2345),
+           None,
+           d(1911, 11, 11, 11, 11, 11, 11)]
+    DT = dt.Frame(src)
+    assert DT.types == [dt.Type.time64]
+    arr = DT.to_numpy()
+    assert isinstance(arr, np.ndarray)
+    assert arr.shape == DT.shape
+    assert arr.dtype == np.dtype('datetime64[ns]')
+    assert arr[0, 0] == np.datetime64('1901-12-13T00:11:59.000000000')
+    assert arr[1, 0] == np.datetime64('2001-02-17T00:30:00.000000000')
+    assert repr(arr[2, 0]) == repr(np.datetime64('NaT'))
+    assert arr[3, 0] == np.datetime64('2077-05-17T23:59:01.002345000')
+    assert repr(arr[4, 0]) == repr(np.datetime64('NaT'))
+    assert arr[5, 0] == np.datetime64('1911-11-11T11:11:11.000011000')
