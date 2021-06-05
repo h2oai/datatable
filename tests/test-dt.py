@@ -399,6 +399,31 @@ def test_modify_types_list():
     assert DT.types == [dt.Type.int32, dt.Type.str32]
 
 
+def test_dt0_type(dt0):
+    assert dt0[0].type == dt.Type.int32
+    assert dt0[1].type == dt.Type.bool8
+    assert dt0[2].type == dt.Type.int8
+    assert dt0[3].type == dt.Type.float64
+    assert dt0[4].type == dt.Type.void
+    assert dt0[5].type == dt.Type.int8
+    assert dt0[6].type == dt.Type.str32
+    assert dt0[:, [2, 5]].type == dt.Type.int8
+
+
+def test_type_empty_frame():
+    DT = dt.Frame()
+    assert DT.type is None
+    DT.nrows = 3
+    assert DT.type is None
+
+
+def test_type_invalid(dt0):
+    msg = "The type of column 'B' is bool8, which is different from " \
+          "the type of the previous column"
+    with pytest.raises(dt.exceptions.InvalidOperationError, match=msg):
+        assert dt0.type
+
+
 
 
 #-------------------------------------------------------------------------------

@@ -9,6 +9,9 @@
       objects for each column of the frame. These types are a generalization
       of previous stypes, and will eventually replace them.
 
+      Property :attr:`.type` returns the common :class:`dt.Type` for all
+      columns of the frame (provided that it exists).
+
     -[new] New column type :attr:`dt.Type.date32` added, which can store a
       calendar date [#2858]::
 
@@ -149,6 +152,7 @@
     -[fix] Fread no longer throws an exception when the list of column types
       passed to parameter ``columns=`` contains ``str64``. [#2704]
 
+    -[fix] Fread no longer detects separators within quoted strings. [#922]
 
     Models
     ------

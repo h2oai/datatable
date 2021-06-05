@@ -90,6 +90,10 @@ a > code.literal {
   text-align: left;
 }
 
+table.align-default {
+  margin-left: 0;
+}
+
 table.docutils td, table.docutils th {
   padding: 0;
   border: none;

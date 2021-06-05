@@ -41,11 +41,12 @@ enum Type {
   Type_Str32 = 7,
   Type_Str64 = 8,
   Type_Date32 = 9,
+  Type_Time64 = 10,
   Type_MIN = Type_Bool8,
-  Type_MAX = Type_Date32
+  Type_MAX = Type_Time64
 };
 
-inline const Type (&EnumValuesType())[10] {
+inline const Type (&EnumValuesType())[11] {
   static const Type values[] = {
     Type_Bool8,
     Type_Int8,
@@ -56,13 +57,14 @@ inline const Type (&EnumValuesType())[10] {
     Type_Float64,
     Type_Str32,
     Type_Str64,
-    Type_Date32
+    Type_Date32,
+    Type_Time64
   };
   return values;
 }
 
 inline const char * const *EnumNamesType() {
-  static const char * const names[11] = {
+  static const char * const names[12] = {
     "Bool8",
     "Int8",
     "Int16",
@@ -73,13 +75,14 @@ inline const char * const *EnumNamesType() {
     "Str32",
     "Str64",
     "Date32",
+    "Time64",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameType(Type e) {
-  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Date32)) return "";
+  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Time64)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesType()[index];
 }
@@ -608,6 +611,8 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
 }
 
 inline bool VerifyStats(flatbuffers::Verifier &verifier, const void *obj, Stats type) {
+  // DO NOT REMOVE THIS LINE!
+  // Needed for tests/test-jay.py::test_jay_backward_compatibility
   if (!obj) return true;
   switch (type) {
     case Stats_NONE: {

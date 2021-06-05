@@ -180,6 +180,11 @@ static oobj to_numpy_impl(oobj frame) {
     frame = Frame::oframe(dt);
   }
 
+  // For time64 column no extra preparation is needed: it is already
+  // isomorphic with int64 type. The only thing we'll do is to invoke
+  // `.astype()` after the conversion.
+  bool is_time64 = common_type.stype() == dt::SType::TIME64;
+
   oobj res;
   {
     getbuffer_exception = nullptr;
@@ -197,6 +202,10 @@ static oobj to_numpy_impl(oobj frame) {
   if (is_date32) {
     auto np_date64_dtype = numpy.invoke("dtype", {py::ostring("datetime64[D]")});
     res = res.invoke("view", np_date64_dtype);
+  }
+  if (is_time64) {
+    auto np_time64_dtype = numpy.invoke("dtype", {py::ostring("datetime64[ns]")});
+    res = res.invoke("view", np_time64_dtype);
   }
 
   // If there are any columns with NAs, replace the numpy.array with

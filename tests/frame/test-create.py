@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1172,12 +1172,13 @@ def test_create_from_mixed_sources(numpy):
 
 
 def test_create_from_datetime_array(numpy):
+    from datetime import datetime as d
     a = numpy.zeros(dtype="<M8[s]", shape=(10,))
     df = dt.Frame(a)
     frame_integrity_check(df)
     assert df.shape == (10, 1)
-    assert df.stypes == (stype.str32,)
-    assert df.to_list() == [["1970-01-01T00:00:00"] * 10]
+    assert df.types == [dt.Type.time64]
+    assert df.to_list() == [[d(1970, 1, 1, 0, 0, 0)] * 10]
 
 
 def test_create_from_numpy_bools1(np):
