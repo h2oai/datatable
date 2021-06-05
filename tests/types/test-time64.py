@@ -317,3 +317,32 @@ def test_convert_from_pandas(pd):
     DT = dt.Frame(pf)
     assert_equals(DT, dt.Frame(A=[d(2000, 1, 1, 1, 1, 1),
                                   d(2010, 11, 7, 23, 4, 11)]))
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to/from arrow
+#-------------------------------------------------------------------------------
+
+# Note: this test requires pandas only because arrow's `.to_pydict()`
+# converts time stamps into pandas Timestamp objects
+def test_convert_to_arrow(pa, pd):
+    src = [d(1901, 12, 13, 0, 11, 59),
+           d(2001, 2, 17, 0, 30),
+           None,
+           d(2077, 5, 17, 23, 59, 1, 2345),
+           None,
+           d(1911, 11, 11, 11, 11, 11, 11)]
+    DT = dt.Frame(XYZ=src)
+    assert DT.type == dt.Type.time64
+    arr = DT.to_arrow()
+    assert arr.shape == DT.shape
+    assert arr.column_names == ["XYZ"]
+    assert arr.to_pydict() == {"XYZ": [
+        pd.Timestamp('1901-12-13 00:11:59'),
+        pd.Timestamp('2001-02-17 00:30:00'),
+        None,
+        pd.Timestamp('2077-05-17 23:59:01.002345'),
+        None,
+        pd.Timestamp('1911-11-11 11:11:11.000011')
+    ]}
