@@ -346,3 +346,58 @@ def test_convert_to_arrow(pa, pd):
         None,
         pd.Timestamp('1911-11-11 11:11:11.000011')
     ]}
+
+
+def test_from_arrow_timestamp_ns(pa):
+    src = [1, 1000, 20000, None, -700000]
+    a = pa.array(src, type=pa.timestamp('ns'))
+    tbl = pa.Table.from_arrays([a], names=["T"])
+    DT = dt.Frame(tbl)
+    assert DT.type == dt.Type.time64
+    assert DT.names == ("T",)
+    assert str(DT) == (
+        "   | T                            \n"
+        "   | time64                       \n"
+        "-- + -----------------------------\n"
+        " 0 | 1970-01-01T00:00:00.000000001\n"
+        " 1 | 1970-01-01T00:00:00.000001   \n"
+        " 2 | 1970-01-01T00:00:00.00002    \n"
+        " 3 | NA                           \n"
+        " 4 | 1969-12-31T23:59:59.9993     \n"
+        "[5 rows x 1 column]\n"
+    )
+
+
+def test_from_arrow_timestamp_xs(pa):
+    arr_s = pa.array([1348713949, -348901459, 298472245], type=pa.timestamp('s'))
+    arr_ms = pa.array([3847103487310, 248702475, -243720452542], type=pa.timestamp('ms'))
+    arr_us = pa.array([1384710348731230, 2487870247582475, -28599437204525], type=pa.timestamp('us'))
+    assert arr_s.to_string() == ("[\n"
+        "  2012-09-27 02:45:49,\n"
+        "  1958-12-11 18:55:41,\n"
+        "  1979-06-17 12:57:25\n]"
+    )
+    assert arr_ms.to_string() == ("[\n"
+        "  2091-11-28 15:51:27.310,\n"
+        "  1970-01-03 21:05:02.475,\n"
+        "  1962-04-12 03:52:27.458\n]"
+    )
+    assert arr_us.to_string() == ("[\n"
+        "  2013-11-17 17:45:48.731230,\n"
+        "  2048-11-01 19:04:07.582475,\n"
+        "  1969-02-03 23:42:42.795475\n]"
+    )
+    tbl = pa.Table.from_arrays([arr_s, arr_ms, arr_us], names=["s", "ms", "us"])
+    DT = dt.Frame(tbl)
+    assert DT.type == dt.Type.time64
+    assert DT.to_dict() == {
+        's' : [d(2012, 9, 27, 2, 45, 49),
+               d(1958, 12, 11, 18, 55, 41),
+               d(1979, 6, 17, 12, 57, 25)],
+        'ms': [d(2091, 11, 28, 15, 51, 27, 310000),
+               d(1970, 1, 3, 21, 5, 2, 475000),
+               d(1962, 4, 12, 3, 52, 27, 458000)],
+        'us': [d(2013, 11, 17, 17, 45, 48, 731230),
+               d(2048, 11, 1, 19, 4, 7, 582475),
+               d(1969, 2, 3, 23, 42, 42, 795475)]
+    }
