@@ -156,6 +156,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     void m__init__(const py::PKArgs&);
     void m__dealloc__();
     py::oobj m__repr__() const;
+    py::oobj m__getitem__(py::robj);
 
     static py::oobj m__compare__  (py::robj, py::robj, int op);
     static py::oobj nb__add__     (py::robj, py::robj);

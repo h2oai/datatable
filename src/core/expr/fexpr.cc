@@ -28,6 +28,7 @@
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -144,6 +145,13 @@ oobj PyFExpr::m__repr__() const {
   return ostring("FExpr<" + expr_->repr() + '>');
 }
 
+py::oobj PyFExpr::m__getitem__(py::robj item) {
+  // Normally we would never create an object with an empty `expr_`,
+  // but if the user tries to instantiate it manually then the
+  // `expr_` may end up as nullptr.
+  
+  return py::ostring("FExpr<" + expr_->repr() + '>');
+}
 
 
 //----- Basic arithmetics ------------------------------------------------------
@@ -652,6 +660,7 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__NEG__(&PyFExpr::nb__neg__));
   xt.add(METHOD__POS__(&PyFExpr::nb__pos__));
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
+  xt.add(METHOD__GETITEM__(&PyFExpr::m__getitem__));
 
   FExpr_Type = xt.get_type_object();
 
