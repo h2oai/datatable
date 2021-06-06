@@ -377,3 +377,4 @@ def test_first():
                    'C': [1, 2, 1, 1, 2]})
 
     assert_equals(DT[:, f.A.first()], DT[:, dt.first(f.A)])
+
