@@ -50,9 +50,16 @@
       and :meth:`.median() <dt.FExpr.median>`, which behaves exactly as the
       equivalent base level functions :func:`dt.max()`, :func:`dt.min()`,
       :func:`dt.mean()`,  and :func:`dt.median()` respectively.
-      
-    -[new] Class :class:`dt.FExpr` now has methods for all the 
+
+    -[new] Class :class:`dt.FExpr` now has methods for all the
       row functions (:func:`dt.rowsum()`, :func:`dt.rowall()`, etc).
+
+    -[new] Class :class:`dt.FExpr` now has methods :meth:`.sd() <dt.FExpr.sd>`,
+      :meth:`.count() <dt.FExpr.count>`, :meth:`.first() <dt.FExpr.first>`,
+      and :meth:`.last() <dt.FExpr.last>`, :meth:`.shift() <dt.FExpr.last>`,
+      which behaves exactly as the equivalent base level functions :func:`dt.sd()`,
+      :func:`dt.count()`, :func:`dt.first()`, :func:`dt.last()`
+      and :func:`dt.shift()` respectively.
 
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate

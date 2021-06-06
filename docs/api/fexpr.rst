@@ -163,6 +163,21 @@
         * - :meth:`.rowsum()`
           - Same as :func:`dt.rowsum()`.
 
+        * - :meth:`.sd()`
+          - Same as :func:`dt.sd()`.
+
+        * - :meth:`.shift()`
+          - Same as :func:`dt.shift()`.
+
+        * - :meth:`.last()`
+          - Same as :func:`dt.last()`.
+
+        * - :meth:`.count()`
+          - Same as :func:`dt.count()`.
+
+        * - :meth:`.first()`
+          - Same as :func:`dt.first()`.
+
 
     Miscellaneous
     -------------
@@ -230,4 +245,8 @@
     .rowmin()       <fexpr/rowmin>
     .rowsd()        <fexpr/rowsd>
     .rowsum()       <fexpr/rowsum>
-
+    .sd()           <fexpr/sd>
+    .shift()        <fexpr/shift>
+    .last()         <fexpr/last>
+    .count()        <fexpr/count>
+    .first()        <fexpr/first>

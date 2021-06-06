@@ -579,6 +579,91 @@ DECLARE_METHOD(&PyFExpr::rowsum)
     ->name("rowsum")
     ->docs(doc_rowsum);
 
+
+static const char* doc_sd =
+R"(sd()
+--
+
+Equivalent to :func:`dt.sd(self)`.
+)";
+
+oobj PyFExpr::sd(const XArgs&) {
+  auto sdFn = oobj::import("datatable", "sd");
+  return sdFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::sd)
+    ->name("sd")
+    ->docs(doc_sd);
+
+
+static const char* doc_shift =
+R"(shift()
+--
+
+Equivalent to :func:`dt.shift(self)`.
+)";
+
+oobj PyFExpr::shift(const XArgs&) {
+  auto shiftFn = oobj::import("datatable", "shift");
+  return shiftFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::shift)
+    ->name("shift")
+    ->docs(doc_shift);
+
+static const char* doc_last =
+R"(last()
+--
+
+Equivalent to :func:`dt.last(self)`.
+)";
+
+oobj PyFExpr::last(const XArgs&) {
+  auto lastFn = oobj::import("datatable", "last");
+  return lastFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::last)
+    ->name("last")
+    ->docs(doc_last);
+
+
+static const char* doc_count =
+R"(count()
+--
+
+Equivalent to :func:`dt.count(self)`.
+)";
+
+oobj PyFExpr::count(const XArgs&) {
+  auto countFn = oobj::import("datatable", "count");
+  return countFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::count)
+    ->name("count")
+    ->docs(doc_count);
+
+
+static const char* doc_first =
+R"(first()
+--
+
+Equivalent to :func:`dt.first(self)`.
+)";
+
+oobj PyFExpr::first(const XArgs&) {
+  auto firstFn = oobj::import("datatable", "first");
+  return firstFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::first)
+    ->name("first")
+    ->docs(doc_first);
+
+
 //------------------------------------------------------------------------------
 // Class decoration
 //------------------------------------------------------------------------------
