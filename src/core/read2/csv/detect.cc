@@ -772,7 +772,7 @@ class CsvParseSettingsDetector {
           auto c2 = static_cast<unsigned>(ch_[2]);
           auto code = (c0 << 16) + (c1 << 8) + (c2);
           if (code == 0xe19a80 ||
-              (code >= 0xe28080 && code <= 0xe2808a       ) ||
+              (code >= 0xe28080 && code <= 0xe2808a) ||
               code == 0xe280a8 ||
               code == 0xe280a9 ||
               code == 0xe280af ||
