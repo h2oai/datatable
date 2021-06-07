@@ -19,71 +19,40 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_COLUMN_h
-#define dt_EXPR_FEXPR_COLUMN_h
-#include "expr/fexpr_func.h"
-#include "python/obj.h"
+#include "expr/fexpr_column.h"
+#include "expr/eval_context.h"
+#include "expr/workframe.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
-/**
-  * Class for expressions such as `f.A`.
-  */
-class FExpr_ColumnAsAttr : public FExpr_Func {
-  private:
-    size_t namespace_;
-    py::oobj pyname_;
-
-  public:
-    FExpr_ColumnAsAttr(size_t ns, py::robj name);
-
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
-
-    py::oobj get_pyname() const;
-};
+FExpr_ColumnAsSlice::FExpr_ColumnAsSlice(py::robj arg) {
+  arg_ = as_fexpr(arg);
+}
 
 
-
-/**
-  * Class for expressions such as `f[x]`.
-  */
-class FExpr_ColumnAsArg : public FExpr_Func {
-  private:
-    size_t namespace_;
-    ptrExpr arg_;
-
-  public:
-    FExpr_ColumnAsArg(size_t ns, py::robj arg);
-
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
-
-    ptrExpr get_arg() const;
-};
+Workframe FExpr_ColumnAsSlice::evaluate_n(EvalContext& ctx) const {
+  Workframe outputs(ctx);
+  return outputs;
+}
 
 
-/**
-  * Class for expressions such as `f.A[1:]`.
-  */
-class FExpr_ColumnAsSlice : public FExpr_Func {
-  private:
-    ptrExpr arg_;
+int FExpr_ColumnAsSlice::precedence() const noexcept {
+  return 0;
+}
 
-  public:
-    FExpr_ColumnAsSlice(py::robj arg);
 
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
+std::string FExpr_ColumnAsSlice::repr() const {
+}
 
-    ptrExpr get_arg() const;
-};
+
+
+ptrExpr FExpr_ColumnAsSlice::get_arg() const {
+  return arg_;
+}
+
 
 
 
 }}  // namespace dt::expr
-#endif

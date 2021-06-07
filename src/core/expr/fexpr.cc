@@ -24,6 +24,7 @@
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
+#include "expr/fexpr_column.h"
 #include "expr/expr.h"            // OldExpr
 #include "python/obj.h"
 #include "python/xargs.h"
@@ -145,12 +146,12 @@ oobj PyFExpr::m__repr__() const {
   return ostring("FExpr<" + expr_->repr() + '>');
 }
 
-py::oobj PyFExpr::m__getitem__(py::robj item) {
+oobj PyFExpr::m__getitem__(py::robj item) {
   // Normally we would never create an object with an empty `expr_`,
   // but if the user tries to instantiate it manually then the
   // `expr_` may end up as nullptr.
-  
-  return py::ostring("FExpr<" + expr_->repr() + '>');
+  return PyFExpr::make(
+              new dt::expr::FExpr_ColumnAsSlice(item));
 }
 
 
