@@ -22,6 +22,7 @@
 #include <limits>
 #include "column/cast.h"
 #include "python/float.h"
+#include "stype.h"
 #include "types/type_float.h"
 #include "utils/assert.h"
 namespace dt {

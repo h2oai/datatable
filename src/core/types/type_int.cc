@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <limits>
 #include "python/int.h"
+#include "stype.h"
 #include "types/type_int.h"
 #include "utils/assert.h"
 namespace dt {

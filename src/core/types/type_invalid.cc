@@ -19,22 +19,27 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_INVALID_h
-#define dt_TYPES_TYPE_INVALID_h
-#include "types/type_impl.h"
+#include "types/type_invalid.h"
+#include "stype.h"
 namespace dt {
 
 
 
-class Type_Invalid : public TypeImpl {
-  public:
-    Type_Invalid();
-    bool is_invalid() const override;
-    std::string to_string() const override;
-    TypeImpl* common_type(TypeImpl*) override;
-};
+Type_Invalid::Type_Invalid() 
+  : TypeImpl(SType::INVALID) {}
+
+bool Type_Invalid::is_invalid() const { 
+  return true; 
+}
+
+std::string Type_Invalid::to_string() const { 
+  return "invalid"; 
+}
+
+TypeImpl* Type_Invalid::common_type(TypeImpl*) { 
+  return this; 
+}
 
 
 
 }  // namespace dt
-#endif
