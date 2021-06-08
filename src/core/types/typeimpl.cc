@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column.h"
 #include "python/obj.h"
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 #include "stype.h"
 namespace dt {
 

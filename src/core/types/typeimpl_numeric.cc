@@ -19,35 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_NUMERIC_h
-#define dt_TYPES_TYPE_NUMERIC_h
-#include "types/type_impl.h"
+#include "stype.h"
+#include "types/typeimpl_numeric.h"
 #include "types/type_invalid.h"
 namespace dt {
 
 
 
-class Type_Numeric : public TypeImpl {
-  protected:
-    using TypeImpl::TypeImpl;
+bool Type_Numeric::is_numeric() const { 
+  return true; 
+}
 
-  public:
-    bool is_numeric() const override { return true; }
 
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->is_numeric()) {
-        auto stype1 = static_cast<int>(this->stype());
-        auto stype2 = static_cast<int>(other->stype());
-        return stype1 >= stype2? this : other;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
-};
+TypeImpl* Type_Numeric::common_type(TypeImpl* other) {
+  if (other->is_numeric()) {
+    auto stype1 = static_cast<int>(this->stype());
+    auto stype2 = static_cast<int>(other->stype());
+    return stype1 >= stype2? this : other;
+  }
+  if (other->is_object() || other->is_invalid()) {
+    return other;
+  }
+  return new Type_Invalid();
+}
+
 
 
 
 }  // namespace dt
-#endif

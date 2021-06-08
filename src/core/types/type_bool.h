@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_BOOL_h
 #define dt_TYPES_TYPE_BOOL_h
-#include "types/type_numeric.h"
+#include "types/typeimpl_numeric.h"
 namespace dt {
 
 

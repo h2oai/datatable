@@ -19,19 +19,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_INVALID_h
-#define dt_TYPES_TYPE_INVALID_h
+#ifndef dt_TYPES_TYPE_NUMERIC_h
+#define dt_TYPES_TYPE_NUMERIC_h
 #include "types/typeimpl.h"
 namespace dt {
 
 
+/**
+  * This is a common supertype for Type_Bool8, Type_Int[X] and
+  * Type_Float[X] types.
+  */
+class Type_Numeric : public TypeImpl {
+  protected:
+    using TypeImpl::TypeImpl;
 
-class Type_Invalid : public TypeImpl {
   public:
-    Type_Invalid();
-    bool is_invalid() const override;
-    std::string to_string() const override;
-    TypeImpl* common_type(TypeImpl*) override;
+    bool is_numeric() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
 };
 
 

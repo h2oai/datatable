@@ -25,7 +25,6 @@
 #include "types/type_bool.h"
 #include "types/type_date.h"
 #include "types/type_float.h"
-#include "types/type_impl.h"
 #include "types/type_int.h"
 #include "types/type_object.h"
 #include "types/type_string.h"

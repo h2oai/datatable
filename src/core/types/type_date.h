@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_DATE_h
 #define dt_TYPES_TYPE_DATE_h
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 

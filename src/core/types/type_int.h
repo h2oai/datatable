@@ -21,10 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_INT_h
 #define dt_TYPES_TYPE_INT_h
-#include <limits>
-#include "python/int.h"
-#include "types/type_numeric.h"
-#include "utils/assert.h"
+#include "types/typeimpl_numeric.h"
 namespace dt {
 
 

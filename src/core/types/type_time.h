@@ -23,7 +23,7 @@
 #define dt_TYPES_TYPE_TIME_h
 #include "frame/py_frame.h"
 #include "stype.h"
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 #include "types/type_invalid.h"
 namespace dt {
 
