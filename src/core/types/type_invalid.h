@@ -22,6 +22,7 @@
 #ifndef dt_TYPES_TYPE_INVALID_h
 #define dt_TYPES_TYPE_INVALID_h
 #include "types/type_impl.h"
+#include "stype.h"
 namespace dt {
 
 
