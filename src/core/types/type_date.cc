@@ -19,29 +19,54 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_BOOL_h
-#define dt_TYPES_TYPE_BOOL_h
-#include "types/type_numeric.h"
+#include "frame/py_frame.h"
+#include "stype.h"
+#include "types/type_date.h"
+#include "types/type_invalid.h"
 namespace dt {
 
 
 
-class Type_Bool8 : public Type_Numeric {
-  public:
-    Type_Bool8();
+Type_Date32::Type_Date32() 
+  : TypeImpl(SType::DATE32) {}
 
-    bool is_boolean() const override;
-    bool can_be_read_as_int8() const override;
 
-    std::string to_string() const override;
-    py::oobj min() const override;
-    py::oobj max() const override;
-    const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
-};
+bool Type_Date32::can_be_read_as_int32() const { 
+  return true; 
+}
+
+bool Type_Date32::is_time() const { 
+  return true; 
+}
+
+std::string Type_Date32::to_string() const { 
+  return "date32"; 
+}
+
+py::oobj Type_Date32::min() const {
+  return py::odate(-std::numeric_limits<int>::max());
+}
+
+py::oobj Type_Date32::max() const {
+  return py::odate(std::numeric_limits<int>::max() - 719468);
+}
+
+const char* Type_Date32::struct_format() const { 
+  return "i";  // Pretend this is int32
+}
+
+
+TypeImpl* Type_Date32::common_type(TypeImpl* other) {
+  if (other->stype() == SType::DATE32 || other->is_void()) {
+    return this;
+  }
+  if (other->is_object() || other->is_invalid()) {
+    return other;
+  }
+  return new Type_Invalid();
+}
 
 
 
 
 }  // namespace dt
-#endif
