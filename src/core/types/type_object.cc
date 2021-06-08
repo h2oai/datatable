@@ -19,39 +19,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_STRING_h
-#define dt_TYPES_TYPE_STRING_h
-#include "types/typeimpl.h"
+#include "types/type_object.h"
+#include "stype.h"
 namespace dt {
 
 
 
-class Type_String : public TypeImpl {
-  protected:
-    using TypeImpl::TypeImpl;
-
-  public:
-    bool is_string() const override;
-    bool can_be_read_as_cstring() const override;
-    TypeImpl* common_type(TypeImpl* other) override;
-};
+Type_Object::Type_Object() 
+  : TypeImpl(SType::OBJ) {}
 
 
-class Type_String32 : public Type_String {
-  public:
-    Type_String32();
-    std::string to_string() const override;
-};
+bool Type_Object::is_object() const {
+  return true;
+}
 
+bool Type_Object::can_be_read_as_pyobject() const {
+  return true;
+}
 
-class Type_String64 : public Type_String {
-  public:
-    Type_String64();
-    std::string to_string() const override;
-};
+std::string Type_Object::to_string() const {
+  return "obj64";
+}
+
+TypeImpl* Type_Object::common_type(TypeImpl* other) {
+  if (other->is_invalid()) return other;
+  return this;
+}
+
+const char* Type_Object::struct_format() const {
+  return "O";
+}
 
 
 
 
 }  // namespace dt
-#endif
