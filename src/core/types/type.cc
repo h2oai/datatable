@@ -175,6 +175,11 @@ std::string Type::to_string() const {
   return impl_->to_string();
 }
 
+Column Type::cast_column(Column&& col) const {
+  xassert(impl_);
+  return impl_->cast_column(std::move(col));
+}
+
 
 
 }  // namespace dt

@@ -111,6 +111,8 @@ class Type {
 
     static Type common(const Type&, const Type&);
 
+    Column cast_column(Column&& column) const;
+
   private:
     Type(TypeImpl*&&) noexcept;
 };

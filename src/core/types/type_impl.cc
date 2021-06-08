@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "python/obj.h"
 #include "types/type_impl.h"
 #include "stype.h"
@@ -76,6 +77,6 @@ py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
 const char* TypeImpl::struct_format() const { return ""; }
 
-
+Column TypeImpl::cast_column(Column&& col) const { return std::move(col); }
 
 }  // namespace dt

@@ -19,30 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_VOID_h
-#define dt_TYPES_TYPE_VOID_h
-#include "types/type_impl.h"
+#include "column/const.h"
+#include "stype.h"
+#include "types/type_void.h"
 namespace dt {
 
 
 
-class Type_Void : public TypeImpl {
-  public:
-    Type_Void();
+Type_Void::Type_Void() 
+  : TypeImpl(SType::VOID) {}
 
-    bool is_boolean() const override;
-    bool is_integer() const override;
-    bool is_float()   const override;
-    bool is_numeric() const override;
-    bool can_be_read_as_int8() const override;
 
-    std::string to_string() const override;
-    TypeImpl* common_type(TypeImpl* other) override;
-    const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
-};
+bool Type_Void::is_boolean() const { return true; }
+bool Type_Void::is_integer() const { return true; }
+bool Type_Void::is_float()   const { return true; }
+bool Type_Void::is_numeric() const { return true; }
+bool Type_Void::can_be_read_as_int8() const { return true; }
+
+
+std::string Type_Void::to_string() const {
+  return "void"; 
+}
+
+
+TypeImpl* Type_Void::common_type(TypeImpl* other) {
+  return other;
+}
+
+
+const char* Type_Void::struct_format() const {
+  return "V"; 
+}
+
+
+// We allow columns of any type to be "cast into void". Not sure why.
+Column Type_Void::cast_column(Column&& col) const {
+  return Column(new ConstNa_ColumnImpl(col.nrows(), SType::VOID));
+}
+
 
 
 
 }  // namespace dt
-#endif
