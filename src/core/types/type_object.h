@@ -33,6 +33,7 @@ class Type_Object : public TypeImpl {
     std::string to_string() const override;
     TypeImpl* common_type(TypeImpl* other) override;
     const char* struct_format() const override;
+    Column cast_column(Column&& col) const override;
 };
 
 
