@@ -59,18 +59,40 @@ const char* Type_Object::struct_format() const {
 Column Type_Object::cast_column(Column&& col) const {
   constexpr auto st = SType::OBJ;
   switch (col.stype()) {
-    case SType::VOID:    return Column::new_na_column(col.nrows(), st);
-    case SType::BOOL:    return Column(new CastBool_ColumnImpl(st, std::move(col)));
-    case SType::INT8:    return Column(new CastNumeric_ColumnImpl<int8_t>(st, std::move(col)));
-    case SType::INT16:   return Column(new CastNumeric_ColumnImpl<int16_t>(st, std::move(col)));
-    case SType::INT32:   return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
-    case SType::INT64:   return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
-    case SType::FLOAT32: return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
-    case SType::FLOAT64: return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
-    case SType::DATE32:  return Column(new CastDate32_ColumnImpl(st, std::move(col)));
+    case SType::VOID:
+      return Column::new_na_column(col.nrows(), st);
+
+    case SType::BOOL:
+      return Column(new CastBool_ColumnImpl(st, std::move(col)));
+
+    case SType::INT8:
+      return Column(new CastNumeric_ColumnImpl<int8_t>(st, std::move(col)));
+
+    case SType::INT16:
+      return Column(new CastNumeric_ColumnImpl<int16_t>(st, std::move(col)));
+
+    case SType::INT32:
+      return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
+
+    case SType::INT64:
+      return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
+
+    case SType::FLOAT32:
+      return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
+
+    case SType::FLOAT64:
+      return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
+
+    case SType::DATE32:
+      return Column(new CastDate32_ColumnImpl(st, std::move(col)));
+
     case SType::STR32:
-    case SType::STR64:   return Column(new CastString_ColumnImpl(st, std::move(col)));
-    case SType::OBJ:     return std::move(col);
+    case SType::STR64:
+      return Column(new CastString_ColumnImpl(st, std::move(col)));
+
+    case SType::OBJ:
+      return std::move(col);
+
     default:
       throw NotImplError() << "Unable to cast column of type `" << col.type()
                         << "` into `obj64`";
