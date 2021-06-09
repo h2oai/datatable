@@ -34,6 +34,7 @@ class Type_String : public TypeImpl {
     bool is_string() const override;
     bool can_be_read_as_cstring() const override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
 
 

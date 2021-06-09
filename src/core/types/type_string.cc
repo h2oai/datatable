@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
+#include "column/cast.h"
 #include "python/string.h"
 #include "stype.h"
 #include "types/type_invalid.h"
@@ -53,6 +55,55 @@ TypeImpl* Type_String::common_type(TypeImpl* other) {
   }
   return new Type_Invalid();
 }
+
+
+// Cast column `col` into a string type. This should support all
+// target types.
+//
+Column Type_String::cast_column(Column&& col) const {
+  const auto st = stype();
+  switch (col.stype()) {
+    case SType::VOID:
+      return Column::new_na_column(col.nrows(), st);
+
+    case SType::BOOL:
+      return Column(new CastBool_ColumnImpl(st, std::move(col)));
+
+    case SType::INT8:
+      return Column(new CastNumeric_ColumnImpl<int8_t>(st, std::move(col)));
+
+    case SType::INT16:
+      return Column(new CastNumeric_ColumnImpl<int16_t>(st, std::move(col)));
+
+    case SType::INT32:
+      return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
+
+    case SType::INT64:
+      return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
+
+    case SType::FLOAT32:
+      return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
+
+    case SType::FLOAT64:
+      return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
+
+    case SType::DATE32:
+      return Column(new CastDate32_ColumnImpl(st, std::move(col)));
+
+    case SType::STR32:
+    case SType::STR64:
+      if (st == col.stype()) return std::move(col);
+      return Column(new CastString_ColumnImpl(st, std::move(col)));
+
+    case SType::OBJ:
+      return Column(new CastObject_ColumnImpl(st, std::move(col)));
+
+    default:
+      throw NotImplError() << "Unable to cast column of type `" << col.type()
+                           << "` into `" << to_string() << "`";
+  }
+}
+
 
 
 

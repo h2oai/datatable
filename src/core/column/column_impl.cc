@@ -199,7 +199,7 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 //------------------------------------------------------------------------------
 
 void ColumnImpl::cast_replace(Type new_type, Column& thiscol) const {
-  if (new_type.is_numeric() || new_type.is_void() || new_type.is_object()) {
+  if (new_type.is_numeric() || new_type.is_void() || new_type.is_object() || new_type.is_string()) {
     thiscol = new_type.cast_column(std::move(thiscol));
     return;
   }
