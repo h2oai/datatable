@@ -32,7 +32,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Type_Int8::Type_Int8() 
-  : Type_Numeric(SType::INT8) {}
+  : TypeImpl_Numeric(SType::INT8) {}
 
 bool Type_Int8::is_integer() const { 
   return true; 
@@ -66,7 +66,7 @@ const char* Type_Int8::struct_format() const {
 //------------------------------------------------------------------------------
 
 Type_Int16::Type_Int16()
-  : Type_Numeric(SType::INT16) {}
+  : TypeImpl_Numeric(SType::INT16) {}
 
 bool Type_Int16::is_integer() const { 
   return true; 
@@ -100,7 +100,7 @@ const char* Type_Int16::struct_format() const {
 //------------------------------------------------------------------------------
 
 Type_Int32::Type_Int32()
-  : Type_Numeric(SType::INT32) {}
+  : TypeImpl_Numeric(SType::INT32) {}
 
 bool Type_Int32::is_integer() const { 
   return true; 
@@ -134,7 +134,7 @@ const char* Type_Int32::struct_format() const {
 //------------------------------------------------------------------------------
 
 Type_Int64::Type_Int64()
-  : Type_Numeric(SType::INT64) {}
+  : TypeImpl_Numeric(SType::INT64) {}
 
 bool Type_Int64::is_integer() const { 
   return true; 

@@ -27,7 +27,7 @@ namespace dt {
 
 
 Type_Bool8::Type_Bool8()
-  : Type_Numeric(SType::BOOL) {}
+  : TypeImpl_Numeric(SType::BOOL) {}
 
 
 bool Type_Bool8::is_boolean() const {

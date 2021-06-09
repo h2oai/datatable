@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <limits>
-#include "column/cast.h"
 #include "python/float.h"
 #include "stype.h"
 #include "types/type_float.h"
@@ -34,7 +33,7 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Type_Float32::Type_Float32()
-  : Type_Numeric(SType::FLOAT32) {}
+  : TypeImpl_Numeric(SType::FLOAT32) {}
 
 
 bool Type_Float32::is_float() const {
@@ -61,39 +60,6 @@ const char* Type_Float32::struct_format() const {
   return "f";
 }
 
-// Cast column `col` into type `float32`. The following conversions are
-// supported:
-//   - VOID->FLOAT32:    <all values are NAs>
-//   - BOOL->FLOAT32:    True->1.0, False->0.0
-//   - INT->FLOAT32:     `static_cast<float>(x)`
-//   - FLOAT64->FLOAT32: `static_cast<float>(x)`
-//   - DATE32->FLOAT32:  DATE32->INT32->FLOAT32
-//   - TIME64->FLOAT32:  TIME64->INT64->FLOAT32
-//   - STR->FLOAT32:     <parse float from string>
-//   - OBJ->FLOAT32:     `x.to_pyfloat_force()`
-//
-Column Type_Float32::cast_column(Column&& col) const {
-  constexpr SType st = SType::FLOAT32;
-  switch (col.stype()) {
-    case SType::VOID:    return Column::new_na_column(col.nrows(), st);
-    case SType::BOOL:    return Column(new CastBool_ColumnImpl(st, std::move(col)));
-    case SType::INT8:    return Column(new CastNumeric_ColumnImpl<int8_t>(st, std::move(col)));
-    case SType::INT16:   return Column(new CastNumeric_ColumnImpl<int16_t>(st, std::move(col)));
-    case SType::DATE32:
-    case SType::INT32:   return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
-    case SType::TIME64:
-    case SType::INT64:   return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
-    case SType::FLOAT32: return std::move(col);
-    case SType::FLOAT64: return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
-    case SType::STR32:
-    case SType::STR64:   return Column(new CastString_ColumnImpl(st, std::move(col)));
-    case SType::OBJ:     return Column(new CastObject_ColumnImpl(st, std::move(col)));
-    default:
-      throw NotImplError() << "Unable to cast column of type `" << col.type()
-                           << "` into `float32`";
-  }
-}
-
 
 
 
@@ -102,7 +68,7 @@ Column Type_Float32::cast_column(Column&& col) const {
 //------------------------------------------------------------------------------
 
 Type_Float64::Type_Float64()
-  : Type_Numeric(SType::FLOAT64) {}
+  : TypeImpl_Numeric(SType::FLOAT64) {}
 
 
 bool Type_Float64::is_float() const {
@@ -127,27 +93,6 @@ py::oobj Type_Float64::max() const {
 
 const char* Type_Float64::struct_format() const {
   return "d";
-}
-
-Column Type_Float64::cast_column(Column&& col) const {
-  constexpr SType st = SType::FLOAT64;
-  switch (col.stype()) {
-    case SType::VOID:    return Column::new_na_column(col.nrows(), st);
-    case SType::BOOL:    return Column(new CastBool_ColumnImpl(st, std::move(col)));
-    case SType::INT8:    return Column(new CastNumeric_ColumnImpl<int8_t>(st, std::move(col)));
-    case SType::INT16:   return Column(new CastNumeric_ColumnImpl<int16_t>(st, std::move(col)));
-    case SType::INT32:   return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
-    case SType::INT64:   return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
-    case SType::FLOAT32: return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
-    case SType::FLOAT64: return std::move(col);
-    case SType::DATE32:  return Column(new CastDate32_ColumnImpl(st, std::move(col)));
-    case SType::STR32:
-    case SType::STR64:   return Column(new CastString_ColumnImpl(st, std::move(col)));
-    case SType::OBJ:     return Column(new CastObject_ColumnImpl(st, std::move(col)));
-    default:
-      throw NotImplError() << "Unable to cast column of type `" << col.type()
-                           << "` into `float64`";
-  }
 }
 
 

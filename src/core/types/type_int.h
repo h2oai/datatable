@@ -26,7 +26,7 @@ namespace dt {
 
 
 
-class Type_Int8 : public Type_Numeric {
+class Type_Int8 : public TypeImpl_Numeric {
   public:
     Type_Int8();
     bool is_integer() const override;
@@ -38,7 +38,7 @@ class Type_Int8 : public Type_Numeric {
 };
 
 
-class Type_Int16 : public Type_Numeric {
+class Type_Int16 : public TypeImpl_Numeric {
   public:
     Type_Int16();
     bool is_integer() const override;
@@ -50,7 +50,7 @@ class Type_Int16 : public Type_Numeric {
 };
 
 
-class Type_Int32 : public Type_Numeric {
+class Type_Int32 : public TypeImpl_Numeric {
   public:
     Type_Int32();
     bool is_integer() const override;
@@ -62,7 +62,7 @@ class Type_Int32 : public Type_Numeric {
 };
 
 
-class Type_Int64 : public Type_Numeric {
+class Type_Int64 : public TypeImpl_Numeric {
   public:
     Type_Int64();
     bool is_integer() const override;

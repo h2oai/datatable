@@ -26,7 +26,7 @@ namespace dt {
 
 
 
-class Type_Float32 : public Type_Numeric {
+class Type_Float32 : public TypeImpl_Numeric {
   public:
     Type_Float32();
     bool is_float() const override;
@@ -36,12 +36,11 @@ class Type_Float32 : public Type_Numeric {
     py::oobj min() const override;
     py::oobj max() const override;
     const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
 };
 
 
 
-class Type_Float64 : public Type_Numeric {
+class Type_Float64 : public TypeImpl_Numeric {
   public:
     Type_Float64();
     bool is_float() const override;
@@ -51,7 +50,6 @@ class Type_Float64 : public Type_Numeric {
     py::oobj min() const override;
     py::oobj max() const override;
     const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
 };
 
 

@@ -29,13 +29,14 @@ namespace dt {
   * This is a common supertype for Type_Bool8, Type_Int[X] and
   * Type_Float[X] types.
   */
-class Type_Numeric : public TypeImpl {
+class TypeImpl_Numeric : public TypeImpl {
   protected:
     using TypeImpl::TypeImpl;
 
   public:
     bool is_numeric() const override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
 
 

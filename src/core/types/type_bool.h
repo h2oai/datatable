@@ -26,7 +26,7 @@ namespace dt {
 
 
 
-class Type_Bool8 : public Type_Numeric {
+class Type_Bool8 : public TypeImpl_Numeric {
   public:
     Type_Bool8();
 
