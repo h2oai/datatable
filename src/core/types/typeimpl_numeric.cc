@@ -97,8 +97,8 @@ Column TypeImpl_Numeric::cast_column(Column&& col) const {
       return Column(new CastObject_ColumnImpl(st, std::move(col)));
 
     default:
-      throw NotImplError() << "Unable to cast column of type `" << col.type()
-                           << "` into `" << to_string() << "`";
+      throw TypeError() << "Unable to cast column of type `" << col.type()
+                        << "` into `" << to_string() << "`";
   }
 }
 

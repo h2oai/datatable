@@ -19,8 +19,10 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "types/type_invalid.h"
 #include "stype.h"
+#include "utils/exceptions.h"
 namespace dt {
 
 
@@ -39,6 +41,11 @@ std::string Type_Invalid::to_string() const {
 TypeImpl* Type_Invalid::common_type(TypeImpl*) { 
   return this; 
 }
+
+Column Type_Invalid::cast_column(Column&&) const {
+  throw InvalidOperationError();
+}
+
 
 
 

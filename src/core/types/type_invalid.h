@@ -32,7 +32,9 @@ class Type_Invalid : public TypeImpl {
     bool is_invalid() const override;
     std::string to_string() const override;
     TypeImpl* common_type(TypeImpl*) override;
+    Column cast_column(Column&& col) const override;
 };
+
 
 
 
