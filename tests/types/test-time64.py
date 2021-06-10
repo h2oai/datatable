@@ -413,4 +413,5 @@ def test_cast_void_column_to_time64():
     DT = dt.Frame([None] * 5)
     assert DT.type == dt.Type.void
     DT[0] = dt.Type.time64
-    assert R.type == dt.Type.time64
+    assert DT.type == dt.Type.time64
+    assert DT.to_list() == [[None] * 5]
