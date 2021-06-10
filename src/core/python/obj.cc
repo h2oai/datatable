@@ -516,8 +516,10 @@ bool _obj::parse_date(int32_t* out) const {
 }
 
 bool _obj::parse_date(int64_t* out) const {
+  constexpr int64_t SECONDS = 1000000000;
+  constexpr int64_t DAYS = 24 * 3600 * SECONDS;
   if (py::odate::check(v)) {
-    *out = py::odate::unchecked(v).get_days();
+    *out = py::odate::unchecked(v).get_days() * DAYS;
     return true;
   }
   return false;

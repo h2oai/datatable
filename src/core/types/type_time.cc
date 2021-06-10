@@ -113,11 +113,11 @@ Column Type_Time64::cast_column(Column&& col) const {
     case SType::TIME64:
       return std::move(col);
 
+    case SType::OBJ:
+      return Column(new CastObjToTime64_ColumnImpl(std::move(col)));
+
     case SType::STR32:
     case SType::STR64:
-      // NYI
-
-    case SType::OBJ:
       // NYI
 
     default:

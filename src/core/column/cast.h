@@ -197,32 +197,6 @@ class CastDate32_ColumnImpl : public Cast_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// CastTime64_ColumnImpl
-//------------------------------------------------------------------------------
-
-class CastTime64_ColumnImpl : public Cast_ColumnImpl {
-  public:
-    using Cast_ColumnImpl::arg_;
-    using Cast_ColumnImpl::Cast_ColumnImpl;
-    ColumnImpl* clone() const override;
-
-    bool get_element(size_t, int8_t*)   const override;
-    bool get_element(size_t, int16_t*)  const override;
-    bool get_element(size_t, int32_t*)  const override;
-    bool get_element(size_t, int64_t*)  const override;
-    bool get_element(size_t, float*)    const override;
-    bool get_element(size_t, double*)   const override;
-    bool get_element(size_t, CString*)  const override;
-    bool get_element(size_t, py::oobj*) const override;
-
-  private:
-    template <typename T> inline bool _get(size_t i, T* out) const;
-};
-
-
-
-
-//------------------------------------------------------------------------------
 // CastString_ColumnImpl
 //------------------------------------------------------------------------------
 
@@ -272,6 +246,23 @@ class CastObject_ColumnImpl : public Cast_ColumnImpl {
     template <typename V> inline bool _get_int(size_t i, V* out) const;
     template <typename V> inline bool _get_float(size_t i, V* out) const;
 };
+
+
+
+
+//------------------------------------------------------------------------------
+// CastObjToTime64_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastObjToTime64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToTime64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+
+    bool get_element(size_t, int64_t*) const override;
+};
+
 
 
 
