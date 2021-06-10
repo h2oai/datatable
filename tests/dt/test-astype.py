@@ -50,7 +50,13 @@ def test_as_type_repr():
 
 
 @pytest.mark.parametrize("target", [dt.int64, int, dt.str32, dt.float32])
-def test_as_type(target):
+def test_astype_stype(target):
     DT = dt.Frame(A=range(5))
     assert_equals(DT[:, as_type(f.A, target)],
                   dt.Frame(A=range(5), stype=target))
+
+
+def test_astype_type():
+    DT = dt.Frame(A=range(10))
+    assert_equals(DT[:, as_type(f.A, dt.Type.float64)],
+                  dt.Frame(A=range(10), stype=dt.float64))
