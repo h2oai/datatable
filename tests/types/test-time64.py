@@ -415,3 +415,39 @@ def test_cast_void_column_to_time64():
     DT[0] = dt.Type.time64
     assert DT.type == dt.Type.time64
     assert DT.to_list() == [[None] * 5]
+
+
+@pytest.mark.parametrize('ttype', [dt.bool8, dt.int8, dt.int16])
+def test_cast_column_to_time64_invalid(ttype):
+    DT = dt.Frame([1, 0, None], stype=ttype)
+    msg = "Unable to cast column of type %s into time64" % ttype.name
+    with pytest.raises(TypeError, match=msg):
+        DT[0] = dt.Type.time64
+
+
+@pytest.mark.parametrize('ttype', [dt.int32, dt.int64])
+def test_cast_int_column_to_time64(ttype):
+    DT = dt.Frame([0, 10000, 10000000, 1000000000], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(1970, 1, 1, 0, 0, 0),
+                                d(1970, 1, 1, 0, 0, 0, 10),
+                                d(1970, 1, 1, 0, 0, 0, 10000),
+                                d(1970, 1, 1, 0, 0, 1)]))
+
+
+@pytest.mark.parametrize('ttype', [dt.float32, dt.float64])
+def test_cast_float_column_to_time64(ttype):
+    DT = dt.Frame([0, 1e6, 1e9, None], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(1970, 1, 1, 0, 0, 0),
+                                d(1970, 1, 1, 0, 0, 0, 1000),
+                                d(1970, 1, 1, 0, 0, 1),
+                                None]))
+
+
+def test_cast_date32_to_time64():
+    from datetime import date
+    DT = dt.Frame([date(2001, 3, 17)])
+    assert DT.type == dt.Type.date32
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(2001, 3, 17, 0, 0, 0)]))

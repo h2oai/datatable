@@ -30,17 +30,17 @@ from tests import assert_equals
 def test_as_type_arguments():
     msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
           r"arguments, but none were given"
-    with pytest.raises(TypeError,  match=msg):
+    with pytest.raises(TypeError, match=msg):
         as_type()
 
     msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
           r"arguments, but only 1 was given"
-    with pytest.raises(TypeError,  match=msg):
+    with pytest.raises(TypeError, match=msg):
         as_type(f.A)
 
     msg = r"Function datatable.as_type\(\) takes at most 2 positional " \
           r"arguments, but 3 were given"
-    with pytest.raises(TypeError,  match=msg):
+    with pytest.raises(TypeError, match=msg):
         as_type(f.A, f.B, f.C)
 
 
