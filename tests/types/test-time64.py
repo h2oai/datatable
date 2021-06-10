@@ -401,3 +401,16 @@ def test_from_arrow_timestamp_xs(pa):
                d(2048, 11, 1, 19, 4, 7, 582475),
                d(1969, 2, 3, 23, 42, 42, 795475)]
     }
+
+
+
+
+#-------------------------------------------------------------------------------
+# Type casts to/from `time64` type
+#-------------------------------------------------------------------------------
+
+def test_cast_void_column_to_time64():
+    DT = dt.Frame([None] * 5)
+    assert DT.type == dt.Type.void
+    DT[0] = dt.Type.time64
+    assert R.type == dt.Type.time64
