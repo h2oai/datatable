@@ -54,6 +54,7 @@ class Type_Time64 : public TypeImpl {
     py::oobj max() const override;
     const char* struct_format() const override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
 
 

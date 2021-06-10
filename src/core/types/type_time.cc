@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/cast.h"
+#include "column/time_scaled.h"
 #include "frame/py_frame.h"
 #include "stype.h"
 #include "types/type_time.h"
@@ -67,6 +69,61 @@ TypeImpl* Type_Time64::common_type(TypeImpl* other) {
     return other;
   }
   return new Type_Invalid();
+}
+
+
+// Convert colum `col` into `time64` type. The following conversions are
+// supported:
+//   VOID->TIME64:   (all-NA columnn)
+//   INT32->TIME64:  INT32->INT64<=>TIME64
+//   INT64->TIME64:  INT64<=>TIME64
+//   FLOAT->TIME64:  FLOAT->INT64<=>TIME64
+//   DATE32->TIME64: (convert days into timestamps)
+//   STR->TIME64:    (parse string as time64)
+//   OBJ->TIME64:    (parse object as time64)
+//
+Column Type_Time64::cast_column(Column&& col) const {
+  constexpr SType st = SType::TIME64;
+  constexpr int64_t SECONDS = 1000000000;
+  constexpr int64_t DAYS = 24 * 3600 * SECONDS;
+  switch (col.stype()) {
+    case SType::VOID:
+      return Column::new_na_column(col.nrows(), st);
+
+    case SType::INT32:
+      return Column(new CastNumeric_ColumnImpl<int32_t>(st, std::move(col)));
+
+    case SType::INT64:
+      col.replace_type_unsafe(Type::time64());
+      return std::move(col);
+
+    case SType::FLOAT32:
+      return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
+
+    case SType::FLOAT64:
+      return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
+
+    case SType::DATE32: {
+      auto i64col = Column(
+          new CastNumeric_ColumnImpl<int32_t>(SType::INT64, std::move(col))
+      );
+      return Column(new TimeScaled_ColumnImpl(std::move(i64col), DAYS));
+    }
+
+    case SType::TIME64:
+      return std::move(col);
+
+    case SType::STR32:
+    case SType::STR64:
+      // NYI
+
+    case SType::OBJ:
+      // NYI
+
+    default:
+      throw TypeError() << "Unable to cast column of type `" << col.type()
+                        << "` into `time64`";
+  }
 }
 
 

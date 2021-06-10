@@ -67,6 +67,55 @@ TypeImpl* Type_Date32::common_type(TypeImpl* other) {
 }
 
 
+// Convert colum `col` into `date32` type. The following conversions are
+// supported:
+//   VOID->DATE32:   (all-NA columnn)
+//   INT32->DATE32:  (replace type on the column)
+//   INT64->DATE32:  INT64->INT32<=>DATE32
+//   FLOAT->DATE32:  --"--
+//   TIME64->DATE32: (truncate time-of-day part)
+//   STR->DATE32:    (parse string as date)
+//   OBJ->DATE32:    (parse object as date)
+//
+Column Type_Date32::cast_column(Column&& col) const {
+  constexpr SType st = SType::DATE32;
+  switch (col.stype()) {
+    case SType::VOID:
+      return Column::new_na_column(col.nrows(), st);
+
+    case SType::INT32:
+      col.replace_type_unsafe(Type::date32());
+      return std::move(col);
+
+    case SType::INT64:
+      return Column(new CastNumeric_ColumnImpl<int64_t>(st, std::move(col)));
+
+    case SType::FLOAT32:
+      return Column(new CastNumeric_ColumnImpl<float>(st, std::move(col)));
+
+    case SType::FLOAT64:
+      return Column(new CastNumeric_ColumnImpl<double>(st, std::move(col)));
+
+    case SType::DATE32:
+      return std::move(col);
+
+    case SType::TIME64:
+      // NYI
+
+    case SType::STR32:
+    case SType::STR64:
+      // NYI
+
+    case SType::OBJ:
+      // NYI
+
+    default:
+      throw TypeError() << "Unable to cast column of type `" << col.type()
+                        << "` into `date32`";
+  }
+}
+
+
 
 
 }  // namespace dt

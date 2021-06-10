@@ -26,6 +26,16 @@
 namespace dt {
 
 
+/**
+  * Time64 column which is produced from the underlying column by
+  * multiplying all values by a constant `scale_` factor.
+  *
+  * This can be used for converting time columns that store their
+  * values at a resolution different from nanosecond. For example,
+  * numpy may have a column of type `datetime64[s]`, or even when
+  * we need to convert date32 column (resolution of days) into time64
+  * (resolution of ns).
+  */
 class TimeScaled_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg_;

@@ -21,6 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_DATE_h
 #define dt_TYPES_TYPE_DATE_h
+#include "column.h"
+#include "column/cast.h"
 #include "types/typeimpl.h"
 namespace dt {
 
@@ -38,6 +40,7 @@ class Type_Date32 : public TypeImpl {
     py::oobj max() const override;
     const char* struct_format() const override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
 
 
