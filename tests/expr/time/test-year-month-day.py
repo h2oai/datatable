@@ -50,7 +50,6 @@ def test_year_month_day_with_time64():
                  day=[15, 1, None, 1, 31, 13]))
 
 
-@pytest.mark.xfail
 def test_year_month_day_with_time64_small():
     DT = dt.Frame([0, 1, -1, -2, -86400000000000, -86400000000001])
     assert DT.type == dt.Type.int64
