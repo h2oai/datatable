@@ -52,13 +52,14 @@ def test_year_month_day_with_time64():
 
 @pytest.mark.xfail
 def test_year_month_day_with_time64_small():
-    DT = dt.Frame([0, 1, -1, -2], stype=dt.int64)
+    DT = dt.Frame([0, 1, -1, -2, -86400000000000, -86400000000001])
+    assert DT.type == dt.Type.int64
     DT[0] = dt.Type.time64
     RES = DT[:, {"year": year(f[0]), "month": month(f[0]), "day": day(f[0])}]
     assert_equals(RES,
-        dt.Frame(year=[1970, 1970, 1969, 1969],
-                 month=[1, 1, 12, 12],
-                 day=[1, 1, 31, 31]))
+        dt.Frame(year=[1970, 1970, 1969, 1969, 1969, 1969],
+                 month=[1, 1, 12, 12, 12, 12],
+                 day=[1, 1, 31, 31, 31, 30]))
 
 
 def test_noargs():

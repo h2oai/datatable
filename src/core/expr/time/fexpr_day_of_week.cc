@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <type_traits>
 #include "_dt.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func_unary.h"
@@ -34,6 +35,7 @@ namespace expr {
 // DayOfWeek_ColumnImpl
 //------------------------------------------------------------------------------
 
+template<typename T>
 class DayOfWeek_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg_;
@@ -42,10 +44,12 @@ class DayOfWeek_ColumnImpl : public Virtual_ColumnImpl {
     DayOfWeek_ColumnImpl(Column&& arg)
       : Virtual_ColumnImpl(arg.nrows(), dt::SType::INT32),
         arg_(std::move(arg))
-    { xassert(arg_.stype() == dt::SType::DATE32); }
+    {
+      xassert(arg_.can_be_read_as<T>());
+    }
 
     ColumnImpl* clone() const override {
-      return new DayOfWeek_ColumnImpl(Column(arg_));
+      return new DayOfWeek_ColumnImpl<T>(Column(arg_));
     }
 
     size_t n_children() const noexcept override {
@@ -58,10 +62,18 @@ class DayOfWeek_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool get_element(size_t i, int32_t* out) const override {
-      int32_t value;
+      T value;
       bool isvalid = arg_.get_element(i, &value);
       if (isvalid) {
-        *out = hh::iso_weekday_from_days(value);
+        constexpr bool FROM_TIME = std::is_same<T, int64_t>::value;
+        constexpr int64_t NANOSECS_IN_DAY = 24ll * 3600ll * 1000000000ll;
+        if (FROM_TIME && value < 0) {
+          // because C does truncating division, and we need floor division
+          value -= NANOSECS_IN_DAY - 1;
+        }
+        int32_t days = FROM_TIME? static_cast<int32_t>(value / NANOSECS_IN_DAY)
+                                : static_cast<int32_t>(value);
+        *out = hh::iso_weekday_from_days(days);
       }
       return isvalid;
     }
@@ -86,11 +98,16 @@ class FExpr_DayOfWeek : public FExpr_FuncUnary {
       if (col.stype() == dt::SType::VOID) {
         return Column::new_na_column(col.nrows(), dt::SType::VOID);
       }
-      if (col.stype() != dt::SType::DATE32) {
-        throw TypeError() << "Function " << name() << "() requires a date32 "
-            "column, instead received column of type " << col.type();
+      if (col.stype() == dt::SType::DATE32) {
+        return Column(
+            new DayOfWeek_ColumnImpl<int32_t>(std::move(col)));
       }
-      return Column(new DayOfWeek_ColumnImpl(std::move(col)));
+      if (col.stype() == dt::SType::TIME64) {
+        return Column(
+            new DayOfWeek_ColumnImpl<int64_t>(std::move(col)));
+      }
+      throw TypeError() << "Function " << name() << "() requires a date32 or "
+          "time64 column, instead received column of type " << col.type();
     }
 };
 
@@ -115,8 +132,8 @@ matches the ISO standard.
 
 Parameters
 ----------
-date: FExpr[date32]
-    The date column for which you need to calculate days of week.
+date: FExpr[date32] | FExpr[time64]
+    The date32 (or time64) column for which you need to calculate days of week.
 
 return: FExpr[int32]
     An integer column, with values between 1 and 7 inclusive.

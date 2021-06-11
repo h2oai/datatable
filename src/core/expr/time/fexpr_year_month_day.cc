@@ -68,18 +68,18 @@ class YearMonthDay_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool get_element(size_t i, int32_t* out) const override {
-      constexpr bool FROM_TIME = std::is_same<T, int64_t>::value;
-      constexpr int64_t NANOSECS_IN_DAY = 24ll * 3600ll * 1000000000ll;
       T value;
       bool isvalid = arg_.get_element(i, &value);
-      if (FROM_TIME && value < 0) {
-        // because C does truncating division, and we need floor division
-        value -= NANOSECS_IN_DAY - 1;
-      }
-      int32_t days = FROM_TIME? static_cast<int32_t>(value / NANOSECS_IN_DAY)
-                              : static_cast<int32_t>(value);
-      auto ymd = hh::civil_from_days(days);
       if (isvalid) {
+        constexpr bool FROM_TIME = std::is_same<T, int64_t>::value;
+        constexpr int64_t NANOSECS_IN_DAY = 24ll * 3600ll * 1000000000ll;
+        if (FROM_TIME && value < 0) {
+          // because C does truncating division, and we need floor division
+          value -= NANOSECS_IN_DAY - 1;
+        }
+        int32_t days = FROM_TIME? static_cast<int32_t>(value / NANOSECS_IN_DAY)
+                                : static_cast<int32_t>(value);
+        auto ymd = hh::civil_from_days(days);
         if (Kind == 1) *out = ymd.year;
         if (Kind == 2) *out = ymd.month;
         if (Kind == 3) *out = ymd.day;
