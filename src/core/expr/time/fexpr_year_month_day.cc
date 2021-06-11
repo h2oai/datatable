@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <type_traits>
 #include "_dt.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func_unary.h"
@@ -40,7 +41,7 @@ namespace expr {
   *
   * <Kind>: 1 = Year, 2 = Month, 3 = Day
   */
-template <int Kind>
+template <typename T, int Kind>
 class YearMonthDay_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column arg_;
@@ -50,11 +51,11 @@ class YearMonthDay_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(arg.nrows(), dt::SType::INT32),
         arg_(std::move(arg))
     {
-      xassert(arg_.stype() == dt::SType::DATE32);
+      xassert(arg_.can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {
-      return new YearMonthDay_ColumnImpl<Kind>(Column(arg_));
+      return new YearMonthDay_ColumnImpl<T, Kind>(Column(arg_));
     }
 
     size_t n_children() const noexcept override {
@@ -67,9 +68,17 @@ class YearMonthDay_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool get_element(size_t i, int32_t* out) const override {
-      int32_t value;
+      constexpr bool FROM_TIME = std::is_same<T, int64_t>::value;
+      constexpr int64_t NANOSECS_IN_DAY = 24ll * 3600ll * 1000000000ll;
+      T value;
       bool isvalid = arg_.get_element(i, &value);
-      auto ymd = hh::civil_from_days(value);
+      if (FROM_TIME && value < 0) {
+        // because C does truncating division, and we need floor division
+        value -= NANOSECS_IN_DAY - 1;
+      }
+      int32_t days = FROM_TIME? static_cast<int32_t>(value / NANOSECS_IN_DAY)
+                              : static_cast<int32_t>(value);
+      auto ymd = hh::civil_from_days(days);
       if (isvalid) {
         if (Kind == 1) *out = ymd.year;
         if (Kind == 2) *out = ymd.month;
@@ -101,11 +110,16 @@ class FExpr_YearMonthDay : public FExpr_FuncUnary {
       if (col.stype() == dt::SType::VOID) {
         return Column::new_na_column(col.nrows(), dt::SType::VOID);
       }
-      if (col.stype() != dt::SType::DATE32) {
-        throw TypeError() << "Function " << name() << "() requires a date32 "
-            "column, instead received column of type " << col.type();
+      if (col.stype() == dt::SType::DATE32) {
+        return Column(
+            new YearMonthDay_ColumnImpl<int32_t, Kind>(std::move(col)));
       }
-      return Column(new YearMonthDay_ColumnImpl<Kind>(std::move(col)));
+      if (col.stype() == dt::SType::TIME64) {
+        return Column(
+            new YearMonthDay_ColumnImpl<int64_t, Kind>(std::move(col)));
+      }
+      throw TypeError() << "Function " << name() << "() requires a date32 or "
+          "time64 column, instead received column of type " << col.type();
     }
 };
 
@@ -121,12 +135,12 @@ R"(year(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "year" component of a date32 column.
+Retrieve the "year" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the year part.
 
 return: FExpr[int32]
@@ -157,12 +171,12 @@ R"(month(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "month" component of a date32 column.
+Retrieve the "month" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the month part.
 
 return: FExpr[int32]
@@ -193,12 +207,12 @@ R"(day(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "day" component of a date32 column.
+Retrieve the "day" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the day part.
 
 return: FExpr[int32]
