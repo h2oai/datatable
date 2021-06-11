@@ -35,6 +35,9 @@ class PTInfoBuilder;
 extern ParserFnPtr* parser_functions;
 extern ParserInfo* parser_infos;
 
+bool parse_date32_iso(const char* ch, const char* end, int32_t* out);
+bool parse_time64_iso(const char* ch, const char* end, int64_t* out);
+
 
 
 class ParserInfo {

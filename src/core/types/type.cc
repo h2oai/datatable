@@ -19,13 +19,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "python/obj.h"
 #include "stype.h"
 #include "types/type.h"
 #include "types/type_bool.h"
 #include "types/type_date.h"
 #include "types/type_float.h"
-#include "types/type_impl.h"
 #include "types/type_int.h"
 #include "types/type_object.h"
 #include "types/type_string.h"
@@ -173,6 +173,11 @@ Type::operator bool() const {
 std::string Type::to_string() const {
   if (!impl_) return "Type()";
   return impl_->to_string();
+}
+
+Column Type::cast_column(Column&& col) const {
+  xassert(impl_);
+  return impl_->cast_column(std::move(col));
 }
 
 

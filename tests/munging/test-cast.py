@@ -428,37 +428,3 @@ def test_cast_views_all(viewtype, source_stype, target_stype):
     DT.materialize()
     ans2 = DT[:, target_stype(f.A)].to_list()[0]
     assert ans1 == ans2
-
-
-
-#-------------------------------------------------------------------------------
-# as_type() function
-#-------------------------------------------------------------------------------
-
-def test_as_type_arguments():
-    msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
-          r"arguments, but none were given"
-    with pytest.raises(TypeError,  match=msg):
-        as_type()
-
-    msg = r"Function datatable.as_type\(\) requires exactly 2 positional " \
-          r"arguments, but only 1 was given"
-    with pytest.raises(TypeError,  match=msg):
-        as_type(f.A)
-
-    msg = r"Function datatable.as_type\(\) takes at most 2 positional " \
-          r"arguments, but 3 were given"
-    with pytest.raises(TypeError,  match=msg):
-        as_type(f.A, f.B, f.C)
-
-
-def test_as_type_repr():
-    assert repr(as_type(f.A, dt.int64)) == 'FExpr<as_type(f.A, int64)>'
-    assert repr(as_type(f[1], dt.str32)) == 'FExpr<as_type(f[1], str32)>'
-
-
-@pytest.mark.parametrize("target", [dt.int64, int, dt.str32, dt.float32])
-def test_as_type(target):
-    DT = dt.Frame(A=range(5))
-    assert_equals(DT[:, as_type(f.A, target)],
-                  dt.Frame(A=range(5), stype=target))

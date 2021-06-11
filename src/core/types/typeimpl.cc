@@ -19,8 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "python/obj.h"
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 #include "stype.h"
 namespace dt {
 
@@ -75,6 +76,12 @@ bool TypeImpl::equals(const TypeImpl* other) const {
 py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
 const char* TypeImpl::struct_format() const { return ""; }
+
+
+Column TypeImpl::cast_column(Column&& col) const {
+  throw NotImplError() << "Unable to cast into type `" << to_string() << "`";
+}
+
 
 
 

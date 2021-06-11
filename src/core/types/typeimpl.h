@@ -73,6 +73,10 @@ class TypeImpl {
     // This method must be implemented by each subclass
     virtual std::string to_string() const = 0;
 
+    // Type-casting functionality: cast column `col` into the current type.
+    // The new type-cast column of `this` type is returned.
+    virtual Column cast_column(Column&& col) const;
+
   protected:
     TypeImpl(SType stype);
 };

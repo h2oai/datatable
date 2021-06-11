@@ -76,6 +76,21 @@ def test_time64_create_from_python():
     assert DT.to_list() == [src]
 
 
+def test_time64_create_from_mixed_list1():
+    from datetime import date
+    DT = dt.Frame([d(2001, 1, 1, 8, 30, 0), date(1999, 12, 31)])
+    assert_equals(DT, dt.Frame([d(2001, 1, 1, 8, 30, 0),
+                                d(1999, 12, 31, 0, 0, 0)]))
+
+
+def test_time64_create_from_mixed_list2():
+    from datetime import date
+    DT = dt.Frame([None, date(2001, 1, 1), d(1999, 12, 31, 8, 30, 50)])
+    assert_equals(DT, dt.Frame([None,
+                                d(2001, 1, 1, 0, 0, 0),
+                                d(1999, 12, 31, 8, 30, 50)]))
+
+
 
 #-------------------------------------------------------------------------------
 # Basic properties
@@ -401,3 +416,75 @@ def test_from_arrow_timestamp_xs(pa):
                d(2048, 11, 1, 19, 4, 7, 582475),
                d(1969, 2, 3, 23, 42, 42, 795475)]
     }
+
+
+
+
+#-------------------------------------------------------------------------------
+# Type casts to/from `time64` type
+#-------------------------------------------------------------------------------
+
+def test_cast_void_column_to_time64():
+    DT = dt.Frame([None] * 5)
+    assert DT.type == dt.Type.void
+    DT[0] = dt.Type.time64
+    assert DT.type == dt.Type.time64
+    assert DT.to_list() == [[None] * 5]
+
+
+@pytest.mark.parametrize('ttype', [dt.bool8, dt.int8, dt.int16])
+def test_cast_column_to_time64_invalid(ttype):
+    DT = dt.Frame([1, 0, None], stype=ttype)
+    msg = "Unable to cast column of type %s into time64" % ttype.name
+    with pytest.raises(TypeError, match=msg):
+        DT[0] = dt.Type.time64
+
+
+@pytest.mark.parametrize('ttype', [dt.int32, dt.int64])
+def test_cast_int_column_to_time64(ttype):
+    DT = dt.Frame([0, 10000, 10000000, 1000000000], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(1970, 1, 1, 0, 0, 0),
+                                d(1970, 1, 1, 0, 0, 0, 10),
+                                d(1970, 1, 1, 0, 0, 0, 10000),
+                                d(1970, 1, 1, 0, 0, 1)]))
+
+
+@pytest.mark.parametrize('ttype', [dt.float32, dt.float64])
+def test_cast_float_column_to_time64(ttype):
+    DT = dt.Frame([0, 1e6, 1e9, None], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(1970, 1, 1, 0, 0, 0),
+                                d(1970, 1, 1, 0, 0, 0, 1000),
+                                d(1970, 1, 1, 0, 0, 1),
+                                None]))
+
+
+def test_cast_date32_to_time64():
+    from datetime import date
+    DT = dt.Frame([date(2001, 3, 17)])
+    assert DT.type == dt.Type.date32
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(2001, 3, 17, 0, 0, 0)]))
+
+
+def test_cast_object_to_time64():
+    from datetime import date
+    DT = dt.Frame([d(2001, 1, 1, 12, 0, 0), date(2021, 10, 15), 6, None, dict],
+                  stype=object)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(2001, 1, 1, 12, 0, 0),
+                                d(2021, 10, 15, 0, 0, 0),
+                                None, None, None]))
+
+
+@pytest.mark.parametrize('ttype', [dt.str32, dt.str64])
+def test_cast_string_to_time64(ttype):
+    DT = dt.Frame(["2001-07-11 12:05:59.999",
+                   "2002-10-04T23:00:01",
+                   "noise",
+                   "2003-10-11-12"], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(2001, 7, 11, 12, 5, 59, 999000),
+                                d(2002, 10, 4, 23, 0, 1),
+                                None, None]))

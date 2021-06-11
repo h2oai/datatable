@@ -30,7 +30,8 @@ namespace dt {
 
 template <typename T>
 CastNumericToBool_ColumnImpl<T>::CastNumericToBool_ColumnImpl(Column&& arg)
-  : Cast_ColumnImpl(SType::BOOL, std::move(arg)) {}
+  : Cast_ColumnImpl(SType::BOOL, std::move(arg))
+{ xassert(arg_.can_be_read_as<T>()); }
 
 
 template <typename T>

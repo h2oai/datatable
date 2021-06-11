@@ -33,13 +33,12 @@ namespace expr {
 
 class FExpr_AsType : public FExpr_FuncUnary {
   private:
-    SType target_stype_;
-    size_t: 56;
+    dt::Type target_type_;
 
   public:
-    FExpr_AsType(ptrExpr&& arg, SType newtype)
+    FExpr_AsType(ptrExpr&& arg, dt::Type newtype)
       : FExpr_FuncUnary(std::move(arg)),
-        target_stype_(newtype)
+        target_type_(newtype)
     {}
 
     std::string name() const override {
@@ -50,13 +49,13 @@ class FExpr_AsType : public FExpr_FuncUnary {
       std::string out = FExpr_FuncUnary::repr();
       out.erase(out.size() - 1);  // remove ')'
       out += ", ";
-      out += stype_name(target_stype_);
+      out += target_type_.to_string();
       out += ")";
       return out;
     }
 
     Column evaluate1(Column&& col) const override {
-      col.cast_inplace(target_stype_);
+      col.cast_inplace(target_type_);
       return std::move(col);
     }
 };
@@ -84,8 +83,8 @@ Parameters
 cols: FExpr
     Single or multiple columns that need to be converted.
 
-new_type: stype
-    Target stype.
+new_type: Type | stype
+    Target type.
 
 return: FExpr
     The output will have the same number of rows and columns as the
@@ -129,7 +128,7 @@ Convert column A from string to integer type::
 
 The exact dtype can be specified::
 
-    >>> df[:, as_type(f.A, dt.int32)]
+    >>> df[:, as_type(f.A, dt.Type.int32)]
        |     A
        | int32
     -- + -----
@@ -156,8 +155,8 @@ Convert multiple columns to different types::
 )";
 
 static py::oobj pyfn_astype(const py::XArgs& args) {
-  auto cols    = args[0].to_oobj();
-  auto newtype = args[1].to_stype();
+  auto cols = args[0].to_oobj();
+  dt::Type newtype = args[1].to_type_force();
   return PyFExpr::make(new FExpr_AsType(as_fexpr(cols), newtype));
 }
 

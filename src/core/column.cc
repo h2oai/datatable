@@ -453,6 +453,10 @@ Column Column::cast(dt::Type new_type) const {
   return newcol;
 }
 
+void Column::replace_type_unsafe(dt::Type new_type) {
+  _get_mutable_impl()->type_ = new_type;
+}
+
 
 // old API
 void Column::cast_inplace(dt::SType new_stype) {
