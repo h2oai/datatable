@@ -145,6 +145,72 @@ REGISTER_PARSER(PT::Time64ISO)
 
 
 
+bool parse_time64_iso(const char* ch, const char* end, int64_t* out) {
+  int32_t year = 0,
+          month = 0,
+          day = 0,
+          hours = 0,
+          minutes = 0,
+          seconds = 0,
+          nanos = 0;
+  bool ok = (ch + 18 < end) &&
+            parse_4digits(ch, &year) && (ch[4] == '-') &&
+            parse_2digits(ch + 5, &month) && (ch[7] == '-') &&
+            parse_2digits(ch + 8, &day) &&
+            (year >= 1677 && year <= 2262) &&
+            (month >= 1 && month <= 12) &&
+            (day >= 1 && day <= hh::last_day_of_month(year, month)) &&
+            (ch[10] == 'T' || ch[10] == ' ') &&
+            parse_2digits(ch + 11, &hours) && (ch[13] == ':') &&
+            parse_2digits(ch + 14, &minutes) && (ch[16] == ':') &&
+            parse_2digits(ch + 17, &seconds) &&
+            (hours < 24 && minutes < 60 && seconds < 60) &&
+            (ch += 19);
+  if (ok) {
+    if (ch < end && *ch == '.') {
+      ch++;  // skip '.'
+      int ndigits = 0;
+      while (ch < end) {
+        uint8_t digit = static_cast<uint8_t>(*ch - '0');
+        if (digit >= 10) break;
+        if (ndigits < 9) {  // accumulate no more than 9 digits
+          nanos = nanos*10 + static_cast<int32_t>(digit);
+          ndigits++;
+        }
+        ch++;
+      }
+      while (ndigits < 9) {
+        nanos *= 10;
+        ndigits++;
+      }
+    }
+    // handle AM/PM suffixes. These are not in ISO, but they occur often
+    // in the future we may handle them in a separate parser.
+    bool spaceTaken = (ch + 3 <= end) && (*ch == ' ') && ch++;
+    if (ch + 2 <= end) {
+      if ((ch[0] == 'A' && ch[1] == 'M') || (ch[0] == 'a' && ch[1] == 'm')) {
+        ok = (hours > 0 && hours <= 12);
+        ch += 2;
+        if (hours == 12) hours = 0;
+      }
+      else if ((ch[0] == 'P' && ch[1] == 'M') || (ch[0] == 'p' && ch[1] == 'm')) {
+        ok = (hours > 0 && hours <= 12);
+        ch += 2;
+        if (hours < 12) hours += 12;
+      }
+      else if (spaceTaken) {
+        ch--;
+      }
+    }
+  }
+  if (ok) {
+    *out = NANOSECONDS_PER_DAY * hh::days_from_civil(year, month, day) +
+           NANOSECONDS_PER_SECOND * ((hours*60 + minutes)*60 + seconds) +
+           nanos;
+  }
+  return ok;
+}
+
 
 //------------------------------------------------------------------------------
 // Tests

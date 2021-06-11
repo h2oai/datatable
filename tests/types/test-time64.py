@@ -476,3 +476,15 @@ def test_cast_object_to_time64():
     assert_equals(DT, dt.Frame([d(2001, 1, 1, 12, 0, 0),
                                 d(2021, 10, 15, 0, 0, 0),
                                 None, None, None]))
+
+
+@pytest.mark.parametrize('ttype', [dt.str32, dt.str64])
+def test_cast_string_to_time64(ttype):
+    DT = dt.Frame(["2001-07-11 12:05:59.999",
+                   "2002-10-04T23:00:01",
+                   "noise",
+                   "2003-10-11-12"], stype=ttype)
+    DT[0] = dt.Type.time64
+    assert_equals(DT, dt.Frame([d(2001, 7, 11, 12, 5, 59, 999000),
+                                d(2002, 10, 4, 23, 0, 1),
+                                None, None]))

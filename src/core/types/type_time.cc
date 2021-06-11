@@ -118,7 +118,7 @@ Column Type_Time64::cast_column(Column&& col) const {
 
     case SType::STR32:
     case SType::STR64:
-      // NYI
+      return Column(new CastStringToTime64_ColumnImpl(std::move(col)));
 
     default:
       throw TypeError() << "Unable to cast column of type `" << col.type()

@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/cast.h"
+#include "read/parsers/info.h"
 #include "stype.h"
 namespace dt {
 
@@ -55,6 +56,32 @@ bool CastObjToTime64_ColumnImpl::get_element(size_t i, int64_t* out) const {
            false;
   }
   return false;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// CastStringToTime64_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastStringToTime64_ColumnImpl::CastStringToTime64_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::TIME64, std::move(arg))
+{
+  xassert(arg_.can_be_read_as<CString>());
+}
+
+
+ColumnImpl* CastStringToTime64_ColumnImpl::clone() const {
+  return new CastStringToTime64_ColumnImpl(Column(arg_));
+}
+
+
+bool CastStringToTime64_ColumnImpl::get_element(size_t i, int64_t* out) const {
+  CString value;
+  bool isvalid = arg_.get_element(i, &value);
+  return isvalid &&
+         read::parse_time64_iso(value.data(), value.end(), out);
 }
 
 
