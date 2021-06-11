@@ -19,25 +19,34 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_OBJECT_h
-#define dt_TYPES_TYPE_OBJECT_h
-#include "types/typeimpl.h"
+#include "column.h"
+#include "types/type_invalid.h"
+#include "stype.h"
+#include "utils/exceptions.h"
 namespace dt {
 
 
-class Type_Object : public TypeImpl {
-  public:
-    Type_Object();
-    bool is_object() const override;
-    bool can_be_read_as_pyobject() const override;
-    std::string to_string() const override;
-    TypeImpl* common_type(TypeImpl* other) override;
-    const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
-};
+
+Type_Invalid::Type_Invalid() 
+  : TypeImpl(SType::INVALID) {}
+
+bool Type_Invalid::is_invalid() const { 
+  return true; 
+}
+
+std::string Type_Invalid::to_string() const { 
+  return "invalid"; 
+}
+
+TypeImpl* Type_Invalid::common_type(TypeImpl*) { 
+  return this; 
+}
+
+Column Type_Invalid::cast_column(Column&&) const {
+  throw InvalidOperationError();
+}
 
 
 
 
 }  // namespace dt
-#endif

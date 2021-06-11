@@ -290,6 +290,10 @@ class Column
       return type().can_be_read_as<T>();
     }
 
+    // Replace type of the current column. Use only if you're sure that
+    // the column can be safely read with the new type.
+    void replace_type_unsafe(dt::Type new_type);
+
   private:
     void _acquire_impl(const dt::ColumnImpl*);
     void _release_impl(const dt::ColumnImpl*);

@@ -250,5 +250,37 @@ class CastObject_ColumnImpl : public Cast_ColumnImpl {
 
 
 
+//------------------------------------------------------------------------------
+// CastObjToTime64_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastObjToTime64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToTime64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+
+    bool get_element(size_t, int64_t*) const override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// CastStringToTime64_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastStringToTime64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastStringToTime64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int64_t*) const override;
+};
+
+
+
+
+
 }  // namespace dt
 #endif

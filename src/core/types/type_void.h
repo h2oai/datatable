@@ -21,29 +21,25 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_VOID_h
 #define dt_TYPES_TYPE_VOID_h
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 
 
 class Type_Void : public TypeImpl {
   public:
-    Type_Void() : TypeImpl(SType::VOID) {}
+    Type_Void();
 
-    bool is_boolean() const override { return true; }
-    bool is_integer() const override { return true; }
-    bool is_float()   const override { return true; }
-    bool is_numeric() const override { return true; }
+    bool is_boolean() const override;
+    bool is_integer() const override;
+    bool is_float()   const override;
+    bool is_numeric() const override;
+    bool can_be_read_as_int8() const override;
 
-    // [FIXME]
-    bool can_be_read_as_int8() const override { return true; }
-
-    std::string to_string() const override { return "void"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      return other;
-    }
-    const char* struct_format() const override { return "V"; }
+    std::string to_string() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
+    const char* struct_format() const override;
+    Column cast_column(Column&& col) const override;
 };
 
 

@@ -19,23 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_OBJECT_h
-#define dt_TYPES_TYPE_OBJECT_h
+#ifndef dt_TYPES_TYPE_NUMERIC_h
+#define dt_TYPES_TYPE_NUMERIC_h
 #include "types/typeimpl.h"
 namespace dt {
 
 
-class Type_Object : public TypeImpl {
+/**
+  * This is a common supertype for Type_Bool8, Type_Int[X] and
+  * Type_Float[X] types.
+  */
+class TypeImpl_Numeric : public TypeImpl {
+  protected:
+    using TypeImpl::TypeImpl;
+
   public:
-    Type_Object();
-    bool is_object() const override;
-    bool can_be_read_as_pyobject() const override;
-    std::string to_string() const override;
+    bool is_numeric() const override;
     TypeImpl* common_type(TypeImpl* other) override;
-    const char* struct_format() const override;
     Column cast_column(Column&& col) const override;
 };
-
 
 
 

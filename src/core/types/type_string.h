@@ -21,10 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_STRING_h
 #define dt_TYPES_TYPE_STRING_h
-#include "python/string.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
-#include "utils/assert.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 
@@ -34,37 +31,24 @@ class Type_String : public TypeImpl {
     using TypeImpl::TypeImpl;
 
   public:
-    bool is_string() const override { return true; }
-    bool can_be_read_as_cstring() const override { return true; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->is_string()) {
-        auto stype1 = static_cast<int>(this->stype());
-        auto stype2 = static_cast<int>(other->stype());
-        return stype1 >= stype2? this : other;
-      }
-      if (other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+    bool is_string() const override;
+    bool can_be_read_as_cstring() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
 
 
 class Type_String32 : public Type_String {
   public:
-    Type_String32() : Type_String(SType::STR32) {}
-    std::string to_string() const override { return "str32"; }
+    Type_String32();
+    std::string to_string() const override;
 };
 
 
 class Type_String64 : public Type_String {
   public:
-    Type_String64() : Type_String(SType::STR64) {}
-    std::string to_string() const override { return "str64"; }
+    Type_String64();
+    std::string to_string() const override;
 };
 
 
