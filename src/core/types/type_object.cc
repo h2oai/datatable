@@ -86,6 +86,9 @@ Column Type_Object::cast_column(Column&& col) const {
     case SType::DATE32:
       return Column(new CastDate32_ColumnImpl(st, std::move(col)));
 
+    case SType::TIME64:
+      return Column(new CastTime64ToObj64_ColumnImpl(std::move(col)));
+
     case SType::STR32:
     case SType::STR64:
       return Column(new CastString_ColumnImpl(st, std::move(col)));

@@ -555,3 +555,11 @@ def test_cast_time64_to_string(st):
                                 "1969-12-31T00:00:00",
                                 "1962-04-12T03:52:27.458",
                                 None], stype=st))
+
+
+def test_cast_time64_to_obj():
+    DT = dt.Frame([d(2000, 1, 2, 3, 4, 55)])
+    assert DT.type == dt.Type.time64
+    DT[0] = object
+    assert DT.type == dt.Type.obj64
+    assert DT.to_list() == [[d(2000, 1, 2, 3, 4, 55)]]
