@@ -103,4 +103,5 @@ bool CastDate32_ColumnImpl::get_element(size_t i, py::oobj* out) const {
 
 
 
+
 }  // namespace dt

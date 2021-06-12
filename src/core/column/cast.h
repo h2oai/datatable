@@ -281,6 +281,21 @@ class CastStringToTime64_ColumnImpl : public Cast_ColumnImpl {
 
 
 
+//------------------------------------------------------------------------------
+// CastStringToTime64_ColumnImpl
+//------------------------------------------------------------------------------
+
+class CastTime64ToDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastTime64ToDate32_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int32_t*) const override;
+};
+
+
+
+
 
 }  // namespace dt
 #endif

@@ -421,7 +421,7 @@ def test_from_arrow_timestamp_xs(pa):
 
 
 #-------------------------------------------------------------------------------
-# Type casts to/from `time64` type
+# Type casts into `time64` type
 #-------------------------------------------------------------------------------
 
 def test_cast_void_column_to_time64():
@@ -488,3 +488,53 @@ def test_cast_string_to_time64(ttype):
     assert_equals(DT, dt.Frame([d(2001, 7, 11, 12, 5, 59, 999000),
                                 d(2002, 10, 4, 23, 0, 1),
                                 None, None]))
+
+
+
+
+#-------------------------------------------------------------------------------
+# Type casts from `time64` type
+#-------------------------------------------------------------------------------
+
+def test_cast_time64_to_void():
+    DT = dt.Frame([d(2111, 11, 11, 11, 11, 11, 111111)])
+    DT[0] = dt.Type.void
+    assert_equals(DT, dt.Frame([None]))
+
+
+def test_cast_time64_to_int64():
+    DT = dt.Frame([d(1970, 1, 1, 0, 0, 0),
+                   d(1970, 1, 1, 0, 0, 1),
+                   d(1970, 1, 2, 0, 0, 0, 1),
+                   d(1969, 12, 31, 23, 59, 59, 999999),
+                   None])
+    DT[0] = dt.Type.int64
+    assert_equals(DT, dt.Frame([0,
+                                1000000000,
+                                86400000001000,
+                                -1000,
+                                None]))
+
+
+def test_cast_time64_to_double():
+    DT = dt.Frame([d(2013, 10, 5, 11, 23, 45, 157839)])
+    DT[0] = float
+    assert_equals(DT, dt.Frame([1380972225157839000.0]))
+
+
+def test_cast_time64_to_date32():
+    from datetime import date
+    DT = dt.Frame([d(2091, 11, 28, 15, 51, 27, 310000),
+                   d(1970, 1, 3, 21, 5, 2, 475000),
+                   d(1969, 12, 31, 23, 59, 59, 999999),
+                   d(1969, 12, 31, 0, 0, 0),
+                   d(1962, 4, 12, 3, 52, 27, 458000),
+                   None])
+    assert DT.type == dt.Type.time64
+    DT[0] = dt.Type.date32
+    assert_equals(DT, dt.Frame([date(2091, 11, 28),
+                                date(1970, 1, 3),
+                                date(1969, 12, 31),
+                                date(1969, 12, 31),
+                                date(1962, 4, 12),
+                                None]))
