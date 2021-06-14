@@ -44,7 +44,7 @@ class DayOfWeek_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(arg.nrows(), dt::SType::INT32),
         arg_(std::move(arg))
     {
-      xassert(arg_.can_be_read_as<int32_t>());
+      xassert(arg_.stype() == dt::SType::DATE32);
     }
 
     ColumnImpl* clone() const override {
