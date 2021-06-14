@@ -90,6 +90,9 @@ Column Type_String::cast_column(Column&& col) const {
     case SType::DATE32:
       return Column(new CastDate32_ColumnImpl(st, std::move(col)));
 
+    case SType::TIME64:
+      return Column(new CastTime64ToString_ColumnImpl(st, std::move(col)));
+
     case SType::STR32:
     case SType::STR64:
       if (st == col.stype()) return std::move(col);
