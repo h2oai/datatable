@@ -19,84 +19,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <cmath>             // std::ismath
-#include <cstdlib>           // std::strtod
-#include "csv/toa.h"
 #include "column/cast.h"
-#include "python/date.h"
-#include "python/string.h"
-#include "read/constants.h"  // dt::read::pow10lookup
+#include "csv/toa.h"
+#include "read/parsers/info.h"
+#include "stype.h"
 namespace dt {
 
 
 
-ColumnImpl* CastDate32_ColumnImpl::clone() const {
-  return new CastDate32_ColumnImpl(stype(), Column(arg_));
-}
-
-
-
 //------------------------------------------------------------------------------
-// Converters
+// CastTime64ToString_ColumnImpl
 //------------------------------------------------------------------------------
 
-template <typename T>
-inline bool CastDate32_ColumnImpl::_get(size_t i, T* out) const {
-  int32_t x;
-  bool isvalid = arg_.get_element(i, &x);
-  *out = static_cast<T>(x);
-  return isvalid;
+CastTime64ToString_ColumnImpl::CastTime64ToString_ColumnImpl(SType st, Column&& arg)
+  : Cast_ColumnImpl(st, std::move(arg))
+{
+  xassert(arg_.can_be_read_as<int64_t>());
 }
 
 
-bool CastDate32_ColumnImpl::get_element(size_t i, int8_t* out) const {
-  return _get<int8_t>(i, out);
+ColumnImpl* CastTime64ToString_ColumnImpl::clone() const {
+  return new CastTime64ToString_ColumnImpl(stype(), Column(arg_));
 }
 
 
-bool CastDate32_ColumnImpl::get_element(size_t i, int16_t* out) const {
-  return _get<int16_t>(i, out);
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
-  return _get<int32_t>(i, out);
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, int64_t* out) const {
-  return _get<int64_t>(i, out);
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, float* out) const {
-  return _get<float>(i, out);
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, double* out) const {
-  return _get<double>(i, out);
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, CString* out) const {
-  int32_t x;
-  bool isvalid = arg_.get_element(i, &x);
+bool CastTime64ToString_ColumnImpl::get_element(size_t i, CString* out) const {
+  int64_t value;
+  bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
-    char* ch = out->prepare_buffer(14);
+    char* ch = out->prepare_buffer(29);
     char* ch0 = ch;
-    date32_toa(&ch, x);
+    time64_toa(&ch, value);
     out->set_size(static_cast<size_t>(ch - ch0));
-  }
-  return isvalid;
-}
-
-
-bool CastDate32_ColumnImpl::get_element(size_t i, py::oobj* out) const {
-  int32_t x;
-  bool isvalid = arg_.get_element(i, &x);
-  if (isvalid) {
-    *out = py::odate(x);
   }
   return isvalid;
 }

@@ -100,7 +100,7 @@ Column Type_Date32::cast_column(Column&& col) const {
       return std::move(col);
 
     case SType::TIME64:
-      // NYI
+      return Column(new CastTime64ToDate32_ColumnImpl(std::move(col)));
 
     case SType::STR32:
     case SType::STR64:
