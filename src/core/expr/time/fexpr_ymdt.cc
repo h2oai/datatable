@@ -112,6 +112,66 @@ class YMDHMS_ColumnImpl : public Virtual_ColumnImpl {
 // DateHMS_ColumnImpl
 //------------------------------------------------------------------------------
 
+class DateHMS_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column date_;
+    Column hour_, minute_, second_, ns_;
+
+  public:
+    DateHMS_ColumnImpl(Column&& date, Column&& hr, Column&& mi, Column&& sc,
+                       Column&& ns)
+      : Virtual_ColumnImpl(date.nrows(), dt::SType::TIME64),
+        date_(std::move(date)),
+        hour_(std::move(hr)),
+        minute_(std::move(mi)),
+        second_(std::move(sc)),
+        ns_(std::move(ns))
+    {
+      xassert(date_.stype() == dt::SType::DATE32);
+      xassert(hour_.stype() == dt::SType::INT64);
+      xassert(minute_.stype() == dt::SType::INT64);
+      xassert(second_.stype() == dt::SType::INT64);
+      xassert(ns_.stype() == dt::SType::INT64);
+    }
+
+    ColumnImpl* clone() const override {
+      return new DateHMS_ColumnImpl(
+          Column(date_), Column(hour_), Column(minute_), Column(second_),
+          Column(ns_)
+      );
+    }
+
+    size_t n_children() const noexcept override {
+      return 5;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i <= 4);
+      return i == 0? date_ :
+             i == 1? hour_ :
+             i == 2? minute_ :
+             i == 3? second_ : ns_;
+    }
+
+    bool get_element(size_t i, int64_t* out) const override {
+      int32_t days;
+      int64_t hour, minute, second, ns;
+      bool validDate = date_.get_element(i, &days);
+      bool validHour = hour_.get_element(i, &hour);
+      bool validMinute = minute_.get_element(i, &minute);
+      bool validSecond = second_.get_element(i, &second);
+      bool validNs = ns_.get_element(i, &ns);
+      if (validDate && validHour && validMinute && validSecond && validNs) {
+        constexpr int64_t NANOS_PER_SECOND = 1000000000;
+        *out = ns + NANOS_PER_SECOND * (
+                      second + 60 * (minute + 60 * (hour + 24 * days)));
+        return true;
+      }
+      return false;
+    }
+};
+
+
 
 
 //------------------------------------------------------------------------------
@@ -209,16 +269,14 @@ class FExpr_YMDT : public FExpr_Func {
                                          wfs[1].retrieve_column(i),
                                          wfs[2].retrieve_column(i),
                                          wfs[3].retrieve_column(i),
-                                         wfs[4].retrieve_column(i),
-                                         i)
+                                         wfs[4].retrieve_column(i))
                              : evaluate2(wfs[0].retrieve_column(i),
                                          wfs[1].retrieve_column(i),
                                          wfs[2].retrieve_column(i),
                                          wfs[3].retrieve_column(i),
                                          wfs[4].retrieve_column(i),
                                          wfs[5].retrieve_column(i),
-                                         wfs[6].retrieve_column(i),
-                                         i);
+                                         wfs[6].retrieve_column(i));
         result.add_column(std::move(rescol), std::string(), gmode);
       }
       return result;
@@ -227,17 +285,37 @@ class FExpr_YMDT : public FExpr_Func {
 
     static Column evaluate1(
         Column&& dateCol, Column&& hourCol, Column&& minuteCol,
-        Column&& secondCol, Column&& nsCol, size_t i)
+        Column&& secondCol, Column&& nsCol)
     {
+      if (dateCol.stype() != dt::SType::DATE32) {
+        throw TypeError() << "The date column in function time.ymdt() "
+            " should be of type date32, instead it was " << dateCol.type();
+      }
+      const char* bad = nullptr;
+      if (!hourCol.type().is_integer())   bad = "hour";
+      if (!minuteCol.type().is_integer()) bad = "minute";
+      if (!secondCol.type().is_integer()) bad = "second";
+      if (!nsCol.type().is_integer())     bad = "nanosecond";
+      if (bad) {
+        throw TypeError() << "The " << bad << " column is not integer";
+      }
+      auto int64 = dt::Type::int64();
+      hourCol.cast_inplace(int64);
+      minuteCol.cast_inplace(int64);
+      secondCol.cast_inplace(int64);
+      nsCol.cast_inplace(int64);
 
-      return Column();
+      return Column(new DateHMS_ColumnImpl(
+          std::move(dateCol), std::move(hourCol), std::move(minuteCol),
+          std::move(secondCol), std::move(nsCol))
+      );
     }
 
 
     static Column evaluate2(
         Column&& yearCol, Column&& monthCol, Column&& dayCol,
         Column&& hourCol, Column&& minuteCol, Column&& secondCol,
-        Column&& nsCol, size_t i)
+        Column&& nsCol)
     {
       const char* bad = nullptr;
       if (!yearCol.type().is_integer())   bad = "year";
@@ -248,8 +326,7 @@ class FExpr_YMDT : public FExpr_Func {
       if (!secondCol.type().is_integer()) bad = "second";
       if (!nsCol.type().is_integer())     bad = "nanosecond";
       if (bad) {
-        throw TypeError() << "The " << bad << " column at index " << i <<
-            " is not integer";
+        throw TypeError() << "The " << bad << " column is not integer";
       }
       auto int32 = dt::Type::int32();
       auto int64 = dt::Type::int64();
@@ -341,7 +418,16 @@ static py::oobj pyfn_ymdt(const py::XArgs& args) {
       throw TypeError() << "When argument `date=` is provided, arguments "
           "`year=`, `month=` and `day=` cannot be used.";
     }
-    throw NotImplError();
+    if (!(arg_hour && arg_minute && arg_second)) {
+      throw TypeError() << "Function `time.ymdt()` requires four arguments: "
+          "date, hour, minute, and second";
+    }
+    auto date   = arg_date.to_oobj();
+    auto hour   = arg_hour.to_oobj();
+    auto minute = arg_minute.to_oobj();
+    auto second = arg_second.to_oobj();
+    auto ns     = arg_nanosecond? arg_nanosecond.to_oobj() : py::oint(0);
+    return PyFExpr::make(new FExpr_YMDT(date, hour, minute, second, ns));
   }
   else {
     if (!(arg_year && arg_month && arg_day && arg_hour &&
