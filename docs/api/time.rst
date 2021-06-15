@@ -23,6 +23,10 @@ datatable.time
    * - :func:`ymd(y,m,d)`
      - Create a ``date32`` column from year, month, and day components.
 
+   * - :func:`ymdt(y,m,d,H,M,S)`
+     - Create a ``time64`` column from year, month, day, hour, minute, and
+       second components.
+
 
 .. toctree::
     :hidden:
@@ -32,3 +36,4 @@ datatable.time
     month()        <time/month>
     year()         <time/year>
     ymd()          <time/ymd>
+    ymdt()         <time/ymdt>
