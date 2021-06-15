@@ -177,6 +177,19 @@ return: FExpr[int32]
     The minute part of the source column.
 
 
+Examples
+--------
+>>> from datetime import datetime as d
+>>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
+>>> DT[:, {'time': f[0], 'minute': dt.time.minute(f[0])}]
+   | time                        minute
+   | time64                       int32
+-- + --------------------------  ------
+ 0 | 2020-05-11T12:00:00              0
+ 1 | 2021-06-14T16:10:59.394873      10
+[2 rows x 2 columns]
+
+
 See Also
 --------
 - :func:`hour()` -- retrieve the "hour" component of a timestamp
@@ -202,6 +215,19 @@ return: FExpr[int32]
     The "second" part of the source column.
 
 
+Examples
+--------
+>>> from datetime import datetime as d
+>>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
+>>> DT[:, {'time': f[0], 'second': dt.time.second(f[0])}]
+   | time                        second
+   | time64                       int32
+-- + --------------------------  ------
+ 0 | 2020-05-11T12:00:00              0
+ 1 | 2021-06-14T16:10:59.394873      59
+[2 rows x 2 columns]
+
+
 See Also
 --------
 - :func:`hour()` -- retrieve the "hour" component of a timestamp
@@ -225,6 +251,19 @@ time: FExpr[time64]
 
 return: FExpr[int32]
     The "nanosecond" part of the source column.
+
+
+Examples
+--------
+>>> from datetime import datetime as d
+>>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
+>>> DT[:, {'time': f[0], 'ns': dt.time.nanosecond(f[0])}]
+   | time                               ns
+   | time64                          int32
+-- + --------------------------  ---------
+ 0 | 2020-05-11T12:00:00                 0
+ 1 | 2021-06-14T16:10:59.394873  394873000
+[2 rows x 2 columns]
 
 
 See Also
