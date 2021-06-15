@@ -27,7 +27,7 @@ datatable.time
      - Return nanosecond component of a timestamp.
 
    * - :func:`second()`
-     - Return second component of a timestamp.
+     - Return the number of seconds in a timestamp.
 
    * - :func:`year()`
      - Return year component of a date.

@@ -35,7 +35,7 @@ namespace expr {
 //------------------------------------------------------------------------------
 
 /**
-  * We use a single virtual column to handle all three functions
+  * We use a single virtual column to handle all four functions
   * hour(), minute(), second(), nanosecond().
   *
   * <Kind>: 1 = Hour, 2 = Minute, 3 = Second, 4 = Nanosecond
@@ -124,7 +124,7 @@ class FExpr_HourMinSec : public FExpr_FuncUnary {
 
 
 //------------------------------------------------------------------------------
-// Python-facing `hour()`, `minute()`, `second()` functions
+// Python-facing `hour()`, `minute()`, `second()`, and `nanosecond()` functions
 //------------------------------------------------------------------------------
 
 static const char* doc_hour =
