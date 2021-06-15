@@ -14,8 +14,20 @@ datatable.time
    * - :func:`day_of_week()`
      - Compute day of week for the given date.
 
+   * - :func:`hour()`
+     - Return hour component of a timestamp.
+
+   * - :func:`minute()`
+     - Return minute component of a timestamp.
+
    * - :func:`month()`
      - Return month component of a date.
+
+   * - :func:`nanosecond()`
+     - Return nanosecond component of a timestamp.
+
+   * - :func:`second()`
+     - Return the number of seconds in a timestamp.
 
    * - :func:`year()`
      - Return year component of a date.
@@ -29,6 +41,10 @@ datatable.time
 
     day()          <time/day>
     day_of_week()  <time/day_of_week>
+    hour()         <time/hour>
+    minute()       <time/minute>
     month()        <time/month>
+    nanosecond()   <time/nanosecond>
+    second()       <time/second>
     year()         <time/year>
     ymd()          <time/ymd>

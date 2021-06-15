@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -503,6 +503,7 @@ static void _vivify_workframe(const Workframe& wf) {
       case SType::INT16:   _vivify_column<int16_t>(col); break;
       case SType::DATE32:
       case SType::INT32:   _vivify_column<int32_t>(col); break;
+      case SType::TIME64:
       case SType::INT64:   _vivify_column<int64_t>(col); break;
       case SType::FLOAT32: _vivify_column<float>(col); break;
       case SType::FLOAT64: _vivify_column<double>(col); break;

@@ -117,7 +117,7 @@ class FExpr_YearMonthDay : public FExpr_FuncUnary {
 
 
 //------------------------------------------------------------------------------
-// Python-facing `ymd()` function
+// Python-facing `year()`, `month()`, `day()` functions
 //------------------------------------------------------------------------------
 
 static const char* doc_year =
