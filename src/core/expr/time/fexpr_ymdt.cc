@@ -258,7 +258,7 @@ class FExpr_YMDT : public FExpr_Func {
       }
       if (ncols > 1) {
         for (size_t i = 0; i < wfs.size(); i++) {
-          wfs[i].repeat_column(ncols);
+          if (wfs[i].ncols() == 1) wfs[i].repeat_column(ncols);
         }
       }
       auto gmode = Workframe::sync_grouping_mode(wfs);

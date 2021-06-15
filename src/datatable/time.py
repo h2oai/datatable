@@ -30,4 +30,5 @@ from .lib._datatable import (
     second,
     year,
     ymd,
+    ymdt,
 )
