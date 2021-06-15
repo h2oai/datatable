@@ -45,6 +45,20 @@ def test_hour_minute_second_normal():
                  nanosecond=[0, 7623000, None, 98078000, 123456000]))
 
 
+def test_hour_minute_second_small():
+    DT = dt.Frame([0, 1, -1], stype='int64')
+    DT[0] = dt.Type.time64
+    RES = DT[:, {"hour": hour(f[0]),
+                 "minute": minute(f[0]),
+                 "second": second(f[0]),
+                 "nanosecond": nanosecond(f[0])}]
+    assert_equals(RES,
+        dt.Frame(hour=[0, 0, 23],
+                 minute=[0, 0, 59],
+                 second=[0, 0, 59],
+                 nanosecond=[0, 1, 999999999]))
+
+
 def test_noargs():
     DT = dt.Frame(range(5))
     DT[0] = dt.Type.time64
