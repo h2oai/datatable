@@ -67,6 +67,7 @@ class HourMinSec_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool get_element(size_t i, int32_t* out) const override {
+      constexpr int64_t DAY = 24ll * 3600ll * 1000000000ll;
       constexpr int64_t SCALE = (Kind == 1)? 3600ll * 1000000000ll :
                                 (Kind == 2)? 60ll * 1000000000ll :
                                 (Kind == 3)? 1000000000ll : 1;
@@ -77,6 +78,11 @@ class HourMinSec_ColumnImpl : public Virtual_ColumnImpl {
       int64_t value;
       bool isvalid = arg_.get_element(i, &value);
       if (isvalid) {
+        if (value < 0) {
+          // This is only because C uses truncate-division instead of
+          // floor-division for negative numbers.
+          value = (value % DAY) + DAY;
+        }
         *out = static_cast<int32_t>((value / SCALE) % MODULO);
       }
       return isvalid;
