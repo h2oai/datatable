@@ -119,8 +119,14 @@
         :widths: auto
         :class: api-table
 
-        * - :meth:`.sum()`
-          - Same as :func:`dt.sum()`.
+        * - :meth:`.count()`
+          - Same as :func:`dt.count()`.
+
+        * - :meth:`.first()`
+          - Same as :func:`dt.first()`.
+
+        * - :meth:`.last()`
+          - Same as :func:`dt.last()`.
 
         * - :meth:`.max()`
           - Same as :func:`dt.max()`.
@@ -162,6 +168,15 @@
 
         * - :meth:`.rowsum()`
           - Same as :func:`dt.rowsum()`.
+
+        * - :meth:`.sd()`
+          - Same as :func:`dt.sd()`.
+
+        * - :meth:`.shift()`
+          - Same as :func:`dt.shift()`.
+
+        * - :meth:`.sum()`
+          - Same as :func:`dt.sum()`.
 
 
     Miscellaneous
@@ -211,15 +226,17 @@
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
+    .count()        <fexpr/count>
     .extend()       <fexpr/extend>
+    .first()        <fexpr/first>
+    .last()         <fexpr/last>
     .len()          <fexpr/len>
-    .re_match()     <fexpr/re_match>
-    .remove()       <fexpr/remove>
-    .sum()          <fexpr/sum>
     .max()          <fexpr/max>
     .mean()         <fexpr/mean>
     .median()       <fexpr/median>
     .min()          <fexpr/min>
+    .re_match()     <fexpr/re_match>
+    .remove()       <fexpr/remove>
     .rowall()       <fexpr/rowall>
     .rowany()       <fexpr/rowany>
     .rowcount()     <fexpr/rowcount>
@@ -230,4 +247,6 @@
     .rowmin()       <fexpr/rowmin>
     .rowsd()        <fexpr/rowsd>
     .rowsum()       <fexpr/rowsum>
-
+    .sd()           <fexpr/sd>
+    .shift()        <fexpr/shift>
+    .sum()          <fexpr/sum>

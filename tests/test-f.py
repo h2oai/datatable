@@ -335,3 +335,55 @@ def test_rowsd():
 
     assert_equals(DT[:, f[:].rowsd()], DT[:, dt.rowsd(f[:])])
 
+
+def test_sd():
+    assert str(dt.sd(f.A)) == str(f.A.sd())
+    assert str(dt.sd(f[:])) == str(f[:].sd())
+    DT = dt.Frame({"C": [2, 5, 30, 20, 10],
+                   "D": [10, 8, 20, 20, 1]})
+
+    assert_equals(DT[:, f[:].sd()], DT[:, dt.sd(f[:])])
+
+
+def test_shift():
+    assert str(dt.shift(f.A)) == str(f.A.shift())
+    assert str(dt.shift(f[:])) == str(f[:].shift())
+    DT = dt.Frame({"C": [2, 5, 30, 20, 10],
+                   "D": [10, 8, 20, 20, 1]})
+
+    assert_equals(DT[:, f[:].shift()], DT[:, dt.shift(f[:])])
+
+
+def test_shift_n():
+    DT = dt.Frame(a=range(10))
+    assert_equals(DT[:, [f.a.shift(n=3), f.a.shift(-1)]],
+                  DT[:, [dt.shift(f.a, 3), dt.shift(f.a, -1)]])
+
+
+def test_last():
+    assert str(dt.last(f.A)) == str(f.A.last())
+    assert str(dt.last(f[:])) == str(f[:].last())
+    DT = dt.Frame({"C": [2, 5, 30, 20, 10],
+                   "D": [10, 8, 20, 20, 1]})
+
+    assert_equals(DT[:, f[:].last()], DT[:, dt.last(f[:])])
+
+
+def test_count():
+    assert str(dt.count(f.A)) == str(f.A.count())
+    assert str(dt.count(f[:])) == str(f[:].count())
+    DT = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+                   'B': [None, '2', '3', '4', '5'],
+                   'C': [1, 2, 1, 1, 2]})
+
+    assert_equals(DT[:, f.A.count()], DT[:, dt.count(f.A)])
+
+def test_first():
+    assert str(dt.first(f.A)) == str(f.A.first())
+    assert str(dt.first(f[:])) == str(f[:].first())
+    DT = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+                   'B': [None, '2', '3', '4', '5'],
+                   'C': [1, 2, 1, 1, 2]})
+
+    assert_equals(DT[:, f.A.first()], DT[:, dt.first(f.A)])
+
