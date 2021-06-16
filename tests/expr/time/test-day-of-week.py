@@ -26,14 +26,26 @@ import random
 from datatable import dt, f
 from datatable.time import day_of_week
 from datetime import date as d
+from datetime import datetime as t
 from tests import assert_equals
 
 
-def test_day_of_week_simple():
+def test_day_of_week_with_date32():
     DT = dt.Frame([d(2021, 3, 15), d(2021, 3, 16), d(2021, 3, 17),
                    d(2021, 1, 1), d(2020, 2, 28), d(2020, 2, 29), None])
     RES = DT[:, day_of_week(f[0])]
     assert_equals(RES, dt.Frame([1, 2, 3, 5, 5, 6, None]))
+
+
+def test_day_of_week_with_time64():
+    DT = dt.Frame([t(2001, 3, 15, 0, 0, 0),
+                   t(2017, 11, 1, 23, 59, 59, 999999),
+                   None,
+                   t(1970, 1, 1, 0, 0, 0, 1),
+                   t(1969, 12, 31, 23, 59, 59, 999999),
+                   t(1900, 12, 13, 0, 0, 0)])
+    RES = DT[:, day_of_week(f[:])]
+    assert_equals(RES, dt.Frame([4, 3, None, 4, 3, 4]))
 
 
 def test_noarg():
@@ -52,7 +64,7 @@ def test_void_column():
 def test_wrong_type():
     DT = dt.Frame(A=[1, 4, 10], B=[7.4, 0.0, -1],
                   C=['2000-01-01', None, '2001-02-02'])
-    msg = r"Function time\.day_of_week\(\) requires a date32 column"
+    msg = r"Function time\.day_of_week\(\) requires a date32 or time64 column"
     for i in range(3):
         with pytest.raises(TypeError, match=msg):
             DT[:, day_of_week(f[i])]

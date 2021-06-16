@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <type_traits>
 #include "_dt.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func_unary.h"
@@ -69,8 +70,8 @@ class YearMonthDay_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, int32_t* out) const override {
       int32_t value;
       bool isvalid = arg_.get_element(i, &value);
-      auto ymd = hh::civil_from_days(value);
       if (isvalid) {
+        auto ymd = hh::civil_from_days(value);
         if (Kind == 1) *out = ymd.year;
         if (Kind == 2) *out = ymd.month;
         if (Kind == 3) *out = ymd.day;
@@ -101,11 +102,14 @@ class FExpr_YearMonthDay : public FExpr_FuncUnary {
       if (col.stype() == dt::SType::VOID) {
         return Column::new_na_column(col.nrows(), dt::SType::VOID);
       }
-      if (col.stype() != dt::SType::DATE32) {
-        throw TypeError() << "Function " << name() << "() requires a date32 "
-            "column, instead received column of type " << col.type();
+      if (col.stype() == dt::SType::TIME64) {
+        col.cast_inplace(dt::SType::DATE32);
       }
-      return Column(new YearMonthDay_ColumnImpl<Kind>(std::move(col)));
+      if (col.stype() == dt::SType::DATE32) {
+        return Column(new YearMonthDay_ColumnImpl<Kind>(std::move(col)));
+      }
+      throw TypeError() << "Function " << name() << "() requires a date32 or "
+          "time64 column, instead received column of type " << col.type();
     }
 };
 
@@ -113,7 +117,7 @@ class FExpr_YearMonthDay : public FExpr_FuncUnary {
 
 
 //------------------------------------------------------------------------------
-// Python-facing `ymd()` function
+// Python-facing `year()`, `month()`, `day()` functions
 //------------------------------------------------------------------------------
 
 static const char* doc_year =
@@ -121,12 +125,12 @@ R"(year(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "year" component of a date32 column.
+Retrieve the "year" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the year part.
 
 return: FExpr[int32]
@@ -157,12 +161,12 @@ R"(month(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "month" component of a date32 column.
+Retrieve the "month" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the month part.
 
 return: FExpr[int32]
@@ -193,12 +197,12 @@ R"(day(date)
 --
 .. x-version-added:: 1.0.0
 
-Retrieve the "day" component of a date32 column.
+Retrieve the "day" component of a date32 or time64 column.
 
 
 Parameters
 ----------
-date: FExpr[date32]
+date: FExpr[date32] | FExpr[time64]
     A column for which you want to compute the day part.
 
 return: FExpr[int32]
