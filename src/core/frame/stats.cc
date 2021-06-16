@@ -63,7 +63,7 @@ Report the number of NA values in each column of the frame.
 Parameters
 ----------
 (return): Frame
-    The frame will have 1 row and the same number and names of columns
+    The frame will have one and the same number and names of columns
     as in the current frame. All columns will have stype ``int64``.
 
 Examples
@@ -89,6 +89,7 @@ See Also
 - :func:`dt.count()` -- function for counting non-NA ("valid") values
   in a column; can also be applied per-group.
 )";
+
 
 static const char* doc_countna1 =
 R"(countna1(self)
@@ -126,7 +127,7 @@ Report the largest (maximum) value in each column of the frame.
 Parameters
 ----------
 return: Frame
-    The frame will have 1 row and the same number, names and stypes
+    The frame will have one row and the same number, names and stypes
     of columns as in the current frame. For string/object columns
     this function returns NA values.
 
@@ -140,7 +141,7 @@ See Also
   an expression; can also be applied per-group.
 )";
 
-#if 0
+
 static const char* doc_max1 =
 R"(max1(self)
 --
@@ -168,7 +169,6 @@ See Also
 - :func:`dt.max()` -- function for counting max values in a column or
   an expression; can also be applied per-group.
 )";
-#endif
 
 
 static const char* doc_min =
@@ -180,7 +180,7 @@ Report the smallest (minimum) value in each column of the frame.
 Parameters
 ----------
 return: Frame
-    The frame will have 1 row and the same number, names and stypes
+    The frame will have one row and the same number, names and stypes
     of columns as in the current frame. For string/object columns
     this function returns NA values.
 
@@ -195,7 +195,6 @@ See Also
 )";
 
 
-#if 0
 static const char* doc_min1 =
 R"(min1(self)
 --
@@ -223,15 +222,119 @@ See Also
 - :func:`dt.min()` -- function for counting min values in a column or
   an expression; can also be applied per-group.
 )";
-#endif
+
+
+static const char* doc_mean =
+R"(mean(self)
+--
+
+Calculate the mean value for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All columns will have `float64`
+    stype. For string/object columns this function returns NA values.
+
+See Also
+--------
+- :meth:`.mean1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+- :func:`dt.mean()` -- function for counting mean values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_mean1 =
+R"(mean1(self)
+--
+
+Calculate the mean value for a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.mean()[0, 0]
+
+Parameters
+----------
+return: None | float
+    `None` is returned for string/object columns.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.mean()` -- similar to this method, but can be applied to
+  a Frame with any number of columns.
+
+- :func:`dt.mean()` -- function for calculatin mean values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+
+static const char* doc_mode =
+R"(mode(self)
+--
+
+Calculate the mode value for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All columns will have `float64`
+    stype. For string/object columns this function returns NA values.
+
+See Also
+--------
+- :meth:`.mode1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+- :func:`dt.mode()` -- function for calculating mode values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_mode1 =
+R"(mode1(self)
+--
+
+Calculate the mode value for a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.mode()[0, 0]
+
+Parameters
+----------
+return: None | float
+    `None` is returned for string/object columns.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.mode()` -- similar to this method, but can be applied to
+  a Frame with any number of columns.
+
+- :func:`dt.mode()` -- function for calculating mode values in a column or
+  an expression; can also be applied per-group.
+)";
 
 
 
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", doc_max);
-static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
+static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", doc_mean);
 static PKArgs args_min(0, 0, 0, false, false, {}, "min", doc_min);
-static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
+static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", doc_mode);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
 static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
 static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
@@ -245,11 +348,11 @@ oobj Frame::stat(const PKArgs& args) {
 
 
 static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", doc_countna1);
-static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
+static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", doc_mean1);
 static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
-static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
-static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
-static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", nullptr);
+static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", doc_min1);
+static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", doc_max1);
+static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", doc_mode1);
 static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
 static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
 static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
