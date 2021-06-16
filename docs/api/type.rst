@@ -46,10 +46,10 @@
     date32   <type/date32>
     float32  <type/float32>
     float64  <type/float64>
+    int8     <type/int8>
     int16    <type/int16>
     int32    <type/int32>
     int64    <type/int64>
-    int8     <type/int8>
     min      <type/min>
     max      <type/max>
     name     <type/name>
