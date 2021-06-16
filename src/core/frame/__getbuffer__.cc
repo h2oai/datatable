@@ -249,6 +249,7 @@ static void copy_column_into_buffer(const Column& col, Buffer& buf) {
     case dt::SType::INT8:    _copy_column_fw<int8_t>(col, buf); break;
     case dt::SType::INT16:   _copy_column_fw<int16_t>(col, buf); break;
     case dt::SType::INT32:   _copy_column_fw<int32_t>(col, buf); break;
+    case dt::SType::TIME64:
     case dt::SType::INT64:   _copy_column_fw<int64_t>(col, buf); break;
     case dt::SType::FLOAT32: _copy_column_fw<float>(col, buf); break;
     case dt::SType::FLOAT64: _copy_column_fw<double>(col, buf); break;
