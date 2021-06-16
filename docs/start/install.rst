@@ -53,8 +53,9 @@ The following platforms are supported:
 - **macOS**
 
   Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
-  (High Sierra), and macOS 10.15.7 (Catalina). The produced wheels are tagged
-  as ``macosx_10_9``, so they should work on earlier versions of macOS as well.
+  (High Sierra), macOS 10.15.7 (Catalina), and macOS 11.2.3 (BigSur).
+  The produced wheels are tagged as ``macosx_10_9``, so they should work on
+  earlier versions of macOS as well.
 
 - **Linux x86_64 / ppc64le**
 
