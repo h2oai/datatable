@@ -9,7 +9,8 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.6+ is required. You can check your python version via
+Python 3.6+ is required. Generally, we will support each version of Python
+until its official `end of life`_. You can verify your python version via
 
 .. code-block:: console
 
@@ -17,22 +18,20 @@ Python 3.6+ is required. You can check your python version via
     Python 3.6.6
 
 
-In addition, we recommend using ``pip`` version 20.0+, especially if you're
+In addition, we recommend using ``pip`` version 20.3+, especially if you're
 planning to install datatable from the source, or if you are on a Unix machine.
 
 .. code-block:: console
 
-    $ pip --version
-    pip 19.3.1 from /home/pasha/py36/lib/python3.6/site-packages/pip (python 3.6)
-
     $ pip install pip --upgrade
     Collecting pip
-      Using cached https://files.pythonhosted.org/.../pip-20.1.1-py2.py3-none-any.whl
+      Using cached pip-21.1.2-py3-none-any.whl (1.5 MB)
     Installing collected packages: pip
-      Found existing installation: pip 19.3.1
-        Uninstalling pip-19.3.1:
-          Successfully uninstalled pip-19.3.1
-    Successfully installed pip-20.1.1
+      Attempting uninstall: pip
+        Found existing installation: pip 20.2.4
+        Uninstalling pip-20.2.4:
+          Successfully uninstalled pip-20.2.4
+    Successfully installed pip-21.1.2
 
 There are no other prerequisites. Datatable does not depend on any other python
 module [#v11]_, nor on any non-standard system library.
@@ -54,14 +53,16 @@ The following platforms are supported:
 - **macOS**
 
   Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
-  (High Sierra), and macOS 10.15.7 (Catalina).
+  (High Sierra), macOS 10.15.7 (Catalina), and macOS 11.2.3 (BigSur).
+  The produced wheels are tagged as ``macosx_10_9``, so they should work on
+  earlier versions of macOS as well.
 
 - **Linux x86_64 / ppc64le**
 
-  We produce binary wheels that are tagged as ``manylinux2010`` (for ``x86_64``
+  We produce binary wheels that are tagged as ``manylinux_2_12`` (for ``x86_64``
   architecture) and ``manylinux2014`` (for ``ppc64le``). Consequently, they will
   work with your Linux distribution if it is compatible with one of these tags.
-  Please refer to :pep:`513` and :pep:`599` for details.
+  Please refer to :pep:`600` for details.
 
 - **Windows**
 
@@ -213,7 +214,7 @@ know how to resolve them. If none of these help you, please ask a question on
 
 ``pip._vendor.pep517.wrappers.BackendUnavailable``
   This error occurs when you have an old version of ``pip`` in your environment.
-  Please upgrade ``pip`` to the version 20.0+, and the error should disappear.
+  Please upgrade ``pip`` to the version 20.3+, and the error should disappear.
 
 ``ImportError: cannot import name '_datatable'``
   This means the internal core library ``_datatable.*.so`` is either missing
@@ -264,6 +265,8 @@ know how to resolve them. If none of these help you, please ask a question on
 
 
 .. Other links
+
+.. _`end of life`: https://endoflife.date/python
 
 .. _`PyPI`: https://pypi.org/
 
