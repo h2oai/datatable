@@ -367,7 +367,7 @@ certain combination of year/month/day is not valid in the Gregorian
 calendar, then an NA value will be produced in that row.
 
 At the same time, there are no range checks for time components. Thus,
-you can, for example, pass `seconds=3600` instead of `hour=1`.
+you can, for example, pass `second=3600` instead of `hour=1`.
 
 
 Parameters
