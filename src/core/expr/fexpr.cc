@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -598,20 +598,23 @@ DECLARE_METHOD(&PyFExpr::sd)
 
 
 static const char* doc_shift =
-R"(shift()
+R"(shift(n=1)
 --
 
-Equivalent to :func:`dt.shift(self)`.
+Equivalent to :func:`dt.shift(self, n)`.
 )";
 
-oobj PyFExpr::shift(const XArgs&) {
+oobj PyFExpr::shift(const XArgs& args) {
   auto shiftFn = oobj::import("datatable", "shift");
-  return shiftFn.call({this});
+  oobj n = args[0]? args[0].to_oobj() : py::oint(1);
+  return shiftFn.call({this, n});
 }
 
 DECLARE_METHOD(&PyFExpr::shift)
     ->name("shift")
-    ->docs(doc_shift);
+    ->docs(doc_shift)
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1);
 
 static const char* doc_last =
 R"(last()

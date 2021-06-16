@@ -344,6 +344,7 @@ def test_sd():
 
     assert_equals(DT[:, f[:].sd()], DT[:, dt.sd(f[:])])
 
+
 def test_shift():
     assert str(dt.shift(f.A)) == str(f.A.shift())
     assert str(dt.shift(f[:])) == str(f[:].shift())
@@ -352,6 +353,13 @@ def test_shift():
 
     assert_equals(DT[:, f[:].shift()], DT[:, dt.shift(f[:])])
 
+
+def test_shift_n():
+    DT = dt.Frame(a=range(10))
+    assert_equals(DT[:, [f.a.shift(n=3), f.a.shift(-1)]],
+                  DT[:, [dt.shift(f.a, 3), dt.shift(f.a, -1)]])
+
+
 def test_last():
     assert str(dt.last(f.A)) == str(f.A.last())
     assert str(dt.last(f[:])) == str(f[:].last())
@@ -359,6 +367,7 @@ def test_last():
                    "D": [10, 8, 20, 20, 1]})
 
     assert_equals(DT[:, f[:].last()], DT[:, dt.last(f[:])])
+
 
 def test_count():
     assert str(dt.count(f.A)) == str(f.A.count())
