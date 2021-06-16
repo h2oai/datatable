@@ -70,6 +70,16 @@ def test_ymdt_ns_optional():
     assert_equals(RES, dt.Frame([t(2001, 12, 31, 23, 59, 59)]))
 
 
+def test_ymdt_with_date():
+    DT = dt.Frame(date=[d(2001, 3, 15), d(2017, 11, 23), d(1930, 5, 14), None],
+                  hour=[12, 19, 2, 7], min=[30, 40, 50, 20])
+    RES = DT[:, ymdt(date=f.date, hour=f.hour, minute=f.min, second=f.min//2)]
+    assert_equals(RES, dt.Frame([t(2001, 3, 15, 12, 30, 15),
+                                 t(2017, 11, 23, 19, 40, 20),
+                                 t(1930, 5, 14, 2, 50, 25),
+                                 None]))
+
+
 @pytest.mark.parametrize('arg', ['year', 'month', 'day', 'hour', 'minute',
                                  'second', 'nanosecond'])
 def test_ymdt_wrong_types(arg):
@@ -97,6 +107,15 @@ def test_ymdt_wrong_shape2():
         DT[:, ymdt(f.A, f.B, f.C, f[:2], 0, 1, f[:])]
 
 
+def test_ymd_and_date():
+    DT = dt.Frame(A=[d(2000, 1, 1)], y=[2000], m=[1], d=[1])
+    msg = "When argument date= is provided, arguments year=, month= and " \
+          "day= cannot be used."
+    with pytest.raises(TypeError, match=msg):
+        DT[:, ymdt(date=f.A, year=f.y, month=f.m, day=f.d, hour=0,
+                   minute=0, second=0)]
+
+
 def test_ymdt_multi_column():
     DT = dt.Frame(A=range(5), B=range(5), C=range(5))
     RES = DT[:, ymdt(2000, 5 + f[:], 1 + 2*f[:], 0, 10 * f[:], 30)]
@@ -110,35 +129,58 @@ def test_ymdt_partial_groupby():
     assert_equals(RES, dt.Frame([t(2000, 4, 1 + 2*i, 0, 0, 0) for i in range(5)]))
 
 
-# def test_ymd_with_different_types():
-#     DT = dt.Frame(A=[2010, 2011, 2012]/dt.int32,
-#                   B=[3, 5, 7]/dt.int8,
-#                   C=[4, 1, 1]/dt.int64)
-#     RES = DT[:, ymd(f.A, f.B, f.C)]
-#     assert_equals(RES, dt.Frame([d(2010, 3, 4), d(2011, 5, 1), d(2012, 7, 1)]))
+def test_ymdt_with_different_types():
+    DT = dt.Frame(A=[2010, 2011, 2012]/dt.int32,
+                  B=[3, 5, 7]/dt.int8,
+                  C=[4, 1, 1]/dt.int64,
+                  D=[12, 10, 3]/dt.int16,
+                  E=[30, 50, 25]/dt.int32,
+                  F=[0, 0, 0]/dt.int8)
+    RES = DT[:, ymdt(f.A, f.B, f.C, f.D, f.E, f.F)]
+    assert_equals(RES, dt.Frame([t(2010, 3, 4, 12, 30, 0),
+                                 t(2011, 5, 1, 10, 50, 0),
+                                 t(2012, 7, 1, 3, 25, 0)]))
 
 
-# def test_ymd_nones():
-#     DT = dt.Frame(A=[1, 2, 3, None, None, 4],
-#                   B=[1, 2, None, 3, None, 4],
-#                   C=[1, None, 2, 3, None, 4])
-#     RES = DT[:, ymd(f.A, f.B, f.C)]
-#     assert_equals(RES, dt.Frame([d(1, 1, 1), None, None, None, None, d(4, 4, 4)]))
+def test_ymdt_nones():
+    DT = dt.Frame(A=[1, 2, 3, None, None, 4],
+                  B=[1, 2, None, 3, None, 4],
+                  C=[1, None, 2, 3, None, 4])
+    RES = DT[:, ymdt(2001, f.B, f.C, f.A, f.B, f.C)]
+    assert_equals(RES, dt.Frame([t(2001, 1, 1, 1, 1, 1),
+                                 None, None, None, None,
+                                 t(2001, 4, 4, 4, 4, 4)]))
 
 
-# def test_invalid_dates():
-#     DT = dt.Frame(Y=[2000, 2001, 2002, 2003, 2004],
-#                   M=[1, 2, 3, 4, 5],
-#                   D=[-1, 0, 1, 100, 100000])
-#     assert_equals(DT[:, ymd(f.Y, 2, 29)],
-#                   dt.Frame([d(2000, 2, 29), None, None, None, d(2004, 2, 29)]))
-#     assert_equals(DT[:, ymd(2020, f.M, 31)],
-#                   dt.Frame([d(2020, 1, 31), None, d(2020, 3, 31), None, d(2020, 5, 31)]))
-#     assert_equals(DT[:, ymd(2020, 1, f.D)],
-#                   dt.Frame([None, None, d(2020, 1, 1), None, None]))
+def test_invalid_dates():
+    DT = dt.Frame(Y=[2000, 2001, 2002, 2003, 2004],
+                  M=[1, 2, 3, 4, 5],
+                  D=[-1, 0, 1, 100, 100000])
+    assert_equals(DT[:, ymdt(f.Y, 2, 29, 0, 0, 0)],
+                  dt.Frame([t(2000, 2, 29, 0, 0, 0), None, None, None,
+                            t(2004, 2, 29, 0, 0, 0)]))
+    assert_equals(DT[:, ymdt(2020, f.M, 31, 0, 0, 0)],
+                  dt.Frame([t(2020, 1, 31, 0, 0, 0), None,
+                            t(2020, 3, 31, 0, 0, 0), None,
+                            t(2020, 5, 31, 0, 0, 0)]))
+    assert_equals(DT[:, ymdt(2020, 1, f.D, 0, 0, 0)],
+                  dt.Frame([None, None, t(2020, 1, 1, 0, 0, 0), None, None]))
 
 
-# def test_invalid_months():
-#     DT = dt.Frame(range(5))
-#     assert_equals(DT[:, ymd(2021, f[0], 1)],
-#                   dt.Frame([None] + [d(2021, i, 1) for i in range(1, 5)]))
+def test_invalid_months():
+    DT = dt.Frame(range(5))
+    assert_equals(DT[:, ymdt(2021, f[0], 1, 0, 0, 0)],
+                  dt.Frame([None] + [t(2021, i, 1, 0, 0, 0)
+                                     for i in range(1, 5)]))
+
+
+def test_large_time():
+    DT = dt.Frame(date=[d(2001, 1, 1)] * 7, hours=range(-60, 61, 20))
+    RES = DT[:, ymdt(date=f.date, hour=f.hours, minute=0, second=0)]
+    assert_equals(RES, dt.Frame([t(2000, 12, 29, 12, 0, 0),
+                                 t(2000, 12, 30, 8, 0, 0),
+                                 t(2000, 12, 31, 4, 0, 0),
+                                 t(2001, 1, 1, 0, 0, 0),
+                                 t(2001, 1, 1, 20, 0, 0),
+                                 t(2001, 1, 2, 16, 0, 0),
+                                 t(2001, 1, 3, 12, 0, 0)]))
