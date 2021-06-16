@@ -115,6 +115,7 @@ void ConstNa_ColumnImpl::materialize(Column& out, bool) {
     case SType::INT16:   out = _fw_col<int16_t, SentinelFw_ColumnImpl<int16_t>>(nrows_, st); break;
     case SType::DATE32:
     case SType::INT32:   out = _fw_col<int32_t, SentinelFw_ColumnImpl<int32_t>>(nrows_, st); break;
+    case SType::TIME64:
     case SType::INT64:   out = _fw_col<int64_t, SentinelFw_ColumnImpl<int64_t>>(nrows_, st); break;
     case SType::FLOAT32: out = _fw_col<float,   SentinelFw_ColumnImpl<float>>(nrows_, st); break;
     case SType::FLOAT64: out = _fw_col<double,  SentinelFw_ColumnImpl<double>>(nrows_, st); break;

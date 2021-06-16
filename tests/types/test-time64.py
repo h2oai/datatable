@@ -563,3 +563,26 @@ def test_cast_time64_to_obj():
     DT[0] = object
     assert DT.type == dt.Type.obj64
     assert DT.to_list() == [[d(2000, 1, 2, 3, 4, 55)]]
+
+
+
+
+#-------------------------------------------------------------------------------
+# Miscellaneous functionality
+#-------------------------------------------------------------------------------
+
+def test_rbind():
+    src = [d(2030, 12, 1, 13, 43, 17)]
+    DT = dt.Frame(src)
+    assert DT.type == dt.Type.time64
+    RES = dt.rbind(DT, DT)
+    assert_equals(RES, dt.Frame(src * 2))
+
+
+def test_rbind2():
+    DT = dt.Frame([5, 7, 9])
+    DT[0] = dt.Type.time64
+    RES = dt.rbind(DT, DT)
+    EXP = dt.Frame([5, 7, 9] * 2)
+    EXP[0] = dt.Type.time64
+    assert_equals(RES, EXP)
