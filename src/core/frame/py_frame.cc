@@ -256,8 +256,6 @@ oobj Frame::copy(const XArgs& args) {
   oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
                                    : new DataTable(*dt));
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
-  newframe->stypes = stypes;  Py_XINCREF(stypes);
-  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
   newframe->meta_ = meta_;
   newframe->source_ = source_;
   return res;
@@ -399,8 +397,6 @@ oobj Frame::oframe(robj src) {
 
 
 void Frame::m__dealloc__() {
-  Py_XDECREF(stypes);
-  Py_XDECREF(ltypes);
   delete dt;
   dt = nullptr;
   source_ = nullptr;
@@ -408,10 +404,6 @@ void Frame::m__dealloc__() {
 
 
 void Frame::_clear_types() {
-  Py_XDECREF(stypes);
-  Py_XDECREF(ltypes);
-  stypes = nullptr;
-  ltypes = nullptr;
   source_ = nullptr;
 }
 
@@ -774,6 +766,10 @@ oobj Frame::get_types() const {
 
 static const char* doc_stypes =
 R"(
+.. x-deprecated::
+
+  Use :attr:`.types` instead.
+
 The tuple of each column's stypes ("storage types").
 
 Parameters
@@ -791,15 +787,12 @@ See also
 static GSArgs args_stypes("stypes", doc_stypes);
 
 oobj Frame::get_stypes() const {
-  if (stypes == nullptr) {
-    py::otuple ostypes(dt->ncols());
-    for (size_t i = 0; i < ostypes.size(); ++i) {
-      dt::SType st = dt->get_column(i).stype();
-      ostypes.set(i, dt::stype_to_pyobj(st));
-    }
-    stypes = std::move(ostypes).release();
+  py::otuple stypes(dt->ncols());
+  for (size_t i = 0; i < stypes.size(); ++i) {
+    dt::SType st = dt->get_column(i).stype();
+    stypes.set(i, dt::stype_to_pyobj(st));
   }
-  return oobj(stypes);
+  return std::move(stypes);
 }
 
 
@@ -874,15 +867,12 @@ See also
 static GSArgs args_ltypes("ltypes", doc_ltypes);
 
 oobj Frame::get_ltypes() const {
-  if (ltypes == nullptr) {
-    py::otuple oltypes(dt->ncols());
-    for (size_t i = 0; i < oltypes.size(); ++i) {
-      dt::SType st = dt->get_column(i).stype();
-      oltypes.set(i, dt::ltype_to_pyobj(stype_to_ltype(st)));
-    }
-    ltypes = std::move(oltypes).release();
+  py::otuple ltypes(dt->ncols());
+  for (size_t i = 0; i < ltypes.size(); ++i) {
+    dt::SType st = dt->get_column(i).stype();
+    ltypes.set(i, dt::ltype_to_pyobj(stype_to_ltype(st)));
   }
-  return oobj(ltypes);
+  return std::move(ltypes);
 }
 
 

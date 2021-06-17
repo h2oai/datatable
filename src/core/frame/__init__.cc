@@ -369,8 +369,6 @@ class FrameInitializationManager {
       if (res.is_frame()) {
         Frame* resframe = static_cast<Frame*>(res.to_borrowed_ref());
         std::swap(frame->dt,      resframe->dt);
-        std::swap(frame->stypes,  resframe->stypes);
-        std::swap(frame->ltypes,  resframe->ltypes);
         std::swap(frame->source_, resframe->source_);
       } else {
         xassert(res.is_dict());
@@ -754,8 +752,6 @@ void Frame::m__init__(const PKArgs& args) {
   if (dt) m__dealloc__();
   dt = nullptr;
   source_ = nullptr;
-  stypes = nullptr;
-  ltypes = nullptr;
   if (Frame::internal_construction) return;
 
   FrameInitializationManager fim(args, this);
@@ -791,8 +787,6 @@ void Frame::m__setstate__(const PKArgs& args) {
   // Clean up any previous state of the Frame (since pickle first creates an
   // empty Frame object, and then calls __setstate__ on it).
   m__dealloc__();
-  stypes = nullptr;
-  ltypes = nullptr;
 
   const char* data = PyBytes_AS_STRING(_state);
   size_t length = static_cast<size_t>(PyBytes_GET_SIZE(_state));

@@ -39,8 +39,6 @@ class Frame : public XObject<Frame> {
                     // destructor is never called by Python)
     py::oobj source_;
     py::oobj meta_;
-    mutable PyObject* stypes;  // memoized tuple of stypes
-    mutable PyObject* ltypes;  // memoized tuple of ltypes
 
   public:
     static void impl_init_type(XTypeMaker&);
