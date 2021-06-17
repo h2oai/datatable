@@ -140,12 +140,6 @@
         * - :meth:`.countna1()`
           - Count missing values for a one-column frame and return it as a scalar.
 
-        * - :meth:`.min()`
-          - Find the smallest element for each column in the frame.
-
-        * - :meth:`.min1()`
-          - Find the smallest element for a one-column frame and return it as a scalar.
-
         * - :meth:`.max()`
           - Find the largest element for each column in the frame.
 
@@ -157,6 +151,12 @@
 
         * - :meth:`.mean1()`
           - Calculate the mean value for a one-column frame and return it as a scalar.
+
+        * - :meth:`.min()`
+          - Find the smallest element for each column in the frame.
+
+        * - :meth:`.min1()`
+          - Find the smallest element for a one-column frame and return it as a scalar.
 
         * - :meth:`.mode()`
           - Find the mode value for each column in the frame.
@@ -293,13 +293,23 @@
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
+    .countna()       <frame/countna>
+    .countna()       <frame/countna1>
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .max()           <frame/max>
+    .max1()          <frame/max1>
+    .mean            <frame/mean>
+    .mean1           <frame/mean1>
     .meta            <frame/meta>
+    .min             <frame/min>
+    .min1            <frame/min1>
+    .mode            <frame/mode>
+    .mode1           <frame/mode1>
     .names           <frame/names>
     .ncols           <frame/ncols>
     .nrows           <frame/nrows>

@@ -63,22 +63,23 @@ Report the number of NA values in each column of the frame.
 Parameters
 ----------
 (return): Frame
-    The frame will have one and the same number and names of columns
+    The frame will have one row and the same number/names of columns
     as in the current frame. All columns will have stype ``int64``.
 
 Examples
 --------
->>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
->>> DT.countna()
-   |     A      B      C
-   | int64  int64  int64
--- + -----  -----  -----
- 0 |     1      3      2
---
-[1 row x 3 columns]
+.. code-block:: python
 
->>> DT.countna().to_tuples()[0]
-(1, 3, 2)
+    >>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
+    >>> DT.countna()
+       |     A      B      C
+       | int64  int64  int64
+    -- + -----  -----  -----
+     0 |     1      3      2
+    [1 row x 3 columns]
+
+    >>> DT.countna().to_tuples()[0]
+    >>> (1, 3, 2)
 
 
 See Also
@@ -104,14 +105,14 @@ This function is a shortcut for::
 Parameters
 ----------
 (except): ValueError
-    If called on a Frame that has more or less than 1 column.
+    If called on a Frame that has more or less than one column.
 
 (return): int
 
 See Also
 --------
 - :meth:`.countna()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.count()` -- function for counting non-NA ("valid") values
   in a column; can also be applied per-group.
@@ -122,7 +123,7 @@ static const char* doc_max =
 R"(max(self)
 --
 
-Report the largest (maximum) value in each column of the frame.
+Find the largest value in each column of the frame.
 
 Parameters
 ----------
@@ -137,7 +138,7 @@ See Also
   single-column frame only, and returns a scalar value instead of
   a Frame.
 
-- :func:`dt.max()` -- function for counting max values in a column or
+- :func:`dt.max()` -- function for finding largest values in a column or
   an expression; can also be applied per-group.
 )";
 
@@ -159,12 +160,12 @@ return: bool | int | float
     The returned value corresponds to the stype of the frame.
 
 except: ValueError
-    If called on a Frame that has more or less than 1 column.
+    If called on a Frame that has more or less than one column.
 
 See Also
 --------
 - :meth:`.max()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.max()` -- function for counting max values in a column or
   an expression; can also be applied per-group.
@@ -175,7 +176,7 @@ static const char* doc_min =
 R"(min(self)
 --
 
-Report the smallest (minimum) value in each column of the frame.
+Find the smallest value in each column of the frame.
 
 Parameters
 ----------
@@ -199,7 +200,7 @@ static const char* doc_min1 =
 R"(min1(self)
 --
 
-Return the smallest value in a single-column Frame. The frame's
+Find the smallest value in a single-column Frame. The frame's
 stype must be numeric.
 
 This function is a shortcut for::
@@ -217,7 +218,7 @@ except: ValueError
 See Also
 --------
 - :meth:`.min()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.min()` -- function for counting min values in a column or
   an expression; can also be applied per-group.
@@ -269,7 +270,7 @@ except: ValueError
 See Also
 --------
 - :meth:`.mean()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.mean()` -- function for calculatin mean values in a column or
   an expression; can also be applied per-group.
@@ -281,7 +282,7 @@ static const char* doc_mode =
 R"(mode(self)
 --
 
-Calculate the mode value for each column in the frame.
+Find the mode for each column in the frame.
 
 Parameters
 ----------
@@ -296,8 +297,6 @@ See Also
   single-column frame only, and returns a scalar value instead of
   a Frame.
 
-- :func:`dt.mode()` -- function for calculating mode values in a column or
-  an expression; can also be applied per-group.
 )";
 
 
@@ -305,7 +304,7 @@ static const char* doc_mode1 =
 R"(mode1(self)
 --
 
-Calculate the mode value for a single-column Frame.
+Find the mode for a single-column Frame.
 
 This function is a shortcut for::
 
@@ -322,10 +321,8 @@ except: ValueError
 See Also
 --------
 - :meth:`.mode()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
-- :func:`dt.mode()` -- function for calculating mode values in a column or
-  an expression; can also be applied per-group.
 )";
 
 
