@@ -620,7 +620,7 @@ def test_create_from_list_of_dicts_bad3():
 
 
 #-------------------------------------------------------------------------------
-# Stype auto-detection
+# Type auto-detection
 #-------------------------------------------------------------------------------
 
 def test_auto_bool8():
@@ -772,7 +772,7 @@ def test_no_auto_object_column():
 
 
 #-------------------------------------------------------------------------------
-# Create specific stypes
+# types= argument
 #-------------------------------------------------------------------------------
 
 def test_create_from_nones():
@@ -783,7 +783,7 @@ def test_create_from_nones():
 
 
 def test_create_as_int8():
-    d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], stype=stype.int8)
+    d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], type=stype.int8)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int8, )
     assert d0.shape == (7, 1)
@@ -791,7 +791,7 @@ def test_create_as_int8():
 
 
 def test_create_as_int16():
-    d0 = dt.Frame([1e50, 1000, None, "27", "?", True], stype=stype.int16)
+    d0 = dt.Frame([1e50, 1000, None, "27", "?", True], type=stype.int16)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int16, )
     assert d0.shape == (6, 1)
@@ -800,7 +800,7 @@ def test_create_as_int16():
 
 
 def test_create_as_int32():
-    d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], stype=stype.int32)
+    d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], type=stype.int32)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
@@ -837,7 +837,7 @@ def test_create_as_str32():
 
 
 def test_create_as_str64():
-    d0 = dt.Frame(range(10), stype=stype.str64)
+    d0 = dt.Frame(range(10), type=dt.Type.str64)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.str64, )
     assert d0.shape == (10, 1)
@@ -854,6 +854,30 @@ def test_create_range_as_stype(st):
         assert d0.to_list()[0] == [str(x) for x in range(10)]
     else:
         assert d0.to_list()[0] == list(range(10))
+
+
+@pytest.mark.parametrize('t', [stype.float64, dt.Type.float64, float, 'double',
+                               'float64'])
+def test_create_from_various_types(t):
+    DT = dt.Frame(range(5), type=t)
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.float64
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_numpy_dtype1(np):
+    DT = dt.Frame(range(5), type=np.dtype('float64'))
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_numpy_dtype2(np):
+    DT = dt.Frame(range(5), type=np.float64)
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_arrow_type(pa):
+    DT = dt.Frame(range(5), type=pa.float64())
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
 
 
 
