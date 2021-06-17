@@ -222,6 +222,16 @@ def test_convert_to_numpy(np):
     assert arr[5, 0] == np.datetime64('1911-11-11T11:11:11.000011000')
 
 
+def test_convert_to_numpy_virtual(np):
+    # See issue 2989
+    DT = dt.Frame(range(10))
+    DT[0] = dt.Type.time64
+    arr = DT.to_numpy()
+    assert isinstance(arr, np.ndarray)
+    expected = np.array(range(10), dtype='datetime64[ns]', ndmin=2).T
+    assert np.array_equal(arr, expected)
+
+
 def test_convert_from_numpy(np):
     arr = np.array(['2000-01-15 17:03:01',
                     '1985-09-17 01:59:59.999999999',
