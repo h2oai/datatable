@@ -288,8 +288,7 @@ Parameters
 ----------
 return: Frame
     The frame will have one row and the same number/names
-    of columns as in the current frame. For string/object columns
-    this function returns NA values.
+    of columns as in the current frame.
 
 See Also
 --------
@@ -312,8 +311,8 @@ This function is a shortcut for::
 
 Parameters
 ----------
-return: None | float
-    `None` is returned for string/object columns.
+return: bool | int | float | str | object
+    The returned value corresponds to the stype of the column.
 
 except: ValueError
     If called on a Frame that has more or less than one column.
@@ -336,8 +335,8 @@ Parameters
 ----------
 return: Frame
     The frame will have one row and the same number/names
-    of columns as in the current frame. For string/object columns
-    this function returns NA values.
+    of columns as in the current frame. All the columns
+    will have `int64` stype.
 
 See Also
 --------
@@ -356,12 +355,11 @@ Calculate the modal frequency for a single-column Frame.
 
 This function is a shortcut for::
 
-    DT.nmodal1()[0, 0]
+    DT.nmodal()[0, 0]
 
 Parameters
 ----------
-return: None | float
-    `None` is returned for string/object columns.
+return: int
 
 except: ValueError
     If called on a Frame that has more or less than one column.
@@ -374,6 +372,53 @@ See Also
 )";
 
 
+static const char* doc_nunique =
+R"(nunique(self)
+--
+
+Count the number of unique values for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All the columns
+    will have `int64` stype.
+
+See Also
+--------
+- :meth:`.nunique1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+)";
+
+
+static const char* doc_nunique1 =
+R"(nunique1(self)
+--
+
+Count the number of unique values for a one-column frame and return it as a scalar.
+
+This function is a shortcut for::
+
+    DT.nunique()[0, 0]
+
+Parameters
+----------
+return: int
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.nunique()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+)";
+
+
 
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", doc_max);
@@ -381,7 +426,7 @@ static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", doc_mean);
 static PKArgs args_min(0, 0, 0, false, false, {}, "min", doc_min);
 static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", doc_mode);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", doc_nmodal);
-static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
+static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", doc_nunique);
 static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
 static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
 
@@ -393,13 +438,13 @@ oobj Frame::stat(const PKArgs& args) {
 
 
 static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", doc_countna1);
-static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", doc_mean1);
-static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
-static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", doc_min1);
 static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", doc_max1);
+static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", doc_mean1);
+static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", doc_min1);
 static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", doc_mode1);
 static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", doc_nmodal1);
-static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
+static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", doc_nunique1);
+static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
 static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {

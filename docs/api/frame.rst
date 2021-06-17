@@ -315,6 +315,8 @@
     .nmodal          <frame/nmodal>
     .nmodal1         <frame/nmodal1>
     .nrows           <frame/nrows>
+    .nunique         <frame/nunique>
+    .nunique1        <frame/nunique1>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
     .shape           <frame/shape>
