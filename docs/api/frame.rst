@@ -189,8 +189,8 @@
           - Calculate the sum of all values for a one-column column frame and return it as a scalar.
 
 
-    Other methods
-    -------------
+    Miscellaneous methods
+    ---------------------
 
     .. list-table::
         :widths: auto
@@ -312,6 +312,8 @@
     .mode1           <frame/mode1>
     .names           <frame/names>
     .ncols           <frame/ncols>
+    .nmodal          <frame/nmodal>
+    .nmodal1         <frame/nmodal1>
     .nrows           <frame/nrows>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
