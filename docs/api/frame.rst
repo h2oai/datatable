@@ -303,20 +303,20 @@
     .materialize()   <frame/materialize>
     .max()           <frame/max>
     .max1()          <frame/max1>
-    .mean            <frame/mean>
-    .mean1           <frame/mean1>
+    .mean()          <frame/mean>
+    .mean1()         <frame/mean1>
     .meta            <frame/meta>
-    .min             <frame/min>
-    .min1            <frame/min1>
-    .mode            <frame/mode>
-    .mode1           <frame/mode1>
+    .min()           <frame/min>
+    .min1()          <frame/min1>
+    .mode()          <frame/mode>
+    .mode1()         <frame/mode1>
     .names           <frame/names>
     .ncols           <frame/ncols>
-    .nmodal          <frame/nmodal>
-    .nmodal1         <frame/nmodal1>
+    .nmodal()        <frame/nmodal>
+    .nmodal1()       <frame/nmodal1>
     .nrows           <frame/nrows>
-    .nunique         <frame/nunique>
-    .nunique1        <frame/nunique1>
+    .nunique()       <frame/nunique>
+    .nunique1()      <frame/nunique1>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
     .shape           <frame/shape>
