@@ -72,8 +72,8 @@ class FrameInitializationManager {
       defined_stypes = !(stypes_arg.is_undefined() || stypes_arg.is_none());
       defined_stype  = !(stype_arg.is_undefined() || stype_arg.is_none());
       if (defined_stype && defined_stypes) {
-        throw TypeError() << "You can pass either parameter `stypes` or "
-            "`stype` to Frame() constructor, but not both at the same time";
+        throw TypeError() << "You can pass either parameter `types` or "
+            "`type` to Frame() constructor, but not both at the same time";
       }
       if (defined_stype) {
         stype0 = stype_arg.to_stype(em());
@@ -345,7 +345,7 @@ class FrameInitializationManager {
       check_names_count(ncols);
       if (stypes_arg || stype_arg) {
         // TODO: allow this use case
-        throw TypeError() << "Parameter `stypes` is not allowed when making "
+        throw TypeError() << "Parameter `types` is not allowed when making "
             "a copy of a Frame";
       }
       for (size_t i = 0; i < ncols; ++i) {
@@ -390,7 +390,7 @@ class FrameInitializationManager {
 
     void init_from_pandas() {
       if (stypes_arg || stype_arg) {
-        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+        throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from pandas DataFrame";
       }
       py::robj pdsrc = src.to_robj();
@@ -439,7 +439,7 @@ class FrameInitializationManager {
 
     void init_from_numpy() {
       if (stypes_arg || stype_arg) {
-        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+        throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from a numpy array";
       }
       py::oobj npsrc = src.to_robj();
@@ -486,7 +486,7 @@ class FrameInitializationManager {
 
     void init_from_arrow() {
       if (stypes_arg || stype_arg) {
-        throw TypeError() << "Argument `stypes` is not supported in Frame() "
+        throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from an arrow Table";
       }
       auto pasrc = src.to_robj();
@@ -581,11 +581,11 @@ class FrameInitializationManager {
       }
       else {
         throw TypeError() << stypes_arg.name() << " should be a list of "
-            "stypes, instead received " << stypes_arg.typeobj();
+            "types, instead received " << stypes_arg.typeobj();
       }
       if (nstypes != ncols) {
         throw ValueError()
-            << "The `stypes` argument contains " << nstypes
+            << "The `types` argument contains " << nstypes
             << " element" << (nstypes==1? "" : "s") << ", which is "
             << (nstypes < ncols? "less" : "more") << " than the number of "
                "columns being created (" << ncols << ")";
@@ -615,7 +615,7 @@ class FrameInitializationManager {
           py::robj oname(nullptr);
           if (name == nullptr) {
             if (!defined_names) {
-              throw TypeError() << "When parameter `stypes` is a dictionary, "
+              throw TypeError() << "When parameter `types` is a dictionary, "
                   "column `names` must be explicitly specified";
             }
             py::olist names = names_arg.to_pylist();
@@ -740,7 +740,7 @@ class FrameInitializationManager {
 //------------------------------------------------------------------------------
 
 Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
-  return TypeError() << "Invalid value for `stype` parameter in Frame() "
+  return TypeError() << "Invalid value for `type` parameter in Frame() "
                         "constructor";
 } // LCOV_EXCL_LINE
 

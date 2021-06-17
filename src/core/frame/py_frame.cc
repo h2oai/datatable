@@ -893,7 +893,7 @@ oobj Frame::get_ltypes() const {
 //------------------------------------------------------------------------------
 
 static const char* doc___init__ =
-R"(__init__(self, _data=None, *, names=None, stypes=None, stype=None, **cols)
+R"(__init__(self, _data=None, *, names=None, types=None, type=None, **cols)
 --
 
 Create a new Frame from a single or multiple sources.
@@ -931,15 +931,14 @@ names: List[str|None]
     This parameter should not be used when constructing the frame
     from `**cols`.
 
-stypes: List[stype-like] | Dict[str, stype-like]
-    Explicit list (or tuple) of column types. The number of elements
+types: List[Type] | Dict[str, Type]
+    Explicit list (or dict) of column types. The number of elements
     in the list must be the same as the number of columns being
     constructed.
 
-stype: stype | type
-    Similar to `stypes`, but provide a single type that will be used
-    for all columns. This option cannot be specified together with
-    `stypes`.
+type: Type | type
+    Similar to `types`, but provide a single type that will be used
+    for all columns. This option cannot be used together with `types`.
 
 return: Frame
     A :class:`Frame <datatable.Frame>` object is constructed and
@@ -1176,7 +1175,7 @@ following list describes possible choices:
 )";
 
 static PKArgs args___init__(1, 0, 3, false, true,
-                            {"_data", "names", "stypes", "stype"},
+                            {"_data", "names", "types", "type"},
                             "__init__", doc___init__);
 
 
@@ -1230,6 +1229,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(METHOD__GETBUFFER__(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
   Frame_Type = xt.get_type_object();
+  args___init__.add_synonym_arg("stypes", "types");
+  args___init__.add_synonym_arg("stype", "type");
 
   _init_key(xt);
   _init_init(xt);
