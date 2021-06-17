@@ -266,7 +266,7 @@ class _obj {
     py::Frame*  to_pyframe        (const error_manager& = _em0) const;
     dt::SType   to_stype          (const error_manager& = _em0) const;
     dt::Type    to_type           (const error_manager& = _em0) const;
-    dt::Type    to_type_force     (const error_manager& = _em0) const;
+    dt::Type    to_type_force     () const;
     py::ojoin   to_ojoin_lax      () const;
     py::oby     to_oby_lax        () const;
     py::osort   to_osort_lax      () const;

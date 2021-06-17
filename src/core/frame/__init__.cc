@@ -40,19 +40,15 @@ class FrameInitializationManager {
     const PKArgs& all_args;
     const Arg& src;
     const Arg& names_arg;
-    const Arg& stypes_arg;
-    const Arg& stype_arg;
+    const Arg& types_arg;
+    const Arg& type_arg;
     bool defined_names;
-    bool defined_stypes;
-    bool defined_stype;
-    dt::SType stype0;
-    int : 32;
+    bool defined_types;
+    bool defined_type;
+    size_t : 40;
+    dt::Type type0;
     Frame* frame;
     colvec cols;
-
-    class em : public py::_obj::error_manager {
-      Error error_not_stype(PyObject*) const override;
-    };
 
 
   //----------------------------------------------------------------------------
@@ -63,20 +59,20 @@ class FrameInitializationManager {
       : all_args(args),
         src(args[0]),
         names_arg(args[1]),
-        stypes_arg(args[2]),
-        stype_arg(args[3]),
-        stype0(dt::SType::AUTO),
+        types_arg(args[2]),
+        type_arg(args[3]),
+        type0(),  // "auto"
         frame(f)
     {
-      defined_names  = !(names_arg.is_undefined() || names_arg.is_none());
-      defined_stypes = !(stypes_arg.is_undefined() || stypes_arg.is_none());
-      defined_stype  = !(stype_arg.is_undefined() || stype_arg.is_none());
-      if (defined_stype && defined_stypes) {
+      defined_names = !(names_arg.is_undefined() || names_arg.is_none());
+      defined_types = !(types_arg.is_undefined() || types_arg.is_none());
+      defined_type  = !(type_arg.is_undefined() || type_arg.is_none());
+      if (defined_type && defined_types) {
         throw TypeError() << "You can pass either parameter `types` or "
             "`type` to Frame() constructor, but not both at the same time";
       }
-      if (defined_stype) {
-        stype0 = stype_arg.to_stype(em());
+      if (defined_type) {
+        type0 = type_arg.to_type_force();
       }
       if (src && all_args.num_varkwd_args() > 0) {
         throw _error_unknown_kwargs();
@@ -140,7 +136,7 @@ class FrameInitializationManager {
         return init_from_arrow();
       }
       if (src.is_ellipsis() &&
-               !defined_names && !defined_stypes && !defined_stype) {
+               !defined_names && !defined_types && !defined_type) {
         return init_mystery_frame();
       }
       throw TypeError() << "Cannot create Frame from " << src.typeobj();
@@ -156,15 +152,15 @@ class FrameInitializationManager {
       if (defined_names) {
         if (!names_arg.is_list_or_tuple()) check_names_count(0);
         size_t ncols = names_arg.to_pylist().size();
-        check_stypes_count(ncols);
+        check_types_count(ncols);
         py::olist empty_list(0);
         for (size_t i = 0; i < ncols; ++i) {
-          dt::SType s = get_stype_for_column(i);
+          auto s = get_type_for_column(i);
           make_column(empty_list, s);
         }
         make_datatable(names_arg);
       } else {
-        check_stypes_count(0);
+        check_types_count(0);
         make_datatable(nullptr);
       }
     }
@@ -173,10 +169,10 @@ class FrameInitializationManager {
     void init_from_list_of_lists() {
       py::olist collist = src.to_pylist();
       check_names_count(collist.size());
-      check_stypes_count(collist.size());
+      check_types_count(collist.size());
       for (size_t i = 0; i < collist.size(); ++i) {
         py::robj item = collist[i];
-        dt::SType s = get_stype_for_column(i);
+        auto s = get_type_for_column(i);
         make_column(item, s);
       }
       make_datatable(names_arg);
@@ -189,7 +185,7 @@ class FrameInitializationManager {
       py::olist nameslist = names_arg.to_pylist();
       size_t nrows = srclist.size();
       size_t ncols = nameslist.size();
-      check_stypes_count(ncols);
+      check_types_count(ncols);
       for (size_t i = 0; i < nrows; ++i) {
         py::robj item = srclist[i];
         if (!item.is_dict()) {
@@ -203,7 +199,7 @@ class FrameInitializationManager {
 
     void init_from_list_of_dicts_auto_keys() {
       xassert(!names_arg);
-      if (stypes_arg && !stypes_arg.is_dict()) {
+      if (types_arg && !types_arg.is_dict()) {
         throw TypeError() << "If the Frame() source is a list of dicts, then "
             "either the `names` list has to be provided explicitly, or "
             "`stypes` parameter has to be a dictionary (or missing)";
@@ -241,7 +237,7 @@ class FrameInitializationManager {
       size_t ncols = nameslist.size();
       for (size_t j = 0; j < ncols; ++j) {
         py::robj name = nameslist[j];
-        dt::SType s = get_stype_for_column(j, &name);
+        auto s = get_type_for_column(j, &name);
         cols.push_back(Column::from_pylist_of_dicts(srclist, name, s));
       }
       make_datatable(nameslist);
@@ -254,7 +250,7 @@ class FrameInitializationManager {
       size_t nrows = srclist.size();
       size_t ncols = item0.size();
       check_names_count(ncols);
-      check_stypes_count(ncols);
+      check_types_count(ncols);
       // Check that all entries are proper tuples
       for (size_t i = 0; i < nrows; ++i) {
         py::rtuple item = srclist[i].to_rtuple_lax();
@@ -273,7 +269,7 @@ class FrameInitializationManager {
       }
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
-        dt::SType s = get_stype_for_column(j);
+        auto s = get_type_for_column(j);
         cols.push_back(Column::from_pylist_of_tuples(srclist, j, s));
       }
       if (names_arg || !item0.has_attr("_fields")) {
@@ -286,8 +282,8 @@ class FrameInitializationManager {
 
     void init_from_list_of_primitives() {
       check_names_count(1);
-      check_stypes_count(1);
-      dt::SType s = get_stype_for_column(0);
+      check_types_count(1);
+      auto s = get_type_for_column(0);
       make_column(src.to_robj(), s);
       make_datatable(names_arg);
     }
@@ -300,15 +296,15 @@ class FrameInitializationManager {
       }
       py::odict coldict = src.to_pydict();
       size_t ncols = coldict.size();
-      check_stypes_count(ncols);
+      check_types_count(ncols);
       strvec newnames;
       newnames.reserve(ncols);
       for (auto kv : coldict) {
         size_t i = newnames.size();
         py::robj name = kv.first;
-        dt::SType stype = get_stype_for_column(i, &name);
+        auto type = get_type_for_column(i, &name);
         newnames.push_back(name.to_string());
-        make_column(kv.second, stype);
+        make_column(kv.second, type);
       }
       make_datatable(newnames);
     }
@@ -320,21 +316,21 @@ class FrameInitializationManager {
             "constructing a Frame from varkwd arguments";
       }
       size_t ncols = all_args.num_varkwd_args();
-      check_stypes_count(ncols);
+      check_types_count(ncols);
       strvec newnames;
       newnames.reserve(ncols);
       for (auto kv: all_args.varkwds()) {
         size_t i = newnames.size();
-        dt::SType stype = get_stype_for_column(i, &kv.first);
+        auto type = get_type_for_column(i, &kv.first);
         newnames.push_back(kv.first.to_string());
-        make_column(kv.second, stype);
+        make_column(kv.second, type);
       }
       make_datatable(newnames);
     }
 
 
     void init_mystery_frame() {
-      cols.push_back(Column::from_range(42, 43, 1, dt::SType::AUTO));
+      cols.push_back(Column::from_range(42, 43, 1, dt::Type()));
       make_datatable(strvec { "?" });
     }
 
@@ -343,7 +339,7 @@ class FrameInitializationManager {
       DataTable* srcdt = src.to_datatable();
       size_t ncols = srcdt->ncols();
       check_names_count(ncols);
-      if (stypes_arg || stype_arg) {
+      if (types_arg || type_arg) {
         // TODO: allow this use case
         throw TypeError() << "Parameter `types` is not allowed when making "
             "a copy of a Frame";
@@ -387,7 +383,7 @@ class FrameInitializationManager {
 
 
     void init_from_pandas() {
-      if (stypes_arg || stype_arg) {
+      if (types_arg || type_arg) {
         throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from pandas DataFrame";
       }
@@ -411,7 +407,7 @@ class FrameInitializationManager {
           }
           index.replace(1, py::oint(i++));
           py::oobj colsrc = pd_iloc.get_item(index).get_attr("values");
-          make_column(colsrc, dt::SType::AUTO);
+          make_column(colsrc, dt::Type());
         }
         if (ncols == size_t(-1)) {
           check_names_count(cols.size());
@@ -425,7 +421,7 @@ class FrameInitializationManager {
           colnames.append(std::move(pyname));
         }
         py::oobj colsrc = pdsrc.get_attr("values");
-        make_column(colsrc, dt::SType::AUTO);
+        make_column(colsrc, dt::Type());
       }
       if (colnames.size() > 0) {
         make_datatable(colnames);
@@ -436,7 +432,7 @@ class FrameInitializationManager {
 
 
     void init_from_numpy() {
-      if (stypes_arg || stype_arg) {
+      if (types_arg || type_arg) {
         throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from a numpy array";
       }
@@ -475,7 +471,7 @@ class FrameInitializationManager {
         for (size_t i = 0; i < ncols; ++i) {
           col_key.replace(1, py::oint(i));
           auto colsrc = npsrc.get_item(col_key);  // npsrc[:, i]
-          make_column(colsrc, dt::SType::AUTO);
+          make_column(colsrc, dt::Type());
         }
       }
       make_datatable(names_arg);
@@ -483,7 +479,7 @@ class FrameInitializationManager {
 
 
     void init_from_arrow() {
-      if (stypes_arg || stype_arg) {
+      if (types_arg || type_arg) {
         throw TypeError() << "Argument `types` is not supported in Frame() "
             "constructor when creating a Frame from an arrow Table";
       }
@@ -568,18 +564,18 @@ class FrameInitializationManager {
     }
 
 
-    void check_stypes_count(size_t ncols) {
-      if (!defined_stypes) return;
+    void check_types_count(size_t ncols) {
+      if (!defined_types) return;
       size_t nstypes = 0;
-      if (stypes_arg.is_list_or_tuple()) {
-        nstypes = stypes_arg.to_pylist().size();
+      if (types_arg.is_list_or_tuple()) {
+        nstypes = types_arg.to_pylist().size();
       }
-      else if (stypes_arg.is_dict()) {
+      else if (types_arg.is_dict()) {
         return;
       }
       else {
-        throw TypeError() << stypes_arg.name() << " should be a list of "
-            "types, instead received " << stypes_arg.typeobj();
+        throw TypeError() << types_arg.name() << " should be a list of "
+            "types, instead received " << types_arg.typeobj();
       }
       if (nstypes != ncols) {
         throw ValueError()
@@ -592,22 +588,22 @@ class FrameInitializationManager {
 
 
     /**
-     * Retrieve the requested SType for column `i`. If the column's name is
+     * Retrieve the requested Type for column `i`. If the column's name is
      * known to the caller, it should be passed as the second parameter,
      * otherwise it will be retrieved from `names_arg` if necessary.
      *
-     * If no SType is specified for the given column, this method returns
-     * `SType::AUTO`.
+     * If no Type is specified for the given column, this method returns
+     * empty type (equivalent to "auto").
      *
      */
-    dt::SType get_stype_for_column(size_t i, const py::_obj* name = nullptr) {
-      if (defined_stype) {
-        return stype0;
+    dt::Type get_type_for_column(size_t i, const py::_obj* name = nullptr) {
+      if (defined_type) {
+        return type0;
       }
-      if (defined_stypes) {
-        if (stypes_arg.is_list_or_tuple()) {
-          py::olist stypes = stypes_arg.to_pylist();
-          return stypes[i].to_stype();
+      if (defined_types) {
+        if (types_arg.is_list_or_tuple()) {
+          py::olist types = types_arg.to_pylist();
+          return types[i].to_type_force();
         }
         else {
           py::robj oname(nullptr);
@@ -621,16 +617,16 @@ class FrameInitializationManager {
           } else {
             oname = *name;
           }
-          py::odict stypes = stypes_arg.to_pydict();
-          py::robj res = stypes.get(oname);
+          py::odict types = types_arg.to_pydict();
+          py::robj res = types.get(oname);
           if (res) {
-            return res.to_stype();
+            return res.to_type_force();
           } else {
-            return dt::SType::AUTO;
+            return dt::Type();
           }
         }
       }
-      return dt::SType::AUTO;
+      return dt::Type();
     }
 
 
@@ -659,7 +655,7 @@ class FrameInitializationManager {
     }
 
 
-    void make_column(py::robj colsrc, dt::SType s) {
+    void make_column(py::robj colsrc, dt::Type s) {
       Column col;
       if (colsrc.is_frame()) {
         DataTable* srcdt = colsrc.to_datatable();
@@ -673,9 +669,9 @@ class FrameInitializationManager {
         col = Column::from_pybuffer(colsrc);
       }
       else if (colsrc.is_list_or_tuple()) {
-        if (s == dt::SType::AUTO && colsrc.has_attr("type")) {
+        if (!s && colsrc.has_attr("type")) {
           auto srctype = colsrc.get_attr("type");
-          s = srctype.to_stype();
+          s = srctype.to_type_force();
         }
         col = Column::from_pylist(colsrc.to_pylist(), s);
       }
@@ -684,7 +680,7 @@ class FrameInitializationManager {
         col = Column::from_range(r.start(), r.stop(), r.step(), s);
       }
       else if (colsrc.is_pandas_categorical()) {
-        make_column(colsrc.invoke("astype", py::ostring("str")), dt::SType::STR32);
+        make_column(colsrc.invoke("astype", py::ostring("str")), dt::Type::str32());
         return;
       }
       else {
@@ -731,16 +727,6 @@ class FrameInitializationManager {
     }
 };
 
-
-
-//------------------------------------------------------------------------------
-// Custom error messages
-//------------------------------------------------------------------------------
-
-Error FrameInitializationManager::em::error_not_stype(PyObject*) const {
-  return TypeError() << "Invalid value for `type` parameter in Frame() "
-                        "constructor";
-} // LCOV_EXCL_LINE
 
 
 
@@ -799,6 +785,8 @@ void Frame::_init_init(XTypeMaker& xt) {
   xt.add(METHOD(&Frame::m__getstate__, fn___getstate__));
   xt.add(METHOD(&Frame::m__setstate__, fn___setstate__));
 }
+
+
 
 
 }  // namespace py

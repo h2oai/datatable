@@ -48,8 +48,8 @@ def test_types_type():
 
 
 def test_bad_type():
-    msg = r"Invalid value for type parameter in Frame\(\) constructor"
-    with pytest.raises(TypeError, match=msg):
+    msg = r"Cannot create Type object from -1"
+    with pytest.raises(ValueError, match=msg):
         dt.Frame(type=-1)
 
 
