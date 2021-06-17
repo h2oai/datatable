@@ -745,7 +745,7 @@ return: List[Type]
 
 See also
 --------
-- :attr:`.stypes` -- old interface for column types
+- :attr:`.type` -- common type for all columns
 )";
 
 static GSArgs args_types("types", doc_types);
@@ -766,9 +766,9 @@ oobj Frame::get_types() const {
 
 static const char* doc_stypes =
 R"(
-.. x-deprecated::
+.. x-version-deprecated:: 1.0.0
 
-  Use :attr:`.types` instead.
+    Use property :attr:`.types` instead.
 
 The tuple of each column's stypes ("storage types").
 
@@ -803,7 +803,11 @@ oobj Frame::get_stypes() const {
 
 static const char* doc_stype =
 R"(
-.. x-version-added:: v0.10.0
+.. x-version-deprecated:: 1.0.0
+
+    Use property :attr:`.type` instead.
+
+.. x-version-added:: 0.10.0
 
 The common :class:`dt.stype` for all columns.
 
@@ -851,6 +855,10 @@ oobj Frame::get_stype() const {
 
 static const char* doc_ltypes =
 R"(
+.. x-version-deprecated:: 1.0.0
+
+    Use property :attr:`.types` instead.
+
 The tuple of each column's ltypes ("logical types").
 
 Parameters
@@ -908,7 +916,7 @@ _data: Any
 **cols: Any
     Sequence of varkwd column initializers. The keys become column
     names, and the values contain column data. Using varkwd arguments
-    is equivalent to passing a `dict` as the `_data` argument.
+    is equivalent to passing a ``dict`` as the `_data` argument.
 
     When varkwd initializers are used, the `names` parameter may not
     be given.
@@ -935,7 +943,7 @@ return: Frame
     returned.
 
 except: ValueError
-    The exception is raised if the lengths of `names` or `stypes`
+    The exception is raised if the lengths of `names` or `types`
     lists are different from the number of columns created, or when
     creating several columns and they have incompatible lengths.
 
@@ -980,7 +988,7 @@ the first argument::
 The argument `_data` accepts a wide range of input types. The
 following list describes possible choices:
 
-`List[List | Frame | np.array | pd.DataFrame | pd.Series | range | typed_list]`
+``List[List | Frame | np.array | pd.DataFrame | pd.Series | range | typed_list]``
     When the source is a non-empty list containing other lists or
     compound objects, then each item will be interpreted as a column
     initializer, and the resulting frame will have as many columns
@@ -1007,7 +1015,7 @@ following list describes possible choices:
     a Frame from a row-oriented store of data, you can use a list of
     dictionaries or a list of tuples as described below.
 
-`List[Dict]`
+``List[Dict]``
     If the source is a list of `dict` objects, then each element
     in this list is interpreted as a single row. The keys
     in each dictionary are column names, and the values contain
@@ -1031,7 +1039,7 @@ following list describes possible choices:
     in the list of names will be taken into account, all extra
     fields will be discarded.
 
-`List[Tuple]`
+``List[Tuple]``
     If the source is a list of `tuple`s, then each tuple
     represents a single row. The tuples must have the same size,
     otherwise an exception will be raised::
@@ -1052,7 +1060,7 @@ following list describes possible choices:
     check is made whether the named tuples in fact belong to the
     same class.
 
-`List[Any]`
+``List[Any]``
     If the list's first element does not match any of the cases
     above, then it is considered a "list of primitives". Such list
     will be parsed as a single column.
@@ -1079,16 +1087,16 @@ following list describes possible choices:
     will have stype `str32` if the total size of the character is
     less than 2Gb, or `str64` otherwise.
 
-`typed_list`
+``typed_list``
     A typed list can be created by taking a regular list and
     dividing it by an stype. It behaves similarly to a simple
     list of primitives, except that it is parsed into the specific
     stype.
 
-        >>> dt.Frame([1.5, 2.0, 3.87] / dt.float32).stype
-        stype.float32
+        >>> dt.Frame([1.5, 2.0, 3.87] / dt.float32).type
+        Type.float32
 
-`Dict[str, Any]`
+``Dict[str, Any]``
     The keys are column names, and values can be any objects from
     which a single-column frame can be constructed: list, range,
     np.array, single-column Frame, pandas series, etc.
@@ -1096,18 +1104,18 @@ following list describes possible choices:
     Constructing a frame from a dictionary `d` is exactly equivalent
     to calling `dt.Frame(list(d.values()), names=list(d.keys()))`.
 
-`range`
+``range``
     Same as if the range was expanded into a list of integers,
     except that the column created from a range is virtual and
     its creation time is nearly instant regardless of the range's
     length.
 
-`Frame`
+``Frame``
     If the argument is a :class:`Frame <datatable.Frame>`, then
     a shallow copy of that frame will be created, same as
     :meth:`.copy()`.
 
-`str`
+``str``
     If the source is a simple string, then the frame is created
     by :func:`fread <datatable.fread>`-ing this string.
     In particular, if the string contains the name of a file, the
@@ -1129,7 +1137,7 @@ following list describes possible choices:
          2 | Lily        NA
         [3 rows x 2 columns]
 
-`pd.DataFrame | pd.Series`
+``pd.DataFrame | pd.Series``
     A pandas DataFrame (Series) will be converted into a datatable
     Frame. Column names will be preserved.
 
@@ -1142,7 +1150,7 @@ following list describes possible choices:
     it into a more specific stype. In particular, we can detect a
     string or boolean column stored as object in pandas.
 
-`np.array`
+``np.array``
     A numpy array will get converted into a Frame of the same shape
     (provided that it is 2- or less- dimensional) and the same type.
 
@@ -1150,14 +1158,14 @@ following list describes possible choices:
     (however, this is subject to numpy's approval). The resulting
     frame will have a copy-on-write semantics.
 
-`pyarrow.Table`
+``pyarrow.Table``
     An arrow table will be converted into a datatable Frame, preserving
     column names and types.
 
     If the arrow table has columns of types not supported by datatable
     (for example lists or structs), an exception will be raised.
 
-`None`
+``None``
     When the source is not given at all, then a 0x0 frame will be
     created; unless a `names` parameter is provided, in which
     case the resulting frame will have 0 rows but as many columns

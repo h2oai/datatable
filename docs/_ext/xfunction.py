@@ -1348,7 +1348,9 @@ class XversionActionDirective(SphinxDirective):
                 reftarget=target))
         node = xnodes.div(node, classes=["x-version", action])
 
-        self.state.nested_parse(self.content, self.content_offset, node)
+        if self.content:
+            node.attributes['classes'].extend(["admonition", "warning"])
+            self.state.nested_parse(self.content, self.content_offset, node)
         return [node]
 
 
