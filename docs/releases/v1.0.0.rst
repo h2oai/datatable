@@ -74,7 +74,7 @@
       [#2810]
 
     -[enh] Parameter ``types=`` in Frame's constructor can now accept arguments
-      of class :class:`Type`, and also pyarrow's types. [#2986]
+      of class :class:`dt.Type`, and also pyarrow's types. [#2986]
 
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]

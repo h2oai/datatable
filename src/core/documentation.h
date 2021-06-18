@@ -24,6 +24,7 @@
 namespace dt {
 
 
+extern const char* doc_Frame;
 extern const char* doc_Frame_head;
 extern const char* doc_Frame_tail;
 extern const char* doc_Frame_copy;
@@ -36,6 +37,10 @@ extern const char* doc_Frame_shape;
 extern const char* doc_Frame_source;
 extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
+extern const char* doc_Frame_stype;
+extern const char* doc_Frame_stypes;
+extern const char* doc_Frame_ltypes;
+extern const char* doc_Frame___init__;
 
 
 
