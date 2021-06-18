@@ -419,6 +419,120 @@ See Also
 )";
 
 
+static const char* doc_sd =
+R"(sd(self)
+--
+
+Calculate the standard deviation for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All the columns
+    will have `float64` stype. For non-numeric columns
+    this function returns NA values.
+
+See Also
+--------
+- :meth:`.sd1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+
+- :func:`dt.sd()` -- function for calculating the standard deviation
+  in a column or an expression; can also be applied per-group.
+
+)";
+
+
+static const char* doc_sd1 =
+R"(sd1(self)
+--
+
+Calculate the standard deviation for a one-column frame and
+return it as a scalar.
+
+This function is a shortcut for::
+
+    DT.sd()[0, 0]
+
+Parameters
+----------
+return: None | float
+    `None` is returned for non-numeric columns.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.sd()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+- :func:`dt.sd()` -- function for calculating the standard deviation
+  in a column or an expression; can also be applied per-group.
+
+)";
+
+
+static const char* doc_sum =
+R"(sum(self)
+--
+
+Calculate the sum of all values for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All the columns
+    will have `float64` stype. For non-numeric columns
+    this function returns NA values.
+
+See Also
+--------
+- :meth:`.sum1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+
+- :func:`dt.sum()` -- function for calculating the sum of all the values
+  in a column or an expression; can also be applied per-group.
+
+)";
+
+
+static const char* doc_sum1 =
+R"(sum1(self)
+--
+
+Calculate the sum of all values for a one-column column frame and
+return it as a scalar.
+
+This function is a shortcut for::
+
+    DT.sum()[0, 0]
+
+Parameters
+----------
+return: None | float
+    `None` is returned for non-numeric columns.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.sum()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+- :func:`dt.sum()` -- function for calculating the sum of all the values
+  in a column or an expression; can also be applied per-group.
+
+)";
+
+
 
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", doc_max);
@@ -427,8 +541,8 @@ static PKArgs args_min(0, 0, 0, false, false, {}, "min", doc_min);
 static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", doc_mode);
 static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", doc_nmodal);
 static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", doc_nunique);
-static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
-static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
+static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", doc_sd);
+static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", doc_sum);
 
 oobj Frame::stat(const PKArgs& args) {
   Stat stat = stat_from_args[&args];
@@ -444,8 +558,8 @@ static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", doc_min1);
 static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", doc_mode1);
 static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", doc_nmodal1);
 static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", doc_nunique1);
-static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
-static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
+static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", doc_sd1);
+static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", doc_sum1);
 
 oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols() != 1) {
