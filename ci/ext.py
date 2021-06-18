@@ -354,9 +354,22 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-unknown-pragmas"
             )
 
+    ext.add_prebuild_trigger(generate_documentation)
+
     # Setup is complete, ready to build
     ext.build()
     return ext.output_file
+
+
+def generate_documentation(ext):
+    hfile = "src/core/documentation.h"
+    ccfile = "src/core/documentation.cc"
+    docfiles = glob.glob("docs/api/**/*.rst", recursive=True)
+    if ext.is_modified(hfile):
+        import gendoc
+        ext.log.report_generating_docs(ccfile)
+        gendoc.generate_documentation(hfile, ccfile, docfiles)
+        ext.add_sources(ccfile)
 
 
 

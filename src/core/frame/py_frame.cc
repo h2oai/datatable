@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <algorithm>          // std::min
 #include <iostream>
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
@@ -38,49 +39,6 @@ PyObject* Frame_Type = nullptr;
 // head()
 //------------------------------------------------------------------------------
 
-static const char* doc_head =
-R"(head(self, n=10)
---
-
-Return the first `n` rows of the frame.
-
-If the number of rows in the frame is less than `n`, then all rows
-are returned.
-
-This is a convenience function and it is equivalent to `DT[:n, :]`.
-
-Parameters
-----------
-n : int
-    The maximum number of rows to return, 10 by default. This number
-    cannot be negative.
-
-return: Frame
-    A frame containing the first up to `n` rows from the original
-    frame, and same columns.
-
-
-Examples
---------
-
->>> DT = dt.Frame(A=["apples", "bananas", "cherries", "dates",
-...                  "eggplants", "figs", "grapes", "kiwi"])
->>> DT.head(4)
-   | A
-   | str32
--- + --------
- 0 | apples
- 1 | bananas
- 2 | cherries
- 3 | dates
-[4 rows x 1 column]
-
-
-See also
---------
-- :meth:`.tail` -- return the last `n` rows of the Frame.
-)";
-
 oobj Frame::head(const XArgs& args) {
   size_t n = std::min(args[0].to<size_t>(10),
                       dt->nrows());
@@ -90,7 +48,7 @@ oobj Frame::head(const XArgs& args) {
 
 DECLARE_METHOD(&Frame::head)
     ->name("head")
-    ->docs(doc_head)
+    ->docs(dt::doc_Frame_head)
     ->n_positional_args(1)
     ->arg_names({"n"});
 
@@ -100,49 +58,6 @@ DECLARE_METHOD(&Frame::head)
 //------------------------------------------------------------------------------
 // tail()
 //------------------------------------------------------------------------------
-
-static const char* doc_tail =
-R"(tail(self, n=10)
---
-
-Return the last `n` rows of the frame.
-
-If the number of rows in the frame is less than `n`, then all rows
-are returned.
-
-This is a convenience function and it is equivalent to `DT[-n:, :]`
-(except when `n` is 0).
-
-Parameters
-----------
-n : int
-    The maximum number of rows to return, 10 by default. This number
-    cannot be negative.
-
-return: Frame
-    A frame containing the last up to `n` rows from the original
-    frame, and same columns.
-
-
-Examples
---------
-
->>> DT = dt.Frame(A=["apples", "bananas", "cherries", "dates",
-...                  "eggplants", "figs", "grapes", "kiwi"])
->>> DT.tail(3)
-   | A
-   | str32
--- + ------
- 0 | figs
- 1 | grapes
- 2 | kiwi
-[3 rows x 1 column]
-
-
-See also
---------
-- :meth:`.head` -- return the first `n` rows of the Frame.
-)";
 
 oobj Frame::tail(const XArgs& args) {
   size_t n = std::min(args[0].to<size_t>(10),
@@ -155,7 +70,7 @@ oobj Frame::tail(const XArgs& args) {
 
 DECLARE_METHOD(&Frame::tail)
     ->name("tail")
-    ->docs(doc_tail)
+    ->docs(dt::doc_Frame_tail)
     ->n_positional_args(1)
     ->arg_names({"n"});
 

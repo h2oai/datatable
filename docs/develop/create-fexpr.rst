@@ -200,8 +200,8 @@ Python-facing ``gcd()`` function
 Now that we have created the ``FExpr_Gcd`` class, we also need to have a python
 function responsible for creating these objects. This is done in 4 steps:
 
-First, declare a function with signature ``py::oobj(const py::PKArgs&)``. The
-``py::PKArgs`` object here encapsulates all parameters that were passed to the
+First, declare a function with signature ``py::oobj(const py::XArgs&)``. The
+``py::XArgs`` object here encapsulates all parameters that were passed to the
 function, and it returns a ``py::oobj``, which is a simple wrapper around
 python's ``PyObject*``.
 
@@ -223,28 +223,23 @@ python function:
 
 .. code-block:: C++
 
-    static const char* doc_gcd =
-    R"(gcd(a, b)
-    --
-
-    Compute the greatest common divisor of `a` and `b`.
-
-    Parameters
-    ----------
-    a, b: FExpr
-        Only integer columns are supported.
-
-    return: FExpr
-        The returned column will have stype int64 if either `a` or `b` are
-        of type int64, or otherwise it will be int32.
-    )";
-
     DECLARE_PYFN(&py_gcd)
         ->name("gcd")
-        ->docs(doc_gcd)
+        ->docs(dt::doc_gcd)
         ->arg_names({"a", "b"})
         ->n_positional_args(2)
         ->n_required_args(2);
+
+The variable ``doc_gcd`` must be declared in the common "documentation.h"
+file:
+
+.. code-block::
+
+    extern const char* doc_gcd;
+
+The actual documentation should be written in a separate ``.rst`` file (more
+on this later), and then it will be added into the code during the compilation
+stage via the auto-generated file "documentation.cc".
 
 At this point the method will be visible from python in the ``_datatable``
 module. So the next step is to import it into the main ``datatable`` module.
@@ -306,30 +301,49 @@ column types, including invalid ones.
 Documentation
 -------------
 
-The final piece of the puzzle is the documentation. We've already written the
-documentation for our function: the ``doc_gcd`` variable declared earlier.
-However, for now this is only visible from python when you run ``help(gcd)``.
-We also want the documentation to be visible on our official readthedocs
-website, which requires a few more steps. So:
+The final piece of the puzzle is the documentation. We've already created
+variable ``doc_gcd`` earlier, which will ensure that documentation will
+be visible from python when you run ``help(gcd)``. However, the primary
+place where people look for documentation is on a dedicated readthedocs
+website, and this is where we will be adding the actual content.
 
-First, create file ``docs/api/dt/gcd.rst``. The content of the file should
-contain just few lines:
+So, create file ``docs/api/dt/gcd.rst``. The content of the file could
+be something like this:
 
 .. code-block:: rst
 
     .. xfunction:: datatable.gcd
-        :doc: src/core/fexpr/fexpr_gcd.cc doc_gcd
         :src: src/core/fexpr/fexpr_gcd.cc py_gcd
         :tests: tests/expr/test-gcd.py
+        :cvar: doc_gcd
+        :signature: gcd(a, b)
 
-In these lines we declare: in which source file the docstring can be found,
-and what is the name of its variable. The documentation generator will be
-looking for a ``static const char* doc_gcd`` variable in the source. Then
-we also declare the name of the function which provides the gcd functionality.
-The generator will look for a function with that name in the specified source
-file and create a link to that source in the output doc file. Lastly, the
-``:tests:`` parameter says which file contains tests dedicated to this
-function, this will also become a link in the generated documentation.
+        Compute the greatest common divisor of `a` and `b`.
+
+        Parameters
+        ----------
+        a, b: FExpr
+            Only integer columns are supported.
+
+        return: FExpr
+            The returned column will have stype int64 if either `a` or `b` are
+            of type int64, or otherwise it will be int32.
+
+
+In these lines we declare:
+
+  - the name of the function which provides the gcd functionality (this is
+    presented to the user as the "src" link in the generated docs);
+
+  - the name of the file dedicated to testing this functionality, this will
+    also become a link in the generated documentation;
+
+  - the name of the C variable declared in "documentation.h" which should
+    be given a copy of the documentation, so that it can be embedded into
+    python;
+
+  - the main signature of the function: its name and parameters (with defaults
+    if necessary).
 
 This RST file now needs to be added to the toctree: open the file
 ``docs/api/index-api.rst`` and add it into the ``.. toctree::`` list at the
