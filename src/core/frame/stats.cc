@@ -63,22 +63,23 @@ Report the number of NA values in each column of the frame.
 Parameters
 ----------
 (return): Frame
-    The frame will have 1 row and the same number and names of columns
+    The frame will have one row and the same number/names of columns
     as in the current frame. All columns will have stype ``int64``.
 
 Examples
 --------
->>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
->>> DT.countna()
-   |     A      B      C
-   | int64  int64  int64
--- + -----  -----  -----
- 0 |     1      3      2
---
-[1 row x 3 columns]
+.. code-block:: python
 
->>> DT.countna().to_tuples()[0]
-(1, 3, 2)
+    >>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
+    >>> DT.countna()
+       |     A      B      C
+       | int64  int64  int64
+    -- + -----  -----  -----
+     0 |     1      3      2
+    [1 row x 3 columns]
+
+    >>> DT.countna().to_tuples()[0]
+    >>> (1, 3, 2)
 
 
 See Also
@@ -89,6 +90,7 @@ See Also
 - :func:`dt.count()` -- function for counting non-NA ("valid") values
   in a column; can also be applied per-group.
 )";
+
 
 static const char* doc_countna1 =
 R"(countna1(self)
@@ -103,14 +105,14 @@ This function is a shortcut for::
 Parameters
 ----------
 (except): ValueError
-    If called on a Frame that has more or less than 1 column.
+    If called on a Frame that has more or less than one column.
 
 (return): int
 
 See Also
 --------
 - :meth:`.countna()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.count()` -- function for counting non-NA ("valid") values
   in a column; can also be applied per-group.
@@ -121,12 +123,12 @@ static const char* doc_max =
 R"(max(self)
 --
 
-Report the largest (maximum) value in each column of the frame.
+Find the largest value in each column of the frame.
 
 Parameters
 ----------
 return: Frame
-    The frame will have 1 row and the same number, names and stypes
+    The frame will have one row and the same number, names and stypes
     of columns as in the current frame. For string/object columns
     this function returns NA values.
 
@@ -136,11 +138,11 @@ See Also
   single-column frame only, and returns a scalar value instead of
   a Frame.
 
-- :func:`dt.max()` -- function for counting max values in a column or
+- :func:`dt.max()` -- function for finding largest values in a column or
   an expression; can also be applied per-group.
 )";
 
-#if 0
+
 static const char* doc_max1 =
 R"(max1(self)
 --
@@ -158,29 +160,28 @@ return: bool | int | float
     The returned value corresponds to the stype of the frame.
 
 except: ValueError
-    If called on a Frame that has more or less than 1 column.
+    If called on a Frame that has more or less than one column.
 
 See Also
 --------
 - :meth:`.max()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.max()` -- function for counting max values in a column or
   an expression; can also be applied per-group.
 )";
-#endif
 
 
 static const char* doc_min =
 R"(min(self)
 --
 
-Report the smallest (minimum) value in each column of the frame.
+Find the smallest value in each column of the frame.
 
 Parameters
 ----------
 return: Frame
-    The frame will have 1 row and the same number, names and stypes
+    The frame will have one row and the same number, names and stypes
     of columns as in the current frame. For string/object columns
     this function returns NA values.
 
@@ -195,12 +196,11 @@ See Also
 )";
 
 
-#if 0
 static const char* doc_min1 =
 R"(min1(self)
 --
 
-Return the smallest value in a single-column Frame. The frame's
+Find the smallest value in a single-column Frame. The frame's
 stype must be numeric.
 
 This function is a shortcut for::
@@ -218,22 +218,215 @@ except: ValueError
 See Also
 --------
 - :meth:`.min()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
+  a Frame with an arbitrary number of columns.
 
 - :func:`dt.min()` -- function for counting min values in a column or
   an expression; can also be applied per-group.
 )";
-#endif
+
+
+static const char* doc_mean =
+R"(mean(self)
+--
+
+Calculate the mean value for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All columns will have `float64`
+    stype. For string/object columns this function returns NA values.
+
+See Also
+--------
+- :meth:`.mean1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+- :func:`dt.mean()` -- function for counting mean values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+static const char* doc_mean1 =
+R"(mean1(self)
+--
+
+Calculate the mean value for a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.mean()[0, 0]
+
+Parameters
+----------
+return: None | float
+    `None` is returned for string/object columns.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.mean()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+- :func:`dt.mean()` -- function for calculatin mean values in a column or
+  an expression; can also be applied per-group.
+)";
+
+
+
+static const char* doc_mode =
+R"(mode(self)
+--
+
+Find the mode for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame.
+
+See Also
+--------
+- :meth:`.mode1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+)";
+
+
+static const char* doc_mode1 =
+R"(mode1(self)
+--
+
+Find the mode for a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.mode()[0, 0]
+
+Parameters
+----------
+return: bool | int | float | str | object
+    The returned value corresponds to the stype of the column.
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.mode()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+)";
+
+
+static const char* doc_nmodal =
+R"(nmodal(self)
+--
+
+Calculate the modal frequency for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All the columns
+    will have `int64` stype.
+
+See Also
+--------
+- :meth:`.nmodal1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+)";
+
+
+static const char* doc_nmodal1 =
+R"(nmodal1(self)
+--
+
+Calculate the modal frequency for a single-column Frame.
+
+This function is a shortcut for::
+
+    DT.nmodal()[0, 0]
+
+Parameters
+----------
+return: int
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.nmodal()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+)";
+
+
+static const char* doc_nunique =
+R"(nunique(self)
+--
+
+Count the number of unique values for each column in the frame.
+
+Parameters
+----------
+return: Frame
+    The frame will have one row and the same number/names
+    of columns as in the current frame. All the columns
+    will have `int64` stype.
+
+See Also
+--------
+- :meth:`.nunique1()` -- similar to this method, but operates on a
+  single-column frame only, and returns a scalar value instead of
+  a Frame.
+
+)";
+
+
+static const char* doc_nunique1 =
+R"(nunique1(self)
+--
+
+Count the number of unique values for a one-column frame and return it as a scalar.
+
+This function is a shortcut for::
+
+    DT.nunique()[0, 0]
+
+Parameters
+----------
+return: int
+
+except: ValueError
+    If called on a Frame that has more or less than one column.
+
+See Also
+--------
+- :meth:`.nunique()` -- similar to this method, but can be applied to
+  a Frame with an arbitrary number of columns.
+
+)";
 
 
 
 static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
 static PKArgs args_max(0, 0, 0, false, false, {}, "max", doc_max);
-static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
+static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", doc_mean);
 static PKArgs args_min(0, 0, 0, false, false, {}, "min", doc_min);
-static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
-static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
-static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
+static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", doc_mode);
+static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", doc_nmodal);
+static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", doc_nunique);
 static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
 static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
 
@@ -245,13 +438,13 @@ oobj Frame::stat(const PKArgs& args) {
 
 
 static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", doc_countna1);
-static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
+static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", doc_max1);
+static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", doc_mean1);
+static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", doc_min1);
+static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", doc_mode1);
+static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", doc_nmodal1);
+static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", doc_nunique1);
 static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
-static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
-static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
-static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", nullptr);
-static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
-static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
 static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
 
 oobj Frame::stat1(const PKArgs& args) {

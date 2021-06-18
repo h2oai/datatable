@@ -21,6 +21,50 @@
           - Create a copy of the frame.
 
 
+    Properties
+    ----------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :attr:`.key`
+          - The primary key for the Frame, if any.
+
+        * - :attr:`.ltypes`
+          - Logical types (:class:`dt.ltype`s) of all columns.
+
+        * - :attr:`.meta`
+          - The frame's meta information.
+
+        * - :attr:`.names`
+          - The names of all columns in the frame.
+
+        * - :attr:`.ncols`
+          - Number of columns in the frame.
+
+        * - :attr:`.nrows`
+          - Number of rows in the frame.
+
+        * - :attr:`.stype`
+          - A tuple (number of rows, number of columns).
+
+        * - :attr:`.source`
+          - Where this frame was loaded from.
+
+        * - :attr:`.stype`
+          - The common :class:`dt.stype` for the entire frame.
+
+        * - :attr:`.stypes`
+          - Storage types (:class:`dt.stype`s) of all columns.
+
+        * - :attr:`.type`
+          - The common type (:class:`dt.Type`) for the entire frame.
+
+        * - :attr:`.types`
+          - types (:class:`dt.Type`s) of all columns.
+
+
     Frame manipulation
     ------------------
 
@@ -36,9 +80,6 @@
 
         * - :meth:`del frame[i, j, ...] <datatable.Frame.__delitem__>`
           - Remove rows/columns/values from the frame.
-
-        * -
-          -
 
         * - :meth:`.cbind(*frames)`
           - Append columns of other frames to this frame.
@@ -85,52 +126,71 @@
           - Return the frame's data as a list of tuples, by rows.
 
 
-    Properties
-    ----------
+    Statistical methods
+    -------------------
+
 
     .. list-table::
         :widths: auto
         :class: api-table
 
-        * - :attr:`.key`
-          - The primary key for the Frame, if any.
+        * - :meth:`.countna()`
+          - Count missing values for each column in the frame.
 
-        * - :attr:`.ltypes`
-          - Logical types (:class:`dt.ltype`s) of all columns.
+        * - :meth:`.countna1()`
+          - Count missing values for a one-column frame and return it as a scalar.
 
-        * - :attr:`.meta`
-          - The frame's meta information.
+        * - :meth:`.max()`
+          - Find the largest element for each column in the frame.
 
-        * - :attr:`.names`
-          - The names of all columns in the frame.
+        * - :meth:`.max1()`
+          - Find the largest element for a one-column frame and return it as a scalar.
 
-        * - :attr:`.ncols`
-          - Number of columns in the frame.
+        * - :meth:`.mean()`
+          - Calculate the mean value for each column in the frame.
 
-        * - :attr:`.nrows`
-          - Number of rows in the frame.
+        * - :meth:`.mean1()`
+          - Calculate the mean value for a one-column frame and return it as a scalar.
 
-        * - :attr:`.stype`
-          - A tuple (number of rows, number of columns).
+        * - :meth:`.min()`
+          - Find the smallest element for each column in the frame.
 
-        * - :attr:`.source`
-          - Where this frame was loaded from.
+        * - :meth:`.min1()`
+          - Find the smallest element for a one-column frame and return it as a scalar.
 
-        * - :attr:`.stype`
-          - The common :class:`dt.stype` for the entire frame.
+        * - :meth:`.mode()`
+          - Find the mode value for each column in the frame.
 
-        * - :attr:`.stypes`
-          - Storage types (:class:`dt.stype`s) of all columns.
+        * - :meth:`.mode1()`
+          - Find the mode value for a one-column frame and return it as a scalar.
 
-        * - :attr:`.type`
-          - The common type (:class:`dt.Type`) for the entire frame.
+        * - :meth:`.nmodal()`
+          - Calculate the modal frequency for each column in the frame.
 
-        * - :attr:`.types`
-          - types (:class:`dt.Type`s) of all columns.
+        * - :meth:`.nmodal1()`
+          - Calculate the modal frequency for a one-column frame and return it as a scalar.
+
+        * - :meth:`.nunique()`
+          - Count the number of unique values for each column in the frame.
+
+        * - :meth:`.nunique1()`
+          - Count the number of unique values for a one-column frame and return it as a scalar.
+
+        * - :meth:`.sd()`
+          - Calculate the standard deviation for each column in the frame.
+
+        * - :meth:`.sd1()`
+          - Calculate the standard deviation for a one-column frame and return it as a scalar.
+
+        * - :meth:`.sum()`
+          - Calculate the sum of all values for each column in the frame.
+
+        * - :meth:`.sum1()`
+          - Calculate the sum of all values for a one-column column frame and return it as a scalar.
 
 
-    Other methods
-    -------------
+    Miscellaneous methods
+    ---------------------
 
     .. list-table::
         :widths: auto
@@ -150,15 +210,6 @@
 
         * - :meth:`.tail()`
           - Return the last few rows of the frame.
-
-
-    .. Auto-methods
-    .. ------------
-
-    .. ``countna()``, ``countna1()``, ``max()``, ``max1()``, ``mean()``,
-    .. ``mean1()``, ``min()``, ``min1()``, ``mode()``, ``mode1()``,
-    .. ``nmodal()``, ``nmodal1()``, ``nunique()``, ``nunique1()``,
-    .. ``sd()``, ``sd1()``, ``sum()``, ``sum1()``.
 
 
     Special methods
@@ -242,16 +293,30 @@
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
+    .countna()       <frame/countna>
+    .countna()       <frame/countna1>
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .max()           <frame/max>
+    .max1()          <frame/max1>
+    .mean()          <frame/mean>
+    .mean1()         <frame/mean1>
     .meta            <frame/meta>
+    .min()           <frame/min>
+    .min1()          <frame/min1>
+    .mode()          <frame/mode>
+    .mode1()         <frame/mode1>
     .names           <frame/names>
     .ncols           <frame/ncols>
+    .nmodal()        <frame/nmodal>
+    .nmodal1()       <frame/nmodal1>
     .nrows           <frame/nrows>
+    .nunique()       <frame/nunique>
+    .nunique1()      <frame/nunique1>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
     .shape           <frame/shape>
