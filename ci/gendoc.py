@@ -28,7 +28,7 @@ import time
 def generate_documentation(infile, outfile, docfiles):
     variables = read_header_file(infile)
     docstrings = read_documentation_files(docfiles)
-    with open(outfile, 'wt') as out:
+    with open(outfile, 'wt', encoding='utf-8') as out:
         write_intro(out)
         for var in variables:
             write_variable(out, var, docstrings.get(var))
@@ -43,7 +43,7 @@ def read_header_file(hfile):
     """
     rx = re.compile(r"\s*extern\s+const\s+char\*\s+(doc\w+);")
     out = []
-    with open(hfile, 'rt') as inp:
+    with open(hfile, 'rt', encoding='utf-8') as inp:
         for line in inp:
             mm = re.match(rx, line)
             if mm:
@@ -58,7 +58,7 @@ def read_documentation_files(docfiles):
     rx_option = re.compile(r"(\s+):(\w+):\s*(.*)")
     out = {}
     for docfile in docfiles:
-        with open(docfile, 'rt') as inp:
+        with open(docfile, 'rt', encoding='utf-8') as inp:
             indent = 0  # indent within the xfunction's body
             xkind = None
             cvar_name = None
