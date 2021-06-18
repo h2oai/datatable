@@ -93,6 +93,11 @@ class Extension:
         # in order to produce the final executable.
         self._sources = []             # List[str]
 
+        # List of user-provided functions that should be run before
+        # the main build phase (but once the build info is already
+        # available).
+        self._prebuild_triggers = []   # List[callable]
+
 
         # ------------------
         # Runtime properties
@@ -111,7 +116,7 @@ class Extension:
         self._files_modified = {}   # Dict[str, bool]
 
         # List of source files that need to be compiled. This list is
-        # derived from `self._filed_modified` at "rescan_files" stage.
+        # derived from `self._files_modified` at "rescan_files" stage.
         self._files_to_compile = [] # List[str]
 
         # If True, then force running the link stage, even if no files
@@ -357,6 +362,13 @@ class Extension:
         self._max_error_lines = value
 
 
+    def add_prebuild_trigger(self, fn):
+        """
+        The function should take a single argument -- the extension
+        object -- and return None.
+        """
+        self._prebuild_triggers.append(fn)
+
 
     #---------------------------------------------------------------------------
     # State retention
@@ -424,6 +436,7 @@ class Extension:
         self.output_file  # Instantiate the value of this variable
         self.log.cmd_build()
         self._load_state()              # [1]
+        self._run_prebuild_triggers()
         self._build_src2obj_map()       # [2]
         self._check_obj_uniqueness()
         self._find_files_to_rebuild()   # [3]
@@ -470,7 +483,12 @@ class Extension:
             obj2src[objfile] = src
 
 
-    def _is_modified(self, srcfile):
+    def _run_prebuild_triggers(self):
+        for fn in self._prebuild_triggers:
+            fn(self)
+
+
+    def is_modified(self, srcfile):
         """
         Memoized check for whether the file `srcfile` is <modified>.
 
@@ -487,7 +505,7 @@ class Extension:
                 srcfile not in self._src_includes or
                 not os.path.exists(srcfile) or
                 int(os.path.getmtime(srcfile) > self._t0) or
-                any(self._is_modified(hfile)
+                any(self.is_modified(hfile)
                     for hfile in self._src_includes[srcfile])
             )
         return self._files_modified[srcfile]
@@ -497,7 +515,7 @@ class Extension:
         """
         Check which of the source files need to be recompiled, either
         because the corresponding obj file is missing, or if the file
-        was <modified> (see :meth:`_is_modified`).
+        was <modified> (see :meth:`is_modified`).
 
         This method populates the map `self._files_modified` with
         boolean indicators of whether each file is considered
@@ -515,7 +533,7 @@ class Extension:
             self._files_modified[src_file] = (
                 self._t0 == 0 or
                 obj_file not in existing_obj_files or
-                self._is_modified(src_file)
+                self.is_modified(src_file)
             )
             existing_obj_files.discard(obj_file)
         self._files_to_compile = [src for src in self._sources
@@ -550,11 +568,11 @@ class Extension:
                     self._scan_file(src_file)
                     self._files_modified[src_file] = False
                     # Also check the modified status of ALL include files;
-                    # the `._is_modified()` call updates the `._files_modified`
+                    # the `.is_modified()` call updates the `._files_modified`
                     # dictionary, which is why we have the outer while loop.
                     for hfile in self._src_includes[src_file]:
                         if hfile not in self._files_modified:
-                            mod = self._is_modified(hfile)
+                            mod = self.is_modified(hfile)
                             self.log.report_new_header_found(hfile, mod)
         self._files_modified = None
 

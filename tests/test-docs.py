@@ -31,6 +31,7 @@ import pathlib
 import pytest
 import re
 import subprocess
+import sys
 
 # First .parent removes the file name, second goes up to the root level
 ROOT_PATH = pathlib.Path(__file__).parent.parent
@@ -61,6 +62,22 @@ def test_xfunction_paths():
                     assert fullpath.is_file(), (
                            "Path %s does not exist, found on line %d of %s"
                            % (fullpath, i + 1, filepath))
+
+
+@pytest.mark.skipif(not API_PATH.is_dir(), reason="API docs folder doesn't exist")
+def test_documentation_h():
+    sys.path.append(str(ROOT_PATH / "ci"))
+    import gendoc
+    del sys.path[-1]
+    variables = gendoc.read_header_file(ROOT_PATH / "src/core/documentation.h")
+    docstrings = gendoc.read_documentation_files(API_PATH.glob("**/*.rst"))
+    for var in variables:
+        assert var in docstrings, ("Variable %s declared in documentation.h "
+                                   "not found as a :cvar: among *.rst files")
+    for var in docstrings.keys():
+        assert var in variables, ("Variable %s is declared as a cvar, but "
+                                  "not in the documentation.h file")
+
 
 
 @pytest.mark.skipif("DT_BUILD_DOCS" not in os.environ,
