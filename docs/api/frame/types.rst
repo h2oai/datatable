@@ -15,4 +15,4 @@
 
     See also
     --------
-    - :attr:`.stypes` -- old interface for column types
+    - :attr:`.type` -- common type for all columns

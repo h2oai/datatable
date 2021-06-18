@@ -43,8 +43,6 @@ static PKArgs args__sizeof__(
 oobj Frame::m__sizeof__(const PKArgs&) {
   size_t sz = dt->memory_footprint();
   sz += sizeof(*this);
-  if (ltypes) sz += _PySys_GetSizeOf(ltypes);
-  if (stypes) sz += _PySys_GetSizeOf(stypes);
   return oint(sz);
 }
 

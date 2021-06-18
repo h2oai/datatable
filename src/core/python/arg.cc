@@ -149,7 +149,7 @@ std::string Arg::to_string()       const { return pyobj.to_string(*this); }
 strvec      Arg::to_stringlist()   const { return pyobj.to_stringlist(*this); }
 dt::SType   Arg::to_stype()        const { return pyobj.to_stype(*this); }
 dt::SType   Arg::to_stype(const error_manager& em) const { return pyobj.to_stype(em); }
-dt::Type    Arg::to_type_force()   const { return pyobj.to_type_force(*this); }
+dt::Type    Arg::to_type_force()   const { return pyobj.to_type_force(); }
 py::oiter   Arg::to_oiter()        const { return pyobj.to_oiter(*this); }
 DataTable*  Arg::to_datatable()    const { return pyobj.to_datatable(*this); }
 

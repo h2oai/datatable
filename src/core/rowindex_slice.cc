@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -78,7 +78,8 @@ bool SliceRowIndexImpl::get_element(size_t i, size_t* out) const {
 Column SliceRowIndexImpl::as_column() const {
   return Column(new dt::Range_ColumnImpl(static_cast<int64_t>(start),
                                          static_cast<int64_t>(length),
-                                         static_cast<int64_t>(step)));
+                                         static_cast<int64_t>(step),
+                                         dt::Type()));
 }
 
 

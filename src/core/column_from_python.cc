@@ -607,8 +607,8 @@ static Column parse_column_auto_type(const Column& inputcol) {
 /**
   * Parse `inputcol` forcing it into the specific stype.
   */
-static Column parse_column_fixed_type(const Column& inputcol, dt::SType stype) {
-  switch (stype) {
+static Column parse_column_fixed_type(const Column& inputcol, dt::Type type) {
+  switch (type.stype()) {
     case dt::SType::VOID:    return Column::new_na_column(inputcol.nrows(), dt::SType::VOID);
     case dt::SType::BOOL:    return force_as_bool(inputcol);
     case dt::SType::INT8:    return force_as_int<int8_t>(inputcol);
@@ -623,18 +623,18 @@ static Column parse_column_fixed_type(const Column& inputcol, dt::SType stype) {
     case dt::SType::OBJ:     return force_as_pyobj(inputcol);
     default:
       throw ValueError() << "Unable to create Column of type `"
-                         << stype << "` from list";
+                         << type << "` from list";
   }
 }
 
 
-static Column resolve_column(const Column& inputcol, dt::SType stype0)
+static Column resolve_column(const Column& inputcol, dt::Type type0)
 {
-  if (stype0 == dt::SType::AUTO) {
-    return parse_column_auto_type(inputcol);
+  if (type0) {
+    return parse_column_fixed_type(inputcol, type0);
   }
   else {
-    return parse_column_fixed_type(inputcol, stype0);
+    return parse_column_auto_type(inputcol);
   }
 }
 
@@ -645,37 +645,35 @@ static Column resolve_column(const Column& inputcol, dt::SType stype0)
 // Column API
 //------------------------------------------------------------------------------
 
-Column Column::from_pylist(const py::olist& list, dt::SType stype0) {
+Column Column::from_pylist(const py::olist& list, dt::Type type0) {
   Column inputcol(new dt::PyList_ColumnImpl(list));
-  return resolve_column(inputcol, stype0);
+  return resolve_column(inputcol, type0);
 }
 
 
 Column Column::from_pylist_of_tuples(
-    const py::olist& list, size_t index, dt::SType stype0)
+    const py::olist& list, size_t index, dt::Type type0)
 {
   Column inputcol(new dt::PyTupleList_ColumnImpl(list, index));
-  return resolve_column(inputcol, stype0);
+  return resolve_column(inputcol, type0);
 }
 
 
 Column Column::from_pylist_of_dicts(
-    const py::olist& list, py::robj name, dt::SType stype0)
+    const py::olist& list, py::robj name, dt::Type type0)
 {
   Column inputcol(new dt::PyDictList_ColumnImpl(list, name));
-  return resolve_column(inputcol, stype0);
+  return resolve_column(inputcol, type0);
 }
 
 
 Column Column::from_range(
-    int64_t start, int64_t stop, int64_t step, dt::SType stype)
+    int64_t start, int64_t stop, int64_t step, dt::Type type)
 {
-  if (stype == dt::SType::STR32 || stype == dt::SType::STR64 ||
-      stype == dt::SType::OBJ || stype == dt::SType::BOOL)
-  {
-    Column col = Column(new dt::Range_ColumnImpl(start, stop, step));
-    col.cast_inplace(stype);
+  if (type.is_string() || type.is_object() || type.is_boolean()) {
+    Column col = Column(new dt::Range_ColumnImpl(start, stop, step, dt::Type()));
+    col.cast_inplace(type);
     return col;
   }
-  return Column(new dt::Range_ColumnImpl(start, stop, step, stype));
+  return Column(new dt::Range_ColumnImpl(start, stop, step, type));
 }

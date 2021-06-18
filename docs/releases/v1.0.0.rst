@@ -73,6 +73,9 @@
       the stype of each column, as a second line under the column names.
       [#2810]
 
+    -[enh] Parameter ``types=`` in Frame's constructor can now accept arguments
+      of class :class:`Type`, and also pyarrow's types. [#2986]
+
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
 
@@ -105,6 +108,10 @@
       a :exc:`dt.exceptions.TypeError` will  be thrown. An ``object`` column
       can still be created by an explicit request via the ``stype=``
       parameter in the constructor.
+
+    -[api] Parameter ``stypes=`` in Frame constructor was renamed into
+      ``types=``, and similarly ``stype=`` into ``type=``. The old parameter
+      names are still recognized, but no longer documented.
 
 
     FExpr
