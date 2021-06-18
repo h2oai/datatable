@@ -40,6 +40,14 @@ jobs:
         - DT_HARNESS=Travis
         - CXX=$LLVM10/bin/clang-10
 
+    - name: "Python 3.8 on macOS arm64"
+      python: 3.8
+      os: osx
+      arch: arm64
+      compiler: gcc
+      env:
+        - DT_HARNESS=Travis
+
 cache:
   pip: true
   ccache: true
