@@ -43,8 +43,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
     int64_t step_;
 
   public:
-    Range_ColumnImpl(int64_t start, int64_t stop, int64_t step,
-                     SType stype = SType::AUTO);
+    Range_ColumnImpl(int64_t start, int64_t stop, int64_t step, Type type);
 
     ColumnImpl* clone() const override;
     size_t n_children() const noexcept override;
@@ -63,7 +62,7 @@ class Range_ColumnImpl : public Virtual_ColumnImpl {
     void apply_rowindex(const RowIndex& ri, Column& out) override;
 
   private:
-    Range_ColumnImpl(size_t, SType, int64_t, int64_t);  // for cloning
+    Range_ColumnImpl(size_t, Type, int64_t, int64_t);  // for cloning
 
     // Helper for get_element() accessors
     template <typename T> inline bool _get(size_t, T*) const;

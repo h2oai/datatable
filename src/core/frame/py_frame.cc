@@ -171,8 +171,6 @@ oobj Frame::copy(const XArgs& args) {
   oobj res = Frame::oframe(deepcopy? new DataTable(*dt, DataTable::deep_copy)
                                    : new DataTable(*dt));
   Frame* newframe = static_cast<Frame*>(res.to_borrowed_ref());
-  newframe->stypes = stypes;  Py_XINCREF(stypes);
-  newframe->ltypes = ltypes;  Py_XINCREF(ltypes);
   newframe->meta_ = meta_;
   newframe->source_ = source_;
   return res;
@@ -314,8 +312,6 @@ oobj Frame::oframe(robj src) {
 
 
 void Frame::m__dealloc__() {
-  Py_XDECREF(stypes);
-  Py_XDECREF(ltypes);
   delete dt;
   dt = nullptr;
   source_ = nullptr;
@@ -323,10 +319,6 @@ void Frame::m__dealloc__() {
 
 
 void Frame::_clear_types() {
-  Py_XDECREF(stypes);
-  Py_XDECREF(ltypes);
-  stypes = nullptr;
-  ltypes = nullptr;
   source_ = nullptr;
 }
 
@@ -668,7 +660,7 @@ return: List[Type]
 
 See also
 --------
-- :attr:`.stypes` -- old interface for column types
+- :attr:`.type` -- common type for all columns
 )";
 
 static GSArgs args_types("types", doc_types);
@@ -689,6 +681,10 @@ oobj Frame::get_types() const {
 
 static const char* doc_stypes =
 R"(
+.. x-version-deprecated:: 1.0.0
+
+    Use property :attr:`.types` instead.
+
 The tuple of each column's stypes ("storage types").
 
 Parameters
@@ -706,15 +702,12 @@ See also
 static GSArgs args_stypes("stypes", doc_stypes);
 
 oobj Frame::get_stypes() const {
-  if (stypes == nullptr) {
-    py::otuple ostypes(dt->ncols());
-    for (size_t i = 0; i < ostypes.size(); ++i) {
-      dt::SType st = dt->get_column(i).stype();
-      ostypes.set(i, dt::stype_to_pyobj(st));
-    }
-    stypes = std::move(ostypes).release();
+  py::otuple stypes(dt->ncols());
+  for (size_t i = 0; i < stypes.size(); ++i) {
+    dt::SType st = dt->get_column(i).stype();
+    stypes.set(i, dt::stype_to_pyobj(st));
   }
-  return oobj(stypes);
+  return std::move(stypes);
 }
 
 
@@ -725,7 +718,11 @@ oobj Frame::get_stypes() const {
 
 static const char* doc_stype =
 R"(
-.. x-version-added:: v0.10.0
+.. x-version-deprecated:: 1.0.0
+
+    Use property :attr:`.type` instead.
+
+.. x-version-added:: 0.10.0
 
 The common :class:`dt.stype` for all columns.
 
@@ -773,6 +770,10 @@ oobj Frame::get_stype() const {
 
 static const char* doc_ltypes =
 R"(
+.. x-version-deprecated:: 1.0.0
+
+    Use property :attr:`.types` instead.
+
 The tuple of each column's ltypes ("logical types").
 
 Parameters
@@ -789,15 +790,12 @@ See also
 static GSArgs args_ltypes("ltypes", doc_ltypes);
 
 oobj Frame::get_ltypes() const {
-  if (ltypes == nullptr) {
-    py::otuple oltypes(dt->ncols());
-    for (size_t i = 0; i < oltypes.size(); ++i) {
-      dt::SType st = dt->get_column(i).stype();
-      oltypes.set(i, dt::ltype_to_pyobj(stype_to_ltype(st)));
-    }
-    ltypes = std::move(oltypes).release();
+  py::otuple ltypes(dt->ncols());
+  for (size_t i = 0; i < ltypes.size(); ++i) {
+    dt::SType st = dt->get_column(i).stype();
+    ltypes.set(i, dt::ltype_to_pyobj(stype_to_ltype(st)));
   }
-  return oobj(ltypes);
+  return std::move(ltypes);
 }
 
 
@@ -808,7 +806,7 @@ oobj Frame::get_ltypes() const {
 //------------------------------------------------------------------------------
 
 static const char* doc___init__ =
-R"(__init__(self, _data=None, *, names=None, stypes=None, stype=None, **cols)
+R"(__init__(self, _data=None, *, names=None, types=None, type=None, **cols)
 --
 
 Create a new Frame from a single or multiple sources.
@@ -833,7 +831,7 @@ _data: Any
 **cols: Any
     Sequence of varkwd column initializers. The keys become column
     names, and the values contain column data. Using varkwd arguments
-    is equivalent to passing a `dict` as the `_data` argument.
+    is equivalent to passing a ``dict`` as the `_data` argument.
 
     When varkwd initializers are used, the `names` parameter may not
     be given.
@@ -846,22 +844,21 @@ names: List[str|None]
     This parameter should not be used when constructing the frame
     from `**cols`.
 
-stypes: List[stype-like] | Dict[str, stype-like]
-    Explicit list (or tuple) of column types. The number of elements
+types: List[Type] | Dict[str, Type]
+    Explicit list (or dict) of column types. The number of elements
     in the list must be the same as the number of columns being
     constructed.
 
-stype: stype | type
-    Similar to `stypes`, but provide a single type that will be used
-    for all columns. This option cannot be specified together with
-    `stypes`.
+type: Type | type
+    Similar to `types`, but provide a single type that will be used
+    for all columns. This option cannot be used together with `types`.
 
 return: Frame
     A :class:`Frame <datatable.Frame>` object is constructed and
     returned.
 
 except: ValueError
-    The exception is raised if the lengths of `names` or `stypes`
+    The exception is raised if the lengths of `names` or `types`
     lists are different from the number of columns created, or when
     creating several columns and they have incompatible lengths.
 
@@ -906,7 +903,7 @@ the first argument::
 The argument `_data` accepts a wide range of input types. The
 following list describes possible choices:
 
-`List[List | Frame | np.array | pd.DataFrame | pd.Series | range | typed_list]`
+``List[List | Frame | np.array | pd.DataFrame | pd.Series | range | typed_list]``
     When the source is a non-empty list containing other lists or
     compound objects, then each item will be interpreted as a column
     initializer, and the resulting frame will have as many columns
@@ -933,7 +930,7 @@ following list describes possible choices:
     a Frame from a row-oriented store of data, you can use a list of
     dictionaries or a list of tuples as described below.
 
-`List[Dict]`
+``List[Dict]``
     If the source is a list of `dict` objects, then each element
     in this list is interpreted as a single row. The keys
     in each dictionary are column names, and the values contain
@@ -957,7 +954,7 @@ following list describes possible choices:
     in the list of names will be taken into account, all extra
     fields will be discarded.
 
-`List[Tuple]`
+``List[Tuple]``
     If the source is a list of `tuple`s, then each tuple
     represents a single row. The tuples must have the same size,
     otherwise an exception will be raised::
@@ -978,7 +975,7 @@ following list describes possible choices:
     check is made whether the named tuples in fact belong to the
     same class.
 
-`List[Any]`
+``List[Any]``
     If the list's first element does not match any of the cases
     above, then it is considered a "list of primitives". Such list
     will be parsed as a single column.
@@ -1005,16 +1002,16 @@ following list describes possible choices:
     will have stype `str32` if the total size of the character is
     less than 2Gb, or `str64` otherwise.
 
-`typed_list`
+``typed_list``
     A typed list can be created by taking a regular list and
     dividing it by an stype. It behaves similarly to a simple
     list of primitives, except that it is parsed into the specific
     stype.
 
-        >>> dt.Frame([1.5, 2.0, 3.87] / dt.float32).stype
-        stype.float32
+        >>> dt.Frame([1.5, 2.0, 3.87] / dt.float32).type
+        Type.float32
 
-`Dict[str, Any]`
+``Dict[str, Any]``
     The keys are column names, and values can be any objects from
     which a single-column frame can be constructed: list, range,
     np.array, single-column Frame, pandas series, etc.
@@ -1022,18 +1019,18 @@ following list describes possible choices:
     Constructing a frame from a dictionary `d` is exactly equivalent
     to calling `dt.Frame(list(d.values()), names=list(d.keys()))`.
 
-`range`
+``range``
     Same as if the range was expanded into a list of integers,
     except that the column created from a range is virtual and
     its creation time is nearly instant regardless of the range's
     length.
 
-`Frame`
+``Frame``
     If the argument is a :class:`Frame <datatable.Frame>`, then
     a shallow copy of that frame will be created, same as
     :meth:`.copy()`.
 
-`str`
+``str``
     If the source is a simple string, then the frame is created
     by :func:`fread <datatable.fread>`-ing this string.
     In particular, if the string contains the name of a file, the
@@ -1055,7 +1052,7 @@ following list describes possible choices:
          2 | Lily        NA
         [3 rows x 2 columns]
 
-`pd.DataFrame | pd.Series`
+``pd.DataFrame | pd.Series``
     A pandas DataFrame (Series) will be converted into a datatable
     Frame. Column names will be preserved.
 
@@ -1068,7 +1065,7 @@ following list describes possible choices:
     it into a more specific stype. In particular, we can detect a
     string or boolean column stored as object in pandas.
 
-`np.array`
+``np.array``
     A numpy array will get converted into a Frame of the same shape
     (provided that it is 2- or less- dimensional) and the same type.
 
@@ -1076,14 +1073,14 @@ following list describes possible choices:
     (however, this is subject to numpy's approval). The resulting
     frame will have a copy-on-write semantics.
 
-`pyarrow.Table`
+``pyarrow.Table``
     An arrow table will be converted into a datatable Frame, preserving
     column names and types.
 
     If the arrow table has columns of types not supported by datatable
     (for example lists or structs), an exception will be raised.
 
-`None`
+``None``
     When the source is not given at all, then a 0x0 frame will be
     created; unless a `names` parameter is provided, in which
     case the resulting frame will have 0 rows but as many columns
@@ -1091,7 +1088,7 @@ following list describes possible choices:
 )";
 
 static PKArgs args___init__(1, 0, 3, false, true,
-                            {"_data", "names", "stypes", "stype"},
+                            {"_data", "names", "types", "type"},
                             "__init__", doc___init__);
 
 
@@ -1145,6 +1142,8 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__SETITEM__(&Frame::m__setitem__));
   xt.add(METHOD__GETBUFFER__(&Frame::m__getbuffer__, &Frame::m__releasebuffer__));
   Frame_Type = xt.get_type_object();
+  args___init__.add_synonym_arg("stypes", "types");
+  args___init__.add_synonym_arg("stype", "type");
 
   _init_key(xt);
   _init_init(xt);

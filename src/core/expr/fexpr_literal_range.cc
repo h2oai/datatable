@@ -51,7 +51,7 @@ Workframe FExpr_Literal_Range::evaluate_n(EvalContext& ctx) const {
   Workframe out(ctx);
   out.add_column(Column(new Range_ColumnImpl(value_.start(),
                                              value_.stop(),
-                                             value_.step())),
+                                             value_.step(), dt::Type())),
                  "", Grouping::GtoALL);
   return out;
 }

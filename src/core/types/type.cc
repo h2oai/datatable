@@ -140,30 +140,30 @@ Type Type::common(const Type& type1, const Type& type2) {
 }
 
 
-bool Type::is_void()    const { return impl_->stype_ == SType::VOID; }
-bool Type::is_invalid() const { return impl_->is_invalid(); }
-bool Type::is_boolean() const { return impl_->is_boolean(); }
-bool Type::is_integer() const { return impl_->is_integer(); }
-bool Type::is_float()   const { return impl_->is_float(); }
-bool Type::is_numeric() const { return impl_->is_numeric(); }
-bool Type::is_string()  const { return impl_->is_string(); }
-bool Type::is_object()  const { return impl_->is_object(); }
-bool Type::is_time()    const { return impl_->is_time(); }
+bool Type::is_void()    const { return impl_ && impl_->stype_ == SType::VOID; }
+bool Type::is_invalid() const { return impl_ && impl_->is_invalid(); }
+bool Type::is_boolean() const { return impl_ && impl_->is_boolean(); }
+bool Type::is_integer() const { return impl_ && impl_->is_integer(); }
+bool Type::is_float()   const { return impl_ && impl_->is_float(); }
+bool Type::is_numeric() const { return impl_ && impl_->is_numeric(); }
+bool Type::is_string()  const { return impl_ && impl_->is_string(); }
+bool Type::is_object()  const { return impl_ && impl_->is_object(); }
+bool Type::is_time()    const { return impl_ && impl_->is_time(); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }
-template<> bool Type::can_be_read_as<int8_t>()   const { return impl_->can_be_read_as_int8(); }
-template<> bool Type::can_be_read_as<int16_t>()  const { return impl_->can_be_read_as_int16(); }
-template<> bool Type::can_be_read_as<int32_t>()  const { return impl_->can_be_read_as_int32(); }
-template<> bool Type::can_be_read_as<int64_t>()  const { return impl_->can_be_read_as_int64(); }
-template<> bool Type::can_be_read_as<float>()    const { return impl_->can_be_read_as_float32(); }
-template<> bool Type::can_be_read_as<double>()   const { return impl_->can_be_read_as_float64(); }
-template<> bool Type::can_be_read_as<CString>()  const { return impl_->can_be_read_as_cstring(); }
-template<> bool Type::can_be_read_as<py::oobj>() const { return impl_->can_be_read_as_pyobject(); }
+template<> bool Type::can_be_read_as<int8_t>()   const { return impl_ && impl_->can_be_read_as_int8(); }
+template<> bool Type::can_be_read_as<int16_t>()  const { return impl_ && impl_->can_be_read_as_int16(); }
+template<> bool Type::can_be_read_as<int32_t>()  const { return impl_ && impl_->can_be_read_as_int32(); }
+template<> bool Type::can_be_read_as<int64_t>()  const { return impl_ && impl_->can_be_read_as_int64(); }
+template<> bool Type::can_be_read_as<float>()    const { return impl_ && impl_->can_be_read_as_float32(); }
+template<> bool Type::can_be_read_as<double>()   const { return impl_ && impl_->can_be_read_as_float64(); }
+template<> bool Type::can_be_read_as<CString>()  const { return impl_ && impl_->can_be_read_as_cstring(); }
+template<> bool Type::can_be_read_as<py::oobj>() const { return impl_ && impl_->can_be_read_as_pyobject(); }
 
 
 bool Type::operator==(const Type& other) const {
-  return (impl_ == other.impl_) || (impl_->equals(other.impl_));
+  return (impl_ == other.impl_) || (impl_ && impl_->equals(other.impl_));
 }
 
 Type::operator bool() const {
