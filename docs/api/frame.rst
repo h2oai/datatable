@@ -319,11 +319,15 @@
     .nunique1()      <frame/nunique1>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
+    .sd()            <frame/sd>
+    .sd1()           <frame/sd1>
     .shape           <frame/shape>
     .sort()          <frame/sort>
     .source          <frame/source>
     .stype           <frame/stype>
     .stypes          <frame/stypes>
+    .sum()           <frame/sum>
+    .sum1()          <frame/sum1>
     .tail()          <frame/tail>
     .to_arrow()      <frame/to_arrow>
     .to_csv()        <frame/to_csv>
