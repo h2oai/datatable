@@ -109,7 +109,7 @@ extern template class FExpr_RowFirstLast<false>;
 
 
 
-template <bool MIN>
+template <bool MIN, bool RETARGS=false>
 class FExpr_RowMinMax : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;
@@ -118,8 +118,10 @@ class FExpr_RowMinMax : public FExpr_RowFn {
     Column apply_function(std::vector<Column>&& columns) const override;
 };
 
-extern template class FExpr_RowMinMax<true>;
-extern template class FExpr_RowMinMax<false>;
+extern template class FExpr_RowMinMax<true,true>;
+extern template class FExpr_RowMinMax<false,true>;
+extern template class FExpr_RowMinMax<true,false>;
+extern template class FExpr_RowMinMax<false,false>;
 
 
 
