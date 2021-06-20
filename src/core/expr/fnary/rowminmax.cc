@@ -221,6 +221,11 @@ DECLARE_PYFN(&py_rowfn)
     ->allow_varargs()
     ->add_info(FN_ROWMAX);
 
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowargmax")
+    ->docs(doc_rowmax)
+    ->allow_varargs()
+    ->add_info(FN_ROWARGMAX);
 
 
 

@@ -37,6 +37,7 @@ enum RowFnKind : int {
   FN_ROWFIRST,
   FN_ROWLAST,
   FN_ROWMAX,
+  FN_ROWARGMAX,
   FN_ROWMEAN,
   FN_ROWMIN,
   FN_ROWSD,
