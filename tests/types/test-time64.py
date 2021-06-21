@@ -612,3 +612,21 @@ def test_sort():
     DT = dt.Frame([d(2010, 11, 5, i*17 % 23, 0, 0) for i in range(23)])
     assert_equals(DT.sort(0),
                   dt.Frame([d(2010, 11, 5, i, 0, 0) for i in range(23)]))
+
+
+def test_compare():
+    DT = dt.Frame(A=[d(2010, 11, 5, i*17 % 11, 0, 0) for i in range(11)])
+    DT['B'] = DT.sort(0)
+    RES = DT[:, {"EQ": (f.A == f.B),
+                 "NE": (f.A != f.B),
+                 "LT": (f.A < f.B),
+                 "LE": (f.A <= f.B),
+                 "GE": (f.A >= f.B),
+                 "GT": (f.A > f.B)}]
+    assert_equals(RES, dt.Frame(EQ = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                NE = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                LT = [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                LE = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                GE = [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                GT = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                type=dt.bool8))
