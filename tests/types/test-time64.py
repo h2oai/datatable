@@ -596,3 +596,19 @@ def test_rbind2():
     EXP = dt.Frame([5, 7, 9] * 2)
     EXP[0] = dt.Type.time64
     assert_equals(RES, EXP)
+
+
+def test_materialize():
+    DT = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)])
+    assert DT.type == dt.Type.time64
+    RES = DT[::2, :]
+    EXP = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)[::2]])
+    assert_equals(RES, EXP)
+    RES.materialize()
+    assert_equals(RES, EXP)
+
+
+def test_sort():
+    DT = dt.Frame([d(2010, 11, 5, i*17 % 23, 0, 0) for i in range(23)])
+    assert_equals(DT.sort(0),
+                  dt.Frame([d(2010, 11, 5, i, 0, 0) for i in range(23)]))

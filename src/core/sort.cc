@@ -690,6 +690,7 @@ class SortContext {
       case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
       case dt::SType::DATE32:
       case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
+      case dt::SType::TIME64:
       case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
       case dt::SType::FLOAT64: _initF<ASC, uint64_t>(); break;
