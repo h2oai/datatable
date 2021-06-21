@@ -596,3 +596,94 @@ def test_rbind2():
     EXP = dt.Frame([5, 7, 9] * 2)
     EXP[0] = dt.Type.time64
     assert_equals(RES, EXP)
+
+
+def test_materialize():
+    DT = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)])
+    assert DT.type == dt.Type.time64
+    RES = DT[::2, :]
+    EXP = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)[::2]])
+    assert_equals(RES, EXP)
+    RES.materialize()
+    assert_equals(RES, EXP)
+
+
+def test_sort():
+    DT = dt.Frame([d(2010, 11, 5, i*17 % 23, 0, 0) for i in range(23)])
+    assert_equals(DT.sort(0),
+                  dt.Frame([d(2010, 11, 5, i, 0, 0) for i in range(23)]))
+
+
+def test_compare():
+    DT = dt.Frame(A=[d(2010, 11, 5, i*17 % 11, 0, 0) for i in range(11)])
+    DT['B'] = DT.sort(0)
+    RES = DT[:, {"EQ": (f.A == f.B),
+                 "NE": (f.A != f.B),
+                 "LT": (f.A < f.B),
+                 "LE": (f.A <= f.B),
+                 "GE": (f.A >= f.B),
+                 "GT": (f.A > f.B)}]
+    assert_equals(RES, dt.Frame(EQ = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                NE = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                LT = [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                LE = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                GE = [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                GT = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                type=dt.bool8))
+
+
+def test_repeat():
+    DT = dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)])
+    DT = dt.repeat(DT, 5)
+    assert_equals(DT, dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)] * 5))
+
+
+def test_reducers():
+    DT = dt.Frame(TIME = [d(2001, 7, 12, 0, 0, 0),
+                          d(2005, 3, 14, 15, 9, 26),
+                          None,
+                          d(2007, 11, 2, 19, 7, 38),
+                          d(1965, 6, 19, 2, 17, 7),
+                          d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.TIME),
+                 "min": dt.min(f.TIME),
+                 "max": dt.max(f.TIME),
+                 "mean": dt.mean(f.TIME),
+                 "first": dt.first(f.TIME),
+                 "last": dt.last(f.TIME)}]
+    assert_equals(
+        RES,
+        dt.Frame(count = [5] / dt.int64,
+                 min = [d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(1996, 11, 12, 4, 55, 32, 400000)],
+                 first = [d(2001, 7, 12, 0, 0, 0)],
+                 last = [d(2004, 4, 18, 12, 3, 31)])
+    )
+
+
+def test_groupby():
+    DT = dt.Frame(A = [1, 1, 1, 2, 2, 2],
+                  B = [d(2001, 7, 12, 0, 0, 0),
+                       d(2005, 3, 14, 15, 9, 26),
+                       None,
+                       d(2007, 11, 2, 19, 7, 38),
+                       d(1965, 6, 19, 2, 17, 7),
+                       d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "mean": dt.mean(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)}, dt.by(f.A)]
+    assert_equals(
+        RES,
+        dt.Frame(A = [1, 2],
+                 count = [2, 3] / dt.int64,
+                 min = [d(2001, 7, 12, 0, 0, 0), d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2005, 3, 14, 15, 9, 26), d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(2003, 5, 13, 19, 34, 43), d(1992, 7, 13, 19, 9, 25, 333333)],
+                 first = [d(2001, 7, 12, 0, 0, 0), d(2007, 11, 2, 19, 7, 38)],
+                 last = [None, d(2004, 4, 18, 12, 3, 31)]
+                 )
+    )
