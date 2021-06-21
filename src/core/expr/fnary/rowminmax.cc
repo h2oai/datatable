@@ -46,21 +46,19 @@ static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
     bool xvalid = col.get_element(i, &x);
 	++minmaxargcount;
     if (!xvalid) continue;
-    if (minmax_valid)
-	{
-      if (MIN) {
-		  if (x < minmax) {
-			  minmax = x;
-			  minmaxarg = minmaxargcount;
-		  }
+    if (minmax_valid) {
+	  if (MIN) {
+		if (x < minmax) {
+		  minmax = x;
+		  minmaxarg = minmaxargcount;
+		}
+	  } else {
+		if (x > minmax) {
+		  minmax = x;
+		  minmaxarg = minmaxargcount;
+		 }
 	  }
-      else {
-		  if (x > minmax) {
-			  minmax = x;
-			  minmaxarg = minmaxargcount;
-		  }
-	  }
-    } else {
+	} else {
       minmax = x;
 	  minmaxarg = minmaxargcount;
       minmax_valid = true;
