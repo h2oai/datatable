@@ -636,3 +636,54 @@ def test_repeat():
     DT = dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)])
     DT = dt.repeat(DT, 5)
     assert_equals(DT, dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)] * 5))
+
+
+def test_reducers():
+    DT = dt.Frame(TIME = [d(2001, 7, 12, 0, 0, 0),
+                          d(2005, 3, 14, 15, 9, 26),
+                          None,
+                          d(2007, 11, 2, 19, 7, 38),
+                          d(1965, 6, 19, 2, 17, 7),
+                          d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.TIME),
+                 "min": dt.min(f.TIME),
+                 "max": dt.max(f.TIME),
+                 "mean": dt.mean(f.TIME),
+                 "first": dt.first(f.TIME),
+                 "last": dt.last(f.TIME)}]
+    assert_equals(
+        RES,
+        dt.Frame(count = [5] / dt.int64,
+                 min = [d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(1996, 11, 12, 4, 55, 32, 400000)],
+                 first = [d(2001, 7, 12, 0, 0, 0)],
+                 last = [d(2004, 4, 18, 12, 3, 31)])
+    )
+
+
+def test_groupby():
+    DT = dt.Frame(A = [1, 1, 1, 2, 2, 2],
+                  B = [d(2001, 7, 12, 0, 0, 0),
+                       d(2005, 3, 14, 15, 9, 26),
+                       None,
+                       d(2007, 11, 2, 19, 7, 38),
+                       d(1965, 6, 19, 2, 17, 7),
+                       d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "mean": dt.mean(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)}, dt.by(f.A)]
+    assert_equals(
+        RES,
+        dt.Frame(A = [1, 2],
+                 count = [2, 3] / dt.int64,
+                 min = [d(2001, 7, 12, 0, 0, 0), d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2005, 3, 14, 15, 9, 26), d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(2003, 5, 13, 19, 34, 43), d(1992, 7, 13, 19, 9, 25, 333333)],
+                 first = [d(2001, 7, 12, 0, 0, 0), d(2007, 11, 2, 19, 7, 38)],
+                 last = [None, d(2004, 4, 18, 12, 3, 31)]
+                 )
+    )

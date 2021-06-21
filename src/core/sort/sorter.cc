@@ -49,6 +49,7 @@ static std::unique_ptr<SSorter<T>> _make_sorter(const Column& col)
     case SType::INT16:   return so(new Sorter_Int<T, ASC, int16_t>(col));
     case SType::DATE32:
     case SType::INT32:   return so(new Sorter_Int<T, ASC, int32_t>(col));
+    case SType::TIME64:
     case SType::INT64:   return so(new Sorter_Int<T, ASC, int64_t>(col));
     case SType::FLOAT32: return so(new Sorter_Float<T, ASC, float>(col));
     case SType::FLOAT64: return so(new Sorter_Float<T, ASC, double>(col));
