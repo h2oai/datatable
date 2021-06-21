@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "datatablemodule.h"
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/xargs.h"
@@ -27,24 +28,6 @@
 namespace py {
 
 
-
-static const char* doc_to_pandas =
-R"(to_pandas(self)
---
-
-Convert this frame into a pandas DataFrame.
-
-If the frame being converted has one or more key columns, those
-columns will become the index in the pandas DataFrame.
-
-Parameters
-----------
-return: pandas.DataFrame
-    Pandas dataframe of shape ``(nrows, ncols-nkeys)``.
-
-except: ImportError
-    If the `pandas` module is not installed.
-)";
 
 oobj Frame::to_pandas(const XArgs&) {
   const size_t ncols = dt->ncols();
@@ -93,7 +76,7 @@ oobj Frame::to_pandas(const XArgs&) {
 
 DECLARE_METHOD(&Frame::to_pandas)
     ->name("to_pandas")
-    ->docs(doc_to_pandas);
+    ->docs(dt::doc_Frame_to_pandas);
 
 
 

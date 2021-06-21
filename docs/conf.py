@@ -14,6 +14,7 @@
 #
 import docutils
 import os
+import re
 import subprocess
 import sys
 sys.path.insert(0, os.path.abspath('.'))
@@ -28,6 +29,11 @@ author = 'Pasha Stetsenko'
 try:
     import datatable
     version = datatable.__version__
+    mm = re.match(r"[\d\.]+a\d+\+", version)
+    if mm:
+        # This prevents Sphinx from rebuilding every single file after
+        # each `make build`.
+        version = version[:mm.end()] + "(local)"
 
 except ImportError:
     verfile = os.path.abspath(os.path.join(os.path.dirname(__file__),

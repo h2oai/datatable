@@ -25,6 +25,7 @@
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
 #include "column/arrow_void.h"
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/xargs.h"
@@ -34,26 +35,7 @@ namespace py {
 
 
 static const char* doc_to_arrow =
-R"(to_arrow(self)
---
-
-Convert this frame into a ``pyarrow.Table`` object. The ``pyarrow``
-module must be installed.
-
-The conversion is multi-threaded and done in C++, but it does
-involve creating a copy of the data, except for the cases when the
-data was originally imported from Arrow. This is caused by differences
-in the data storage formats of datatable and Arrow.
-
-Parameters
-----------
-return: pyarrow.Table
-    A ``Table`` object is always returned, even if the source is a
-    single-column datatable Frame.
-
-except: ImportError
-    If the `pyarrow` module is not installed.
-)";
+R"()";
 
 oobj Frame::to_arrow(const XArgs&) {
   oobj pyarrow = oobj::import("pyarrow");
