@@ -630,3 +630,9 @@ def test_compare():
                                 GE = [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
                                 GT = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
                                 type=dt.bool8))
+
+
+def test_repeat():
+    DT = dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)])
+    DT = dt.repeat(DT, 5)
+    assert_equals(DT, dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)] * 5))
