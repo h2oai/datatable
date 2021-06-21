@@ -223,6 +223,47 @@ def test_rowminmax_floats():
 
 
 #-------------------------------------------------------------------------------
+# rowargmax(), rowargmin()
+#-------------------------------------------------------------------------------
+
+def test_rowminmax_simple():
+    DT = dt.Frame([[3], [-6], [17], [0], [5.4]])
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[2], [1]]))
+
+
+def test_rowminmax_int8():
+    DT = dt.Frame([[4], [None], [1], [3]], stype=dt.int8)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[0], [2]], stype=dt.int32))
+
+
+def test_rowminmax_nas():
+    DT = dt.Frame([[None]] * 3, stype=dt.int64)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]], stype=dt.int64))
+
+
+def test_rowminmax_almost_nas():
+    DT = dt.Frame([[None], [None], [1], [None]], stype=dt.float64)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[2], [2]]))
+
+
+def test_rowminmax_floats():
+    import sys
+    maxflt = sys.float_info.max
+    DT = dt.Frame([(7.5, math.nan, 4.1),
+                   (math.nan, math.inf, None),
+                   (math.inf, -math.inf, None),
+                   (maxflt, math.inf, -maxflt)])
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[0, 1, 0, 1],
+                                 [2, 1, 1, 2]]))
+
+
+
+#-------------------------------------------------------------------------------
 # rowmean()
 #-------------------------------------------------------------------------------
 

@@ -40,6 +40,7 @@ enum RowFnKind : int {
   FN_ROWARGMAX,
   FN_ROWMEAN,
   FN_ROWMIN,
+  FN_ROWARGMIN,
   FN_ROWSD,
   FN_ROWSUM,
 };

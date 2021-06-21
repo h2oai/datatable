@@ -39,19 +39,37 @@ template <typename T, bool MIN, bool RETARGS=false>
 static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
   bool minmax_valid = false;
   T minmax = 0;
+  size_t minmaxargcount = -1;
+  size_t minmaxarg = 0;
   for (const auto& col : columns) {
     T x;
     bool xvalid = col.get_element(i, &x);
+	++minmaxargcount;
     if (!xvalid) continue;
-    if (minmax_valid) {
-      if (MIN) { if (x < minmax) minmax = x; }
-      else     { if (x > minmax) minmax = x; }
+    if (minmax_valid)
+	{
+      if (MIN) {
+		  if (x < minmax) {
+			  minmax = x;
+			  minmaxarg = minmaxargcount;
+		  }
+	  }
+      else {
+		  if (x > minmax) {
+			  minmax = x;
+			  minmaxarg = minmaxargcount;
+		  }
+	  }
     } else {
       minmax = x;
+	  minmaxarg = minmaxargcount;
       minmax_valid = true;
     }
   }
-  *out = minmax;
+  if (RETARGS)
+	*out = minmaxarg;
+  else
+	*out = minmax;
   return minmax_valid;
 }
 
@@ -229,6 +247,11 @@ DECLARE_PYFN(&py_rowfn)
     ->allow_varargs()
     ->add_info(FN_ROWARGMAX);
 
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowargmin")
+    ->docs(doc_rowmin)
+    ->allow_varargs()
+    ->add_info(FN_ROWARGMIN);
 
 
 }}  // namespace dt::expr

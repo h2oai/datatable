@@ -144,6 +144,7 @@ py::oobj py_rowfn(const py::XArgs& args) {
     case FN_ROWARGMAX:return PyFExpr::make(new FExpr_RowMinMax<false,true>(std::move(a)));
     case FN_ROWMEAN:  return PyFExpr::make(new FExpr_RowMean(std::move(a)));
     case FN_ROWMIN:   return PyFExpr::make(new FExpr_RowMinMax<true>(std::move(a)));
+    case FN_ROWARGMIN:return PyFExpr::make(new FExpr_RowMinMax<true,true>(std::move(a)));
     case FN_ROWSD:    return PyFExpr::make(new FExpr_RowSd(std::move(a)));
     default: throw RuntimeError();
   }
