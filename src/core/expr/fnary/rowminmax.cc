@@ -65,9 +65,9 @@ static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
     }
   }
   if (RETARGS)
-	*out = minmaxarg;
+    *out = minmaxarg;
   else
-	*out = minmax;
+    *out = minmax;
   return minmax_valid;
 }
 
