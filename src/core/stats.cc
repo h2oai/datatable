@@ -1432,9 +1432,28 @@ Column Stats::get_stat_as_column(Stat stat) {
     case Stat::NModal: {
       return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
     }
-    case Stat::Sum:
     case Stat::Mean:
+      switch (column->stype()) {
+        case dt::SType::DATE32:  {
+          // Convert days to nanoseconds for the further time64 casting
+          double value;
+          bool isvalid = get_stat(stat, &value);
+          if (!isvalid) {
+            return _make_nacol(dt::SType::TIME64);
+          }
+          value *= 86400000000000;
+          set_stat(stat, value);
+        }
+        case dt::SType::TIME64:  return colwrap_stat<double, int64_t>(stat, dt::SType::TIME64);
+        default:                 return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+      }
+    case Stat::Sum:
     case Stat::StDev:
+      switch (column->stype()) {
+        case dt::SType::DATE32:
+        case dt::SType::TIME64: return _make_nacol(dt::SType::FLOAT64);
+        default: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+      }
     case Stat::Skew:
     case Stat::Kurt: {
       return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
