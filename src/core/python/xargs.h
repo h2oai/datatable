@@ -203,7 +203,7 @@ class XArgs : public ArgParent {
 };
 
 
-// #define RESULT_OF(fn) \
+// #define RESULT_OF(fn)
 //     typename std::result_of<decltype(fn)(CLASS_OF(fn), const XArgs&)>::type
 
 
