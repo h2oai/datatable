@@ -58,4 +58,65 @@ bool CastTime64ToDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
 
 
 
+//------------------------------------------------------------------------------
+// CastStringToDate32_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastStringToDate32_ColumnImpl::CastStringToDate32_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::DATE32, std::move(arg))
+{
+  xassert(arg_.can_be_read_as<CString>());
+}
+
+
+ColumnImpl* CastStringToDate32_ColumnImpl::clone() const {
+  return new CastStringToDate32_ColumnImpl(Column(arg_));
+}
+
+
+bool CastStringToDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
+  CString value;
+  bool isvalid = arg_.get_element(i, &value);
+  return isvalid &&
+         read::parse_date32_iso(value.data(), value.end(), out);
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
+// CastObjToDate32_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastObjToDate32_ColumnImpl::CastObjToDate32_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::DATE32, std::move(arg))
+{
+  xassert(arg_.stype() == SType::OBJ);
+}
+
+
+ColumnImpl* CastObjToDate32_ColumnImpl::clone() const {
+  return new CastObjToDate32_ColumnImpl(Column(arg_));
+}
+
+
+bool CastObjToDate32_ColumnImpl::allow_parallel_access() const {
+  return false;
+}
+
+
+bool CastObjToDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
+  py::oobj value;
+  bool isvalid = arg_.get_element(i, &value);
+  if (isvalid) {
+    return value.parse_date(out);
+  }
+  return false;
+}
+
+
+
+
+
 }  // namespace dt
