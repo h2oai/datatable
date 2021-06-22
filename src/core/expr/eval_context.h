@@ -119,9 +119,8 @@ class EvalContext
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
     bool       reverse_;
-    size_t : 8;
+    ModType    mod_type_;
     NaPosition na_position_;
-    ModType mod_type_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
