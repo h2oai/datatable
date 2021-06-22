@@ -88,6 +88,9 @@
     -[fix] Frame terminal display no longer overflows terminal's width if
       it contains strings with special characters. [#2844]
 
+    -[fix] Sorting in reverse order now works correctly in the presence
+      of a groupby. [#2838]
+
     -[api] Converting a frame with incompatible types into a numpy array will
       now raise an error (instead of auto-promoting to object type). However,
       if the user explicitly requests promotion into the object type then

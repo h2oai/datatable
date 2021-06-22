@@ -121,6 +121,7 @@ class EvalContext
     bool       reverse_;
     size_t : 8;
     NaPosition na_position_;
+    ModType mod_type_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
@@ -155,6 +156,7 @@ class EvalContext
 
     bool reverse_sort();
     NaPosition get_na_position() const;
+    ModType get_mod_type() const;
   private:
     void compute_groupby_and_sort();
 

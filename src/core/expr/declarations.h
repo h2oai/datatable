@@ -112,6 +112,12 @@ namespace expr {
   };
 
 
+  enum class ModType : uint8_t {
+    BY,
+    SORT
+  };
+
+
 
 }}
 #endif
