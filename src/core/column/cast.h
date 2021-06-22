@@ -240,8 +240,17 @@ class CastObjToBool_ColumnImpl : public Cast_ColumnImpl {
     CastObjToBool_ColumnImpl(Column&&);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
-
     bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+class CastObjToDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToDate32_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    bool get_element(size_t, int32_t*) const override;
 };
 
 
@@ -251,7 +260,6 @@ class CastObjToTime64_ColumnImpl : public Cast_ColumnImpl {
     CastObjToTime64_ColumnImpl(Column&&);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
-
     bool get_element(size_t, int64_t*) const override;
 };
 

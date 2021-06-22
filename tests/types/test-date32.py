@@ -316,6 +316,15 @@ def test_cast_string_to_date32(ttype):
                                 None, None, None]))
 
 
+def test_cast_object_to_date32():
+    DT = dt.Frame([d(2001, 1, 1), d(2021, 10, 15), 3.14159, None, list],
+                  type=object)
+    DT[0] = dt.Type.date32
+    assert_equals(DT, dt.Frame([d(2001, 1, 1),
+                                d(2021, 10, 15),
+                                None, None, None]))
+
+
 
 #-------------------------------------------------------------------------------
 # Relational operators

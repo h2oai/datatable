@@ -105,10 +105,9 @@ Column Type_Date32::cast_column(Column&& col) const {
     case SType::STR32:
     case SType::STR64:
       return Column(new CastStringToDate32_ColumnImpl(std::move(col)));
-      // NYI
 
     case SType::OBJ:
-      // NYI
+      return Column(new CastObjToDate32_ColumnImpl(std::move(col)));
 
     default:
       throw TypeError() << "Unable to cast column of type `" << col.type()
