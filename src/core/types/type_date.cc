@@ -104,6 +104,7 @@ Column Type_Date32::cast_column(Column&& col) const {
 
     case SType::STR32:
     case SType::STR64:
+      return Column(new CastStringToDate32_ColumnImpl(std::move(col)));
       // NYI
 
     case SType::OBJ:
