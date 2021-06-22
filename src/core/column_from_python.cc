@@ -279,7 +279,7 @@ static Column force_as_real(const Column& inputcol)
 static size_t parse_as_date32(const Column& inputcol, Buffer& mbuf, size_t i0) {
   return parse_as_X<int32_t>(inputcol, mbuf, i0,
             [](const py::oobj& item, int32_t* out) {
-              return item.parse_date(out) ||
+              return item.parse_date_as_date(out) ||
                      item.parse_none(out);
             });
 }
@@ -322,7 +322,7 @@ static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
   return parse_as_X<int64_t>(inputcol, mbuf, i0,
             [](const py::oobj& item, int64_t* out) {
               return item.parse_datetime(out) ||
-                     item.parse_date(out) ||
+                     item.parse_date_as_time(out) ||
                      item.parse_none(out);
             });
 }

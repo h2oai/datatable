@@ -52,7 +52,7 @@ bool CastObjToTime64_ColumnImpl::get_element(size_t i, int64_t* out) const {
   bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
     return value.parse_datetime(out) ||
-           value.parse_date(out) ||
+           value.parse_date_as_time(out) ||
            false;
   }
   return false;
