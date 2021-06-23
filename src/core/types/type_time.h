@@ -48,7 +48,7 @@ class Type_Time64 : public TypeImpl {
   public:
     Type_Time64();
     bool can_be_read_as_int64() const override;
-    bool is_time() const override;
+    bool is_temporal() const override;
     std::string to_string() const override;
     py::oobj min() const override;
     py::oobj max() const override;

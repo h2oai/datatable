@@ -230,8 +230,8 @@ def test_qcut_random(pandas, seed):
                    [[None if DT[i, j] is None else c for i in range(nrows)]])
         else:
             if DT_qcut[j].countna1() == nrows:
-                assert DT_qcut[j].min1() == None
-                assert DT_qcut[j].max1() == None
+                assert DT_qcut[j].min1() is None
+                assert DT_qcut[j].max1() is None
             else:
                 assert DT_qcut[j].min1() == 0
                 assert DT_qcut[j].max1() == nquantiles[j] - 1

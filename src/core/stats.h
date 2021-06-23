@@ -372,6 +372,38 @@ extern template class IntegerStats<int32_t>;
 extern template class IntegerStats<int64_t>;
 
 
+//------------------------------------------------------------------------------
+// TimeStats class
+//------------------------------------------------------------------------------
+
+/**
+ * Child of IntegerStats that represents time-valued columns.
+ */
+class TimeStats : public IntegerStats<int64_t> {
+  public:
+    using IntegerStats<int64_t>::IntegerStats;
+    double sum  (bool* isvalid) override;
+    double stdev (bool* isvalid) override;
+    std::unique_ptr<Stats> clone() const override;
+};
+
+
+//------------------------------------------------------------------------------
+// DateStats class
+//------------------------------------------------------------------------------
+
+/**
+ * Child of IntegerStats that represents date-valued columns.
+ */
+class DateStats : public IntegerStats<int32_t> {
+  public:
+    using IntegerStats<int32_t>::IntegerStats;
+    double sum (bool* isvalid) override;
+    double stdev (bool* isvalid) override;
+    double mean (bool* isvalid) override;
+    std::unique_ptr<Stats> clone() const override;
+};
+
 
 //------------------------------------------------------------------------------
 // BooleanStats class

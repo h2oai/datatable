@@ -284,7 +284,7 @@ def test_stype_codes():
 def test_stype_ctypes():
     from datatable import stype
     import ctypes
-    assert stype.void.ctype == None
+    assert stype.void.ctype is None
     assert stype.bool8.ctype == ctypes.c_int8
     assert stype.int8.ctype == ctypes.c_int8
     assert stype.int16.ctype == ctypes.c_int16
