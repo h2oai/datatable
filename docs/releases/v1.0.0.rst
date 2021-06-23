@@ -192,3 +192,5 @@
 
     -[fix] Datatable can now be properly installed from a source distribution.
       [#2846]
+
+    -[new] Added stats functions ``.skew()`` and ``.kurt()``. [#1084]
