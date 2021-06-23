@@ -26,7 +26,7 @@ import random
 import statistics
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
-from math import inf, nan, isnan
+from math import inf, nan, isnan, isclose
 from tests import list_equals
 
 
@@ -239,33 +239,27 @@ def test_dt_sd_special_cases(src, res):
 # Skew function dt.skew()
 #-------------------------------------------------------------------------------
 
-def truncate(n, decimals=0):
-    multiplier = 10 ** decimals
-    return int(n * multiplier) / multiplier
-
 
 def test_dt_skew(numpy, pandas):
-    x = numpy.random.normal(0, 1000, 10000) 
+    x = numpy.random.normal(0, 1000, 10000)
     pd_df = pandas.DataFrame(x)
     dt_df = dt.Frame(x)
     EXP = pd_df.skew()[0]
     RES = dt_df.skew1()
-    assert truncate(EXP, 2) == truncate(RES, 2)
-    assert truncate(EXP, 3) == truncate(RES, 3)
+    assert isclose(EXP, RES, abs_tol=1e-5)
 
 #-------------------------------------------------------------------------------
 # Kurtosis function dt.kurt()
 #-------------------------------------------------------------------------------
 
 def test_dt_kurt(numpy, pandas):
-    x = numpy.random.normal(0, 1000, 10000) 
+    x = numpy.random.normal(0, 1000, 10000)
     pd_df = pandas.DataFrame(x)
     dt_df = dt.Frame(x)
     EXP = pd_df.kurtosis()[0]
     RES = dt_df.kurt1()
-    assert truncate(EXP, 2) == truncate(RES, 2)
-    assert truncate(EXP, 3) == truncate(RES, 3)
-    
+    assert isclose(EXP, RES, abs_tol=1e-5)
+
 #-------------------------------------------------------------------------------
 # Count_na function dt.count_na()
 #-------------------------------------------------------------------------------
