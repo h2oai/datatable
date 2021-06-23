@@ -60,13 +60,21 @@ def test_date32_create_from_python():
     assert DT.to_list() == [src]
 
 
-def test_date32_create_from_python_force():
-    DT = dt.Frame([18675, -100000, None, 0.75, 'hello'], stype='date32')
+def test_date32_create_from_string_list():
+    DT = dt.Frame(['1901-04-11', '1969-12-31', 'NaT', '2000-10-07', '2015-11-21'],
+                  type=dt.Type.date32)
+    assert DT.type == dt.Type.date32
+    assert DT.to_list() == [
+        [d(1901, 4, 11), d(1969, 12, 31), None, d(2000, 10, 7), d(2015, 11, 21)]
+    ]
+
+
+def test_date32_create_from_mixed_list():
+    DT = dt.Frame([18675, -100000, None, 0, 'hello'], type='date32')
     assert DT.type == dt.Type.date32
     assert DT.to_list() == [
         [d(2021, 2, 17), d(1696, 3, 17), None, d(1970, 1, 1), None]
     ]
-
 
 
 def test_date32_repr():

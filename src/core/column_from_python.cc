@@ -321,7 +321,7 @@ static Column force_as_date32(const Column& inputcol) {
 static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
   return parse_as_X<int64_t>(inputcol, mbuf, i0,
             [](const py::oobj& item, int64_t* out) {
-              return item.parse_datetime(out) ||
+              return item.parse_datetime_as_time(out) ||
                      item.parse_date_as_time(out) ||
                      item.parse_none(out);
             });
@@ -619,7 +619,7 @@ static Column parse_column_fixed_type(const Column& inputcol, dt::Type type) {
     case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
     case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
     case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
-    case dt::SType::DATE32:  return force_as_date32(inputcol);
+    case dt::SType::DATE32:  return inputcol.cast(dt::Type::date32());
     case dt::SType::OBJ:     return force_as_pyobj(inputcol);
     default:
       throw ValueError() << "Unable to create Column of type `"
@@ -631,7 +631,9 @@ static Column parse_column_fixed_type(const Column& inputcol, dt::Type type) {
 static Column resolve_column(const Column& inputcol, dt::Type type0)
 {
   if (type0) {
-    return parse_column_fixed_type(inputcol, type0);
+    Column out = parse_column_fixed_type(inputcol, type0);
+    out.materialize();
+    return out;
   }
   else {
     return parse_column_auto_type(inputcol);

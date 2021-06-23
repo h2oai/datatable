@@ -110,7 +110,10 @@ bool CastObjToDate32_ColumnImpl::get_element(size_t i, int32_t* out) const {
   py::oobj value;
   bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
-    return value.parse_date_as_date(out);
+    return value.parse_date_as_date(out) ||
+           value.parse_int_as_date(out) ||
+           value.parse_datetime_as_date(out) ||
+           value.parse_string_as_date(out);
   }
   return false;
 }
