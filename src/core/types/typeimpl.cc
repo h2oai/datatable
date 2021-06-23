@@ -47,15 +47,15 @@ size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
-bool TypeImpl::is_void()    const { return stype_ == dt::SType::VOID; }
-bool TypeImpl::is_invalid() const { return false; }
-bool TypeImpl::is_boolean() const { return false; }
-bool TypeImpl::is_integer() const { return false; }
-bool TypeImpl::is_float()   const { return false; }
-bool TypeImpl::is_numeric() const { return false; }
-bool TypeImpl::is_string()  const { return false; }
-bool TypeImpl::is_time()    const { return false; }
-bool TypeImpl::is_object()  const { return false; }
+bool TypeImpl::is_void()     const { return stype_ == dt::SType::VOID; }
+bool TypeImpl::is_invalid()  const { return false; }
+bool TypeImpl::is_boolean()  const { return false; }
+bool TypeImpl::is_integer()  const { return false; }
+bool TypeImpl::is_float()    const { return false; }
+bool TypeImpl::is_numeric()  const { return false; }
+bool TypeImpl::is_string()   const { return false; }
+bool TypeImpl::is_temporal() const { return false; }
+bool TypeImpl::is_object()   const { return false; }
 
 
 bool TypeImpl::can_be_read_as_int8()     const { return false; }

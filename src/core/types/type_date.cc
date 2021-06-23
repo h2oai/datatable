@@ -35,7 +35,7 @@ bool Type_Date32::can_be_read_as_int32() const {
   return true; 
 }
 
-bool Type_Date32::is_time() const { 
+bool Type_Date32::is_temporal() const {
   return true; 
 }
 

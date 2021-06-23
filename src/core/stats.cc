@@ -1341,14 +1341,13 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
       return pywrap_stat<size_t>(stat);
     }
     case Stat::Mean: {
-      switch (dt::stype_to_ltype(column->stype())) {
-       case dt::LType::DATETIME: {
-          double value;
-          bool isvalid = get_stat(stat, &value);
-          if (!isvalid) return py::None();
-          return py::odatetime(static_cast<int64_t>(value));
-        }
-        default: return pywrap_stat<double>(stat);
+      if (column->type().is_temporal()) {
+        double value;
+        bool isvalid = get_stat(stat, &value);
+        if (!isvalid) return py::None();
+        return py::odatetime(static_cast<int64_t>(value));
+      } else {
+        return pywrap_stat<double>(stat);
       }
     }
     case Stat::Sum:
@@ -1443,15 +1442,14 @@ Column Stats::get_stat_as_column(Stat stat) {
   switch (stat) {
     case Stat::NaCount:
     case Stat::NUnique:
-    case Stat::NModal: {
-      return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
-    }
-    case Stat::Mean:
-      switch (column->stype()) {
-        case dt::SType::DATE32:
-        case dt::SType::TIME64:  return colwrap_stat<double, int64_t>(stat, dt::SType::TIME64);
-        default:                 return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+    case Stat::NModal: return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
+    case Stat::Mean: {
+      if (column->type().is_temporal()) {
+        return colwrap_stat<double, int64_t>(stat, dt::SType::TIME64);
+      } else {
+        return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
       }
+    }
     case Stat::Sum:
     case Stat::StDev:
     case Stat::Skew:

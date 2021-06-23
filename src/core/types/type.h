@@ -89,7 +89,7 @@ class Type {
     bool is_numeric() const;
     bool is_string() const;
     bool is_object() const;
-    bool is_time() const;
+    bool is_temporal() const;
 
     template<typename T>
     bool can_be_read_as() const;
