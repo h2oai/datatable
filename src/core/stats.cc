@@ -872,29 +872,29 @@ void NumericStats<T>::compute_moments34() {
 
       if (t_count) {
         std::lock_guard<std::mutex> lock(mutex);
-        const double n1 = static_cast<double>(count);
-        const double n2 = static_cast<double>(t_count);
-        const double n = n1 + n2;
-        const double delta21 = t_mean - mean;
-        const double gamma21 = delta21 / n;
-        const double beta21  = gamma21 * gamma21;
-        const double alpha21 = delta21 * delta21 * n1 * n2 / n;
-        const double M2_1 = M2;
-        const double M2_2 = t_M2;
-        const double M3_1 = M3;
-        const double M3_2 = t_M3;
-        const double M4_1 = M4;
-        const double M4_2 = t_M4;
+        const double nx = static_cast<double>(count);
+        const double ny = static_cast<double>(t_count);
+        const double n = nx + ny;
+        const double delta = t_mean - mean;
+        const double gamma = delta / n;
+        const double beta  = gamma * gamma;
+        const double alpha = delta * delta * nx*ny/n;
+        const double M2x = M2;
+        const double M2y = t_M2;
+        const double M3x = M3;
+        const double M3y = t_M3;
+        const double M4x = M4;
+        const double M4y = t_M4;
 
         count += t_count;
         sum += t_sum;
-        mean += gamma21 * n2;
-        M2 = M2_1 + M2_2 + alpha21;
-        M3 = M3_1 + M3_2 + alpha21 * (n1 - n2)/n
-             + 3.0 * (n1 * M2_2 - n2 * M2_1) * gamma21;
-        M4 = M4_1 + M4_2 + alpha21 * beta21 * (n1*n1 - n1*n2 + n2*n2)
-             + 6 * beta21 * (n1*n1 * M2_2 + n2*n2 * M2_1)
-             + 4 * gamma21 * (n1 * M3_2 - n2 * M3_1);
+        mean += gamma * ny;
+        M2 = M2x + M2y + alpha;
+        M3 = M3x + M3y + alpha * (nx - ny) * gamma
+             + 3.0 * (nx * M2y - ny * M2x) * gamma;
+        M4 = M4x + M4y + alpha * beta * (nx*nx - nx*ny + ny*ny)
+             + 6 * beta * (nx*nx * M2y + ny*ny * M2x)
+             + 4 * gamma * (nx * M3y - ny * M3x);
       }
     });
 
