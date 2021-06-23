@@ -54,7 +54,7 @@ class TypeImpl {
     virtual bool is_numeric() const;
     virtual bool is_object() const;
     virtual bool is_string() const;
-    virtual bool is_time() const;
+    virtual bool is_temporal() const;
 
     virtual bool can_be_read_as_int8() const;
     virtual bool can_be_read_as_int16() const;

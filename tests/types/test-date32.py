@@ -29,6 +29,9 @@ from datetime import date as d
 from tests import assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Basic functionality
+#-------------------------------------------------------------------------------
 
 def test_date32_name():
     assert repr(dt.Type.date32) == "Type.date32"
@@ -60,13 +63,21 @@ def test_date32_create_from_python():
     assert DT.to_list() == [src]
 
 
-def test_date32_create_from_python_force():
-    DT = dt.Frame([18675, -100000, None, 0.75, 'hello'], stype='date32')
+def test_date32_create_from_string_list():
+    DT = dt.Frame(['1901-04-11', '1969-12-31', 'NaT', '2000-10-07', '2015-11-21'],
+                  type=dt.Type.date32)
+    assert DT.type == dt.Type.date32
+    assert DT.to_list() == [
+        [d(1901, 4, 11), d(1969, 12, 31), None, d(2000, 10, 7), d(2015, 11, 21)]
+    ]
+
+
+def test_date32_create_from_mixed_list():
+    DT = dt.Frame([18675, -100000, None, 0, 'hello'], type='date32')
     assert DT.type == dt.Type.date32
     assert DT.to_list() == [
         [d(2021, 2, 17), d(1696, 3, 17), None, d(1970, 1, 1), None]
     ]
-
 
 
 def test_date32_repr():
@@ -111,6 +122,58 @@ def test_date32_minmax():
     assert dt.Type.date32.max == 2146764179
 
 
+#-------------------------------------------------------------------------------
+# Statistics
+#-------------------------------------------------------------------------------
+
+def test_date32_minmax():
+    src = [None,
+           d(2000, 10, 18),
+           d(2010, 11, 13),
+           d(2020, 2, 29),
+           None]
+    DT = dt.Frame(src)
+    assert DT.min1() == d(2000, 10, 18)
+    assert DT.max1() == d(2020, 2, 29)
+    assert DT.countna1() == 2
+    assert_equals(DT.min(), dt.Frame([d(2000, 10, 18)]))
+    assert_equals(DT.max(), dt.Frame([d(2020, 2, 29)]))
+    assert_equals(DT.countna(), dt.Frame([2]/dt.int64))
+
+
+def test_date32_na_stats():
+    src = [None,
+           d(2000, 10, 18),
+           d(2010, 11, 13),
+           d(2020, 2, 29),
+           None]
+    DT = dt.Frame(src)
+    assert DT.sd1() is None
+    assert DT.sum1() is None
+    assert_equals(DT.sd(), dt.Frame([None]/dt.float64))
+    assert_equals(DT.sum(), dt.Frame([None]/dt.float64))
+
+
+def test_date32_mean():
+    dd = datetime.datetime
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 14)]
+    DT = dt.Frame(src)
+    assert DT.mean1() ==  dd(2010, 11, 13, 12, 0, 0)
+    assert_equals(DT.mean(), dt.Frame([dd(2010, 11, 13, 12, 0, 0)]))
+
+
+def test_date32_mode():
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 12),
+           None,
+           d(2010, 11, 13),
+           None]
+    DT = dt.Frame(src)
+    assert DT.mode1() == d(2010, 11, 13)
+    assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13)]))
 
 
 #-------------------------------------------------------------------------------

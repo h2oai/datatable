@@ -217,6 +217,8 @@ class _obj {
     bool parse_int(int32_t*) const;
     bool parse_int(int64_t*) const;
     bool parse_int(double*) const;
+    bool parse_int_as_date(int32_t*) const;
+    bool parse_int_as_time(int64_t*) const;
     bool parse_numpy_bool(int8_t*) const;
     bool parse_numpy_int(int8_t*) const;
     bool parse_numpy_int(int16_t*) const;
@@ -225,9 +227,12 @@ class _obj {
     bool parse_numpy_float(float*) const;
     bool parse_numpy_float(double*) const;
     bool parse_double(double*) const;
-    bool parse_date(int32_t*) const;
-    bool parse_date(int64_t*) const;
-    bool parse_datetime(int64_t*) const;
+    bool parse_date_as_date(int32_t*) const;
+    bool parse_date_as_time(int64_t*) const;
+    bool parse_datetime_as_date(int32_t*) const;
+    bool parse_datetime_as_time(int64_t*) const;
+    bool parse_string_as_date(int32_t*) const;
+    bool parse_string_as_time(int64_t*) const;
 
     struct error_manager;  // see below
     int8_t      to_bool           (const error_manager& = _em0) const;

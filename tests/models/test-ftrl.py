@@ -540,7 +540,7 @@ def test_ftrl_colname_hashes():
 
 def test_ftrl_model_untrained():
     ft = Ftrl()
-    assert ft.model == None
+    assert ft.model is None
 
 
 def test_ftrl_fit_no_frame():
@@ -563,7 +563,7 @@ def test_ftrl_fit_predict_nones():
     ft = Ftrl()
     ft.fit(None, None)
     df_target = ft.predict(None)
-    assert df_target == None
+    assert df_target is None
 
 
 def test_ftrl_predict_not_trained():
@@ -1431,7 +1431,7 @@ def test_ftrl_feature_importances():
 
 def test_ftrl_feature_importances_none():
     ft = Ftrl()
-    assert ft.feature_importances == None
+    assert ft.feature_importances is None
 
 
 def test_ftrl_feature_importances_empty():
@@ -1579,8 +1579,8 @@ def test_ftrl_interactions():
 def test_ftrl_pickling_empty_model():
     ft_pickled = pickle.dumps(Ftrl())
     ft_unpickled = pickle.loads(ft_pickled)
-    assert ft_unpickled.model == None
-    assert ft_unpickled.feature_importances == None
+    assert ft_unpickled.model is None
+    assert ft_unpickled.feature_importances is None
     assert ft_unpickled.params == Ftrl().params
 
 

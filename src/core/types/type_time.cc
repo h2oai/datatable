@@ -37,7 +37,7 @@ bool Type_Time64::can_be_read_as_int64() const {
   return true; 
 }
 
-bool Type_Time64::is_time() const { 
+bool Type_Time64::is_temporal() const {
   return true; 
 }
 
