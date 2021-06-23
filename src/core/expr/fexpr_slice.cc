@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,54 +19,49 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_COLUMN_h
-#define dt_EXPR_FEXPR_COLUMN_h
-#include "expr/fexpr_func.h"
-#include "python/obj.h"
+#include "expr/fexpr_column.h"
+#include "expr/fexpr_slice.h"
+#include "expr/eval_context.h"
+#include "expr/workframe.h"
+#include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
-/**
-  * Class for expressions such as `f.A`.
-  */
-class FExpr_ColumnAsAttr : public FExpr_Func {
-  private:
-    size_t namespace_;
-    py::oobj pyname_;
-
-  public:
-    FExpr_ColumnAsAttr(size_t ns, py::robj name);
-
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
-
-    py::oobj get_pyname() const;
-};
+FExpr_Slice::FExpr_Slice(ptrExpr arg, py::robj sliceobj)
+  : arg_(std::move(arg)),
+    slice_(sliceobj)
+{}
 
 
+Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
+  Workframe outputs(ctx);
+  return outputs;
+}
 
-/**
-  * Class for expressions such as `f[x]`.
-  */
-class FExpr_ColumnAsArg : public FExpr_Func {
-  private:
-    size_t namespace_;
-    ptrExpr arg_;
 
-  public:
-    FExpr_ColumnAsArg(size_t ns, py::robj arg);
+int FExpr_Slice::precedence() const noexcept {
+  return 16;  // Standard python precedence for `x[]` operator. See fexpr.h
+}
 
-    Workframe evaluate_n(EvalContext&) const override;
-    int precedence() const noexcept override;
-    std::string repr() const override;
 
-    ptrExpr get_arg() const;
-};
+std::string FExpr_Slice::repr() const {
+  // Technically we don't have to put the argument into parentheses if its
+  // precedence is equal to 16, however I find that it aids clarity:
+  //     (f.A)[:-1]            is better than  f.A[:-1]
+  //     (f[0])[::2]           is better than  f[0][::2]
+  //     (f.name.lower())[5:]  is better than  f.name.lower()[5:]
+  bool parenthesize = (arg_->precedence() <= 16);
+  std::string out;
+  if (parenthesize) out += "(";
+  out += arg_->repr();
+  if (parenthesize) out += ")";
+  out += "[";
+  out += "]";
+  return out;
+}
 
 
 
 
 }}  // namespace dt::expr
-#endif

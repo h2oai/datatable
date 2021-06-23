@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,40 +19,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/fexpr_column.h"
-#include "expr/eval_context.h"
-#include "expr/workframe.h"
-#include "utils/assert.h"
+#ifndef dt_EXPR_FEXPR_SLICE_h
+#define dt_EXPR_FEXPR_SLICE_h
+#include "expr/fexpr_func.h"
+#include "python/obj.h"
 namespace dt {
 namespace expr {
 
 
-FExpr_ColumnAsSlice::FExpr_ColumnAsSlice(py::robj arg) {
-  arg_ = as_fexpr(arg);
-}
+
+/**
+  * Class for expressions such as `f.A[1:]`. This is only relevant
+  * for string-type columns; and in the future for list-types
+  * and maybe some others too.
+  */
+class FExpr_Slice : public FExpr_Func {
+  private:
+    ptrExpr arg_;
+    py::oobj slice_;
 
 
-Workframe FExpr_ColumnAsSlice::evaluate_n(EvalContext& ctx) const {
-  Workframe outputs(ctx);
-  return outputs;
-}
+  public:
+    FExpr_Slice(ptrExpr arg, py::robj sliceobj);
 
-
-int FExpr_ColumnAsSlice::precedence() const noexcept {
-  return 0;
-}
-
-
-std::string FExpr_ColumnAsSlice::repr() const {
-}
-
-
-
-ptrExpr FExpr_ColumnAsSlice::get_arg() const {
-  return arg_;
-}
-
+    int precedence() const noexcept override;
+    std::string repr() const override;
+    Workframe evaluate_n(EvalContext&) const override;
+};
 
 
 
 }}  // namespace dt::expr
+#endif

@@ -19,17 +19,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
+#include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
+#include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
-#include "expr/fexpr_column.h"
-#include "expr/expr.h"            // OldExpr
+#include "expr/fexpr_slice.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -151,7 +152,7 @@ oobj PyFExpr::m__getitem__(py::robj item) {
   // but if the user tries to instantiate it manually then the
   // `expr_` may end up as nullptr.
   return PyFExpr::make(
-              new dt::expr::FExpr_ColumnAsSlice(item));
+              new dt::expr::FExpr_Slice(expr_, item));
 }
 
 
