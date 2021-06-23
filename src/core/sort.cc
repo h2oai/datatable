@@ -127,25 +127,26 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
-#include "column/view.h"
-#include "expr/py_sort.h"
-#include "expr/eval_context.h"
-#include "frame/py_frame.h"
-#include "parallel/api.h"
-#include "python/args.h"
-#include "sort/sorter.h"
-#include "utils/alloc.h"
-#include "utils/assert.h"
-#include "utils/misc.h"
-#include "utils/macros.h"
 #include "buffer.h"
 #include "column.h"
+#include "column/view.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "documentation.h"
+#include "expr/eval_context.h"
+#include "expr/py_sort.h"
+#include "frame/py_frame.h"
 #include "options.h"
+#include "parallel/api.h"
+#include "python/args.h"
 #include "rowindex.h"
 #include "sort.h"
+#include "sort/sorter.h"
 #include "stype.h"
+#include "utils/alloc.h"
+#include "utils/assert.h"
+#include "utils/macros.h"
+#include "utils/misc.h"
 
 //------------------------------------------------------------------------------
 // Helper classes for managing memory
@@ -689,6 +690,7 @@ class SortContext {
       case dt::SType::INT16:   _initI<ASC, int16_t, uint16_t>(); break;
       case dt::SType::DATE32:
       case dt::SType::INT32:   _initI<ASC, int32_t, uint32_t>(); break;
+      case dt::SType::TIME64:
       case dt::SType::INT64:   _initI<ASC, int64_t, uint64_t>(); break;
       case dt::SType::FLOAT32: _initF<ASC, uint32_t>(); break;
       case dt::SType::FLOAT64: _initF<ASC, uint64_t>(); break;
@@ -1531,25 +1533,8 @@ template class dt::ArrayView_ColumnImpl<int64_t>;
 // py::Frame.sort
 //------------------------------------------------------------------------------
 
-static const char* doc_sort =
-R"(sort(self, *cols)
---
-
-Sort frame by the specified column(s).
-
-Parameters
-----------
-cols: List[str | int]
-    Names or indices of the columns to sort by. If no columns are
-    given, the Frame will be sorted on all columns.
-
-return: Frame
-    New Frame sorted by the provided column(s). The current frame
-    remains unmodified.
-)";
-
 static py::PKArgs args_sort(
-  0, 0, 0, true, false, {}, "sort", doc_sort);
+  0, 0, 0, true, false, {}, "sort", dt::doc_Frame_sort);
 
 py::oobj py::Frame::sort(const PKArgs& args) {
   dt::expr::EvalContext ctx(dt);

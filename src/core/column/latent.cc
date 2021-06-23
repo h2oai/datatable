@@ -117,6 +117,7 @@ ColumnImpl* Latent_ColumnImpl::vivify(bool to_memory) const {
     case SType::INT16:   new (ptr) SentinelFw_ColumnImpl<int16_t>(std::move(new_pcol)); break;
     case SType::DATE32:
     case SType::INT32:   new (ptr) SentinelFw_ColumnImpl<int32_t>(std::move(new_pcol)); break;
+    case SType::TIME64:
     case SType::INT64:   new (ptr) SentinelFw_ColumnImpl<int64_t>(std::move(new_pcol)); break;
     case SType::FLOAT32: new (ptr) SentinelFw_ColumnImpl<float>(std::move(new_pcol)); break;
     case SType::FLOAT64: new (ptr) SentinelFw_ColumnImpl<double>(std::move(new_pcol)); break;

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -237,7 +237,7 @@ Column RowIndex::as_column(size_t nrows) const {
   } else {
     // No RowIndex is equivalent to having RowIndex over all rows
     auto inrows = static_cast<int64_t>(nrows);
-    return Column(new dt::Range_ColumnImpl(0, inrows, 1));
+    return Column(new dt::Range_ColumnImpl(0, inrows, 1, dt::Type()));
   }
 }
 

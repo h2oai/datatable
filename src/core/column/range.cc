@@ -39,40 +39,39 @@ static size_t compute_nrows(int64_t start, int64_t stop, int64_t step) {
   return (length < 0) ? 0 : static_cast<size_t>(length);
 }
 
-static SType compute_stype(int64_t start, int64_t stop, SType stype) {
-  if (stype == SType::AUTO) {
+static Type compute_type(int64_t start, int64_t stop, Type type) {
+  if (!type) {
     bool start_is_int32 = (start == static_cast<int32_t>(start));
     bool stop_is_int32  = (stop == static_cast<int32_t>(stop));
-    return (start_is_int32 && stop_is_int32) ? SType::INT32 : SType::INT64;
+    return (start_is_int32 && stop_is_int32) ? Type::int32() : Type::int64();
   }
-  auto ltype = stype_to_ltype(stype);
-  if (ltype == LType::INT || ltype == LType::REAL) {
-    return stype;
+  if (type.is_integer() || type.is_float()) {
+    return type;
   }
-  throw ValueError() << "Invalid stype " << stype << " for a range column";
+  throw ValueError() << "Invalid type " << type << " for a range column";
 }
 
 
 
 Range_ColumnImpl::Range_ColumnImpl(int64_t start, int64_t stop, int64_t step,
-                                   SType stype)
+                                   Type type)
   : Virtual_ColumnImpl(compute_nrows(start, stop, step),
-                       compute_stype(start, stop, stype)),
+                       compute_type(start, stop, type).stype()),
     start_(start),
     step_(step) {}
 
 
 // private constructor (used for cloning)
-Range_ColumnImpl::Range_ColumnImpl(size_t nrows, SType stype, int64_t start,
+Range_ColumnImpl::Range_ColumnImpl(size_t nrows, Type type, int64_t start,
                                    int64_t step)
-  : Virtual_ColumnImpl(nrows, stype),
+  : Virtual_ColumnImpl(nrows, type.stype()),
     start_(start),
     step_(step) {}
 
 
 
 ColumnImpl* Range_ColumnImpl::clone() const {
-  return new Range_ColumnImpl(nrows_, stype(), start_, step_);
+  return new Range_ColumnImpl(nrows_, type_, start_, step_);
 }
 
 

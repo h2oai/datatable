@@ -2,9 +2,7 @@
 .. xmethod:: datatable.Frame.__setitem__
     :src: src/core/frame/__getitem__.cc Frame::_main_getset
     :settable: R
-
-    __setitem__(i, j[, by][, sort][, join])
-    --
+    :signature: __setitem__(i, j[, by][, sort][, join])
 
     This methods updates values within the frame, or adds new columns to the
     frame.

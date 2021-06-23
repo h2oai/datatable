@@ -84,6 +84,7 @@ a > code.literal {
   background: inherit;
   border: inherit;
   color: inherit;
+  padding: 0;
 }
 
 .align-default {

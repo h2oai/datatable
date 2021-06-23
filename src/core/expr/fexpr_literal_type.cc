@@ -122,6 +122,10 @@ Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
     if (lt == LType::DATETIME) return _select_types(ctx, fid, stDATE);
     if (lt == LType::OBJECT)   return _select_types(ctx, fid, stOBJ);
   }
+  if (value_.is_type()) {
+    auto st = value_.to_type().stype();
+    return _select_type(ctx, fid, st);
+  }
   if (value_.is_stype()) {
     auto st = static_cast<SType>(value_.get_attr("value").to_size_t());
     return _select_type(ctx, fid, st);
@@ -147,7 +151,7 @@ RiGb FExpr_Literal_Type::evaluate_iby(EvalContext&) const {
 }
 
 
-static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
+static void _resolve_type(py::robj value_, SType* out_stype, LType* out_ltype)
 {
   *out_stype = SType::AUTO;
   *out_ltype = LType::MU;
@@ -160,6 +164,10 @@ static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
                  (et == &PyBaseObject_Type)? LType::OBJECT :
                  LType::MU;
   }
+  else if (value_.is_type()) {
+    auto type = value_.to_type();
+    *out_stype = type.stype();
+  }
   else if (value_.is_ltype()) {
     auto lt = value_.get_attr("value").to_size_t();
     *out_ltype = (lt < LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
@@ -170,6 +178,7 @@ static void _resolve_stype(py::robj value_, SType* out_stype, LType* out_ltype)
   }
 }
 
+
 Workframe FExpr_Literal_Type::evaluate_r(
       EvalContext& ctx, const sztvec& indices) const
 {
@@ -179,7 +188,7 @@ Workframe FExpr_Literal_Type::evaluate_r(
   }
   SType target_stype;
   LType target_ltype;
-  _resolve_stype(value_, &target_stype, &target_ltype);
+  _resolve_type(value_, &target_stype, &target_ltype);
   if (target_stype == SType::AUTO && target_ltype == LType::MU) {
     throw ValueError() << "Unknown type " << value_
                        << " used in the replacement expression";

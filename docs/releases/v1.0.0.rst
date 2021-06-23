@@ -50,9 +50,16 @@
       and :meth:`.median() <dt.FExpr.median>`, which behaves exactly as the
       equivalent base level functions :func:`dt.max()`, :func:`dt.min()`,
       :func:`dt.mean()`,  and :func:`dt.median()` respectively.
-      
-    -[new] Class :class:`dt.FExpr` now has methods for all the 
+
+    -[new] Class :class:`dt.FExpr` now has methods for all the
       row functions (:func:`dt.rowsum()`, :func:`dt.rowall()`, etc).
+
+    -[new] Class :class:`dt.FExpr` now has methods :meth:`.sd() <dt.FExpr.sd>`,
+      :meth:`.count() <dt.FExpr.count>`, :meth:`.first() <dt.FExpr.first>`,
+      and :meth:`.last() <dt.FExpr.last>`, :meth:`.shift() <dt.FExpr.last>`,
+      which behaves exactly as the equivalent base level functions :func:`dt.sd()`,
+      :func:`dt.count()`, :func:`dt.first()`, :func:`dt.last()`
+      and :func:`dt.shift()` respectively.
 
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
@@ -66,6 +73,9 @@
       the stype of each column, as a second line under the column names.
       [#2810]
 
+    -[enh] Parameter ``types=`` in Frame's constructor can now accept arguments
+      of class :class:`dt.Type`, and also pyarrow's types. [#2986]
+
     -[fix] A Frame can now be created properly from a list of numpy bool
       objects. [#2762]
 
@@ -77,6 +87,9 @@
 
     -[fix] Frame terminal display no longer overflows terminal's width if
       it contains strings with special characters. [#2844]
+
+    -[fix] Sorting in reverse order now works correctly in the presence
+      of a groupby. [#2838]
 
     -[api] Converting a frame with incompatible types into a numpy array will
       now raise an error (instead of auto-promoting to object type). However,
@@ -98,6 +111,16 @@
       a :exc:`dt.exceptions.TypeError` will  be thrown. An ``object`` column
       can still be created by an explicit request via the ``stype=``
       parameter in the constructor.
+
+    -[api] Parameter ``stypes=`` in Frame constructor was renamed into
+      ``types=``, and similarly ``stype=`` into ``type=``. The old parameter
+      names are still recognized, but no longer documented.
+
+    -[api] Internal functions ``dt.internal.compiler_version()`` and
+      ``dt.internal.in_debug_mode()`` removed and replaced with flags
+      ``.compiler`` and ``.build_mode`` in :data:`dt.build_info`. Function
+      ``dt.interenal.regex_supported()`` removed entirely -- datatable will
+      now always have support for regular expressions. [#2636]
 
 
     FExpr

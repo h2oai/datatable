@@ -44,67 +44,7 @@ class Cast_ColumnImpl : public Virtual_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// CastNumericToBool_ColumnImpl
-//------------------------------------------------------------------------------
-
-// This class may be removed once we are able to properly distinguish
-// between int8_t and bool8 types in get_element() overloads.
-template <typename T>
-class CastNumericToBool_ColumnImpl : public Cast_ColumnImpl {
-  public:
-    CastNumericToBool_ColumnImpl(Column&&);
-    ColumnImpl* clone() const override;
-
-    bool get_element(size_t, int8_t*) const override;
-};
-
-extern template class CastNumericToBool_ColumnImpl<int8_t>;
-extern template class CastNumericToBool_ColumnImpl<int16_t>;
-extern template class CastNumericToBool_ColumnImpl<int32_t>;
-extern template class CastNumericToBool_ColumnImpl<int64_t>;
-extern template class CastNumericToBool_ColumnImpl<float>;
-extern template class CastNumericToBool_ColumnImpl<double>;
-
-
-
-
-//------------------------------------------------------------------------------
-// CastStringToBool_ColumnImpl
-//------------------------------------------------------------------------------
-
-// This class may be removed once we are able to properly distinguish
-// between int8_t and bool8 types in get_element() overloads.
-class CastStringToBool_ColumnImpl : public Cast_ColumnImpl {
-  public:
-    CastStringToBool_ColumnImpl(Column&&);
-    ColumnImpl* clone() const override;
-
-    bool get_element(size_t, int8_t*) const override;
-};
-
-
-
-
-//------------------------------------------------------------------------------
-// CastObjToBool_ColumnImpl
-//------------------------------------------------------------------------------
-
-// This class may be removed once we are able to properly distinguish
-// between int8_t and bool8 types in get_element() overloads.
-class CastObjToBool_ColumnImpl : public Cast_ColumnImpl {
-  public:
-    CastObjToBool_ColumnImpl(Column&&);
-    ColumnImpl* clone() const override;
-    bool allow_parallel_access() const override;
-
-    bool get_element(size_t, int8_t*) const override;
-};
-
-
-
-
-//------------------------------------------------------------------------------
-// CastBool_ColumnImpl
+// Bool -> Any casts
 //------------------------------------------------------------------------------
 
 /**
@@ -133,7 +73,7 @@ class CastBool_ColumnImpl : public Cast_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// CastNumeric_ColumnImpl
+// Numeric -> Any casts
 //------------------------------------------------------------------------------
 
 /**
@@ -160,6 +100,25 @@ class CastNumeric_ColumnImpl : public Cast_ColumnImpl {
     template <typename V> inline bool _get(size_t i, V* out) const;
 };
 
+
+
+template <typename T>
+class CastNumericToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastNumericToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+
+    bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+extern template class CastNumericToBool_ColumnImpl<int8_t>;
+extern template class CastNumericToBool_ColumnImpl<int16_t>;
+extern template class CastNumericToBool_ColumnImpl<int32_t>;
+extern template class CastNumericToBool_ColumnImpl<int64_t>;
+extern template class CastNumericToBool_ColumnImpl<float>;
+extern template class CastNumericToBool_ColumnImpl<double>;
 extern template class CastNumeric_ColumnImpl<int8_t>;
 extern template class CastNumeric_ColumnImpl<int16_t>;
 extern template class CastNumeric_ColumnImpl<int32_t>;
@@ -171,7 +130,7 @@ extern template class CastNumeric_ColumnImpl<double>;
 
 
 //------------------------------------------------------------------------------
-// CastDate32_ColumnImpl
+// Date32 -> Any casts
 //------------------------------------------------------------------------------
 
 class CastDate32_ColumnImpl : public Cast_ColumnImpl {
@@ -197,7 +156,7 @@ class CastDate32_ColumnImpl : public Cast_ColumnImpl {
 
 
 //------------------------------------------------------------------------------
-// CastString_ColumnImpl
+// String -> Any casts
 //------------------------------------------------------------------------------
 
 class CastString_ColumnImpl : public Cast_ColumnImpl {
@@ -222,9 +181,36 @@ class CastString_ColumnImpl : public Cast_ColumnImpl {
 
 
 
+class CastStringToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastStringToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+class CastStringToTime64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastStringToTime64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, int64_t*) const override;
+};
+
+
+
+class CastStringToDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastStringToDate32_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, int32_t*) const override;
+};
+
+
+
 
 //------------------------------------------------------------------------------
-// CastObject_ColumnImpl
+// Object -> Any casts
 //------------------------------------------------------------------------------
 
 class CastObject_ColumnImpl : public Cast_ColumnImpl {
@@ -245,6 +231,68 @@ class CastObject_ColumnImpl : public Cast_ColumnImpl {
   private:
     template <typename V> inline bool _get_int(size_t i, V* out) const;
     template <typename V> inline bool _get_float(size_t i, V* out) const;
+};
+
+
+
+class CastObjToBool_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToBool_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    bool get_element(size_t, int8_t*) const override;
+};
+
+
+
+class CastObjToDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToDate32_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    bool get_element(size_t, int32_t*) const override;
+};
+
+
+
+class CastObjToTime64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastObjToTime64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool allow_parallel_access() const override;
+    bool get_element(size_t, int64_t*) const override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Time64 -> Any casts
+//------------------------------------------------------------------------------
+
+class CastTime64ToDate32_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastTime64ToDate32_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, int32_t*) const override;
+};
+
+
+
+class CastTime64ToString_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastTime64ToString_ColumnImpl(SType, Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, CString*) const override;
+};
+
+
+
+class CastTime64ToObj64_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastTime64ToObj64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, py::oobj*) const override;
 };
 
 

@@ -46,6 +46,7 @@ class FExpr_List : public FExpr {
     RowIndex  evaluate_i(EvalContext&) const override;
     RiGb      evaluate_iby(EvalContext&) const override;
     void prepare_by(EvalContext&, Workframe&, std::vector<SortFlag>&) const override;
+    void set_outflags(EvalContext& ctx, std::vector<SortFlag>& outflags, bool reverse) const;
 
     Kind get_expr_kind() const override;
     int precedence() const noexcept override;

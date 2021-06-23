@@ -67,6 +67,7 @@ void NpMasked_ColumnImpl::materialize(Column& out, bool to_memory) {
       case SType::INT16:   return _apply_mask<int16_t>(out);
       case SType::DATE32:
       case SType::INT32:   return _apply_mask<int32_t>(out);
+      case SType::TIME64:
       case SType::INT64:   return _apply_mask<int64_t>(out);
       case SType::FLOAT32: return _apply_mask<float>(out);
       case SType::FLOAT64: return _apply_mask<double>(out);

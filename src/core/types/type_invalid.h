@@ -21,18 +21,20 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_INVALID_h
 #define dt_TYPES_TYPE_INVALID_h
-#include "types/type_impl.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 
 
 class Type_Invalid : public TypeImpl {
   public:
-    Type_Invalid() : TypeImpl(SType::INVALID) {}
-    bool is_invalid() const override { return true; }
-    std::string to_string() const override { return "invalid"; }
-    TypeImpl* common_type(TypeImpl*) override { return this; }
+    Type_Invalid();
+    bool is_invalid() const override;
+    std::string to_string() const override;
+    TypeImpl* common_type(TypeImpl*) override;
+    Column cast_column(Column&& col) const override;
 };
+
 
 
 

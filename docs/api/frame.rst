@@ -2,7 +2,43 @@
 
 .. xclass:: datatable.Frame
     :src: src/core/frame/py_frame.h Frame
-    :doc: src/core/frame/py_frame.cc doc_Frame
+    :cvar: doc_Frame
+
+    Two-dimensional column-oriented container of data. This the primary
+    data structure in the :mod:`datatable` module.
+
+    A Frame is *two-dimensional* in the sense that it is comprised of
+    rows and columns of data. Each data cell can be located via a pair
+    of its coordinates: ``(irow, icol)``. We do not support frames with
+    more or less than two dimensions.
+
+    A Frame is *column-oriented* in the sense that internally the data is
+    stored separately for each column. Each column has its own name and
+    type. Types may be different for different columns but cannot vary
+    within each column.
+
+    Thus, the dimensions of a Frame are not symmetrical: a Frame is not
+    a matrix. Internally the class is optimized for the use case when the
+    number of rows significantly exceeds the number of columns.
+
+    A Frame can be viewed as a ``list`` of columns: standard Python
+    function ``len()`` will return the number of columns in the Frame,
+    and ``frame[j]`` will return the column at index ``j`` (each "column"
+    will be a Frame with ``ncols == 1``). Similarly, you can iterate over
+    the columns of a Frame in a loop, or use it in a ``*``-expansion::
+
+        >>> for column in frame:
+        ...    # do something
+        ...
+        >>> list_of_columns = [*frame]
+
+    A Frame can also be viewed as a ``dict`` of columns, where the key
+    associated with each column is its name. Thus, ``frame[name]`` will
+    return the column with the requested name. A Frame can also work with
+    standard python ``**``-expansion::
+
+        >>> dict_of_columns = {**frame}
+
 
     Construction
     ------------
@@ -19,70 +55,6 @@
 
         * - :meth:`.copy()`
           - Create a copy of the frame.
-
-
-    Frame manipulation
-    ------------------
-
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :meth:`frame[i, j, ...] <datatable.Frame.__getitem__>`
-          - Primary method for extracting data from a frame.
-
-        * - :meth:`frame[i, j, ...] = values <datatable.Frame.__setitem__>`
-          - Update data within the frame.
-
-        * - :meth:`del frame[i, j, ...] <datatable.Frame.__delitem__>`
-          - Remove rows/columns/values from the frame.
-
-        * -
-          -
-
-        * - :meth:`.cbind(*frames)`
-          - Append columns of other frames to this frame.
-
-        * - :meth:`.rbind(*frames)`
-          - Append other frames at the bottom of the current.
-
-        * - :meth:`.replace(what, with)`
-          - Search and replace values in the frame.
-
-        * - :meth:`.sort(cols)`
-          - Sort the frame by the specified columns.
-
-
-    Convert into other formats
-    --------------------------
-
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :meth:`.to_arrow()`
-          - Convert the frame into an Arrow table.
-
-        * - :meth:`.to_csv(file)`
-          - Write the frame's data into CSV format.
-
-        * - :meth:`.to_dict()`
-          - Convert the frame into a Python dictionary, by columns.
-
-        * - :meth:`.to_jay(file)`
-          - Store the frame's data into a binary file in Jay format.
-
-        * - :meth:`.to_list()`
-          - Return the frame's data as a list of lists, by columns.
-
-        * - :meth:`.to_numpy()`
-          - Convert the frame into a numpy array.
-
-        * - :meth:`.to_pandas()`
-          - Convert the frame into a pandas DataFrame.
-
-        * - :meth:`.to_tuples()`
-          - Return the frame's data as a list of tuples, by rows.
 
 
     Properties
@@ -129,8 +101,132 @@
           - types (:class:`dt.Type`s) of all columns.
 
 
-    Other methods
-    -------------
+    Frame manipulation
+    ------------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`frame[i, j, ...] <datatable.Frame.__getitem__>`
+          - Primary method for extracting data from a frame.
+
+        * - :meth:`frame[i, j, ...] = values <datatable.Frame.__setitem__>`
+          - Update data within the frame.
+
+        * - :meth:`del frame[i, j, ...] <datatable.Frame.__delitem__>`
+          - Remove rows/columns/values from the frame.
+
+        * - :meth:`.cbind(*frames)`
+          - Append columns of other frames to this frame.
+
+        * - :meth:`.rbind(*frames)`
+          - Append other frames at the bottom of the current.
+
+        * - :meth:`.replace(what, with)`
+          - Search and replace values in the frame.
+
+        * - :meth:`.sort(cols)`
+          - Sort the frame by the specified columns.
+
+
+    Convert into other formats
+    --------------------------
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`.to_arrow()`
+          - Convert the frame into an Arrow table.
+
+        * - :meth:`.to_csv(file)`
+          - Write the frame's data into CSV format.
+
+        * - :meth:`.to_dict()`
+          - Convert the frame into a Python dictionary, by columns.
+
+        * - :meth:`.to_jay(file)`
+          - Store the frame's data into a binary file in Jay format.
+
+        * - :meth:`.to_list()`
+          - Return the frame's data as a list of lists, by columns.
+
+        * - :meth:`.to_numpy()`
+          - Convert the frame into a numpy array.
+
+        * - :meth:`.to_pandas()`
+          - Convert the frame into a pandas DataFrame.
+
+        * - :meth:`.to_tuples()`
+          - Return the frame's data as a list of tuples, by rows.
+
+
+    Statistical methods
+    -------------------
+
+
+    .. list-table::
+        :widths: auto
+        :class: api-table
+
+        * - :meth:`.countna()`
+          - Count missing values for each column in the frame.
+
+        * - :meth:`.countna1()`
+          - Count missing values for a one-column frame and return it as a scalar.
+
+        * - :meth:`.max()`
+          - Find the largest element for each column in the frame.
+
+        * - :meth:`.max1()`
+          - Find the largest element for a one-column frame and return it as a scalar.
+
+        * - :meth:`.mean()`
+          - Calculate the mean value for each column in the frame.
+
+        * - :meth:`.mean1()`
+          - Calculate the mean value for a one-column frame and return it as a scalar.
+
+        * - :meth:`.min()`
+          - Find the smallest element for each column in the frame.
+
+        * - :meth:`.min1()`
+          - Find the smallest element for a one-column frame and return it as a scalar.
+
+        * - :meth:`.mode()`
+          - Find the mode value for each column in the frame.
+
+        * - :meth:`.mode1()`
+          - Find the mode value for a one-column frame and return it as a scalar.
+
+        * - :meth:`.nmodal()`
+          - Calculate the modal frequency for each column in the frame.
+
+        * - :meth:`.nmodal1()`
+          - Calculate the modal frequency for a one-column frame and return it as a scalar.
+
+        * - :meth:`.nunique()`
+          - Count the number of unique values for each column in the frame.
+
+        * - :meth:`.nunique1()`
+          - Count the number of unique values for a one-column frame and return it as a scalar.
+
+        * - :meth:`.sd()`
+          - Calculate the standard deviation for each column in the frame.
+
+        * - :meth:`.sd1()`
+          - Calculate the standard deviation for a one-column frame and return it as a scalar.
+
+        * - :meth:`.sum()`
+          - Calculate the sum of all values for each column in the frame.
+
+        * - :meth:`.sum1()`
+          - Calculate the sum of all values for a one-column column frame and return it as a scalar.
+
+
+    Miscellaneous methods
+    ---------------------
 
     .. list-table::
         :widths: auto
@@ -150,15 +246,6 @@
 
         * - :meth:`.tail()`
           - Return the last few rows of the frame.
-
-
-    .. Auto-methods
-    .. ------------
-
-    .. ``countna()``, ``countna1()``, ``max()``, ``max1()``, ``mean()``,
-    .. ``mean1()``, ``min()``, ``min1()``, ``mode()``, ``mode1()``,
-    .. ``nmodal()``, ``nmodal1()``, ``nunique()``, ``nunique1()``,
-    .. ``sd()``, ``sd1()``, ``sum()``, ``sum1()``.
 
 
     Special methods
@@ -221,7 +308,7 @@
         * - ``._repr_pretty_()``
           - Used to display the frame in an :ext-mod:`IPython` console.
 
-    .. _`Jupyter Lab`: https://jupyterlab.readthedocs.io/en/latest/
+.. _`Jupyter Lab`: https://jupyterlab.readthedocs.io/en/latest/
 
 
 .. toctree::
@@ -242,23 +329,41 @@
     .cbind()         <frame/cbind>
     .colindex()      <frame/colindex>
     .copy()          <frame/copy>
+    .countna()       <frame/countna>
+    .countna()       <frame/countna1>
     .export_names()  <frame/export_names>
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
+    .max()           <frame/max>
+    .max1()          <frame/max1>
+    .mean()          <frame/mean>
+    .mean1()         <frame/mean1>
     .meta            <frame/meta>
+    .min()           <frame/min>
+    .min1()          <frame/min1>
+    .mode()          <frame/mode>
+    .mode1()         <frame/mode1>
     .names           <frame/names>
     .ncols           <frame/ncols>
+    .nmodal()        <frame/nmodal>
+    .nmodal1()       <frame/nmodal1>
     .nrows           <frame/nrows>
+    .nunique()       <frame/nunique>
+    .nunique1()      <frame/nunique1>
     .rbind()         <frame/rbind>
     .replace()       <frame/replace>
+    .sd()            <frame/sd>
+    .sd1()           <frame/sd1>
     .shape           <frame/shape>
     .sort()          <frame/sort>
     .source          <frame/source>
     .stype           <frame/stype>
     .stypes          <frame/stypes>
+    .sum()           <frame/sum>
+    .sum1()          <frame/sum1>
     .tail()          <frame/tail>
     .to_arrow()      <frame/to_arrow>
     .to_csv()        <frame/to_csv>

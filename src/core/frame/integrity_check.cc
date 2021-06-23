@@ -38,47 +38,7 @@ void py::Frame::integrity_check() {
   if (!dt) {
     throw AssertionError() << "py::Frame.dt is NULL";
   }
-
   dt->verify_integrity();
-
-  if (stypes) {
-    if (!py::robj(stypes).is_tuple()) {
-      throw AssertionError() << "py::Frame.stypes is not a tuple";
-    }
-    auto stypes_tuple = py::robj(stypes).to_otuple();
-    if (stypes_tuple.size() != dt->ncols()) {
-      throw AssertionError() << "len(.stypes) = " << stypes_tuple.size()
-          << " is different from .ncols = " << dt->ncols();
-    }
-    for (size_t i = 0; i < dt->ncols(); ++i) {
-      dt::SType col_stype = dt->get_column(i).stype();
-      auto elem = stypes_tuple[i];
-      auto eexp = dt::stype_to_pyobj(col_stype);
-      if (elem != eexp) {
-        throw AssertionError() << "Element " << i << " of .stypes is "
-            << elem << ", but the column's stype is " << col_stype;
-      }
-    }
-  }
-  if (ltypes) {
-    if (!py::robj(ltypes).is_tuple()) {
-      throw AssertionError() << "py::Frame.ltypes is not a tuple";
-    }
-    auto ltypes_tuple = py::robj(ltypes).to_otuple();
-    if (ltypes_tuple.size() != dt->ncols()) {
-      throw AssertionError() << "len(.ltypes) = " << ltypes_tuple.size()
-          << " is different from .ncols = " << dt->ncols();
-    }
-    for (size_t i = 0; i < dt->ncols(); ++i) {
-      dt::SType col_stype = dt->get_column(i).stype();
-      auto elem = ltypes_tuple[i];
-      auto eexp = dt::ltype_to_pyobj(stype_to_ltype(col_stype));
-      if (elem != eexp) {
-        throw AssertionError() << "Element " << i << " of .ltypes is "
-            << elem << ", but the column's ltype is " << col_stype;
-      }
-    }
-  }
 }
 
 

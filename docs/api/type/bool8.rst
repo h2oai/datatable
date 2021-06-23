@@ -13,5 +13,14 @@
 
     Examples
     --------
-    >>> dt.Frame([True, False, None]).types
-    [Type.bool8]
+    >>> DT = dt.Frame([True, False, None]).type
+    >>> DT.type
+    Type.bool8
+    >>> DT
+       |    C0
+       | bool8
+    -- + -----
+     0 |     1
+     1 |     0
+     2 |    NA
+    [3 rows x 1 column]

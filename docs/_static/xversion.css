@@ -3,14 +3,14 @@
  * x-version (common)
  *-----------------------------------------------------------------------------*/
 
-.x-version > div:first-child {
+.x-version:not(.admonition) > div:first-child {
     display: inline-block;
     padding: 3px 8px;
     font-style: italic;
     font-size: 90%;
 }
 
-.x-version > div:first-child:before {
+.x-version:not(.admonition) > div:first-child:before {
     font-family: 'FontAwesome';
     font-style: normal;
     padding-right: 8px;
@@ -47,17 +47,22 @@
  * x-version-deprecated
  *-----------------------------------------------------------------------------*/
 
-.x-version.deprecated {
+.x-version.deprecated:not(.admonition) {
     margin: -7px 0 8px 32px;
     text-align: right;
 }
 
-.x-version.deprecated > div {
+.x-version.deprecated > div:first-child {
     background: #fcf2e4;
     color: #ff7700;
 }
 
-.x-version.deprecated > div:first-child:before {
+.x-version.deprecated.admonition > div:first-child {
+    background: inherit;
+    color: darkred;
+}
+
+.x-version.deprecated:not(.admonition) > div:first-child:before {
     content: "\f071";
 }
 

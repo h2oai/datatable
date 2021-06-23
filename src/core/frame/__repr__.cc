@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <ios>        // std::hex, std::dec
 #include <sstream>
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "frame/repr/repr_options.h"
 #include "frame/repr/terminal_widget.h"
@@ -77,19 +78,8 @@ oobj Frame::_repr_pretty_(const PKArgs&) {
 }
 
 
-static const char* doc_view =
-R"(view(self, interactive=None, plain=False)
---
-
-.. warning::
-
-    This function is currently not working properly.
-    `[#2669] <https://github.com/h2oai/datatable/issues/2669>`_
-
-)";
-
 static PKArgs args_view(
-  0, 2, 0, false, false, {"interactive", "plain"}, "view", doc_view);
+  0, 2, 0, false, false, {"interactive", "plain"}, "view", dt::doc_Frame_view);
 
 void Frame::view(const PKArgs& args) {
   bool interactive = true;  // default when `interactive` is omitted entirely

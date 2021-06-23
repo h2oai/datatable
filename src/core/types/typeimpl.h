@@ -54,7 +54,7 @@ class TypeImpl {
     virtual bool is_numeric() const;
     virtual bool is_object() const;
     virtual bool is_string() const;
-    virtual bool is_time() const;
+    virtual bool is_temporal() const;
 
     virtual bool can_be_read_as_int8() const;
     virtual bool can_be_read_as_int16() const;
@@ -72,6 +72,10 @@ class TypeImpl {
 
     // This method must be implemented by each subclass
     virtual std::string to_string() const = 0;
+
+    // Type-casting functionality: cast column `col` into the current type.
+    // The new type-cast column of `this` type is returned.
+    virtual Column cast_column(Column&& col) const;
 
   protected:
     TypeImpl(SType stype);

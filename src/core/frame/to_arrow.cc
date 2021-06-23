@@ -25,6 +25,7 @@
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
 #include "column/arrow_void.h"
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/xargs.h"
@@ -34,26 +35,7 @@ namespace py {
 
 
 static const char* doc_to_arrow =
-R"(to_arrow(self)
---
-
-Convert this frame into a ``pyarrow.Table`` object. The ``pyarrow``
-module must be installed.
-
-The conversion is multi-threaded and done in C++, but it does
-involve creating a copy of the data, except for the cases when the
-data was originally imported from Arrow. This is caused by differences
-in the data storage formats of datatable and Arrow.
-
-Parameters
-----------
-return: pyarrow.Table
-    A ``Table`` object is always returned, even if the source is a
-    single-column datatable Frame.
-
-except: ImportError
-    If the `pyarrow` module is not installed.
-)";
+R"()";
 
 oobj Frame::to_arrow(const XArgs&) {
   oobj pyarrow = oobj::import("pyarrow");
@@ -163,6 +145,7 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
     case dt::SType::FLOAT32: (*osch)->format = "f"; break;
     case dt::SType::FLOAT64: (*osch)->format = "g"; break;
     case dt::SType::DATE32:  (*osch)->format = "tdD"; break;
+    case dt::SType::TIME64:  (*osch)->format = "tsn:"; break;  // timezone after :
     case dt::SType::STR32:   (*osch)->format = "u"; break;
     case dt::SType::STR64:   (*osch)->format = "U"; break;
     default:
@@ -342,7 +325,8 @@ Column dt::ColumnImpl::as_arrow() const {
     case SType::INT64: return _as_arrow_fw<int64_t>();
     case SType::FLOAT32: return _as_arrow_fw<float>();
     case SType::FLOAT64: return _as_arrow_fw<double>();
-    case SType::DATE32: return  _as_arrow_fw<int32_t>();
+    case SType::DATE32: return _as_arrow_fw<int32_t>();
+    case SType::TIME64: return _as_arrow_fw<int64_t>();
     case SType::STR32: return _as_arrow_str<uint32_t>();
     case SType::STR64: return _as_arrow_str<uint64_t>();
     default: break;

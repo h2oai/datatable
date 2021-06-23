@@ -700,6 +700,11 @@ static Column compute_mean(Column&& arg, const Groupby& gby) {
     case SType::INT64:   return _mean<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _mean<float>  (std::move(arg), gby);
     case SType::FLOAT64: return _mean<double> (std::move(arg), gby);
+    case SType::TIME64: {
+      auto col = _mean<int64_t>(std::move(arg), gby);
+      col.cast_inplace(SType::TIME64);
+      return col;
+    }
     default: throw _error("mean", arg.stype());
   }
 }
@@ -1010,6 +1015,7 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
     case SType::INT16:   return _count<int16_t>(std::move(arg), gby);
     case SType::DATE32:
     case SType::INT32:   return _count<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
     case SType::INT64:   return _count<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _count<float>(std::move(arg), gby);
     case SType::FLOAT64: return _count<double>(std::move(arg), gby);
@@ -1081,6 +1087,7 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
     case SType::INT16:   return _gcount<int16_t>(std::move(arg), gby);
     case SType::DATE32:
     case SType::INT32:   return _gcount<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
     case SType::INT64:   return _gcount<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _gcount<float>(std::move(arg), gby);
     case SType::FLOAT64: return _gcount<double>(std::move(arg), gby);
@@ -1317,6 +1324,7 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
     case SType::INT16:   return _minmax<int16_t, MIN>(st, std::move(arg), gby);
     case SType::DATE32:
     case SType::INT32:   return _minmax<int32_t, MIN>(st, std::move(arg), gby);
+    case SType::TIME64:
     case SType::INT64:   return _minmax<int64_t, MIN>(st, std::move(arg), gby);
     case SType::FLOAT32: return _minmax<float, MIN>(st, std::move(arg), gby);
     case SType::FLOAT64: return _minmax<double, MIN>(st, std::move(arg), gby);

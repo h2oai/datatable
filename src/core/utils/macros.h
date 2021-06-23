@@ -142,15 +142,6 @@
 #endif
 
 
-#if DT_COMPILER_CLANG || DT_COMPILER_MSVC
-  #define REGEX_SUPPORTED 1
-#elif DT_COMPILER_GCC > 0 && DT_COMPILER_GCC <= 4
-  #define REGEX_SUPPORTED 0
-#else
-  #define REGEX_SUPPORTED 1
-#endif
-
-
 
 // Cache line size: equivalent of std::hardware_destructive_interference_size
 // from C++17.

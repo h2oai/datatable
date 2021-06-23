@@ -23,7 +23,12 @@
 from .lib._datatable import (
     day,
     day_of_week,
+    hour,
+    minute,
     month,
+    nanosecond,
+    second,
     year,
     ymd,
+    ymdt,
 )

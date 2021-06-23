@@ -21,69 +21,56 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_INT_h
 #define dt_TYPES_TYPE_INT_h
-#include <limits>
-#include "python/int.h"
-#include "types/type_numeric.h"
-#include "utils/assert.h"
+#include "types/typeimpl_numeric.h"
 namespace dt {
 
 
 
-class Type_Int8 : public Type_Numeric {
+class Type_Int8 : public TypeImpl_Numeric {
   public:
-    Type_Int8() : Type_Numeric(SType::INT8) {}
-    bool is_integer() const override { return true; }
-    bool can_be_read_as_int8()  const override { return true; }
-    std::string to_string() const override { return "int8"; }
-    py::oobj min() const override { return py::oint(-127); }
-    py::oobj max() const override { return py::oint(127); }
-    const char* struct_format() const override { return "b"; }
+    Type_Int8();
+    bool is_integer() const override;
+    bool can_be_read_as_int8() const override;
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 
-class Type_Int16 : public Type_Numeric {
+class Type_Int16 : public TypeImpl_Numeric {
   public:
-    Type_Int16() : Type_Numeric(SType::INT16) {}
-    bool is_integer() const override { return true; }
-    bool can_be_read_as_int16()  const override { return true; }
-    std::string to_string() const override { return "int16"; }
-    py::oobj min() const override { return py::oint(-32767); }
-    py::oobj max() const override { return py::oint(32767); }
-    const char* struct_format() const override { return "h"; }
+    Type_Int16();
+    bool is_integer() const override;
+    bool can_be_read_as_int16() const override;
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 
-class Type_Int32 : public Type_Numeric {
+class Type_Int32 : public TypeImpl_Numeric {
   public:
-    Type_Int32() : Type_Numeric(SType::INT32) {}
-    bool is_integer() const override { return true; }
-    bool can_be_read_as_int32()  const override { return true; }
-    std::string to_string() const override { return "int32"; }
-
-    py::oobj min() const override {
-      return py::oint(-std::numeric_limits<int32_t>::max());
-    }
-    py::oobj max() const override {
-      return py::oint(std::numeric_limits<int32_t>::max());
-    }
-    const char* struct_format() const override { return "i"; }
+    Type_Int32();
+    bool is_integer() const override;
+    bool can_be_read_as_int32() const override;
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 
-class Type_Int64 : public Type_Numeric {
+class Type_Int64 : public TypeImpl_Numeric {
   public:
-    Type_Int64() : Type_Numeric(SType::INT64) {}
-    bool is_integer() const override { return true; }
-    bool can_be_read_as_int64()  const override { return true; }
-    std::string to_string() const override { return "int64"; }
-
-    py::oobj min() const override {
-      return py::oint(-std::numeric_limits<int64_t>::max());
-    }
-    py::oobj max() const override {
-      return py::oint(std::numeric_limits<int64_t>::max());
-    }
-    const char* struct_format() const override { return "q"; }
+    Type_Int64();
+    bool is_integer() const override;
+    bool can_be_read_as_int64() const override;
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 

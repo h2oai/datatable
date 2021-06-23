@@ -196,7 +196,11 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj rowmin(const py::XArgs&);
     py::oobj rowmean(const py::XArgs&);
     py::oobj rowsd(const py::XArgs&);
-
+    py::oobj sd(const py::XArgs&);
+    py::oobj shift(const py::XArgs&);
+    py::oobj last(const py::XArgs&);
+    py::oobj count(const py::XArgs&);
+    py::oobj first(const py::XArgs&);
 
     static void impl_init_type(py::XTypeMaker& xt);
 };
