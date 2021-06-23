@@ -25,9 +25,13 @@ import datetime
 import pytest
 import random
 from datatable import dt, f
+from datetime import date as d
 from tests import assert_equals
 
 
+#-------------------------------------------------------------------------------
+# Basic functionality
+#-------------------------------------------------------------------------------
 
 def test_date32_name():
     assert repr(dt.Type.date32) == "Type.date32"
@@ -53,7 +57,6 @@ def test_date32_type_from_pyarrow(pa):
 
 
 def test_date32_create_from_python():
-    d = datetime.date
     src = [d(2000, 1, 5), d(2010, 11, 23), d(2020, 2, 29), None]
     DT = dt.Frame(src)
     assert DT.type == dt.Type.date32
@@ -61,7 +64,6 @@ def test_date32_create_from_python():
 
 
 def test_date32_create_from_python_force():
-    d = datetime.date
     DT = dt.Frame([18675, -100000, None, 0.75, 'hello'], stype='date32')
     assert DT.type == dt.Type.date32
     assert DT.to_list() == [
@@ -71,7 +73,6 @@ def test_date32_create_from_python_force():
 
 
 def test_date32_repr():
-    d = datetime.date
     src = [d(1, 1, 1), d(2001, 12, 13), d(5756, 5, 9)]
     DT = dt.Frame(src)
     assert str(DT) == (
@@ -113,6 +114,58 @@ def test_date32_minmax():
     assert dt.Type.date32.max == 2146764179
 
 
+#-------------------------------------------------------------------------------
+# Statistics
+#-------------------------------------------------------------------------------
+
+def test_date32_minmax():
+    src = [None,
+           d(2000, 10, 18),
+           d(2010, 11, 13),
+           d(2020, 2, 29),
+           None]
+    DT = dt.Frame(src)
+    assert DT.min1() == d(2000, 10, 18)
+    assert DT.max1() == d(2020, 2, 29)
+    assert DT.countna1() == 2
+    assert_equals(DT.min(), dt.Frame([d(2000, 10, 18)]))
+    assert_equals(DT.max(), dt.Frame([d(2020, 2, 29)]))
+    assert_equals(DT.countna(), dt.Frame([2]/dt.int64))
+
+
+def test_date32_na_stats():
+    src = [None,
+           d(2000, 10, 18),
+           d(2010, 11, 13),
+           d(2020, 2, 29),
+           None]
+    DT = dt.Frame(src)
+    assert DT.sd1() == None
+    assert DT.sum1() == None
+    assert_equals(DT.sd(), dt.Frame([None]/dt.float64))
+    assert_equals(DT.sum(), dt.Frame([None]/dt.float64))
+
+
+def test_date32_mean():
+    dd = datetime.datetime
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 14)]
+    DT = dt.Frame(src)
+    assert DT.mean1() ==  dd(2010, 11, 13, 12, 0, 0)
+    assert_equals(DT.mean(), dt.Frame([dd(2010, 11, 13, 12, 0, 0)]))
+
+
+def test_date32_mode():
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 12),
+           None,
+           d(2010, 11, 13),
+           None]
+    DT = dt.Frame(src)
+    assert DT.mode1() == d(2010, 11, 13)
+    assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13)]))
 
 
 #-------------------------------------------------------------------------------
@@ -142,7 +195,6 @@ def test_from_numpy_with_nats(np):
 #-------------------------------------------------------------------------------
 
 def test_save_to_jay(tempfile_jay):
-    d = datetime.date
     src = [d(1, 1, 1), d(2001, 12, 13), d(2026, 5, 9), None, d(1956, 11, 11)]
     DT = dt.Frame(src)
     DT.to_jay(tempfile_jay)
@@ -177,7 +229,6 @@ def test_with_stats(tempfile_jay):
 #-------------------------------------------------------------------------------
 
 def test_write_to_csv():
-    d = datetime.date
     DT = dt.Frame([d(2001, 3, 15), d(1788, 6, 21), d(2030, 7, 1)])
     assert DT.to_csv() == "C0\n2001-03-15\n1788-06-21\n2030-07-01\n"
 
@@ -213,14 +264,12 @@ def test_write_huge_dates():
 
 
 def test_read_date32_from_csv():
-    d = datetime.date
     DT = dt.fread("a-b-c\n1999-01-01\n2010-11-11\n2020-12-31\n")
     assert_equals(DT, dt.Frame([d(1999,1,1), d(2010,11,11), d(2020,12,31)],
                                names=["a-b-c"]))
 
 
 def test_do_not_read_from_csv():
-    d = datetime.date
     assert dt.options.fread.parse_dates is True
     with dt.options.context(**{"fread.parse_dates": False}):
         DT = dt.fread("X\n1990-10-10\n2011-11-11\n2020-02-05\n")
@@ -234,7 +283,6 @@ def test_do_not_read_from_csv():
 #-------------------------------------------------------------------------------
 
 def test_date32_to_pandas(pd):
-    d = datetime.date
     DT = dt.Frame([d(2000, 1, 1), d(2005, 7, 12), d(2020, 2, 29),
                    d(1677, 9, 22), None])
     pf = DT.to_pandas()
@@ -280,7 +328,6 @@ def test_from_date64_arrow(pa):
 
 
 def test_date32_to_arrow(pa):
-    d = datetime.date
     DT = dt.Frame([17, 349837, 88888, None, 17777], stype='date32')
     tbl = DT.to_arrow()
     assert isinstance(tbl, pa.Table)
@@ -295,7 +342,6 @@ def test_date32_to_arrow(pa):
 #-------------------------------------------------------------------------------
 
 def test_date32_relational():
-    d = datetime.date
     DT = dt.Frame(A=[d(2000, 1, 1), d(2010, 11, 17), None, d(2020, 3, 30),
                      None, d(1998, 5, 14), d(999, 9, 9)],
                   B=[d(2000, 1, 2), d(2010, 11, 17), None, d(2020, 1, 31),
@@ -351,7 +397,6 @@ def test_date32_sort(seed):
 
 
 def test_date32_sort_with_NAs():
-    d = datetime.date
     src = [d(2001, 12, 1), None, d(3000, 3, 30), None, d(1, 1, 1)]
     RES = dt.Frame(src)[:, :, dt.sort(f[0])]
     assert_equals(RES,
@@ -409,7 +454,6 @@ def test_date32_in_groupby():
 
 
 def test_select_dates():
-    d = datetime.date
     DT = dt.Frame(A=[12], B=[d(2000, 12, 20)], C=[True])
     assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.bool8]
     RES1 = DT[:, f[d]]

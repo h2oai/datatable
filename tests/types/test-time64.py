@@ -61,6 +61,21 @@ def test_time64_type_minmax():
     assert dt.Type.time64.max == d(2262, 4, 11, 23, 47, 16, 854775)
 
 
+def test_time64_repr():
+    src = [d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src)
+    assert str(DT) == (
+        "   | C0                       \n"
+        "   | time64                   \n"
+        "-- + -------------------------\n"
+        " 0 | 2000-10-18T03:30:00      \n"
+        " 1 | 2010-11-13T15:11:59      \n"
+        " 2 | 2020-02-29T20:20:20.00002\n"
+        " 3 | NA                       \n"
+        "[4 rows x 1 column]\n"
+    )
 
 
 #-------------------------------------------------------------------------------
@@ -93,36 +108,56 @@ def test_time64_create_from_mixed_list2():
 
 
 #-------------------------------------------------------------------------------
-# Basic properties
+# Statistics
 #-------------------------------------------------------------------------------
-
-def test_time64_repr():
-    src = [d(2000, 10, 18, 3, 30),
-           d(2010, 11, 13, 15, 11, 59),
-           d(2020, 2, 29, 20, 20, 20, 20), None]
-    DT = dt.Frame(src)
-    assert str(DT) == (
-        "   | C0                       \n"
-        "   | time64                   \n"
-        "-- + -------------------------\n"
-        " 0 | 2000-10-18T03:30:00      \n"
-        " 1 | 2010-11-13T15:11:59      \n"
-        " 2 | 2020-02-29T20:20:20.00002\n"
-        " 3 | NA                       \n"
-        "[4 rows x 1 column]\n"
-    )
-
 
 def test_time64_minmax():
     src = [None,
            d(2000, 10, 18, 3, 30),
            d(2010, 11, 13, 15, 11, 59),
-           d(2020, 2, 29, 20, 20, 20, 20), None]
+           d(2020, 2, 29, 20, 20, 20, 20),
+           None]
     DT = dt.Frame(src)
     assert DT.min1() == d(2000, 10, 18, 3, 30)
     assert DT.max1() == d(2020, 2, 29, 20, 20, 20, 20)
     assert DT.countna1() == 2
+    assert_equals(DT.min(), dt.Frame([d(2000, 10, 18, 3, 30)]))
+    assert_equals(DT.max(), dt.Frame([d(2020, 2, 29, 20, 20, 20, 20)]))
+    assert_equals(DT.countna(), dt.Frame([2]/dt.int64))
 
+
+def test_time64_na_stats():
+    src = [None,
+           d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20),
+           None]
+    DT = dt.Frame(src)
+    assert DT.sd1() == None
+    assert DT.sum1() == None
+    assert_equals(DT.sd(), dt.Frame([None]/dt.float64))
+    assert_equals(DT.sum(), dt.Frame([None]/dt.float64))
+
+
+def test_time64_mean():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50)]
+    DT = dt.Frame(src)
+    assert DT.mean1() ==  d(2010, 11, 13, 16, 11, 50)
+    assert_equals(DT.mean(), dt.Frame([d(2010, 11, 13, 16, 11, 50)]))
+
+
+def test_time64_mode():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT = dt.Frame(src)
+    assert DT.mode1() == d(2010, 11, 13, 15, 11, 50)
+    assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13, 15, 11, 50)]))
 
 
 #-------------------------------------------------------------------------------

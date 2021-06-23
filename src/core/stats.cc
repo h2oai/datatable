@@ -1143,9 +1143,9 @@ static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
     case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
-    case dt::SType::DATE32:
+    case dt::SType::DATE32:  return StatsPtr(new DateStats(col));
     case dt::SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
-    case dt::SType::TIME64:
+    case dt::SType::TIME64:  return StatsPtr(new TimeStats(col));
     case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
     case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
@@ -1220,6 +1220,10 @@ template <typename T>
 std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this); }
 template <typename T>
 std::unique_ptr<Stats> IntegerStats<T>::clone() const { return this->_clone(this); }
+
+std::unique_ptr<Stats> DateStats::clone() const { return this->_clone(this); }
+std::unique_ptr<Stats> TimeStats::clone() const { return this->_clone(this); }
+
 std::unique_ptr<Stats> BooleanStats::clone()    const { return this->_clone(this); }
 std::unique_ptr<Stats> PyObjectStats::clone()   const { return this->_clone(this); }
 
@@ -1285,9 +1289,9 @@ void Stats::verify_integrity(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
     case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
-    case dt::SType::DATE32:
+    case dt::SType::DATE32:  XAssert(dynamic_cast<DateStats*>(this)); break;
     case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
-    case dt::SType::TIME64:
+    case dt::SType::TIME64:  XAssert(dynamic_cast<TimeStats*>(this)); break;
     case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
     case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
     case dt::SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
@@ -1336,8 +1340,18 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::NModal: {
       return pywrap_stat<size_t>(stat);
     }
+    case Stat::Mean: {
+      switch (dt::stype_to_ltype(column->stype())) {
+       case dt::LType::DATETIME: {
+          double value;
+          bool isvalid = get_stat(stat, &value);
+          if (!isvalid) return py::None();
+          return py::odatetime(static_cast<int64_t>(value));
+        }
+        default: return pywrap_stat<double>(stat);
+      }
+    }
     case Stat::Sum:
-    case Stat::Mean:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
@@ -1434,26 +1448,12 @@ Column Stats::get_stat_as_column(Stat stat) {
     }
     case Stat::Mean:
       switch (column->stype()) {
-        case dt::SType::DATE32:  {
-          // Convert days to nanoseconds for the further time64 casting
-          double value;
-          bool isvalid = get_stat(stat, &value);
-          if (!isvalid) {
-            return _make_nacol(dt::SType::TIME64);
-          }
-          value *= 86400000000000;
-          set_stat(stat, value);
-        }
+        case dt::SType::DATE32:
         case dt::SType::TIME64:  return colwrap_stat<double, int64_t>(stat, dt::SType::TIME64);
         default:                 return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
       }
     case Stat::Sum:
     case Stat::StDev:
-      switch (column->stype()) {
-        case dt::SType::DATE32:
-        case dt::SType::TIME64: return _make_nacol(dt::SType::FLOAT64);
-        default: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
-      }
     case Stat::Skew:
     case Stat::Kurt: {
       return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
@@ -1482,6 +1482,25 @@ Column Stats::get_stat_as_column(Stat stat) {
 }
 
 
+//------------------------------------------------------------------------------
+// Date and Time stats
+//------------------------------------------------------------------------------
+
+double TimeStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
+double TimeStats::stdev (bool* isvalid) { return _invalid<double>(isvalid);}
+double DateStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
+double DateStats::stdev (bool* isvalid) { return _invalid<double>(isvalid); }
+
+
+double DateStats::mean (bool* isvalid) {
+  if (!is_computed(Stat::Mean)) {
+    compute_moments12();
+    // Conversion from days to nanoseconds for further casting to `time64`
+    _mean *= 86400000000000;
+  }
+  _fill_validity_flag(Stat::Mean, isvalid);
+  return _mean;
+}
 
 
 //------------------------------------------------------------------------------
