@@ -559,6 +559,16 @@ bool _obj::parse_string_as_date(int32_t* out) const {
   return false;
 }
 
+bool _obj::parse_string_as_time(int64_t* out) const {
+  if (PyUnicode_Check(v)) {
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(v, &str_size);
+    if (!str) throw PyError();
+    return dt::read::parse_time64_iso(str, str + str_size, out);
+  }
+  return false;
+}
+
 
 
 

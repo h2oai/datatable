@@ -285,33 +285,6 @@ static size_t parse_as_date32(const Column& inputcol, Buffer& mbuf, size_t i0) {
 }
 
 
-static Column force_as_date32(const Column& inputcol) {
-  size_t nrows = inputcol.nrows();
-  Buffer databuf = Buffer::mem(nrows * sizeof(int32_t));
-  auto outdata = static_cast<int32_t*>(databuf.xptr());
-
-  int overflow = 0;
-  py::oobj item;
-  for (size_t i = 0; i < nrows; ++i) {
-    inputcol.get_element(i, &item);
-    if (item.is_date()) {
-      outdata[i] = item.to_odate().get_days();
-    }
-    else if (item.is_int()) {
-      outdata[i] = item.to_pyint().ovalue<int32_t>(&overflow);
-    }
-    else if (item.is_float()) {
-      outdata[i] = static_cast<int32_t>(item.to_double());
-    }
-    else {
-      outdata[i] = dt::GETNA<int32_t>();
-    }
-  }
-  PyErr_Clear();  // in case an overflow occurred
-  return Column::new_mbuf_column(nrows, dt::SType::DATE32, std::move(databuf));
-}
-
-
 
 
 //------------------------------------------------------------------------------
@@ -619,7 +592,8 @@ static Column parse_column_fixed_type(const Column& inputcol, dt::Type type) {
     case dt::SType::FLOAT64: return force_as_real<double>(inputcol);
     case dt::SType::STR32:   return force_as_str<uint32_t>(inputcol);
     case dt::SType::STR64:   return force_as_str<uint64_t>(inputcol);
-    case dt::SType::DATE32:  return inputcol.cast(dt::Type::date32());
+    case dt::SType::TIME64:
+    case dt::SType::DATE32:  return inputcol.cast(type);
     case dt::SType::OBJ:     return force_as_pyobj(inputcol);
     default:
       throw ValueError() << "Unable to create Column of type `"
