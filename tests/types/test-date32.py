@@ -140,8 +140,8 @@ def test_date32_na_stats():
            d(2020, 2, 29),
            None]
     DT = dt.Frame(src)
-    assert DT.sd1() == None
-    assert DT.sum1() == None
+    assert DT.sd1() is None
+    assert DT.sum1() is None
     assert_equals(DT.sd(), dt.Frame([None]/dt.float64))
     assert_equals(DT.sum(), dt.Frame([None]/dt.float64))
 
