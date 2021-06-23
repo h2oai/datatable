@@ -1494,7 +1494,8 @@ double DateStats::mean (bool* isvalid) {
   if (!is_computed(Stat::Mean)) {
     compute_moments12();
     // Conversion from days to nanoseconds for further casting to `time64`
-    _mean *= 86400000000000;
+    constexpr int64_t NANOSECONDS_PER_DAY = 24LL * 3600LL * 1000000000LL;
+    _mean *= NANOSECONDS_PER_DAY;
   }
   _fill_validity_flag(Stat::Mean, isvalid);
   return _mean;
