@@ -32,6 +32,7 @@
 #include "python/list.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "read/parsers/info.h"
 #include "stype.h"
 #include "types/py_type.h"
 #include "utils/macros.h"
@@ -423,6 +424,9 @@ bool _obj::parse_int(int8_t* out) const  { return _parse_int(v, out); }
 bool _obj::parse_int(int16_t* out) const { return _parse_int(v, out); }
 bool _obj::parse_int(int32_t* out) const { return _parse_int(v, out); }
 bool _obj::parse_int(int64_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_as_date(int32_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_as_time(int64_t* out) const { return _parse_int(v, out); }
+
 
 bool _obj::parse_int(double* out) const {
   if (PyLong_Check(v)) {
@@ -507,7 +511,7 @@ bool _obj::parse_double(double* out) const {
 }
 
 
-bool _obj::parse_date(int32_t* out) const {
+bool _obj::parse_date_as_date(int32_t* out) const {
   if (py::odate::check(v)) {
     *out = py::odate::unchecked(v).get_days();
     return true;
@@ -515,20 +519,52 @@ bool _obj::parse_date(int32_t* out) const {
   return false;
 }
 
-bool _obj::parse_date(int64_t* out) const {
-  constexpr int64_t SECONDS = 1000000000;
-  constexpr int64_t DAYS = 24 * 3600 * SECONDS;
+bool _obj::parse_date_as_time(int64_t* out) const {
+  constexpr int64_t NANOSECONDS_PER_DAY = 24ll * 3600ll * 1000000000ll;
   if (py::odate::check(v)) {
-    *out = py::odate::unchecked(v).get_days() * DAYS;
+    *out = py::odate::unchecked(v).get_days() * NANOSECONDS_PER_DAY;
     return true;
   }
   return false;
 }
 
-bool _obj::parse_datetime(int64_t* out) const {
+bool _obj::parse_datetime_as_date(int32_t* out) const {
+  constexpr int64_t NANOSECONDS_PER_DAY = 24ll * 3600ll * 1000000000ll;
+  if (py::odatetime::check(v)) {
+    int64_t value = py::odatetime::unchecked(v).get_time();
+    if (value < 0) {
+      value -= NANOSECONDS_PER_DAY - 1;
+    }
+    *out = static_cast<int32_t>(value / NANOSECONDS_PER_DAY);
+    return true;
+  }
+  return false;
+}
+
+bool _obj::parse_datetime_as_time(int64_t* out) const {
   if (py::odatetime::check(v)) {
     *out = py::odatetime::unchecked(v).get_time();
     return true;
+  }
+  return false;
+}
+
+bool _obj::parse_string_as_date(int32_t* out) const {
+  if (PyUnicode_Check(v)) {
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(v, &str_size);
+    if (!str) throw PyError();
+    return dt::read::parse_date32_iso(str, str + str_size, out);
+  }
+  return false;
+}
+
+bool _obj::parse_string_as_time(int64_t* out) const {
+  if (PyUnicode_Check(v)) {
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(v, &str_size);
+    if (!str) throw PyError();
+    return dt::read::parse_time64_iso(str, str + str_size, out);
   }
   return false;
 }

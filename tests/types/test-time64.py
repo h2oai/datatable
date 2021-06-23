@@ -106,6 +106,16 @@ def test_time64_create_from_mixed_list2():
                                 d(1999, 12, 31, 8, 30, 50)]))
 
 
+def test_time64_create_from_mixed_list3():
+    DT = dt.Frame(['2001-10-10 12:34:00',
+                   '2013-05-03T17:11:35.900',
+                   '1939-09-01T06:00:00'],
+                  type='time64')
+    assert_equals(DT, dt.Frame([d(2001, 10, 10, 12, 34, 0),
+                                d(2013, 5, 3, 17, 11, 35, 900000),
+                                d(1939, 9, 1, 6, 0, 0)]))
+
+
 
 #-------------------------------------------------------------------------------
 # Statistics
@@ -515,12 +525,13 @@ def test_cast_date32_to_time64():
 
 def test_cast_object_to_time64():
     from datetime import date
-    DT = dt.Frame([d(2001, 1, 1, 12, 0, 0), date(2021, 10, 15), 6, None, dict],
+    DT = dt.Frame([d(2001, 1, 1, 12, 0, 0), date(2021, 10, 15), 6000, None, dict],
                   stype=object)
     DT[0] = dt.Type.time64
     assert_equals(DT, dt.Frame([d(2001, 1, 1, 12, 0, 0),
                                 d(2021, 10, 15, 0, 0, 0),
-                                None, None, None]))
+                                d(1970, 1, 1, 0, 0, 0, 6),
+                                None, None]))
 
 
 @pytest.mark.parametrize('ttype', [dt.str32, dt.str64])
@@ -625,11 +636,9 @@ def test_rbind():
 
 
 def test_rbind2():
-    DT = dt.Frame([5, 7, 9])
-    DT[0] = dt.Type.time64
+    DT = dt.Frame([5, 7, 9], type=dt.Type.time64)
     RES = dt.rbind(DT, DT)
-    EXP = dt.Frame([5, 7, 9] * 2)
-    EXP[0] = dt.Type.time64
+    EXP = dt.Frame([5, 7, 9] * 2, type=dt.Type.time64)
     assert_equals(RES, EXP)
 
 
