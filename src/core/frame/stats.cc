@@ -55,188 +55,17 @@ static DataTable* _make_frame(DataTable* dt, Stat stat) {
 // Frame functions
 //------------------------------------------------------------------------------
 
-static const char* doc_countna =
-R"(countna(self)
---
-
-Report the number of NA values in each column of the frame.
-
-Parameters
-----------
-(return): Frame
-    The frame will have 1 row and the same number and names of columns
-    as in the current frame. All columns will have stype ``int64``.
-
-Examples
---------
->>> DT = dt.Frame(A=[1, 5, None], B=[math.nan]*3, C=[None, None, 'bah!'])
->>> DT.countna()
-   |     A      B      C
-   | int64  int64  int64
--- + -----  -----  -----
- 0 |     1      3      2
---
-[1 row x 3 columns]
-
->>> DT.countna().to_tuples()[0]
-(1, 3, 2)
-
-
-See Also
---------
-- :meth:`.countna1()` -- similar to this method, but operates on a
-  single-column frame only, and returns a number instead of a Frame.
-
-- :func:`dt.count()` -- function for counting non-NA ("valid") values
-  in a column; can also be applied per-group.
-)";
-
-static const char* doc_countna1 =
-R"(countna1(self)
---
-
-Return the number of NA values in a single-column Frame.
-
-This function is a shortcut for::
-
-    DT.countna()[0, 0]
-
-Parameters
-----------
-(except): ValueError
-    If called on a Frame that has more or less than 1 column.
-
-(return): int
-
-See Also
---------
-- :meth:`.countna()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
-
-- :func:`dt.count()` -- function for counting non-NA ("valid") values
-  in a column; can also be applied per-group.
-)";
-
-
-static const char* doc_max =
-R"(max(self)
---
-
-Report the largest (maximum) value in each column of the frame.
-
-Parameters
-----------
-return: Frame
-    The frame will have 1 row and the same number, names and stypes
-    of columns as in the current frame. For string/object columns
-    this function returns NA values.
-
-See Also
---------
-- :meth:`.max1()` -- similar to this method, but operates on a
-  single-column frame only, and returns a scalar value instead of
-  a Frame.
-
-- :func:`dt.max()` -- function for counting max values in a column or
-  an expression; can also be applied per-group.
-)";
-
-
-static const char* doc_max1 =
-R"(max1(self)
---
-
-Return the largest value in a single-column Frame. The frame's
-stype must be numeric.
-
-This function is a shortcut for::
-
-    DT.max()[0, 0]
-
-Parameters
-----------
-return: bool | int | float
-    The returned value corresponds to the stype of the frame.
-
-except: ValueError
-    If called on a Frame that has more or less than 1 column.
-
-See Also
---------
-- :meth:`.max()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
-
-- :func:`dt.max()` -- function for counting max values in a column or
-  an expression; can also be applied per-group.
-)";
-
-
-static const char* doc_min =
-R"(min(self)
---
-
-Report the smallest (minimum) value in each column of the frame.
-
-Parameters
-----------
-return: Frame
-    The frame will have 1 row and the same number, names and stypes
-    of columns as in the current frame. For string/object columns
-    this function returns NA values.
-
-See Also
---------
-- :meth:`.min1()` -- similar to this method, but operates on a
-  single-column frame only, and returns a scalar value instead of
-  a Frame.
-
-- :func:`dt.min()` -- function for counting min values in a column or
-  an expression; can also be applied per-group.
-)";
-
-
-static const char* doc_min1 =
-R"(min1(self)
---
-
-Return the smallest value in a single-column Frame. The frame's
-stype must be numeric.
-
-This function is a shortcut for::
-
-    DT.min()[0, 0]
-
-Parameters
-----------
-return: bool | int | float
-    The returned value corresponds to the stype of the frame.
-
-except: ValueError
-    If called on a Frame that has more or less than 1 column.
-
-See Also
---------
-- :meth:`.min()` -- similar to this method, but can be applied to
-  a Frame with any number of columns.
-
-- :func:`dt.min()` -- function for counting min values in a column or
-  an expression; can also be applied per-group.
-)";
-
-
-
-
-static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", doc_countna);
-static PKArgs args_max(0, 0, 0, false, false, {}, "max", nullptr);
-static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", nullptr);
-static PKArgs args_min(0, 0, 0, false, false, {}, "min", nullptr);
-static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", nullptr);
-static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", nullptr);
-static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", nullptr);
-static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", nullptr);
-static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", nullptr);
-static PKArgs args_skew(0, 0, 0, false, false, {}, "skew", nullptr);
-static PKArgs args_kurt(0, 0, 0, false, false, {}, "kurt", nullptr);
+static PKArgs args_countna(0, 0, 0, false, false, {}, "countna", dt::doc_Frame_countna);
+static PKArgs args_max(0, 0, 0, false, false, {}, "max", dt::doc_Frame_max);
+static PKArgs args_mean(0, 0, 0, false, false, {}, "mean", dt::doc_Frame_mean);
+static PKArgs args_min(0, 0, 0, false, false, {}, "min", dt::doc_Frame_min);
+static PKArgs args_mode(0, 0, 0, false, false, {}, "mode", dt::doc_Frame_mode);
+static PKArgs args_nmodal(0, 0, 0, false, false, {}, "nmodal", dt::doc_Frame_nmodal);
+static PKArgs args_nunique(0, 0, 0, false, false, {}, "nunique", dt::doc_Frame_nunique);
+static PKArgs args_sd(0, 0, 0, false, false, {}, "sd", dt::doc_Frame_sd);
+static PKArgs args_sum(0, 0, 0, false, false, {}, "sum", dt::doc_Frame_sum);
+static PKArgs args_skew(0, 0, 0, false, false, {}, "skew", dt::doc_Frame_skew);
+static PKArgs args_kurt(0, 0, 0, false, false, {}, "kurt", dt::doc_Frame_kurt);
 
 oobj Frame::stat(const PKArgs& args) {
   Stat stat = stat_from_args[&args];
@@ -245,17 +74,17 @@ oobj Frame::stat(const PKArgs& args) {
 }
 
 
-static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", doc_countna1);
-static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", nullptr);
-static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", nullptr);
-static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", nullptr);
-static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", nullptr);
-static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", nullptr);
-static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", nullptr);
-static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", nullptr);
-static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", nullptr);
-static PKArgs args_skew1(0, 0, 0, false, false, {}, "skew1", nullptr);
-static PKArgs args_kurt1(0, 0, 0, false, false, {}, "kurt1", nullptr);
+static PKArgs args_countna1(0, 0, 0, false, false, {}, "countna1", dt::doc_Frame_countna1);
+static PKArgs args_max1(0, 0, 0, false, false, {}, "max1", dt::doc_Frame_max1);
+static PKArgs args_mean1(0, 0, 0, false, false, {}, "mean1", dt::doc_Frame_mean1);
+static PKArgs args_min1(0, 0, 0, false, false, {}, "min1", dt::doc_Frame_min1);
+static PKArgs args_mode1(0, 0, 0, false, false, {}, "mode1", dt::doc_Frame_mode1);
+static PKArgs args_nmodal1(0, 0, 0, false, false, {}, "nmodal1", dt::doc_Frame_nmodal1);
+static PKArgs args_nunique1(0, 0, 0, false, false, {}, "nunique1", dt::doc_Frame_nunique1);
+static PKArgs args_sd1(0, 0, 0, false, false, {}, "sd1", dt::doc_Frame_sd1);
+static PKArgs args_sum1(0, 0, 0, false, false, {}, "sum1", dt::doc_Frame_sum1);
+static PKArgs args_skew1(0, 0, 0, false, false, {}, "skew1", dt::doc_Frame_skew1);
+static PKArgs args_kurt1(0, 0, 0, false, false, {}, "kurt1", dt::doc_Frame_kurt1);
 
 oobj Frame::stat1(const PKArgs& args) {
   if (dt->ncols() != 1) {
