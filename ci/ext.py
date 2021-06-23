@@ -480,7 +480,7 @@ def generate_build_info(mode=None, strict=False):
         git_date = time.strftime("%Y-%m-%d %H:%M:%S",
                                  time.gmtime(int(git_date)))
     if mode == 'build':
-        mode = 'normal'
+        mode = 'release'
 
     info_file = os.path.join("src", "datatable", "_build_info.py")
     with open(info_file, "wt") as out:

@@ -116,6 +116,12 @@
       ``types=``, and similarly ``stype=`` into ``type=``. The old parameter
       names are still recognized, but no longer documented.
 
+    -[api] Internal functions ``dt.internal.compiler_version()`` and
+      ``dt.internal.in_debug_mode()`` removed and replaced with flags
+      ``.compiler`` and ``.build_mode`` in :data:`dt.build_info`. Function
+      ``dt.interenal.regex_supported()`` removed entirely -- datatable will
+      now always have support for regular expressions. [#2636]
+
 
     FExpr
     -----

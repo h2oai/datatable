@@ -34,6 +34,16 @@
 
         UTC timestamp (date + time) of the build.
 
+    .. xparam:: .build_mode: str
+
+        The type of datatable build. Usually this will be ``"release"``, but
+        may also be ``"debug"`` if datatable was built in debug mode. Other
+        build modes exist, or may be added in the future.
+
+    .. xparam:: .compiler: str
+
+        The version of the compiler used to build the C++ datatable extension.
+        This will include both the name and the version of the compiler.
 
     .. xparam:: .git_revision: str
 
