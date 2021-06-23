@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -193,10 +193,6 @@ def test_split_into_nhot_view():
 # re_match()
 #-------------------------------------------------------------------------------
 
-regexp_test = pytest.mark.skipif(not dt.internal.regex_supported(),
-                                 reason="Regex not supported")
-
-@regexp_test
 def test_re_match():
     f0 = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
     f1 = f0[:, f.A.re_match("ab.")]
@@ -204,7 +200,6 @@ def test_re_match():
     assert f1.to_list() == [[True, True, False, False, None, False]]
 
 
-@regexp_test
 def test_re_match2():
     # re_match() matches the entire string, not just the beginning...
     f0 = dt.Frame(A=["a", "ab", "abc", "aaaa"])
@@ -213,7 +208,6 @@ def test_re_match2():
     assert f1.to_list() == [[True, True, False, False]]
 
 
-@regexp_test
 def test_re_match_ignore_groups():
     # Groups within the regular expression ought to be ignored
     f0 = dt.Frame(list("abcdibaldfn"))
@@ -221,7 +215,6 @@ def test_re_match_ignore_groups():
     assert f1.to_list() == [["a", "b", "c", "b", "a"]]
 
 
-@regexp_test
 def test_re_match_bad_regex1():
     with pytest.raises(ValueError):
         noop(dt.Frame(A=["abc"])[f.A.re_match("(."), :])
@@ -229,7 +222,6 @@ def test_re_match_bad_regex1():
     #         in str(e.value))
 
 
-@regexp_test
 def test_re_match_bad_regex2():
     with pytest.raises(ValueError):
         noop(dt.Frame(A=["abc"])[f.A.re_match("\\"), :])
@@ -238,7 +230,6 @@ def test_re_match_bad_regex2():
     #         in str(e.value))
 
 
-@regexp_test
 def test_re_match_bad_regex3():
     with pytest.raises(ValueError):
         noop(dt.Frame(A=["abc"])[f.A.re_match("???"), :])
@@ -247,7 +238,6 @@ def test_re_match_bad_regex3():
     #         in str(e.value))
 
 
-@regexp_test
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
 def test_re_match_random(seed):
     random.seed(seed)

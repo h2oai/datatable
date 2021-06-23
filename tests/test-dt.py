@@ -138,6 +138,8 @@ def test_dt_version():
     assert isinstance(dt.__version__, str)
     assert dt.build_info
     assert isinstance(dt.build_info.build_date, str)
+    assert isinstance(dt.build_info.build_mode, str)
+    assert isinstance(dt.build_info.compiler, str)
     assert isinstance(dt.build_info.git_revision, str)
     assert isinstance(dt.build_info.git_branch, str)
     assert isinstance(dt.build_info.git_date, str)
@@ -151,6 +153,7 @@ def test_dt_version():
         assert dt.build_info.version
         assert len(dt.build_info.git_revision) == 40
         assert dt.build_info.version == dt.__version__
+    assert dt.build_info.compiler.lower() != "unknown"
 
 
 def test_dt_help():
@@ -203,14 +206,6 @@ def test_check_suites():
     found = core.get_test_suites()
     expected = ["parallel", "progress", "coverage", "fread"]
     assert set(found) == set(expected)
-
-
-
-def test_internal_compiler_version():
-    ver = dt.internal.compiler_version()
-    assert ver
-    assert ver != "Unknown"
-
 
 
 def test_dt_getitem(dt0):

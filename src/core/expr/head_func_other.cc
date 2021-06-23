@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -103,30 +103,23 @@ ptrHead Head_Func_Re_Match::make(Op, const py::otuple& params) {
 
 Head_Func_Re_Match::Head_Func_Re_Match(py::robj arg_pattern, py::robj arg_flags) {
   (void) arg_flags;
-  #if REGEX_SUPPORTED
-    // Pattern
-    if (arg_pattern.is_string()) {
-      pattern = arg_pattern.to_string();
-    }
-    else if (arg_pattern.has_attr("pattern")) {
-      pattern = arg_pattern.get_attr("pattern").to_string();
-    }
-    else {
-      throw TypeError() << "Parameter `pattern` in .match_re() should be "
-          "a string, instead got " << arg_pattern.typeobj();
-    }
+  // Pattern
+  if (arg_pattern.is_string()) {
+    pattern = arg_pattern.to_string();
+  }
+  else if (arg_pattern.has_attr("pattern")) {
+    pattern = arg_pattern.get_attr("pattern").to_string();
+  }
+  else {
+    throw TypeError() << "Parameter `pattern` in .match_re() should be "
+        "a string, instead got " << arg_pattern.typeobj();
+  }
 
-    try {
-      regex = std::regex(pattern, std::regex::nosubs);
-    } catch (const std::regex_error& e) {
-      throw translate_exception(e);
-    }
-  #else
-    (void) arg_pattern;
-    throw NotImplError() << "Regular expressions are not supported in your "
-        "build of datatable (compiler: "
-        << get_compiler_version_string() << ')';
-  #endif
+  try {
+    regex = std::regex(pattern, std::regex::nosubs);
+  } catch (const std::regex_error& e) {
+    throw translate_exception(e);
+  }
 }
 
 
