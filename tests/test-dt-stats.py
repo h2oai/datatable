@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -241,24 +241,28 @@ def test_dt_sd_special_cases(src, res):
 
 
 def test_dt_skew(numpy, pandas):
-    x = numpy.random.normal(0, 1000, 10000)
+    x = numpy.random.normal(0, 1000, 1000)
     pd_df = pandas.DataFrame(x)
     dt_df = dt.Frame(x)
     EXP = pd_df.skew()[0]
     RES = dt_df.skew1()
-    assert isclose(EXP, RES, abs_tol=1e-5)
+    assert isclose(EXP, RES, abs_tol=1e-3)
+
+
 
 #-------------------------------------------------------------------------------
 # Kurtosis function dt.kurt()
 #-------------------------------------------------------------------------------
 
 def test_dt_kurt(numpy, pandas):
-    x = numpy.random.normal(0, 1000, 10000)
+    x = numpy.random.normal(0, 1000, 1000)
     pd_df = pandas.DataFrame(x)
     dt_df = dt.Frame(x)
     EXP = pd_df.kurtosis()[0]
     RES = dt_df.kurt1()
-    assert isclose(EXP, RES, abs_tol=1e-5)
+    assert isclose(EXP, RES, abs_tol=1e-3)
+
+
 
 #-------------------------------------------------------------------------------
 # Count_na function dt.count_na()
