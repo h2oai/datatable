@@ -176,6 +176,12 @@
         * - :meth:`.countna1()`
           - Count missing values for a one-column frame and return it as a scalar.
 
+        * - :meth:`.kurt()`
+          - Calculate excess kurtosis for each column in the frame.
+
+        * - :meth:`.kurt1()`
+          - Calculate excess kurtosis for a one-column frame and return it as a scalar.
+
         * - :meth:`.max()`
           - Find the largest element for each column in the frame.
 
@@ -217,6 +223,12 @@
 
         * - :meth:`.sd1()`
           - Calculate the standard deviation for a one-column frame and return it as a scalar.
+
+        * - :meth:`.skew()`
+          - Calculate skewness for each column in the frame.
+
+        * - :meth:`.skew1()`
+          - Calculate skewness for a one-column frame and return it as a scalar.
 
         * - :meth:`.sum()`
           - Calculate the sum of all values for each column in the frame.
@@ -335,6 +347,8 @@
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
+    .kurt()          <frame/kurt>
+    .kurt1()         <frame/kurt1>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
     .max()           <frame/max>
@@ -357,6 +371,8 @@
     .replace()       <frame/replace>
     .sd()            <frame/sd>
     .sd1()           <frame/sd1>
+    .skew()          <frame/skew>
+    .skew1()         <frame/skew1>
     .shape           <frame/shape>
     .sort()          <frame/sort>
     .source          <frame/source>
