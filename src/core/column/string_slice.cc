@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cstring>
+#include <limits>
 #include "column/string_slice.h"
 namespace dt {
 
@@ -107,6 +108,11 @@ bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
   bool stopValid = stop_.get_element(i, &istop);
   bool stepValid = step_.get_element(i, &istep);
 
+  // Scenario 1: `step == 1`.
+  //    This is the most common case, and it can be implemented by copying
+  //    the part of string from `start` to `stop`. If either `start` or `stop`
+  //    are negative, they must be converted into positive by adding the
+  //    string's length.
   if (!stepValid || istep == 1) {
     int64_t ilength = 0;  // Number of unicode characters in `str`
     if (!startValid) istart = 0;
@@ -136,8 +142,39 @@ bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
     if (len) std::memcpy(ptr, ch0, len);
     return true;
   }
-  else if (istep > 1) {
-    throw NotImplError() << "Cannot create string slice with step > 1";
+
+  // Scenario 2: `step > 1`.
+  //    This is similar to the previous scenario, only this time we need to
+  //    skip every `step-1` characters.
+  if (istep > 1) {
+    if (!startValid) istart = 0;
+    if (!stopValid) istop = std::numeric_limits<int64_t>::max();
+    if (istart < 0 || istop < 0) {
+      int64_t len = getStringLength(ch, eof);
+      if (istart < 0) istart += len;
+      if (istart < 0) istart = 0;
+      if (istop < 0) istop += len;
+      if (istop < 0) istop = 0;
+    }
+    moveToIndex(istart, &ch, eof);
+    char* outPtr = out->prepare_buffer(
+        std::min(static_cast<size_t>(eof - ch),
+                 static_cast<size_t>((istop - istart)*4))
+    );
+    char* outPtr0 = outPtr;
+    int64_t index = istart;
+    while (index < istop && ch < eof) {
+      auto ch0 = ch;
+      moveToIndex(1, &ch, eof);  // skip 1 character
+      int64_t charLen = ch - ch0;
+      xassert(charLen > 0);
+      std::memcpy(outPtr, ch0, static_cast<size_t>(charLen));
+      outPtr += charLen;
+      moveToIndex(istep - 1, &ch, eof);
+      index += istep;
+    }
+    out->set_size(static_cast<size_t>(outPtr - outPtr0));
+    return true;
   }
   else if (istep < 0) {
     throw NotImplError() << "Cannot create string slice with step < 0";

@@ -83,6 +83,18 @@ def test_slice_normal(slice):
     assert_equals(RES, EXP)
 
 
+@pytest.mark.parametrize('slice',
+    [slice(None, None, 2), slice(None, None, 3), slice(2, None, 2),
+     slice(1, -1, 3), slice(-5, -1, 2), slice(None, -1, 2)])
+def test_slice_large_step(slice):
+    src = ["Mercury", "Venus", "Earth", "Mars", "Jupiter", "Saturn", "Uranus",
+           "Neptune"]
+    DT = dt.Frame(Planet=src)
+    RES = DT[:, f.Planet[slice]]
+    EXP = dt.Frame(Planet=[s[slice] for s in src])
+    assert_equals(RES, EXP)
+
+
 @pytest.mark.parametrize('seed', [random.getrandbits(32) for _ in range(10)])
 def test_slice_unicode_random(seed):
     random.seed(seed)
@@ -115,9 +127,11 @@ def test_slice_unicode_random(seed):
     b = None if random.random() < 0.5 else \
         random.randint(-8, 0) if random.random() < 0.6 else \
         random.randint(15, 25)
+    c = None if random.random() < 0.6 else \
+        random.randint(2, 5)
     DT = dt.Frame(src)
-    RES = DT[:, f[0][a:b]]
-    EXP = dt.Frame([s[a:b] for s in src])
+    RES = DT[:, f[0][a:b:c]]
+    EXP = dt.Frame([s[a:b:c] for s in src])
     assert_equals(RES, EXP)
 
 
