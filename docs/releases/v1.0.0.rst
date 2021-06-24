@@ -144,6 +144,9 @@
     -[new] New function :func:`dt.time.day_of_week()` for computing the day
       of week (Monday to Sunday) for the given date column.
 
+    -[new] New function :func:`dt.str.slice()` for applying a slice to a
+      string column. [#1667]
+
     -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after
