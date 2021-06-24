@@ -32,20 +32,31 @@ namespace expr {
   * Class for expressions such as `f.A[1:]`. This is only relevant
   * for string-type columns; and in the future for list-types
   * and maybe some others too.
+  *
+  * Also note that we want to support the case when the slice
+  * expression itself is an expression. For example, a formula like
+  * this to remove everything after and including the '#' symbol is
+  * perfectly common:
+  *
+  *     (f.A)[f.A.index('#') + 1:]
+  *
   */
 class FExpr_Slice : public FExpr_Func {
   private:
     ptrExpr arg_;
-    py::oobj slice_;
+    ptrExpr start_;
+    ptrExpr stop_;
+    ptrExpr step_;
 
 
   public:
-    FExpr_Slice(ptrExpr arg, py::robj sliceobj);
+    FExpr_Slice(ptrExpr arg, py::robj start, py::robj stop, py::robj step);
 
     int precedence() const noexcept override;
     std::string repr() const override;
     Workframe evaluate_n(EvalContext&) const override;
 };
+
 
 
 

@@ -148,11 +148,18 @@ oobj PyFExpr::m__repr__() const {
 }
 
 oobj PyFExpr::m__getitem__(py::robj item) {
-  // Normally we would never create an object with an empty `expr_`,
-  // but if the user tries to instantiate it manually then the
-  // `expr_` may end up as nullptr.
-  return PyFExpr::make(
-              new dt::expr::FExpr_Slice(expr_, item));
+  if (item.is_slice()) {
+    auto slice = item.to_oslice();
+    return PyFExpr::make(
+                new dt::expr::FExpr_Slice(
+                    expr_,
+                    slice.start_obj(),
+                    slice.stop_obj(),
+                    slice.step_obj()
+           ));
+  }
+  // TODO: we could also support single-item selectors
+  throw TypeError() << "Selector inside FExpr[...] must be a slice";
 }
 
 

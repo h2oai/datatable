@@ -28,16 +28,13 @@ namespace dt {
 namespace expr {
 
 
-FExpr_Slice::FExpr_Slice(ptrExpr arg, py::robj sliceobj)
+
+FExpr_Slice::FExpr_Slice(ptrExpr arg, py::robj start, py::robj stop, py::robj step)
   : arg_(std::move(arg)),
-    slice_(sliceobj)
+    start_(as_fexpr(start)),
+    stop_(as_fexpr(stop)),
+    step_(as_fexpr(step))
 {}
-
-
-Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
-  Workframe outputs(ctx);
-  return outputs;
-}
 
 
 int FExpr_Slice::precedence() const noexcept {
@@ -57,8 +54,75 @@ std::string FExpr_Slice::repr() const {
   out += arg_->repr();
   if (parenthesize) out += ")";
   out += "[";
+  // `:` operator in a slice has precedence around 0: it's smaller than
+  // the precedence of lambda, but larger than precedence of `,`.
+  bool hasStart = (start_->get_expr_kind() != Kind::None);
+  bool hasStop = (stop_->get_expr_kind() != Kind::None);
+  bool hasStep = (step_->get_expr_kind() != Kind::None);
+  bool addSpaces = (hasStart && start_->get_expr_kind() != Kind::Int) ||
+                   (hasStop && stop_->get_expr_kind() != Kind::Int) ||
+                   (hasStep && step_->get_expr_kind() != Kind::Int);
+  if (hasStart) {
+    out += start_->repr();
+    if (addSpaces) out += " ";
+  }
+  out += ":";
+  if (hasStop) {
+    if (addSpaces) out += " ";
+    out += stop_->repr();
+  }
+  if (hasStep) {
+    out += addSpaces? " : " : ":";
+    out += step_->repr();
+  }
   out += "]";
   return out;
+}
+
+
+
+Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
+  std::vector<Workframe> wfs;
+  wfs.push_back(arg_->evaluate_n(ctx));
+  wfs.push_back(start_->evaluate_n(ctx));
+  wfs.push_back(stop_->evaluate_n(ctx));
+  wfs.push_back(step_->evaluate_n(ctx));
+  if (wfs[0].ncols() != 1) {
+    throw TypeError() << "Slice cannot be applied to multi-column expressions";
+  }
+  if (wfs[1].ncols() != 1 || wfs[2].ncols() != 1 || wfs[3].ncols() != 1) {
+    throw TypeError() << "Cannot use multi-column expressions inside a slice";
+  }
+  auto gmode = Workframe::sync_grouping_mode(wfs);
+
+  Workframe result(ctx);
+  auto argCol = wfs[0].retrieve_column(0);
+  if (!argCol.type().is_string()) {
+    throw TypeError()
+        << "Slice expression can only be applied to a column of string type";
+  }
+  auto startCol = wfs[1].retrieve_column(0);
+  auto stopCol = wfs[2].retrieve_column(0);
+  auto stepCol = wfs[3].retrieve_column(0);
+  if (!startCol.type().is_integer() || !stopCol.type().is_integer() ||
+      !stepCol.type().is_integer()) {
+    throw TypeError()
+        << "Non-integer expressions cannot be used inside a slice";
+  }
+  startCol.cast_inplace(Type::int64());
+  stopCol.cast_inplace(Type::int64());
+  stepCol.cast_inplace(Type::int64());
+  result.add_column(
+      Column(new StringSlice_ColumnImpl(
+                std::move(argCol),
+                std::move(startCol),
+                std::move(stopCol),
+                std::move(stepCol)
+              )),
+      wfs[0].retrieve_name(0),
+      gmode
+  );
+  return result;
 }
 
 
