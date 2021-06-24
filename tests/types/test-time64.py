@@ -167,7 +167,47 @@ def test_time64_mode():
            None]
     DT = dt.Frame(src)
     assert DT.mode1() == d(2010, 11, 13, 15, 11, 50)
+    assert DT.nmodal1() == 2
     assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13, 15, 11, 50)]))
+    assert_equals(DT.nmodal(), dt.Frame([2]/dt.int64))
+
+
+def test_time64_nunique():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT = dt.Frame(src)
+    assert DT.nunique1() == 2
+    assert_equals(DT.nunique(), dt.Frame([2]/dt.int64))
+
+
+def test_time64_skew():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int64(f[0])]
+    assert DT_date.skew1() == DT_int.skew1()
+    assert_equals(DT_date.skew(), DT_int.skew())
+
+
+def test_time64_kurt():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int64(f[0])]
+    assert DT_date.kurt1() == DT_int.kurt1()
+    assert_equals(DT_date.kurt(), DT_int.kurt())
 
 
 #-------------------------------------------------------------------------------
