@@ -20,15 +20,20 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/string_slice.h"
+#include "documentation.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_slice.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
+#include "python/xargs.h"
 #include "utils/assert.h"
 namespace dt {
 namespace expr {
 
 
+//------------------------------------------------------------------------------
+// FExpr_Slice
+//------------------------------------------------------------------------------
 
 FExpr_Slice::FExpr_Slice(ptrExpr arg, py::robj start, py::robj stop, py::robj step)
   : arg_(std::move(arg)),
@@ -127,6 +132,28 @@ Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
   );
   return result;
 }
+
+
+
+//------------------------------------------------------------------------------
+// Python dt.str.slice() function
+//------------------------------------------------------------------------------
+
+static py::oobj py_slice(const py::XArgs& args) {
+  auto src = args[0].to_oobj();
+  auto a = args[1].to_oobj();
+  auto b = args[2].to_oobj();
+  auto c = args[3].to_oobj_or_none();
+  return PyFExpr::make(new FExpr_Slice(as_fexpr(src), a, b, c));
+}
+
+DECLARE_PYFN(&py_slice)
+    ->name("slice")
+    ->docs(dt::doc_str_slice)
+    ->arg_names({"column", "start", "stop", "step"})
+    ->n_positional_args(1)
+    ->n_positional_or_keyword_args(3)
+    ->n_required_args(3);
 
 
 
