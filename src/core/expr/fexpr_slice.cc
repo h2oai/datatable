@@ -73,7 +73,9 @@ std::string FExpr_Slice::repr() const {
     out += stop_->repr();
   }
   if (hasStep) {
-    out += addSpaces? " : " : ":";
+    if (addSpaces && hasStop) out += " ";
+    out += ":";
+    if (addSpaces) out += " ";
     out += step_->repr();
   }
   out += "]";

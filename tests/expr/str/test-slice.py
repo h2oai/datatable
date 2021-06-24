@@ -27,6 +27,26 @@ from datatable import dt, f, FExpr
 from tests import assert_equals
 
 
+def test_repr():
+    assert str(f.a[:]) == "FExpr<(f.a)[:]>"
+    assert str(f.b[3:]) == "FExpr<(f.b)[3:]>"
+    assert str(f.c[:4]) == "FExpr<(f.c)[:4]>"
+    assert str(f.d[1:4]) == "FExpr<(f.d)[1:4]>"
+    assert str(f.e[::-1]) == "FExpr<(f.e)[::-1]>"
+    assert str(f.f[-1::-1]) == "FExpr<(f.f)[-1::-1]>"
+    assert str(f.g[:4:5]) == "FExpr<(f.g)[:4:5]>"
+    assert str(f.h[3:4:5]) == "FExpr<(f.h)[3:4:5]>"
+    assert str(f.A[0:1]) == "FExpr<(f.A)[0:1]>"
+    assert str((f.A + f.B)[:32]) == "FExpr<(f.A + f.B)[:32]>"
+    assert str(f.S[:-3] + f.S[-2:]) == "FExpr<(f.S)[:-3] + (f.S)[-2:]>"
+    assert str(f.N[f.a:f.b]) == "FExpr<(f.N)[f.a : f.b]>"
+    assert str(f.N[f.a:-1]) == "FExpr<(f.N)[f.a : -1]>"
+    assert str(f.N[f.a::4]) == "FExpr<(f.N)[f.a :: 4]>"
+    assert str(f.N[::f.s]) == "FExpr<(f.N)[:: f.s]>"
+    assert str(f.N[:f.x:f.s]) == "FExpr<(f.N)[: f.x : f.s]>"
+    assert str(f.N[f.w:f.x:f.s]) == "FExpr<(f.N)[f.w : f.x : f.s]>"
+
+
 @pytest.mark.parametrize('ttype',
     [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64,
      dt.Type.date32, dt.Type.time64, dt.obj64])
