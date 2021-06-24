@@ -173,7 +173,47 @@ def test_date32_mode():
            None]
     DT = dt.Frame(src)
     assert DT.mode1() == d(2010, 11, 13)
+    assert DT.nmodal1() == 2
     assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13)]))
+    assert_equals(DT.nmodal(), dt.Frame([2]/dt.int64))
+
+
+def test_date32_nunique():
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 12),
+           d(2022, 11, 12),
+           d(2010, 11, 13),
+           None]
+    DT = dt.Frame(src)
+    assert DT.nunique1() == 3
+    assert_equals(DT.nunique(), dt.Frame([3]/dt.int64))
+
+
+def test_date32_skew():
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 12),
+           d(2022, 11, 12),
+           d(2010, 11, 13),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int32(f[0])]
+    assert DT_date.skew1() == DT_int.skew1()
+    assert_equals(DT_date.skew(), DT_int.skew())
+
+
+def test_date32_kurt():
+    src = [None,
+           d(2010, 11, 13),
+           d(2010, 11, 12),
+           d(2022, 11, 12),
+           d(2010, 11, 13),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int32(f[0])]
+    assert DT_date.kurt1() == DT_int.kurt1()
+    assert_equals(DT_date.kurt(), DT_int.kurt())
 
 
 #-------------------------------------------------------------------------------
