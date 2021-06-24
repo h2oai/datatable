@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/string_slice.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_slice.h"
 #include "expr/eval_context.h"
