@@ -54,6 +54,10 @@ std::string FExpr_Str_Len::name() const {
 
 Column FExpr_Str_Len::evaluate1(Column&& col) const {
   auto nrows = col.nrows();
+  if (!col.type().is_string()) {
+    throw TypeError() << "Function `str.len()` cannot be applied to a "
+        "column of type " << col.type();
+  }
   return Column(new FuncUnary1_ColumnImpl<CString, int64_t>(
     std::move(col), stringLength, nrows, SType::INT64
   ));
