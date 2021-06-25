@@ -111,9 +111,6 @@ void py::DatatableModule::init_funary()
     ADD_FN(&dt::expr::funary_pyfn, dt::expr::ARGS); \
     register_args(dt::expr::ARGS, dt::expr::OP)
 
-  // Basic
-  FUNARY(args_len,     Op::LEN);
-
   // Trigonometric
   FUNARY(args_sin,     Op::SIN);
   FUNARY(args_cos,     Op::COS);
