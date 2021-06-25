@@ -47,6 +47,14 @@ def test_repr():
     assert str(f.N[f.w:f.x:f.s]) == "FExpr<(f.N)[f.w : f.x : f.s]>"
 
 
+def test_slice_function():
+    from datatable.str import slice
+    assert str(slice(f[0], 5, 6)) == "FExpr<(f[0])[5:6]>"
+    assert str(slice(f[3], 1, 2, 3)) == "FExpr<(f[3])[1:2:3]>"
+    assert str(slice(f.X, start=f.y, stop=f.z)) == "FExpr<(f.X)[f.y : f.z]>"
+    assert str(slice(f.X, f.a, None, step=f.b)) == "FExpr<(f.X)[f.a :: f.b]>"
+
+
 @pytest.mark.parametrize('ttype',
     [dt.bool8, dt.int8, dt.int16, dt.int32, dt.int64, dt.float32, dt.float64,
      dt.Type.date32, dt.Type.time64, dt.obj64])
