@@ -326,6 +326,11 @@ class Expr:
         return core.FExpr(self).len()
 
     def re_match(self, pattern, flags=None):
+        import warnings
+        warnings.warn("Method Expr.re_match() is deprecated since 0.11.0, "
+                      "and will be removed in version 1.1.\n"
+                      "Please use function dt.re.match() instead",
+                      category=FutureWarning)
         return core.FExpr(self).re_match(pattern, flags=flags)
 
 

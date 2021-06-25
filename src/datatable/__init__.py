@@ -64,6 +64,8 @@ import datatable.math
 import datatable.internal
 import datatable.exceptions
 import datatable.options
+import datatable.re
+import datatable.str
 import datatable.time
 try:
     from ._build_info import build_info
