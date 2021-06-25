@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -71,6 +71,7 @@ class oslice : public oobj {
     bool is_string() const;
     oobj start_obj() const;
     oobj stop_obj() const;
+    oobj step_obj() const;
 
     void normalize(
         size_t len, size_t* pstart, size_t* pcount, size_t* pstep) const;

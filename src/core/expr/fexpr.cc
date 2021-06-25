@@ -19,13 +19,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
+#include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
+#include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/expr.h"            // OldExpr
+#include "expr/fexpr_slice.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -145,6 +149,20 @@ oobj PyFExpr::m__repr__() const {
   return ostring("FExpr<" + expr_->repr() + '>');
 }
 
+oobj PyFExpr::m__getitem__(py::robj item) {
+  if (item.is_slice()) {
+    auto slice = item.to_oslice();
+    return PyFExpr::make(
+                new dt::expr::FExpr_Slice(
+                    expr_,
+                    slice.start_obj(),
+                    slice.stop_obj(),
+                    slice.step_obj()
+           ));
+  }
+  // TODO: we could also support single-item selectors
+  throw TypeError() << "Selector inside FExpr[...] must be a slice";
+}
 
 
 //----- Basic arithmetics ------------------------------------------------------
@@ -716,6 +734,7 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__NEG__(&PyFExpr::nb__neg__));
   xt.add(METHOD__POS__(&PyFExpr::nb__pos__));
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
+  xt.add(METHOD__GETITEM__(&PyFExpr::m__getitem__));
 
   FExpr_Type = xt.get_type_object();
 
