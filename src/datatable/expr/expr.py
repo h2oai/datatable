@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
 # Copyright 2018-2021 H2O.ai
@@ -49,8 +50,6 @@ class OpCodes(enum.Enum):
     OR = 210
     LSHIFT = 211
     RSHIFT = 212
-
-    RE_MATCH = 301
 
     # Reducers
     MEAN = 401
@@ -324,7 +323,7 @@ class Expr:
         return core.FExpr(self).len()  # will warn
 
     def re_match(self, pattern, flags=None):
-        return core.FExpr(self).re_match(pattern, flags=flags)
+        return core.FExpr(self).re_match(pattern)  # will warn
 
 
 

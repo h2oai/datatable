@@ -171,6 +171,10 @@
     -[api] Method :meth:`dt.FExpr.len` has been deprecated and replaced
       with a function :func:`dt.str.len()`. [#3016]
 
+    -[api] Method :meth:`dt.FExpr.re_match` has been deprecated and replaced
+      with a function :func:`dt.re.match()`. [#3017]
+
+
     fread
     -----
 

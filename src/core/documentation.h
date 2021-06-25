@@ -27,7 +27,10 @@ namespace dt {
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_rbind;
 
+extern const char* doc_str_len;
 extern const char* doc_str_slice;
+
+extern const char* doc_re_match;
 
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
@@ -40,8 +43,8 @@ extern const char* doc_Frame_countna;
 extern const char* doc_Frame_export_names;
 extern const char* doc_Frame_head;
 extern const char* doc_Frame_key;
-extern const char* doc_Frame_kurt;
 extern const char* doc_Frame_kurt1;
+extern const char* doc_Frame_kurt;
 extern const char* doc_Frame_ltypes;
 extern const char* doc_Frame_materialize;
 extern const char* doc_Frame_max1;
@@ -65,8 +68,8 @@ extern const char* doc_Frame_replace;
 extern const char* doc_Frame_sd1;
 extern const char* doc_Frame_sd;
 extern const char* doc_Frame_shape;
-extern const char* doc_Frame_skew;
 extern const char* doc_Frame_skew1;
+extern const char* doc_Frame_skew;
 extern const char* doc_Frame_sort;
 extern const char* doc_Frame_source;
 extern const char* doc_Frame_stype;
