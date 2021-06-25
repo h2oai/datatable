@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,30 +19,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_RE_FEXPR_MATCH_h
-#define dt_EXPR_RE_FEXPR_MATCH_h
+#ifndef dt_COLUMN_RE_MATCH_h
+#define dt_COLUMN_RE_MATCH_h
 #include <regex>
-#include <string>
-#include "expr/fexpr_func_unary.h"
+#include "column/virtual.h"
+#include "stype.h"
 namespace dt {
-namespace expr {
 
 
-
-class FExpr_Re_Match : public FExpr_FuncUnary {
+class Re_Match_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    std::string pattern_;
+    Column arg_;
     std::regex regex_;
 
   public:
-    FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern);
-    std::string name() const override;
-    std::string repr() const override;
-    Column evaluate1(Column&& col) const override;
+    Re_Match_ColumnImpl(Column&& col, const std::regex& rx);
+
+    ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
+    bool get_element(size_t i, int8_t* out) const override;
 };
 
 
 
 
-}}  // namespace dt::expr
+}  // namespace dt
 #endif
