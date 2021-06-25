@@ -165,6 +165,9 @@
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
       column names/column positions/column types in the ``j`` section. [#2797]
 
+    -[api] Method :meth:`dt.FExpr.re_match` has been deprecated and replaced
+      with a function :func:`dt.re.match()`. [#3017]
+
 
     fread
     -----
