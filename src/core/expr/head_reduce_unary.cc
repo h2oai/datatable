@@ -1026,6 +1026,50 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
 }
 
 
+//------------------------------------------------------------------------------
+// countna
+//------------------------------------------------------------------------------
+
+
+template <typename T>
+bool op_countna(const Column& col, size_t i0, size_t i1, int64_t* out) {
+  int64_t count = 0;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    count += !isvalid;
+  }
+  *out = count;
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _countna(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, int64_t>(
+                 SType::INT64, std::move(arg), gby, op_countna<T>
+            )));
+}
+
+static Column compute_countna(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _countna<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _countna<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _countna<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _countna<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _countna<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _countna<double>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _countna<CString>(std::move(arg), gby);
+    default: throw _error("countna", arg.stype());
+  }
+}
 
 
 //------------------------------------------------------------------------------
@@ -1563,6 +1607,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::SUM:    fn = compute_sum; break;
       case Op::COUNT:  fn = compute_count; break;
       case Op::MEDIAN: fn = compute_median; break;
+      case Op::COUNTNA:fn = compute_countna; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
