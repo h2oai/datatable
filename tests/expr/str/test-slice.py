@@ -95,7 +95,20 @@ def test_slice_large_step(slice):
     assert_equals(RES, EXP)
 
 
-@pytest.mark.parametrize('seed', [random.getrandbits(32) for _ in range(10)])
+@pytest.mark.parametrize('slice',
+    [slice(None, None, -1), slice(None, None, -2), slice(2, None, -1),
+     slice(1, -1, -3), slice(-15, -2, -2), slice(None, -1, -2),
+     slice(None, 3, -2)])
+def test_slice_negative_step(slice):
+    src = ["Juneteenth", "Independence Day", "Christmas", "Halloween",
+           "Labor Day", "Memorial Day", "Native American Day", "MLK Day"]
+    DT = dt.Frame(Planet=src)
+    RES = DT[:, f.Planet[slice]]
+    EXP = dt.Frame(Planet=[s[slice] for s in src])
+    assert_equals(RES, EXP)
+
+
+@pytest.mark.parametrize('seed', [random.getrandbits(32) for _ in range(20)])
 def test_slice_unicode_random(seed):
     random.seed(seed)
     src = [
@@ -128,7 +141,8 @@ def test_slice_unicode_random(seed):
         random.randint(-8, 0) if random.random() < 0.6 else \
         random.randint(15, 25)
     c = None if random.random() < 0.6 else \
-        random.randint(2, 5)
+        random.randint(2, 5) if random.random() < 0.5 else \
+        random.randint(-4, -1)
     DT = dt.Frame(src)
     RES = DT[:, f[0][a:b:c]]
     EXP = dt.Frame([s[a:b:c] for s in src])
@@ -141,4 +155,12 @@ def test_slice_expression():
                   e=[5, 4, 0, -1, None])
     RES = DT[:, (f.A)[f.s:f.e]]
     EXP = dt.Frame(A=["Monda", "s", "", "hursda", "iday"])
+    assert_equals(RES, EXP)
+
+
+def test_slice_zero_step():
+    # Check that zero step in a slice produces an NA value
+    DT = dt.Frame(A=["abcdefghij", "ABCDEFGHIJ", "---"], B=[2, 1, 0])
+    RES = DT[:, f.A[::f.B]]
+    EXP = dt.Frame(A=["acegi", "ABCDEFGHIJ", None])
     assert_equals(RES, EXP)

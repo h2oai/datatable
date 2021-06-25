@@ -91,6 +91,19 @@ static int64_t getStringLength(const uint8_t* ch, const uint8_t* end) {
   return i;
 }
 
+/**
+  * Move pointer `pch` by 1 utf-8 character backwards. It is assumed
+  * that address `*pch - 1` is readable. The function will move `pch`
+  * to the first byte of a previous unicode character in the string.
+  */
+static void moveBack1Char(const uint8_t** pch) {
+  auto ch = *pch - 1;
+  if (*ch >= 0x80) {
+    while ((*ch & 0xC0) == 0x80) ch--;
+  }
+  *pch = ch;
+}
+
 
 bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
   CString str;
@@ -108,7 +121,7 @@ bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
   bool stopValid = stop_.get_element(i, &istop);
   bool stepValid = step_.get_element(i, &istep);
 
-  // Scenario 1: `step == 1`.
+  // Scenario 1: `istep == 1`.
   //    This is the most common case, and it can be implemented by copying
   //    the part of string from `start` to `stop`. If either `start` or `stop`
   //    are negative, they must be converted into positive by adding the
@@ -143,9 +156,9 @@ bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
     return true;
   }
 
-  // Scenario 2: `step > 1`.
+  // Scenario 2: `istep > 1`.
   //    This is similar to the previous scenario, only this time we need to
-  //    skip every `step-1` characters.
+  //    skip every `istep-1` characters.
   if (istep > 1) {
     if (!startValid) istart = 0;
     if (!stopValid) istop = std::numeric_limits<int64_t>::max();
@@ -176,9 +189,44 @@ bool StringSlice_ColumnImpl::get_element(size_t i, CString* out) const {
     out->set_size(static_cast<size_t>(outPtr - outPtr0));
     return true;
   }
-  else if (istep < 0) {
-    throw NotImplError() << "Cannot create string slice with step < 0";
+
+  // Scenario 3: `istep < 0`
+  //     This is the most complicated case, because it requires us to
+  //     iterate over an input string backwards. Also, the meaning of
+  //     NA for `start` and `stop` parameters is now different.
+  if (istep < 0) {
+    int64_t len = getStringLength(ch, eof);
+    if (!startValid) istart = len - 1;
+    else if (istart < 0) istart += len;
+    else if (istart >= len) istart = len - 1;
+    if (!stopValid) istop = -1;
+    else if (istop < 0) istop += len;
+
+    auto sof = ch;
+    moveToIndex(istart + 1, &ch, eof);
+    char* outPtr = out->prepare_buffer(
+        std::min(static_cast<size_t>(ch - sof),
+                 static_cast<size_t>((istop - istart)*4))
+    );
+    char* outPtr0 = outPtr;
+    int64_t index = istart;
+    while (index > istop && ch > sof) {
+      auto ch0 = ch;
+      moveBack1Char(&ch);
+      index--;
+      int64_t charLen = ch0 - ch;
+      xassert(charLen > 0);
+      std::memcpy(outPtr, ch, static_cast<size_t>(charLen));
+      outPtr += charLen;
+      for (int64_t j = 1; j < -istep && index > istop && ch > sof; j++) {
+        moveBack1Char(&ch);
+        index--;
+      }
+    }
+    out->set_size(static_cast<size_t>(outPtr - outPtr0));
+    return true;
   }
+
   else {
     xassert(istep == 0);
     return false;  // Step of 0 is invalid in a slice
