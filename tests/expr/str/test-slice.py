@@ -172,3 +172,16 @@ def test_slice_zero_step():
     RES = DT[:, f.A[::f.B]]
     EXP = dt.Frame(A=["acegi", "ABCDEFGHIJ", None])
     assert_equals(RES, EXP)
+
+
+def test_slice_with_void_column():
+    DT = dt.Frame(A=["alpha", "beta", "gamma"],
+                  B=[None, None, None])
+    assert DT.types == [dt.Type.str32, dt.Type.void]
+    RES = DT[:, {"start": f[0][f.B:2],
+                 "end": f[0][2:f.B],
+                 "mid": f.A[1:-1:f.B]}]
+    EXP = dt.Frame(start=["al", "be", "ga"],
+                   end=["pha", "ta", "mma"],
+                   mid=["lph", "et", "amm"])
+    assert_equals(RES, EXP)
