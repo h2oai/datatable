@@ -29,7 +29,7 @@
 #include "expr/fexpr_literal.h"
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
-#include "expr/expr.h"            // OldExpr
+#include "expr/str/fexpr_len.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -296,9 +296,14 @@ oobj PyFExpr::remove(const PKArgs& args) {
 }
 
 
-// DEPRECATED
+
 oobj PyFExpr::len() {
-  return make_unexpr(dt::expr::Op::LEN, this);
+  auto w = DeprecationWarning();
+  w << "Method Expr.len() is deprecated since 0.11.0, "
+       "and will be removed in version 1.1.\n"
+       "Please use function dt.str.len() instead";
+  w.emit_warning();
+  return PyFExpr::make(new FExpr_Str_Len(ptrExpr(expr_)));
 }
 
 
