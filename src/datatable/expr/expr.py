@@ -51,7 +51,6 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # String
-    RE_MATCH = 301
     LEN = 302
 
     # Reducers
