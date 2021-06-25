@@ -29,7 +29,12 @@ from datatable.re import match
 from tests import random_string, assert_equals
 
 
-def test_match():
+def test_match_repr():
+    assert str(match(f.A, "abc")) == r"FExpr<re.match(f.A, r'abc')>"
+    assert str(match(f.A, r"\d+")) == r"FExpr<re.match(f.A, r'\d+')>"
+
+
+def test_match_simpl():
     f0 = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
     f1 = f0[:, match(f.A, "ab.")]
     assert_equals(f1, dt.Frame(A=[True, True, False, False, None, False]))
@@ -93,3 +98,11 @@ def test_match_random(seed):
     result = frame[:, match(f.A, random_rx)]
     assert_equals(result,
                   dt.Frame(A=[bool(re.fullmatch(random_rx, s)) for s in src]))
+
+
+def test_re_method():
+    # Remove this test in version 1.1
+    DT = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
+    with pytest.warns(FutureWarning):
+        RES = DT[:, f.A.re_match("ab.")]
+    assert_equals(RES, dt.Frame(A=[True, True, False, False, None, False]))
