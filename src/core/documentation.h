@@ -26,6 +26,9 @@ namespace dt {
 
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_rbind;
+
+extern const char* doc_str_slice;
+
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
 extern const char* doc_Frame___sizeof__;
