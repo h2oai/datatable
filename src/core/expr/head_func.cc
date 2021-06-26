@@ -22,7 +22,6 @@
 #include "expr/eval_context.h"
 #include "expr/expr.h"
 #include "expr/head_func.h"
-#include "expr/head_func_other.h"
 #include "expr/head_reduce.h"
 #include "expr/workframe.h"
 #include "utils/assert.h"
@@ -157,7 +156,6 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
   factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
   factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
-  factory[static_cast<size_t>(Op::RE_MATCH)]   = &Head_Func_Re_Match::make;
   factory[static_cast<size_t>(Op::LEN)]        = make_unop;
   factory[static_cast<size_t>(Op::ARCTAN2)]    = make_binop;
   factory[static_cast<size_t>(Op::HYPOT)]      = make_binop;

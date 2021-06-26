@@ -27,6 +27,8 @@
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
+#include "expr/re/fexpr_match.h"
+#include "expr/expr.h"            // OldExpr
 #include "expr/fexpr_slice.h"
 #include "python/obj.h"
 #include "python/xargs.h"
@@ -300,42 +302,17 @@ oobj PyFExpr::len() {
 }
 
 
-static const char* doc_re_match =
-R"(re_match(self, pattern, flags=None)
---
-
-.. x-version-deprecated:: 0.11
-
-Test whether values in a string column match a regular expression.
-
-Since version 1.0 this function will be available in the ``re.``
-submodule.
-
-Parameters
-----------
-pattern: str
-    The regular expression that will be tested against each value
-    in the current column.
-
-flags: int
-    [unused]
-
-return: FExpr
-    Return an expression that produces boolean column that tells
-    whether the value in each row of the current column matches
-    the `pattern` or not.
-)";
-
 static PKArgs args_re_match(
-    0, 2, 0, false, false, {"pattern", "flags"}, "re_match", doc_re_match);
+    0, 1, 0, false, false, {"pattern"}, "re_match", nullptr);
 
 oobj PyFExpr::re_match(const PKArgs& args) {
-  auto arg0 = args[0].to<oobj>(py::None());
-  auto arg1 = args[1].to<oobj>(py::None());
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::RE_MATCH)),
-                  otuple{robj(this)},
-                  otuple{arg0, arg1}});
+  auto arg_pattern = args[0].to_oobj_or_none();
+  auto w = DeprecationWarning();
+  w << "Method Expr.re_match() is deprecated since 0.11.0, "
+       "and will be removed in version 1.1.\n"
+       "Please use function dt.re.match() instead";
+  w.emit_warning();
+  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern));
 }
 
 

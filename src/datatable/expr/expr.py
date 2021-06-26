@@ -51,7 +51,6 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # String
-    RE_MATCH = 301
     LEN = 302
 
     # Reducers
@@ -326,7 +325,7 @@ class Expr:
         return core.FExpr(self).len()
 
     def re_match(self, pattern, flags=None):
-        return core.FExpr(self).re_match(pattern, flags=flags)
+        return core.FExpr(self).re_match(pattern)  # will warn
 
 
 

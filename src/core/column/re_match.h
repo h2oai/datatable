@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,33 +19,30 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_FUNC_OTHER_h
-#define dt_EXPR_HEAD_FUNC_OTHER_h
-#include <string>
+#ifndef dt_COLUMN_RE_MATCH_h
+#define dt_COLUMN_RE_MATCH_h
 #include <regex>
-#include "expr/head.h"
-#include "expr/head_func.h"
-#include "python/tuple.h"
+#include "column/virtual.h"
+#include "stype.h"
 namespace dt {
-namespace expr {
 
 
-
-class Head_Func_Re_Match : public Head_Func {
+class Re_Match_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    std::string pattern;
-    std::regex regex;
+    Column arg_;
+    std::regex regex_;
 
   public:
-    static ptrHead make(Op, const py::otuple& params);
+    Re_Match_ColumnImpl(Column&& col, const std::regex& rx);
 
-    Head_Func_Re_Match(py::robj, py::robj);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
+    bool get_element(size_t i, int8_t* out) const override;
 };
 
 
 
 
-
-}}  // namespace dt::expr
+}  // namespace dt
 #endif
