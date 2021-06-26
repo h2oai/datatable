@@ -18,9 +18,11 @@ from datatable.lib._datatable import (
     slice,
     split_into_nhot,
 )
+from datatable.lib._datatable import str_len as len
 
 
 __all__ = [
+    "len",
     "slice",
     "split_into_nhot"
 ]

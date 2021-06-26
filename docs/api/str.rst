@@ -8,6 +8,9 @@ datatable.str
    :widths: auto
    :class: api-table
 
+   * - :func:`len()`
+     - Compute length of a string column.
+
    * - :func:`slice()`
      - Apply a slice to a string column.
 
@@ -16,4 +19,5 @@ datatable.str
 .. toctree::
     :hidden:
 
+    len()            <str/len>
     slice()          <str/slice>

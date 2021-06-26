@@ -156,7 +156,6 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
   factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
   factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
-  factory[static_cast<size_t>(Op::LEN)]        = make_unop;
   factory[static_cast<size_t>(Op::ARCTAN2)]    = make_binop;
   factory[static_cast<size_t>(Op::HYPOT)]      = make_binop;
   factory[static_cast<size_t>(Op::POWERFN)]    = make_binop;

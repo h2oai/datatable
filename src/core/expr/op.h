@@ -62,9 +62,6 @@ enum class Op : size_t {
   LSHIFT = 211,             // fbinary/bitwise.cc
   RSHIFT = 212,             // fbinary/bitwise.cc
 
-  // String
-  LEN,                      // funary/basic.cc
-
   // Reducers
   MEAN = REDUCER_FIRST,     // head_reduce_unary.cc
   MIN,                      // head_reduce_unary.cc

@@ -26,9 +26,6 @@ namespace dt {
 namespace expr {
 
 
-// Basic
-extern py::PKArgs args_len;
-
 // Trigonometric
 extern py::PKArgs args_sin;
 extern py::PKArgs args_cos;
