@@ -34,9 +34,6 @@ Submodules
     * - :mod:`str. <datatable.str>`
       - Functions for working with string columns.
 
-    * - :mod:`re. <datatable.re>`
-      - Functions using regular expressions.
-
     * - :mod:`time. <datatable.time>`
       - Functions for working with date/time columns.
 
@@ -210,7 +207,6 @@ Other
     options.          <options>
     re.               <re>
     str.              <str>
-    re.               <re>
     time.             <time>
     FExpr             <fexpr>
     Frame             <frame>
