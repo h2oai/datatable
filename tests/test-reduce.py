@@ -29,7 +29,7 @@ from datatable import (
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
-from math import inf, nan, isnan, isclose
+from math import inf, nan, isnan
 
 
 srcs_bool = [[False, True, False, False, True],
@@ -599,11 +599,7 @@ def t_count_na(arr):
 @pytest.mark.parametrize("src", srcs_all + srcs_obj)
 def test_dt_count_na(src):
     dt0 = dt.Frame(src)
-    ans = t_count_na(src)
+    ans = dt0.countna()
     dtr = dt0[:, dt.countna(f[:])]
     frame_integrity_check(dtr)
-    assert dtr.stypes == (stype.int64, )
-    assert dtr.shape == (1, 1)
-    assert dt0.names == dtr.names
-    assert dtr.to_list() == [[ans]]
-    #assert dtr[0, 0] == dt0.countna1()
+    assert_equals(ans, dtr)

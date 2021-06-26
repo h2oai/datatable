@@ -291,7 +291,7 @@ Error XArgs::error_too_many_args(size_t nargs) const {
   auto err = TypeError();
   err << descriptive_name();
   if (max_args == 0) {
-    err << " BOOOM!! takes no positional arguments";
+    err << " takes no positional arguments";
   } else if (max_args == 1) {
     err << " takes only one positional argument";
   } else {
