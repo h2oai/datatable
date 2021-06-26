@@ -190,6 +190,9 @@
       It supports binomial and multinomial regressions, as well as
       regression for continous targets. [#2871]
 
+    -[enh] FTRL now supports :attr:`dt.Type.date32` and :attr:`dt.Type.time64`
+      feature types. [#3007]
+
 
     General
     -------
