@@ -157,15 +157,3 @@ init_styles()
 options = dt.options.Config(options={}, prefix="")
 dt.lib._datatable.initialize_options(options)
 dt.lib._datatable.initialize_final()
-
-def open(path):
-    """
-    .. x-version-deprecated:: 0.10.0
-        Use :func:`fread` instead.
-    """
-    import warnings
-    warnings.warn("Function dt.open() is deprecated since 0.10.0, and "
-                  "will be removed in version 1.0.\n"
-                  "Please use dt.fread(file), or dt.Frame(file) instead",
-                  category=FutureWarning)
-    return fread(path)

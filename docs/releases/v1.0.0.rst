@@ -199,6 +199,9 @@
       supported. If you are still using Python 3.5, please consider upgrading.
       [#2642]
 
+    -[api] Removed function ``dt.open()``, which was deprecated since version
+      0.10.0. [#3018]
+
     -[fix] Fixed a memory leak when creating a large number of datatable
       objects. [#2701]
 
