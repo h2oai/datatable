@@ -1,3 +1,4 @@
+
 //------------------------------------------------------------------------------
 // Copyright 2021 H2O.ai
 //
@@ -27,10 +28,10 @@ namespace dt {
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_rbind;
 
+extern const char* doc_re_match;
+
 extern const char* doc_str_len;
 extern const char* doc_str_slice;
-
-extern const char* doc_re_match;
 
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
