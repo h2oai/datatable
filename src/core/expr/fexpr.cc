@@ -27,6 +27,7 @@
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
+#include "expr/re/fexpr_match.h"
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
