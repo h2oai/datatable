@@ -26,9 +26,41 @@ import pytest
 import random
 from datatable import (
     dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
+from math import inf, nan, isnan, isclose
 
+
+srcs_bool = [[False, True, False, False, True],
+             [True, None, None, True, False],
+             [True], [False], [None] * 10]
+srcs_int = [[5, -3, 6, 3, 0],
+            [None, -1, 0, 26, -3],
+            [129, 38, 27, -127, 8],
+            [385, None, None, -3, -89],
+            [-192, 32769, 683, 94, 0],
+            [None, -32788, -4, -44444, 5],
+            [30, -284928, 59, 3, 2147483649],
+            [2147483648, None, None, None, None],
+            [-1, 1], [100], [0]]
+srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
+             [1.1, 2.3e12, -.5, None, inf, 0.0],
+             [3.5, 2.36, nan, 696.9, 4097],
+             [3.1415926535897932], [nan]]
+
+srcs_str = [["foo", None, "bar", "baaz", None],
+            ["a", "c", "d", None, "d", None, None, "a", "e", "c", "a", "a"],
+            ["leeeeeroy!"],
+            ["abc", None, "def", "abc", "a", None, "a", "ab"] / dt.str64,
+            [None, "integrity", None, None, None, None, None] / dt.str64,
+            ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"] / dt.str64]
+
+srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)] / dt.obj64,
+            ["a", "bc", "def", None, -2.5, 3.7] / dt.obj64]
+
+srcs_numeric = srcs_bool + srcs_int + srcs_real
+srcs_all = srcs_numeric + srcs_str
 
 #-------------------------------------------------------------------------------
 # Count
@@ -551,3 +583,27 @@ def test_corr_multiple():
     assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
+
+
+
+#-------------------------------------------------------------------------------
+#  countna
+#-------------------------------------------------------------------------------
+
+
+def t_count_na(arr):
+    return sum(x is None or (isinstance(x, float) and isnan(x))
+               for x in arr)
+
+
+@pytest.mark.parametrize("src", srcs_all + srcs_obj)
+def test_dt_count_na(src):
+    dt0 = dt.Frame(src)
+    ans = t_count_na(src)
+    dtr = dt0[:, dt.countna(f[:])]
+    frame_integrity_check(dtr)
+    assert dtr.stypes == (stype.int64, )
+    assert dtr.shape == (1, 1)
+    assert dt0.names == dtr.names
+    assert dtr.to_list() == [[ans]]
+    #assert dtr[0, 0] == dt0.countna1()

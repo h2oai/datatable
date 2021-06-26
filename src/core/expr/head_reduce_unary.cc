@@ -1056,6 +1056,7 @@ static Column _countna(Column&& arg, const Groupby& gby) {
 
 static Column compute_countna(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:
     case SType::BOOL:
     case SType::INT8:    return _countna<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _countna<int16_t>(std::move(arg), gby);
@@ -1618,7 +1619,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::MIN:
       case Op::MAX:
       case Op::FIRST:
-      case Op::LAST:   fn = compute_gfirstlast; break;
+      case Op::LAST:
+      case Op::COUNTNA:fn = compute_gfirstlast; break;
       case Op::SUM:    fn = compute_gsum; break;
       case Op::COUNT:  fn = compute_gcount; break;
       case Op::MEDIAN: fn = compute_gmedian; break;

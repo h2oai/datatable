@@ -53,12 +53,7 @@ def count(iterable=None):
 
 
 def countna(iterable=None):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.COUNTNA, (iterable,))
-    elif iterable is None:
-        return Expr(OpCodes.COUNTNA, ())
-    else:
-        return _builtin_sum((x is not None) for x in iterable)
+    return Expr(OpCodes.COUNTNA, (iterable,))
 
 
 def first(iterable):
