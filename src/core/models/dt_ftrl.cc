@@ -104,8 +104,9 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
                                         case SType::FLOAT64: res = fit_regression<double>(); break;
                                         case SType::STR32:
                                         case SType::STR64:   res = fit_multinomial(); break;
-                                        default:             throw TypeError() << "Target column type `"
-                                                                               << stype_y << "` is not supported";
+                                        default:
+                                          throw TypeError() << "Target column type `"
+                                                            << stype_y << "` is not supported";
                                       }
                                       break;
 
@@ -118,9 +119,10 @@ FtrlFitOutput Ftrl<T>::dispatch_fit(const DataTable* dt_X_train_in,
                                         case SType::INT64:   res = fit_regression<int64_t>(); break;
                                         case SType::FLOAT32: res = fit_regression<float>(); break;
                                         case SType::FLOAT64: res = fit_regression<double>(); break;
-                                        default:             throw TypeError() << "Target column type `"
-                                                                               << stype_y << "` is not supported by "
-                                                                               << "the numeric regression";
+                                        default:
+                                          throw TypeError() << "Target column type `"
+                                                            << stype_y << "` is not supported by "
+                                                            << "the numeric regression";
                                       }
                                       break;
 
@@ -880,7 +882,9 @@ hasherptr Ftrl<T>::create_hasher(const Column& col) {
     case SType::BOOL:
     case SType::INT8:    return hasherptr(new HasherInt<int8_t>(col));
     case SType::INT16:   return hasherptr(new HasherInt<int16_t>(col));
+    case SType::DATE32:
     case SType::INT32:   return hasherptr(new HasherInt<int32_t>(col));
+    case SType::TIME64:
     case SType::INT64:   return hasherptr(new HasherInt<int64_t>(col));
     case SType::FLOAT32: return hasherptr(new HasherFloat<float>(col, shift_nbits));
     case SType::FLOAT64: return hasherptr(new HasherFloat<double>(col, shift_nbits));

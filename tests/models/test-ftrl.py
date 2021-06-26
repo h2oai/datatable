@@ -22,9 +22,10 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 #
-# Test FTRL modeling capabilities
+# Test `Ftrl` class
 #
 #-------------------------------------------------------------------------------
+
 import pickle
 import pytest
 import collections
@@ -516,6 +517,17 @@ def test_ftrl_fit_wrong_target_obj64():
             str(e.value))
 
 
+@pytest.mark.parametrize('ttype', [dt.Type.date32, dt.Type.time64])
+def test_ftrl_fit_wrong_target_datetime(ttype):
+    ft = Ftrl()
+    df_train = dt.Frame(list(range(2)))
+    df_target = dt.Frame([100, 500], types=[ttype])
+    with pytest.raises(TypeError) as e:
+        ft.fit(df_train, df_target)
+    assert ("Target column type " + ttype.name + " is not supported" ==
+            str(e.value))
+
+
 #-------------------------------------------------------------------------------
 # Test hash function
 #-------------------------------------------------------------------------------
@@ -685,7 +697,23 @@ def test_ftrl_fit_predict_bool():
 
 def test_ftrl_fit_predict_int():
     ft = Ftrl(alpha = 0.1, nepochs = 10000)
-    df_train = dt.Frame([[0, 1]])
+    df_train = dt.Frame([100, 500])
+    df_target = dt.Frame([[True, False]])
+    ft.fit(df_train, df_target)
+    df_target = ft.predict(df_train[:,0])
+    assert ft.model_type_trained == "binomial"
+    assert df_target[0, 1] <= 1
+    assert df_target[0, 1] >= 1 - epsilon
+    assert df_target[1, 1] >= 0
+    assert df_target[1, 1] < epsilon
+
+
+@pytest.mark.parametrize('ttype', [dt.Type.date32, dt.Type.time64])
+def test_ftrl_fit_predict_datetime(ttype):
+    from datetime import datetime as d
+    ft = Ftrl(alpha = 0.1, nepochs = 10000)
+    df_train = dt.Frame([d(1991, 1, 9, 10, 2, 3, 500),
+                         d(2021, 2, 2, 1, 3, 5, 1000)], types=[ttype])
     df_target = dt.Frame([[True, False]])
     ft.fit(df_train, df_target)
     df_target = ft.predict(df_train[:,0])
