@@ -699,6 +699,11 @@ size_t _obj::to_size_t(const error_manager& em) const {
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
   if (PyLong_Check(v)) return py::oint(robj(v));
+  if (is_numpy_int()) {
+    PyObject* num = PyNumber_Long(v);
+    if (!num) throw PyError();
+    return py::oint(py::oobj::from_new_reference(num));
+  }
   throw em.error_not_integer(v);
 }
 
