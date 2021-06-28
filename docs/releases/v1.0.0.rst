@@ -168,6 +168,8 @@
     -[fix] Fix poor performance when selecting columns from a frame with a
       large number of columns (10k+). [#2873]
 
+    -[fix] Numpy scalars can now be used in expressions. [#3027]
+
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
       column names/column positions/column types in the ``j`` section. [#2797]
 

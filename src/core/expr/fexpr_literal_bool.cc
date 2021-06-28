@@ -36,7 +36,7 @@ FExpr_Literal_Bool::FExpr_Literal_Bool(bool x)
 
 
 ptrExpr FExpr_Literal_Bool::make(py::robj src) {
-  int8_t t = src.to_bool_strict();
+  int8_t t = src.to_bool_force();
   xassert(t == 0 || t == 1);
   return ptrExpr(new FExpr_Literal_Bool(static_cast<bool>(t)));
 }
