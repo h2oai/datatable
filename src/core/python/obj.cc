@@ -52,6 +52,7 @@ static PyObject* numpy_int64 = nullptr;
 static PyObject* numpy_float16 = nullptr;
 static PyObject* numpy_float32 = nullptr;
 static PyObject* numpy_float64 = nullptr;
+static PyObject* numpy_str = nullptr;
 static void init_arrow();
 static void init_pandas();
 static void init_numpy();
@@ -309,6 +310,11 @@ int _obj::is_numpy_float() const noexcept {
   if (PyObject_IsInstance(v, numpy_float32)) return 4;
   if (PyObject_IsInstance(v, numpy_float16)) return 4;
   return 0;
+}
+
+bool _obj::is_numpy_str() const noexcept {
+  if (!numpy_str) init_numpy();
+  return v && numpy_str && PyObject_IsInstance(v, numpy_str);
 }
 
 bool _obj::is_numpy_marray() const noexcept {
@@ -1249,6 +1255,7 @@ static void init_numpy() {
     numpy_float16 = np.get_attr("float16").release();
     numpy_float32 = np.get_attr("float32").release();
     numpy_float64 = np.get_attr("float64").release();
+    numpy_str = np.get_attr("str_").release();
   }
 }
 
