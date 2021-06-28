@@ -1334,6 +1334,51 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 
 
 
+//------------------------------------------------------------------------------
+// nunique
+//------------------------------------------------------------------------------
+
+
+template <typename T>
+bool op_nunique(const Column& col, size_t i0, size_t i1, int64_t* out) {
+  std::unordered_map<T,int16_t> umap;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) umap[value] = 1;
+  }
+  *out = umap.size();
+  return true;  // *out is not NA
+}
+
+
+template <typename T>
+static Column _nunique(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, int64_t>(
+                 SType::INT64, std::move(arg), gby, op_nunique<T>
+            )));
+}
+
+
+static Column compute_nunique(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::VOID:
+    case SType::BOOL:
+    case SType::INT8:    return _nunique<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _nunique<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _nunique<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _nunique<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _nunique<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _nunique<double>(std::move(arg), gby);
+    //case SType::STR32:
+    //case SType::STR64:   return _nunique<CString>(std::move(arg), gby);
+    default: throw _error("nunique", arg.stype());
+  }
+}
 
 //------------------------------------------------------------------------------
 // Median
@@ -1563,6 +1608,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::SUM:    fn = compute_sum; break;
       case Op::COUNT:  fn = compute_count; break;
       case Op::MEDIAN: fn = compute_median; break;
+      case Op::NUNIQUE:fn = compute_nunique; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
@@ -1577,6 +1623,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::SUM:    fn = compute_gsum; break;
       case Op::COUNT:  fn = compute_gcount; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
+      case Op::NUNIQUE:fn = compute_nunique; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
