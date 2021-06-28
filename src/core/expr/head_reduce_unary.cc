@@ -29,7 +29,6 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "stype.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -1029,6 +1028,75 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // countna
 //------------------------------------------------------------------------------
+
+#if 0
+static const char* doc_countna =
+R"(countna(cols)
+--
+
+Calculate the number of NA values for each column from `cols`.
+
+Parameters
+----------
+cols: Expr
+    Input columns.
+
+return: Expr
+    f-expression having one row, and the same names and number of columns
+    as in `cols`. All the returned column stypes are `int64`.
+
+except: TypeError
+    The exception is raised when one of the columns from `cols`
+    has a non-numeric and non-string type.
+
+See Also
+--------
+
+- :func:`count()` -- function to count the number of non-missing values.
+
+Examples
+--------
+
+.. code-block:: python
+
+    >>> from datatable import dt, f
+    >>>
+    >>> df = dt.Frame({'A': [1, 1, 2, None, 1, 2],
+    ...                'B': [None, 2, 3, 4, None, 5],
+    ...                'C': [1, 2, 1, 1, 2, 4]})
+    >>> df
+       |     A      B      C
+       | int32  int32  int32
+    -- + -----  -----  -----
+     0 |     1     NA      1
+     1 |     1      2      2
+     2 |     2      3      1
+     3 |    NA      4      1
+     4 |     1     NA      2
+     5 |     2      5      4
+    [6 rows x 3 columns]
+
+Get the countna of all rows::
+
+    >>> df[:, dt.countna(f[:])]
+       |     A      B      C
+       | int64  int64  int64
+    -- + -----  -----  -----
+     0 |     1      2      0
+    [1 row x 3 columns]
+
+Get the countna of column `B`:
+
+    >>> df[:, dt.countna(f.B)]
+       |     B
+       | int64
+    -- + -----
+     0 |     2
+    [1 row x 1 column]
+
+)";
+#endif
+
 
 
 template <typename T>

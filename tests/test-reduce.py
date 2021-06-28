@@ -56,9 +56,6 @@ srcs_str = [["foo", None, "bar", "baaz", None],
             [None, "integrity", None, None, None, None, None] / dt.str64,
             ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"] / dt.str64]
 
-srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)] / dt.obj64,
-            ["a", "bc", "def", None, -2.5, 3.7] / dt.obj64]
-
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
@@ -591,12 +588,7 @@ def test_corr_multiple():
 #-------------------------------------------------------------------------------
 
 
-def t_count_na(arr):
-    return sum(x is None or (isinstance(x, float) and isnan(x))
-               for x in arr)
-
-
-@pytest.mark.parametrize("src", srcs_all + srcs_obj)
+@pytest.mark.parametrize("src", srcs_all)
 def test_dt_count_na(src):
     dt0 = dt.Frame(src)
     ans = dt0.countna()
