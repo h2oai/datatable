@@ -24,7 +24,6 @@
 #include "models/column_hasher.h"
 #include "models/utils.h"
 #include "models/dt_ftrl_base.h"
-#include "str/py_str.h"
 #include "models/label_encode.h"
 
 

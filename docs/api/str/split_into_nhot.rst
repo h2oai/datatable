@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.str.split_into_nhot
-    :src: src/core/str/py_str.cc split_into_nhot
+    :src: src/core/str/split_into_nhot.cc py_split_into_nhot
     :tests: tests/munging/test-str.py
     :cvar: doc_str_split_into_nhot
     :signature: split_into_nhot(frame, sep=",", sort=False)

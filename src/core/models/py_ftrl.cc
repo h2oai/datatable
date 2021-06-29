@@ -24,7 +24,6 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "str/py_str.h"
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
