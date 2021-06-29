@@ -23,6 +23,7 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
+extern const char* doc_dt_countna;
 
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_rbind;
@@ -82,7 +83,6 @@ extern const char* doc_Frame_to_tuples;
 extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
-extern const char* doc_dt_countna;
 
 
 }  // namespace dt
