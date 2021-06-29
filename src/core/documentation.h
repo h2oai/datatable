@@ -28,6 +28,7 @@ extern const char* doc_dt_as_type;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_cut;
 extern const char* doc_dt_ifelse;
+extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
 
 extern const char* doc_re_match;
