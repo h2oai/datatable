@@ -23,6 +23,7 @@
 #define dt_PYTHON_XARGS_h
 #include <iterator>        // std::input_iterator_tag
 #include <string>          // std::string
+#include <typeinfo>        // typeid
 #include <unordered_map>   // std::unordered_map
 #include <vector>          // std::vector
 #include "utils/macros.h"
