@@ -24,18 +24,12 @@
 #include "documentation.h"
 #include "frame/py_frame.h"
 #include "stype.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
-
 namespace py {
 
 
-static PKArgs args_split_into_nhot(
-    1, 0, 2, false, false,
-    {"frame", "sep", "sort"}, "split_into_nhot", dt::doc_split_into_nhot
-);
-
-
-static oobj split_into_nhot(const PKArgs& args) {
+static oobj split_into_nhot(const XArgs& args) {
   if (args[0].is_undefined()) {
     throw ValueError() << "Required parameter `frame` is missing";
   }
@@ -69,14 +63,16 @@ static oobj split_into_nhot(const PKArgs& args) {
   return Frame::oframe(res);
 }
 
+DECLARE_PYFN(&split_into_nhot)
+    ->name("split_into_nhot")
+    ->docs(dt::doc_str_split_into_nhot)
+    ->n_positional_args(1)
+    ->n_keyword_args(2)
+    ->arg_names({"frame", "sep", "sort"});
 
-static PKArgs args_split_into_nhot_depr(
-    1, 0, 2, false, false,
-    {"frame", "sep", "sort"}, "split_into_nhot_depr", dt::doc_split_into_nhot_depr
-);
 
 
-static oobj split_into_nhot_depr(const PKArgs& args) {
+static oobj split_into_nhot_deprecated(const XArgs& args) {
   auto w = DeprecationWarning();
   w << "Function `dt.split_into_nhot()` is deprecated since version 1.0.0, "
        "and will be removed in version 1.1.0.\n"
@@ -85,10 +81,14 @@ static oobj split_into_nhot_depr(const PKArgs& args) {
   return split_into_nhot(args);
 }
 
+DECLARE_PYFN(&split_into_nhot_deprecated)
+    ->name("split_into_nhot_depr")
+    ->docs(dt::doc_dt_split_into_nhot)
+    ->n_positional_args(1)
+    ->n_keyword_args(2)
+    ->arg_names({"frame", "sep", "sort"});
 
-void DatatableModule::init_methods_str() {
-  ADD_FN(&split_into_nhot, args_split_into_nhot);
-  ADD_FN(&split_into_nhot_depr, args_split_into_nhot_depr);
-}
+
+
 
 } // namespace py

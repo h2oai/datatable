@@ -26,11 +26,13 @@ namespace dt {
 
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_rbind;
+extern const char* doc_dt_split_into_nhot;
 
 extern const char* doc_re_match;
 
 extern const char* doc_str_len;
 extern const char* doc_str_slice;
+extern const char* doc_str_split_into_nhot;
 
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
@@ -89,8 +91,7 @@ extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
-extern const char* doc_split_into_nhot;
-extern const char* doc_split_into_nhot_depr;
+
 
 
 }  // namespace dt
