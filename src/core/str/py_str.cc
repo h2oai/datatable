@@ -70,8 +70,25 @@ static oobj split_into_nhot(const PKArgs& args) {
 }
 
 
+static PKArgs args_split_into_nhot_depr(
+    1, 0, 2, false, false,
+    {"frame", "sep", "sort"}, "split_into_nhot_depr", dt::doc_split_into_nhot_depr
+);
+
+
+static oobj split_into_nhot_depr(const PKArgs& args) {
+  auto w = DeprecationWarning();
+  w << "Function `dt.split_into_nhot()` is deprecated since version 1.0.0, "
+       "and will be removed in version 1.1.0.\n"
+       "Please use `dt.str.split_into_nhot()` instead.";
+  w.emit_warning();
+  return split_into_nhot(args);
+}
+
+
 void DatatableModule::init_methods_str() {
   ADD_FN(&split_into_nhot, args_split_into_nhot);
+  ADD_FN(&split_into_nhot_depr, args_split_into_nhot_depr);
 }
 
 } // namespace py

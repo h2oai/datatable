@@ -52,13 +52,13 @@ from .lib._datatable import (
     setdiff,
     shift,
     sort,
+    split_into_nhot_depr as split_into_nhot,
     symdiff,
     Type,
     union,
     unique,
     update,
 )
-from .str import split_into_nhot
 from .types import stype, ltype
 import datatable.math
 import datatable.internal

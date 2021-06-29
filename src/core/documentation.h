@@ -90,6 +90,7 @@ extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
 extern const char* doc_split_into_nhot;
+extern const char* doc_split_into_nhot_depr;
 
 
 }  // namespace dt
