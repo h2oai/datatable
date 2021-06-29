@@ -31,6 +31,7 @@ extern const char* doc_dt_ifelse;
 extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
 
+extern const char* doc_math_isclose;
 extern const char* doc_math_round;
 
 extern const char* doc_re_match;
