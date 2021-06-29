@@ -62,8 +62,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
 
 
-const char* get_compiler_version_string();
-
 extern "C" {
 
   PyMODINIT_FUNC PyInit__datatable() noexcept;
