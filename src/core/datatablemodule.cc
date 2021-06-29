@@ -390,7 +390,9 @@ void py::DatatableModule::init_methods() {
   ADD_FN(&apply_color, args_apply_color);
 
   for (py::XArgs* xarg : py::XArgs::store()) {
-    add(xarg->get_method_def());
+    if (xarg->get_class_id() == 0) {
+      add(xarg->get_method_def());
+    }
   }
 
   init_methods_aggregate();
