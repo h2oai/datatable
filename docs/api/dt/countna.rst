@@ -6,7 +6,7 @@
     :signature: countna(cols)
 
 
-    Calculate the number of NA values for each column from `cols`.
+    Count the number of NA values for each column from `cols`.
 
     Parameters
     ----------
