@@ -165,6 +165,7 @@
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
       column names/column positions/column types in the ``j`` section. [#2797]
 
+    -[enh] Added reducer function :func:`countna` [#2999]
 
     fread
     -----
