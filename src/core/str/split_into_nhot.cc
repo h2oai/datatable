@@ -36,6 +36,8 @@
 #include "utils/exceptions.h"
 namespace dt {
 
+// TODO: move this file into expr/ folder, once the function is converted
+//       into an FExpr
 
 
 /**
@@ -264,7 +266,7 @@ static py::oobj py_split_into_nhot_deprecated(const py::XArgs& args) {
 }
 
 DECLARE_PYFN(&py_split_into_nhot_deprecated)
-    ->name("split_into_nhot_depr")
+    ->name("split_into_nhot_deprecated")
     ->docs(dt::doc_dt_split_into_nhot)
     ->n_positional_args(1)
     ->n_keyword_args(2)

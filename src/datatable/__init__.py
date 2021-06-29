@@ -52,7 +52,7 @@ from .lib._datatable import (
     setdiff,
     shift,
     sort,
-    split_into_nhot_depr as split_into_nhot,
+    split_into_nhot_deprecated as split_into_nhot,
     symdiff,
     Type,
     union,
