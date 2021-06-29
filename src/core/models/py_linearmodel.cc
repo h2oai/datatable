@@ -23,7 +23,6 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "str/py_str.h"
 #include "models/dt_linearmodel_regression.h"
 #include "models/dt_linearmodel_classification.h"
 #include "models/py_linearmodel.h"

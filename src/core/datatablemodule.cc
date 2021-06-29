@@ -403,7 +403,6 @@ void py::DatatableModule::init_methods() {
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();
-  init_methods_str();
   init_methods_styles();
 
   init_fbinary();

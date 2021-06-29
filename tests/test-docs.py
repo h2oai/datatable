@@ -73,7 +73,8 @@ def test_documentation_h():
     docstrings = gendoc.read_documentation_files(API_PATH.glob("**/*.rst"))
     for var in variables:
         assert var in docstrings, ("Variable %s declared in documentation.h "
-                                   "not found as a :cvar: among *.rst files")
+                                   "not found as a :cvar: among *.rst files"
+                                   % var)
     for var in docstrings.keys():
         assert var in variables, ("Variable %s is declared as a cvar, but "
                                   "not in the documentation.h file")
