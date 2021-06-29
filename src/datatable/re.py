@@ -1,5 +1,5 @@
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2021 H2O.ai
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,16 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #-------------------------------------------------------------------------------
-
-from datatable.lib._datatable import (
-    slice,
-    split_into_nhot,
-)
-from datatable.lib._datatable import str_len as len
+from datatable.lib._datatable import re_match as match
 
 
-__all__ = [
-    "len",
-    "slice",
-    "split_into_nhot"
-]
+__all__ = ["match"]

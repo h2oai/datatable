@@ -91,6 +91,9 @@
     -[fix] Sorting in reverse order now works correctly in the presence
       of a groupby. [#2838]
 
+    -[fix] Creating a Frame from a list of ``np.str_`` objects now works
+      correctly. [#3026]
+
     -[api] Converting a frame with incompatible types into a numpy array will
       now raise an error (instead of auto-promoting to object type). However,
       if the user explicitly requests promotion into the object type then
@@ -144,6 +147,9 @@
     -[new] New function :func:`dt.time.day_of_week()` for computing the day
       of week (Monday to Sunday) for the given date column.
 
+    -[new] New function :func:`dt.str.slice()` for applying a slice to a
+      string column. [#1667]
+
     -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after
@@ -162,8 +168,16 @@
     -[fix] Fix poor performance when selecting columns from a frame with a
       large number of columns (10k+). [#2873]
 
+    -[fix] Numpy scalars can now be used in expressions. [#3027]
+
     -[enh] :ref:`f-expressions` now accepts a list/tuple of
       column names/column positions/column types in the ``j`` section. [#2797]
+
+    -[api] Method :meth:`dt.FExpr.len` has been deprecated and replaced
+      with a function :func:`dt.str.len()`. [#3016]
+
+    -[api] Method :meth:`dt.FExpr.re_match` has been deprecated and replaced
+      with a function :func:`dt.re.match()`. [#3017]
 
     -[enh] Added reducer function :func:`countna` [#2999]
 
@@ -185,6 +199,9 @@
       It supports binomial and multinomial regressions, as well as
       regression for continous targets. [#2871]
 
+    -[enh] FTRL now supports :attr:`dt.Type.date32` and :attr:`dt.Type.time64`
+      feature types. [#3007]
+
 
     General
     -------
@@ -193,6 +210,9 @@
       has reached its end of life on 2020-09-13 and will no longer be
       supported. If you are still using Python 3.5, please consider upgrading.
       [#2642]
+
+    -[api] Removed function ``dt.open()``, which was deprecated since version
+      0.10.0. [#3018]
 
     -[fix] Fixed a memory leak when creating a large number of datatable
       objects. [#2701]

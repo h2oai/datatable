@@ -28,6 +28,12 @@ Submodules
     * - :mod:`models. <datatable.models>`
       - A small set of data analysis tools.
 
+    * - :mod:`re. <datatable.re>`
+      - Functions using regular expressions.
+
+    * - :mod:`str. <datatable.str>`
+      - Functions for working with string columns.
+
     * - :mod:`time. <datatable.time>`
       - Functions for working with date/time columns.
 
@@ -199,6 +205,8 @@ Other
     math.             <math>
     models.           <models>
     options.          <options>
+    re.               <re>
+    str.              <str>
     time.             <time>
     FExpr             <fexpr>
     Frame             <frame>

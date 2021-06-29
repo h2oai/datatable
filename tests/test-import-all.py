@@ -46,7 +46,6 @@ def test_common_symbols():
     assert g
     assert join
     assert by
-    assert dt.open != open
 
 
 def test_reducers():

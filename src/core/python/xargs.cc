@@ -338,17 +338,18 @@ size_t XArgs::find_kwd(PyObject* kwd) {
 
 
 void XArgs::bind(PyObject* args, PyObject* kwds) {
-  size_t nargs = args? static_cast<size_t>(Py_SIZE(args)) : 0;
-
-  size_t max_pos_args = nargs_posonly_ + nargs_pos_kwd_;
-  size_t n_bound_args = std::min(nargs, max_pos_args);
-  n_varargs_ = nargs - n_bound_args;
+  size_t n_passed_positional_args = args? static_cast<size_t>(Py_SIZE(args)) : 0;
+  size_t max_positional_args = nargs_posonly_ + nargs_pos_kwd_;
+  size_t n_bound_to_params_args =
+      std::min(n_passed_positional_args, max_positional_args);
+  // All positional args that were not bound to params are considered varargs
+  n_varargs_ = n_passed_positional_args - n_bound_to_params_args;
   if (n_varargs_ && !has_varargs_) {
-    throw error_too_many_args(nargs);
+    throw error_too_many_args(n_passed_positional_args);
   }
 
   size_t i = 0;
-  while (i < n_bound_args) {
+  while (i < n_bound_to_params_args) {
     PyObject* item = PyTuple_GET_ITEM(args, i);
     bound_args_[static_cast<size_t>(i++)].set(item);
   }
@@ -360,6 +361,7 @@ void XArgs::bind(PyObject* args, PyObject* kwds) {
   if (kwds) {
     PyObject* key, *value;
     Py_ssize_t pos = 0;
+    // Iterate over all keywords args passed by the user
     while (PyDict_Next(kwds, &pos, &key, &value)) {
       size_t ikey = find_kwd(key);
       if (ikey == size_t(-1)) {
@@ -368,7 +370,7 @@ void XArgs::bind(PyObject* args, PyObject* kwds) {
         throw TypeError() << descriptive_name() << " got an unexpected keyword "
           "argument `" << PyUnicode_AsUTF8(key) << "`";
       }
-      if (ikey < n_bound_args) {
+      if (ikey < n_bound_to_params_args) {
         throw TypeError() << descriptive_name() << " got multiple values for "
           "argument `" << PyUnicode_AsUTF8(key) << "`";
       }
@@ -380,14 +382,12 @@ void XArgs::bind(PyObject* args, PyObject* kwds) {
       bound_args_[ikey].set(value);
     }
   }
-  if (n_bound_args < nargs_required_) {
-    for (i = n_bound_args; i < nargs_all_; ++i) {
-      if (bound_args_[i].is_undefined()) {
-        throw error_too_few_args(i);
-      }
+  for (i = n_bound_to_params_args; i < nargs_required_; ++i) {
+    if (bound_args_[i].is_undefined()) {
+      throw error_too_few_args(i);
     }
   }
-  n_bound_args_ = n_bound_args;
+  n_bound_args_ = n_bound_to_params_args;
   kwds_dict_ = kwds;
   args_tuple_ = args;
 }

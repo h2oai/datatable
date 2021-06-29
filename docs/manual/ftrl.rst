@@ -4,8 +4,9 @@
 FTRL Model
 ==========
 
-This section describes the FTRL (Follow the Regularized Leader) model as
-implemented in datatable.
+This section provides a brief introduction to the FTRL (Follow the Regularized Leader)
+model as implemented in datatable. For detailed information on API,
+please refer to the :class:`Ftrl` Python class documentation.
 
 FTRL Model Information
 ----------------------
@@ -53,10 +54,10 @@ namely:
 - ``interactions`` — a list or a tuple of interactions. In turn, each interaction
   should be a list or a tuple of feature names, where each feature name is a
   column name from the training frame. This setting defaults to ``None``.
-- ``model_type`` — training mode that can be one of the following: "``auto``" to
-  automatically set model type based on the target column data, "``binomial``"
-  for binomial classification, "``multinomial``" for multinomial classification
-  or "``regression``" for continuous targets. Defaults to ``"auto"``.
+- ``model_type`` — training mode that can be one of the following: ``"auto"`` to
+  automatically set model type based on the target column data, ``"binomial"``
+  for binomial classification, ``"multinomial"`` for multinomial classification
+  or ``"regression"`` for continuous targets. Defaults to ``"auto"``.
 
 If some parameters need to be changed from their default values, this can be
 done either when creating the model, as

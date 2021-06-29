@@ -31,7 +31,6 @@ static constexpr size_t UNOP_FIRST    = 101;
 static constexpr size_t UNOP_LAST     = 103;
 static constexpr size_t BINOP_FIRST   = 201;
 static constexpr size_t BINOP_LAST    = 218;
-static constexpr size_t STRING_FIRST  = 301;
 static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 413;
 static constexpr size_t MATH_FIRST    = 501;
@@ -62,10 +61,6 @@ enum class Op : size_t {
   OR = 210,                 // fbinary/bitwise.cc
   LSHIFT = 211,             // fbinary/bitwise.cc
   RSHIFT = 212,             // fbinary/bitwise.cc
-
-  // String
-  RE_MATCH = STRING_FIRST,  // head_func_other.cc
-  LEN,                      // funary/basic.cc
 
   // Reducers
   MEAN = REDUCER_FIRST,     // head_reduce_unary.cc

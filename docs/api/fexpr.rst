@@ -189,6 +189,9 @@
         * - :meth:`.__bool__()`
           - Implicitly convert FExpr into a boolean value.
 
+        * - :meth:`.__getitem__()`
+          - Apply slice to a string column.
+
         * - :meth:`.__repr__()`
           - Used by Python function :ext-func:`repr() <repr>`.
 
@@ -208,6 +211,7 @@
     .__eq__()       <fexpr/__eq__>
     .__floordiv__() <fexpr/__floordiv__>
     .__ge__()       <fexpr/__ge__>
+    .__getitem__()  <fexpr/__getitem__>
     .__gt__()       <fexpr/__gt__>
     .__init__()     <fexpr/__init__>
     .__invert__()   <fexpr/__invert__>
