@@ -98,6 +98,9 @@ ptrExpr as_fexpr(py::robj src) {
            src.is_pandas_series()) return FExpr_Frame::from_pandas(src);
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  return FExpr_Frame::from_numpy(src);
+  else if (src.is_numpy_float())   return FExpr_Literal_Float::make(src);
+  else if (src.is_numpy_int())     return FExpr_Literal_Int::make(src);
+  else if (src.is_numpy_bool())    return FExpr_Literal_Bool::make(src);
   else if (src.is_ellipsis())      return ptrExpr(new FExpr_Literal_SliceAll());
   else {
     throw TypeError() << "An object of type " << src.typeobj()

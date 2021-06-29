@@ -34,9 +34,6 @@
 namespace py {
 
 
-static const char* doc_to_arrow =
-R"()";
-
 oobj Frame::to_arrow(const XArgs&) {
   oobj pyarrow = oobj::import("pyarrow");
   oobj pa_Array = pyarrow.get_attr("Array");
@@ -63,7 +60,7 @@ oobj Frame::to_arrow(const XArgs&) {
 
 DECLARE_METHOD(&Frame::to_arrow)
     ->name("to_arrow")
-    ->docs(doc_to_arrow);
+    ->docs(dt::doc_Frame_to_arrow);
 
 
 

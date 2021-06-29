@@ -22,11 +22,13 @@
 #include "column.h"
 #include "column/isclose.h"
 #include "datatablemodule.h"
+#include "documentation.h"
 #include "ltype.h"
 #include "expr/expr.h"
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "python/tuple.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "utils/assert.h"
 namespace dt {
@@ -116,42 +118,12 @@ Workframe Head_Func_IsClose::evaluate_n(
 //------------------------------------------------------------------------------
 namespace py {
 
-
-static const char* doc_isclose =
-R"(isclose(x, y, *, rtol=1e-5, atol=1e-8)
---
-
-Compare two numbers x and y, and return True if they are close
-within the requested relative/absolute tolerance. This function
-only returns True/False, never NA.
-
-More specifically, isclose(x, y) is True if either of the following
-are true:
-
-- ``x == y`` (including the case when x and y are NAs),
-- ``abs(x - y) <= atol + rtol * abs(y)`` and neither x nor y are NA
-
-The tolerance parameters ``rtol``, ``atol`` must be positive floats,
-and cannot be expressions.
-)";
-
-static py::PKArgs args_isclose(
-    2, 0, 2, false, false, {"x", "y", "rtol", "atol"}, "isclose", doc_isclose);
-
-
-static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
-  size_t op = static_cast<size_t>(opcode);
-  return robj(Expr_Type).call({ oint(op), targs, tparams });
-}
-
-
 /**
   * Python-facing function that implements `isclose()`.
   */
-static oobj pyfn_isclose(const PKArgs& args)
-{
-  const Arg& arg_x = args[0];
-  const Arg& arg_y = args[1];
+static oobj pyfn_isclose(const XArgs& args) {
+  const Arg& arg_x    = args[0];
+  const Arg& arg_y    = args[1];
   const Arg& arg_rtol = args[2];
   const Arg& arg_atol = args[3];
 
@@ -171,16 +143,20 @@ static oobj pyfn_isclose(const PKArgs& args)
         << "Parameter `atol` in function `isclose()` should be non-negative";
   }
 
-  return make_pyexpr(dt::expr::Op::ISCLOSE,
-                     otuple{ arg_x.to_robj(), arg_y.to_robj() },
-                     otuple{ ofloat(rtol), ofloat(atol) });
+  return robj(Expr_Type).call({
+      oint(static_cast<size_t>(dt::expr::Op::ISCLOSE)),
+      otuple{ arg_x.to_robj(), arg_y.to_robj() },
+      otuple{ ofloat(rtol), ofloat(atol) }
+  });
 }
 
+DECLARE_PYFN(&pyfn_isclose)
+    ->name("isclose")
+    ->docs(dt::doc_math_isclose)
+    ->n_positional_args(2)
+    ->n_keyword_args(2)
+    ->arg_names({"x", "y", "rtol", "atol"});
 
-
-void DatatableModule::init_methods_isclose() {
-  ADD_FN(&pyfn_isclose, args_isclose);
-}
 
 
 

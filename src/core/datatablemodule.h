@@ -38,14 +38,12 @@ class DatatableModule : public ExtModule<DatatableModule> {
     void init_methods();
     void init_methods_aggregate(); // models/aggregate.cc
     void init_methods_csv();       // csv/py_csv.cc
-    void init_methods_isclose();   // expr/head_func_isclose.cc
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
     void init_methods_rbind();     // frame/rbind.cc
     void init_methods_repeat();    // frame/repeat.cc
     void init_methods_sets();      // set_funcs.cc
-    void init_methods_shift();     // expr/head_func_shift.cc
     void init_methods_styles();    // frame/repr/html_styles.cc
     void init_fbinary();           // expr/fbinary/pyfn.cc
     void init_fuzzy();             // utils/fuzzy.cc
@@ -60,8 +58,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 }  // namespace py
 
 
-
-const char* get_compiler_version_string();
 
 extern "C" {
 
