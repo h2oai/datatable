@@ -21,7 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_BASE_h
 #define dt_MODELS_FTRL_BASE_h
+
+#include <limits>      // std::numeric_limits
 #include "options.h"
+
 namespace dt {
 
 
