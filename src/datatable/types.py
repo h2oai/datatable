@@ -36,6 +36,11 @@ class typed_list(list):
 @enum.unique
 class stype(enum.Enum):
     """
+    .. x-version-deprecated:: 1.0.0
+
+        This class is deprecated and will be removed in version 1.2.0.
+        Please use :class:`dt.Type` instead.
+
     Enumeration of possible "storage" types of columns in a Frame.
 
     Each column in a Frame is a vector of values of the same type. We call
@@ -143,6 +148,11 @@ class stype(enum.Enum):
 @enum.unique
 class ltype(enum.Enum):
     """
+    .. x-version-deprecated:: 1.0.0
+
+        This class is deprecated and will be removed in version 1.2.0.
+        Please use :class:`dt.Type` instead.
+
     Enumeration of possible "logical" types of a column.
 
     Logical type is the type stripped away from the details of its physical

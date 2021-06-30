@@ -5,7 +5,7 @@
 
     .. x-version-deprecated:: 1.0.0
 
-        This property is deprecated and will be removed in version 1.1.0.
+        This property is deprecated and will be removed in version 1.2.0.
         Please use :attr:`.types` instead.
 
     The tuple of each column's ltypes ("logical types").
