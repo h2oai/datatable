@@ -35,22 +35,7 @@ class typed_list(list):
 
 @enum.unique
 class stype(enum.Enum):
-    """
-    .. x-version-deprecated:: 1.0.0
 
-        This class is deprecated and will be removed in version 1.2.0.
-        Please use :class:`dt.Type` instead.
-
-    Enumeration of possible "storage" types of columns in a Frame.
-
-    Each column in a Frame is a vector of values of the same type. We call
-    this column's type the "stype". Most stypes correspond to primitive C types,
-    such as ``int32_t`` or ``double``. However some stypes (corresponding to
-    strings and categoricals) have a more complicated underlying structure.
-
-    Notably, :mod:`datatable` does not support arbitrary structures as
-    elements of a Column, so the set of stypes is small.
-    """
     void = 0
     bool8 = 1
     int8 = 2
@@ -147,20 +132,7 @@ class stype(enum.Enum):
 
 @enum.unique
 class ltype(enum.Enum):
-    """
-    .. x-version-deprecated:: 1.0.0
 
-        This class is deprecated and will be removed in version 1.2.0.
-        Please use :class:`dt.Type` instead.
-
-    Enumeration of possible "logical" types of a column.
-
-    Logical type is the type stripped away from the details of its physical
-    storage. For example, ``ltype.int`` represents an integer. Under the hood,
-    this integer can be stored in several "physical" formats: from
-    ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
-    between ltypes and stypes.
-    """
     void = 0
     bool = 1
     int = 2

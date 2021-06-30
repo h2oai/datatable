@@ -2,6 +2,20 @@
 .. xclass:: datatable.ltype
     :src: src/datatable/types.py ltype
 
+    .. x-version-deprecated:: 1.0.0
+
+        This class is deprecated and will be removed in version 1.2.0.
+        Please use :class:`dt.Type` instead.
+
+    Enumeration of possible "logical" types of a column.
+
+    Logical type is the type stripped away from the details of its physical
+    storage. For example, ``ltype.int`` represents an integer. Under the hood,
+    this integer can be stored in several "physical" formats: from
+    ``stype.int8`` to ``stype.int64``. Thus, there is a one-to-many relationship
+    between ltypes and stypes.
+
+
     Values
     ------
     The following ltype values are currently available:
