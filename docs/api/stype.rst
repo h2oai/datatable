@@ -2,6 +2,22 @@
 .. xclass:: datatable.stype
     :src: src/datatable/types.py stype
 
+    .. x-version-deprecated:: 1.0.0
+
+        This class is deprecated and will be removed in version 1.2.0.
+        Please use :class:`dt.Type` instead.
+
+    Enumeration of possible "storage" types of columns in a Frame.
+
+    Each column in a Frame is a vector of values of the same type. We call
+    this column's type the "stype". Most stypes correspond to primitive C types,
+    such as ``int32_t`` or ``double``. However some stypes (corresponding to
+    strings and categoricals) have a more complicated underlying structure.
+
+    Notably, :mod:`datatable` does not support arbitrary structures as
+    elements of a Column, so the set of stypes is small.
+
+
     Values
     ------
     The following stype values are currently available:
