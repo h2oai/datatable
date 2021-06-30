@@ -29,7 +29,9 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "stype.h"
+#include <type_traits>
 #include <iostream>
+#include <set>
 namespace dt {
 namespace expr {
 
@@ -1341,15 +1343,16 @@ static Column compute_minmax(Column&& arg, const Groupby& gby) {
 
 template <typename T>
 bool op_nunique(const Column& col, size_t i0, size_t i1, int64_t* out) {
-  std::unordered_map<T,int16_t> umap;
+  std::set<T> ss;
   for (size_t i = i0; i < i1; ++i) {
     T value;
     bool isvalid = col.get_element(i, &value);
-    if (isvalid) umap[value] = 1;
+    if (isvalid) ss.insert(value);
   }
-  *out = umap.size();
+  *out = ss.size();
   return true;  // *out is not NA
 }
+
 
 
 template <typename T>
@@ -1374,8 +1377,8 @@ static Column compute_nunique(Column&& arg, const Groupby& gby) {
     case SType::INT64:   return _nunique<int64_t>(std::move(arg), gby);
     case SType::FLOAT32: return _nunique<float>(std::move(arg), gby);
     case SType::FLOAT64: return _nunique<double>(std::move(arg), gby);
-    //case SType::STR32:
-    //case SType::STR64:   return _nunique<CString>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _nunique<CString>(std::move(arg), gby);
     default: throw _error("nunique", arg.stype());
   }
 }
