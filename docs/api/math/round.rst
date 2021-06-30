@@ -1,7 +1,7 @@
 
 .. xfunction:: datatable.math.round
     :src: src/core/expr/fexpr_round.cc pyfn_round
-    :tests: tests/expr/math/test-round.py
+    :tests: tests/math/test-round.py
     :cvar: doc_math_round
     :signature: round(cols, ndigits=None)
 

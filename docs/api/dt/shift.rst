@@ -2,7 +2,7 @@
 .. xfunction:: datatable.shift
     :src: src/core/expr/head_func_shift.cc pyfn_shift
     :cvar: doc_dt_shift
-    :tests: tests/expr/test-shift.py
+    :tests: tests/dt/test-shift.py
     :signature: shift(col, n=1)
 
     Produce a column obtained from `col` shifting it  `n` rows forward.

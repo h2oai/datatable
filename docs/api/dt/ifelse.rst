@@ -2,7 +2,7 @@
 .. xfunction:: datatable.ifelse
     :src: src/core/expr/fexpr_ifelse.cc FExpr_IfElse::evaluate_n
     :cvar: doc_dt_ifelse
-    :tests: tests/expr/test-ifelse.py
+    :tests: tests/dt/test-ifelse.py
     :signature: ifelse(condition1, value1, condition2, value2, ..., default)
 
     .. x-version-added:: 0.11.0

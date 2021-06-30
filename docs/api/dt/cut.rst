@@ -1,7 +1,7 @@
 
 .. xfunction:: datatable.cut
     :src: src/core/expr/fexpr_cut.cc pyfn_cut
-    :tests: tests/expr/test-cut.py
+    :tests: tests/dt/test-cut.py
     :cvar: doc_dt_cut
     :signature: cut(cols, nbins=10, bins=None, right_closed=True)
 
