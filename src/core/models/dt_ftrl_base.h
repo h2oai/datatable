@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,8 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_MODELS_FTRL_BASE_h
 #define dt_MODELS_FTRL_BASE_h
+#include <limits>      // std::numeric_limits
 #include "options.h"
-#include "str/py_str.h"
 namespace dt {
 
 

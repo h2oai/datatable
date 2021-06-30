@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -164,7 +164,7 @@ def test_shift_wrong_signature2():
 
 
 def test_shift_wrong_signature3():
-    msg = r"Argument n in shift\(\) should be an integer"
+    msg = r"Argument n in function datatable\.shift\(\) should be an integer"
     for n in ["one", 0.0, f.B, range(3), [1, 2, 3]]:
         with pytest.raises(TypeError, match=msg):
             shift(f.A, n=n)

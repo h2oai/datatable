@@ -14,10 +14,14 @@ datatable.str
    * - :func:`slice()`
      - Apply a slice to a string column.
 
+   * - :func:`split_into_nhot()`
+     - Split and nhot-encode a single-column frame
+
 
 
 .. toctree::
     :hidden:
 
-    len()            <str/len>
-    slice()          <str/slice>
+    len()             <str/len>
+    slice()           <str/slice>
+    split_into_nhot() <str/split_into_nhot>

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,12 +21,11 @@
 //------------------------------------------------------------------------------
 #include "_dt.h"
 #include "column/cut.h"
+#include "documentation.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
 #include "python/xargs.h"
-
-
 namespace dt {
 namespace expr {
 
@@ -215,55 +214,11 @@ class FExpr_Cut : public FExpr_Func {
 // Python-facing `cut()` function
 //------------------------------------------------------------------------------
 
-static const char* doc_cut =
-R"(cut(cols, nbins=10, bins=None, right_closed=True)
---
-.. x-version-added:: 0.11
-
-For each column from `cols` bin its values into equal-width intervals,
-when `nbins` is specified, or into arbitrary-width intervals,
-when interval edges are provided as `bins`.
-
-Parameters
-----------
-cols: FExpr
-    Input data for equal-width interval binning.
-
-nbins: int | List[int]
-    When a single number is specified, this number of bins
-    will be used to bin each column from `cols`.
-    When a list or a tuple is provided, each column will be binned
-    by using its own number of bins. In the latter case,
-    the list/tuple length must be equal to the number of columns
-    in `cols`.
-
-bins: List[Frame]
-    List/tuple of single-column frames containing interval edges
-    in strictly increasing order, that will be used for binning
-    of the corresponding columns from `cols`. The list/tuple
-    length must be equal to the number of columns in `cols`.
-
-right_closed: bool
-    Each binning interval is `half-open`_. This flag indicates whether
-    the right edge of the interval is closed, or not.
-
-return: FExpr
-    f-expression that converts input columns into the columns filled
-    with the respective bin ids.
-
-See also
---------
-:func:`qcut()` -- function for equal-population binning.
-
-.. _`half-open`: https://en.wikipedia.org/wiki/Interval_(mathematics)#Terminology
-
-)";
-
 static py::oobj pyfn_cut(const py::XArgs& args) {
   auto arg0         = args[0].to_oobj();
-  auto nbins_arg     = args[1].to<py::oobj>(py::None());
-  auto bins_arg      = args[2].to<py::oobj>(py::None());
-  auto right_closed  = args[3].to<bool>(true);
+  auto nbins_arg    = args[1].to<py::oobj>(py::None());
+  auto bins_arg     = args[2].to<py::oobj>(py::None());
+  auto right_closed = args[3].to<bool>(true);
   std::vector<std::shared_ptr<dblvec>> bin_edges_vec;
   int32_t nbins_default = 10;
   int32vec nbins_vec;
@@ -340,11 +295,13 @@ static py::oobj pyfn_cut(const py::XArgs& args) {
 
 DECLARE_PYFN(&pyfn_cut)
     ->name("cut")
-    ->docs(doc_cut)
+    ->docs(doc_dt_cut)
     ->arg_names({"cols", "nbins", "bins", "right_closed"})
     ->n_positional_args(1)
     ->n_keyword_args(3)
     ->n_required_args(1);
+
+
 
 
 }}  // dt::expr

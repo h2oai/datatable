@@ -52,6 +52,7 @@ static PyObject* numpy_int64 = nullptr;
 static PyObject* numpy_float16 = nullptr;
 static PyObject* numpy_float32 = nullptr;
 static PyObject* numpy_float64 = nullptr;
+static PyObject* numpy_str = nullptr;
 static void init_arrow();
 static void init_pandas();
 static void init_numpy();
@@ -309,6 +310,11 @@ int _obj::is_numpy_float() const noexcept {
   if (PyObject_IsInstance(v, numpy_float32)) return 4;
   if (PyObject_IsInstance(v, numpy_float16)) return 4;
   return 0;
+}
+
+bool _obj::is_numpy_str() const noexcept {
+  if (!numpy_str) init_numpy();
+  return v && numpy_str && PyObject_IsInstance(v, numpy_str);
 }
 
 bool _obj::is_numpy_marray() const noexcept {
@@ -693,6 +699,11 @@ size_t _obj::to_size_t(const error_manager& em) const {
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
   if (PyLong_Check(v)) return py::oint(robj(v));
+  if (is_numpy_int()) {
+    PyObject* num = PyNumber_Long(v);
+    if (!num) throw PyError();
+    return py::oint(py::oobj::from_new_reference(num));
+  }
   throw em.error_not_integer(v);
 }
 
@@ -1249,6 +1260,7 @@ static void init_numpy() {
     numpy_float16 = np.get_attr("float16").release();
     numpy_float32 = np.get_attr("float32").release();
     numpy_float64 = np.get_attr("float64").release();
+    numpy_str = np.get_attr("str_").release();
   }
 }
 

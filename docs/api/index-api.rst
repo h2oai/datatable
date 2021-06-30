@@ -113,7 +113,7 @@ Functions
     * - :func:`qcut()`
       - Bin a column into equal-population intervals
     * - :func:`split_into_nhot()`
-      - Split and nhot-encode a single-column frame
+      - [DEPRECATED] Split and nhot-encode a single-column frame
 
     * -
       -

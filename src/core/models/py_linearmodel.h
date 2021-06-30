@@ -27,8 +27,6 @@
 #include "models/py_validator.h"
 #include "python/string.h"
 #include "python/xobject.h"
-#include "str/py_str.h"
-
 namespace py {
 
 
