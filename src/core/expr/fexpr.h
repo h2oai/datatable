@@ -178,7 +178,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
 
     py::oobj extend(const py::PKArgs&);
     py::oobj remove(const py::PKArgs&);
-    py::oobj len();                     // [DEPRECATED]
+    py::oobj len();                         // [DEPRECATED]
     py::oobj re_match(const py::PKArgs&);   // [DEPRECATED]
 
     py::oobj sum(const py::XArgs&);

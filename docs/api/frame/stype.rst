@@ -5,7 +5,8 @@
 
     .. x-version-deprecated:: 1.0.0
 
-        Use property :attr:`.type` instead.
+        This property is deprecated and will be removed in version 1.1.0.
+        Please use :attr:`.types` instead.
 
     .. x-version-added:: 0.10.0
 

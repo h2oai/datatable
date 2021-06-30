@@ -186,3 +186,11 @@ def test_split_into_nhot_view():
            [[1, None, 0, 1], [1, None, 0, 1], [0, None, 1, 1]]
     assert set(f2.names) == {"cat", "dog"}
     assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
+
+
+def test_split_into_nhot_deprecated():
+    DT = dt.Frame(["a, b, c"])
+    with pytest.warns(FutureWarning):
+        RES = dt.split_into_nhot(DT)
+    EXP = dt.Frame([[1], [1], [1]], names=["a", "b", "c"], stype=dt.bool8)
+    assert_equals(RES, EXP)
