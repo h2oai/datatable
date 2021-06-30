@@ -1,6 +1,7 @@
 
 .. xfunction:: datatable.str.slice
     :src: src/core/expr/fexpr_slice.cc FExpr_Slice::evaluate_n
+    :tests: tests/str/test-slice.py
     :cvar: doc_str_slice
     :signature: slice(column, start, stop, step=1)
 

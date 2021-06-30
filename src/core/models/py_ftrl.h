@@ -22,7 +22,6 @@
 #ifndef dt_MODELS_PY_FTRL_h
 #define dt_MODELS_PY_FTRL_h
 #include <map>
-#include "str/py_str.h"
 #include "python/string.h"
 #include "python/xobject.h"
 #include "models/dt_ftrl.h"

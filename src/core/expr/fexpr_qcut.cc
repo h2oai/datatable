@@ -23,6 +23,7 @@
 #include "column/latent.h"
 #include "column/sentinel_fw.h"
 #include "column/qcut.h"
+#include "documentation.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func.h"
 #include "frame/py_frame.h"
@@ -136,43 +137,6 @@ class FExpr_Qcut : public FExpr_Func {
 // Python-facing `qcut()` function
 //------------------------------------------------------------------------------
 
-static const char* doc_qcut =
-R"(qcut(cols, nquantiles=10)
---
-.. x-version-added:: 0.11
-
-Bin all the columns from `cols` into intervals with approximately
-equal populations. Thus, the intervals are chosen according to
-the sample quantiles of the data.
-
-If there are duplicate values in the data, they will all be placed
-into the same bin. In extreme cases this may cause the bins to be
-highly unbalanced.
-
-Parameters
-----------
-cols: FExpr
-    Input data for quantile binning.
-
-nquantiles: int | List[int]
-    When a single number is specified, this number of quantiles
-    will be used to bin each column from `cols`.
-
-    When a list or a tuple is provided, each column will be binned
-    by using its own number of quantiles. In the latter case,
-    the list/tuple length must be equal to the number of columns
-    in `cols`.
-
-return: FExpr
-    f-expression that converts input columns into the columns filled
-    with the respective quantile ids.
-
-See also
---------
-:func:`cut()` -- function for equal-width interval binning.
-
-)";
-
 static py::oobj pyfn_qcut(const py::XArgs& args) {
   auto cols       = args[0].to_oobj();
   auto nquantiles = args[1].to<py::oobj>(py::None());
@@ -181,7 +145,7 @@ static py::oobj pyfn_qcut(const py::XArgs& args) {
 
 DECLARE_PYFN(&pyfn_qcut)
     ->name("qcut")
-    ->docs(doc_qcut)
+    ->docs(doc_dt_qcut)
     ->arg_names({"cols", "nquantiles"})
     ->n_positional_args(1)
     ->n_keyword_args(1)
