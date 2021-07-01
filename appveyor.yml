@@ -16,7 +16,7 @@ pull_requests:
   do_not_increment_build_number: true
 
 artifacts:
-  - path: dist\*.whl
+  - path: dist/*.whl
 
 build_script:
 
@@ -84,9 +84,9 @@ build_script:
 
     $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
 
-    python ci\ext.py wheel
+    python ci/ext.py wheel
 
-    $datatable_wheel = ls dist\*-cp36-*.whl
+    $datatable_wheel = ls dist/*-cp36-*.whl
 
     echo "----- build_info 3.6 ---------------------------------------------"
 
@@ -96,7 +96,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
@@ -106,9 +106,9 @@ build_script:
 
     $env:PATH = "C:\Python37-x64;C:\Python37-x64\Scripts;$DEFAULT_PATH"
 
-    python ci\ext.py wheel
+    python ci/ext.py wheel
 
-    $datatable_wheel = ls dist\*-cp37-*.whl
+    $datatable_wheel = ls dist/*-cp37-*.whl
 
     echo "----- build_info 3.7 ---------------------------------------------"
 
@@ -118,7 +118,7 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
@@ -128,9 +128,9 @@ build_script:
 
     $env:PATH = "C:\Python38-x64;C:\Python38-x64\Scripts;$DEFAULT_PATH"
 
-    python ci\ext.py wheel
+    python ci/ext.py wheel
 
-    $datatable_wheel = ls dist\*-cp38-*.whl
+    $datatable_wheel = ls dist/*-cp38-*.whl
 
     echo "----- build_info 3.8 ---------------------------------------------"
 
@@ -140,4 +140,4 @@ build_script:
 
     pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals .\tests\
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
