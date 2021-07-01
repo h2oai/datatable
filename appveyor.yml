@@ -85,8 +85,7 @@ build_script:
     if ($isWindows) {
       $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
     } else {
-      . $HOME/venv3.6/bin/activate
-      python -V
+      ls $HOME/venv3.6/
     }
 
     python -V
