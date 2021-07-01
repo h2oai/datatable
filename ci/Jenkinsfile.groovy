@@ -255,6 +255,14 @@ ansiColor('xterm') {
                                             /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
+                                            /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
+                                            echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            mv dist/*debug*.whl . && \
+                                            echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                            mv *debug*.whl dist/ && \
                                             ls -la dist"
                                 """
                                 stash name: 'x86_64-manylinux-debugwheels', includes: "dist/*debug*.whl"
@@ -276,12 +284,18 @@ ansiColor('xterm') {
                                          "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
-                                        python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        python ci/ext.py wheel
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py38
                                         python ci/ext.py wheel
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py39
+                                        python ci/ext.py wheel
+                                        echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py
+                                        echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
+                                        echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
+                                        echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -303,25 +317,33 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run \
-                                           -u `id -u`:`id -g` \
-                                           -e USER=$USER \
-                                           -v /etc/passwd:/etc/passwd:ro \
-                                           -v /etc/group:/etc/group:ro \
-                                           --rm --init \
-                                           -v `pwd`:/dot \
-                                           -e DT_RELEASE=${DT_RELEASE} \
-                                           -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
-                                           -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                           --entrypoint /bin/bash \
-                                           ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
-                                           -c "cd /dot && \
-                                               ls -la && \
-                                               ls -la src/datatable && \
-                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
-                                               /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                               /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
-                                               ls -la dist"
+                                            -u `id -u`:`id -g` \
+                                            -e USER=$USER \
+                                            -v /etc/passwd:/etc/passwd:ro \
+                                            -v /etc/group:/etc/group:ro \
+                                            --rm --init \
+                                            -v `pwd`:/dot \
+                                            -e DT_RELEASE=${DT_RELEASE} \
+                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                            --entrypoint /bin/bash \
+                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
+                                            -c "cd /dot && \
+                                                ls -la && \
+                                                ls -la src/datatable && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
+                                                /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
+                                                echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                mv dist/*debug*.whl . && \
+                                                echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                                mv *debug*.whl dist/ && \
+                                                ls -la dist"
                                     """
                                     stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
                                     stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
@@ -376,6 +398,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py38", "38",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-manylinux-py39', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-manylinux-py39", "39",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -437,6 +473,20 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test ppc64le-manylinux-py39', doPpcTests && doPy38Tests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-wheels'
+                                    test_in_docker("ppc64le-manylinux-py39", "39",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test ppc64le-manylinux-py36-debug', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -447,6 +497,19 @@ ansiColor('xterm') {
                                     unstash 'ppc64le-manylinux-debugwheels'
                                     test_in_docker("ppc64le-manylinux-py36-debug", "36",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-macos-py39', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_MACOS) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('39')
                                 }
                             }
                         }
@@ -698,7 +761,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             docker_cmd += "pip install -i https://h2oai.github.io/py-repo/ "
             docker_cmd += "--extra-index-url https://pypi.org/simple/ "
             docker_cmd += "--prefer-binary "
-            docker_cmd += "numpy pandas xlrd && "
+            docker_cmd += "numpy pandas 'xlrd<=1.2.0' && "
         } else {
             docker_cmd += "pip install -r requirements_extra.txt && "
         }
@@ -724,6 +787,7 @@ def get_python_for_docker(String pyver, String image) {
         if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
+        if (pyver == "39") return "/opt/python/cp39-cp39/bin/python3.9"
     }
     throw new Exception("Unknown python ${pyver} for docker ${image}")
 }
@@ -758,6 +822,7 @@ def test_macos(String pyver) {
 
 
 def get_env_for_macos(String pyver) {
+    if (pyver == "39") return "datatable-py39"
     if (pyver == "38") return "datatable-py38"
     if (pyver == "37") return "datatable-py37-with-pandas"
     if (pyver == "36") return "datatable-py36-with-pandas"

@@ -35,8 +35,7 @@ put specific emphasis on speed and big data support. As the name suggests, the
 package is closely related to R's [data.table][] and attempts to mimic its core
 algorithms and API.
 
-Currently `datatable` is in the Beta stage and undergoing active development.
-Some of the features may still be missing. Python 3.6+ is required.
+Requirements: Python 3.6+ (64 bit) and pip 20.3+.
 
 
 ## Project goals
@@ -78,20 +77,14 @@ the following:
 
 * Expressive query syntax (similar to [data.table][]).
 
-* LLVM-based lazy computation for complex queries (code generated, compiled
-  and executed on-the-fly).
-
-* LLVM-based user-defined functions.
-
 * Minimal amount of data copying, copy-on-write semantics for shared data.
 
 * Use "rowindex" views in filtering/sorting/grouping/joining operators to
   avoid unnecessary data copying.
 
-* Interoperability with pandas / numpy / pure python: the users should have
-  the ability to convert to another data-processing framework with ease.
-
-* Restrictions: Python 3.6+, 64-bit systems only.
+* Interoperability with pandas / numpy / pyarrow / pure python: the users
+  should have the ability to convert to another data-processing framework
+  with ease.
 
 
 ## Installation

@@ -1,5 +1,7 @@
 
 .. changelog::
+    :version: 1.0.0
+    :released: 2021-07-01
 
     Frame
     -----
@@ -60,6 +62,8 @@
       which behaves exactly as the equivalent base level functions :func:`dt.sd()`,
       :func:`dt.count()`, :func:`dt.first()`, :func:`dt.last()`
       and :func:`dt.shift()` respectively.
+
+    -[new] Added stats functions :meth:`.skew()` and :meth:`.kurt()`. [#1084]
 
     -[enh] The row selector ``i`` in the delete operation ``del DT[i, :]``
       can now be an unsorted list. The list can also contain duplicate
@@ -150,19 +154,19 @@
     -[new] New function :func:`dt.str.slice()` for applying a slice to a
       string column. [#1667]
 
-    -[enh] Function :func:`sort()` can now accept argument ``na_positon``.
+    -[enh] Function :func:`sort()` can now accept argument ``na_positon=``.
       It can take three values: ``"first"`` (default), ``"last"`` and
       ``"remove"``. The values describe the position assigned to NAs after
       sorting. [#793]
 
-    -[enh] Function :func:`cut()` can now accept argument ``bins``, that
+    -[enh] Function :func:`cut()` can now accept argument ``bins=``, that
      is a list or a tuple of frames containing edges of the binning
      intervals. [#2819]
 
     -[fix] When a whole column is updated within a ``DT[i, j, by()]`` call,
       the stype/ltype of that column us now allowed to change. [#2685]
 
-    -[fix] Fix a crash that occurred when using `median()` on virtual
+    -[fix] Fix a crash that occurred when using :func:`median()` on virtual
       columns of type ArrayView64. [#2802]
 
     -[fix] Fix poor performance when selecting columns from a frame with a
@@ -189,7 +193,8 @@
     -[fix] Fread no longer throws an exception when the list of column types
       passed to parameter ``columns=`` contains ``str64``. [#2704]
 
-    -[fix] Fread no longer detects separators within quoted strings. [#922]
+    -[fix] Fread no longer improperly detects separators within quoted strings.
+      [#922]
 
     Models
     ------
@@ -219,4 +224,30 @@
     -[fix] Datatable can now be properly installed from a source distribution.
       [#2846]
 
-    -[new] Added stats functions ``.skew()`` and ``.kurt()``. [#1084]
+
+    .. contributors::
+
+        121 @st-pasha
+        51  @samukweku
+        31  @oleksiyskononenko
+        7   @pradkrish
+        1   @chi2liu
+        1   @hannah-tillman    <Hannah Tillman>
+        --
+        62  @st-pasha
+        14  @oleksiyskononenko
+        4   @samukweku
+        2   @arnocandel
+        1   @tbraun84
+        1   @BrannonKing       <Brannon King>
+        1   @reach4bawer
+        1   @ChristopherEeles  <Christopher Eeles>
+        1   @kajuberdut        <Patrick Shechet>
+        1   @zhangyingmath     <Ying Zhang>
+        1   @chi2liu
+        1   @coolyaolei
+        1   @RaffaeleMorganti
+        1   @Darel13712
+        1   @hannah-tillman
+        1   @myamullaciencia
+        1   @wjensheng

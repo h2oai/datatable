@@ -470,6 +470,8 @@ def generate_build_info(mode=None, strict=False):
                          strict=strict)
     if "CHANGE_BRANCH" in os.environ:
         git_branch = os.environ["CHANGE_BRANCH"]
+    elif "APPVEYOR_REPO_BRANCH" in os.environ:
+        git_branch = os.environ["APPVEYOR_REPO_BRANCH"]
     else:
         git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                strict=strict)
