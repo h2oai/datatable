@@ -256,6 +256,13 @@ ansiColor('xterm') {
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
+                                            echo "===== Py3.6 Debug =====" && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            mv dist/*debug*.whl . && \
+                                            echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                            echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                            echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                            echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                            mv *debug*.whl dist/ && \
                                             ls -la dist"
                                 """
                                 stash name: 'x86_64-manylinux-debugwheels', includes: "dist/*debug*.whl"
@@ -277,14 +284,18 @@ ansiColor('xterm') {
                                          "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
-                                        python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        python ci/ext.py wheel
+                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py38
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py39
                                         python ci/ext.py wheel
+                                        echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py
+                                        echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py
+                                        echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py
+                                        echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -306,26 +317,33 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     sh """
                                         docker run \
-                                           -u `id -u`:`id -g` \
-                                           -e USER=$USER \
-                                           -v /etc/passwd:/etc/passwd:ro \
-                                           -v /etc/group:/etc/group:ro \
-                                           --rm --init \
-                                           -v `pwd`:/dot \
-                                           -e DT_RELEASE=${DT_RELEASE} \
-                                           -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
-                                           -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                           --entrypoint /bin/bash \
-                                           ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
-                                           -c "cd /dot && \
-                                               ls -la && \
-                                               ls -la src/datatable && \
-                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                               /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
-                                               /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                               /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
-                                               /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                               ls -la dist"
+                                            -u `id -u`:`id -g` \
+                                            -e USER=$USER \
+                                            -v /etc/passwd:/etc/passwd:ro \
+                                            -v /etc/group:/etc/group:ro \
+                                            --rm --init \
+                                            -v `pwd`:/dot \
+                                            -e DT_RELEASE=${DT_RELEASE} \
+                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
+                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
+                                            --entrypoint /bin/bash \
+                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
+                                            -c "cd /dot && \
+                                                ls -la && \
+                                                ls -la src/datatable && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
+                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
+                                                /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
+                                                echo "===== Py3.6 Debug =====" && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                mv dist/*debug*.whl . && \
+                                                echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                                echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                                echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                                echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                                mv *debug*.whl dist/ && \
+                                                ls -la dist"
                                     """
                                     stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
                                     stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
