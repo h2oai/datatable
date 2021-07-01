@@ -88,6 +88,8 @@ build_script:
       . $HOME/venv3.6/bin/activate
     }
 
+    python -V
+
     python ci/ext.py wheel
 
     $datatable_wheel = ls dist/*-cp36-*.whl
