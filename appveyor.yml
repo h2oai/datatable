@@ -1,7 +1,7 @@
 image:
   - Ubuntu
-  - Visual Studio 2019
-  - macOS
+  # - Visual Studio 2019
+  # - macOS
 
 init:
   # Uncomment the line below to enable RDP access
@@ -18,7 +18,16 @@ pull_requests:
 artifacts:
   - path: dist/*.whl
 
+APPVEYOR_YML_DISABLE_PS_LINUX: true
+
 build_script:
+
+- sh:
+
+    source $HOME/venv3.6/bin/activate
+
+    python -V
+
 
 - ps: >-
 
@@ -82,13 +91,7 @@ build_script:
 
     # =======================================================================
 
-    if ($isWindows) {
-      $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
-    } else {
-      ls $HOME/venv3.6/
-    }
-
-    python -V
+    $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
