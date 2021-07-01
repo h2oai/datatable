@@ -1,6 +1,6 @@
 image:
-  - Visual Studio 2019
   - Ubuntu
+  - Visual Studio 2019
   - macOS
 
 init:
@@ -82,7 +82,11 @@ build_script:
 
     # =======================================================================
 
-    $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
+    if ($isWindows) {
+      $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
+    } else {
+      source $HOME/venv3.6/bin/activate
+    }
 
     python ci/ext.py wheel
 
