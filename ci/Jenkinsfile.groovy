@@ -698,7 +698,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
             docker_cmd += "pip install -i https://h2oai.github.io/py-repo/ "
             docker_cmd += "--extra-index-url https://pypi.org/simple/ "
             docker_cmd += "--prefer-binary "
-            docker_cmd += "numpy pandas xlrd && "
+            docker_cmd += "numpy pandas 'xlrd<=1.2.0' && "
         } else {
             docker_cmd += "pip install -r requirements_extra.txt && "
         }
