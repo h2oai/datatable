@@ -223,3 +223,31 @@
 
     -[fix] Datatable can now be properly installed from a source distribution.
       [#2846]
+
+
+    .. contributors::
+
+        121 @st-pasha
+        51  @samukweku
+        31  @oleksiyskononenko
+        7   @pradkrish
+        1   @chi2liu
+        1   @hannah-tillman    <Hannah Tillman>
+        --
+        62  @st-pasha
+        14  @oleksiyskononenko
+        4   @samukweku
+        2   @arnocandel
+        1   @tbraun84
+        1   @BrannonKing       <Brannon King>
+        1   @reach4bawer
+        1   @ChristopherEeles  <Christopher Eeles>
+        1   @kajuberdut        <Patrick Shechet>
+        1   @zhangyingmath     <Ying Zhang>
+        1   @chi2liu
+        1   @coolyaolei
+        1   @RaffaeleMorganti
+        1   @Darel13712
+        1   @hannah-tillman
+        1   @myamullaciencia
+        1   @wjensheng
