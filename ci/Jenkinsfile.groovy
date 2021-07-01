@@ -256,12 +256,12 @@ ansiColor('xterm') {
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                            echo "===== Py3.6 Debug =====" && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                             mv dist/*debug*.whl . && \
-                                            echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
-                                            echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
-                                            echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
-                                            echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
                                             mv *debug*.whl dist/ && \
                                             ls -la dist"
                                 """
@@ -292,10 +292,10 @@ ansiColor('xterm') {
                                         python ci/ext.py wheel
                                         . /Users/jenkins/anaconda/bin/activate datatable-py39
                                         python ci/ext.py wheel
-                                        echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py
-                                        echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py
-                                        echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py
-                                        echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py
+                                        echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py
+                                        echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
+                                        echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
+                                        echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -336,12 +336,12 @@ ansiColor('xterm') {
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                                echo "===== Py3.6 Debug =====" && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                                 mv dist/*debug*.whl . && \
-                                                echo "===== Py3.6 =====" && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
-                                                echo "===== Py3.7 =====" && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
-                                                echo "===== Py3.8 =====" && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
-                                                echo "===== Py3.9 =====" && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
                                                 mv *debug*.whl dist/ && \
                                                 ls -la dist"
                                     """
