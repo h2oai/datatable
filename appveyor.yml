@@ -36,7 +36,7 @@ build_script:
       python -V
     } else {
       python -V
-      . $HOME/venv3.6/bin/activate
+      $HOME/venv3.6/bin/activate
       python -V
     }
 
