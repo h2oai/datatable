@@ -757,6 +757,11 @@ div.rst-versions div.rst-other-versions dl:nth-child(2) { display: none; }
 div.rst-versions div.rst-other-versions dl:nth-child(4) { display: none; }
 div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
 
+div[class*="highlight-"] {
+  clear: inherit !important;
+  margin: inherit !important;
+}
+
 
 
 /*------------------------------------------------------------------------------
