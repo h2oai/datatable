@@ -32,6 +32,7 @@
 #include "python/list.h"
 #include "python/obj.h"
 #include "python/string.h"
+#include "read/parsers/info.h"
 #include "stype.h"
 #include "types/py_type.h"
 #include "utils/macros.h"
@@ -51,6 +52,7 @@ static PyObject* numpy_int64 = nullptr;
 static PyObject* numpy_float16 = nullptr;
 static PyObject* numpy_float32 = nullptr;
 static PyObject* numpy_float64 = nullptr;
+static PyObject* numpy_str = nullptr;
 static void init_arrow();
 static void init_pandas();
 static void init_numpy();
@@ -310,6 +312,11 @@ int _obj::is_numpy_float() const noexcept {
   return 0;
 }
 
+bool _obj::is_numpy_str() const noexcept {
+  if (!numpy_str) init_numpy();
+  return v && numpy_str && PyObject_IsInstance(v, numpy_str);
+}
+
 bool _obj::is_numpy_marray() const noexcept {
   if (!numpy_MaskedArray_type) init_numpy();
   if (!v || !numpy_MaskedArray_type) return false;
@@ -423,6 +430,9 @@ bool _obj::parse_int(int8_t* out) const  { return _parse_int(v, out); }
 bool _obj::parse_int(int16_t* out) const { return _parse_int(v, out); }
 bool _obj::parse_int(int32_t* out) const { return _parse_int(v, out); }
 bool _obj::parse_int(int64_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_as_date(int32_t* out) const { return _parse_int(v, out); }
+bool _obj::parse_int_as_time(int64_t* out) const { return _parse_int(v, out); }
+
 
 bool _obj::parse_int(double* out) const {
   if (PyLong_Check(v)) {
@@ -507,7 +517,7 @@ bool _obj::parse_double(double* out) const {
 }
 
 
-bool _obj::parse_date(int32_t* out) const {
+bool _obj::parse_date_as_date(int32_t* out) const {
   if (py::odate::check(v)) {
     *out = py::odate::unchecked(v).get_days();
     return true;
@@ -515,20 +525,52 @@ bool _obj::parse_date(int32_t* out) const {
   return false;
 }
 
-bool _obj::parse_date(int64_t* out) const {
-  constexpr int64_t SECONDS = 1000000000;
-  constexpr int64_t DAYS = 24 * 3600 * SECONDS;
+bool _obj::parse_date_as_time(int64_t* out) const {
+  constexpr int64_t NANOSECONDS_PER_DAY = 24ll * 3600ll * 1000000000ll;
   if (py::odate::check(v)) {
-    *out = py::odate::unchecked(v).get_days() * DAYS;
+    *out = py::odate::unchecked(v).get_days() * NANOSECONDS_PER_DAY;
     return true;
   }
   return false;
 }
 
-bool _obj::parse_datetime(int64_t* out) const {
+bool _obj::parse_datetime_as_date(int32_t* out) const {
+  constexpr int64_t NANOSECONDS_PER_DAY = 24ll * 3600ll * 1000000000ll;
+  if (py::odatetime::check(v)) {
+    int64_t value = py::odatetime::unchecked(v).get_time();
+    if (value < 0) {
+      value -= NANOSECONDS_PER_DAY - 1;
+    }
+    *out = static_cast<int32_t>(value / NANOSECONDS_PER_DAY);
+    return true;
+  }
+  return false;
+}
+
+bool _obj::parse_datetime_as_time(int64_t* out) const {
   if (py::odatetime::check(v)) {
     *out = py::odatetime::unchecked(v).get_time();
     return true;
+  }
+  return false;
+}
+
+bool _obj::parse_string_as_date(int32_t* out) const {
+  if (PyUnicode_Check(v)) {
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(v, &str_size);
+    if (!str) throw PyError();
+    return dt::read::parse_date32_iso(str, str + str_size, out);
+  }
+  return false;
+}
+
+bool _obj::parse_string_as_time(int64_t* out) const {
+  if (PyUnicode_Check(v)) {
+    Py_ssize_t str_size;
+    const char* str = PyUnicode_AsUTF8AndSize(v, &str_size);
+    if (!str) throw PyError();
+    return dt::read::parse_time64_iso(str, str + str_size, out);
   }
   return false;
 }
@@ -657,6 +699,11 @@ size_t _obj::to_size_t(const error_manager& em) const {
 py::oint _obj::to_pyint(const error_manager& em) const {
   if (v == Py_None) return py::oint();
   if (PyLong_Check(v)) return py::oint(robj(v));
+  if (is_numpy_int()) {
+    PyObject* num = PyNumber_Long(v);
+    if (!num) throw PyError();
+    return py::oint(py::oobj::from_new_reference(num));
+  }
   throw em.error_not_integer(v);
 }
 
@@ -1213,6 +1260,7 @@ static void init_numpy() {
     numpy_float16 = np.get_attr("float16").release();
     numpy_float32 = np.get_attr("float32").release();
     numpy_float64 = np.get_attr("float64").release();
+    numpy_str = np.get_attr("str_").release();
   }
 }
 

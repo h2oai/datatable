@@ -219,3 +219,21 @@ def test_expr_names():
     # See issue #1963
     DT = dt.Frame(A=range(5), B=range(5))
     assert DT[:, [f.A, f.A + f.B]].names == ("A", "C0")
+
+
+def test_use_numpy_scalars(np):
+    # See issue #3027
+    DT = dt.Frame(A=range(5))
+    RES = DT[:, [f.A,
+                 f.A + np.int32(1),
+                 f.A + np.float32(0.5),
+                 f.A | np.bool_(True),
+                 np.str_('(') + f.A + np.str_(')')]]
+    assert_equals(
+        RES,
+        dt.Frame(A=range(5),
+                 C0=[1, 2, 3, 4, 5],
+                 C1=[0.5, 1.5, 2.5, 3.5, 4.5],
+                 C2=[1, 1, 3, 3, 5],
+                 C3=["(0)", "(1)", '(2)', "(3)", "(4)"])
+    )

@@ -61,6 +61,21 @@ def test_time64_type_minmax():
     assert dt.Type.time64.max == d(2262, 4, 11, 23, 47, 16, 854775)
 
 
+def test_time64_repr():
+    src = [d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src)
+    assert str(DT) == (
+        "   | C0                       \n"
+        "   | time64                   \n"
+        "-- + -------------------------\n"
+        " 0 | 2000-10-18T03:30:00      \n"
+        " 1 | 2010-11-13T15:11:59      \n"
+        " 2 | 2020-02-29T20:20:20.00002\n"
+        " 3 | NA                       \n"
+        "[4 rows x 1 column]\n"
+    )
 
 
 #-------------------------------------------------------------------------------
@@ -91,38 +106,108 @@ def test_time64_create_from_mixed_list2():
                                 d(1999, 12, 31, 8, 30, 50)]))
 
 
+def test_time64_create_from_mixed_list3():
+    DT = dt.Frame(['2001-10-10 12:34:00',
+                   '2013-05-03T17:11:35.900',
+                   '1939-09-01T06:00:00'],
+                  type='time64')
+    assert_equals(DT, dt.Frame([d(2001, 10, 10, 12, 34, 0),
+                                d(2013, 5, 3, 17, 11, 35, 900000),
+                                d(1939, 9, 1, 6, 0, 0)]))
+
+
 
 #-------------------------------------------------------------------------------
-# Basic properties
+# Statistics
 #-------------------------------------------------------------------------------
-
-def test_time64_repr():
-    src = [d(2000, 10, 18, 3, 30),
-           d(2010, 11, 13, 15, 11, 59),
-           d(2020, 2, 29, 20, 20, 20, 20), None]
-    DT = dt.Frame(src)
-    assert str(DT) == (
-        "   | C0                       \n"
-        "   | time64                   \n"
-        "-- + -------------------------\n"
-        " 0 | 2000-10-18T03:30:00      \n"
-        " 1 | 2010-11-13T15:11:59      \n"
-        " 2 | 2020-02-29T20:20:20.00002\n"
-        " 3 | NA                       \n"
-        "[4 rows x 1 column]\n"
-    )
-
 
 def test_time64_minmax():
     src = [None,
            d(2000, 10, 18, 3, 30),
            d(2010, 11, 13, 15, 11, 59),
-           d(2020, 2, 29, 20, 20, 20, 20), None]
+           d(2020, 2, 29, 20, 20, 20, 20),
+           None]
     DT = dt.Frame(src)
     assert DT.min1() == d(2000, 10, 18, 3, 30)
     assert DT.max1() == d(2020, 2, 29, 20, 20, 20, 20)
     assert DT.countna1() == 2
+    assert_equals(DT.min(), dt.Frame([d(2000, 10, 18, 3, 30)]))
+    assert_equals(DT.max(), dt.Frame([d(2020, 2, 29, 20, 20, 20, 20)]))
+    assert_equals(DT.countna(), dt.Frame([2]/dt.int64))
 
+
+def test_time64_na_stats():
+    src = [None,
+           d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20),
+           None]
+    DT = dt.Frame(src)
+    assert DT.sd1() is None
+    assert DT.sum1() is None
+    assert_equals(DT.sd(), dt.Frame([None]/dt.float64))
+    assert_equals(DT.sum(), dt.Frame([None]/dt.float64))
+
+
+def test_time64_mean():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50)]
+    DT = dt.Frame(src)
+    assert DT.mean1() ==  d(2010, 11, 13, 16, 11, 50)
+    assert_equals(DT.mean(), dt.Frame([d(2010, 11, 13, 16, 11, 50)]))
+
+
+def test_time64_mode():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT = dt.Frame(src)
+    assert DT.mode1() == d(2010, 11, 13, 15, 11, 50)
+    assert DT.nmodal1() == 2
+    assert_equals(DT.mode(), dt.Frame([d(2010, 11, 13, 15, 11, 50)]))
+    assert_equals(DT.nmodal(), dt.Frame([2]/dt.int64))
+
+
+def test_time64_nunique():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT = dt.Frame(src)
+    assert DT.nunique1() == 2
+    assert_equals(DT.nunique(), dt.Frame([2]/dt.int64))
+
+
+def test_time64_skew():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int64(f[0])]
+    assert DT_date.skew1() == DT_int.skew1()
+    assert_equals(DT_date.skew(), DT_int.skew())
+
+
+def test_time64_kurt():
+    src = [None,
+           d(2010, 11, 13, 15, 11, 50),
+           d(2010, 11, 13, 17, 11, 50),
+           None,
+           d(2010, 11, 13, 15, 11, 50),
+           None]
+    DT_date = dt.Frame(src)
+    DT_int = DT_date[:, dt.int64(f[0])]
+    assert DT_date.kurt1() == DT_int.kurt1()
+    assert_equals(DT_date.kurt(), DT_int.kurt())
 
 
 #-------------------------------------------------------------------------------
@@ -480,12 +565,13 @@ def test_cast_date32_to_time64():
 
 def test_cast_object_to_time64():
     from datetime import date
-    DT = dt.Frame([d(2001, 1, 1, 12, 0, 0), date(2021, 10, 15), 6, None, dict],
+    DT = dt.Frame([d(2001, 1, 1, 12, 0, 0), date(2021, 10, 15), 6000, None, dict],
                   stype=object)
     DT[0] = dt.Type.time64
     assert_equals(DT, dt.Frame([d(2001, 1, 1, 12, 0, 0),
                                 d(2021, 10, 15, 0, 0, 0),
-                                None, None, None]))
+                                d(1970, 1, 1, 0, 0, 0, 6),
+                                None, None]))
 
 
 @pytest.mark.parametrize('ttype', [dt.str32, dt.str64])
@@ -590,9 +676,98 @@ def test_rbind():
 
 
 def test_rbind2():
-    DT = dt.Frame([5, 7, 9])
-    DT[0] = dt.Type.time64
+    DT = dt.Frame([5, 7, 9], type=dt.Type.time64)
     RES = dt.rbind(DT, DT)
-    EXP = dt.Frame([5, 7, 9] * 2)
-    EXP[0] = dt.Type.time64
+    EXP = dt.Frame([5, 7, 9] * 2, type=dt.Type.time64)
     assert_equals(RES, EXP)
+
+
+def test_materialize():
+    DT = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)])
+    assert DT.type == dt.Type.time64
+    RES = DT[::2, :]
+    EXP = dt.Frame([d(2021, 4, 1, i, 0, 0) for i in range(24)[::2]])
+    assert_equals(RES, EXP)
+    RES.materialize()
+    assert_equals(RES, EXP)
+
+
+def test_sort():
+    DT = dt.Frame([d(2010, 11, 5, i*17 % 23, 0, 0) for i in range(23)])
+    assert_equals(DT.sort(0),
+                  dt.Frame([d(2010, 11, 5, i, 0, 0) for i in range(23)]))
+
+
+def test_compare():
+    DT = dt.Frame(A=[d(2010, 11, 5, i*17 % 11, 0, 0) for i in range(11)])
+    DT['B'] = DT.sort(0)
+    RES = DT[:, {"EQ": (f.A == f.B),
+                 "NE": (f.A != f.B),
+                 "LT": (f.A < f.B),
+                 "LE": (f.A <= f.B),
+                 "GE": (f.A >= f.B),
+                 "GT": (f.A > f.B)}]
+    assert_equals(RES, dt.Frame(EQ = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                                NE = [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                                LT = [0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                LE = [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1],
+                                GE = [1, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                GT = [0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0],
+                                type=dt.bool8))
+
+
+def test_repeat():
+    DT = dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)])
+    DT = dt.repeat(DT, 5)
+    assert_equals(DT, dt.Frame(A=[d(2001, 10, 12, 0, 0, 0)] * 5))
+
+
+def test_reducers():
+    DT = dt.Frame(TIME = [d(2001, 7, 12, 0, 0, 0),
+                          d(2005, 3, 14, 15, 9, 26),
+                          None,
+                          d(2007, 11, 2, 19, 7, 38),
+                          d(1965, 6, 19, 2, 17, 7),
+                          d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.TIME),
+                 "min": dt.min(f.TIME),
+                 "max": dt.max(f.TIME),
+                 "mean": dt.mean(f.TIME),
+                 "first": dt.first(f.TIME),
+                 "last": dt.last(f.TIME)}]
+    assert_equals(
+        RES,
+        dt.Frame(count = [5] / dt.int64,
+                 min = [d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(1996, 11, 12, 4, 55, 32, 400000)],
+                 first = [d(2001, 7, 12, 0, 0, 0)],
+                 last = [d(2004, 4, 18, 12, 3, 31)])
+    )
+
+
+def test_groupby():
+    DT = dt.Frame(A = [1, 1, 1, 2, 2, 2],
+                  B = [d(2001, 7, 12, 0, 0, 0),
+                       d(2005, 3, 14, 15, 9, 26),
+                       None,
+                       d(2007, 11, 2, 19, 7, 38),
+                       d(1965, 6, 19, 2, 17, 7),
+                       d(2004, 4, 18, 12, 3, 31)])
+    RES = DT[:, {"count": dt.count(f.B),
+                 "min": dt.min(f.B),
+                 "max": dt.max(f.B),
+                 "mean": dt.mean(f.B),
+                 "first": dt.first(f.B),
+                 "last": dt.last(f.B)}, dt.by(f.A)]
+    assert_equals(
+        RES,
+        dt.Frame(A = [1, 2],
+                 count = [2, 3] / dt.int64,
+                 min = [d(2001, 7, 12, 0, 0, 0), d(1965, 6, 19, 2, 17, 7)],
+                 max = [d(2005, 3, 14, 15, 9, 26), d(2007, 11, 2, 19, 7, 38)],
+                 mean = [d(2003, 5, 13, 19, 34, 43), d(1992, 7, 13, 19, 9, 25, 333333)],
+                 first = [d(2001, 7, 12, 0, 0, 0), d(2007, 11, 2, 19, 7, 38)],
+                 last = [None, d(2004, 4, 18, 12, 3, 31)]
+                 )
+    )

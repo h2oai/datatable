@@ -1305,6 +1305,12 @@ def test_create_from_numpy_floats_mixed(numpy):
     assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
 
 
+def test_create_from_numpy_strings(np):
+    src = ["alpha", "beta", "gamma"]
+    DT = dt.Frame([np.str_(s) for s in src])
+    assert_equals(DT, dt.Frame(src))
+
+
 def test_create_from_numpy_reversed(numpy):
     DT = dt.Frame(numpy.array(range(10), dtype=numpy.int64)[::-1])
     assert_equals(DT, dt.Frame(range(9, -1, -1), stype=dt.int64))

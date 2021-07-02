@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/args.h"
@@ -32,28 +33,8 @@ namespace py {
 // to_tuples()
 //------------------------------------------------------------------------------
 
-static const char* doc_to_tuples =
-R"(to_tuples(self)
---
-
-Convert the frame into a list of tuples, by rows.
-
-Parameters
-----------
-return: List[Tuple]
-  Returns a list having :attr:`.nrows` tuples, where
-  each tuple has length :attr:`.ncols` and contains data
-  from each respective row of the frame.
-
-Examples
---------
->>> DT = dt.Frame(A=[1, 2, 3], B=["aye", "nay", "tain"])
->>> DT.to_tuples()
-[(1, "aye"), (2, "nay"), (3, "tain")]
-)";
-
 static PKArgs args_to_tuples(
-  0, 0, 0, false, false, {}, "to_tuples", doc_to_tuples);
+  0, 0, 0, false, false, {}, "to_tuples", dt::doc_Frame_to_tuples);
 
 
 oobj Frame::to_tuples(const PKArgs&) {
@@ -80,32 +61,8 @@ oobj Frame::to_tuples(const PKArgs&) {
 // to_list()
 //------------------------------------------------------------------------------
 
-static const char* doc_to_list =
-R"(to_list(self)
---
-
-Convert the frame into a list of lists, by columns.
-
-
-Parameters
-----------
-return: List[List]
-    A list of :attr:`.ncols` lists, each inner list
-    representing one column of the frame.
-
-
-Examples
---------
->>> DT = dt.Frame(A=[1, 2, 3], B=["aye", "nay", "tain"])
->>> DT.to_list()
-[[1, 2, 3], ["aye", "nay", "tain"]]
-
->>> dt.Frame(id=range(10)).to_list()
-[[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]]
-)";
-
 static PKArgs args_to_list(
-  0, 0, 0, false, false, {}, "to_list", doc_to_list);
+  0, 0, 0, false, false, {}, "to_list", dt::doc_Frame_to_list);
 
 oobj Frame::to_list(const PKArgs&) {
   py::olist res(dt->ncols());
@@ -126,36 +83,8 @@ oobj Frame::to_list(const PKArgs&) {
 // to_list()
 //------------------------------------------------------------------------------
 
-static const char* doc_to_dict =
-R"(to_dict(self)
---
-
-Convert the frame into a dictionary of lists, by columns.
-
-In Python 3.6+ the order of records in the dictionary will be the
-same as the order of columns in the frame.
-
-Parameters
-----------
-return: Dict[str, List]
-    Dictionary with :attr:`.ncols` records. Each record
-    represents a single column: the key is the column's name, and the
-    value is the list with the column's data.
-
-Examples
---------
->>> DT = dt.Frame(A=[1, 2, 3], B=["aye", "nay", "tain"])
->>> DT.to_dict()
-{"A": [1, 2, 3], "B": ["aye", "nay", "tain"]}
-
-See also
---------
-- :meth:`.to_list`: convert the frame into a list of lists
-- :meth:`.to_tuples`: convert the frame into a list of tuples by rows
-)";
-
 static PKArgs args_to_dict(
-  0, 0, 0, false, false, {}, "to_dict", doc_to_dict);
+  0, 0, 0, false, false, {}, "to_dict", dt::doc_Frame_to_dict);
 
 oobj Frame::to_dict(const PKArgs&) {
   py::otuple names = dt->get_pynames();

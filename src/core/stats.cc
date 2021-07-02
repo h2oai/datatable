@@ -872,29 +872,29 @@ void NumericStats<T>::compute_moments34() {
 
       if (t_count) {
         std::lock_guard<std::mutex> lock(mutex);
-        const double n1 = static_cast<double>(count);
-        const double n2 = static_cast<double>(t_count);
-        const double n = n1 + n2;
-        const double delta21 = t_mean - mean;
-        const double gamma21 = delta21 / n;
-        const double beta21  = gamma21 * gamma21;
-        const double alpha21 = delta21 * delta21 * n1 * n2 / n;
-        const double M2_1 = M2;
-        const double M2_2 = t_M2;
-        const double M3_1 = M3;
-        const double M3_2 = t_M3;
-        const double M4_1 = M4;
-        const double M4_2 = t_M4;
+        const double nx = static_cast<double>(count);
+        const double ny = static_cast<double>(t_count);
+        const double n = nx + ny;
+        const double delta = t_mean - mean;
+        const double gamma = delta / n;
+        const double beta  = gamma * gamma;
+        const double alpha = delta * delta * nx*ny/n;
+        const double M2x = M2;
+        const double M2y = t_M2;
+        const double M3x = M3;
+        const double M3y = t_M3;
+        const double M4x = M4;
+        const double M4y = t_M4;
 
         count += t_count;
         sum += t_sum;
-        mean += gamma21 * n2;
-        M2 = M2_1 + M2_2 + alpha21;
-        M3 = M3_1 + M3_2 + alpha21 * (n1 - n2)/n
-             + 3.0 * (n1 * M2_2 - n2 * M2_1) * gamma21;
-        M4 = M4_1 + M4_2 + alpha21 * beta21 * (n1*n1 - n1*n2 + n2*n2)
-             + 6 * beta21 * (n1*n1 * M2_2 + n2*n2 * M2_1)
-             + 4 * gamma21 * (n1 * M3_2 - n2 * M3_1);
+        mean += gamma * ny;
+        M2 = M2x + M2y + alpha;
+        M3 = M3x + M3y + alpha * (nx - ny) * gamma
+             + 3.0 * (nx * M2y - ny * M2x) * gamma;
+        M4 = M4x + M4y + alpha * beta * (nx*nx - nx*ny + ny*ny)
+             + 6 * beta * (nx*nx * M2y + ny*ny * M2x)
+             + 4 * gamma * (nx * M3y - ny * M3x);
       }
     });
 
@@ -1143,9 +1143,9 @@ static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
     case dt::SType::INT16:   return StatsPtr(new IntegerStats<int16_t>(col));
-    case dt::SType::DATE32:
+    case dt::SType::DATE32:  return StatsPtr(new DateStats(col));
     case dt::SType::INT32:   return StatsPtr(new IntegerStats<int32_t>(col));
-    case dt::SType::TIME64:
+    case dt::SType::TIME64:  return StatsPtr(new TimeStats(col));
     case dt::SType::INT64:   return StatsPtr(new IntegerStats<int64_t>(col));
     case dt::SType::FLOAT32: return StatsPtr(new RealStats<float>(col));
     case dt::SType::FLOAT64: return StatsPtr(new RealStats<double>(col));
@@ -1220,6 +1220,10 @@ template <typename T>
 std::unique_ptr<Stats> RealStats<T>::clone()    const { return this->_clone(this); }
 template <typename T>
 std::unique_ptr<Stats> IntegerStats<T>::clone() const { return this->_clone(this); }
+
+std::unique_ptr<Stats> DateStats::clone() const { return this->_clone(this); }
+std::unique_ptr<Stats> TimeStats::clone() const { return this->_clone(this); }
+
 std::unique_ptr<Stats> BooleanStats::clone()    const { return this->_clone(this); }
 std::unique_ptr<Stats> PyObjectStats::clone()   const { return this->_clone(this); }
 
@@ -1285,9 +1289,9 @@ void Stats::verify_integrity(const dt::ColumnImpl* col) {
     case dt::SType::BOOL:    XAssert(dynamic_cast<BooleanStats*>(this)); break;
     case dt::SType::INT8:    XAssert(dynamic_cast<IntegerStats<int8_t>*>(this)); break;
     case dt::SType::INT16:   XAssert(dynamic_cast<IntegerStats<int16_t>*>(this)); break;
-    case dt::SType::DATE32:
+    case dt::SType::DATE32:  XAssert(dynamic_cast<DateStats*>(this)); break;
     case dt::SType::INT32:   XAssert(dynamic_cast<IntegerStats<int32_t>*>(this)); break;
-    case dt::SType::TIME64:
+    case dt::SType::TIME64:  XAssert(dynamic_cast<TimeStats*>(this)); break;
     case dt::SType::INT64:   XAssert(dynamic_cast<IntegerStats<int64_t>*>(this)); break;
     case dt::SType::FLOAT32: XAssert(dynamic_cast<RealStats<float>*>(this)); break;
     case dt::SType::FLOAT64: XAssert(dynamic_cast<RealStats<double>*>(this)); break;
@@ -1336,8 +1340,17 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::NModal: {
       return pywrap_stat<size_t>(stat);
     }
+    case Stat::Mean: {
+      if (column->type().is_temporal()) {
+        double value;
+        bool isvalid = get_stat(stat, &value);
+        if (!isvalid) return py::None();
+        return py::odatetime(static_cast<int64_t>(value));
+      } else {
+        return pywrap_stat<double>(stat);
+      }
+    }
     case Stat::Sum:
-    case Stat::Mean:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
@@ -1429,11 +1442,15 @@ Column Stats::get_stat_as_column(Stat stat) {
   switch (stat) {
     case Stat::NaCount:
     case Stat::NUnique:
-    case Stat::NModal: {
-      return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
+    case Stat::NModal: return colwrap_stat<size_t, int64_t>(stat, dt::SType::INT64);
+    case Stat::Mean: {
+      if (column->type().is_temporal()) {
+        return colwrap_stat<double, int64_t>(stat, dt::SType::TIME64);
+      } else {
+        return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+      }
     }
     case Stat::Sum:
-    case Stat::Mean:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
@@ -1463,6 +1480,26 @@ Column Stats::get_stat_as_column(Stat stat) {
 }
 
 
+//------------------------------------------------------------------------------
+// Date and Time stats
+//------------------------------------------------------------------------------
+
+double TimeStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
+double TimeStats::stdev (bool* isvalid) { return _invalid<double>(isvalid);}
+double DateStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
+double DateStats::stdev (bool* isvalid) { return _invalid<double>(isvalid); }
+
+
+double DateStats::mean (bool* isvalid) {
+  if (!is_computed(Stat::Mean)) {
+    compute_moments12();
+    // Conversion from days to nanoseconds for further casting to `time64`
+    constexpr int64_t NANOSECONDS_PER_DAY = 24LL * 3600LL * 1000000000LL;
+    _mean *= NANOSECONDS_PER_DAY;
+  }
+  _fill_validity_flag(Stat::Mean, isvalid);
+  return _mean;
+}
 
 
 //------------------------------------------------------------------------------

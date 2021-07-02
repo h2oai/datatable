@@ -466,7 +466,7 @@ def test_linearmodel_fit_wrong_target_obj64():
 
 def test_linearmodel_model_untrained():
     lm = LinearModel()
-    assert lm.model == None
+    assert lm.model is None
 
 
 def test_linearmodel_fit_no_frame():
@@ -489,7 +489,7 @@ def test_linearmodel_fit_predict_nones():
     lm = LinearModel()
     lm.fit(None, None)
     df_target = lm.predict(None)
-    assert df_target == None
+    assert df_target is None
 
 
 def test_linearmodel_predict_not_trained():
@@ -1389,7 +1389,7 @@ def test_linearmodel_early_stopping_multinomial():
 def test_linearmodel_pickling_empty_model():
     lm_pickled = pickle.dumps(LinearModel())
     lm_unpickled = pickle.loads(lm_pickled)
-    assert lm_unpickled.model == None
+    assert lm_unpickled.model is None
     assert lm_unpickled.params == LinearModel().params
 
 

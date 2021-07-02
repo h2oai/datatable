@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,11 +50,11 @@ class progress_bar {
  */
 class progress_bar_disabled : public progress_bar {
   public:
-    void set_progress(double actual, double tentative) noexcept;
-    void set_status_finished();
-    void set_status_error(bool cancelled);
-    void set_message(std::string&& msg);
-    void refresh();
+    void set_progress(double actual, double tentative) noexcept override;
+    void set_status_finished() override;
+    void set_status_error(bool cancelled) override;
+    void set_message(std::string&& msg) override;
+    void refresh() override;
 };
 
 
@@ -93,12 +93,11 @@ class progress_bar_enabled : public progress_bar {
   public:
     progress_bar_enabled();
 
-    void set_progress(double actual, double tentative) noexcept;
-    void set_status_finished();
-    void set_status_error(bool cancelled);
-    void set_message(std::string&& msg);
-
-    void refresh();
+    void set_progress(double actual, double tentative) noexcept override;
+    void set_status_finished() override;
+    void set_status_error(bool cancelled) override;
+    void set_message(std::string&& msg) override;
+    void refresh() override;
 
   private:
     void _report_to_python();

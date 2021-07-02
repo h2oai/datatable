@@ -1,9 +1,7 @@
 
 .. xmethod:: datatable.Frame.__getitem__
     :src: src/core/frame/__getitem__.cc Frame::_main_getset
-
-    __getitem__(self, i, j[, by][, sort][, join])
-    --
+    :signature: __getitem__(self, i, j[, by][, sort][, join])
 
     The main method for accessing data and computing on the frame. Sometimes
     we also refer to it as the ``DT[i, j, ...]`` call.
@@ -222,9 +220,7 @@
 .. xmethod:: datatable.Frame.__getitem__
     :src: src/core/frame/__getitem__.cc Frame::_get_single_column
     :noindex:
-
-    __getitem__(self, j)
-    --
+    :signature: __getitem__(self, j)
 
     Extract a single column `j` from the frame.
 
@@ -260,9 +256,7 @@
 .. xmethod:: datatable.Frame.__getitem__
     :src: src/core/frame/__getitem__.cc Frame::m__getitem__
     :noindex:
-
-    __getitem__(self, i, j)
-    --
+    :signature: __getitem__(self, i, j)
 
     Extract a single value from the frame.
 

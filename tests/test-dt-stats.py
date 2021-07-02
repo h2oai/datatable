@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@ import random
 import statistics
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
-from math import inf, nan, isnan
+from math import inf, nan, isnan, isclose
 from tests import list_equals
 
 
@@ -233,6 +233,42 @@ def test_dt_sd_special_cases(src, res):
     assert dtr.shape == (1, 1)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[res]])
+
+
+#-------------------------------------------------------------------------------
+# Skew function dt.skew()
+#-------------------------------------------------------------------------------
+
+@pytest.mark.usefixtures("pandas")
+def test_dt_skew_simple():
+    n = 12345
+    DT = dt.Frame([0] * n + [1000] * (2*n) + [10000] * (3*n))
+    pd_skew = DT.to_pandas().skew()[0]
+    dt_skew = DT.skew1()
+    assert isclose(pd_skew, dt_skew, rel_tol=1e-10)
+
+
+def test_dt_skew_random(numpy, pandas):
+    x = numpy.random.normal(0, 1000, 10000)
+    pd_df = pandas.DataFrame(x)
+    dt_df = dt.Frame(x)
+    EXP = pd_df.skew()[0]
+    RES = dt_df.skew1()
+    assert isclose(EXP, RES, abs_tol=1e-5)
+
+
+
+#-------------------------------------------------------------------------------
+# Kurtosis function dt.kurt()
+#-------------------------------------------------------------------------------
+
+def test_dt_kurt(numpy, pandas):
+    x = numpy.random.normal(0, 1000, 1000)
+    pd_df = pandas.DataFrame(x)
+    dt_df = dt.Frame(x)
+    EXP = pd_df.kurtosis()[0]
+    RES = dt_df.kurt1()
+    assert isclose(EXP, RES, abs_tol=1e-5)
 
 
 

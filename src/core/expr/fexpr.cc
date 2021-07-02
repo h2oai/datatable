@@ -19,12 +19,17 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
+#include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
+#include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
-#include "expr/expr.h"            // OldExpr
+#include "expr/fexpr_slice.h"
+#include "expr/re/fexpr_match.h"
+#include "expr/str/fexpr_len.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -93,6 +98,9 @@ ptrExpr as_fexpr(py::robj src) {
            src.is_pandas_series()) return FExpr_Frame::from_pandas(src);
   else if (src.is_numpy_array() ||
            src.is_numpy_marray())  return FExpr_Frame::from_numpy(src);
+  else if (src.is_numpy_float())   return FExpr_Literal_Float::make(src);
+  else if (src.is_numpy_int())     return FExpr_Literal_Int::make(src);
+  else if (src.is_numpy_bool())    return FExpr_Literal_Bool::make(src);
   else if (src.is_ellipsis())      return ptrExpr(new FExpr_Literal_SliceAll());
   else {
     throw TypeError() << "An object of type " << src.typeobj()
@@ -144,6 +152,20 @@ oobj PyFExpr::m__repr__() const {
   return ostring("FExpr<" + expr_->repr() + '>');
 }
 
+oobj PyFExpr::m__getitem__(py::robj item) {
+  if (item.is_slice()) {
+    auto slice = item.to_oslice();
+    return PyFExpr::make(
+                new dt::expr::FExpr_Slice(
+                    expr_,
+                    slice.start_obj(),
+                    slice.stop_obj(),
+                    slice.step_obj()
+           ));
+  }
+  // TODO: we could also support single-item selectors
+  throw TypeError() << "Selector inside FExpr[...] must be a slice";
+}
 
 
 //----- Basic arithmetics ------------------------------------------------------
@@ -277,48 +299,28 @@ oobj PyFExpr::remove(const PKArgs& args) {
 }
 
 
-// DEPRECATED
+
 oobj PyFExpr::len() {
-  return make_unexpr(dt::expr::Op::LEN, this);
+  auto w = DeprecationWarning();
+  w << "Method Expr.len() is deprecated since 0.11.0, "
+       "and will be removed in version 1.1.\n"
+       "Please use function dt.str.len() instead";
+  w.emit_warning();
+  return PyFExpr::make(new FExpr_Str_Len(ptrExpr(expr_)));
 }
 
 
-static const char* doc_re_match =
-R"(re_match(self, pattern, flags=None)
---
-
-.. x-version-deprecated:: 0.11
-
-Test whether values in a string column match a regular expression.
-
-Since version 1.0 this function will be available in the ``re.``
-submodule.
-
-Parameters
-----------
-pattern: str
-    The regular expression that will be tested against each value
-    in the current column.
-
-flags: int
-    [unused]
-
-return: FExpr
-    Return an expression that produces boolean column that tells
-    whether the value in each row of the current column matches
-    the `pattern` or not.
-)";
-
 static PKArgs args_re_match(
-    0, 2, 0, false, false, {"pattern", "flags"}, "re_match", doc_re_match);
+    0, 1, 0, false, false, {"pattern"}, "re_match", nullptr);
 
 oobj PyFExpr::re_match(const PKArgs& args) {
-  auto arg0 = args[0].to<oobj>(py::None());
-  auto arg1 = args[1].to<oobj>(py::None());
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(dt::expr::Op::RE_MATCH)),
-                  otuple{robj(this)},
-                  otuple{arg0, arg1}});
+  auto arg_pattern = args[0].to_oobj_or_none();
+  auto w = DeprecationWarning();
+  w << "Method Expr.re_match() is deprecated since 0.11.0, "
+       "and will be removed in version 1.1.\n"
+       "Please use function dt.re.match() instead";
+  w.emit_warning();
+  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern));
 }
 
 
@@ -740,6 +742,7 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD__NEG__(&PyFExpr::nb__neg__));
   xt.add(METHOD__POS__(&PyFExpr::nb__pos__));
   xt.add(METHOD__CMP__(&PyFExpr::m__compare__));
+  xt.add(METHOD__GETITEM__(&PyFExpr::m__getitem__));
 
   FExpr_Type = xt.get_type_object();
 

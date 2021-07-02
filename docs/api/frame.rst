@@ -2,7 +2,43 @@
 
 .. xclass:: datatable.Frame
     :src: src/core/frame/py_frame.h Frame
-    :doc: src/core/frame/py_frame.cc doc_Frame
+    :cvar: doc_Frame
+
+    Two-dimensional column-oriented container of data. This the primary
+    data structure in the :mod:`datatable` module.
+
+    A Frame is *two-dimensional* in the sense that it is comprised of
+    rows and columns of data. Each data cell can be located via a pair
+    of its coordinates: ``(irow, icol)``. We do not support frames with
+    more or less than two dimensions.
+
+    A Frame is *column-oriented* in the sense that internally the data is
+    stored separately for each column. Each column has its own name and
+    type. Types may be different for different columns but cannot vary
+    within each column.
+
+    Thus, the dimensions of a Frame are not symmetrical: a Frame is not
+    a matrix. Internally the class is optimized for the use case when the
+    number of rows significantly exceeds the number of columns.
+
+    A Frame can be viewed as a ``list`` of columns: standard Python
+    function ``len()`` will return the number of columns in the Frame,
+    and ``frame[j]`` will return the column at index ``j`` (each "column"
+    will be a Frame with ``ncols == 1``). Similarly, you can iterate over
+    the columns of a Frame in a loop, or use it in a ``*``-expansion::
+
+        >>> for column in frame:
+        ...    # do something
+        ...
+        >>> list_of_columns = [*frame]
+
+    A Frame can also be viewed as a ``dict`` of columns, where the key
+    associated with each column is its name. Thus, ``frame[name]`` will
+    return the column with the requested name. A Frame can also work with
+    standard python ``**``-expansion::
+
+        >>> dict_of_columns = {**frame}
+
 
     Construction
     ------------
@@ -140,6 +176,12 @@
         * - :meth:`.countna1()`
           - Count missing values for a one-column frame and return it as a scalar.
 
+        * - :meth:`.kurt()`
+          - Calculate excess kurtosis for each column in the frame.
+
+        * - :meth:`.kurt1()`
+          - Calculate excess kurtosis for a one-column frame and return it as a scalar.
+
         * - :meth:`.max()`
           - Find the largest element for each column in the frame.
 
@@ -181,6 +223,12 @@
 
         * - :meth:`.sd1()`
           - Calculate the standard deviation for a one-column frame and return it as a scalar.
+
+        * - :meth:`.skew()`
+          - Calculate skewness for each column in the frame.
+
+        * - :meth:`.skew1()`
+          - Calculate skewness for a one-column frame and return it as a scalar.
 
         * - :meth:`.sum()`
           - Calculate the sum of all values for each column in the frame.
@@ -272,7 +320,7 @@
         * - ``._repr_pretty_()``
           - Used to display the frame in an :ext-mod:`IPython` console.
 
-    .. _`Jupyter Lab`: https://jupyterlab.readthedocs.io/en/latest/
+.. _`Jupyter Lab`: https://jupyterlab.readthedocs.io/en/latest/
 
 
 .. toctree::
@@ -299,6 +347,8 @@
     .head()          <frame/head>
     .key             <frame/key>
     .keys()          <frame/keys>
+    .kurt()          <frame/kurt>
+    .kurt1()         <frame/kurt1>
     .ltypes          <frame/ltypes>
     .materialize()   <frame/materialize>
     .max()           <frame/max>
@@ -321,6 +371,8 @@
     .replace()       <frame/replace>
     .sd()            <frame/sd>
     .sd1()           <frame/sd1>
+    .skew()          <frame/skew>
+    .skew1()         <frame/skew1>
     .shape           <frame/shape>
     .sort()          <frame/sort>
     .source          <frame/source>

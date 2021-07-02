@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,30 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_HEAD_FUNC_OTHER_h
-#define dt_EXPR_HEAD_FUNC_OTHER_h
-#include <string>
-#include <regex>
-#include "expr/head.h"
-#include "expr/head_func.h"
-#include "python/tuple.h"
+#ifndef dt_EXPR_RE_FEXPR_STR_LEN_h
+#define dt_EXPR_RE_FEXPR_STR_LEN_h
+#include "expr/fexpr_func_unary.h"
 namespace dt {
 namespace expr {
 
 
 
-class Head_Func_Re_Match : public Head_Func {
-  private:
-    std::string pattern;
-    std::regex regex;
-
+class FExpr_Str_Len : public FExpr_FuncUnary {
   public:
-    static ptrHead make(Op, const py::otuple& params);
-
-    Head_Func_Re_Match(py::robj, py::robj);
-    Workframe evaluate_n(const vecExpr&, EvalContext&) const override;
+    using FExpr_FuncUnary::FExpr_FuncUnary;
+    std::string name() const override;
+    Column evaluate1(Column&& col) const override;
 };
-
 
 
 

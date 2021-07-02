@@ -24,7 +24,6 @@
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
-#include "str/py_str.h"
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
@@ -1651,8 +1650,8 @@ and is based on the
 `Hogwild approach <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`_
 for parallelization.
 
-The model supports datasets with the both numerical (boolean, integer
-and float types) and string features. To vectorize features a hashing trick
+The model supports numerical (boolean, integer and float types),
+temporal (date and time types) and string features. To vectorize features a hashing trick
 is employed, such that all the values are hashed with the 64-bit hashing function.
 This function is implemented as follows:
 
@@ -1662,6 +1661,9 @@ This function is implemented as follows:
 - for floats the hashing function trims mantissa, taking into account
   :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`,
   and interprets the resulting bit representation as a 64-bit unsigned integer;
+
+- for date and time types the hashing function is essentially an identity
+  function that is based on their internal integer representations;
 
 - for strings the 64-bit `Murmur2 <https://github.com/aappleby/smhasher>`_
   hashing function is used.

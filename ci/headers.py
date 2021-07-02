@@ -343,6 +343,7 @@ std_symbols_library = {
     "std::tuple":                              ["tuple"],
     "std::tuple_element":                      ["tuple", "array", "utility"],
     "std::tuple_size":                         ["tuple", "array", "utility"],
+    "std::uncaught_exception":                 ["exception"],
     "std::underflow_error":                    ["stdexcept"],
     "std::underlying_type":                    ["type_traits"],
     "std::uniform_int_distribution":           ["random"],

@@ -140,15 +140,15 @@ Type Type::common(const Type& type1, const Type& type2) {
 }
 
 
-bool Type::is_void()    const { return impl_ && impl_->stype_ == SType::VOID; }
-bool Type::is_invalid() const { return impl_ && impl_->is_invalid(); }
-bool Type::is_boolean() const { return impl_ && impl_->is_boolean(); }
-bool Type::is_integer() const { return impl_ && impl_->is_integer(); }
-bool Type::is_float()   const { return impl_ && impl_->is_float(); }
-bool Type::is_numeric() const { return impl_ && impl_->is_numeric(); }
-bool Type::is_string()  const { return impl_ && impl_->is_string(); }
-bool Type::is_object()  const { return impl_ && impl_->is_object(); }
-bool Type::is_time()    const { return impl_ && impl_->is_time(); }
+bool Type::is_void()     const { return impl_ && impl_->stype_ == SType::VOID; }
+bool Type::is_invalid()  const { return impl_ && impl_->is_invalid(); }
+bool Type::is_boolean()  const { return impl_ && impl_->is_boolean(); }
+bool Type::is_integer()  const { return impl_ && impl_->is_integer(); }
+bool Type::is_float()    const { return impl_ && impl_->is_float(); }
+bool Type::is_numeric()  const { return impl_ && impl_->is_numeric(); }
+bool Type::is_string()   const { return impl_ && impl_->is_string(); }
+bool Type::is_object()   const { return impl_ && impl_->is_object(); }
+bool Type::is_temporal() const { return impl_ && impl_->is_temporal(); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }

@@ -244,6 +244,10 @@ NaPosition EvalContext::get_na_position() const {
   return na_position_;
 }
 
+ModType EvalContext::get_mod_type() const {
+  return mod_type_;
+}
+
 void EvalContext::compute_groupby_and_sort() {
   size_t nr = nrows();
   if (byexpr_ || sortexpr_) {
@@ -252,10 +256,12 @@ void EvalContext::compute_groupby_and_sort() {
     std::vector<SortFlag> flags;
     size_t n_group_cols = 0;
     if (byexpr_) {
+      mod_type_ = ModType::BY;
       byexpr_->prepare_by(*this, wf, flags);
       n_group_cols = wf.ncols();
     }
     if (sortexpr_) {
+      mod_type_ = ModType::SORT;
       sortexpr_->prepare_by(*this, wf, flags);
     }
     size_t ncols = wf.ncols();

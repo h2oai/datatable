@@ -61,7 +61,7 @@ inline bool CastString_ColumnImpl::_get_int(size_t i, V* out) const {
   CString x;
   bool isvalid = arg_.get_element(i, &x);
   if (isvalid) {
-    int64_t y;
+    int64_t y = 0;
     isvalid = parse_int(x.data(), x.end(), &y);
     *out = static_cast<V>(y);
   }
