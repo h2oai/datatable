@@ -6,6 +6,7 @@ Release History
 .. toctree::
     :maxdepth: 1
 
+    Under development  <v1.1.0>
     v1.0.0
     v0.11.1
     v0.11.0
