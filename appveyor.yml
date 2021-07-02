@@ -18,7 +18,8 @@ pull_requests:
 artifacts:
   - path: dist/*.whl
 
-APPVEYOR_YML_DISABLE_PS_LINUX: true
+environment:
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
 
 build_script:
 
