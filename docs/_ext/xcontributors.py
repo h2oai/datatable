@@ -279,6 +279,9 @@ class contributors_placeholder_node(nodes.Element, nodes.General):
                         nodes.strong("", "Issues contributors:"))
             sect += self._render_contributors(record["issues"])
 
+        if self.parent.parent is None:
+            raise ValueError(
+                "..contributors directive should be inside ..changelog directive")
         j = self.parent.parent.children.index(self.parent)
         self.parent.parent.children.insert(j + 1, sect)
         self.replace_self([])

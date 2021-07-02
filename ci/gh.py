@@ -22,11 +22,17 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 # This script requires module `PyGithub`
+#
+# Also, you need a personal access token to use github API.
+# See https://docs.github.com/en/github/authenticating-to-github/keeping-your-account-and-data-secure/creating-a-personal-access-token
+# for details. The scope for the token should be "repo" and all sub-categories.
 #-------------------------------------------------------------------------------
 import argparse
 import getpass
 import github
+import json
 import re
+import time
 from github.GithubException import (
     BadCredentialsException,
     RateLimitExceededException,
@@ -56,16 +62,12 @@ def progress_bar(current, total, progress_bar_size=50):
     print(pbar, end="")
 
 
-def get_repo(repository_name, auth=None):
+def connect(auth=None):
     """
-    Return a Github.Repository object given the repository name.
+    Connect to Github and return the connection object.
 
     Parameters
     ----------
-    repository_name: str
-        The name of the repository, including the organization. For
-        example: "h2oai/datatable".
-
     auth: bool | None
         Do we need to authenticate to access the repository? If True,
         then a login/password will be prompted. If False, the
@@ -74,32 +76,48 @@ def get_repo(repository_name, auth=None):
         the repository publicly, and if that fails fall back to
         authentication.
     """
+    g = None
+    if auth:
+        import os
+        token = os.environ.get("GITHUB_AUTH_TOKEN")
+        while not g:
+            if not token:
+                token = getpass.getpass("Enter your GitHub access token: ")
+            try:
+                g = github.Github(token, "")
+                g.rate_limiting
+            except BadCredentialsException:
+                print("Invalid token, please try again")
+                token = None
+    else:
+        g = github.Github()
+    print("Connected to GitHub\n"
+          "  requests remaining = %d\n"
+          "  requsts limit = %d" % g.rate_limiting)
+    print("  limit resets at %s" %
+        time.strftime("%Y-%m-%d %H:%M:%S",
+                      time.localtime(g.rate_limiting_resettime)))
+    return g
+
+
+def get_repo(github, repository_name):
+    """
+    Return a Github.Repository object given the repository name.
+
+    Parameters
+    ----------
+    github: github.MainClass.Github
+
+    repository_name: str
+        The name of the repository, including the organization. For
+        example: "h2oai/datatable".
+    """
     assert isinstance(repository_name, str)
-    assert auth is None or isinstance(auth, bool)
-
-    if auth is False:
-        g = github.Github()
-        return g.get_repo(repository_name)
-
-    if auth is None:
-        g = github.Github()
-        try:
-            return g.get_repo(repository_name)
-        except UnknownObjectException:
-            pass  # we will retry with authentication
-
-    username = input("Enter your GitHub username: ")
-    while True:
-        password = getpass.getpass("Enter your GitHub password: ")
-        try:
-            g = github.Github(username, password)
-            return g.get_repo(repository_name)
-        except UnknownObjectException:
-            raise KeyError("Repository %s not found"
-                           % repository_name) from None
-        except BadCredentialsException:
-            print("Incorrect password.")
-    print()
+    try:
+        return github.get_repo(repository_name)
+    except UnknownObjectException:
+        raise KeyError("Repository %s not found"
+                       % repository_name) from None
 
 
 def issue_and_pr_authors(repo, args):
@@ -197,13 +215,16 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     try:
-        gdt = get_repo(args.repository, auth=args.auth)
+        gh = connect(auth=args.auth)
+        gdt = get_repo(gh, args.repository)
         if args.cmd == "milestones":
             cmd_milestones(gdt)
         if args.cmd == "authors":
             cmd_authors(gdt, args=args)
     except RateLimitExceededException as e:
+        print()
         msg = "RuntimeError: Rate limit exceeded, consider using argument --auth."
-        if hasattr(e, "data") and "documentation_url" in e.data:
-            msg += "\nSee %s" % e.data['documentation_url']
-        raise SystemExit("\x1b[3;91m" + msg + "\x1b[m")
+        msg = "\x1b[3;91m" + msg + "\x1b[m"
+        msg += "\n  Status: %r" % (e.status,)
+        msg += "\n  Data: %s" % (json.dumps(e.data),)
+        raise SystemExit(msg)

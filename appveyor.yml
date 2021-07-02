@@ -31,8 +31,8 @@ build_script:
 
 - ps: >-
 
+    # =======================================================================
     # Set up required variables
-
     # =======================================================================
 
     $env:DT_HARNESS = "AppVeyor"
@@ -64,8 +64,9 @@ build_script:
     }
 
 
-    # Print out variable's content
 
+    # =======================================================================
+    # Print out variable's content
     # =======================================================================
 
     echo "DEFAULT_PATH = $DEFAULT_PATH"
@@ -87,11 +88,12 @@ build_script:
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
-    # Build and test wheel for Python 3.6
 
     # =======================================================================
+    # Build and test wheel for Python 3.6
+    # =======================================================================
 
-    $env:PATH = "C:\Python36-x64;C:\Python36-x64\Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
@@ -109,11 +111,11 @@ build_script:
 
 
 
+    # =======================================================================
     # Build and test wheel for Python 3.7
-
     # =======================================================================
 
-    $env:PATH = "C:\Python37-x64;C:\Python37-x64\Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
@@ -131,17 +133,39 @@ build_script:
 
 
 
+    # =======================================================================
     # Build and test wheel for Python 3.8
-
     # =======================================================================
 
-    $env:PATH = "C:\Python38-x64;C:\Python38-x64\Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
     $datatable_wheel = ls dist/*-cp38-*.whl
 
     echo "----- build_info 3.8 ---------------------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+
+
+    # =======================================================================
+    # Build and test wheel for Python 3.9
+    # =======================================================================
+
+    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
+
+    python ci/ext.py wheel
+
+    $datatable_wheel = ls dist/*-cp39-*.whl
+
+    echo "----- build_info 3.9 ---------------------------------------------"
 
     cat src/datatable/_build_info.py
 
