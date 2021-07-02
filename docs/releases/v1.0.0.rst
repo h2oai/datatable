@@ -2,6 +2,23 @@
 .. changelog::
     :version: 1.0.0
     :released: 2021-07-01
+    :wheels: https://files.pythonhosted.org/packages/73/55/8f1e0ec35d0697328023d477af346dc29043dd662aa2ed98f1e4e6beb9aa/datatable-1.0.0-cp36-cp36m-macosx_10_9_x86_64.whl
+             https://files.pythonhosted.org/packages/7f/ca/8fe90170c84c9f300ef69e244e6416c7ca4cbf478a262beedace8d513cd3/datatable-1.0.0-cp36-cp36m-manylinux2014_ppc64le.whl
+             https://files.pythonhosted.org/packages/a4/f3/a18a4c49a24493d848920a8ab5b50e02399b4cc295878f1489137abc3719/datatable-1.0.0-cp36-cp36m-manylinux_2_12_x86_64.whl
+             https://files.pythonhosted.org/packages/a3/77/827140cb6307f685505b6d26c0882ac0ae77059c39284f7fd97d8b732f0a/datatable-1.0.0-cp36-cp36m-win_amd64.whl
+             https://files.pythonhosted.org/packages/28/45/fb109006ae9395292a6b6284f57034986a6fc1c708d13c7c6bc773fe8381/datatable-1.0.0-cp37-cp37m-macosx_10_9_x86_64.whl
+             https://files.pythonhosted.org/packages/52/ff/5edb8cfb41c19991e9a7f15cfa973d77cbe2850844c40120abef9d2bd518/datatable-1.0.0-cp37-cp37m-manylinux2014_ppc64le.whl
+             https://files.pythonhosted.org/packages/42/77/96d30c18ebacc20b1a92676f674522a4daee12e14715ab90b52de0cab546/datatable-1.0.0-cp37-cp37m-manylinux_2_12_x86_64.whl
+             https://files.pythonhosted.org/packages/57/8c/db8c2f41364e54aa64ca7b60bf14fc68c796867b6a08b147c95f87b34393/datatable-1.0.0-cp37-cp37m-win_amd64.whl
+             https://files.pythonhosted.org/packages/d9/70/1c870220a7eecfb94582e2267fc74acba6b3a1977012bd15bd18b907fd2a/datatable-1.0.0-cp38-cp38-macosx_10_9_x86_64.whl
+             https://files.pythonhosted.org/packages/9e/70/66b349c16850521d8fc7276d72234f1959d4613cc1bd442e6d61fac186b0/datatable-1.0.0-cp38-cp38-manylinux2014_ppc64le.whl
+             https://files.pythonhosted.org/packages/e5/57/955aa808ff75aed5fa1a4a542f95ff94ea0ee5bcc3f65c2efb819023f1c6/datatable-1.0.0-cp38-cp38-manylinux_2_12_x86_64.whl
+             https://files.pythonhosted.org/packages/d6/3a/0a43289d428199640ae515b6dd2ffa4fe4f785ed2dbddfd2798f8bd23870/datatable-1.0.0-cp38-cp38-win_amd64.whl
+             https://files.pythonhosted.org/packages/f1/f2/8c99c7c342a1d1fbbdd7b65846e823e69d3ba7349ba16854632de96326cb/datatable-1.0.0-cp39-cp39-macosx_10_9_x86_64.whl
+             https://files.pythonhosted.org/packages/58/ac/111c5a18bdbafbc4de804abc8ceca15682a9750016d9a25d331168545d96/datatable-1.0.0-cp39-cp39-manylinux2014_ppc64le.whl
+             https://files.pythonhosted.org/packages/f1/33/4933dc7e7d9f29ad502ca6f17bd2f66bfa30d5af71b90812044c56291de7/datatable-1.0.0-cp39-cp39-manylinux_2_12_x86_64.whl
+             https://files.pythonhosted.org/packages/83/c0/796931096c7a29f0449410d20d62cf2868302e88010434fe03daa0f47457/datatable-1.0.0-cp39-cp39-win_amd64.whl
+             https://files.pythonhosted.org/packages/04/0c/bff6497afcf95a3257c4168b95c8acab91c8ef234fe473eaf6689d582da1/datatable-1.0.0.tar.gz
 
     Frame
     -----
