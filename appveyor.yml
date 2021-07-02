@@ -1,6 +1,6 @@
 image:
   - Ubuntu
-  - Visual Studio 2019
+  # - Visual Studio 2019
   # - macOS
 
 init:
@@ -18,19 +18,28 @@ pull_requests:
 artifacts:
   - path: dist/*.whl
 
-environment:
-  APPVEYOR_YML_DISABLE_PS_LINUX: true
+# environment:
+#   APPVEYOR_YML_DISABLE_PS_LINUX: true
 
 build_script:
 
-- sh:
+# - sh:
 
-    source $HOME/venv3.6/bin/activate
+#     source $HOME/venv3.6/bin/activate
 
-    python -V
+#     python -V
 
 
 - ps: >-
+
+    if ($isWindows) {
+      python -V
+    } else {
+      python -V
+      . $HOME/venv3.6/bin/activate
+      python -V
+    }
+
 
     # =======================================================================
     # Set up required variables
