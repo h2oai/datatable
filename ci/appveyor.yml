@@ -23,6 +23,8 @@ environment:
 
 build_script:
 
+
+# Linux and macOS builds
 - sh: >-
 
     # =======================================================================
@@ -98,6 +100,7 @@ build_script:
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
+# Windows builds
 - ps: >-
 
     # =======================================================================
