@@ -37,7 +37,6 @@ class DatatableModule : public ExtModule<DatatableModule> {
 
     void init_methods();
     void init_methods_aggregate(); // models/aggregate.cc
-    void init_methods_csv();       // csv/py_csv.cc
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc

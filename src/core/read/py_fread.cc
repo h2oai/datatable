@@ -23,6 +23,7 @@
 #include "documentation.h"
 #include "python/args.h"            // py::PKArgs
 #include "python/string.h"          // py::ostring
+#include "python/xargs.h"           // py::XArgs
 #include "read/multisource.h"       // MultiSource
 #include "read/py_read_iterator.h"  // py::ReadIterator
 #include "datatablemodule.h"        // ::DatatableModule
@@ -34,17 +35,7 @@ namespace read {
 // fread() python function
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_fread(
-  1, 0, 23, false, false,
-  {"anysource", "file", "text", "cmd", "url",
-   "columns", "sep", "dec", "max_nrows", "header", "na_strings",
-   "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
-   "skip_blank_lines", "strip_whitespace", "quotechar",
-   "tempdir", "nthreads", "logger", "multiple_sources", "memory_limit"
-   },
-  "fread", doc_dt_fread);
-
-static py::oobj fread(const py::PKArgs& args) {
+static py::oobj fread(const py::XArgs& args) {
   size_t k = 5;  // skip source args for now
   const py::Arg& arg_columns    = args[k++];
   const py::Arg& arg_sep        = args[k++];
@@ -93,23 +84,26 @@ static py::oobj fread(const py::PKArgs& args) {
   return multisource.read_single();
 }
 
+DECLARE_PYFN(&fread)
+    ->name("fread")
+    ->docs(doc_dt_fread)
+    ->n_positional_args(1)
+    ->n_keyword_args(23)
+    ->arg_names({"anysource", "file", "text", "cmd", "url",
+        "columns", "sep", "dec", "max_nrows", "header", "na_strings",
+        "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
+        "skip_blank_lines", "strip_whitespace", "quotechar",
+        "tempdir", "nthreads", "logger", "multiple_sources", "memory_limit"
+        });
+
+
 
 
 //------------------------------------------------------------------------------
 // iread() python function
 //------------------------------------------------------------------------------
 
-static py::PKArgs args_iread(
-  1, 0, 23, false, false,
-  {"anysource", "file", "text", "cmd", "url",
-   "columns", "sep", "dec", "max_nrows", "header", "na_strings",
-   "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
-   "skip_blank_lines", "strip_whitespace", "quotechar",
-   "tempdir", "nthreads", "logger", "errors", "memory_limit"
-   },
-  "iread", doc_dt_iread);
-
-static py::oobj iread(const py::PKArgs& args) {
+static py::oobj iread(const py::XArgs& args) {
   size_t k = 5;
   const py::Arg& arg_columns    = args[k++];
   const py::Arg& arg_sep        = args[k++];
@@ -158,12 +152,19 @@ static py::oobj iread(const py::PKArgs& args) {
   return py::ReadIterator::make(std::move(ms));
 }
 
+DECLARE_PYFN(&iread)
+    ->name("iread")
+    ->docs(doc_dt_iread)
+    ->n_positional_args(1)
+    ->n_keyword_args(23)
+    ->arg_names({"anysource", "file", "text", "cmd", "url",
+        "columns", "sep", "dec", "max_nrows", "header", "na_strings",
+        "verbose", "fill", "encoding", "skip_to_string", "skip_to_line",
+        "skip_blank_lines", "strip_whitespace", "quotechar",
+        "tempdir", "nthreads", "logger", "errors", "memory_limit"
+        });
+
+
 
 
 }}  // namespace dt::read
-
-
-void py::DatatableModule::init_methods_csv() {
-  ADD_FN(&dt::read::fread, dt::read::args_fread);
-  ADD_FN(&dt::read::iread, dt::read::args_iread);
-}
