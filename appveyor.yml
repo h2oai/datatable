@@ -49,7 +49,7 @@ build_script:
 
     elif [ $APPVEYOR_REPO_BRANCH == "main" ]; then
       DT_BUILD_NUMBER=$MAIN_BUILD_ID
-    elif [ APPVEYOR_REPO_BRANCH == "rel\-"* ]
+    elif [ APPVEYOR_REPO_BRANCH == "rel\-"* ]; then
       DT_RELEASE="True"
     else
       DT_BUILD_SUFFIX="$APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
