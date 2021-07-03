@@ -23,7 +23,7 @@ environment:
 
 build_script:
 
-- sh:
+- sh: >-
 
     # =======================================================================
     #   Set up environment variables
