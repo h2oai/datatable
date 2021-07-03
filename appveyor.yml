@@ -1,7 +1,7 @@
 image:
   - Ubuntu
+  - macOS
   - Visual Studio 2019
-  # - macOS
 
 init:
   # Uncomment the line below to enable RDP access
