@@ -1,7 +1,7 @@
 image:
+  - Visual Studio 2019
   - Ubuntu
   - macOS
-  - Visual Studio 2019
 
 init:
   # Uncomment the line below to enable RDP access
@@ -78,24 +78,24 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.6
+    #   Build and test wheel for Python 3.9
     # =======================================================================
 
-    source $HOME/venv3.6/bin/activate
+    source $HOME/venv3.9/bin/activate
 
     python ci/ext.py wheel
 
     DT_WHEEL=`ls dist/*-cp36-*.whl`
 
-    echo "----- _build_info.py for Python 3.6 ------------------------------"
+    echo "----- _build_info.py for Python 3.9 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    # pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
-    # pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 - ps: >-
@@ -157,88 +157,91 @@ build_script:
 
 
 
+    if ($env:DT_RELEASE -eq "True") {
+
+      # =======================================================================
+      #   Build and test wheel for Python 3.6
+      # =======================================================================
+
+      $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
+
+      python ci/ext.py wheel
+
+      $DT_WHEEL = ls dist/*-cp36-*.whl
+
+      echo "----- _build_info.py for Python 3.6 ------------------------------"
+
+      cat src/datatable/_build_info.py
+
+      echo "------------------------------------------------------------------"
+
+      pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+
+      pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+
+
+      # =======================================================================
+      #   Build and test wheel for Python 3.7
+      # =======================================================================
+
+      $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
+
+      python ci/ext.py wheel
+
+      $DT_WHEEL = ls dist/*-cp37-*.whl
+
+      echo "----- _build_info.py for Python 3.7 ------------------------------"
+
+      cat src/datatable/_build_info.py
+
+      echo "------------------------------------------------------------------"
+
+      pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+
+      pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+
+
+      # =======================================================================
+      #   Build and test wheel for Python 3.8
+      # =======================================================================
+
+      $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
+
+      python ci/ext.py wheel
+
+      $DT_WHEEL = ls dist/*-cp38-*.whl
+
+      echo "----- _build_info.py for Python 3.8 ------------------------------"
+
+      cat src/datatable/_build_info.py
+
+      echo "------------------------------------------------------------------"
+
+      pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+
+      pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    }
+
+
     # =======================================================================
-    #   Build and test wheel for Python 3.6
+    #   Build and test wheel for Python 3.9
     # =======================================================================
 
-    $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*-cp36-*.whl
+    $DT_WHEEL = ls dist/*-cp39-*.whl
 
-    echo "----- _build_info.py for Python 3.6 ------------------------------"
+    echo "----- _build_info.py for Python 3.9 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    # pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
-    # pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-
-
-    # # =======================================================================
-    # #   Build and test wheel for Python 3.7
-    # # =======================================================================
-
-    # $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
-
-    # python ci/ext.py wheel
-
-    # $DT_WHEEL = ls dist/*-cp37-*.whl
-
-    # echo "----- _build_info.py for Python 3.7 ------------------------------"
-
-    # cat src/datatable/_build_info.py
-
-    # echo "------------------------------------------------------------------"
-
-    # pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
-
-    # pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-
-
-    # # =======================================================================
-    # #   Build and test wheel for Python 3.8
-    # # =======================================================================
-
-    # $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
-
-    # python ci/ext.py wheel
-
-    # $DT_WHEEL = ls dist/*-cp38-*.whl
-
-    # echo "----- _build_info.py for Python 3.8 ------------------------------"
-
-    # cat src/datatable/_build_info.py
-
-    # echo "------------------------------------------------------------------"
-
-    # pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
-
-    # pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-
-
-    # # =======================================================================
-    # #   Build and test wheel for Python 3.9
-    # # =======================================================================
-
-    # $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
-
-    # python ci/ext.py wheel
-
-    # $DT_WHEEL = ls dist/*-cp39-*.whl
-
-    # echo "----- _build_info.py for Python 3.9 ------------------------------"
-
-    # cat src/datatable/_build_info.py
-
-    # echo "------------------------------------------------------------------"
-
-    # pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
-
-    # pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
