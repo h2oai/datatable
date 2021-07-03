@@ -1202,33 +1202,7 @@ void LinearModel::set_seed(const Arg& arg_seed) {
  *  .params
  */
 
-static const char* doc_params =
-R"(
-`LinearModel` model parameters as a named tuple `LinearModelParams`,
-see :meth:`.__init__` for more details.
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: LinearModelParams
-    Current `params` value.
-
-new_params: LinearModelParams
-    New `params` value.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - individual parameter values are incompatible with the corresponding setters.
-
-)";
-
-static GSArgs args_params(
-  "params",
-  doc_params
-);
-
+static GSArgs args_params("params", dt::doc_models_LM_params);
 
 oobj LinearModel::get_params_namedtuple() const {
   return *py_params_;
