@@ -103,6 +103,8 @@ extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
+extern const char* doc_models_LM;
+
 extern const char* doc_Type;
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;

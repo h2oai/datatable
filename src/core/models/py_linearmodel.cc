@@ -20,14 +20,15 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <vector>
+#include "documentation.h"
 #include "frame/py_frame.h"
-#include "python/_all.h"
-#include "python/string.h"
-#include "models/dt_linearmodel_regression.h"
 #include "models/dt_linearmodel_classification.h"
+#include "models/dt_linearmodel_regression.h"
 #include "models/py_linearmodel.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
+#include "python/_all.h"
+#include "python/string.h"
 
 
 namespace py {
@@ -1399,18 +1400,9 @@ void LinearModel::m__setstate__(const PKArgs& args) {
 // py::LinearModel::Type
 //------------------------------------------------------------------------------
 
-static const char* doc_LinearModel =
-R"(This class implements the
-`Linear model <https://en.wikipedia.org/wiki/Linear_model>`_
-with the
-`stochastic gradient descent <https://en.wikipedia.org/wiki/Stochastic_gradient_descent>`_
-learning. It supports linear regression, as well as binomial and multinomial
-classification. Both :meth:`.fit` and :meth:`.predict` methods are fully parallel.
-)";
-
 void LinearModel::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.models.LinearModel");
-  xt.set_class_doc(doc_LinearModel);
+  xt.set_class_doc(dt::doc_models_LM);
 
   xt.add(CONSTRUCTOR(&LinearModel::m__init__, args___init__));
   xt.add(DESTRUCTOR(&LinearModel::m__dealloc__));
