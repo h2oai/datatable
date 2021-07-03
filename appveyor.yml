@@ -18,31 +18,90 @@ pull_requests:
 artifacts:
   - path: dist/*.whl
 
-# environment:
-#   APPVEYOR_YML_DISABLE_PS_LINUX: true
+environment:
+  APPVEYOR_YML_DISABLE_PS_LINUX: true
 
 build_script:
 
-# - sh:
+- sh:
 
-#     source $HOME/venv3.6/bin/activate
+    # =======================================================================
+    #   Set up environment variables
+    # =======================================================================
 
-#     python -V
+    DT_HARNESS="AppVeyor"
+
+    MAIN_BUILD_ID=`git rev-list --count main`
+
+
+    # Do not take into account the AppVeyor's additional merge commit
+
+    BRANCH_BUILD_ID=`expr $MAIN_BUILD_ID - 1`
+
+
+    if [ ! -z $APPVEYOR_PULL_REQUEST_NUMBER]; then
+
+      if [ APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH == "rel\-"*]; then
+        DT_RELEASE="True"
+      else
+        DT_BUILD_SUFFIX="PR$APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+      fi
+
+    elif [ $APPVEYOR_REPO_BRANCH == "main" ]; then
+      DT_BUILD_NUMBER=$MAIN_BUILD_ID
+    elif [ APPVEYOR_REPO_BRANCH == "rel\-"* ]
+      DT_RELEASE="True"
+    else
+      DT_BUILD_SUFFIX="$APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
+    fi
+
+
+    # =======================================================================
+    #   Print debug information
+    # =======================================================================
+
+    echo "APPVEYOR_REPO_BRANCH = $APPVEYOR_REPO_BRANCH"
+
+    echo "APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH = $APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH"
+
+    echo "APPVEYOR_PULL_REQUEST_NUMBER = $APPVEYOR_PULL_REQUEST_NUMBER"
+
+    echo "MAIN_BUILD_ID = $MAIN_BUILD_ID"
+
+    echo "BRANCH_BUILD_ID = $BRANCH_BUILD_ID"
+
+    echo "DT_RELEASE = $DT_RELEASE"
+
+    echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
+
+    echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
+
+
+    # =======================================================================
+    #   Build and test wheel for Python 3.6
+    # =======================================================================
+
+    source $HOME/venv3.6/bin/activate
+
+    python ci/ext.py wheel
+
+    DT_WHEEL=`ls dist/*-cp36-*.whl`
+
+    echo "----- _build_info.py for Python 3.6 ------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+
+    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 - ps: >-
 
-    if ($isWindows) {
-      python -V
-    } else {
-      python -V
-      $HOME/venv3.6/bin/activate
-      python -V
-    }
-
-
     # =======================================================================
-    # Set up required variables
+    #   Set up environment variables
     # =======================================================================
 
     $env:DT_HARNESS = "AppVeyor"
@@ -74,9 +133,8 @@ build_script:
     }
 
 
-
     # =======================================================================
-    # Print out variable's content
+    #   Print debug information
     # =======================================================================
 
     echo "DEFAULT_PATH = $DEFAULT_PATH"
@@ -100,87 +158,87 @@ build_script:
 
 
     # =======================================================================
-    # Build and test wheel for Python 3.6
+    #   Build and test wheel for Python 3.6
     # =======================================================================
 
     $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
-    $datatable_wheel = ls dist/*-cp36-*.whl
+    $DT_WHEEL = ls dist/*-cp36-*.whl
 
-    echo "----- build_info 3.6 ---------------------------------------------"
+    echo "----- _build_info.py for Python 3.6 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
     # =======================================================================
-    # Build and test wheel for Python 3.7
+    #   Build and test wheel for Python 3.7
     # =======================================================================
 
     $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
-    $datatable_wheel = ls dist/*-cp37-*.whl
+    $DT_WHEEL = ls dist/*-cp37-*.whl
 
-    echo "----- build_info 3.7 ---------------------------------------------"
+    echo "----- _build_info.py for Python 3.7 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
     # =======================================================================
-    # Build and test wheel for Python 3.8
+    #   Build and test wheel for Python 3.8
     # =======================================================================
 
     $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
-    $datatable_wheel = ls dist/*-cp38-*.whl
+    $DT_WHEEL = ls dist/*-cp38-*.whl
 
-    echo "----- build_info 3.8 ---------------------------------------------"
+    echo "----- _build_info.py for Python 3.8 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
     # =======================================================================
-    # Build and test wheel for Python 3.9
+    #   Build and test wheel for Python 3.9
     # =======================================================================
 
     $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
 
     python ci/ext.py wheel
 
-    $datatable_wheel = ls dist/*-cp39-*.whl
+    $DT_WHEEL = ls dist/*-cp39-*.whl
 
-    echo "----- build_info 3.9 ---------------------------------------------"
+    echo "----- _build_info.py for Python 3.9 ------------------------------"
 
     cat src/datatable/_build_info.py
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $datatable_wheel pytest docutils pandas
+    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
