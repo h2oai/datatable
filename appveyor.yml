@@ -42,17 +42,17 @@ build_script:
     if [ ! -z $APPVEYOR_PULL_REQUEST_NUMBER ]; then
 
       if [ APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH == "rel\-"* ]; then
-        DT_RELEASE="True"
+        export DT_RELEASE="True"
       else
-        DT_BUILD_SUFFIX="PR$APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
+        export DT_BUILD_SUFFIX="PR$APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
       fi
 
     elif [ APPVEYOR_REPO_BRANCH == "main" ]; then
-      DT_BUILD_NUMBER=$MAIN_BUILD_ID
+      export DT_BUILD_NUMBER=$MAIN_BUILD_ID
     elif [ APPVEYOR_REPO_BRANCH == "rel\-"* ]; then
-      DT_RELEASE="True"
+      export DT_RELEASE="True"
     else
-      DT_BUILD_SUFFIX="$APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
+      export DT_BUILD_SUFFIX="$APPVEYOR_REPO_BRANCH.$BRANCH_BUILD_ID"
     fi
 
 
