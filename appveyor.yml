@@ -39,9 +39,9 @@ build_script:
     BRANCH_BUILD_ID=`expr $MAIN_BUILD_ID - 1`
 
 
-    if [ ! -z $APPVEYOR_PULL_REQUEST_NUMBER]; then
+    if [ ! -z $APPVEYOR_PULL_REQUEST_NUMBER ]; then
 
-      if [ APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH == "rel\-"*]; then
+      if [ APPVEYOR_PULL_REQUEST_HEAD_REPO_BRANCH == "rel\-"* ]; then
         DT_RELEASE="True"
       else
         DT_BUILD_SUFFIX="PR$APPVEYOR_PULL_REQUEST_NUMBER.$BRANCH_BUILD_ID"
