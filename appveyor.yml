@@ -85,7 +85,7 @@ build_script:
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp36-*.whl`
+    DT_WHEEL=`ls dist/*-cp39-*.whl`
 
     echo "----- _build_info.py for Python 3.9 ------------------------------"
 
