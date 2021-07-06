@@ -95,7 +95,7 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    python -m pip install –upgrade pip
+    python -m pip install -–upgrade pip
 
     pip install $DT_WHEEL pytest docutils pandas
 
@@ -180,7 +180,7 @@ build_script:
 
       echo "------------------------------------------------------------------"
 
-      python -m pip install –upgrade pip
+      python -m pip install -–upgrade pip
 
       pip install $DT_WHEEL pytest docutils pandas
 
@@ -204,7 +204,7 @@ build_script:
 
       echo "------------------------------------------------------------------"
 
-      python -m pip install –upgrade pip
+      python -m pip install -–upgrade pip
 
       pip install $DT_WHEEL pytest docutils pandas
 
@@ -230,7 +230,7 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    python -m pip install –upgrade pip
+    python -m pip install -–upgrade pip
 
     pip install $DT_WHEEL pytest docutils pandas
 
@@ -254,7 +254,7 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    python -m pip install –upgrade pip
+    python -m pip install -–upgrade pip
 
     pip install $DT_WHEEL pytest docutils pandas
 
