@@ -1200,8 +1200,8 @@ per group::
 )";
 #endif
 
-template <typename T, typename U>
-bool min_reducer(const Column& col, size_t i0, size_t i1, U* out) {
+template <typename T>
+bool min_reducer(const Column& col, size_t i0, size_t i1, T* out) {
   T min = std::numeric_limits<T>::max();
   bool min_isna = true;
 
@@ -1215,7 +1215,7 @@ bool min_reducer(const Column& col, size_t i0, size_t i1, U* out) {
       }
     }
   }
-  *out = static_cast<U>(min);
+  *out = static_cast<T>(min);
   return !min_isna;
 }
 
@@ -1223,11 +1223,10 @@ bool min_reducer(const Column& col, size_t i0, size_t i1, U* out) {
 
 template <typename T>
 static Column _min(SType stype, Column&& arg, const Groupby& gby) {
-  using U = T;
   return Column(
           new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype, std::move(arg), gby, min_reducer<T, U>
+            new Reduced_ColumnImpl<T, T>(
+                 stype, std::move(arg), gby, min_reducer<T>
             )));
 }
 
@@ -1344,8 +1343,8 @@ value per group::
 )";
 #endif
 
-template <typename T, typename U>
-bool max_reducer(const Column& col, size_t i0, size_t i1, U* out) {
+template <typename T>
+bool max_reducer(const Column& col, size_t i0, size_t i1, T* out) {
   T max = std::numeric_limits<T>::min();
   bool max_isna = true;
 
@@ -1359,7 +1358,7 @@ bool max_reducer(const Column& col, size_t i0, size_t i1, U* out) {
       }
     }
   }
-  *out = static_cast<U>(max);
+  *out = static_cast<T>(max);
   return !max_isna;
 }
 
@@ -1367,11 +1366,10 @@ bool max_reducer(const Column& col, size_t i0, size_t i1, U* out) {
 
 template <typename T>
 static Column _max(SType stype, Column&& arg, const Groupby& gby) {
-  using U = T;
   return Column(
           new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype, std::move(arg), gby, max_reducer<T, U>
+            new Reduced_ColumnImpl<T, T>(
+                 stype, std::move(arg), gby, max_reducer<T>
             )));
 }
 
