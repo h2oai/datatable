@@ -85,6 +85,8 @@ build_script:
 
     source $HOME/venv3.9/bin/activate
 
+    python -V
+
     python ci/ext.py wheel
 
     DT_WHEEL=`ls dist/*-cp39-*.whl`
@@ -97,9 +99,9 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 # Windows builds
@@ -170,6 +172,8 @@ build_script:
 
       $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
 
+      python -V
+
       python ci/ext.py wheel
 
       $DT_WHEEL = ls dist/*-cp36-*.whl
@@ -182,9 +186,9 @@ build_script:
 
       python -m pip install --upgrade pip
 
-      pip install $DT_WHEEL pytest docutils pandas
+      python -m pip install $DT_WHEEL pytest docutils pandas
 
-      pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+      python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
@@ -193,6 +197,8 @@ build_script:
       # =======================================================================
 
       $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
+
+      python -V
 
       python ci/ext.py wheel
 
@@ -206,9 +212,9 @@ build_script:
 
       python -m pip install --upgrade pip
 
-      pip install $DT_WHEEL pytest docutils pandas
+      python -m pip install $DT_WHEEL pytest docutils pandas
 
-      pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+      python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
     }
 
@@ -219,6 +225,8 @@ build_script:
     # =======================================================================
 
     $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
 
     python ci/ext.py wheel
 
@@ -232,9 +240,9 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
@@ -243,6 +251,8 @@ build_script:
     # =======================================================================
 
     $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
 
     python ci/ext.py wheel
 
@@ -256,6 +266,6 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL pytest docutils pandas
 
-    pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
