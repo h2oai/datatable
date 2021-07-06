@@ -95,7 +95,9 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+    python -m pip install –upgrade pip
+
+    pip install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
@@ -178,7 +180,9 @@ build_script:
 
       echo "------------------------------------------------------------------"
 
-      pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+      python -m pip install –upgrade pip
+
+      pip install $DT_WHEEL pytest docutils pandas
 
       pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
@@ -200,7 +204,9 @@ build_script:
 
       echo "------------------------------------------------------------------"
 
-      pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+      python -m pip install –upgrade pip
+
+      pip install $DT_WHEEL pytest docutils pandas
 
       pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
@@ -224,7 +230,9 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+    python -m pip install –upgrade pip
+
+    pip install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
@@ -246,6 +254,8 @@ build_script:
 
     echo "------------------------------------------------------------------"
 
-    pip --disable-pip-version-check install $DT_WHEEL pytest docutils pandas
+    python -m pip install –upgrade pip
+
+    pip install $DT_WHEEL pytest docutils pandas
 
     pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
