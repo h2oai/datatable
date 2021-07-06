@@ -19,29 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_VOID_h
-#define dt_TYPES_TYPE_VOID_h
+#ifndef dt_TYPES_TYPE_LIST_h
+#define dt_TYPES_TYPE_LIST_h
 #include "types/typeimpl.h"
 namespace dt {
 
 
 
-class Type_Void : public TypeImpl {
+class Type_List32 : public TypeImpl {
+  private:
+    Type elementType_;
+
   public:
-    Type_Void();
-
-    bool is_boolean() const override;
-    bool is_integer() const override;
-    bool is_float()   const override;
-    bool is_numeric() const override;
-    bool is_void()    const override;
-    bool can_be_read_as_int8() const override;
-
+    Type_List32(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
     std::string to_string() const override;
     TypeImpl* common_type(TypeImpl* other) override;
-    const char* struct_format() const override;
-    Column cast_column(Column&& col) const override;
 };
+
+
+
+class Type_List64 : public TypeImpl {
+  private:
+    Type elementType_;
+
+  public:
+    Type_List64(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
+    std::string to_string() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
+};
+
 
 
 
