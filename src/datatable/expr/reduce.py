@@ -107,7 +107,7 @@ def sum(iterable, start=0):
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], (Expr, core.FExpr)):
+    if len(args) == 1 and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
         return Expr(OpCodes.MIN, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
@@ -117,7 +117,7 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and isinstance(args[0], (Expr, core.FExpr)):
+    if len(args) == 1 and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
         return Expr(OpCodes.MAX, args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()
