@@ -29,6 +29,8 @@
     - :attr:`dt.Type.int32`
     - :attr:`dt.Type.int64`
     - :attr:`dt.Type.int8`
+    - :meth:`dt.Type.list32(T)`
+    - :meth:`dt.Type.list64(T)`
     - :attr:`dt.Type.obj64`
     - :attr:`dt.Type.str32`
     - :attr:`dt.Type.str64`
@@ -55,19 +57,21 @@
 .. toctree::
     :hidden:
 
-    ⭑ bool8    <type/bool8>
-    ⭑ date32   <type/date32>
-    ⭑ float32  <type/float32>
-    ⭑ float64  <type/float64>
-    ⭑ int8     <type/int8>
-    ⭑ int16    <type/int16>
-    ⭑ int32    <type/int32>
-    ⭑ int64    <type/int64>
-    ⭑ obj64    <type/obj64>
-    ⭑ str32    <type/str32>
-    ⭑ str64    <type/str64>
-    ⭑ time64   <type/time64>
-    ⭑ void     <type/void>
-    max        <type/max>
-    min        <type/min>
-    name       <type/name>
+    ⭑ bool8     <type/bool8>
+    ⭑ date32    <type/date32>
+    ⭑ float32   <type/float32>
+    ⭑ float64   <type/float64>
+    ⭑ int8      <type/int8>
+    ⭑ int16     <type/int16>
+    ⭑ int32     <type/int32>
+    ⭑ int64     <type/int64>
+    ⭑ list32(T) <type/list32>
+    ⭑ list64(T) <type/list64>
+    ⭑ obj64     <type/obj64>
+    ⭑ str32     <type/str32>
+    ⭑ str64     <type/str64>
+    ⭑ time64    <type/time64>
+    ⭑ void      <type/void>
+    max         <type/max>
+    min         <type/min>
+    name        <type/name>

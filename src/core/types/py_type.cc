@@ -321,6 +321,41 @@ py::oobj PyType::get_max() const {
 
 
 //------------------------------------------------------------------------------
+// Types as methods
+//------------------------------------------------------------------------------
+
+py::oobj PyType::list32(const py::XArgs& args) {
+  auto t = Type::list32(args[0].to_type_force());
+  return PyType::make(t);
+}
+
+DECLARE_METHOD(&PyType::list32)
+    ->name("list32")
+    ->docs(dt::doc_Type_list32)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod();
+
+
+py::oobj PyType::list64(const py::XArgs& args) {
+  auto t = Type::list64(args[0].to_type_force());
+  return PyType::make(t);
+}
+
+DECLARE_METHOD(&PyType::list64)
+    ->name("list64")
+    ->docs(dt::doc_Type_list64)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod();
+
+
+
+
+
+//------------------------------------------------------------------------------
 // Class declaration
 //------------------------------------------------------------------------------
 
@@ -335,8 +370,9 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(GETTER(&PyType::get_name, args_get_name));
   xt.add(GETTER(&PyType::get_min, args_get_min));
   xt.add(GETTER(&PyType::get_max, args_get_max));
-  pythonType = xt.get_type_object();
+  INIT_METHODS_FOR_CLASS(PyType);
 
+  pythonType = xt.get_type_object();
   xt.add_attr("bool8",   PyType::make(Type::bool8()));
   xt.add_attr("date32",  PyType::make(Type::date32()));
   xt.add_attr("float32", PyType::make(Type::float32()));

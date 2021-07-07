@@ -22,6 +22,7 @@
 #ifndef dt_TYPES_PY_TYPE_h
 #define dt_TYPES_PY_TYPE_h
 #include "types/type.h"
+#include "python/xargs.h"
 #include "python/xobject.h"
 namespace dt {
 
@@ -57,6 +58,8 @@ class PyType : public py::XObject<PyType, true> {
     py::oobj get_name() const;
     py::oobj get_min() const;
     py::oobj get_max() const;
+    py::oobj list32(const py::XArgs&);
+    py::oobj list64(const py::XArgs&);
 
     Type get_type() const { return type_; }
 
