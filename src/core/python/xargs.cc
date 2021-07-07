@@ -53,11 +53,13 @@ XArgs::XArgs(impl_function_t fn) : XArgs() {
 }
 
 XArgs::XArgs(impl_method_t method, size_t classId) : XArgs() {
+  xassert(classId);
   ccfn_.meth = method;
   classId_ = classId;
 }
 
 XArgs::XArgs(impl_methodv_t method, size_t classId) : XArgs() {
+  xassert(classId);
   ccfn_.methv = method;
   classId_ = classId;
 }

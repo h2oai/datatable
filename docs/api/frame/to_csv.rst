@@ -1,6 +1,7 @@
 
 .. xmethod:: datatable.Frame.to_csv
     :src: src/core/frame/to_csv.cc Frame::to_csv
+    :tests: tests/frame/test-tocsv.py
     :cvar: doc_Frame_to_csv
     :signature: to_csv(self, path=None, *, quoting="minimal", append=False,
            header="auto", bom=False, hex=False, compression=None,

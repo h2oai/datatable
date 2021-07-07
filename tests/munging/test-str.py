@@ -44,17 +44,17 @@ def test_issue_1912():
 
 def test_split_into_nhot_noarg():
     with pytest.raises(ValueError) as e:
-        noop(dt.split_into_nhot())
+        noop(dt.str.split_into_nhot())
     assert ("Required parameter frame is missing" == str(e.value))
 
 
 def test_split_into_nhot_none():
-    f0 = dt.split_into_nhot(None)
+    f0 = dt.str.split_into_nhot(None)
     assert f0 is None
 
 
 def test_split_into_nhot_empty():
-    f0 = dt.split_into_nhot(dt.Frame(["", None]))
+    f0 = dt.str.split_into_nhot(dt.Frame(["", None]))
     assert_equals(f0, dt.Frame())
 
 
@@ -65,7 +65,7 @@ def test_split_into_nhot0(sort):
                    None,
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
-    f1 = dt.split_into_nhot(f0, sort = sort)
+    f1 = dt.str.split_into_nhot(f0, sort = sort)
     frame_integrity_check(f1)
     fr = dt.Frame({"cat":       [1, 0, None, 1, 1],
                    "dog":       [1, 0, None, 1, 1],
@@ -94,7 +94,7 @@ def test_split_into_nhot1():
                    "['meow' ,purr]",
                    '(\t"meow", \'purr\')',
                    "{purr}"])
-    f1 = dt.split_into_nhot(f0)
+    f1 = dt.str.split_into_nhot(f0)
     frame_integrity_check(f1)
     fr = dt.Frame(meow=[1, None, 1, 1, 1, 0], purr=[0, None, 0, 1, 1, 1])
     assert set(f1.names) == set(fr.names)
@@ -106,7 +106,7 @@ def test_split_into_nhot1():
 
 def test_split_into_nhot_sep():
     f0 = dt.Frame(["a|b|c", "b|a", None, "a|c"])
-    f1 = dt.split_into_nhot(f0, sep="|")
+    f1 = dt.str.split_into_nhot(f0, sep="|")
     assert set(f1.names) == {"a", "b", "c"}
     fr = dt.Frame(a=[1, 1, None, 1], b=[1, 1, None, 0], c=[1, 0, None, 1])
     assert set(f1.names) == set(fr.names)
@@ -114,8 +114,8 @@ def test_split_into_nhot_sep():
 
 
 def test_split_into_nhot_quotes():
-    f0 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz"']))
-    f1 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz']))
+    f0 = dt.str.split_into_nhot(dt.Frame(['foo, "bar, baz"']))
+    f1 = dt.str.split_into_nhot(dt.Frame(['foo, "bar, baz']))
     assert set(f0.names) == {"foo", "bar, baz"}
     assert set(f1.names) == {"foo", '"bar', "baz"}
 
@@ -123,18 +123,18 @@ def test_split_into_nhot_quotes():
 def test_split_into_nhot_bad():
     f0 = dt.Frame([[1.25], ["foo"], ["bar"]])
     with pytest.raises(ValueError) as e:
-        dt.split_into_nhot(f0)
+        dt.str.split_into_nhot(f0)
     assert ("Function split_into_nhot() may only be applied to a single-column "
             "Frame of type string; got frame with 3 columns" == str(e.value))
 
     with pytest.raises(TypeError) as e:
-        dt.split_into_nhot(f0[:, 0])
+        dt.str.split_into_nhot(f0[:, 0])
     assert ("Function split_into_nhot() may only be applied to a single-column "
             "Frame of type string; received a column of type float64" ==
             str(e.value))
 
     with pytest.raises(ValueError) as e:
-        dt.split_into_nhot(f0[:, 1], sep=",;-")
+        dt.str.split_into_nhot(f0[:, 1], sep=",;-")
     assert ("Parameter sep in split_into_nhot() must be a single character"
             in str(e.value))
 
@@ -169,7 +169,7 @@ def test_split_into_nhot_long(seed, st):
     f0 = dt.Frame(data, stype=st)
     assert f0.stypes == (st,)
     assert f0.shape == (n, 1)
-    f1 = dt.split_into_nhot(f0)
+    f1 = dt.str.split_into_nhot(f0)
     assert f1.shape == (n, 4)
     fr = dt.Frame(liberty=col1, equality=col2, justice=col3, freedom=col4)
     assert set(f1.names) == set(fr.names)
@@ -179,10 +179,18 @@ def test_split_into_nhot_long(seed, st):
 
 def test_split_into_nhot_view():
     f0 = dt.Frame(A=["cat,dog,mouse", "mouse", None, "dog, cat"])
-    f1 = dt.split_into_nhot(f0[::-1, :])
-    f2 = dt.split_into_nhot(f0[3, :])
+    f1 = dt.str.split_into_nhot(f0[::-1, :])
+    f2 = dt.str.split_into_nhot(f0[3, :])
     assert set(f1.names) == {"cat", "dog", "mouse"}
     assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
            [[1, None, 0, 1], [1, None, 0, 1], [0, None, 1, 1]]
     assert set(f2.names) == {"cat", "dog"}
     assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
+
+
+def test_split_into_nhot_deprecated():
+    DT = dt.Frame(["a, b, c"])
+    with pytest.warns(FutureWarning):
+        RES = dt.split_into_nhot(DT)
+    EXP = dt.Frame([[1], [1], [1]], names=["a", "b", "c"], stype=dt.bool8)
+    assert_equals(RES, EXP)

@@ -470,6 +470,8 @@ def generate_build_info(mode=None, strict=False):
                          strict=strict)
     if "CHANGE_BRANCH" in os.environ:
         git_branch = os.environ["CHANGE_BRANCH"]
+    elif "APPVEYOR_REPO_BRANCH" in os.environ:
+        git_branch = os.environ["APPVEYOR_REPO_BRANCH"]
     else:
         git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                strict=strict)
@@ -518,7 +520,7 @@ def generate_build_info(mode=None, strict=False):
         out.write("import types\n\n")
         out.write("try:\n")
         out.write("    import datatable.lib._datatable as _dt\n")
-        out.write("    _compiler = _dt.compiler_version()\n")
+        out.write("    _compiler = _dt._compiler()\n")
         out.write("except:\n")
         out.write("    _compiler = 'unknown'\n")
         out.write("\n")

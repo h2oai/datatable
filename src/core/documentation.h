@@ -25,13 +25,27 @@ namespace dt {
 
 extern const char* doc_dt_countna;
 
+extern const char* doc_dt_as_type;
 extern const char* doc_dt_cbind;
+extern const char* doc_dt_corr;
+extern const char* doc_dt_cov;
+extern const char* doc_dt_cut;
+extern const char* doc_dt_fread;
+extern const char* doc_dt_ifelse;
+extern const char* doc_dt_iread;
+extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
+extern const char* doc_dt_shift;
+extern const char* doc_dt_split_into_nhot;
+
+extern const char* doc_math_isclose;
+extern const char* doc_math_round;
 
 extern const char* doc_re_match;
 
 extern const char* doc_str_len;
 extern const char* doc_str_slice;
+extern const char* doc_str_split_into_nhot;
 
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
@@ -89,6 +103,14 @@ extern const char* doc_Frame_to_tuples;
 extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
+
+extern const char* doc_models_LM;
+extern const char* doc_models_LM_params;
+
+extern const char* doc_Type;
+extern const char* doc_Type_max;
+extern const char* doc_Type_min;
+extern const char* doc_Type_name;
 
 
 }  // namespace dt
