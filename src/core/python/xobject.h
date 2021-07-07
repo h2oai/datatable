@@ -115,7 +115,7 @@ class XTypeMaker {
 
     // PyCFunctionWithKeywords = PyObject*(*)(PyObject*, PyObject*, PyObject*)
     void add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag);
-    void add(PyCFunctionWithKeywords meth, XArgs* args, MethodTag);
+    void add(XArgs* args, MethodTag);
 
     // unaryfunc = PyObject*(*)(PyObject*)
     void add(unaryfunc meth, const char* name, Method0Tag);

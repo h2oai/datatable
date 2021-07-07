@@ -19,50 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_PY_TYPE_h
-#define dt_TYPES_PY_TYPE_h
-#include "types/type.h"
-#include "python/xargs.h"
-#include "python/xobject.h"
+#ifndef dt_TYPES_TYPE_LIST_h
+#define dt_TYPES_TYPE_LIST_h
+#include "types/typeimpl.h"
 namespace dt {
 
 
-/**
-  * This class corresponds to python-visible `dt.Type`: it describes
-  * a type of a single column.
-  *
-  * This class uses "dynamic" initialization mechanism, which may
-  * cause some of the class featured to not work normally. In case
-  * of any oddities, please check the implementation of XObject
-  * class, specifically the `dynamic_type_` property.
-  *
-  * This mechanism is used because the "standard" extension types do
-  * not allow to define class properties (which we need).
-  */
-class PyType : public py::XObject<PyType, true> {
+
+class Type_List32 : public TypeImpl {
   private:
-    Type type_;
+    Type elementType_;
 
   public:
-    static py::oobj make(Type);
-    static py::oobj m__compare__(py::robj, py::robj, int op);
-
-    void m__init__(const py::PKArgs&);
-    void m__dealloc__();
-    py::oobj m__repr__() const;
-    size_t m__hash__() const;
-
-    py::oobj get_name() const;
-    py::oobj get_min() const;
-    py::oobj get_max() const;
-    py::oobj list(const py::XArgs&);
-
-    Type get_type() const { return type_; }
-
-    static void impl_init_type(py::XTypeMaker& xt);
+    Type_List32(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
+    std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
+    TypeImpl* common_type(TypeImpl* other) override;
 };
 
 
 
-}
+class Type_List64 : public TypeImpl {
+  private:
+    Type elementType_;
+
+  public:
+    Type_List64(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
+    std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
+    TypeImpl* common_type(TypeImpl* other) override;
+};
+
+
+
+
+}  // namespace dt
 #endif

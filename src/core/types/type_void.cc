@@ -34,6 +34,7 @@ bool Type_Void::is_boolean() const { return true; }
 bool Type_Void::is_integer() const { return true; }
 bool Type_Void::is_float()   const { return true; }
 bool Type_Void::is_numeric() const { return true; }
+bool Type_Void::is_void()    const { return true; }
 bool Type_Void::can_be_read_as_int8() const { return true; }
 
 

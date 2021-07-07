@@ -103,8 +103,8 @@ void XTypeMaker::finalize() {
   xassert(type->tp_init);
   xassert(type->tp_name);
   finalize_getsets();
+  finalize_methods();
   if (!dynamic_type_) {
-    finalize_methods();
     int r = PyType_Ready(type);
     if (r < 0) throw PyError();
   }
@@ -215,15 +215,10 @@ void XTypeMaker::add(PyCFunctionWithKeywords meth, PKArgs& args, MethodTag) {
   });
 }
 
-void XTypeMaker::add(PyCFunctionWithKeywords meth, XArgs* args, MethodTag) {
+void XTypeMaker::add(XArgs* args, MethodTag) {
   xassert(type);
   args->set_class_name(type->tp_name);
-  meth_defs.push_back(PyMethodDef {
-    args->proper_name().data(),
-    reinterpret_cast<PyCFunction>(meth),
-    METH_VARARGS | METH_KEYWORDS,
-    args->get_docstring()
-  });
+  meth_defs.push_back(args->get_method_def());
 }
 
 
@@ -389,11 +384,39 @@ void XTypeMaker::finalize_getsets() {
 
 void XTypeMaker::finalize_methods() {
   size_t n = meth_defs.size();
-  if (n) {
-    PyMethodDef* res = new PyMethodDef[n + 1];
-    std::memcpy(res, meth_defs.data(), n * sizeof(PyMethodDef));
-    std::memset(res + n, 0, sizeof(PyMethodDef));
-    type->tp_methods = res;
+  size_t n0 = 0;
+  if (!n) return;
+  if (type->tp_methods) {
+    while ((type->tp_methods)[n0].ml_name != nullptr) n0++;
+  }
+  PyMethodDef* res = new PyMethodDef[n + n0 + 1];
+  if (n0) {
+    std::memcpy(res, type->tp_methods, n0 * sizeof(PyMethodDef));
+  }
+  std::memcpy(res + n0, meth_defs.data(), n * sizeof(PyMethodDef));
+  std::memset(res + n0 + n, 0, sizeof(PyMethodDef));
+  type->tp_methods = res;
+
+  if (dynamic_type_) {
+    // See CPython:typeobject.cc:add_methods()
+    PyObject* dict = type->tp_dict;
+    for (size_t i = n0; i < n + n0; i++) {
+      PyMethodDef* meth = res + i;
+      if (meth->ml_flags & METH_CLASS) {
+        throw NotImplError() << "Class methods not supported";
+      }
+      if (meth->ml_flags & METH_STATIC) {
+        PyObject* cfunc = PyCFunction_NewEx(meth, reinterpret_cast<PyObject*>(type), nullptr);
+        PyObject* descr = PyStaticMethod_New(cfunc);
+        Py_DECREF(cfunc);
+        PyDict_SetItemString(dict, meth->ml_name, descr);
+        Py_DECREF(descr);
+      } else {
+        PyObject* descr = PyDescr_NewMethod(type, meth);
+        PyDict_SetItem(dict, PyDescr_NAME(descr), descr);
+        Py_DECREF(descr);
+      }
+    }
   }
 }
 
