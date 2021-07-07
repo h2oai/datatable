@@ -35,6 +35,8 @@ class Type_List32 : public TypeImpl {
     bool is_compound() const override;
     bool is_list() const override;
     std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
 };
 
@@ -49,6 +51,8 @@ class Type_List64 : public TypeImpl {
     bool is_compound() const override;
     bool is_list() const override;
     std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
 };
 

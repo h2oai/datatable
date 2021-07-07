@@ -44,8 +44,9 @@ bool Type_List32::is_list() const {
 }
 
 std::string Type_List32::to_string() const {
-  return "list32[" + elementType_.to_string() + "]";
+  return "list32(" + elementType_.to_string() + ")";
 }
+
 
 TypeImpl* Type_List32::common_type(TypeImpl* other) {
   if (other->is_list()) {
@@ -58,13 +59,23 @@ TypeImpl* Type_List32::common_type(TypeImpl* other) {
 }
 
 
+bool Type_List32::equals(const TypeImpl* other) const {
+  return other->stype() == stype() &&
+         elementType_ == reinterpret_cast<const Type_List32*>(other)->elementType_;
+}
+
+size_t Type_List32::hash() const noexcept {
+  return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
+}
+
+
 
 //------------------------------------------------------------------------------
 // Type_List64
 //------------------------------------------------------------------------------
 
 Type_List64::Type_List64(Type t)
-  : TypeImpl(SType::LIST32),
+  : TypeImpl(SType::LIST64),
     elementType_(t) {}
 
 bool Type_List64::is_compound() const { 
@@ -76,8 +87,9 @@ bool Type_List64::is_list() const {
 }
 
 std::string Type_List64::to_string() const {
-  return "list64[" + elementType_.to_string() + "]";
+  return "list64(" + elementType_.to_string() + ")";
 }
+
 
 TypeImpl* Type_List64::common_type(TypeImpl* other) {
   if (other->is_list()) {
@@ -87,6 +99,16 @@ TypeImpl* Type_List64::common_type(TypeImpl* other) {
     return other;
   }
   return new Type_Invalid();
+}
+
+
+bool Type_List64::equals(const TypeImpl* other) const {
+  return other->stype() == stype() &&
+         elementType_ == reinterpret_cast<const Type_List64*>(other)->elementType_;
+}
+
+size_t Type_List64::hash() const noexcept {
+  return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
 }
 
 
