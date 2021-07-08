@@ -337,7 +337,7 @@ static const std::vector<dt::SType>& successors(dt::SType stype) {
 
 
 /**
-  * Parse `inputcol`, auto-detecting its stype.
+  * Parse `inputcol`, auto-detecting its type.
   */
 static Column parse_column_auto_type(const Column& inputcol) {
   xassert(inputcol.type().is_object());
