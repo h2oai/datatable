@@ -557,9 +557,9 @@ static Column parse_column_auto_type(const Column& inputcol) {
       err << "Cannot create column from a python list: element at index "
           << i << " is of type " << item.typeobj();
       if (i) {
-        err << ", while previous elements had type `" << stype;
+        err << ", while previous elements had type `" << stype << "`";
       }
-      err << "`. If you meant to create a column of type obj64, then you must "
+      err << ". If you meant to create a column of type obj64, then you must "
              "request this type explicitly";
       throw err;
     }
