@@ -47,59 +47,6 @@ for source_stype in all_stypes:
 
 
 #-------------------------------------------------------------------------------
-# Cast to bool
-#-------------------------------------------------------------------------------
-
-def test_cast_bool_to_bool():
-    DT = dt.Frame(B=[None, True, False, None, True, True, False, False])
-    assert DT.stypes == (dt.bool8,)
-    RES = DT[:, {"B": dt.bool8(f.B)}]
-    assert_equals(DT, RES)
-
-
-@pytest.mark.parametrize("source_stype", ltype.int.stypes)
-def test_cast_int_to_bool(source_stype):
-    DT = dt.Frame(N=[-11, -1, None, 0, 1, 11, 127], stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    RES = DT[:, dt.bool8(f.N)]
-    frame_integrity_check(RES)
-    assert RES.stypes == (dt.bool8,)
-    assert RES.to_list()[0] == [True, True, None, False, True, True, True]
-
-
-def test_cast_m127_to_bool():
-    DT = dt.Frame([-128, -127, 0, 127, 128, 256])
-    RES = DT[:, dt.bool8(f[0])]
-    frame_integrity_check(RES)
-    assert RES.stypes == (dt.bool8,)
-    assert RES.to_list()[0] == [True, True, False, True, True, True]
-
-
-@pytest.mark.parametrize("source_stype", ltype.real.stypes)
-def test_cast_float_to_bool(source_stype):
-    DT = dt.Frame(G=[-math.inf, math.inf, math.nan, 0.0, 13.4, 1.0, -1.0, -128],
-                  stype=source_stype)
-    assert DT.stypes == (source_stype,)
-    RES = DT[:, dt.bool8(f.G)]
-    frame_integrity_check(RES)
-    assert RES.stypes == (dt.bool8,)
-    assert RES.to_list()[0] == [True, True, None, False, True, True, True, True]
-
-
-def test_cast_str_to_bool():
-    DT = dt.Frame(['True', "False", "bah", None, "true"])
-    DT[0] = bool
-    assert_equals(DT, dt.Frame([1, 0, None, None, None] / dt.bool8))
-
-
-def test_cast_obj_to_bool():
-    DT = dt.Frame([True, False, None, 1, 3.2, "True"] / dt.obj64)
-    DT[0] = bool
-    assert_equals(DT, dt.Frame([True, False, None, None, None, None]))
-
-
-
-#-------------------------------------------------------------------------------
 # Cast to int
 #-------------------------------------------------------------------------------
 

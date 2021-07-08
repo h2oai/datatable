@@ -605,6 +605,11 @@ int8_t _obj::to_bool_force(const error_manager&) const noexcept {
   if (v == Py_None) return dt::GETNA<int8_t>();
   if (v == Py_True) return 1;
   if (v == Py_False) return 0;
+  if (PyFloat_Check(v)) {
+    double x = PyFloat_AS_DOUBLE(v);
+    return std::isnan(x)? dt::GETNA<int8_t>() :
+           x == 0.0     ? 0 : 1;
+  }
   int r = PyObject_IsTrue(v);
   if (r >= 0) return static_cast<int8_t>(r);
   PyErr_Clear();
@@ -749,8 +754,17 @@ double _obj::to_double(const error_manager& em) const {
 
 
 py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
-  if (PyFloat_Check(v) || v == Py_None) {
+  if (PyFloat_Check(v)) {
     return py::ofloat(robj(v));
+  }
+  if (v == Py_None) {
+    return py::ofloat(robj());
+  }
+  if (PyLong_Check(v)) {
+    int overflow;
+    auto pyintobj = py::oint(py::robj(v));
+    double value = pyintobj.ovalue<double>(&overflow);
+    return py::ofloat(value);
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {

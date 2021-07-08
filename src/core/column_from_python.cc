@@ -581,6 +581,7 @@ static Column parse_column_auto_type(const Column& inputcol) {
   * Parse `inputcol` forcing it into the specific stype.
   */
 static Column parse_column_fixed_type(const Column& inputcol, dt::Type type) {
+  return inputcol.cast(type);
   switch (type.stype()) {
     case dt::SType::VOID:    return Column::new_na_column(inputcol.nrows(), dt::SType::VOID);
     case dt::SType::BOOL:    return force_as_bool(inputcol);
