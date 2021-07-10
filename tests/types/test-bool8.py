@@ -24,6 +24,7 @@
 import math
 import pytest
 from datatable import dt, f
+from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
 
@@ -31,7 +32,13 @@ from tests import assert_equals
 # Create bool column
 #-------------------------------------------------------------------------------
 
-def test_bool_create_column_auto():
+def test_bool_create_column_auto1():
+    DT = dt.Frame([True, False, None])
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.bool8
+
+
+def test_bool_create_column_auto2():
     DT = dt.Frame([True, False, True, None, False, False])
     assert DT.type == dt.Type.bool8
     assert DT.to_list() == [[True, False, True, None, False, False]]
@@ -65,6 +72,22 @@ def test_bool_create_force_from_exceptional():
 
     DT = dt.Frame([None, dt.f.A, math.nan, dt.f[:], TypeError], type=bool)
     assert DT.to_list() == [[None, None, None, None, True]]
+
+
+def test_bool_cannot_create_from_mixed():
+    msg = "Cannot create column: element at index 3 is of type " \
+        "<class 'int'>, whereas previous elements were boolean"
+    with pytest.raises(TypeError, match=msg):
+        dt.Frame([None, True, False, 0, 12])
+
+
+def test_bool_create_from_large_data():
+    src = [True, False, True, None, False, True, True, False, None, True] * 1000
+    DT = dt.Frame(src)
+    assert DT.type == dt.Type.bool8
+    assert DT.shape == (len(src), 1)
+    assert DT.to_list() == [src]
+
 
 
 

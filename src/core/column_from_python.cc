@@ -30,10 +30,311 @@
 #include "python/list.h"   // py::olist
 #include "python/string.h" // py::ostring
 #include "utils/exceptions.h"
+#include "utils/macros.h"
 #include "utils/misc.h"
 #include "column.h"
 #include "stype.h"
+namespace {
 
+// Each parser function has the following signature:
+//
+//     bool (*parserfn)(const Column& inputcol, size_t i0, Column* outputcol);
+//
+// Here `inputcol` is the input column of type obj64, `i0` is the
+// index of the first non-None element, and `outputcol` is the variable
+// where the converted column will be stored.
+//
+// The function will attempt to parse `inputcol` into one of the
+// types that it supports, and save the resulting Column into variable
+// `outputcol`. The return value is `true` if the parse was successful,
+// and `false` otherwise. The parser may also throw an exception if
+// it believes no other parser will be able to parse the input (which
+// could happen if the input contained values of incompatible types,
+// such as `[5, "boo", 3.7]`).
+
+
+//------------------------------------------------------------------------------
+// Boolean
+//------------------------------------------------------------------------------
+
+/**
+  * Attempt to parse `inputcol` as a boolean column. This function will
+  * succeed iff all elements in the input column are either bools, or
+  * numpy bools, or Nones.
+  *
+  * An exception is raised if at least one element was already parsed
+  * as boolean, but others cannot be.
+  */
+bool parse_as_bool(const Column& inputcol, size_t i0, Column* outputcol)
+{
+  py::oobj item;
+  inputcol.get_element(i0, &item);
+  if (!(item.is_bool() || item.is_numpy_bool())) {
+    return false;
+  }
+
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n);
+  auto outptr = static_cast<int8_t*>(databuf.xptr());
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<int8_t>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (!(item.parse_bool(outptr) ||
+          item.parse_numpy_bool(outptr) ||
+          item.parse_none(outptr))) {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj() << ", whereas previous elements "
+          "were boolean";
+    }
+    outptr++;
+  }
+  *outputcol = Column::new_mbuf_column(n, dt::SType::BOOL, std::move(databuf));
+  return true;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Numeric
+//------------------------------------------------------------------------------
+Column _parse_int8(const Column&, size_t);
+Column _parse_int32(const Column&, size_t);
+Column _parse_int64(const Column&, size_t);
+Column _parse_double(const Column&, size_t);
+
+/**
+  * Parses a column containing numpy ints (or Nones) of a specific
+  * precision T. We do not allow numpy ints to be mixed with python
+  * ints.
+  */
+template <typename T>
+Column _parse_npint(const Column& inputcol) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(T));
+  auto outptr = static_cast<T*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_numpy_int(outptr) ||
+        item.parse_none(outptr)) {
+      outptr++;
+    } else {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj() << ", whereas previous elements "
+          "were np.int" << sizeof(T)*8;
+    }
+  }
+  return Column::new_mbuf_column(n, dt::stype_from<T>, std::move(databuf));
+}
+
+
+/**
+  * Parses a column containing only numbers 0 and 1 as INT8. If
+  * any integer other than 0 or 1 is encountered, then the entire
+  * column will be re-parsed as INT32.
+  */
+Column _parse_int8(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(int8_t));
+  auto outptr = static_cast<int8_t*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<int8_t>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_01(outptr) || item.parse_none(outptr)) {
+      outptr++;
+    }
+    else if (item.is_int()) {
+      return _parse_int32(inputcol, i0);
+    }
+    else if (item.is_float()) {
+      return _parse_double(inputcol, i0);
+    }
+    else {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj()
+          << ", whereas previous elements were int8";
+    }
+  }
+  return Column::new_mbuf_column(n, dt::SType::INT8, std::move(databuf));
+}
+
+
+/**
+  * Parses a column containing integers (and `None`s). If we encounter
+  * an integer that is too large to fit into INT32, the entire column
+  * will be reparsed as either INT64 or FLOAT64 depending on whether
+  * the "big" integer fits into int64_t or not.
+  */
+Column _parse_int32(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(int32_t));
+  auto outptr = static_cast<int32_t*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<int32_t>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_int(outptr) ||   // returns false if overflows
+        item.parse_none(outptr)) {
+      outptr++;
+    }
+    else if (item.is_int() || item.is_float()) {
+      int64_t tmp;
+      if (item.parse_int(&tmp)) {
+        return _parse_int64(inputcol, i0);
+      } else {
+        return _parse_double(inputcol, i0);
+      }
+    }
+    else {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj()
+          << ", whereas previous elements were int32";
+    }
+  }
+  return Column::new_mbuf_column(n, dt::SType::INT32, std::move(databuf));
+}
+
+
+/**
+  * Parse a column containing integers (and `None`s) as INT64. This
+  * parser will be invoked only if we find some big integers in the
+  * list. If during parsing we encounter integers that are too big
+  * even for INT64, we will reparse the column as FLOAT64.
+  */
+Column _parse_int64(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(int64_t));
+  auto outptr = static_cast<int64_t*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<int64_t>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_int(outptr) ||   // returns false if overflows
+        item.parse_none(outptr)) {
+      outptr++;
+    }
+    else if (item.is_int() || item.is_float()) {
+      return _parse_double(inputcol, i0);
+    }
+    else {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj()
+          << ", whereas previous elements were int64";
+    }
+  }
+  return Column::new_mbuf_column(n, dt::SType::INT64, std::move(databuf));
+}
+
+
+Column _parse_double(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(double));
+  auto outptr = static_cast<double*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<double>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_double(outptr) ||
+        item.parse_int(outptr) ||   // converts to ±MAX if overflows
+        item.parse_none(outptr)) {
+      outptr++;
+    }
+    else {
+      throw TypeError() << "Cannot create column: element at index " << i
+          << " is of type " << item.typeobj()
+          << ", whereas previous elements were floats";
+    }
+  }
+  return Column::new_mbuf_column(n, dt::SType::FLOAT64, std::move(databuf));
+}
+
+
+bool parse_as_int(const Column& inputcol, size_t i0, Column* outputcol) {
+  int npbits;
+  py::oobj item;
+  inputcol.get_element(i0, &item);
+  xassert(!item.is_none());
+  if (item.is_int()) {
+    int value = item.to_int32();  // Converts to ±MAX on overflow
+    if (value == 0 || value == 1) {
+      *outputcol = _parse_int8(inputcol, i0);
+    } else {
+      *outputcol = _parse_int32(inputcol, i0);
+    }
+    return true;
+  }
+  else if ((npbits = item.is_numpy_int())) {
+    if (npbits == 1) *outputcol = _parse_npint<int8_t>(inputcol);
+    if (npbits == 2) *outputcol = _parse_npint<int16_t>(inputcol);
+    if (npbits == 4) *outputcol = _parse_npint<int32_t>(inputcol);
+    if (npbits == 8) *outputcol = _parse_npint<int64_t>(inputcol);
+    return true;
+  }
+  return false;
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Main
+//------------------------------------------------------------------------------
+
+/**
+  * Main parser that calls all other parsers.
+  */
+Column new_parse_column_auto_type(const Column& inputcol) {
+  size_t nrows = inputcol.nrows();
+
+  // First, find how many `None`s we have at the start of the list,
+  // and detect if we should produce a VOID column.
+  size_t i0 = 0;
+  for (; i0 < nrows; ++i0) {
+    py::oobj item;
+    inputcol.get_element(i0, &item);
+    if (!item.is_none()) break;
+  }
+  if (i0 == nrows) {  // Also works when `nrows == 0`
+    return Column::new_na_column(nrows, dt::SType::VOID);
+  }
+
+  Column result;
+  bool ok = parse_as_bool(inputcol, i0, &result)
+            || parse_as_int(inputcol, i0, &result);
+
+  (void)ok;
+  return result;
+  // if (ok) {
+  //   xassert(result);
+  //   return result;
+  // }
+  // py::oobj elem0;
+  // inputcol.get_element(i0, &elem0);
+  // throw TypeError() << "Cannot create column from a python list: element "
+  //     "at index " << i0 << " has type " << elem0.typeobj();
+}
+
+
+
+}  // namespace
+//==============================================================================
 
 /**
   * parse_as_X(inputcol, mbuf, i0)
@@ -352,7 +653,7 @@ static Column parse_column_auto_type(const Column& inputcol) {
     size_t j = i;
     for (dt::SType next_stype : successors(stype)) {
       switch (next_stype) {
-        case dt::SType::BOOL:    j = parse_as_bool(inputcol, databuf, i); break;
+        // case dt::SType::BOOL:    j = parse_as_bool(inputcol, databuf, i); break;
         case dt::SType::INT8:    j = parse_as_int8(inputcol, databuf, i); break;
         case dt::SType::INT16:   j = parse_as_int16(inputcol, databuf, i); break;
         case dt::SType::INT32:   j = parse_as_int<int32_t>(inputcol, databuf, i); break;
@@ -406,7 +707,9 @@ static Column resolve_column(const Column& inputcol, dt::Type type0)
     return out;
   }
   else {
-    return parse_column_auto_type(inputcol);
+    Column out = new_parse_column_auto_type(inputcol);
+    if (!out) out = parse_column_auto_type(inputcol);
+    return out;
   }
 }
 

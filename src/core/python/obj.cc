@@ -466,10 +466,10 @@ template <typename T>
 static bool _parse_npint(PyObject* v, T* out) {
   if (!numpy_int64) init_numpy();
   if (numpy_int64 && v) {
-    if ((sizeof(T) >= 8 && PyObject_IsInstance(v, numpy_int64)) ||
-        (sizeof(T) >= 4 && PyObject_IsInstance(v, numpy_int32)) ||
-        (sizeof(T) >= 2 && PyObject_IsInstance(v, numpy_int16)) ||
-        (sizeof(T) >= 1 && PyObject_IsInstance(v, numpy_int8)))
+    if ((sizeof(T) == 8 && PyObject_IsInstance(v, numpy_int64)) ||
+        (sizeof(T) == 4 && PyObject_IsInstance(v, numpy_int32)) ||
+        (sizeof(T) == 2 && PyObject_IsInstance(v, numpy_int16)) ||
+        (sizeof(T) == 1 && PyObject_IsInstance(v, numpy_int8)))
     {
       *out = static_cast<T>(PyNumber_AsSsize_t(v, nullptr));
       return true;
