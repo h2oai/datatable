@@ -11,6 +11,8 @@
     -----
     .. current-module:: datatable
 
+    -[enh] Added reducer function :func:`countna` [#2999]
+
 
     General
     -------

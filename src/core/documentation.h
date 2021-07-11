@@ -23,11 +23,10 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
-extern const char* doc_dt_countna;
-
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
+extern const char* doc_dt_countna;
 extern const char* doc_dt_cov;
 extern const char* doc_dt_cut;
 extern const char* doc_dt_fread;

@@ -200,8 +200,6 @@
     -[api] Method :meth:`dt.FExpr.re_match` has been deprecated and replaced
       with a function :func:`dt.re.match()`. [#3017]
 
-    -[enh] Added reducer function :func:`countna` [#2999]
-
     fread
     -----
 

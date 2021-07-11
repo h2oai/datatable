@@ -19,7 +19,7 @@
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
-        has a non-numeric and non-string type.
+        has an obj64 type.
 
 
 
@@ -45,7 +45,7 @@
          5 |     2      5      4
         [6 rows x 3 columns]
 
-    Get the countna of all rows:
+    Get the count of NAs of all rows:
 
         >>> df[:, dt.countna(f[:])]
            |     A      B      C
@@ -54,7 +54,7 @@
          0 |     1      2      0
         [1 row x 3 columns]
 
-    Get the countna of column `B`:
+    Get the count of NAs of column `B`:
 
         >>> df[:, dt.countna(f.B)]
            |     B

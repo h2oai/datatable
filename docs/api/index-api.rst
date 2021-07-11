@@ -157,6 +157,8 @@ Functions
       - Calculate correlation between two columns
     * - :func:`count()`
       - Count non-missing values per column
+    * - :func:`countna()`
+      - Count the number of NA values per column
     * - :func:`cov()`
       - Calculate covariance between two columns
     * - :func:`max()`
@@ -171,8 +173,6 @@ Functions
       - Calculate the standard deviation per column
     * - :func:`sum()`
       - Calculate the sum of all values per column
-    * - :func:`countna()`
-      - Count the number of NA values per column
 
 
 Other
