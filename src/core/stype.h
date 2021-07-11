@@ -49,6 +49,8 @@ enum class SType : uint8_t {
   FLOAT64 = 7,
   STR32   = 11,
   STR64   = 12,
+  LIST32  = 13,
+  LIST64  = 14,
   DATE32  = 17,
   TIME64  = 18,
   OBJ     = 21,
@@ -64,9 +66,6 @@ constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
 static_assert(STYPES_COUNT <= 64, "Too many stypes");
 
 
-using utc_timestamp_t = int64_t;
-using local_time_t = int64_t;
-using local_date_t = int64_t;
 
 
 //------------------------------------------------------------------------------

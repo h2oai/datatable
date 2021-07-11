@@ -46,15 +46,17 @@ class TypeImpl {
     virtual const char* struct_format() const;
     virtual TypeImpl* common_type(TypeImpl* other) = 0;
 
-    bool is_void() const;
     virtual bool is_boolean() const;
+    virtual bool is_compound() const;
+    virtual bool is_float() const;
     virtual bool is_integer() const;
     virtual bool is_invalid() const;
-    virtual bool is_float() const;
+    virtual bool is_list() const;
     virtual bool is_numeric() const;
     virtual bool is_object() const;
     virtual bool is_string() const;
     virtual bool is_temporal() const;
+    virtual bool is_void() const;
 
     virtual bool can_be_read_as_int8() const;
     virtual bool can_be_read_as_int16() const;
