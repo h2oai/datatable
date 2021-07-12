@@ -575,3 +575,13 @@ def test_issue2681():
         dt.Frame(A=['rr'] + ['1']*99 + ['abc'],
                  B=['dd"'] + ['2']*99 + ['def'],
                  C=['g'] + ['3']*99 + [None]))
+
+
+def test_issue2943():
+    src1 = '\tA\tB\tC\n' + '\t1\tTrue\t3.0\n' + '\t12\tFalse\t1.5\n'
+    src2 = '\t\t\tA\tB\tC\n' + '\t\t\t1\tTrue\t3.0\n' + '\t\t\t12\tFalse\t1.5\n'
+    EXP = dt.Frame(A=[1,12], B=[True, False], C=[3.0, 1.5])
+    DT = dt.fread(src1)
+    assert_equals(DT[:, 'A':'C'], EXP)
+    DT = dt.fread(src2)
+    assert_equals(DT[:, 'A':'C'], EXP)

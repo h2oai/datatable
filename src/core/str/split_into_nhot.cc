@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,16 +24,20 @@
 #include <unordered_map>  // std::unordered_map
 #include <vector>         // std::vector
 #include "datatable.h"
+#include "documentation.h"
+#include "frame/py_frame.h"
 #include "ltype.h"
 #include "models/utils.h" // sort_index
 #include "options.h"
 #include "parallel/api.h"
 #include "parallel/shared_mutex.h"
-#include "utils/exceptions.h"
-#include "str/py_str.h"
+#include "python/xargs.h"
 #include "stype.h"
+#include "utils/exceptions.h"
 namespace dt {
 
+// TODO: move this file into expr/ folder, once the function is converted
+//       into an FExpr
 
 
 /**
@@ -131,8 +135,8 @@ static void sort_colnames(colvec& outcols, strvec& outnames) {
 }
 
 
-DataTable* split_into_nhot(const Column& col, char sep,
-                           bool sort /* = false */)
+static DataTable* split_into_nhot(const Column& col, char sep,
+                                  bool sort /* = false */)
 {
   xassert(col.ltype() == LType::STRING);
 
@@ -202,6 +206,73 @@ DataTable* split_into_nhot(const Column& col, char sep,
 
   return new DataTable(std::move(outcols), std::move(outnames));
 }
+
+
+
+//------------------------------------------------------------------------------
+// Python-facing functions
+//------------------------------------------------------------------------------
+
+static py::oobj py_split_into_nhot(const py::XArgs& args) {
+  if (args[0].is_undefined()) {
+    throw ValueError() << "Required parameter `frame` is missing";
+  }
+
+  if (args[0].is_none()) {
+    return py::None();
+  }
+
+  DataTable* dt = args[0].to_datatable();
+  std::string sep = args[1]? args[1].to_string() : ",";
+  bool sort = args[2]? args[2].to_bool_strict() : false;
+
+  if (dt->ncols() != 1) {
+    throw ValueError() << "Function split_into_nhot() may only be applied to "
+      "a single-column Frame of type string;" << " got frame with "
+      << dt->ncols() << " columns";
+  }
+  const Column& col0 = dt->get_column(0);
+  dt::SType st = col0.stype();
+  if (!(st == dt::SType::STR32 || st == dt::SType::STR64)) {
+    throw TypeError() << "Function split_into_nhot() may only be applied to "
+      "a single-column Frame of type string;" << " received a column of type "
+      << st;
+  }
+  if (sep.size() != 1) {
+    throw ValueError() << "Parameter `sep` in split_into_nhot() must be a "
+      "single character; got '" << sep << "'";
+  }
+
+  DataTable* res = split_into_nhot(col0, sep[0], sort);
+  return py::Frame::oframe(res);
+}
+
+DECLARE_PYFN(&py_split_into_nhot)
+    ->name("split_into_nhot")
+    ->docs(dt::doc_str_split_into_nhot)
+    ->n_positional_args(1)
+    ->n_keyword_args(2)
+    ->arg_names({"frame", "sep", "sort"});
+
+
+
+static py::oobj py_split_into_nhot_deprecated(const py::XArgs& args) {
+  auto w = DeprecationWarning();
+  w << "Function `dt.split_into_nhot()` is deprecated since version 1.0.0, "
+       "and will be removed in version 1.1.0.\n"
+       "Please use `dt.str.split_into_nhot()` instead.";
+  w.emit_warning();
+  return py_split_into_nhot(args);
+}
+
+DECLARE_PYFN(&py_split_into_nhot_deprecated)
+    ->name("split_into_nhot_deprecated")
+    ->docs(dt::doc_dt_split_into_nhot)
+    ->n_positional_args(1)
+    ->n_keyword_args(2)
+    ->arg_names({"frame", "sep", "sort"});
+
+
 
 
 } // namespace dt

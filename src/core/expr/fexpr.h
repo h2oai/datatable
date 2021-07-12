@@ -156,6 +156,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     void m__init__(const py::PKArgs&);
     void m__dealloc__();
     py::oobj m__repr__() const;
+    py::oobj m__getitem__(py::robj);
 
     static py::oobj m__compare__  (py::robj, py::robj, int op);
     static py::oobj nb__add__     (py::robj, py::robj);
@@ -177,7 +178,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
 
     py::oobj extend(const py::PKArgs&);
     py::oobj remove(const py::PKArgs&);
-    py::oobj len();                     // [DEPRECATED]
+    py::oobj len();                         // [DEPRECATED]
     py::oobj re_match(const py::PKArgs&);   // [DEPRECATED]
 
     py::oobj sum(const py::XArgs&);
@@ -195,7 +196,11 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj rowmin(const py::XArgs&);
     py::oobj rowmean(const py::XArgs&);
     py::oobj rowsd(const py::XArgs&);
-
+    py::oobj sd(const py::XArgs&);
+    py::oobj shift(const py::XArgs&);
+    py::oobj last(const py::XArgs&);
+    py::oobj count(const py::XArgs&);
+    py::oobj first(const py::XArgs&);
 
     static void impl_init_type(py::XTypeMaker& xt);
 };

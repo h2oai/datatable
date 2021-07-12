@@ -138,58 +138,5 @@ umaker_ptr resolve_op_uinvert(SType stype)
 
 
 
-//------------------------------------------------------------------------------
-// Op::LEN
-//------------------------------------------------------------------------------
-
-
-/*
-inline static bool op_str_len_ascii(CString str, bool isvalid, int64_t* out) {
-  *out = str.size;
-  return isvalid;
-}
-*/
-
-static bool op_str_len_unicode(const CString& str, bool isvalid, int64_t* out) {
-  if (isvalid) {
-    int64_t len = 0;
-    const uint8_t* ch = reinterpret_cast<const uint8_t*>(str.data());
-    const uint8_t* end = ch + str.size();
-    while (ch < end) {
-      uint8_t c = *ch;
-      ch += (c < 0x80)? 1 :
-            ((c & 0xE0) == 0xC0)? 2 :
-            ((c & 0xF0) == 0xE0)? 3 :  4;
-      len++;
-    }
-    *out = len;
-  }
-  return isvalid;
-}
-
-
-static const char* doc_len =
-R"(len(s)
---
-
-The length of the string `s`.
-)";
-
-py::PKArgs args_len(1, 0, 0, false, false, {"s"}, "len",  doc_len);
-
-
-umaker_ptr resolve_op_len(SType stype)
-{
-  if (stype == SType::VOID) return umaker_ptr(new umaker_nacol());
-  if (stype == SType::STR32 || stype == SType::STR64) {
-    return umaker2<CString, int64_t>::make(op_str_len_unicode,
-                                           SType::AUTO, SType::INT64);
-  }
-  throw TypeError() << "Function `len` cannot be applied to a column of "
-                       "type `" << stype << "`";
-}
-
-
-
 
 }}  // namespace dt::expr

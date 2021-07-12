@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -750,8 +750,8 @@ def test_sep_selection(sep):
 
 
 def test_sep_invalid1():
-    msg = r"Argument sep in fread\(\) should be a string, instead got " \
-          r"<class 'int'>"
+    msg = r"Argument sep in function datatable.fread\(\) should be a string, " \
+          r"instead got <class 'int'>"
     with pytest.raises(TypeError, match=msg) as e:
         dt.fread("A,,B\n", sep=12)
 
@@ -783,12 +783,13 @@ def test_sep_invalid4(c):
 #-------------------------------------------------------------------------------
 
 def test_multiple_sources_invalid():
-    msg = r"Argument multiple_sources in fread\(\) should be a string, " \
-          r"instead got <class 'bool'>"
+    msg = r"Argument multiple_sources in function datatable.fread\(\) should " \
+          r"be a string, instead got <class 'bool'>"
     with pytest.raises(TypeError, match=msg):
         dt.fread("foo", multiple_sources=True)
 
-    msg = r"Argument multiple_sources in fread\(\) got invalid value WARN"
+    msg = r"Argument multiple_sources in function datatable.fread\(\) got " \
+          r"invalid value WARN"
     with pytest.raises(ValueError, match=msg):
         dt.fread("foo", multiple_sources="WARN")
 
@@ -1166,7 +1167,7 @@ def test_encoding_bad():
     with pytest.raises(ValueError, match=msg):
         dt.fread("A\nB\n", encoding="xoxoxo")
 
-    msg = r"Argument encoding in fread\(\) should be a string"
+    msg = r"Argument encoding in function datatable.fread\(\) should be a string"
     with pytest.raises(TypeError, match=msg):
         dt.fread("A\n", encoding=124)
 

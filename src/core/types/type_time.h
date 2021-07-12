@@ -21,10 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_TIME_h
 #define dt_TYPES_TYPE_TIME_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 
@@ -49,35 +46,17 @@ class Type_Time64 : public TypeImpl {
   // TODO: add timezone field
 
   public:
-    Type_Time64() : TypeImpl(SType::TIME64) {}
-
-    bool can_be_read_as_int64() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "time64"; }
-
-    // The min/max values are rounded to microsecond resolution, because
-    // that's the resolution that python supports.
-    py::oobj min() const override {
-      return py::odatetime(-9223285636854775000L);
-    }
-    py::oobj max() const override {
-      return py::odatetime(9223372036854775000L);
-    }
-    // Pretend this is int64
-    const char* struct_format() const override { return "q"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::TIME64 ||
-          other->stype() == SType::DATE32 ||
-          other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+    Type_Time64();
+    bool can_be_read_as_int64() const override;
+    bool is_temporal() const override;
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
+
 
 
 

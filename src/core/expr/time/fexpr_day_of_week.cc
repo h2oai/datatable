@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <type_traits>
 #include "_dt.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func_unary.h"
@@ -42,7 +43,9 @@ class DayOfWeek_ColumnImpl : public Virtual_ColumnImpl {
     DayOfWeek_ColumnImpl(Column&& arg)
       : Virtual_ColumnImpl(arg.nrows(), dt::SType::INT32),
         arg_(std::move(arg))
-    { xassert(arg_.stype() == dt::SType::DATE32); }
+    {
+      xassert(arg_.stype() == dt::SType::DATE32);
+    }
 
     ColumnImpl* clone() const override {
       return new DayOfWeek_ColumnImpl(Column(arg_));
@@ -86,11 +89,15 @@ class FExpr_DayOfWeek : public FExpr_FuncUnary {
       if (col.stype() == dt::SType::VOID) {
         return Column::new_na_column(col.nrows(), dt::SType::VOID);
       }
-      if (col.stype() != dt::SType::DATE32) {
-        throw TypeError() << "Function " << name() << "() requires a date32 "
-            "column, instead received column of type " << col.type();
+      if (col.stype() == dt::SType::TIME64) {
+        col.cast_inplace(dt::SType::DATE32);
       }
-      return Column(new DayOfWeek_ColumnImpl(std::move(col)));
+      if (col.stype() == dt::SType::DATE32) {
+        return Column(
+            new DayOfWeek_ColumnImpl(std::move(col)));
+      }
+      throw TypeError() << "Function " << name() << "() requires a date32 or "
+          "time64 column, instead received column of type " << col.type();
     }
 };
 
@@ -115,8 +122,8 @@ matches the ISO standard.
 
 Parameters
 ----------
-date: FExpr[date32]
-    The date column for which you need to calculate days of week.
+date: FExpr[date32] | FExpr[time64]
+    The date32 (or time64) column for which you need to calculate days of week.
 
 return: FExpr[int32]
     An integer column, with values between 1 and 7 inclusive.

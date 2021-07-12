@@ -52,18 +52,20 @@ from .lib._datatable import (
     setdiff,
     shift,
     sort,
+    split_into_nhot_deprecated as split_into_nhot,
     symdiff,
     Type,
     union,
     unique,
     update,
 )
-from .str import split_into_nhot
 from .types import stype, ltype
 import datatable.math
 import datatable.internal
 import datatable.exceptions
 import datatable.options
+import datatable.re
+import datatable.str
 import datatable.time
 try:
     from ._build_info import build_info
@@ -155,15 +157,3 @@ init_styles()
 options = dt.options.Config(options={}, prefix="")
 dt.lib._datatable.initialize_options(options)
 dt.lib._datatable.initialize_final()
-
-def open(path):
-    """
-    .. x-version-deprecated:: 0.10.0
-        Use :func:`fread` instead.
-    """
-    import warnings
-    warnings.warn("Function dt.open() is deprecated since 0.10.0, and "
-                  "will be removed in version 1.0.\n"
-                  "Please use dt.fread(file), or dt.Frame(file) instead",
-                  category=FutureWarning)
-    return fread(path)

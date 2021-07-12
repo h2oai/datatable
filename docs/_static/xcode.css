@@ -354,6 +354,10 @@ div.xcode > code.sql:before {
 
 .dtframe td {
     padding: .2em .5em;
+}
+
+.dtframe td.r,
+.dtframe th.r {
     text-align: right;
 }
 
@@ -361,6 +365,7 @@ div.xcode > code.sql:before {
     background-color: #3331;
     font-size: 80%;
     color: #aaa;
+    text-align: right;
 }
 
 .dtframe td.key {
@@ -372,11 +377,11 @@ div.xcode > code.sql:before {
     border-left: 1px solid #0003;
 }
 
-.dtframe td.etc {
+.dtframe td span.dim {
     color: #0003;
 }
 
-.dtframe td.NA {
+.dtframe td span.NA {
     color: #0003;
 }
 

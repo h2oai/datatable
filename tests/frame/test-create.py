@@ -40,70 +40,77 @@ from tests import list_equals, assert_equals
 # Test wrong parameters
 #-------------------------------------------------------------------------------
 
-def test_stypes_stype():
-    with pytest.raises(TypeError) as e:
-        dt.Frame(stypes=[], stype="float32")
-    assert ("You can pass either parameter stypes or stype to Frame() "
-            "constructor, but not both at the same time" == str(e.value))
+def test_types_type():
+    msg = r"You can pass either parameter types or type to Frame\(\) " \
+          r"constructor, but not both at the same time"
+    with pytest.raises(TypeError, match=msg):
+        dt.Frame(types=[], type="float32")
 
 
-def test_bad_stype():
-    with pytest.raises(TypeError) as e:
-        dt.Frame(stype=-1)
-    assert ("Invalid value for stype parameter in Frame() constructor" ==
-            str(e.value))
+def test_bad_type():
+    msg = r"Cannot create Type object from -1"
+    with pytest.raises(ValueError, match=msg):
+        dt.Frame(type=-1)
 
 
-def test_bad_stypes():
-    with pytest.raises(TypeError) as e:
-        dt.Frame([], stypes=2.5)
-    assert ("Argument stypes in Frame() constructor should be a list of "
-            "stypes, instead received <class 'float'>" == str(e.value))
+def test_bad_types():
+    msg = r"Argument types in Frame\(\) constructor should be a list of " \
+          r"types, instead received <class 'float'>"
+    with pytest.raises(TypeError, match=msg):
+        dt.Frame([], types=2.5)
 
 
 def test_unknown_arg():
-    with pytest.raises(TypeError) as e:
+    msg = r"Frame\(\) constructor got an unexpected keyword argument 'dtype'"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1], dtype="int32")
-    assert ("Frame() constructor got an unexpected keyword argument 'dtype'" ==
-            str(e.value))
 
 
-def test_unknown_args():
-    with pytest.raises(TypeError) as e:
+def test_unknown_args1():
+    msg = r"Frame\(\) constructor got 2 unexpected keyword arguments: " \
+          r"'A' and 'B'"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1], A=1, B=2)
-    assert ("Frame() constructor got 2 unexpected keyword arguments: "
-            "'A' and 'B'" == str(e.value))
-    with pytest.raises(TypeError) as e:
+
+
+def test_unknown_args2():
+    msg = r"Frame\(\) constructor got 3 unexpected keyword arguments: " \
+          r"'A', 'B' and 'C'"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1], A=1, B=2, C=3)
-    assert ("Frame() constructor got 3 unexpected keyword arguments: "
-            "'A', 'B' and 'C'" == str(e.value))
-    with pytest.raises(TypeError) as e:
+
+
+def test_unknown_args3():
+    msg = r"Frame\(\) constructor got 4 unexpected keyword arguments: " \
+          r"'A', 'B', ..., 'D'"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1], A=1, B=2, C=3, D=4)
-    assert ("Frame() constructor got 4 unexpected keyword arguments: "
-            "'A', 'B', ..., 'D'" == str(e.value))
-    with pytest.raises(TypeError) as e:
+
+
+def test_unknown_args4():
+    msg = r"Frame\(\) constructor got 5 unexpected keyword arguments: " \
+          r"'A', 'B', ..., 'E'"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1], A=1, B=2, C=3, D=4, E=5)
-    assert ("Frame() constructor got 5 unexpected keyword arguments: "
-            "'A', 'B', ..., 'E'" == str(e.value))
 
 
-def test_stypes_dict():
-    with pytest.raises(TypeError) as e:
+def test_types_dict():
+    msg = "When parameter types is a dictionary, column names must " \
+          "be explicitly specified"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame([1, 2, 3], stypes={"A": float})
-    assert ("When parameter stypes is a dictionary, column names must "
-            "be explicitly specified" == str(e.value))
 
 
 def test_create_from_set():
-    with pytest.raises(TypeError) as e:
+    msg = "Cannot create Frame from <class 'set'>"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame({1, 13, 15, -16, -10, 7, 9, 1})
-    assert ("Cannot create Frame from <class 'set'>" == str(e.value))
 
 
 def test_wrong_source():
-    with pytest.raises(TypeError) as e:
+    msg = "Cannot create a column from <class 'int'>"
+    with pytest.raises(TypeError, match=msg):
         dt.Frame(A=[1], B=2)
-    assert ("Cannot create a column from <class 'int'>" == str(e.value))
 
 
 def test_wrong_source_heavy():
@@ -117,18 +124,18 @@ def test_wrong_source_heavy():
 
 
 def test_different_column_lengths():
-    with pytest.raises(ValueError) as e:
+    msg = r"Column 1 has different number of rows \(3\) than the preceding " \
+          r"columns \(10\)"
+    with pytest.raises(ValueError, match=msg):
         dt.Frame([range(10), [3, 4, 6]])
-    assert ("Column 1 has different number of rows (3) than the preceding "
-            "columns (10)" == str(e.value))
 
 
 def test_from_frame_as_column():
     DT = dt.Frame(A=[1, 2, 3], B=[7, 4, 1])
-    with pytest.raises(ValueError) as e:
+    msg = "A column cannot be constructed from a Frame with 2 columns"
+    with pytest.raises(ValueError, match=msg):
         dt.Frame(X=DT)
-    assert ("A column cannot be constructed from a Frame with 2 columns"
-            == str(e.value))
+
 
 
 
@@ -141,8 +148,7 @@ def test_create_from_nothing():
     frame_integrity_check(d0)
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
-    assert d0.ltypes == tuple()
-    assert d0.stypes == tuple()
+    assert d0.types == []
 
 
 def test_create_from_none():
@@ -150,8 +156,7 @@ def test_create_from_none():
     frame_integrity_check(d0)
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
-    assert d0.ltypes == tuple()
-    assert d0.stypes == tuple()
+    assert d0.types == []
 
 
 def test_create_from_empty_list():
@@ -159,15 +164,14 @@ def test_create_from_empty_list():
     frame_integrity_check(d0)
     assert d0.shape == (0, 0)
     assert d0.names == tuple()
-    assert d0.ltypes == tuple()
-    assert d0.stypes == tuple()
+    assert d0.types == []
 
 
 def test_create_from_empty_list_with_params():
-    d0 = dt.Frame([], names=[], stypes=[])
+    d0 = dt.Frame([], names=[], types=[])
     frame_integrity_check(d0)
     assert d0.shape == (0, 0)
-    d1 = dt.Frame([], stype=stype.int64)
+    d1 = dt.Frame([], type=dt.int64)
     frame_integrity_check(d1)
     assert d1.shape == (0, 0)
 
@@ -182,7 +186,7 @@ def test_create_from_nothing_with_names():
 def test_create_from_empty_list_bad():
     with pytest.raises(ValueError) as e:
         dt.Frame([], stypes=["int32", "str32"])
-    assert ("The stypes argument contains 2 elements, which is more than the "
+    assert ("The types argument contains 2 elements, which is more than the "
             "number of columns being created (0)" in str(e.value))
 
 
@@ -250,7 +254,7 @@ def test_create_from_list_of_lists_with_stypes_dict():
 def test_create_from_list_of_lists_with_stypes_dict_bad():
     with pytest.raises(TypeError) as e:
         dt.Frame([[4], [9], [3]], stypes={"c": float})
-    assert ("When parameter stypes is a dictionary, column names must be "
+    assert ("When parameter types is a dictionary, column names must be "
             "explicitly specified" == str(e.value))
 
 
@@ -399,7 +403,7 @@ def test_create_from_frame_error():
     frame_integrity_check(d0)
     with pytest.raises(TypeError) as e1:
         dt.Frame(d0, stypes=[stype.int64, stype.float64, stype.str64])
-    assert ("Parameter stypes is not allowed when making a copy of a "
+    assert ("Parameter types is not allowed when making a copy of a "
             "Frame" == str(e1.value))
     with pytest.raises(TypeError) as e2:
         dt.Frame(d0, stypes=[stype.str32])
@@ -507,7 +511,7 @@ def test_create_from_list_of_tuples_bad():
 
     with pytest.raises(ValueError) as e:
         dt.Frame([(1, 2, 3)], stypes=(stype.float32,) * 10)
-    assert ("The stypes argument contains 10 elements, which is more than "
+    assert ("The types argument contains 10 elements, which is more than "
             "the number of columns being created (3)" == str(e.value))
 
 
@@ -616,7 +620,7 @@ def test_create_from_list_of_dicts_bad3():
 
 
 #-------------------------------------------------------------------------------
-# Stype auto-detection
+# Type auto-detection
 #-------------------------------------------------------------------------------
 
 def test_auto_bool8():
@@ -768,7 +772,7 @@ def test_no_auto_object_column():
 
 
 #-------------------------------------------------------------------------------
-# Create specific stypes
+# types= argument
 #-------------------------------------------------------------------------------
 
 def test_create_from_nones():
@@ -779,7 +783,7 @@ def test_create_from_nones():
 
 
 def test_create_as_int8():
-    d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], stype=stype.int8)
+    d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], type=stype.int8)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int8, )
     assert d0.shape == (7, 1)
@@ -787,7 +791,7 @@ def test_create_as_int8():
 
 
 def test_create_as_int16():
-    d0 = dt.Frame([1e50, 1000, None, "27", "?", True], stype=stype.int16)
+    d0 = dt.Frame([1e50, 1000, None, "27", "?", True], type=stype.int16)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int16, )
     assert d0.shape == (6, 1)
@@ -796,7 +800,7 @@ def test_create_as_int16():
 
 
 def test_create_as_int32():
-    d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], stype=stype.int32)
+    d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], type=stype.int32)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
@@ -833,7 +837,7 @@ def test_create_as_str32():
 
 
 def test_create_as_str64():
-    d0 = dt.Frame(range(10), stype=stype.str64)
+    d0 = dt.Frame(range(10), type=dt.Type.str64)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.str64, )
     assert d0.shape == (10, 1)
@@ -850,6 +854,30 @@ def test_create_range_as_stype(st):
         assert d0.to_list()[0] == [str(x) for x in range(10)]
     else:
         assert d0.to_list()[0] == list(range(10))
+
+
+@pytest.mark.parametrize('t', [stype.float64, dt.Type.float64, float, 'double',
+                               'float64'])
+def test_create_from_various_types(t):
+    DT = dt.Frame(range(5), type=t)
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.float64
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_numpy_dtype1(np):
+    DT = dt.Frame(range(5), type=np.dtype('float64'))
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_numpy_dtype2(np):
+    DT = dt.Frame(range(5), type=np.float64)
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
+
+
+def test_create_from_arrow_type(pa):
+    DT = dt.Frame(range(5), type=pa.float64())
+    assert_equals(DT, dt.Frame([0.0, 1.0, 2.0, 3.0, 4.0]))
 
 
 
@@ -974,7 +1002,7 @@ def test_create_from_pandas_with_stypes(pandas):
     with pytest.raises(TypeError) as e:
         p = pandas.DataFrame([[1, 2, 3]])
         dt.Frame(p, stype=str)
-    assert ("Argument stypes is not supported in Frame() constructor "
+    assert ("Argument types is not supported in Frame() constructor "
             "when creating a Frame from pandas DataFrame" == str(e.value))
 
 
@@ -1275,6 +1303,12 @@ def test_create_from_numpy_floats_mixed(numpy):
     assert DT.shape == (4, 1)
     assert DT.stype == dt.float64
     assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
+
+
+def test_create_from_numpy_strings(np):
+    src = ["alpha", "beta", "gamma"]
+    DT = dt.Frame([np.str_(s) for s in src])
+    assert_equals(DT, dt.Frame(src))
 
 
 def test_create_from_numpy_reversed(numpy):

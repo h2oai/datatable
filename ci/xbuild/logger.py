@@ -52,6 +52,7 @@ class Logger0:
     def report_deduplicated(self, files): pass
     def report_destdir(self, dd): pass
     def report_full_rebuild(self): pass
+    def report_generating_docs(self, docfile): pass
     def report_include_dir(self, dd): pass
     def report_includes(self, inlcudes): pass
     def report_lib_dir(self, dd): pass
@@ -143,6 +144,11 @@ class Logger1(Logger0):
     def report_output_file(self, filename):
         self._output_file = filename
 
+    def report_generating_docs(self, docfile):
+        msg = "Generating documentation %s" % docfile
+        print("\r\x1B[90m" + msg + "\x1B[m\x1B[K")
+        self._redraw()
+
     def _redraw(self):
         line = "\r\x1B[90m" + self._msg
         if self._msg == "Compiling":
@@ -183,6 +189,9 @@ class Logger2(Logger0):
 
     def report_output_file(self, filename):
         self.info("Output file name will be `%r`" % filename)
+
+    def report_generating_docs(self, docfile):
+        self.info("Generating documentation %s" % docfile)
 
     def step_compile(self, files):
         if files:
@@ -293,6 +302,9 @@ class Logger3(Logger0):
 
     def report_full_rebuild(self):
         self.info("All source files will be recompiled")
+
+    def report_generating_docs(self, docfile):
+        self.info("Generating documentation %s" % docfile)
 
     def report_include_dir(self, dd):
         self.info("Added include directory %r" % dd)

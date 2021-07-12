@@ -43,7 +43,6 @@ void label_encode(const Column& col, dtptr& dt_labels, dtptr& dt_encoded,
                            col, dt_labels, dt_encoded, is_binomial
                          );
                          break;
-    case SType::DATE32:
     case SType::INT32:   label_encode_fw<SType::INT32>(
                            col, dt_labels, dt_encoded, is_binomial
                           );

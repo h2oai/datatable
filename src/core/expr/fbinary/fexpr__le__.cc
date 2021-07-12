@@ -67,6 +67,7 @@ Column FExpr__le__::evaluate1(Column&& lcol, Column&& rcol) const {
     case SType::INT16:   type0 = dt::Type::int32();  FALLTHROUGH;
     case SType::DATE32:
     case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), type0);
+    case SType::TIME64:
     case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), type0);
     case SType::FLOAT32: return make<float>(std::move(lcol), std::move(rcol), type0);
     case SType::FLOAT64: return make<double>(std::move(lcol), std::move(rcol), type0);

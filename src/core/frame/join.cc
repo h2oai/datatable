@@ -312,6 +312,7 @@ static void _init_comparators() {
   size_t str32 = static_cast<size_t>(dt::SType::STR32);
   size_t str64 = static_cast<size_t>(dt::SType::STR64);
   size_t dat32 = static_cast<size_t>(dt::SType::DATE32);
+  size_t tim64 = static_cast<size_t>(dt::SType::TIME64);
   cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;
@@ -366,6 +367,7 @@ static void _init_comparators() {
   cmps[str64][str32] = StringCmp::make;
   cmps[str64][str64] = StringCmp::make;
   cmps[dat32][dat32] = FwCmp<int32_t, int32_t>::make;
+  cmps[tim64][tim64] = FwCmp<int64_t, int64_t>::make;
 }
 
 

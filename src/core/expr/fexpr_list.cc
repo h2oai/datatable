@@ -318,7 +318,15 @@ RiGb FExpr_List::evaluate_iby(EvalContext&) const {
   throw NotImplError() << "FExpr_List::evaluate_iby() not implemented yet";
 }
 
-
+void FExpr_List::set_outflags(
+    EvalContext& ctx, std::vector<SortFlag>& outflags, bool reverse) const
+{
+  if (ctx.get_mod_type() == ModType::BY) {
+    outflags.push_back(SortFlag::NONE);
+  } else {
+    outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+  }
+}
 
 void FExpr_List::prepare_by(
     EvalContext& ctx, Workframe& outwf, std::vector<SortFlag>& outflags) const
@@ -330,7 +338,7 @@ void FExpr_List::prepare_by(
   if (kind == Kind::Str || kind == Kind::Int) {
     for (const auto& arg : args_) {
       outwf.cbind( arg->evaluate_f(ctx, 0) );
-      outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+      set_outflags(ctx, outflags, reverse);
     }
   }
   else if (kind == Kind::Func) {
@@ -338,10 +346,13 @@ void FExpr_List::prepare_by(
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
+        if (ctx.get_mod_type() == ModType::BY) {
+          reverse = false;
+        }
         outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
-        outflags.push_back(reverse ? SortFlag::DESCENDING : SortFlag::NONE);
+        set_outflags(ctx, outflags, reverse);
       }
     }
   }

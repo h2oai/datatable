@@ -40,13 +40,19 @@ This makes several directives available for use in the .rst files:
 
     .. xmethod: datatable.Frame.cbind
         :src: c/frame/cbind.cc Frame::cbind
-        :doc: c/frame/cbind.cc doc_cbind
         :tests: tests/frame/test-cbind.py
+        :cvar: doc_Frame_cbind
+        :signature: cbind(*frames)
+
+        content...
 
     .. xclass: datatable.Frame
 
 The :src: option is required, but it may be "--" to indicate that the object
 has no identifiable source (use sparingly!).
+
+The :cvar: option has no effect on the output, but it helps auto-generator
+to find which documentation belongs where.
 """
 import pathlib
 import re
@@ -227,6 +233,8 @@ class XobjectDirective(SphinxDirective):
         "deletable": directives.unchanged,
         "noindex": directives.unchanged,
         "qual-type": directives.unchanged,
+        "cvar": directives.unchanged,
+        "signature": directives.unchanged,
     }
 
     def __init__(self, *args):
@@ -243,6 +251,7 @@ class XobjectDirective(SphinxDirective):
         self.tests_github_url = None
         self.qualifier = None
         self.qualifier_reftype = None
+        self.signature = None
 
 
     def run(self):
@@ -258,6 +267,7 @@ class XobjectDirective(SphinxDirective):
         self._parse_option_settable()
         self._parse_option_deletable()
         self._parse_option_qualtype()
+        self._parse_option_signature()
         self._register_title_override()
 
         if self.src_fnname:
@@ -266,9 +276,10 @@ class XobjectDirective(SphinxDirective):
         if self.src_fnname2:
             self.src2_github_url = self._locate_fn_source(
                                     self.src_file, self.src_fnname2)
-        self._extract_docs_from_source()
-        if self.content:
-            self.doc_lines.extend(self.content)
+        if not self.signature:
+            self._extract_docs_from_source()
+            if self.content:
+                self.doc_lines.extend(self.content)
         self._parse_docstring()
 
         return self._generate_nodes()
@@ -369,7 +380,9 @@ class XobjectDirective(SphinxDirective):
         `self.src_file` and `self.src_fnname`.
         """
         if "src" not in self.options:
-            raise self.error("Option :src: is required for ..%s directive"
+            raise self.error("Option :src: is required for ..%s directive. "
+                             "If the object's source cannot be reasonably "
+                             "given, write `:src: --`."
                              % self.name)
         src = self.options["src"].strip()
         if src == '--':
@@ -484,6 +497,16 @@ class XobjectDirective(SphinxDirective):
         if not reftype:
             reftype = "class" if self.name in ["xmethod", "xattr"] else "module"
         self.qualifier_reftype = reftype
+
+
+    def _parse_option_signature(self):
+        if "signature" not in self.options:
+            return
+        if "doc" in self.options:
+            raise self.error("Option :signature: cannot be used together with "
+                             "option :doc:")
+        self.signature = self.options['signature'].strip()
+
 
 
     #---------------------------------------------------------------------------
@@ -607,14 +630,21 @@ class XobjectDirective(SphinxDirective):
         that, defers parsing of each part to :meth:`_parse_parameters`
         and :meth:`_parse_body` respectively.
         """
-        if (self.name in ["xdata", "xattr", "xclass", "xexc"] or
-                "--" not in self.doc_lines):
-            self.parsed_params = []
-            self._parse_body(self.doc_lines)
-            return
+        if self.signature:
+            signature = self.signature
+            body = self.content
 
-        iddash = self.doc_lines.index("--")
-        signature = "\n".join(self.doc_lines.data[:iddash])
+        else:
+            if (self.name in ["xdata", "xattr", "xclass", "xexc"] or
+                    "--" not in self.doc_lines):
+                self.parsed_params = []
+                self._parse_body(self.doc_lines)
+                return
+
+            iddash = self.doc_lines.index("--")
+            signature = "\n".join(self.doc_lines.data[:iddash])
+            body = self.doc_lines[iddash + 1:]
+
         if not (signature.startswith(self.obj_name + "(") and
                 signature.endswith(")")):
             raise self.error("Unexpected docstring: should have started with "
@@ -623,7 +653,7 @@ class XobjectDirective(SphinxDirective):
         # strip objname and the parentheses
         signature = signature[(len(self.obj_name) + 1):-1]
         self._parse_parameters(signature)
-        self._parse_body(self.doc_lines[iddash + 1:])
+        self._parse_body(body)
 
 
     def _parse_parameters(self, sig):
@@ -1348,7 +1378,9 @@ class XversionActionDirective(SphinxDirective):
                 reftarget=target))
         node = xnodes.div(node, classes=["x-version", action])
 
-        self.state.nested_parse(self.content, self.content_offset, node)
+        if self.content:
+            node.attributes['classes'].extend(["admonition", "warning"])
+            self.state.nested_parse(self.content, self.content_offset, node)
         return [node]
 
 

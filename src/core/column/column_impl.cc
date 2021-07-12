@@ -130,6 +130,7 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
     case SType::INT16:   return _materialize_fw<int16_t>(out);
     case SType::DATE32:
     case SType::INT32:   return _materialize_fw<int32_t>(out);
+    case SType::TIME64:
     case SType::INT64:   return _materialize_fw<int64_t>(out);
     case SType::FLOAT32: return _materialize_fw<float>  (out);
     case SType::FLOAT64: return _materialize_fw<double> (out);
@@ -195,51 +196,12 @@ void ColumnImpl::fill_npmask(bool* outmask, size_t row0, size_t row1) const {
 
 
 //------------------------------------------------------------------------------
-// Casts
+// Misc
 //------------------------------------------------------------------------------
 
 void ColumnImpl::cast_replace(Type new_type, Column& thiscol) const {
-  auto new_stype = new_type.stype();
-  if (new_type.is_boolean()) {
-    switch (stype()) {
-      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
-      case SType::INT8:    thiscol = Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(thiscol))); break;
-      case SType::INT16:   thiscol = Column(new CastNumericToBool_ColumnImpl<int16_t>(std::move(thiscol))); break;
-      case SType::INT32:   thiscol = Column(new CastNumericToBool_ColumnImpl<int32_t>(std::move(thiscol))); break;
-      case SType::INT64:   thiscol = Column(new CastNumericToBool_ColumnImpl<int64_t>(std::move(thiscol))); break;
-      case SType::FLOAT32: thiscol = Column(new CastNumericToBool_ColumnImpl<float>(std::move(thiscol))); break;
-      case SType::FLOAT64: thiscol = Column(new CastNumericToBool_ColumnImpl<double>(std::move(thiscol))); break;
-      case SType::STR32:
-      case SType::STR64:   thiscol = Column(new CastStringToBool_ColumnImpl(std::move(thiscol))); break;
-      case SType::OBJ:     thiscol = Column(new CastObjToBool_ColumnImpl(std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `bool8`";
-    }
-  }
-  else {
-    switch (stype()) {
-      case SType::VOID:    thiscol = Column::new_na_column(nrows_, new_stype); break;
-      case SType::BOOL:    thiscol = Column(new CastBool_ColumnImpl(new_stype, std::move(thiscol))); break;
-      case SType::INT8:    thiscol = Column(new CastNumeric_ColumnImpl<int8_t>(new_stype, std::move(thiscol))); break;
-      case SType::INT16:   thiscol = Column(new CastNumeric_ColumnImpl<int16_t>(new_stype, std::move(thiscol))); break;
-      case SType::INT32:   thiscol = Column(new CastNumeric_ColumnImpl<int32_t>(new_stype, std::move(thiscol))); break;
-      case SType::INT64:   thiscol = Column(new CastNumeric_ColumnImpl<int64_t>(new_stype, std::move(thiscol))); break;
-      case SType::FLOAT32: thiscol = Column(new CastNumeric_ColumnImpl<float>(new_stype, std::move(thiscol))); break;
-      case SType::FLOAT64: thiscol = Column(new CastNumeric_ColumnImpl<double>(new_stype, std::move(thiscol))); break;
-      case SType::DATE32:  thiscol = Column(new CastDate32_ColumnImpl(new_stype, std::move(thiscol))); break;
-      case SType::STR32:
-      case SType::STR64:   thiscol = Column(new CastString_ColumnImpl(new_stype, std::move(thiscol))); break;
-      case SType::OBJ:     thiscol = Column(new CastObject_ColumnImpl(new_stype, std::move(thiscol))); break;
-      default:  throw NotImplError() << "Unable to cast column of type `" << type() << "` into `" << new_type << "`";
-    }
-  }
+  thiscol = new_type.cast_column(std::move(thiscol));
 }
-
-
-
-
-//------------------------------------------------------------------------------
-// Misc
-//------------------------------------------------------------------------------
 
 void ColumnImpl::replace_values(const RowIndex&, const Column&, Column&) {
   throw NotImplError() << "Method ColumnImpl::replace_values() not implemented";

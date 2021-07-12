@@ -84,6 +84,7 @@ a > code.literal {
   background: inherit;
   border: inherit;
   color: inherit;
+  padding: 0;
 }
 
 .align-default {
@@ -755,6 +756,11 @@ div.rst-versions.rst-badge .rst-current-version span:last-child {
 div.rst-versions div.rst-other-versions dl:nth-child(2) { display: none; }
 div.rst-versions div.rst-other-versions dl:nth-child(4) { display: none; }
 div.rst-versions div.rst-other-versions dl:nth-child(5) { display: none; }
+
+div[class*="highlight-"] {
+  clear: inherit !important;
+  margin: inherit !important;
+}
 
 
 

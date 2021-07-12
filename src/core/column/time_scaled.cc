@@ -27,7 +27,10 @@ namespace dt {
 TimeScaled_ColumnImpl::TimeScaled_ColumnImpl(Column&& arg, int64_t scale)
   : Virtual_ColumnImpl(arg.nrows(), dt::SType::TIME64),
     arg_(std::move(arg)),
-    scale_(scale) {}
+    scale_(scale)
+{
+  xassert(arg_.can_be_read_as<int64_t>());
+}
 
 
 ColumnImpl* TimeScaled_ColumnImpl::clone() const {

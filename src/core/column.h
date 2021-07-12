@@ -99,10 +99,10 @@ class Column
     static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
     static Column from_pybuffer(const py::robj& buffer);
-    static Column from_pylist(const py::olist& list, dt::SType stype0);
-    static Column from_pylist_of_tuples(const py::olist& list, size_t index, dt::SType stype0);
-    static Column from_pylist_of_dicts(const py::olist& list, py::robj name, dt::SType stype0);
-    static Column from_range(int64_t start, int64_t stop, int64_t step, dt::SType);
+    static Column from_pylist(const py::olist& list, dt::Type);
+    static Column from_pylist_of_tuples(const py::olist& list, size_t index, dt::Type);
+    static Column from_pylist_of_dicts(const py::olist& list, py::robj name, dt::Type);
+    static Column from_range(int64_t start, int64_t stop, int64_t step, dt::Type);
     static Column from_arrow(std::shared_ptr<dt::OArrowArray>&&, const dt::ArrowSchema*);
 
     // Move-semantics for the pointer here indicates to the user that
@@ -289,6 +289,10 @@ class Column
     template<typename T> bool can_be_read_as() const {
       return type().can_be_read_as<T>();
     }
+
+    // Replace type of the current column. Use only if you're sure that
+    // the column can be safely read with the new type.
+    void replace_type_unsafe(dt::Type new_type);
 
   private:
     void _acquire_impl(const dt::ColumnImpl*);

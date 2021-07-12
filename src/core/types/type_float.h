@@ -21,45 +21,35 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_FLOAT_h
 #define dt_TYPES_TYPE_FLOAT_h
-#include <limits>
-#include "python/float.h"
-#include "types/type_numeric.h"
-#include "utils/assert.h"
+#include "types/typeimpl_numeric.h"
 namespace dt {
 
 
 
-class Type_Float32 : public Type_Numeric {
+class Type_Float32 : public TypeImpl_Numeric {
   public:
-    Type_Float32() : Type_Numeric(SType::FLOAT32) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float32() const override { return true; }
-    std::string to_string() const override { return "float32"; }
+    Type_Float32();
+    bool is_float() const override;
+    bool can_be_read_as_float32() const override;
+    std::string to_string() const override;
 
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<float>::max());
-    }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<float>::max());
-    }
-    const char* struct_format() const override { return "f"; }
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 
-class Type_Float64 : public Type_Numeric {
-  public:
-    Type_Float64() : Type_Numeric(SType::FLOAT64) {}
-    bool is_float() const override { return true; }
-    bool can_be_read_as_float64() const override { return true; }
-    std::string to_string() const override { return "float64"; }
 
-    py::oobj min() const override {
-      return py::ofloat(-std::numeric_limits<double>::max());
-    }
-    py::oobj max() const override {
-      return py::ofloat(std::numeric_limits<double>::max());
-    }
-    const char* struct_format() const override { return "d"; }
+class Type_Float64 : public TypeImpl_Numeric {
+  public:
+    Type_Float64();
+    bool is_float() const override;
+    bool can_be_read_as_float64() const override;
+    std::string to_string() const override;
+
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
 };
 
 

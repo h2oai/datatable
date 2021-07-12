@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,6 +24,7 @@
 #include "column/arrow_bool.h"
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
+#include "column/time_scaled.h"
 #include "stype.h"
 #include "utils/arrow_structs.h"
 
@@ -124,13 +125,35 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
     }
     case 't': {  // various time formats
       if (format[1] == 'd') {
-        if (format[2] == 'D') {  // date32
+        if (format[2] == 'D') {  // "tdD": date32 [days]
           return _make_fw(dt::SType::DATE32, std::move(array));
         }
-        if (format[2] == 'm') {  // date64
+        if (format[2] == 'm') {  // "tdm": date64 [milliseconds]
           Column res = _make_fw(dt::SType::INT64, std::move(array));
           res.cast_inplace(dt::SType::DATE32);
           return res;
+        }
+      }
+      if (format[1] == 's') {
+        // For now we're going to ignore the timezones
+        if (format[2] == 'n') {  // "tsn:...": timestamp[ns] with timezone
+          return _make_fw(dt::SType::TIME64, std::move(array));
+        }
+        constexpr int64_t NANOS = 1;
+        constexpr int64_t MICROS = 1000 * NANOS;
+        constexpr int64_t MILLIS = 1000 * MICROS;
+        constexpr int64_t SECONDS = 1000 * MILLIS;
+        if (format[2] == 'u') {  // "tsu:...": timestamp[us] with timezone
+          return Column(new dt::TimeScaled_ColumnImpl(
+              _make_fw(dt::SType::INT64, std::move(array)), MICROS));
+        }
+        if (format[2] == 'm') {  // "tsm:...": timestamp[ms] with timezone
+          return Column(new dt::TimeScaled_ColumnImpl(
+              _make_fw(dt::SType::INT64, std::move(array)), MILLIS));
+        }
+        if (format[2] == 's') {  // "tss:...": timestamp[s] with timezone
+          return Column(new dt::TimeScaled_ColumnImpl(
+              _make_fw(dt::SType::INT64, std::move(array)), SECONDS));
         }
       }
       break;

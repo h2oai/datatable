@@ -21,35 +21,25 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_BOOL_h
 #define dt_TYPES_TYPE_BOOL_h
-#include "python/_all.h"
-#include "types/type_numeric.h"
+#include "types/typeimpl_numeric.h"
 namespace dt {
 
 
 
-class Type_Bool8 : public Type_Numeric {
+class Type_Bool8 : public TypeImpl_Numeric {
   public:
-    Type_Bool8() : Type_Numeric(SType::BOOL) {}
+    Type_Bool8();
 
-    bool is_boolean() const override { return true; }
-    bool can_be_read_as_int8() const override { return true; }
+    bool is_boolean() const override;
+    bool can_be_read_as_int8() const override;
 
-    std::string to_string() const override {
-      return "bool8";
-    }
-
-    py::oobj min() const override {
-      return py::False();
-    }
-
-    py::oobj max() const override {
-      return py::True();
-    }
-
-    const char* struct_format() const override {
-      return "?";
-    }
+    std::string to_string() const override;
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
+    Column cast_column(Column&& col) const override;
 };
+
 
 
 

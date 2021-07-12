@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -49,10 +49,6 @@ class OpCodes(enum.Enum):
     OR = 210
     LSHIFT = 211
     RSHIFT = 212
-
-    # String
-    RE_MATCH = 301
-    LEN = 302
 
     # Reducers
     MEAN = 401
@@ -323,10 +319,10 @@ class Expr:
     #----- String functions ----------------------------------------------------
 
     def len(self):
-        return core.FExpr(self).len()
+        return core.FExpr(self).len()  # will warn
 
     def re_match(self, pattern, flags=None):
-        return core.FExpr(self).re_match(pattern, flags=flags)
+        return core.FExpr(self).re_match(pattern)  # will warn
 
 
 

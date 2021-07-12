@@ -215,26 +215,6 @@ static void frame_integrity_check(const py::PKArgs& args) {
 }
 
 
-static const char* doc_in_debug_mode =
-R"(
-.. x-version-deprecated:: 0.11.0
-
-Return `True` if :mod:`datatable` was compiled in debug mode.
-)";
-
-static py::PKArgs args_in_debug_mode(
-    0, 0, 0, false, false, {}, "in_debug_mode",
-    doc_in_debug_mode);
-
-static py::oobj in_debug_mode(const py::PKArgs&) {
-  #if DT_DEBUG
-    return py::True();
-  #else
-    return py::False();
-  #endif
-}
-
-
 static const char* doc_get_thread_ids =
 R"(
 Return system ids of all threads used internally by datatable.
@@ -299,58 +279,27 @@ static void _register_function(const py::PKArgs& args) {
 }
 
 
-static const char* doc_compiler_version =
-R"(
-.. x-version-deprecated:: 0.11.0
-
-Return the version of the C++ compiler used to compile this module.
-)";
-
-static py::PKArgs args_compiler_version(
-  0, 0, 0, false, false, {}, "compiler_version",
-  doc_compiler_version);
-
-const char* get_compiler_version_string() {
+// This is a private function, used from build_info.py only.
+static py::oobj compiler_version(const py::XArgs&) {
   #define STR(x) STR1(x)
   #define STR1(x) #x
-  #if DT_COMPILER_CLANG
-    return "CLang " STR(__clang_major__) "." STR(__clang_minor__) "."
-           STR(__clang_patchlevel__);
-  #elif DT_COMPILER_MSVC
-    return "MSVC " STR(_MSC_FULL_VER);
-  #elif defined(__MINGW64__)
-    return "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "."
-           STR(__MINGW64_VERSION_MINOR);
-  #elif DT_COMPILER_GCC
-    return "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "."
-           STR(__GNUC_PATCHLEVEL__);
-  #else
-    return "Unknown";
-  #endif
-  #undef STR
-  #undef STR1
+  const char* compiler =
+    #if DT_COMPILER_CLANG
+      "CLang " STR(__clang_major__) "." STR(__clang_minor__) "." STR(__clang_patchlevel__);
+    #elif DT_COMPILER_MSVC
+      "MSVC " STR(_MSC_FULL_VER);
+    #elif defined(__MINGW64__)
+      "MinGW64 " STR(__MINGW64_VERSION_MAJOR) "." STR(__MINGW64_VERSION_MINOR);
+    #elif DT_COMPILER_GCC
+      "GCC " STR(__GNUC__) "." STR(__GNUC_MINOR__) "." STR(__GNUC_PATCHLEVEL__);
+    #else
+      "Unknown";
+    #endif
+  return py::ostring(compiler);
 }
 
-static py::oobj compiler_version(const py::PKArgs&) {
-  return py::ostring(get_compiler_version_string());
-}
-
-
-
-static const char* doc_regex_supported =
-R"(
-.. x-version-deprecated:: 0.11.0
-
-Was the datatable built with regular expression support?
-)";
-
-static py::PKArgs args_regex_supported(
-  0, 0, 0, false, false, {}, "regex_supported",
-  doc_regex_supported);
-
-static py::oobj regex_supported(const py::PKArgs&) {
-  return py::obool(REGEX_SUPPORTED);
-}
+DECLARE_PYFN(&compiler_version)
+    ->name("_compiler");
 
 
 
@@ -433,31 +382,26 @@ DECLARE_PYFN(&initialize_final)
 
 void py::DatatableModule::init_methods() {
   ADD_FN(&_register_function, args__register_function);
-  ADD_FN(&in_debug_mode, args_in_debug_mode);
   ADD_FN(&frame_columns_virtual, args_frame_columns_virtual);
   ADD_FN(&frame_column_data_r, args_frame_column_data_r);
   ADD_FN(&frame_integrity_check, args_frame_integrity_check);
   ADD_FN(&get_thread_ids, args_get_thread_ids);
   ADD_FN(&initialize_options, args_initialize_options);
-  ADD_FN(&compiler_version, args_compiler_version);
-  ADD_FN(&regex_supported, args_regex_supported);
   ADD_FN(&apply_color, args_apply_color);
 
   for (py::XArgs* xarg : py::XArgs::store()) {
-    add(xarg->get_method_def());
+    if (xarg->get_class_id() == 0) {
+      add(xarg->get_method_def());
+    }
   }
 
   init_methods_aggregate();
-  init_methods_csv();
-  init_methods_isclose();
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
   init_methods_rbind();
   init_methods_repeat();
   init_methods_sets();
-  init_methods_shift();
-  init_methods_str();
   init_methods_styles();
 
   init_fbinary();

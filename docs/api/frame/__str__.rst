@@ -13,6 +13,7 @@
     then only a small sample near the start+end of the frame will be
     rendered.
 
+
     See Also
     --------
     - :meth:`.__repr__()`

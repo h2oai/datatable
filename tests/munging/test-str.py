@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -44,17 +44,17 @@ def test_issue_1912():
 
 def test_split_into_nhot_noarg():
     with pytest.raises(ValueError) as e:
-        noop(dt.split_into_nhot())
+        noop(dt.str.split_into_nhot())
     assert ("Required parameter frame is missing" == str(e.value))
 
 
 def test_split_into_nhot_none():
-    f0 = dt.split_into_nhot(None)
+    f0 = dt.str.split_into_nhot(None)
     assert f0 is None
 
 
 def test_split_into_nhot_empty():
-    f0 = dt.split_into_nhot(dt.Frame(["", None]))
+    f0 = dt.str.split_into_nhot(dt.Frame(["", None]))
     assert_equals(f0, dt.Frame())
 
 
@@ -65,7 +65,7 @@ def test_split_into_nhot0(sort):
                    None,
                    "dog, fox, mouse, cat, peacock",
                    "horse, raccoon, cat, frog, dog"])
-    f1 = dt.split_into_nhot(f0, sort = sort)
+    f1 = dt.str.split_into_nhot(f0, sort = sort)
     frame_integrity_check(f1)
     fr = dt.Frame({"cat":       [1, 0, None, 1, 1],
                    "dog":       [1, 0, None, 1, 1],
@@ -94,7 +94,7 @@ def test_split_into_nhot1():
                    "['meow' ,purr]",
                    '(\t"meow", \'purr\')',
                    "{purr}"])
-    f1 = dt.split_into_nhot(f0)
+    f1 = dt.str.split_into_nhot(f0)
     frame_integrity_check(f1)
     fr = dt.Frame(meow=[1, None, 1, 1, 1, 0], purr=[0, None, 0, 1, 1, 1])
     assert set(f1.names) == set(fr.names)
@@ -106,7 +106,7 @@ def test_split_into_nhot1():
 
 def test_split_into_nhot_sep():
     f0 = dt.Frame(["a|b|c", "b|a", None, "a|c"])
-    f1 = dt.split_into_nhot(f0, sep="|")
+    f1 = dt.str.split_into_nhot(f0, sep="|")
     assert set(f1.names) == {"a", "b", "c"}
     fr = dt.Frame(a=[1, 1, None, 1], b=[1, 1, None, 0], c=[1, 0, None, 1])
     assert set(f1.names) == set(fr.names)
@@ -114,8 +114,8 @@ def test_split_into_nhot_sep():
 
 
 def test_split_into_nhot_quotes():
-    f0 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz"']))
-    f1 = dt.split_into_nhot(dt.Frame(['foo, "bar, baz']))
+    f0 = dt.str.split_into_nhot(dt.Frame(['foo, "bar, baz"']))
+    f1 = dt.str.split_into_nhot(dt.Frame(['foo, "bar, baz']))
     assert set(f0.names) == {"foo", "bar, baz"}
     assert set(f1.names) == {"foo", '"bar', "baz"}
 
@@ -123,18 +123,18 @@ def test_split_into_nhot_quotes():
 def test_split_into_nhot_bad():
     f0 = dt.Frame([[1.25], ["foo"], ["bar"]])
     with pytest.raises(ValueError) as e:
-        dt.split_into_nhot(f0)
+        dt.str.split_into_nhot(f0)
     assert ("Function split_into_nhot() may only be applied to a single-column "
             "Frame of type string; got frame with 3 columns" == str(e.value))
 
     with pytest.raises(TypeError) as e:
-        dt.split_into_nhot(f0[:, 0])
+        dt.str.split_into_nhot(f0[:, 0])
     assert ("Function split_into_nhot() may only be applied to a single-column "
             "Frame of type string; received a column of type float64" ==
             str(e.value))
 
     with pytest.raises(ValueError) as e:
-        dt.split_into_nhot(f0[:, 1], sep=",;-")
+        dt.str.split_into_nhot(f0[:, 1], sep=",;-")
     assert ("Parameter sep in split_into_nhot() must be a single character"
             in str(e.value))
 
@@ -169,7 +169,7 @@ def test_split_into_nhot_long(seed, st):
     f0 = dt.Frame(data, stype=st)
     assert f0.stypes == (st,)
     assert f0.shape == (n, 1)
-    f1 = dt.split_into_nhot(f0)
+    f1 = dt.str.split_into_nhot(f0)
     assert f1.shape == (n, 4)
     fr = dt.Frame(liberty=col1, equality=col2, justice=col3, freedom=col4)
     assert set(f1.names) == set(fr.names)
@@ -179,8 +179,8 @@ def test_split_into_nhot_long(seed, st):
 
 def test_split_into_nhot_view():
     f0 = dt.Frame(A=["cat,dog,mouse", "mouse", None, "dog, cat"])
-    f1 = dt.split_into_nhot(f0[::-1, :])
-    f2 = dt.split_into_nhot(f0[3, :])
+    f1 = dt.str.split_into_nhot(f0[::-1, :])
+    f2 = dt.str.split_into_nhot(f0[3, :])
     assert set(f1.names) == {"cat", "dog", "mouse"}
     assert f1[:, ["cat", "dog", "mouse"]].to_list() == \
            [[1, None, 0, 1], [1, None, 0, 1], [0, None, 1, 1]]
@@ -188,92 +188,9 @@ def test_split_into_nhot_view():
     assert f2[:, ["cat", "dog"]].to_list() == [[1], [1]]
 
 
-
-#-------------------------------------------------------------------------------
-# re_match()
-#-------------------------------------------------------------------------------
-
-regexp_test = pytest.mark.skipif(not dt.internal.regex_supported(),
-                                 reason="Regex not supported")
-
-@regexp_test
-def test_re_match():
-    f0 = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
-    f1 = f0[:, f.A.re_match("ab.")]
-    assert f1.stypes == (dt.stype.bool8,)
-    assert f1.to_list() == [[True, True, False, False, None, False]]
-
-
-@regexp_test
-def test_re_match2():
-    # re_match() matches the entire string, not just the beginning...
-    f0 = dt.Frame(A=["a", "ab", "abc", "aaaa"])
-    f1 = f0[:, f.A.re_match("a.?")]
-    assert f1.stypes == (dt.stype.bool8,)
-    assert f1.to_list() == [[True, True, False, False]]
-
-
-@regexp_test
-def test_re_match_ignore_groups():
-    # Groups within the regular expression ought to be ignored
-    f0 = dt.Frame(list("abcdibaldfn"))
-    f1 = f0[f[0].re_match("([a-c]+)"), :]
-    assert f1.to_list() == [["a", "b", "c", "b", "a"]]
-
-
-@regexp_test
-def test_re_match_bad_regex1():
-    with pytest.raises(ValueError):
-        noop(dt.Frame(A=["abc"])[f.A.re_match("(."), :])
-    # assert ("Invalid regular expression: it contained mismatched ( and )"
-    #         in str(e.value))
-
-
-@regexp_test
-def test_re_match_bad_regex2():
-    with pytest.raises(ValueError):
-        noop(dt.Frame(A=["abc"])[f.A.re_match("\\"), :])
-    # assert ("Invalid regular expression: it contained an invalid escaped "
-    #         "character, or a trailing escape"
-    #         in str(e.value))
-
-
-@regexp_test
-def test_re_match_bad_regex3():
-    with pytest.raises(ValueError):
-        noop(dt.Frame(A=["abc"])[f.A.re_match("???"), :])
-    # assert ("Invalid regular expression: One of *?+{ was not preceded by a "
-    #         "valid regular expression"
-    #         in str(e.value))
-
-
-@regexp_test
-@pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
-def test_re_match_random(seed):
-    random.seed(seed)
-    n = int(random.expovariate(0.001) + 100)
-    k = random.randint(2, 12)
-    random_re = ""
-    random_len = 0
-    while random_len < k:
-        t = random.random()
-        if t < 0.4:
-            random_re += "."
-        elif t < 0.6:
-            random_re += random.choice("abcdefgh")
-        elif t < 0.8:
-            random_re += ".*"
-            random_len += 3
-        else:
-            random_re += "\\w"
-        random_len += 1
-    random_rx = re.compile(random_re)
-
-    src = [random_string(k) for _ in range(n)]
-    frame = dt.Frame(A=src)
-    frame_res = frame[:, f.A.re_match(random_rx)]
-    assert frame_res.shape == (n, 1)
-
-    res = [bool(re.fullmatch(random_rx, s)) for s in src]
-    dtres = frame_res.to_list()[0]
-    assert res == dtres
+def test_split_into_nhot_deprecated():
+    DT = dt.Frame(["a, b, c"])
+    with pytest.warns(FutureWarning):
+        RES = dt.split_into_nhot(DT)
+    EXP = dt.Frame([[1], [1], [1]], names=["a", "b", "c"], stype=dt.bool8)
+    assert_equals(RES, EXP)

@@ -65,7 +65,7 @@ class MultiSource
     size_t        iteration_index_;
 
   public:
-    MultiSource(const py::PKArgs&, GenericReader&&);
+    MultiSource(const py::XArgs&, GenericReader&&);
     MultiSource(const MultiSource&) = delete;
     MultiSource(MultiSource&&) = delete;
 

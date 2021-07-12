@@ -141,7 +141,37 @@ def test_group_reduce_all_columns():
                            veg=[57, 343]/dt.int64))
 
 
+def test_group_reverse_flag():
+    DT = dt.Frame(
+        {
+         "A": [1, 2, 1, 2, 2, 3, 3],
+         "B": [2, 2, 4, 4, 23, 5, 30]
+       }
+    )
+    EXPECTED = DT[:, :, dt.by(dt.f.A), dt.sort(-dt.f.B)]
+    RES1 = DT[:, :, dt.by("A"), dt.sort("B", reverse=True)]
+    RES2 = DT[:, :, dt.by(dt.f.A), dt.sort(dt.f.B, reverse=True)]
+    assert_equals(EXPECTED, RES1)
+    assert_equals(RES1, RES2)
 
+
+def test_group_negate_column():
+    DT = dt.Frame(
+        {
+         "A": [1, 2, 1, 2, 2, 3, 3],
+         "B": [2, 2, 4, 4, 23, 5, 30]
+       }
+    )
+    EXPECTED = dt.Frame(
+        {
+          "A": [3, 3, 2, 2, 2, 1, 1],
+          "B": [30, 5, 23, 4, 2, 4, 2]
+        }
+    )
+    RES1 = DT[:, :, dt.by(-dt.f.A), dt.sort(-dt.f.B)]
+    RES2 = DT[:, :, dt.by(-dt.f.A), dt.sort(dt.f.B, reverse=True)]
+    assert_equals(EXPECTED, RES1)
+    assert_equals(RES1, RES2)
 
 #-------------------------------------------------------------------------------
 # Groupby on small datasets

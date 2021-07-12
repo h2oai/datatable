@@ -71,6 +71,47 @@ def comma_separated(n):
         return str(n) + nstr
 
 
+class Column:
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
+        self.name = ""
+        self.type = ""
+        self.data = []
+        self.classes = []
+        self.classstr = ""
+
+    def detect_right_aligned(self):
+        ra = self.type in {"bool8", "int8", "int16", "int32", "int64",
+                           "float32", "float64", "date32", "time64"}
+        if ra:
+            self.classes.append('r')
+
+    def process_data(self):
+        dot_width = 0
+        if self.type in ['time64']:
+            for value in self.data:
+                if '.' in value:
+                    t = len(value) - value.rindex('.')
+                    dot_width = max(dot_width, t)
+
+        for i, value in enumerate(self.data):
+            value = escape_html(value)
+            if value == "NA":
+                value = "<span class=NA>NA</span>"
+            if value == '…':
+                value = "<span class=dim>…</span>"
+            if dot_width:
+                if '.' in value:
+                    t = len(value) - value.rindex('.')
+                else:
+                    t = 0
+                value += " " * (dot_width - t)
+            if self.type == "time64":
+                value = value.replace("T", "<span class=dim>T</span>")
+            self.data[i] = value
+
+
 
 #-------------------------------------------------------------------------------
 # XHtmlFormatter
@@ -183,39 +224,55 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                             continue
             yield (tok.Text, line)
 
+
     def process_dtframe(self, header_lines, sep_line, body_lines,
                         nrows, ncols):
         sep = sep_line.find('+')
         key_class = "row_index" if header_lines[0][:sep].strip() == '' else \
                     "key"
-        columns = [mm.span() for mm in re.finditer('-+', sep_line)]
+        columns = []
+        for mm in re.finditer('-+', sep_line):
+            start, end = mm.span()
+            column = Column(start, end)
+            if end < sep:
+                column.classes.append(key_class)
+            columns.append(column)
+
+        for i, line in enumerate(header_lines):
+            for column in columns:
+                value = line[column.start:column.end].strip()
+                if i == 0:
+                    column.name = value
+                else:
+                    column.type = value
+        for line in body_lines:
+            for column in columns:
+                value = line[column.start:column.end].strip()
+                column.data.append(value)
+        for column in columns:
+            column.detect_right_aligned()
+            column.classstr = ' '.join(column.classes)
+            column.process_data()
+
         out = "<div class='dtframe'><table>"
         out += "<thead>"
-        for line in header_lines:
-            cls = "colnames" if line == header_lines[0] else "coltypes"
-            out += f"<tr class={cls}>"
-            for i, j in columns:
-                out += f"<th class={key_class}>" if j < sep else "<th>"
-                out += line[i:j].strip()
+        for rowkind in ["name", "type"]:
+            out += f"<tr class=col{rowkind}s>"
+            for column in columns:
+                value = getattr(column, rowkind)
+                classes = column.classstr
+                out += f"<th class='{classes}'>" if classes else "<th>"
+                out += value
                 out += "</th>"
             out += "<th></th></tr>"
         out += "</thead>"
         out += "<tbody>"
-        for line in body_lines:
+        for i in range(len(body_lines)):
             out += "<tr>"
-            for i, j in columns:
-                classes = []
-                value = escape_html(line[i:j].strip())
-                if j < sep:
-                    classes.append(key_class)
-                if value == '…':
-                    classes.append("etc")
-                if value == 'NA':
-                    classes.append("NA")
-                if classes:
-                    out += f"<td class='{' '.join(classes)}'>"
-                else:
-                    out += "<td>"
+            for column in columns:
+                classes = column.classstr
+                value = column.data[i]
+                out += f"<td class='{classes}'>" if classes else "<td>"
                 out += value
                 out += "</td>"
             out += "<td></td></tr>"
@@ -303,7 +360,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                     assert isinstance(tvalue, str)
                     outfile.write(tvalue)
             else:
-                cls = MAP[ttype]
+                cls = MAP.get(ttype, None)
                 tvalue = escape_html(tvalue)
                 if cls:
                     outfile.write("<span class=%s>%s</span>" % (cls, tvalue))

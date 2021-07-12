@@ -21,41 +21,28 @@
 //------------------------------------------------------------------------------
 #ifndef dt_TYPES_TYPE_DATE_h
 #define dt_TYPES_TYPE_DATE_h
-#include "frame/py_frame.h"
-#include "stype.h"
-#include "types/type_impl.h"
-#include "types/type_invalid.h"
+#include "column.h"
+#include "column/cast.h"
+#include "types/typeimpl.h"
 namespace dt {
 
 
 
 class Type_Date32 : public TypeImpl {
   public:
-    Type_Date32() : TypeImpl(SType::DATE32) {}
+    Type_Date32();
 
-    bool can_be_read_as_int32() const override { return true; }
-    bool is_time() const override { return true; }
-    std::string to_string() const override { return "date32"; }
+    bool can_be_read_as_int32() const override;
+    bool is_temporal() const override;
+    std::string to_string() const override;
 
-    py::oobj min() const override {
-      return py::odate(-std::numeric_limits<int>::max());
-    }
-    py::oobj max() const override {
-      return py::odate(std::numeric_limits<int>::max() - 719468);
-    }
-    // Pretend this is int32
-    const char* struct_format() const override { return "i"; }
-
-    TypeImpl* common_type(TypeImpl* other) override {
-      if (other->stype() == SType::DATE32 || other->is_void()) {
-        return this;
-      }
-      if (other->is_object() || other->is_invalid()) {
-        return other;
-      }
-      return new Type_Invalid();
-    }
+    py::oobj min() const override;
+    py::oobj max() const override;
+    const char* struct_format() const override;
+    TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
 };
+
 
 
 

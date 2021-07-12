@@ -45,6 +45,7 @@ temp/
 
 # Auto-generated files
 src/datatable/_build_info.py
+src/core/documentation.cc
 
 # vscode settings
 .vscode/settings.json

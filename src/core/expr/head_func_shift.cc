@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,16 +20,18 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/shift.h"
+#include "datatablemodule.h"
+#include "documentation.h"
 #include "expr/eval_context.h"
 #include "expr/expr.h"
 #include "expr/fexpr_column.h"
 #include "expr/head_func.h"
 #include "expr/workframe.h"
 #include "frame/py_frame.h"
+#include "groupby.h"
 #include "parallel/api.h"
 #include "python/obj.h"
-#include "datatablemodule.h"
-#include "groupby.h"
+#include "python/xargs.h"
 #include "rowindex.h"
 namespace dt {
 namespace expr {
@@ -133,90 +135,6 @@ Workframe Head_Func_Shift::evaluate_n(
 namespace py {
 
 
-static const char* doc_shift =
-R"(shift(col, n=1)
---
-
-Produce a column obtained from `col` shifting it  `n` rows forward.
-
-The shift amount, `n`, can be both positive and negative. If positive,
-a "lag" column is created, if negative it will be a "lead" column.
-
-The shifted column will have the same number of rows as the original
-column, with `n` observations in the beginning becoming missing, and
-`n` observations at the end discarded.
-
-This function is group-aware, i.e. in the presence of a groupby it
-will perform the shift separately within each group.
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> DT = dt.Frame({"object": [1, 1, 1, 2, 2],
-    >>>                "period": [1, 2, 4, 4, 23],
-    >>>                "value": [24, 67, 89, 5, 23]})
-    >>>
-    >>> DT
-       | object  period  value
-       |  int32   int32  int32
-    -- + ------  ------  -----
-     0 |      1       1     24
-     1 |      1       2     67
-     2 |      1       4     89
-     3 |      2       4      5
-     4 |      2      23     23
-    [5 rows x 3 columns]
-
-Shift forward - Create a "lag" column::
-
-    >>> DT[:, dt.shift(f.period,  n = 3)]
-       | period
-       |  int32
-    -- + ------
-     0 |     NA
-     1 |     NA
-     2 |     NA
-     3 |      1
-     4 |      2
-    [5 rows x 1 column]
-
-Shift backwards - Create "lead" columns::
-
-    >>> DT[:, dt.shift(f[:], n = -3)]
-       | object  period  value
-       |  int32   int32  int32
-    -- + ------  ------  -----
-     0 |      2       4      5
-     1 |      2      23     23
-     2 |     NA      NA     NA
-     3 |     NA      NA     NA
-     4 |     NA      NA     NA
-    [5 rows x 3 columns]
-
-Shift in the presence of :func:`by()`::
-
-    >>> DT[:, f[:].extend({"prev_value": dt.shift(f.value)}), by("object")]
-       | object  period  value  prev_value
-       |  int32   int32  int32       int32
-    -- + ------  ------  -----  ----------
-     0 |      1       1     24          NA
-     1 |      1       2     67          24
-     2 |      1       4     89          67
-     3 |      2       4      5          NA
-     4 |      2      23     23           5
-    [5 rows x 4 columns]
-
-
-)";
-
-static PKArgs args_shift(
-    1, 1, 0, false, false, {"col", "n"}, "shift", doc_shift);
-
-
-
 static oobj make_pyexpr(dt::expr::Op opcode, otuple targs, otuple tparams) {
   size_t op = static_cast<size_t>(opcode);
   return robj(Expr_Type).call({ oint(op), targs, tparams });
@@ -240,8 +158,7 @@ static oobj _shift_frame(oobj arg, int n) {
   * python scalar, or an f-expression, or a Frame (in which case the
   * function is applied to all elements of the frame).
   */
-static oobj pyfn_shift(const PKArgs& args)
-{
+static oobj pyfn_shift(const XArgs& args) {
   int32_t n = args[1].to<int32_t>(1);
   if (args[0].is_none_or_undefined()) {
     throw TypeError() << "Function `shift()` requires 1 positional argument, "
@@ -259,11 +176,12 @@ static oobj pyfn_shift(const PKArgs& args)
       "expression or a Frame, instead got " << arg0.typeobj();
 }
 
-
-
-void DatatableModule::init_methods_shift() {
-  ADD_FN(&pyfn_shift, args_shift);
-}
+DECLARE_PYFN(&pyfn_shift)
+    ->name("shift")
+    ->docs(dt::doc_dt_shift)
+    ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"col", "n"});
 
 
 

@@ -354,9 +354,22 @@ def build_extension(cmd, verbosity=3):
                 "-Wno-unknown-pragmas"
             )
 
+    ext.add_prebuild_trigger(generate_documentation)
+
     # Setup is complete, ready to build
     ext.build()
     return ext.output_file
+
+
+def generate_documentation(ext):
+    hfile = "src/core/documentation.h"
+    ccfile = "src/core/documentation.cc"
+    docfiles = glob.glob("docs/api/**/*.rst", recursive=True)
+    if ext.is_modified(hfile):
+        import gendoc
+        ext.log.report_generating_docs(ccfile)
+        gendoc.generate_documentation(hfile, ccfile, docfiles)
+        ext.add_sources(ccfile)
 
 
 
@@ -457,6 +470,8 @@ def generate_build_info(mode=None, strict=False):
                          strict=strict)
     if "CHANGE_BRANCH" in os.environ:
         git_branch = os.environ["CHANGE_BRANCH"]
+    elif "APPVEYOR_REPO_BRANCH" in os.environ:
+        git_branch = os.environ["APPVEYOR_REPO_BRANCH"]
     else:
         git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                strict=strict)
@@ -466,6 +481,8 @@ def generate_build_info(mode=None, strict=False):
     if git_date:
         git_date = time.strftime("%Y-%m-%d %H:%M:%S",
                                  time.gmtime(int(git_date)))
+    if mode == 'build':
+        mode = 'release'
 
     info_file = os.path.join("src", "datatable", "_build_info.py")
     with open(info_file, "wt") as out:
@@ -501,9 +518,17 @@ def generate_build_info(mode=None, strict=False):
             % time.gmtime().tm_year
         )
         out.write("import types\n\n")
+        out.write("try:\n")
+        out.write("    import datatable.lib._datatable as _dt\n")
+        out.write("    _compiler = _dt._compiler()\n")
+        out.write("except:\n")
+        out.write("    _compiler = 'unknown'\n")
+        out.write("\n")
         out.write("build_info = types.SimpleNamespace(\n")
         out.write("    version='%s',\n" % version)
         out.write("    build_date='%s',\n" % build_date)
+        out.write("    build_mode='%s',\n" % mode)
+        out.write("    compiler=_compiler,\n")
         out.write("    git_revision='%s',\n" % git_hash)
         out.write("    git_branch='%s',\n" % git_branch)
         out.write("    git_date='%s',\n" % git_date)

@@ -97,6 +97,24 @@ REGISTER_PARSER(PT::Date32ISO)
     ->type(Type::date32())
     ->successors({PT::Str32});
 
+
+bool parse_date32_iso(const char* ch, const char* end, int32_t* out) {
+  int32_t year, month, day;
+  if (!parse_year(&ch, end, &year)) return false;
+  if (!(ch < end && *ch == '-')) return false;
+  ch++;
+  if (!parse_2digits(&ch, end, &month)) return false;
+  if (!(ch < end && *ch == '-')) return false;
+  ch++;
+  if (!parse_2digits(&ch, end, &day)) return false;
+  if (!(year >= -5877641 && year <= 5879610)) return false;
+  if (!(month >= 1 && month <= 12)) return false;
+  if (!(day >= 1 && day <= hh::last_day_of_month(year, month))) return false;
+  *out = hh::days_from_civil(year, month, day);
+  return (ch == end);
+}
+
+
 #ifdef DTTEST
   TEST(fread, test_date32_iso) {
     auto check = [](const char* input, int32_t expected_value, size_t advance) {

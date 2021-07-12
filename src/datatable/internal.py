@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,21 +22,15 @@
 #-------------------------------------------------------------------------------
 
 from .lib._datatable import (
-    compiler_version,
     frame_column_data_r,
     frame_columns_virtual,
     frame_integrity_check,
     get_thread_ids,
-    in_debug_mode,
-    regex_supported
 )
 
 __all__ = [
-    "compiler_version",
     "frame_column_data_r",
     "frame_columns_virtual",
     "frame_integrity_check",
     "get_thread_ids",
-    "in_debug_mode",
-    "regex_supported",
 ]

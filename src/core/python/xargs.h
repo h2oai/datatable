@@ -23,6 +23,7 @@
 #define dt_PYTHON_XARGS_h
 #include <iterator>        // std::input_iterator_tag
 #include <string>          // std::string
+#include <typeinfo>        // typeid
 #include <unordered_map>   // std::unordered_map
 #include <vector>          // std::vector
 #include "utils/macros.h"
@@ -61,7 +62,7 @@ class XArgs : public ArgParent {
     bool has_varargs_;
     bool has_varkwds_;
     bool has_renamed_args_;
-    int : 8;
+    bool is_static_method_;
     int info_;  // custom user info that can be stored inside XArgs
 
     // Runtime arguments
@@ -93,6 +94,8 @@ class XArgs : public ArgParent {
     XArgs* add_info(int);
     XArgs* add_synonym_arg(const char* new_name, const char* old_name);
     XArgs* set_class_name(const char* name);
+    XArgs* save_as(XArgs**);
+    XArgs* staticmethod();
 
     size_t n_positional_args() const override;
     size_t n_positional_or_keyword_args() const override;
@@ -203,8 +206,8 @@ class XArgs : public ArgParent {
 };
 
 
-// #define RESULT_OF(fn) \
-//     typename std::result_of<decltype(fn)(CLASS_OF(fn), const XArgs&)>::type
+// #define RESULT_OF(fn)
+//     typename std::result_of<decltype(fn)(CLASS_OF(fn), const py::XArgs&)>::type
 
 
 #define ARGS_NAME  PASTE_TOKENS(args_, __LINE__)
@@ -217,7 +220,7 @@ class XArgs : public ArgParent {
 
 #define DECLARE_METHOD(fn)                                                     \
     static py::XArgs* ARGS_NAME = (new py::XArgs(                              \
-        reinterpret_cast<oobj(PyObject::*)(const XArgs&)>(fn),                 \
+        reinterpret_cast<py::oobj(PyObject::*)(const py::XArgs&)>(fn),         \
         typeid(CLASS_OF(fn)).hash_code())                                      \
       )->pyfunction(                                                           \
           [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
@@ -226,7 +229,7 @@ class XArgs : public ArgParent {
 
 #define DECLARE_METHODv(fn)                                                    \
     static py::XArgs* ARGS_NAME = (new py::XArgs(                              \
-        reinterpret_cast<void(PyObject::*)(const XArgs&)>(fn),                 \
+        reinterpret_cast<void(PyObject::*)(const py::XArgs&)>(fn),             \
         typeid(CLASS_OF(fn)).hash_code())                                      \
       )->pyfunction(                                                           \
           [](PyObject* self, PyObject* args, PyObject* kwds) -> PyObject* {    \
@@ -235,9 +238,9 @@ class XArgs : public ArgParent {
 
 #define INIT_METHODS_FOR_CLASS(CLASS)                                          \
     do {                                                                       \
-      for (XArgs* xargs : XArgs::store()) {                                    \
+      for (py::XArgs* xargs : py::XArgs::store()) {                            \
         if (xargs->get_class_id() == typeid(CLASS).hash_code()) {              \
-          xt.add(xargs->get_pyfunction(), xargs, py::XTypeMaker::method_tag);  \
+          xt.add(xargs, py::XTypeMaker::method_tag);                           \
         }                                                                      \
       }                                                                        \
     } while(0)
