@@ -36,6 +36,15 @@
 #include "stype.h"
 namespace {
 
+// forward-declare
+Column _parse_bool(const Column&, size_t);
+Column _parse_int8(const Column&, size_t);
+Column _parse_int32(const Column&, size_t);
+Column _parse_int64(const Column&, size_t);
+Column _parse_double(const Column&, size_t);
+Column _parse_string(const Column&, size_t);
+
+
 // Each parser function has the following signature:
 //
 //     bool (*parserfn)(const Column& inputcol, size_t i0, Column* outputcol);
@@ -52,10 +61,48 @@ namespace {
 // could happen if the input contained values of incompatible types,
 // such as `[5, "boo", 3.7]`).
 
+Error _error(size_t i, py::oobj item, const char* expected_type) {
+  return TypeError()
+      << "Cannot create column: element at index " << i
+      << " is of type " << item.typeobj()
+      << ", whereas previous elements were " << expected_type;
+}
+
+
 
 //------------------------------------------------------------------------------
-// Boolean
+// Individual parsers
 //------------------------------------------------------------------------------
+
+/**
+  * Parses a column containing numpy ints (or Nones) of a specific
+  * precision T. We do not allow numpy ints to be mixed with python
+  * ints.
+  */
+template <typename T>
+Column _parse_npint(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(T));
+  auto outptr = static_cast<T*>(databuf.xptr());
+
+  py::oobj item;
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<T>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_numpy_int(outptr) ||
+        item.parse_none(outptr)) {
+      outptr++;
+    } else {
+      throw _error(i, item, sizeof(T)==1? "np.int8" :
+                            sizeof(T)==2? "np.int16" :
+                            sizeof(T)==4? "np.int32" : "np.int64");
+    }
+  }
+  return Column::new_mbuf_column(n, dt::stype_from<T>, std::move(databuf));
+}
+
 
 /**
   * Attempt to parse `inputcol` as a boolean column. This function will
@@ -65,17 +112,12 @@ namespace {
   * An exception is raised if at least one element was already parsed
   * as boolean, but others cannot be.
   */
-bool parse_as_bool(const Column& inputcol, size_t i0, Column* outputcol)
-{
-  py::oobj item;
-  inputcol.get_element(i0, &item);
-  if (!(item.is_bool() || item.is_numpy_bool())) {
-    return false;
-  }
-
+Column _parse_bool(const Column& inputcol, size_t i0) {
   size_t n = inputcol.nrows();
   Buffer databuf = Buffer::mem(n);
   auto outptr = static_cast<int8_t*>(databuf.xptr());
+
+  py::oobj item;
   for (size_t i = 0; i < i0; i++) {
     *outptr++ = dt::GETNA<int8_t>();
   }
@@ -84,51 +126,11 @@ bool parse_as_bool(const Column& inputcol, size_t i0, Column* outputcol)
     if (!(item.parse_bool(outptr) ||
           item.parse_numpy_bool(outptr) ||
           item.parse_none(outptr))) {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj() << ", whereas previous elements "
-          "were boolean";
+      throw _error(i, item, "boolean");
     }
     outptr++;
   }
-  *outputcol = Column::new_mbuf_column(n, dt::SType::BOOL, std::move(databuf));
-  return true;
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Numeric
-//------------------------------------------------------------------------------
-Column _parse_int8(const Column&, size_t);
-Column _parse_int32(const Column&, size_t);
-Column _parse_int64(const Column&, size_t);
-Column _parse_double(const Column&, size_t);
-
-/**
-  * Parses a column containing numpy ints (or Nones) of a specific
-  * precision T. We do not allow numpy ints to be mixed with python
-  * ints.
-  */
-template <typename T>
-Column _parse_npint(const Column& inputcol) {
-  size_t n = inputcol.nrows();
-  Buffer databuf = Buffer::mem(n * sizeof(T));
-  auto outptr = static_cast<T*>(databuf.xptr());
-
-  py::oobj item;
-  for (size_t i = 0; i < n; i++) {
-    inputcol.get_element(i, &item);
-    if (item.parse_numpy_int(outptr) ||
-        item.parse_none(outptr)) {
-      outptr++;
-    } else {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj() << ", whereas previous elements "
-          "were np.int" << sizeof(T)*8;
-    }
-  }
-  return Column::new_mbuf_column(n, dt::stype_from<T>, std::move(databuf));
+  return Column::new_mbuf_column(n, dt::SType::BOOL, std::move(databuf));
 }
 
 
@@ -158,9 +160,7 @@ Column _parse_int8(const Column& inputcol, size_t i0) {
       return _parse_double(inputcol, i0);
     }
     else {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj()
-          << ", whereas previous elements were int8";
+      throw _error(i, item, "int8");
     }
   }
   return Column::new_mbuf_column(n, dt::SType::INT8, std::move(databuf));
@@ -197,9 +197,7 @@ Column _parse_int32(const Column& inputcol, size_t i0) {
       }
     }
     else {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj()
-          << ", whereas previous elements were int32";
+      throw _error(i, item, "int32");
     }
   }
   return Column::new_mbuf_column(n, dt::SType::INT32, std::move(databuf));
@@ -231,9 +229,7 @@ Column _parse_int64(const Column& inputcol, size_t i0) {
       return _parse_double(inputcol, i0);
     }
     else {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj()
-          << ", whereas previous elements were int64";
+      throw _error(i, item, "int64");
     }
   }
   return Column::new_mbuf_column(n, dt::SType::INT64, std::move(databuf));
@@ -257,37 +253,59 @@ Column _parse_double(const Column& inputcol, size_t i0) {
       outptr++;
     }
     else {
-      throw TypeError() << "Cannot create column: element at index " << i
-          << " is of type " << item.typeobj()
-          << ", whereas previous elements were floats";
+      throw _error(i, item, "float");
     }
   }
   return Column::new_mbuf_column(n, dt::SType::FLOAT64, std::move(databuf));
 }
 
 
-bool parse_as_int(const Column& inputcol, size_t i0, Column* outputcol) {
-  int npbits;
+/**
+  * Parses a column containing numpy floats (or Nones) of a specific
+  * precision T. We do not allow numpy floats to be mixed with python
+  * floats.
+  */
+template <typename T>
+Column _parse_npfloat(const Column& inputcol, size_t i0) {
+  size_t n = inputcol.nrows();
+  Buffer databuf = Buffer::mem(n * sizeof(T));
+  auto outptr = static_cast<T*>(databuf.xptr());
+
   py::oobj item;
-  inputcol.get_element(i0, &item);
-  xassert(!item.is_none());
-  if (item.is_int()) {
-    int value = item.to_int32();  // Converts to ±MAX on overflow
-    if (value == 0 || value == 1) {
-      *outputcol = _parse_int8(inputcol, i0);
+  for (size_t i = 0; i < i0; i++) {
+    *outptr++ = dt::GETNA<T>();
+  }
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.parse_numpy_float(outptr) ||
+        item.parse_none(outptr)) {
+      outptr++;
     } else {
-      *outputcol = _parse_int32(inputcol, i0);
+      throw _error(i, item, sizeof(T)==4? "np.float32" : "np.float64");
     }
-    return true;
   }
-  else if ((npbits = item.is_numpy_int())) {
-    if (npbits == 1) *outputcol = _parse_npint<int8_t>(inputcol);
-    if (npbits == 2) *outputcol = _parse_npint<int16_t>(inputcol);
-    if (npbits == 4) *outputcol = _parse_npint<int32_t>(inputcol);
-    if (npbits == 8) *outputcol = _parse_npint<int64_t>(inputcol);
-    return true;
+  return Column::new_mbuf_column(n, dt::stype_from<T>, std::move(databuf));
+}
+
+
+/**
+  * Parses a column containing string values (including numpy
+  * strings).
+  * Due to complexities of constructing a string column directly,
+  * we merely check that all values in the inputcol are strings, and
+  * then cast+materialize that column into str32 type.
+  */
+Column _parse_string(const Column& inputcol, size_t i0) {
+  py::oobj item;
+  for (size_t i = i0; i < inputcol.nrows(); i++) {
+    inputcol.get_element(i, &item);
+    if (!(item.is_string() || item.is_none() || item.is_numpy_str())) {
+      throw _error(i, item, "string");
+    }
   }
-  return false;
+  Column out = inputcol.cast(dt::Type::str32());
+  out.materialize();
+  return out;
 }
 
 
@@ -304,23 +322,49 @@ Column new_parse_column_auto_type(const Column& inputcol) {
   size_t nrows = inputcol.nrows();
 
   // First, find how many `None`s we have at the start of the list,
-  // and detect if we should produce a VOID column.
+  // and whether we should produce a VOID column.
   size_t i0 = 0;
+  py::oobj item0;
   for (; i0 < nrows; ++i0) {
-    py::oobj item;
-    inputcol.get_element(i0, &item);
-    if (!item.is_none()) break;
+    inputcol.get_element(i0, &item0);
+    if (!item0.is_none()) break;
   }
   if (i0 == nrows) {  // Also works when `nrows == 0`
     return Column::new_na_column(nrows, dt::SType::VOID);
   }
 
-  Column result;
-  bool ok = parse_as_bool(inputcol, i0, &result)
-            || parse_as_int(inputcol, i0, &result);
+  // Then, decide which parser to call, based on the type of the
+  // first non-None element in the list.
+  int npbits;
+  if (item0.is_float()) {
+    return _parse_double(inputcol, i0);
+  }
+  else if (item0.is_int()) {
+    int value = item0.to_int32();  // Converts to ±MAX on overflow
+    if (value == 0 || value == 1) {
+      return _parse_int8(inputcol, i0);
+    } else {
+      return _parse_int32(inputcol, i0);
+    }
+  }
+  else if (item0.is_bool() || item0.is_numpy_bool()) {
+    return _parse_bool(inputcol, i0);
+  }
+  else if (item0.is_string() || item0.is_numpy_str()) {
+    return _parse_string(inputcol, i0);
+  }
+  else if ((npbits = item0.is_numpy_float())) {
+    if (npbits == 4) return _parse_npfloat<float>(inputcol, i0);
+    if (npbits == 8) return _parse_npfloat<double>(inputcol, i0);
+  }
+  else if ((npbits = item0.is_numpy_int())) {
+    if (npbits == 1) return _parse_npint<int8_t>(inputcol, i0);
+    if (npbits == 2) return _parse_npint<int16_t>(inputcol, i0);
+    if (npbits == 4) return _parse_npint<int32_t>(inputcol, i0);
+    if (npbits == 8) return _parse_npint<int64_t>(inputcol, i0);
+  }
 
-  (void)ok;
-  return result;
+  return Column();
   // if (ok) {
   //   xassert(result);
   //   return result;
@@ -396,15 +440,15 @@ static size_t parse_as_void(const Column& inputcol) {
 //------------------------------------------------------------------------------
 
 // Parse list of booleans, i.e. `True`, `False` and `None`.
-static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<int8_t>(inputcol, mbuf, i0,
-            [](const py::oobj& item, int8_t* out) {
-              return item.parse_bool(out) ||
-                     item.parse_none(out) ||
-                     item.parse_numpy_bool(out);
-            });
-}
+// static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<int8_t>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, int8_t* out) {
+//               return item.parse_bool(out) ||
+//                      item.parse_none(out) ||
+//                      item.parse_numpy_bool(out);
+//             });
+// }
 
 
 
@@ -423,40 +467,40 @@ static size_t parse_as_bool(const Column& inputcol, Buffer& mbuf, size_t i0)
 // Integers that are too large for int32/int64 will be promoted to
 // stype INT64/FLOAT64 respectively.
 //
-template <typename T>
-static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<T>(inputcol, mbuf, i0,
-            [](const py::oobj& item, T* out) {
-              return (sizeof(T) >= 4 && item.parse_int(out)) ||
-                     item.parse_none(out) ||
-                     item.parse_numpy_int(out) ||
-                     item.parse_bool(out);
-            });
-}
+// template <typename T>
+// static size_t parse_as_int(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<T>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, T* out) {
+//               return (sizeof(T) >= 4 && item.parse_int(out)) ||
+//                      item.parse_none(out) ||
+//                      item.parse_numpy_int(out) ||
+//                      item.parse_bool(out);
+//             });
+// }
 
 
-static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<int8_t>(inputcol, mbuf, i0,
-            [](const py::oobj& item, int8_t* out) {
-              return item.parse_01(out) ||
-                     item.parse_none(out) ||
-                     item.parse_numpy_int(out) ||
-                     item.parse_bool(out);
-            });
-}
+// static size_t parse_as_int8(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<int8_t>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, int8_t* out) {
+//               return item.parse_01(out) ||
+//                      item.parse_none(out) ||
+//                      item.parse_numpy_int(out) ||
+//                      item.parse_bool(out);
+//             });
+// }
 
-static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<int16_t>(inputcol, mbuf, i0,
-            [](const py::oobj& item, int16_t* out) {
-              return item.parse_numpy_int(out) ||
-                     item.parse_none(out) ||
-                     item.parse_01(out) ||
-                     item.parse_bool(out);
-            });
-}
+// static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<int16_t>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, int16_t* out) {
+//               return item.parse_numpy_int(out) ||
+//                      item.parse_none(out) ||
+//                      item.parse_01(out) ||
+//                      item.parse_bool(out);
+//             });
+// }
 
 
 
@@ -464,28 +508,28 @@ static size_t parse_as_int16(const Column& inputcol, Buffer& mbuf, size_t i0)
 // Float
 //------------------------------------------------------------------------------
 
-static size_t parse_as_float32(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<float>(inputcol, mbuf, i0,
-            [](const py::oobj& item, float* out) {
-              return item.parse_numpy_float(out) ||
-                     item.parse_none(out);
-            });
-}
+// static size_t parse_as_float32(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<float>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, float* out) {
+//               return item.parse_numpy_float(out) ||
+//                      item.parse_none(out);
+//             });
+// }
 
 
-static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
-{
-  return parse_as_X<double>(inputcol, mbuf, i0,
-            [](const py::oobj& item, double* out) {
-              return item.parse_double(out) ||
-                     item.parse_none(out) ||
-                     item.parse_int(out) ||
-                     item.parse_numpy_float(out) ||
-                     item.parse_bool(out) ||
-                     false;
-            });
-}
+// static size_t parse_as_float64(const Column& inputcol, Buffer& mbuf, size_t i0)
+// {
+//   return parse_as_X<double>(inputcol, mbuf, i0,
+//             [](const py::oobj& item, double* out) {
+//               return item.parse_double(out) ||
+//                      item.parse_none(out) ||
+//                      item.parse_int(out) ||
+//                      item.parse_numpy_float(out) ||
+//                      item.parse_bool(out) ||
+//                      false;
+//             });
+// }
 
 
 
@@ -524,73 +568,73 @@ static size_t parse_as_time64(const Column& inputcol, Buffer& mbuf, size_t i0) {
 // String
 //------------------------------------------------------------------------------
 
-template <typename T>
-static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
-                           Buffer& strbuf)
-{
-  static_assert(std::is_unsigned<T>::value, "Wrong T type");
+// template <typename T>
+// static size_t parse_as_str(const Column& inputcol, Buffer& offbuf,
+//                            Buffer& strbuf)
+// {
+//   static_assert(std::is_unsigned<T>::value, "Wrong T type");
 
-  size_t nrows = inputcol.nrows();
-  offbuf.resize((nrows + 1) * sizeof(T));
-  T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
-  offsets[-1] = 0;
-  if (!strbuf) {
-    strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
-  }
-  char* strptr = static_cast<char*>(strbuf.xptr());
+//   size_t nrows = inputcol.nrows();
+//   offbuf.resize((nrows + 1) * sizeof(T));
+//   T* offsets = static_cast<T*>(offbuf.wptr()) + 1;
+//   offsets[-1] = 0;
+//   if (!strbuf) {
+//     strbuf.resize(nrows * 4);  // arbitrarily 4 chars per element
+//   }
+//   char* strptr = static_cast<char*>(strbuf.xptr());
 
-  T curr_offset = 0;
-  size_t i = 0;
-  py::oobj item;
-  py::oobj tmpitem;
-  for (i = 0; i < nrows; ++i) {
-    inputcol.get_element(i, &item);
+//   T curr_offset = 0;
+//   size_t i = 0;
+//   py::oobj item;
+//   py::oobj tmpitem;
+//   for (i = 0; i < nrows; ++i) {
+//     inputcol.get_element(i, &item);
 
-    if (item.is_none()) {
-      offsets[i] = curr_offset ^ dt::GETNA<T>();
-      continue;
-    }
-    if (item.is_string()) {
-      parse_string:
-      dt::CString cstr = item.to_cstring();
-      if (cstr.size()) {
-        T tlen = static_cast<T>(cstr.size());
-        T next_offset = curr_offset + tlen;
-        // Check that length or offset of the string doesn't overflow int32_t
-        if (std::is_same<T, uint32_t>::value &&
-              (static_cast<size_t>(tlen) != cstr.size() ||
-               next_offset < curr_offset)) {
-          break;
-        }
-        // Resize the strbuf if necessary
-        if (strbuf.size() < static_cast<size_t>(next_offset)) {
-          double newsize = static_cast<double>(next_offset) *
-              (static_cast<double>(nrows) / static_cast<double>(i + 1)) * 1.1;
-          strbuf.resize(static_cast<size_t>(newsize));
-          strptr = static_cast<char*>(strbuf.xptr());
-        }
-        std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
-        curr_offset = next_offset;
-      }
-      offsets[i] = curr_offset;
-      continue;
-    }
-    if (item.is_int() || item.is_float() || item.is_bool()) {
-      tmpitem = item.to_pystring_force();
-      item = tmpitem;
-      goto parse_string;
-    }
-    break;
-  }
-  if (i < nrows) {
-    if (std::is_same<T, uint64_t>::value) {
-      strbuf.resize(0);
-    }
-  } else {
-    strbuf.resize(static_cast<size_t>(curr_offset));
-  }
-  return i;
-}
+//     if (item.is_none()) {
+//       offsets[i] = curr_offset ^ dt::GETNA<T>();
+//       continue;
+//     }
+//     if (item.is_string()) {
+//       parse_string:
+//       dt::CString cstr = item.to_cstring();
+//       if (cstr.size()) {
+//         T tlen = static_cast<T>(cstr.size());
+//         T next_offset = curr_offset + tlen;
+//         // Check that length or offset of the string doesn't overflow int32_t
+//         if (std::is_same<T, uint32_t>::value &&
+//               (static_cast<size_t>(tlen) != cstr.size() ||
+//                next_offset < curr_offset)) {
+//           break;
+//         }
+//         // Resize the strbuf if necessary
+//         if (strbuf.size() < static_cast<size_t>(next_offset)) {
+//           double newsize = static_cast<double>(next_offset) *
+//               (static_cast<double>(nrows) / static_cast<double>(i + 1)) * 1.1;
+//           strbuf.resize(static_cast<size_t>(newsize));
+//           strptr = static_cast<char*>(strbuf.xptr());
+//         }
+//         std::memcpy(strptr + curr_offset, cstr.data(), cstr.size());
+//         curr_offset = next_offset;
+//       }
+//       offsets[i] = curr_offset;
+//       continue;
+//     }
+//     if (item.is_int() || item.is_float() || item.is_bool()) {
+//       tmpitem = item.to_pystring_force();
+//       item = tmpitem;
+//       goto parse_string;
+//     }
+//     break;
+//   }
+//   if (i < nrows) {
+//     if (std::is_same<T, uint64_t>::value) {
+//       strbuf.resize(0);
+//     }
+//   } else {
+//     strbuf.resize(static_cast<size_t>(curr_offset));
+//   }
+//   return i;
+// }
 
 
 
@@ -654,14 +698,14 @@ static Column parse_column_auto_type(const Column& inputcol) {
     for (dt::SType next_stype : successors(stype)) {
       switch (next_stype) {
         // case dt::SType::BOOL:    j = parse_as_bool(inputcol, databuf, i); break;
-        case dt::SType::INT8:    j = parse_as_int8(inputcol, databuf, i); break;
-        case dt::SType::INT16:   j = parse_as_int16(inputcol, databuf, i); break;
-        case dt::SType::INT32:   j = parse_as_int<int32_t>(inputcol, databuf, i); break;
-        case dt::SType::INT64:   j = parse_as_int<int64_t>(inputcol, databuf, i); break;
-        case dt::SType::FLOAT32: j = parse_as_float32(inputcol, databuf, i); break;
-        case dt::SType::FLOAT64: j = parse_as_float64(inputcol, databuf, i); break;
-        case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
-        case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
+        // case dt::SType::INT8:    j = parse_as_int8(inputcol, databuf, i); break;
+        // case dt::SType::INT16:   j = parse_as_int16(inputcol, databuf, i); break;
+        // case dt::SType::INT32:   j = parse_as_int<int32_t>(inputcol, databuf, i); break;
+        // case dt::SType::INT64:   j = parse_as_int<int64_t>(inputcol, databuf, i); break;
+        // case dt::SType::FLOAT32: j = parse_as_float32(inputcol, databuf, i); break;
+        // case dt::SType::FLOAT64: j = parse_as_float64(inputcol, databuf, i); break;
+        // case dt::SType::STR32:   j = parse_as_str<uint32_t>(inputcol, databuf, strbuf); break;
+        // case dt::SType::STR64:   j = parse_as_str<uint64_t>(inputcol, databuf, strbuf); break;
         case dt::SType::DATE32:  j = parse_as_date32(inputcol, databuf, i); break;
         case dt::SType::TIME64:  j = parse_as_time64(inputcol, databuf, i); break;
         default: continue;  // try another stype

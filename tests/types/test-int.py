@@ -163,3 +163,24 @@ def test_int32_mixed_2(np):
           "<class 'numpy.int32'>, whereas previous elements were int32"
     with pytest.raises(TypeError, match=msg):
         dt.Frame([None, 1, 5, 14, 1000, np.int32(1), 999])
+
+
+
+
+#-------------------------------------------------------------------------------
+# Create int64 columns
+#-------------------------------------------------------------------------------
+
+def test_int64_autodetect_1():
+    src = [None, 0, 1, 44, 9548, 145928450, 2245982454589145, 333, 2]
+    DT = dt.Frame(src)
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.int64
+    assert DT.to_list()[0] == src
+
+
+def test_int64_autodetect_3(np):
+    i64 = np.int64
+    src = [None, i64(1), i64(2486), i64(-1), None]
+    DT = dt.Frame(src)
+    assert_equals(DT, dt.Frame([None, 1, 2486, -1, None], type='int64'))

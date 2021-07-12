@@ -623,22 +623,6 @@ def test_create_from_list_of_dicts_bad3():
 # Type auto-detection
 #-------------------------------------------------------------------------------
 
-def test_auto_int64():
-    src = [None, 0, 1, 44, 9548, 145928450, 2245982454589145, 333, 2]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int64
-    assert d0.to_list()[0] == src
-
-
-def test_auto_float64():
-    src = [5, 12, 5.2, None, 11, 0.998, -1]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.float64
-    assert d0.to_list()[0] == src
-
-
 def test_auto_str32_1():
     d0 = dt.Frame(["start", None, "end"])
     frame_integrity_check(d0)
@@ -705,16 +689,6 @@ def test_create_as_int32():
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
     assert d0.to_list() == [[1, 2, 5, 3, None]]
-
-
-def test_create_as_float32():
-    d0 = dt.Frame([1, 5, 2.6, "7.7777", -1.2e+50, 1.3e-50],
-                  stype=stype.float32)
-    frame_integrity_check(d0)
-    assert d0.stypes == (stype.float32, )
-    assert d0.shape == (6, 1)
-    # Apparently, float "inf" converts into double "inf" when cast. Good!
-    assert list_equals(d0.to_list(), [[1, 5, 2.6, 7.7777, -math.inf, 0]])
 
 
 def test_create_as_float64():
@@ -1183,15 +1157,6 @@ def test_create_from_numpy_floats(numpy):
     assert DT.to_list() == [[4.0, float(np.float32(3.7)), 88.5],
                             [2.0, 2.5, 7.75],
                             [0.0, 4.4, 99.999]]
-
-
-def test_create_from_numpy_floats_mixed(numpy):
-    np = numpy
-    DT = dt.Frame([np.float32(4), np.float16(3.5), None, np.float64(9.33)])
-    frame_integrity_check(DT)
-    assert DT.shape == (4, 1)
-    assert DT.stype == dt.float64
-    assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
 
 
 def test_create_from_numpy_strings(np):
