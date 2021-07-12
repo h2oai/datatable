@@ -225,6 +225,7 @@ bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
 bool _obj::is_date()          const noexcept { return v && odate::check(robj(v)); }
+bool _obj::is_datetime()      const noexcept { return v && odatetime::check(robj(v)); }
 bool _obj::is_pytype()        const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && dt::is_ltype_object(v); }
 bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
