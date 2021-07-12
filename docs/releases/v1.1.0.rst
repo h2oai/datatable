@@ -6,6 +6,11 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[new] Class :class:`dt.FExpr` now has methods :meth:`.as_type() <dt.FExpr.as_type>`,
+      :meth:`.cov() <dt.FExpr.cov>`, and :meth:`.corr() <dt.FExpr.mean>`,
+      which behaves exactly as the equivalent base level functions :func:`dt.as_type()`, 
+      :func:`dt.cov()`, and :func:`dt.corr()` respectively.
+
 
     FExpr
     -----

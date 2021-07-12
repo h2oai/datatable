@@ -412,6 +412,8 @@ oobj PyFExpr::min(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::min)
     ->name("min")
     ->docs(doc_min);
+
+
 static const char* doc_rowall =
 R"(rowall()
 --
@@ -667,6 +669,69 @@ oobj PyFExpr::first(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::first)
     ->name("first")
     ->docs(doc_first);
+
+
+static const char* doc_as_type =
+R"(as_type()
+--
+
+Equivalent to :func:`dt.as_type(self)`.
+)";
+
+oobj PyFExpr::as_type(const XArgs& args) {
+  auto as_typeFn = oobj::import("datatable", "as_type");
+  oobj n = args[0].to_oobj();
+  return as_typeFn.call({this, n});
+}
+
+
+DECLARE_METHOD(&PyFExpr::as_type)
+    ->name("as_type")
+    ->docs(doc_as_type)
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1);
+
+
+static const char* doc_cov =
+R"(cov()
+--
+
+Equivalent to :func:`dt.cov(self)`.
+)";
+
+oobj PyFExpr::cov(const XArgs& args) {
+  auto covFn = oobj::import("datatable", "cov");
+  oobj n = args[0].to_oobj();
+  return covFn.call({this, n});
+}
+
+
+DECLARE_METHOD(&PyFExpr::cov)
+    ->name("cov")
+    ->docs(doc_cov)
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1);
+
+
+static const char* doc_corr =
+R"(corr()
+--
+
+Equivalent to :func:`dt.corr(self)`.
+)";
+
+oobj PyFExpr::corr(const XArgs& args) {
+  auto corrFn = oobj::import("datatable", "corr");
+  oobj n = args[0].to_oobj();
+  return corrFn.call({this, n});
+}
+
+
+DECLARE_METHOD(&PyFExpr::corr)
+    ->name("corr")
+    ->docs(doc_corr)
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1);
 
 
 //------------------------------------------------------------------------------

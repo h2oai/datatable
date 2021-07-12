@@ -139,6 +139,7 @@
 
         * - :meth:`.min()`
           - Same as :func:`dt.min()`.
+
         * - :meth:`.rowall()`
           - Same as :func:`dt.rowall()`.
 
@@ -178,6 +179,14 @@
         * - :meth:`.sum()`
           - Same as :func:`dt.sum()`.
 
+        * - :meth:`.as_type()`
+          - Same as :func:`dt.as_type()`.
+
+        * - :meth:`.cov()`
+          - Same as :func:`dt.cov()`.
+
+        * - :meth:`.corr()`
+          - Same as :func:`dt.corr()`.
 
     Miscellaneous
     -------------
@@ -254,3 +263,7 @@
     .sd()           <fexpr/sd>
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
+    .as_type()      <fexpr/as_type>
+    .cov()          <fexpr/cov>
+    .corr()          <fexpr/corr>
+
