@@ -373,15 +373,11 @@ Column _parse_time64(const Column& inputcol, size_t i0) {
 
 
 
-
-//------------------------------------------------------------------------------
-// Main
-//------------------------------------------------------------------------------
-
 /**
-  * Main parser that calls all other parsers.
+  * Main parser that attempts to auto-detect the type of the input
+  * column.
   */
-Column new_parse_column_auto_type(const Column& inputcol) {
+Column parse_auto(const Column& inputcol, size_t) {
   int npbits;
   size_t nrows = inputcol.nrows();
 
@@ -449,7 +445,7 @@ Column resolve_column(const Column& inputcol, dt::Type type0) {
     return out;
   }
   else {
-    return new_parse_column_auto_type(inputcol);
+    return parse_auto(inputcol, 0);
   }
 }
 
