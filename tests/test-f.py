@@ -408,3 +408,4 @@ def test_corr():
     DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
 
     assert_equals(DT[:, dt.corr(f.A, f.B)], DT[:,f.A.corr(f.B)])
+
