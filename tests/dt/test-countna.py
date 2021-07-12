@@ -70,13 +70,6 @@ def test_dt_count_na1(src):
 
 
 def test_dt_count_na2():
-    df = dt.Frame({"group": ["A", "A", None, "B", "B", "A"],
-                   "var": [343, None, 567, None, 2, 212]})
-    EXP = df[:, dt.count() - dt.count(f.var), dt.by(f.group)]
-    RES = df[:, dt.countna(f.var), dt.by(f.group)]
-    assert EXP.to_list() == RES.to_list()
-
-def test_dt_count_na3():
     DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
     EXP = dt.Frame(G=[1,2], V1=[3,1], V2=[3,0])
     RES = DT[:, [dt.countna(f.V), dt.countna(dt.mean(f.V))], dt.by(f.G)]
