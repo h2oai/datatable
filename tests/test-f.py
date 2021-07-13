@@ -395,17 +395,3 @@ def test_as_type():
                    'C': [1, 2, 1, 1, 2]})
 
     assert_equals(DT[:, f.A.as_type(int)], DT[:, dt.as_type(f.A, int)])
-
-
-def test_cov():
-    assert str(dt.cov(f.A, f.B)) == str(f.A.cov(f.B))
-    DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
-
-    assert_equals(DT[:, dt.cov(f.A, f.B)], DT[:,f.A.cov(f.B)])
-
-def test_corr():
-    assert str(dt.corr(f.A, f.B)) == str(f.A.corr(f.B))
-    DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
-
-    assert_equals(DT[:, dt.corr(f.A, f.B)], DT[:,f.A.corr(f.B)])
-
