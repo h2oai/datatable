@@ -182,11 +182,6 @@
         * - :meth:`.as_type()`
           - Same as :func:`dt.as_type()`.
 
-        * - :meth:`.cov()`
-          - Same as :func:`dt.cov()`.
-
-        * - :meth:`.corr()`
-          - Same as :func:`dt.corr()`.
 
     Miscellaneous
     -------------
@@ -264,6 +259,4 @@
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
     .as_type()      <fexpr/as_type>
-    .cov()          <fexpr/cov>
-    .corr()          <fexpr/corr>
 
