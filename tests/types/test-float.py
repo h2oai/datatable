@@ -99,7 +99,8 @@ def test_float64_autodetect_5():
     DT = dt.Frame([10**n for n in range(30)])
     frame_integrity_check(DT)
     assert DT.type == dt.Type.float64
-    assert DT.to_list()[0] == [10.0**n for n in range(30)]
+    # Note: writing 10.0**n causes imprecise results on windows
+    assert DT.to_list()[0] == [float("1e%d" % n) for n in range(30)]
 
 
 def test_float64_overflow():
