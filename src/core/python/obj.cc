@@ -225,6 +225,7 @@ bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
 bool _obj::is_date()          const noexcept { return v && odate::check(robj(v)); }
+bool _obj::is_datetime()      const noexcept { return v && odatetime::check(robj(v)); }
 bool _obj::is_pytype()        const noexcept { return v && PyType_Check(v); }
 bool _obj::is_ltype()         const noexcept { return v && dt::is_ltype_object(v); }
 bool _obj::is_stype()         const noexcept { return v && dt::is_stype_object(v); }
@@ -466,10 +467,10 @@ template <typename T>
 static bool _parse_npint(PyObject* v, T* out) {
   if (!numpy_int64) init_numpy();
   if (numpy_int64 && v) {
-    if ((sizeof(T) >= 8 && PyObject_IsInstance(v, numpy_int64)) ||
-        (sizeof(T) >= 4 && PyObject_IsInstance(v, numpy_int32)) ||
-        (sizeof(T) >= 2 && PyObject_IsInstance(v, numpy_int16)) ||
-        (sizeof(T) >= 1 && PyObject_IsInstance(v, numpy_int8)))
+    if ((sizeof(T) == 8 && PyObject_IsInstance(v, numpy_int64)) ||
+        (sizeof(T) == 4 && PyObject_IsInstance(v, numpy_int32)) ||
+        (sizeof(T) == 2 && PyObject_IsInstance(v, numpy_int16)) ||
+        (sizeof(T) == 1 && PyObject_IsInstance(v, numpy_int8)))
     {
       *out = static_cast<T>(PyNumber_AsSsize_t(v, nullptr));
       return true;
@@ -605,6 +606,11 @@ int8_t _obj::to_bool_force(const error_manager&) const noexcept {
   if (v == Py_None) return dt::GETNA<int8_t>();
   if (v == Py_True) return 1;
   if (v == Py_False) return 0;
+  if (PyFloat_Check(v)) {
+    double x = PyFloat_AS_DOUBLE(v);
+    return std::isnan(x)? dt::GETNA<int8_t>() :
+           x == 0.0     ? 0 : 1;
+  }
   int r = PyObject_IsTrue(v);
   if (r >= 0) return static_cast<int8_t>(r);
   PyErr_Clear();
@@ -749,8 +755,17 @@ double _obj::to_double(const error_manager& em) const {
 
 
 py::ofloat _obj::to_pyfloat_force(const error_manager&) const noexcept {
-  if (PyFloat_Check(v) || v == Py_None) {
+  if (PyFloat_Check(v)) {
     return py::ofloat(robj(v));
+  }
+  if (v == Py_None) {
+    return py::ofloat(robj());
+  }
+  if (PyLong_Check(v)) {
+    int overflow;
+    auto pyintobj = py::oint(py::robj(v));
+    double value = pyintobj.ovalue<double>(&overflow);
+    return py::ofloat(value);
   }
   PyObject* num = PyNumber_Float(v);  // new ref
   if (!num) {

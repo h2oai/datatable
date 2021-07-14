@@ -113,9 +113,8 @@ bool CastObjToBool_ColumnImpl::get_element(size_t i, int8_t* out) const {
   py::oobj value;
   bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
-    if (value.is_true())       *out = 1;
-    else if (value.is_false()) *out = 0;
-    else                       isvalid = false;
+    *out = value.to_bool_force();
+    if (*out == -128) isvalid = false;
   }
   return isvalid;
 }
