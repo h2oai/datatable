@@ -387,3 +387,11 @@ def test_first():
 
     assert_equals(DT[:, f.A.first()], DT[:, dt.first(f.A)])
 
+def test_as_type():
+    assert str(dt.as_type(f.A, int)) == str(f.A.as_type(int))
+    assert str(dt.as_type(f[:], int)) == str(f[:].as_type(int))
+    DT = dt.Frame({'A': ['1', '1', '2', '1', '2'],
+                   'B': [None, '2', '3', '4', '5'],
+                   'C': [1, 2, 1, 1, 2]})
+
+    assert_equals(DT[:, f.A.as_type(int)], DT[:, dt.as_type(f.A, int)])
