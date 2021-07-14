@@ -171,6 +171,8 @@ Functions
       - Calculate the standard deviation per a column
     * - :func:`sum()`
       - Calculate the sum of all values per a column
+    * - :func:`nunique()`
+      - Count the number of unique values per column
 
 
 Other
@@ -237,6 +239,7 @@ Other
     mean()            <dt/mean>
     median()          <dt/median>
     min()             <dt/min>
+    nunique()         <dt/nunique>
     qcut()            <dt/qcut>
     rbind()           <dt/rbind>
     repeat()          <dt/repeat>

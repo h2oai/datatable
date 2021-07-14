@@ -38,6 +38,7 @@ __all__ = (
     "min",
     "sd",
     "sum",
+    "nunique",
 )
 
 
@@ -49,6 +50,10 @@ def count(iterable=None):
         return Expr(OpCodes.COUNT0, ())
     else:
         return _builtin_sum((x is not None) for x in iterable)
+
+
+def nunique(iterable=None):
+    return Expr(OpCodes.NUNIQUE, (iterable,))
 
 
 def first(iterable):

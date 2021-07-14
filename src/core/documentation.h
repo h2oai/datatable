@@ -34,6 +34,7 @@ extern const char* doc_dt_ifelse;
 extern const char* doc_dt_iread;
 extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
+extern const char* doc_dt_nunique;
 extern const char* doc_dt_shift;
 extern const char* doc_dt_split_into_nhot;
 
