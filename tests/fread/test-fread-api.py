@@ -770,11 +770,11 @@ def test_sep_invalid3():
             in str(e.value))
 
 
-@pytest.mark.parametrize('c', list('019\'`"aAzZoQ'))
+@pytest.mark.parametrize('c', list('019\'`"aAzZoQ-+.'))
 def test_sep_invalid4(c):
     with pytest.raises(Exception) as e:
         dt.fread("A,,B\n", sep=c)
-    assert "Separator %s is not allowed" % c == str(e.value)
+    assert "Separator '%s' is not allowed" % c == str(e.value)
 
 
 
