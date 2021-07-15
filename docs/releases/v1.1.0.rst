@@ -12,9 +12,17 @@
     .. current-module:: datatable
 
 
+    fread
+    -----
+
+    -[api] Parameter ``sep=`` in :func:`fread()` will no longer accept values
+        ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
+        they produced errors during parsing. [#3065]
+
+
     General
     -------
 
-    -[imp] Parameter `force=True` in function :func:`rbind()` (or method
+    -[imp] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
