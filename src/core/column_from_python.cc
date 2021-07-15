@@ -308,7 +308,8 @@ Column _parse_string(const Column& inputcol, size_t i0, bool strict) {
   py::oobj item;
   for (size_t i = i0; i < inputcol.nrows(); i++) {
     inputcol.get_element(i, &item);
-    if (!(item.is_string() || item.is_none() || item.is_numpy_str())) {
+    if (!(item.is_string() || item.is_none() || item.is_numpy_str() ||
+          item.is_float_nan())) {
       return _invalid(inputcol, strict, i, item, "string");
     }
   }
