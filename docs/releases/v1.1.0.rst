@@ -14,3 +14,7 @@
 
     General
     -------
+
+    -[imp] Parameter `force=True` in function :func:`rbind()` (or method
+        :meth:`dt.Frame.rbind()`) will now allow combining columns
+        of incompatible types. [#3062]

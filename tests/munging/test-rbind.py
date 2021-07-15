@@ -527,6 +527,25 @@ def test_rbind_all_stypes():
                     dt.rbind(f1, f2)
 
 
+def test_rbind_different_types_force():
+    DT1 = dt.Frame(A=[1, 4, 77]),
+    DT2 = dt.Frame(A=["Hi", "there", None])
+    DT3 = dt.Frame(A=['2010-11-01', '2020-08-14', '2022-12-12'], type='date32')
+    with pytest.raises(TypeError):
+        dt.rbind(DT1, DT2)
+    with pytest.raises(TypeError):
+        dt.rbind(DT1, DT3)
+    with pytest.raises(TypeError):
+        dt.rbind(DT3, DT2)
+    assert_equals(dt.rbind(DT1, DT2, force=True),
+                  dt.Frame(A=["1", "4", "77", "Hi", "there", None]))
+    assert_equals(dt.rbind(DT1, DT3, force=True),
+                  dt.Frame(A=["1", "4", "77", "2010-11-01", "2020-08-14", "2022-12-12"]))
+    assert_equals(dt.rbind(DT2, DT3, force=True),
+                  dt.Frame(A=["Hi", "there", None, "2010-11-01", "2020-08-14", "2022-12-12"]))
+
+
+
 def test_rbind_modulefn():
     f0 = dt.Frame([1, 5409, 204])
     f1 = dt.Frame([109813, None, 9385])
