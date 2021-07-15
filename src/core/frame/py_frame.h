@@ -47,7 +47,6 @@ class Frame : public XObject<Frame> {
     static void _init_jay(XTypeMaker&);
     static void _init_key(XTypeMaker&);
     static void _init_names(XTypeMaker&);
-    static void _init_rbind(XTypeMaker&);
     static void _init_replace(XTypeMaker&);
     static void _init_repr(XTypeMaker&);
     static void _init_sizeof(XTypeMaker&);
@@ -116,7 +115,7 @@ class Frame : public XObject<Frame> {
     oobj copy(const XArgs&);
     oobj head(const XArgs&);
     void materialize(const XArgs&);
-    void rbind(const PKArgs&);
+    void rbind(const XArgs&);
     void repeat(const PKArgs&);
     void replace(const PKArgs&);
     oobj sort(const PKArgs&);

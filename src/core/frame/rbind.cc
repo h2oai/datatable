@@ -32,6 +32,7 @@
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
@@ -55,12 +56,7 @@ static constexpr size_t INVALID_INDEX = size_t(-1);
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", dt::doc_Frame_rbind);
-
-
-
-void Frame::rbind(const PKArgs& args) {
+void Frame::rbind(const XArgs& args) {
   bool force = args[0].to<bool>(false);
   bool bynames = args[1].to<bool>(true);
 
@@ -192,38 +188,37 @@ void Frame::rbind(const PKArgs& args) {
 }
 
 
+DECLARE_METHODv(&Frame::rbind)
+    ->name("rbind")
+    ->docs(dt::doc_Frame_rbind)
+    ->allow_varargs()
+    ->n_keyword_args(2)
+    ->arg_names({"force", "bynames"});
+
 
 
 //------------------------------------------------------------------------------
 // dt.rbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_py_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", dt::doc_dt_rbind);
-
-static oobj py_rbind(const PKArgs& args) {
+static oobj py_rbind(const XArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   PyObject* rv = r.to_borrowed_ref();
   reinterpret_cast<Frame*>(rv)->rbind(args);
   return r;
 }
 
+DECLARE_PYFN(&py_rbind)
+    ->name("rbind")
+    ->docs(dt::doc_dt_rbind)
+    ->allow_varargs()
+    ->n_keyword_args(2)
+    ->arg_names({"force", "bynames"});
 
 
-void Frame::_init_rbind(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::rbind, args_rbind));
-}
 
-
-void DatatableModule::init_methods_rbind() {
-  ADD_FN(&py_rbind, args_py_rbind);
-}
 
 }  // namespace py
-
-
-
-
 //------------------------------------------------------------------------------
 // DataTable::rbind
 //------------------------------------------------------------------------------
