@@ -41,6 +41,10 @@
         If True, then the frames are allowed to have mismatching set of
         columns. Any gaps in the data will be filled with NAs.
 
+        In addition, when this parameter is True, rbind will no longer
+        produce an error when combining columns of unrelated types.
+        Instead, both columns will be converted into strings.
+
     bynames: bool
         If True (default), the columns in frames are matched by their
         names. For example, if one frame has columns ["colA", "colB",

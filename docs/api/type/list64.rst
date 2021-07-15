@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.Type.list64
-    :src: src/core/types/py_type.cc PyType::list64
+    :src: src/core/types/py_type.cc PyType::list
     :cvar: doc_Type_list64
     :signature: list64(T)
 
