@@ -15,6 +15,9 @@
     fread
     -----
 
+    -[enh] When reading Excel files, datetime fields will now be converted into
+        ``time64`` columns in the resulting frame.
+
     -[api] Parameter ``sep=`` in :func:`fread()` will no longer accept values
         ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
         they produced errors during parsing. [#3065]
