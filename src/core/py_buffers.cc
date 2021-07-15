@@ -107,7 +107,8 @@ Column Column::from_pybuffer(const py::robj& pyobj) {
     res = std::move(view).to_column();
   }
 
-  if (res.stype() == dt::SType::OBJ) {
+  if (res.type().is_object()) {
+
     try_to_resolve_object_column(res);
   }
   return res;
