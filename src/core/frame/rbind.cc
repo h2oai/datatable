@@ -296,7 +296,8 @@ void Column::rbind(colvec& columns, bool force) {
         next_type = dt::Type::str32();
       } else {
         throw TypeError() << "Cannot rbind column of type `" << col.type()
-            << "` to a column of type `" << new_type << "`";
+            << "` to a column of type `" << new_type << "`. Consider using "
+               "force=True if you want to ignore this error.";
       }
     }
     new_type = std::move(next_type);
