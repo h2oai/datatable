@@ -6,6 +6,10 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[enh] Frames with columns of type :attr:`obj64 <dt.Type.obj64>` can now
+        be saved into CSV. The values in the object column will be stringified
+        upon saving. [#3064]
+
 
     FExpr
     -----

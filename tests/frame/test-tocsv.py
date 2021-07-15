@@ -27,7 +27,7 @@ import os
 import random
 import re
 import pytest
-from datatable import stype
+from datatable import stype, f
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, list_equals
 
@@ -379,6 +379,18 @@ def test_save_empty_frame_to_file(tempfile):
     dt.Frame().to_csv(tempfile)
     assert os.path.isfile(tempfile)
     assert os.stat(tempfile).st_size == 0
+
+
+def test_save_void_column():
+    DT = dt.Frame([None]*4)
+    out = DT.to_csv()
+    assert out == 'C0\n\n\n\n\n'
+
+
+def test_save_object_column():
+    DT = dt.Frame([f.A, f[0], f[::-1]], type=object)
+    out = DT.to_csv()
+    assert out == 'C0\nFExpr<f.A>\nFExpr<f[0]>\nFExpr<f[::-1]>\n'
 
 
 def test_issue1615():
