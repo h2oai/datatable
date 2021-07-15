@@ -183,7 +183,7 @@ void Frame::rbind(const XArgs& args) {
   }
 
   _clear_types();
-  dt->rbind(dts, cols);
+  dt->rbind(dts, cols, force);
   dt->set_names(final_names);
 }
 
@@ -237,7 +237,8 @@ DECLARE_PYFN(&py_rbind)
  */
 void DataTable::rbind(
     const std::vector<DataTable*>& dts,
-    const std::vector<sztvec>& col_indices)
+    const std::vector<sztvec>& col_indices,
+    bool force)
 {
   size_t new_ncols = col_indices.size();
   xassert(new_ncols >= ncols_);
@@ -262,7 +263,7 @@ void DataTable::rbind(
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
-    columns_[i].rbind(cols_to_append);
+    columns_[i].rbind(cols_to_append, force);
   }
   ncols_ = new_ncols;
   nrows_ = new_nrows;
@@ -275,7 +276,10 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-void Column::rbind(colvec& columns) {
+// When `force` is True, we will rbind columns even if they have
+// incompatible types by converting both to strings.
+//
+void Column::rbind(colvec& columns, bool force) {
   _get_mutable_impl();
   // Is the current column "empty" ?
   bool col_empty = (stype() == dt::SType::VOID);
@@ -288,8 +292,12 @@ void Column::rbind(colvec& columns) {
     new_nrows += col.nrows();
     auto next_type = dt::Type::common(new_type, col.type());
     if (next_type.is_invalid()) {
-      throw TypeError() << "Cannot rbind column of type `" << col.type()
-          << "` to a column of type `" << new_type << "`";
+      if (force) {
+        next_type = dt::Type::str32();
+      } else {
+        throw TypeError() << "Cannot rbind column of type `" << col.type()
+            << "` to a column of type `" << new_type << "`";
+      }
     }
     new_type = std::move(next_type);
   }

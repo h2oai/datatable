@@ -234,7 +234,7 @@ class Column
   //------------------------------------
   public:
     void materialize(bool to_memory = false);
-    void rbind(colvec& columns);
+    void rbind(colvec& columns, bool force);
     void cast_inplace(dt::SType stype);
     void cast_inplace(dt::Type type);
     Column cast(dt::SType stype) const;
