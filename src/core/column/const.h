@@ -62,9 +62,13 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
 
     ColumnImpl* clone() const override;
     void materialize(Column&, bool) override;
+    bool allow_parallel_access() const override;
+    bool is_virtual() const noexcept override;
     void na_pad(size_t nrows, Column&) override;
     void rbind_impl(
         colvec& columns, size_t new_nrows, bool col_empty, dt::SType&) override;
+    void write_data_to_jay(
+        Column&, jay::ColumnBuilder&, WritableBuffer*) override;
 };
 
 

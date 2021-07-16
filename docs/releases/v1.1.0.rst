@@ -10,6 +10,9 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
+    -[fix] Saving a frame with a :attr:`void <dt.Type.void>` column into Jay
+        no longer leads to a crash. [#3074]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
