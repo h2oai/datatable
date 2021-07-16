@@ -57,10 +57,15 @@ oobj Frame::to_pandas(const XArgs&) {
   //       by rows.
   odict data;
   for (size_t i = nkeys; i < ncols; i++) {
-    data.set(
-        names[i],
-        robj(this).invoke("to_numpy", {None(), oint(i)})
-    );
+    oobj column;
+    if (dt->get_column(i).type().is_void()) {
+      olist res { 1 };
+      res.set(0, py::None());
+      column = res.invoke("__mul__", {py::oint(dt->nrows())});
+    } else {
+      column = robj(this).invoke("to_numpy", {None(), oint(i)});
+    }
+    data.set(names[i], column);
   }
 
   oobj columns = names;

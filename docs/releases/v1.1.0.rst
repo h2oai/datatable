@@ -10,6 +10,10 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
+    -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
+        now produces a pandas ``object`` column filled with ``None``s. Converting
+        such column back into datatable produces a ``void`` column again. [#3063]
+
 
     FExpr
     -----
@@ -18,6 +22,7 @@
 
     fread
     -----
+    .. current-module:: datatable
 
     -[enh] When reading Excel files, datetime fields will now be converted into
         ``time64`` columns in the resulting frame.

@@ -170,6 +170,7 @@ class _obj {
     bool is_false()         const noexcept;
     bool is_fexpr()         const noexcept;
     bool is_float()         const noexcept;
+    bool is_float_nan()     const noexcept;
     bool is_frame()         const noexcept;
     bool is_generator()     const noexcept;
     bool is_int()           const noexcept;

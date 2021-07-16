@@ -42,7 +42,6 @@
 #include "stype.h"
 
 // Forward declarations
-static void try_to_resolve_object_column(Column& col);
 static Column convert_fwchararray_to_column(py::buffer&& view);
 
 
@@ -107,8 +106,8 @@ Column Column::from_pybuffer(const py::robj& pyobj) {
     res = std::move(view).to_column();
   }
 
-  if (res.stype() == dt::SType::OBJ) {
-    try_to_resolve_object_column(res);
+  if (res.type().is_object()) {
+    res = res.reduce_type(/*strict=*/false);
   }
   return res;
 }
@@ -140,92 +139,4 @@ static Column convert_fwchararray_to_column(py::buffer&& view)
 
   strbuf.resize(static_cast<size_t>(offset));
   return Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
-}
-
-
-
-/**
- * If a column was created from Pandas series, it may end up having
- * dtype='object' (because Pandas doesn't support string columns). This function
- * will attempt to convert such column to the string type (or some other type
- * if more appropriate), and return either the original or the new modified
- * column. If a new column is returned, the original one is decrefed.
- */
-static void try_to_resolve_object_column(Column& col)
-{
-  auto data = static_cast<PyObject* const*>(col.get_data_readonly());
-  size_t nrows = col.nrows();
-
-  bool all_strings = true;
-  bool all_booleans = true;
-
-  // Approximate total length of all strings. Do not take into account
-  // possibility that the strings may expand in UTF-8 -- if needed, we'll
-  // realloc the buffer later.
-  size_t total_length = 10;
-  for (size_t i = 0; i < nrows; ++i) {
-    PyObject* v = data[i];
-    if (v == Py_None) {}
-    else if (all_strings && PyUnicode_Check(v)) {
-      all_booleans = false;
-      total_length += static_cast<size_t>(PyUnicode_GetLength(v));
-    }
-    else if (all_booleans && (v == Py_False || v == Py_True)) {
-      all_strings = false;
-    }
-    else if (PyFloat_Check(v) && std::isnan(PyFloat_AS_DOUBLE(v))) {}
-    else {
-      all_strings = false;
-      all_booleans = false;
-      break;
-    }
-  }
-
-  // All values in the list were booleans (or None)
-  if (all_booleans) {
-    Buffer mbuf = Buffer::mem(nrows);
-    auto out = static_cast<int8_t*>(mbuf.xptr());
-    for (size_t i = 0; i < nrows; ++i) {
-      PyObject* v = data[i];
-      out[i] = v == Py_True? 1 : v == Py_False? 0 : dt::GETNA<int8_t>();
-    }
-    col = Column::new_mbuf_column(nrows, dt::SType::BOOL, std::move(mbuf));
-  }
-
-  // All values were strings
-  else if (all_strings) {
-    size_t strbuf_size = total_length;
-    Buffer offbuf = Buffer::mem((nrows + 1) * 4);
-    Buffer strbuf = Buffer::mem(strbuf_size);
-    uint32_t* offsets = static_cast<uint32_t*>(offbuf.xptr());
-    char* strs = static_cast<char*>(strbuf.xptr());
-
-    offsets[0] = 0;
-    ++offsets;
-
-    uint32_t offset = 0;
-    for (size_t i = 0; i < nrows; ++i) {
-      PyObject* v = data[i];
-      if (PyUnicode_Check(v)) {
-        PyObject *z = PyUnicode_AsEncodedString(v, "utf-8", "strict");
-        size_t sz = static_cast<size_t>(PyBytes_Size(z));
-        if (offset + sz > strbuf_size) {
-          strbuf_size = static_cast<size_t>(
-              1.5 * static_cast<double>(strbuf_size) + static_cast<double>(sz));
-          strbuf.resize(strbuf_size);
-          strs = static_cast<char*>(strbuf.xptr());
-        }
-        std::memcpy(strs + offset, PyBytes_AsString(z), sz);
-        Py_DECREF(z);
-        offset += static_cast<uint32_t>(sz);
-        offsets[i] = offset;
-      } else {
-        offsets[i] = offset ^ dt::GETNA<uint32_t>();
-      }
-    }
-
-    xassert(offset <= strbuf.size());
-    strbuf.resize(offset);
-    col = Column::new_string_column(nrows, std::move(offbuf), std::move(strbuf));
-  }
 }

@@ -222,6 +222,7 @@ bool _obj::is_numeric()       const noexcept { return is_float() || is_int(); }
 bool _obj::is_list_or_tuple() const noexcept { return is_list() || is_tuple(); }
 bool _obj::is_int()           const noexcept { return v && PyLong_Check(v) && !is_bool(); }
 bool _obj::is_float()         const noexcept { return v && PyFloat_Check(v); }
+bool _obj::is_float_nan()     const noexcept { return is_float() && std::isnan(PyFloat_AS_DOUBLE(v)); }
 bool _obj::is_string()        const noexcept { return v && PyUnicode_Check(v); }
 bool _obj::is_bytes()         const noexcept { return v && PyBytes_Check(v); }
 bool _obj::is_date()          const noexcept { return v && odate::check(robj(v)); }
@@ -347,7 +348,10 @@ bool _obj::is_fexpr() const noexcept {
 
 template <typename T>
 static inline bool _parse_none(PyObject* v, T* out) {
-  if (v == Py_None) { *out = dt::GETNA<T>(); return true; }
+  if (v == Py_None || (PyFloat_Check(v) && std::isnan(PyFloat_AS_DOUBLE(v)))) {
+    *out = dt::GETNA<T>();
+    return true;
+  }
   return false;
 }
 
@@ -811,11 +815,14 @@ std::string _obj::to_string(const error_manager& em) const {
 
 
 py::ostring _obj::to_pystring_force(const error_manager&) const noexcept {
-  if (v == Py_None || v == nullptr) {
+  if (v == nullptr) {
     return py::ostring();
   }
   if (PyUnicode_Check(v)) {
     return py::ostring(py::robj(v));
+  }
+  if (v == Py_None || is_float_nan()) {
+    return py::ostring();
   }
   PyObject* res = PyObject_Str(v);  // new reference
   if (!res) {
