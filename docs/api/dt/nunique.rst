@@ -45,7 +45,7 @@
          5 |     2      5      4
         [6 rows x 3 columns]
 
-    Get the unique values of all rows:
+    Count the number of unique values of all rows:
 
         >>> df[:, dt.nunique(f[:])]
            |     A      B      C
@@ -54,7 +54,7 @@
          0 |     2      4      3
         [1 row x 3 columns]
 
-    Get the unique values of column `B`:
+    Count the number of unique values of column `B`:
 
         >>> df[:, dt.nunique(f.B)]
            |     B
