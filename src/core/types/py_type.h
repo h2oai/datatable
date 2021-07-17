@@ -22,6 +22,7 @@
 #ifndef dt_TYPES_PY_TYPE_h
 #define dt_TYPES_PY_TYPE_h
 #include "types/type.h"
+#include "python/xargs.h"
 #include "python/xobject.h"
 namespace dt {
 
@@ -30,16 +31,13 @@ namespace dt {
   * This class corresponds to python-visible `dt.Type`: it describes
   * a type of a single column.
   *
-  * This class uses "dynamic" initialization mechanism: the class
-  * object is defined via a call to python `type(name, (), {})`, and
-  * then the resulting object is modified to add new methods. This
-  * mechanism is used because the "standard" extension types do not
-  * allow to define class properties (which we need).
+  * This class uses "dynamic" initialization mechanism, which may
+  * cause some of the class featured to not work normally. In case
+  * of any oddities, please check the implementation of XObject
+  * class, specifically the `dynamic_type_` property.
   *
-  * Because of this mechanism, the XObject's field `.type` is not
-  * used: instead we use a static variable defined in "py_type.cc".
-  * This is why methods `init()`, `check()` and `cast_from()` has to
-  * be redefined.
+  * This mechanism is used because the "standard" extension types do
+  * not allow to define class properties (which we need).
   */
 class PyType : public py::XObject<PyType, true> {
   private:
@@ -57,6 +55,7 @@ class PyType : public py::XObject<PyType, true> {
     py::oobj get_name() const;
     py::oobj get_min() const;
     py::oobj get_max() const;
+    py::oobj list(const py::XArgs&);
 
     Type get_type() const { return type_; }
 

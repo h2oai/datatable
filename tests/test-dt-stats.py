@@ -54,7 +54,7 @@ srcs_str = [["foo", None, "bar", "baaz", None],
             [None, "integrity", None, None, None, None, None] / dt.str64,
             ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"] / dt.str64]
 
-srcs_obj = [[1, None, "haha", nan, inf, None, (1, 2)] / dt.obj64,
+srcs_obj = [[1, None, "haha", random, inf, None, (1, 2)] / dt.obj64,
             ["a", "bc", "def", None, -2.5, 3.7] / dt.obj64]
 
 srcs_numeric = srcs_bool + srcs_int + srcs_real
@@ -420,7 +420,7 @@ def test_empty_frame(st):
     frame_integrity_check(f1)
     assert f0.shape == (0, 1)
     assert f1.shape == (1, 1)
-    assert f0.stypes == f1.stypes == (st, )
+    assert f0.type == f1.type == dt.Type(st)
     assert f0.countna1() == 0
     assert f0.nunique1() == 0
     assert f1.countna1() == 1
@@ -430,9 +430,9 @@ def test_empty_frame(st):
 
 
 def test_object_column():
-    df = dt.Frame([None, nan, 3, [], "srsh"], stype=dt.obj64)
+    df = dt.Frame([None, pytest, 3, [], "srsh"], type=dt.obj64)
     frame_integrity_check(df)
-    assert df.countna1() == 2
+    assert df.countna1() == 1
     assert df.min1() is None
     assert df.max1() is None
     assert df.mean1() is None
@@ -444,36 +444,36 @@ def test_object_column():
 
 
 def test_object_column2():
-    df = dt.Frame([None, nan, 3, [], "srsh"] / dt.obj64)
+    df = dt.Frame([None, pytest, 3, [], "srsh"] / dt.obj64)
 
     f0 = df.countna()
     frame_integrity_check(f0)
-    assert f0.stypes == (stype.int64, )
-    assert f0[0, 0] == 2
+    assert f0.type == dt.Type.int64
+    assert f0[0, 0] == 1
 
     f1 = df.min()
     frame_integrity_check(f1)
-    assert f1.stypes == (stype.obj64, )
+    assert f1.type == dt.Type.obj64
     assert f1[0, 0] is None
 
     f2 = df.max()
     frame_integrity_check(f2)
-    assert f2.stypes == (stype.obj64, )
+    assert f2.type == dt.Type.obj64
     assert f2[0, 0] is None
 
     f3 = df.sum()
     frame_integrity_check(f3)
-    assert f3.stypes == (stype.float64, )
+    assert f3.type == dt.Type.float64
     assert f3[0, 0] is None
 
     f4 = df.mean()
     frame_integrity_check(f4)
-    assert f4.stypes == (stype.float64, )
+    assert f4.type == dt.Type.float64
     assert f4[0, 0] is None
 
     f5 = df.sd()
     frame_integrity_check(f5)
-    assert f5.stypes == (stype.float64, )
+    assert f5.type == dt.Type.float64
     assert f5[0, 0] is None
 
     assert df.mode()[0, 0] is None

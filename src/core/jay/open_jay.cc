@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -185,15 +185,21 @@ static Column column_from_jay(
     case jay::Type_Str64:   stype = dt::SType::STR64; break;
     case jay::Type_Date32:  stype = dt::SType::DATE32; break;
     case jay::Type_Time64:  stype = dt::SType::TIME64; break;
+    case jay::Type_Void0:   stype = dt::SType::VOID; break;
   }
 
   Column col;
-  Buffer databuf = extract_buffer(jaybuf, jcol->data());
-  if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
-    Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
-    col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
-  } else {
-    col = Column::new_mbuf_column(nrows, stype, std::move(databuf));
+  if (stype == dt::SType::VOID) {
+    col = Column::new_na_column(nrows, stype);
+  }
+  else {
+    Buffer databuf = extract_buffer(jaybuf, jcol->data());
+    if (stype == dt::SType::STR32 || stype == dt::SType::STR64) {
+      Buffer strbuf = extract_buffer(jaybuf, jcol->strdata());
+      col = Column::new_string_column(nrows, std::move(databuf), std::move(strbuf));
+    } else {
+      col = Column::new_mbuf_column(nrows, stype, std::move(databuf));
+    }
   }
 
   Stats* stats = col.stats();

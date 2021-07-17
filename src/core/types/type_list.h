@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,48 +19,45 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_DATATABLEMODULE_h
-#define dt_DATATABLEMODULE_h
-#include "python/ext_module.h"
+#ifndef dt_TYPES_TYPE_LIST_h
+#define dt_TYPES_TYPE_LIST_h
+#include "types/typeimpl.h"
+namespace dt {
 
-namespace py {
 
 
-class DatatableModule : public ExtModule<DatatableModule> {
+class Type_List32 : public TypeImpl {
+  private:
+    Type elementType_;
+
   public:
-    const char* name() const {
-      return "_datatable";
-    }
-    const char* doc() const {
-      return "module doc...";
-    }
-
-    void init_methods();
-    void init_methods_aggregate(); // models/aggregate.cc
-    void init_methods_jay();       // open_jay.cc
-    void init_methods_join();      // frame/join.cc
-    void init_methods_kfold();     // models/kfold.cc
-    void init_methods_repeat();    // frame/repeat.cc
-    void init_methods_sets();      // set_funcs.cc
-    void init_methods_styles();    // frame/repr/html_styles.cc
-    void init_fbinary();           // expr/fbinary/pyfn.cc
-    void init_fuzzy();             // utils/fuzzy.cc
-    void init_funary();            // expr/funary/pyfn.cc
-
-    #ifdef DTTEST
-      void init_tests();
-    #endif
+    Type_List32(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
+    std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
+    TypeImpl* common_type(TypeImpl* other) override;
 };
 
 
-}  // namespace py
+
+class Type_List64 : public TypeImpl {
+  private:
+    Type elementType_;
+
+  public:
+    Type_List64(Type t);
+    bool is_compound() const override;
+    bool is_list() const override;
+    std::string to_string() const override;
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
+    TypeImpl* common_type(TypeImpl* other) override;
+};
 
 
 
-extern "C" {
 
-  PyMODINIT_FUNC PyInit__datatable() noexcept;
-
-}
-
+}  // namespace dt
 #endif

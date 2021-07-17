@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2020 H2O.ai
+# Copyright 2020-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -336,7 +336,7 @@ def test_cut_vs_pandas_random_nbins(pandas, seed):
         data[1].append(random.randint(-max_value, max_value))
         data[2].append(random.random() * 2 * max_value - max_value)
 
-    DT = dt.Frame(data, stypes = [stype.bool8, stype.int32, stype.float64])
+    DT = dt.Frame(data, types = [dt.bool8, dt.int32, dt.float64])
     DT_cut = DT[:, cut(DT, nbins = nbins, right_closed = right_closed)]
 
     PD_cut = [pandas.cut(data[i], nbins[i], labels=False, right=right_closed) for i in range(3)]

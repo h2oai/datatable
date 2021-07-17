@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
+#include "documentation.h"
 #include "types/py_type.h"
 #include "python/_all.h"
 namespace dt {
@@ -294,19 +294,7 @@ py::oobj PyType::m__compare__(py::robj x, py::robj y, int op) {
 // .name
 //------------------------------------------------------------------------------
 
-static const char* doc_name =
-R"(
-Return the canonical name of this type, as a string.
-
-Examples
---------
->>> dt.Type.int64.name
-'int64'
->>> dt.Type(np.bool_).name
-'bool8'
-)";
-
-static py::GSArgs args_get_name("name", doc_name);
+static py::GSArgs args_get_name("name", doc_Type_name);
 
 py::oobj PyType::get_name() const {
   return py::ostring(type_.to_string());
@@ -318,62 +306,8 @@ py::oobj PyType::get_name() const {
 // .min / .max
 //------------------------------------------------------------------------------
 
-static const char* doc_min =
-R"(
-The smallest finite value that this type can represent, if applicable.
-
-Parameters
-----------
-return: Any
-    The type of the returned value corresponds to the Type object: an int
-    for integer types, a float for floating-point types, etc. If the type
-    has no well-defined min value then `None` is returned.
-
-
-Examples
---------
->>> dt.Type.int8.min
--127
->>> dt.Type.float32.min
--3.4028234663852886e+38
->>> dt.Type.date32.min
--2147483647
-
-
-See also
---------
-:attr:`.max` -- the largest value for the type.
-)";
-
-static const char* doc_max =
-R"(
-The largest finite value that this type can represent, if applicable.
-
-Parameters
-----------
-return: Any
-    The type of the returned value corresponds to the Type object: an int
-    for integer types, a float for floating-point types, etc. If the type
-    has no well-defined max value then `None` is returned.
-
-
-Examples
---------
->>> dt.Type.int32.max
-2147483647
->>> dt.Type.float64.max
-1.7976931348623157e+308
->>> dt.Type.date32.max
-2146764179
-
-
-See also
---------
-:attr:`.min` -- the smallest value for the type.
-)";
-
-static py::GSArgs args_get_min("min", doc_min);
-static py::GSArgs args_get_max("max", doc_max);
+static py::GSArgs args_get_min("min", doc_Type_min);
+static py::GSArgs args_get_max("max", doc_Type_max);
 
 
 py::oobj PyType::get_min() const {
@@ -387,24 +321,41 @@ py::oobj PyType::get_max() const {
 
 
 //------------------------------------------------------------------------------
-// Class declaration
+// Types as methods
 //------------------------------------------------------------------------------
 
-static const char* doc_Type =
-R"(
-.. x-version-added:: 1.0.0
+py::oobj PyType::list(const py::XArgs& args) {
+  Type argT = args[0].is_none()? Type::void0()
+                               : args[0].to_type_force();
+  auto t = args.get_info() == 32? Type::list32(argT) : Type::list64(argT);
+  return PyType::make(t);
+}
 
-Type of data stored in a single column of a Frame.
+DECLARE_METHOD(&PyType::list)
+    ->name("list32")
+    ->docs(dt::doc_Type_list32)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod()
+    ->add_info(32);
 
-The type describes both the logical meaning of the data (i.e. an integer,
-a floating point number, a string, etc.), as well as storage requirement
-of that data (the number of bits per element). Some types may carry
-additional properties, such as a timezone  or precision.
+DECLARE_METHOD(&PyType::list)
+    ->name("list64")
+    ->docs(dt::doc_Type_list64)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod()
+    ->add_info(64);
 
-.. note::
 
-    This property replaces previous :class:`dt.stype` and :class:`dt.ltype`.
-)";
+
+
+
+//------------------------------------------------------------------------------
+// Class declaration
+//------------------------------------------------------------------------------
 
 void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.set_class_name("datatable.Type");
@@ -417,8 +368,9 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(GETTER(&PyType::get_name, args_get_name));
   xt.add(GETTER(&PyType::get_min, args_get_min));
   xt.add(GETTER(&PyType::get_max, args_get_max));
-  pythonType = xt.get_type_object();
+  INIT_METHODS_FOR_CLASS(PyType);
 
+  pythonType = xt.get_type_object();
   xt.add_attr("bool8",   PyType::make(Type::bool8()));
   xt.add_attr("date32",  PyType::make(Type::date32()));
   xt.add_attr("float32", PyType::make(Type::float32()));
@@ -436,4 +388,5 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
 
 
 
-}
+
+}  // namespace dt::
