@@ -395,7 +395,6 @@ void py::DatatableModule::init_methods() {
     }
   }
 
-  init_methods_aggregate();
   init_methods_jay();
   init_methods_join();
   init_methods_kfold();
