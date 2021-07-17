@@ -34,6 +34,7 @@ extern const char* doc_dt_cut;
 extern const char* doc_dt_first;
 extern const char* doc_dt_fread;
 extern const char* doc_dt_ifelse;
+extern const char* doc_dt_init_styles;
 extern const char* doc_dt_intersect;
 extern const char* doc_dt_iread;
 extern const char* doc_dt_join;
