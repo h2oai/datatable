@@ -37,7 +37,15 @@ extern const char* doc_dt_rbind;
 extern const char* doc_dt_shift;
 extern const char* doc_dt_split_into_nhot;
 
+extern const char* doc_math_atan2;
+extern const char* doc_math_hypot;
 extern const char* doc_math_isclose;
+extern const char* doc_math_pow;
+extern const char* doc_math_copysign;
+extern const char* doc_math_logaddexp;
+extern const char* doc_math_logaddexp2;
+extern const char* doc_math_fmod;
+extern const char* doc_math_ldexp;
 extern const char* doc_math_round;
 
 extern const char* doc_re_match;
