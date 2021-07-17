@@ -73,6 +73,17 @@ extern const char* doc_str_len;
 extern const char* doc_str_slice;
 extern const char* doc_str_split_into_nhot;
 
+extern const char* doc_time_day;
+extern const char* doc_time_day_of_week;
+extern const char* doc_time_hour;
+extern const char* doc_time_minute;
+extern const char* doc_time_month;
+extern const char* doc_time_nanosecond;
+extern const char* doc_time_second;
+extern const char* doc_time_year;
+extern const char* doc_time_ymd;
+extern const char* doc_time_ymdt;
+
 extern const char* doc_Frame;
 extern const char* doc_Frame___init__;
 extern const char* doc_Frame___sizeof__;
