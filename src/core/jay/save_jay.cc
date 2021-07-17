@@ -461,6 +461,7 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::TIME64)]  = jay::Type_Time64;
   stype_to_jaytype[int(dt::SType::STR32)]   = jay::Type_Str32;
   stype_to_jaytype[int(dt::SType::STR64)]   = jay::Type_Str64;
+  stype_to_jaytype[int(dt::SType::VOID)]    = jay::Type_Void0;
 }
 
 

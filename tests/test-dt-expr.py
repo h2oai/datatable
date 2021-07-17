@@ -90,6 +90,8 @@ def test_logical_and2(seed):
     src2 = [random.choice([True, False, None]) for _ in range(n)]
 
     df0 = dt.Frame(A=src1, B=src2)
+    assert df0['A'].to_list()[0] == src1
+    assert df0['B'].to_list()[0] == src2
     df1 = df0[:, f.A & f.B]
     assert df1.to_list()[0] == \
         [False if (src1[i] is False or src2[i] is False) else

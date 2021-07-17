@@ -1,8 +1,16 @@
 
 .. xclass:: datatable.models.LinearModel
     :src: src/core/models/py_linearmodel.h LinearModel
-    :doc: src/core/models/py_linearmodel.cc doc_LinearModel
     :tests: tests/models/test-linearmodel.py
+    :cvar: doc_models_LM
+
+    This class implements the `Linear model`_ with the
+    `stochastic gradient descent`_ learning. It supports linear
+    regression, as well as binomial and multinomial classification.
+    Both :meth:`.fit` and :meth:`.predict` methods are fully parallel.
+
+    .. _`Linear model`: https://en.wikipedia.org/wiki/Linear_model
+    .. _`stochastic gradient descent`: https://en.wikipedia.org/wiki/Stochastic_gradient_descent
 
 
     Construction

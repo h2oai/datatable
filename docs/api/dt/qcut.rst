@@ -2,7 +2,7 @@
 .. xfunction:: datatable.qcut
     :src: src/core/expr/fexpr_qcut.cc pyfn_qcut
     :cvar: doc_dt_qcut
-    :tests: tests/expr/test-qcut.py
+    :tests: tests/dt/test-qcut.py
     :signature: qcut(cols, nquantiles=10)
 
     .. x-version-added:: 0.11

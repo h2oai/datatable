@@ -379,9 +379,10 @@ vptr value_writer::create(const Column& col, const output_options& options)
         case Quoting::NONE:       return vptr(new string_unquoted_writer(col));
       }
     }
-    default:
-      throw NotImplError() << "Cannot write into CSV values of type "
-         << col.type();
+    default: {
+      Column col_as_str = col.cast(Type::str32());
+      return value_writer::create(col_as_str, options);
+    }
   }
 }
 

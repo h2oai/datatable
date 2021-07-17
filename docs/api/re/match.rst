@@ -1,7 +1,7 @@
 
 .. xfunction:: datatable.re.match
     :src: src/core/expr/re/fexpr_match.cc fn_match
-    :tests: tests/expr/re/test-match.py
+    :tests: tests/re/test-match.py
     :cvar: doc_re_match
     :signature: match(column, pattern)
 

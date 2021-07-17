@@ -1177,6 +1177,15 @@ Same as above, but using the slice notation::
      0 |     1      1
     [1 row x 2 columns]
 
+You can pass in a dictionary with new column names::
+
+    >>> df[:, dt.min({"A_min": f.A, "B_min": f.B})]
+       |   A_min    B_min
+       |   int32    int32
+    -- + -------  -------
+     0 |       1        1
+    [1 row x 2 columns]
+
 In the presence of :func:`by()`, it returns the row with the minimum value
 per group::
 
@@ -1188,14 +1197,57 @@ per group::
      1 |     2      1
      2 |     3      1
     [3 rows x 2 columns]
-
-
-See Also
---------
-- :func:`max()` -- function to calculate maxium values.
 )";
+#endif
+
+template <typename T>
+bool min_reducer(const Column& col, size_t i0, size_t i1, T* out) {
+  T min = std::numeric_limits<T>::max();
+  bool min_isna = true;
+
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
+      if (value < min || min_isna){
+        min = value;
+        min_isna = false;
+      }
+    }
+  }
+  *out = static_cast<T>(min);
+  return !min_isna;
+}
 
 
+
+template <typename T>
+static Column _min(SType stype, Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, T>(
+                 stype, std::move(arg), gby, min_reducer<T>
+            )));
+}
+
+static Column compute_min(Column&& arg, const Groupby& gby) {
+  auto st = arg.stype();
+  switch (st) {
+    case SType::BOOL:
+    case SType::INT8:    return _min<int8_t>(st, std::move(arg), gby);
+    case SType::INT16:   return _min<int16_t>(st, std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _min<int32_t>(st, std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _min<int64_t>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _min<float>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _min<double>(st, std::move(arg), gby);
+    default: throw _error("min", arg.stype());
+  }
+}
+
+
+#if 0
 static const char* doc_max =
 R"(max(cols)
 --
@@ -1268,6 +1320,15 @@ Same as above, but more convenient::
      0 |     3     22
     [1 row x 2 columns]
 
+You can pass in a dictionary with new column names::
+
+    >>> df[:, dt.max({"A_max": f.A, "B_max": f.B})]
+       |   A_max    B_max
+       |   int32    int32
+    -- + -------  -------
+     0 |       3       22
+    [1 row x 2 columns]
+
 In the presence of :func:`by()`, it returns the row with the maximum
 value per group::
 
@@ -1279,56 +1340,52 @@ value per group::
      1 |     2      6
      2 |     3     22
     [3 rows x 2 columns]
-
-
-See Also
---------
-- :func:`min()` -- function to calculate minimum values.
 )";
 #endif
 
-template <typename T, bool MIN>
-bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T minmax = 0;
-  bool minmax_isna = true;
+template <typename T>
+bool max_reducer(const Column& col, size_t i0, size_t i1, T* out) {
+  T max = std::numeric_limits<T>::min();
+  bool max_isna = true;
+
   for (size_t i = i0; i < i1; ++i) {
     T value;
     bool isvalid = col.get_element(i, &value);
-    if (!isvalid) continue;
-    if ((MIN? (value < minmax) : (value > minmax)) || minmax_isna) {
-      minmax = value;
-      minmax_isna = false;
+    if (isvalid) {
+      if (value > max || max_isna){
+        max = value;
+        max_isna = false;
+      }
     }
   }
-  *out = minmax;
-  return !minmax_isna;
+  *out = static_cast<T>(max);
+  return !max_isna;
 }
 
 
 
-template <typename T, bool MM>
-static Column _minmax(SType stype, Column&& arg, const Groupby& gby) {
+template <typename T>
+static Column _max(SType stype, Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, minmax_reducer<T, MM>
+                 stype, std::move(arg), gby, max_reducer<T>
             )));
 }
 
-template <bool MIN>
-static Column compute_minmax(Column&& arg, const Groupby& gby) {
+static Column compute_max(Column&& arg, const Groupby& gby) {
   auto st = arg.stype();
   switch (st) {
     case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, MIN>(st, std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, MIN>(st, std::move(arg), gby);
+    case SType::INT8:    return _max<int8_t>(st, std::move(arg), gby);
+    case SType::INT16:   return _max<int16_t>(st, std::move(arg), gby);
     case SType::DATE32:
-    case SType::INT32:   return _minmax<int32_t, MIN>(st, std::move(arg), gby);
+    case SType::INT32:   return _max<int32_t>(st, std::move(arg), gby);
     case SType::TIME64:
-    case SType::INT64:   return _minmax<int64_t, MIN>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, MIN>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, MIN>(st, std::move(arg), gby);
-    default: throw _error(MIN? "min" : "max", arg.stype());
+    case SType::INT64:   return _max<int64_t>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _max<float>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _max<double>(st, std::move(arg), gby);
+    default: throw _error("max", arg.stype());
   }
 }
 
@@ -1555,8 +1612,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
       case Op::MEAN:   fn = compute_mean; break;
-      case Op::MIN:    fn = compute_minmax<true>; break;
-      case Op::MAX:    fn = compute_minmax<false>; break;
+      case Op::MIN:    fn = compute_min; break;
+      case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;

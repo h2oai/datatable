@@ -423,7 +423,6 @@ void Frame::impl_init_type(XTypeMaker& xt) {
   _init_iter(xt);
   _init_jay(xt);
   _init_names(xt);
-  _init_rbind(xt);
   _init_replace(xt);
   _init_repr(xt);
   _init_sizeof(xt);

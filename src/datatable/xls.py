@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import re
+
 
 
 
@@ -96,6 +97,7 @@ def read_xls_worksheet(ws, datemode, subrange=None):
         else:
             colnames = [None] * ncols
 
+        coltypes = [xlrd.XL_CELL_EMPTY] * ncols
         outdata = [[None] * nrows for _ in range(ncols)]
         row0 += 1
         row1 = min(row1, len(values))
@@ -114,16 +116,23 @@ def read_xls_worksheet(ws, datemode, subrange=None):
                         cell_value = ivalue
                 elif cell_type == xlrd.XL_CELL_DATE:
                     cell_value = xlrd.xldate_as_datetime(cell_value, datemode)
-                    # TODO: when datatable understands time better, we
-                    #       should remove this conversion to string
-                    cell_value = cell_value.strftime("%Y-%m-%d %H:%M:%S")
                 elif cell_type == xlrd.XL_CELL_BOOLEAN:
                     cell_value = bool(cell_value)
                 elif cell_type == xlrd.XL_CELL_ERROR:
                     cell_value = None
+                    cell_type = xlrd.XL_CELL_EMPTY
                 outdata[icol - col0][irow - row0] = cell_value
+                prev_type = coltypes[icol - col0]
+                if prev_type == xlrd.XL_CELL_EMPTY:
+                    coltypes[icol - col0] = cell_type
+                elif cell_type == xlrd.XL_CELL_EMPTY or cell_type == prev_type:
+                    pass
+                else:
+                    coltypes[icol - col0] = xlrd.XL_CELL_TEXT
 
-        frame = dt.Frame(outdata, names=colnames)
+        types = [str if coltype == xlrd.XL_CELL_TEXT else None
+                 for coltype in coltypes]
+        frame = dt.Frame(outdata, names=colnames, types=types)
         results[_range2d_to_excel_coords(range2d)] = frame
     return results
 

@@ -141,6 +141,7 @@ double oint::ovalue(int* overflow) const {
   if (!v) return dt::GETNA<double>();
   double value = PyLong_AsDouble(v);
   if (value == -1 && PyErr_Occurred()) {
+    PyErr_Clear();
     int sign = _PyLong_Sign(v);
     value = sign > 0 ? std::numeric_limits<double>::infinity()
                      : -std::numeric_limits<double>::infinity();

@@ -173,6 +173,8 @@ class ChangelogInfoboxDirective(SphinxDirective):
                 platform = "MacOS"
             elif platform in ["manylinux1_x86_64", "manylinux2010_x86_64"]:
                 platform = "Linux x86-64"
+            elif re.match(r"manylinux_\d+_\d+_x86_64", platform):
+                platform = "Linux x86-64"
             elif platform == "manylinux2014_ppc64le":
                 platform = "Linux ppc64le"
             elif platform == "win_amd64":

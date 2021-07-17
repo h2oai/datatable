@@ -23,7 +23,7 @@
 #include "frame/py_frame.h"            // py::Frame
 #include "progress/progress_manager.h" // dt::progress::manager
 #include "python/_all.h"               // py::olist
-#include "python/args.h"               // py::PKArgs
+#include "python/xargs.h"              // py::XArgs
 #include "python/string.h"             // py::ostring
 #include "read/multisource.h"
 #include "utils/macros.h"
@@ -55,12 +55,12 @@ static SourceVec single_source(Source* src) {
 // Constructors
 //------------------------------------------------------------------------------
 
-MultiSource::MultiSource(const py::PKArgs& args, GenericReader&& rdr)
+MultiSource::MultiSource(const py::XArgs& args, GenericReader&& rdr)
   : reader_(std::move(rdr)),
     sources_(),
     iteration_index_(0)
 {
-  const char* fnname = args.get_long_name();
+  const auto& fnname = args.proper_name();
   const py::Arg& src_any  = args[0];
   const py::Arg& src_file = args[1];
   const py::Arg& src_text = args[2];
@@ -75,7 +75,7 @@ MultiSource::MultiSource(const py::PKArgs& args, GenericReader&& rdr)
     if (total == 0) {
       throw TypeError()
           << "No input source for " << fnname
-          << " was given. Please specify one of the parameters "
+          << "() was given. Please specify one of the parameters "
              "`file`, `text`, `url`, or `cmd`";
     }
     std::vector<const char*> extra_args;
@@ -86,12 +86,12 @@ MultiSource::MultiSource(const py::PKArgs& args, GenericReader&& rdr)
     if (src_any.is_defined()) {
       throw TypeError()
           << "When an unnamed argument is passed to " << fnname
-          << ", it is invalid to also provide the `"
+          << "(), it is invalid to also provide the `"
           << extra_args[0] << "` parameter";
     } else {
       throw TypeError()
           << "Both parameters `" << extra_args[0] << "` and `" << extra_args[1]
-          << "` cannot be passed to " << fnname << " simultaneously";
+          << "` cannot be passed to " << fnname << "() simultaneously";
     }
   }
 

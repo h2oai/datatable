@@ -146,6 +146,24 @@ def test_jay_empty_frame(tempfile_jay):
     assert d1.source == tempfile_jay
 
 
+def test_jay_void_column():
+    DT = dt.Frame([None] * 5)
+    jay = DT.to_jay()
+    RES = dt.fread(jay)
+    assert_equals(DT, RES)
+
+
+def test_jay_void_column_typecast():
+    DT = dt.Frame([None] * 10)
+    assert DT.type == dt.Type.void
+    DT[0] = dt.Type.int32
+    assert DT.type == dt.Type.int32
+    jay = DT.to_jay()
+    RES = dt.fread(jay)
+    assert RES.type == dt.Type.int32
+    assert_equals(RES, dt.Frame([None]*10, type='int32'))
+
+
 def test_jay_all_types(tempfile_jay):
     d0 = dt.Frame([[True, False, None, True, True],
                    [None, 1, -9, 12, 3],

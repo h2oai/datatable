@@ -360,7 +360,7 @@ class XHtmlFormatter(pygments.formatter.Formatter):
                     assert isinstance(tvalue, str)
                     outfile.write(tvalue)
             else:
-                cls = MAP[ttype]
+                cls = MAP.get(ttype, None)
                 tvalue = escape_html(tvalue)
                 if cls:
                     outfile.write("<span class=%s>%s</span>" % (cls, tvalue))
