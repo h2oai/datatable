@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.Type.list32
-    :src: src/core/types/py_type.cc PyType::list32
+    :src: src/core/types/py_type.cc PyType::list
     :cvar: doc_Type_list32
     :signature: list32(T)
 

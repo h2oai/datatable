@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -114,7 +114,7 @@ static sort_result sort_columns(named_colvec&& ncv) {
     res.column.materialize();
   } else {
     res.column = Column::new_na_column(0, SType::VOID);
-    res.column.rbind(ncv.columns);
+    res.column.rbind(ncv.columns, false);
   }
   auto r = group({res.column}, {SortFlag::NONE});
   res.ri = std::move(r.first);

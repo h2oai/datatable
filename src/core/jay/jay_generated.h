@@ -42,11 +42,12 @@ enum Type {
   Type_Str64 = 8,
   Type_Date32 = 9,
   Type_Time64 = 10,
+  Type_Void0 = 11,
   Type_MIN = Type_Bool8,
-  Type_MAX = Type_Time64
+  Type_MAX = Type_Void0
 };
 
-inline const Type (&EnumValuesType())[11] {
+inline const Type (&EnumValuesType())[12] {
   static const Type values[] = {
     Type_Bool8,
     Type_Int8,
@@ -58,13 +59,14 @@ inline const Type (&EnumValuesType())[11] {
     Type_Str32,
     Type_Str64,
     Type_Date32,
-    Type_Time64
+    Type_Time64,
+    Type_Void0
   };
   return values;
 }
 
 inline const char * const *EnumNamesType() {
-  static const char * const names[12] = {
+  static const char * const names[13] = {
     "Bool8",
     "Int8",
     "Int16",
@@ -76,13 +78,14 @@ inline const char * const *EnumNamesType() {
     "Str64",
     "Date32",
     "Time64",
+    "Void0",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameType(Type e) {
-  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Time64)) return "";
+  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Void0)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesType()[index];
 }
