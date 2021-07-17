@@ -1,7 +1,7 @@
 
 .. xattr:: datatable.models.Ftrl.negative_class
     :src: src/core/models/py_ftrl.cc Ftrl::get_negative_class Ftrl::set_negative_class
-    :cvar:
+    :cvar: doc_models_Ftrl_negative_class
     :settable: new_negative_class
 
 
