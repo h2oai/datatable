@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,14 +19,16 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iterator>        // std::distance
+#include <iterator>              // std::distance
 #include <vector>
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
 #include "python/string.h"
 #include "models/py_ftrl.h"
 #include "models/py_validator.h"
 #include "models/utils.h"
+
 
 namespace py {
 
@@ -62,95 +64,13 @@ std::map<dt::FtrlModelType, std::string> Ftrl::create_model_type_name() {
  *  Initialize Ftrl object with the provided parameters.
  */
 
-static const char* doc___init__ =
-R"(__init__(self, alpha=0.005, beta=1, lambda1=0, lambda2=0, nbins=10**6,
-mantissa_nbits=10, nepochs=1, double_precision=False, negative_class=False,
-interactions=None, model_type='auto', params=None)
---
-
-Create a new :class:`Ftrl <datatable.models.Ftrl>` object.
-
-Parameters
-----------
-alpha: float
-    :math:`\alpha` in per-coordinate FTRL-Proximal algorithm, should be
-    positive.
-
-beta: float
-    :math:`\beta` in per-coordinate FTRL-Proximal algorithm, should be non-negative.
-
-lambda1: float
-    L1 regularization parameter, :math:`\lambda_1` in per-coordinate
-    FTRL-Proximal algorithm. It should be non-negative.
-
-lambda2: float
-    L2 regularization parameter, :math:`\lambda_2` in per-coordinate
-    FTRL-Proximal algorithm. It should be non-negative.
-
-nbins: int
-    Number of bins to be used for the hashing trick, should be positive.
-
-mantissa_nbits: int
-    Number of mantissa bits to take into account when hashing floats.
-    It should be non-negative and less than or equal to `52`, that
-    is a number of mantissa bits allocated for a C++ 64-bit `double`.
-
-nepochs: float
-    Number of training epochs, should be non-negative. When `nepochs`
-    is an integer number, the model will train on all the data
-    provided to :meth:`.fit` method `nepochs` times. If `nepochs`
-    has a fractional part `{nepochs}`, the model will train on all
-    the data `[nepochs]` times, i.e. the integer part of `nepochs`.
-    Plus, it will also perform an additional training iteration
-    on the `{nepochs}` fraction of data.
-
-double_precision: bool
-    An option to indicate whether double precision, i.e. `float64`,
-    or single precision, i.e. `float32`, arithmetic should be used
-    for computations. It is not guaranteed that setting
-    `double_precision` to `True` will automatically improve
-    the model accuracy. It will, however, roughly double the memory
-    footprint of the `Ftrl` object.
-
-negative_class: bool
-    An option to indicate if a "negative" class should be created
-    in the case of multinomial classification. For the "negative"
-    class the model will train on all the negatives, and if
-    a new label is encountered in the target column, its
-    weights will be initialized to the current "negative" class weights.
-    If `negative_class` is set to `False`, the initial weights
-    become zeros.
-
-interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
-    A list or a tuple of interactions. In turn, each interaction
-    should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame. Each interaction
-    should have at least one feature.
-
-model_type: "binomial" | "multinomial" | "regression" | "auto"
-    The model type to be built. When this option is `"auto"`
-    then the model type will be automatically chosen based on
-    the target column `stype`.
-
-params: FtrlParams
-    Named tuple of the above parameters. One can pass either this tuple,
-    or any combination of the individual parameters to the constructor,
-    but not both at the same time.
-
-except: ValueError
-    The exception is raised if both the `params` and one of the
-    individual model parameters are passed at the same time.
-
-)";
-
 static PKArgs args___init__(0, 1, 11, false, false,
                                  {"params", "alpha", "beta", "lambda1",
                                  "lambda2", "nbins", "mantissa_nbits",
                                  "nepochs", "double_precision",
                                  "negative_class", "interactions",
                                  "model_type"},
-                                 "__init__", doc___init__);
-
+                                 "__init__", dt::doc_models_Ftrl___init__);
 
 
 void Ftrl::m__init__(const PKArgs& args) {
@@ -291,59 +211,11 @@ void Ftrl::init_dt_interactions() {
  *  Do dataset validation and a call to `dtft->dispatch_fit(...)` method.
  */
 
-static const char* doc_fit =
-R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
-    nepochs_validation=1, validation_error=0.01,
-    validation_average_niterations=1)
---
-
-Train model on the input samples and targets.
-
-Parameters
-----------
-X_train: Frame
-    Training frame.
-
-y_train: Frame
-    Target frame having as many rows as `X_train` and one column.
-
-X_validation: Frame
-    Validation frame having the same number of columns as `X_train`.
-
-y_validation: Frame
-    Validation target frame of shape `(nrows, 1)`.
-
-nepochs_validation: float
-    Parameter that specifies how often, in epoch units, validation
-    error should be checked.
-
-validation_error: float
-    The improvement of the relative validation error that should be
-    demonstrated by the model within `nepochs_validation` epochs,
-    otherwise the training will stop.
-
-validation_average_niterations: int
-    Number of iterations that is used to average the validation error.
-    Each iteration corresponds to `nepochs_validation` epochs.
-
-return: FtrlFitOutput
-    `FtrlFitOutput` is a `Tuple[float, float]` with two fields: `epoch` and `loss`,
-    representing the final fitting epoch and the final loss, respectively.
-    If validation dataset is not provided, the returned `epoch` equals to
-    `nepochs` and the `loss` is just `float('nan')`.
-
-See also
---------
-- :meth:`.predict` -- predict for the input samples.
-- :meth:`.reset` -- reset the model.
-
-)";
-
 static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
                        "nepochs_validation", "validation_error",
                        "validation_average_niterations"}, "fit",
-                       doc_fit);
+                       dt::doc_models_Ftrl_fit);
 
 
 oobj Ftrl::fit(const PKArgs& args) {
@@ -510,32 +382,8 @@ oobj Ftrl::fit(const PKArgs& args) {
  *  return frame with predictions.
  */
 
-static const char* doc_predict =
-R"(predict(self, X)
---
-
-Predict for the input samples.
-
-Parameters
-----------
-X: Frame
-    A frame to make predictions for. It should have the same number
-    of columns as the training frame.
-
-return: Frame
-    A new frame of shape `(X.nrows, nlabels)` with the predicted probabilities
-    for each row of frame `X` and each of `nlabels` labels
-    the model was trained for.
-
-See also
---------
-- :meth:`.fit` -- train model on the input samples and targets.
-- :meth:`.reset` -- reset the model.
-
-)";
-
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
-                           doc_predict);
+                           dt::doc_models_Ftrl_predict);
 
 
 oobj Ftrl::predict(const PKArgs& args) {
@@ -583,25 +431,7 @@ oobj Ftrl::predict(const PKArgs& args) {
  *  Reset the model by making a call to `dtft->reset()`.
  */
 
-static const char* doc_reset =
-R"(reset(self)
---
-
-Reset `Ftrl` model by resetting all the model weights, labels and
-feature importance information.
-
-Parameters
-----------
-return: None
-
-See also
---------
-- :meth:`.fit` -- train model on a dataset.
-- :meth:`.predict` -- predict on a dataset.
-
-)";
-
-static PKArgs args_reset(0, 0, 0, false, false, {}, "reset", doc_reset);
+static PKArgs args_reset(0, 0, 0, false, false, {}, "reset", dt::doc_models_Ftrl_reset);
 
 
 void Ftrl::reset(const PKArgs&) {
@@ -613,21 +443,10 @@ void Ftrl::reset(const PKArgs&) {
 /**
  *  .labels
  */
-static const char* doc_labels =
-R"(
-Classification labels the model was trained on.
-
-Parameters
-----------
-return: Frame
-    A one-column frame with the classification labels.
-    In the case of numeric regression, the label is
-    the target column name.
-)";
 
 static GSArgs args_labels(
   "labels",
-  doc_labels);
+  dt::doc_models_Ftrl_labels);
 
 
 oobj Ftrl::get_labels() const {
@@ -639,22 +458,7 @@ oobj Ftrl::get_labels() const {
  *  .model
  */
 
-static const char* doc_model =
-R"(
-Trained models weights, i.e. `z` and `n` coefficients
-in per-coordinate FTRL-Proximal algorithm.
-
-Parameters
-----------
-return: Frame
-    A frame of shape `(nbins, 2 * nlabels)`, where `nlabels` is
-    the total number of labels the model was trained on, and
-    :attr:`nbins <datatable.models.Ftrl.nbins>` is the number of bins
-    used for the hashing trick. Odd and even columns represent
-    the `z` and `n` model coefficients, respectively.
-)";
-
-static GSArgs args_model("model", doc_model);
+static GSArgs args_model("model", dt::doc_models_Ftrl_model);
 
 oobj Ftrl::get_model() const {
   if (!dtft->is_model_trained()) return py::None();
@@ -704,24 +508,9 @@ void Ftrl::set_model(robj model) {
  *  .feature_importances
  */
 
-static const char* doc_fi =
-R"(
-Feature importances as calculated during the model training and
-normalized to `[0; 1]`. The normalization is done by dividing
-the accumulated feature importances over the maximum value.
-
-Parameters
-----------
-return: Frame
-    A frame with two columns: `feature_name` that has stype `str32`,
-    and `feature_importance` that has stype `float32` or `float64`
-    depending on whether the :attr:`.double_precision`
-    option is `False` or `True`.
-)";
-
 static GSArgs args_fi(
   "feature_importances",
-  doc_fi
+  dt::doc_models_Ftrl_feature_importances
 );
 
 
@@ -739,24 +528,9 @@ oobj Ftrl::get_normalized_fi(bool normalize) const {
  *  .colnames
  */
 
-static const char* doc_colnames =
-R"(
-Column names of the training frame, i.e. the feature names.
-
-Parameters
-----------
-return: List[str]
-    A list of the column names.
-
-See also
---------
-- :attr:`.colname_hashes` -- the hashed column names.
-
-)";
-
 static GSArgs args_colnames(
   "colnames",
-  doc_colnames
+  dt::doc_models_Ftrl_colnames
 );
 
 
@@ -793,26 +567,9 @@ void Ftrl::set_colnames(robj py_colnames) {
  *  .colname_hashes
  */
 
-static const char* doc_colname_hashes =
-R"(
-Hashes of the column names used for the hashing trick as
-described in the :class:`Ftrl <dt.models.Ftrl>` class description.
-
-Parameters
-----------
-return: List[int]
-    A list of the column name hashes.
-
-See also
---------
-- :attr:`.colnames` -- the column names of the
-  training frame, i.e. the feature names.
-
-)";
-
 static GSArgs args_colname_hashes(
   "colname_hashes",
-  doc_colname_hashes
+  dt::doc_models_Ftrl_colname_hashes
 );
 
 
@@ -836,25 +593,9 @@ oobj Ftrl::get_colname_hashes() const {
  *  .alpha
  */
 
-static const char* doc_alpha =
-R"(
-:math:`\alpha` in per-coordinate FTRL-Proximal algorithm.
-
-Parameters
-----------
-return: float
-    Current `alpha` value.
-
-new_alpha: float
-    New `alpha` value, should be positive.
-
-except: ValueError
-    The exception is raised when `new_alpha` is not positive.
-)";
-
 static GSArgs args_alpha(
   "alpha",
-  doc_alpha
+  dt::doc_models_Ftrl_alpha
 );
 
 
@@ -876,26 +617,9 @@ void Ftrl::set_alpha(const Arg& py_alpha) {
  *  .beta
  */
 
-static const char* doc_beta =
-R"(
-:math:`\beta` in per-coordinate FTRL-Proximal algorithm.
-
-Parameters
-----------
-return: float
-    Current `beta` value.
-
-new_beta: float
-    New `beta` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_beta` is negative.
-
-)";
-
 static GSArgs args_beta(
   "beta",
-  doc_beta
+  dt::doc_models_Ftrl_beta
 );
 
 
@@ -917,27 +641,9 @@ void Ftrl::set_beta(const Arg& py_beta) {
  *  .lambda1
  */
 
-static const char* doc_lambda1 =
-R"(
-L1 regularization parameter, :math:`\lambda_1` in per-coordinate
-FTRL-Proximal algorithm.
-
-Parameters
-----------
-return: float
-    Current `lambda1` value.
-
-new_lambda1: float
-    New `lambda1` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_lambda1` is negative.
-
-)";
-
 static GSArgs args_lambda1(
   "lambda1",
-  doc_lambda1
+  dt::doc_models_Ftrl_lambda1
 );
 
 
@@ -959,27 +665,9 @@ void Ftrl::set_lambda1(const Arg& py_lambda1) {
  *  .lambda2
  */
 
-static const char* doc_lambda2 =
-R"(
-L2 regularization parameter, :math:`\lambda_2` in per-coordinate
-FTRL-Proximal algorithm.
-
-Parameters
-----------
-return: float
-    Current `lambda2` value.
-
-new_lambda2: float
-    New `lambda2` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_lambda2` is negative.
-
-)";
-
 static GSArgs args_lambda2(
   "lambda2",
-  doc_lambda2
+  dt::doc_models_Ftrl_lambda2
 );
 
 
@@ -1001,30 +689,9 @@ void Ftrl::set_lambda2(const Arg& py_lambda2) {
  *  .nbins
  */
 
-static const char* doc_nbins =
-R"(
-Number of bins to be used for the hashing trick.
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: int
-    Current `nbins` value.
-
-new_nbins: int
-    New `nbins` value, should be positive.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - `new_nbins` value is not positive.
-
-)";
-
 static GSArgs args_nbins(
   "nbins",
-  doc_nbins
+  dt::doc_models_Ftrl_nbins
 );
 
 
@@ -1051,32 +718,9 @@ void Ftrl::set_nbins(const Arg& arg_nbins) {
  *  .mantissa_nbits
  */
 
-static const char* doc_mantissa_nbits =
-R"(
-Number of mantissa bits to take into account for hashing floats.
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: int
-    Current `mantissa_nbits` value.
-
-new_mantissa_nbits: int
-    New `mantissa_nbits` value, should be non-negative and
-    less than or equal to `52`, that is a number of
-    mantissa bits in a C++ 64-bit `double`.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - `new_mantissa_nbits` value is negative or larger than `52`.
-
-)";
-
 static GSArgs args_mantissa_nbits(
   "mantissa_nbits",
-  doc_mantissa_nbits
+  dt::doc_models_Ftrl_mantissa_nbits
 );
 
 
@@ -1108,31 +752,9 @@ void Ftrl::set_mantissa_nbits(const Arg& arg_mantissa_nbits) {
  *  .nepochs
  */
 
-static const char* doc_nepochs =
-R"(
-Number of training epochs. When `nepochs` is an integer number,
-the model will train on all the data provided to :meth:`.fit` method
-`nepochs` times. If `nepochs` has a fractional part `{nepochs}`,
-the model will train on all the data `[nepochs]` times,
-i.e. the integer part of `nepochs`. Plus, it will also perform an additional
-training iteration on the `{nepochs}` fraction of data.
-
-Parameters
-----------
-return: float
-    Current `nepochs` value.
-
-new_nepochs: float
-    New `nepochs` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_nepochs` value is negative.
-
-)";
-
 static GSArgs args_nepochs(
   "nepochs",
-  doc_nepochs
+  dt::doc_models_Ftrl_nepochs
 );
 
 oobj Ftrl::get_nepochs() const {
@@ -1153,23 +775,9 @@ void Ftrl::set_nepochs(const Arg& arg_nepochs) {
  *  .double_precision
  */
 
-static const char* doc_double_precision =
-R"(
-An option to indicate whether double precision, i.e. `float64`,
-or single precision, i.e. `float32`, arithmetic should be
-used for computations. This option is read-only and can only be set
-during the `Ftrl` object :meth:`construction <datatable.models.Ftrl.__init__>`.
-
-Parameters
-----------
-return: bool
-    Current `double_precision` value.
-
-)";
-
 static GSArgs args_double_precision(
   "double_precision",
-  doc_double_precision
+  dt::doc_models_Ftrl_double_precision
 );
 
 
@@ -1192,35 +800,9 @@ void Ftrl::set_double_precision(const Arg& arg_double_precision) {
  *  .negative_class
  */
 
-static const char* doc_negative_class =
-R"(
-An option to indicate if a "negative" class should be created
-in the case of multinomial classification. For the "negative"
-class the model will train on all the negatives, and if
-a new label is encountered in the target column, its
-weights are initialized to the current "negative" class weights.
-If `negative_class` is set to `False`, the initial weights
-become zeros.
-
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: bool
-    Current `negative_class` value.
-
-new_negative_class: bool
-    New `negative_class` value.
-
-except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
-
-)";
-
 static GSArgs args_negative_class(
   "negative_class",
-  doc_negative_class
+  dt::doc_models_Ftrl_negative_class
 );
 
 
@@ -1245,32 +827,9 @@ void Ftrl::set_negative_class(const Arg& arg_negative_class) {
  *  .interactions
  */
 
-static const char* doc_interactions =
-R"(
-The feature interactions to be used for model training. This option is
-read-only for a trained model.
-
-Parameters
-----------
-return: Tuple
-    Current `interactions` value.
-
-new_interactions: List[List[str] | Tuple[str]] | Tuple[List[str] | Tuple[str]]
-    New `interactions` value. Each particular interaction
-    should be a list or a tuple of feature names, where each feature
-    name is a column name from the training frame.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - one of the interactions has zero features.
-
-)";
-
 static GSArgs args_interactions(
   "interactions",
-  doc_interactions
+  dt::doc_models_Ftrl_interactions
 );
 
 
@@ -1332,40 +891,9 @@ void Ftrl::set_interactions(const Arg& arg_interactions) {
  *  .model_type
  */
 
-static const char* doc_model_type =
-R"(
-A type of the model `Ftrl` should build:
-
-- `"binomial"` for binomial classification;
-- `"multinomial"` for multinomial classification;
-- `"regression"` for numeric regression;
-- `"auto"` for automatic model type detection based on the target column `stype`.
-
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: str
-    Current `model_type` value.
-
-new_model_type: "binomial" | "multinomial" | "regression" | "auto"
-    New `model_type` value.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - `new_model_type` value is not one of the following: `"binomial"`,
-      `"multinomial"`, `"regression"` or `"auto"`.
-
-See also
---------
-- :attr:`.model_type_trained` -- the model type `Ftrl` has build.
-)";
-
 static GSArgs args_model_type(
   "model_type",
-  doc_model_type
+  dt::doc_models_Ftrl_model_type
 );
 
 
@@ -1394,24 +922,9 @@ void Ftrl::set_model_type(const Arg& py_model_type) {
  *  .model_type_trained
  */
 
-static const char* doc_model_type_trained =
-R"(
-The model type `Ftrl` has built.
-
-Parameters
-----------
-return: str
-    Could be one of the following: `"regression"`, `"binomial"`,
-    `"multinomial"` or `"none"` for untrained model.
-
-See also
---------
-- :attr:`.model_type` -- the model type `Ftrl` should build.
-)";
-
 static GSArgs args_model_type_trained(
   "model_type_trained",
-  doc_model_type_trained
+  dt::doc_models_Ftrl_model_type_trained
 );
 
 
@@ -1426,31 +939,9 @@ oobj Ftrl::get_model_type_trained() const {
  *  .params
  */
 
-static const char* doc_params =
-R"(
-`Ftrl` model parameters as a named tuple `FtrlParams`,
-see :meth:`.__init__` for more details.
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: FtrlParams
-    Current `params` value.
-
-new_params: FtrlParams
-    New `params` value.
-
-except: ValueError
-    The exception is raised when
-
-    - trying to change this option for a model that has already been trained;
-    - individual parameter values are incompatible with the corresponding setters.
-
-)";
-
 static GSArgs args_params(
   "params",
-  doc_params
+  dt::doc_models_Ftrl_params
 );
 
 
@@ -1638,58 +1129,9 @@ void Ftrl::m__setstate__(const PKArgs& args) {
 // py::Ftrl::Type
 //------------------------------------------------------------------------------
 
-static const char* doc_Ftrl =
-R"(
-This class implements the Follow the Regularized Leader (FTRL) model,
-that is based on the
-`FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
-online learning algorithm for binomial logistic regression. Multinomial
-classification and regression for continuous targets are also implemented,
-though these implementations are experimental. This model is fully parallel
-and is based on the
-`Hogwild approach <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`_
-for parallelization.
-
-The model supports numerical (boolean, integer and float types),
-temporal (date and time types) and string features. To vectorize features a hashing trick
-is employed, such that all the values are hashed with the 64-bit hashing function.
-This function is implemented as follows:
-
-- for booleans and integers the hashing function is essentially an identity
-  function;
-
-- for floats the hashing function trims mantissa, taking into account
-  :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`,
-  and interprets the resulting bit representation as a 64-bit unsigned integer;
-
-- for date and time types the hashing function is essentially an identity
-  function that is based on their internal integer representations;
-
-- for strings the 64-bit `Murmur2 <https://github.com/aappleby/smhasher>`_
-  hashing function is used.
-
-To compute the final hash `x` the Murmur2 hashed feature name is added
-to the hashed feature and the result is modulo divided by the number of
-requested bins, i.e. by :attr:`nbins <datatable.models.Ftrl.nbins>`.
-
-For each hashed row of data, according to
-`Ad Click Prediction: a View from the Trenches <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_,
-the following FTRL-Proximal algorithm is employed:
-
-.. raw:: html
-
-      <img src="../../_static/ftrl_algorithm.png" width="400"
-       alt="Per-coordinate FTRL-Proximal online learning algorithm" />
-
-When trained, the model can be used to make predictions, or it can be
-re-trained on new datasets as many times as needed improving
-model weights from run to run.
-
-)";
-
 void Ftrl::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.models.Ftrl");
-  xt.set_class_doc(doc_Ftrl);
+  xt.set_class_doc(dt::doc_models_Ftrl);
 
   xt.add(CONSTRUCTOR(&Ftrl::m__init__, args___init__));
   xt.add(DESTRUCTOR(&Ftrl::m__dealloc__));
@@ -1725,7 +1167,6 @@ void Ftrl::impl_init_type(XTypeMaker& xt) {
   xt.add(METHOD(&Ftrl::m__getstate__, args___getstate__));
   xt.add(METHOD(&Ftrl::m__setstate__, args___setstate__));
 }
-
 
 
 
