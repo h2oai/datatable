@@ -26,25 +26,34 @@ namespace dt {
 
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
-extern const char* doc_dt_join;
-extern const char* doc_dt_sort;
-extern const char* doc_dt_update;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
+extern const char* doc_dt_count;
 extern const char* doc_dt_cov;
 extern const char* doc_dt_cut;
+extern const char* doc_dt_first;
 extern const char* doc_dt_fread;
 extern const char* doc_dt_ifelse;
 extern const char* doc_dt_intersect;
 extern const char* doc_dt_iread;
+extern const char* doc_dt_join;
+extern const char* doc_dt_last;
+extern const char* doc_dt_max;
+extern const char* doc_dt_mean;
+extern const char* doc_dt_median;
+extern const char* doc_dt_min;
 extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
+extern const char* doc_dt_sd;
 extern const char* doc_dt_setdiff;
 extern const char* doc_dt_shift;
+extern const char* doc_dt_sort;
 extern const char* doc_dt_split_into_nhot;
+extern const char* doc_dt_sum;
 extern const char* doc_dt_symdiff;
 extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
+extern const char* doc_dt_update;
 
 extern const char* doc_math_atan2;
 extern const char* doc_math_copysign;
