@@ -25,6 +25,10 @@ namespace dt {
 
 
 extern const char* doc_dt_as_type;
+extern const char* doc_dt_by;
+extern const char* doc_dt_join;
+extern const char* doc_dt_sort;
+extern const char* doc_dt_update;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
 extern const char* doc_dt_cov;
@@ -118,6 +122,8 @@ extern const char* doc_Frame_view;
 
 extern const char* doc_models_LM;
 extern const char* doc_models_LM_params;
+
+extern const char* doc_Namespace;
 
 extern const char* doc_Type;
 extern const char* doc_Type_list32;
