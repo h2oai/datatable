@@ -23,11 +23,11 @@
 #include <tuple>
 #include "frame/py_frame.h"
 #include "python/_all.h"
-#include "python/args.h"
+#include "python/xargs.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "datatable.h"
-#include "datatablemodule.h"
+#include "documentation.h"
 #include "sort.h"
 #include "stype.h"
 namespace dt {
@@ -63,7 +63,7 @@ static py::oobj make_pyframe(sort_result&& sorted, Buffer&& buf) {
 }
 
 
-static named_colvec columns_from_args(const py::PKArgs& args) {
+static named_colvec columns_from_args(const py::XArgs& args) {
   using FN = std::function<void(py::robj,size_t)>;
   named_colvec result;
 
@@ -88,7 +88,7 @@ static named_colvec columns_from_args(const py::PKArgs& args) {
       }
     }
     else {
-      throw TypeError() << args.get_short_name() << "() expects a list or "
+      throw TypeError() << args.proper_name() << "() expects a list or "
           "sequence of Frames, but got an argument of type " << arg.typeobj();
     }
   };
@@ -145,99 +145,12 @@ static py::oobj _union(named_colvec&& ncv) {
 
 
 
+
 //------------------------------------------------------------------------------
 // unique()
 //------------------------------------------------------------------------------
 
-static const char* doc_unique =
-R"(unique(frame)
---
-
-Find the unique values in all the columns of the `frame`.
-
-This function sorts the values in order to find the uniques, so the return
-values will be ordered. However, this should be considered an implementation
-detail: in the future datatable may switch to a different algorithm,
-such as hash-based, which may return the results in a different order.
-
-
-Parameters
-----------
-frame: Frame
-    Input frame.
-
-return: Frame
-    A single-column frame consisting of unique values found in `frame`.
-    The column stype is the smallest common stype for all the
-    `frame` columns.
-
-except: NotImplementedError
-    The exception is raised when one of the frame columns has stype `obj64`.
-
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Unique values in the entire frame::
-
-    >>> dt.unique(df)
-       |    C0
-       | int32
-    -- + -----
-     0 |    NA
-     1 |     1
-     2 |     2
-     3 |     3
-     4 |     4
-     5 |     5
-    [6 rows x 1 column]
-
-Unique values in a frame with a single column::
-
-    >>> dt.unique(df["A"])
-       |     A
-       | int32
-    -- + -----
-     0 |     1
-     1 |     2
-    [2 rows x 1 column]
-
-
-See Also
---------
-- :func:`intersect()` -- calculate the set intersection of values in the frames.
-- :func:`setdiff()` -- calculate the set difference between the frames.
-- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
-- :func:`union()` -- calculate the union of values in the frames.
-)";
-
-static py::PKArgs args_unique(
-    1, 0, 0,        // Number of pos-only, pos/kw, and kw-only args
-    false, false,   // varargs/varkws allowed?
-    {"frame"},      // arg names
-    "unique",       // function name
-    doc_unique      // documentation
-);
-
-
-static py::oobj unique(const py::PKArgs& args) {
+static py::oobj unique(const py::XArgs& args) {
   if (!args[0]) {
     throw ValueError() << "Function `unique()` expects a Frame as a parameter";
   }
@@ -253,114 +166,30 @@ static py::oobj unique(const py::PKArgs& args) {
   return _union(std::move(ncv));
 }
 
+DECLARE_PYFN(&unique)
+    ->name("unique")
+    ->docs(doc_dt_unique)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"frame"});
+
+
 
 
 //------------------------------------------------------------------------------
 // union()
 //------------------------------------------------------------------------------
 
-static const char* doc_union =
-R"(union(*frames)
---
-
-Find the union of values in all `frames`.
-
-Each frame should have only a single column or be empty. The values in each
-frame will be treated as a set, and this function will perform the
-`union operation <https://en.wikipedia.org/wiki/Union_(set_theory)>`_
-on these sets.
-
-The `dt.union(*frames)` operation is equivalent to
-`dt.unique(dt.rbind(*frames))`.
-
-Parameters
-----------
-*frames: Frame, Frame, ...
-    Input single-column frames.
-
-return: Frame
-    A single-column frame. The column stype is the smallest common
-    stype of columns in the `frames`.
-
-except: ValueError | NotImplementedError
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :exc:`dt.exceptions.ValueError`
-          - raised when one of the input frames has more than one column.
-
-        * - :exc:`dt.exceptions.NotImplementedError`
-          - raised when one of the columns has stype `obj64`.
-
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Union of all the columns in a frame::
-
-    >>> dt.union(*df)
-       |     A
-       | int32
-    -- + -----
-     0 |    NA
-     1 |     1
-     2 |     2
-     3 |     3
-     4 |     4
-     5 |     5
-    [6 rows x 1 column]
-
-Union of two frames::
-
-    >>> dt.union(df["A"], df["C"])
-       |     A
-       | int32
-    -- + -----
-     0 |     1
-     1 |     2
-    [2 rows x 1 column]
-
-
-See Also
---------
-- :func:`intersect()` -- calculate the set intersection of values in the frames.
-- :func:`setdiff()` -- calculate the set difference between the frames.
-- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
-- :func:`unique()` -- find unique values in a frame.
-)";
-
-
-static py::PKArgs args_union(
-    0, 0, 0,
-    true, false,
-    {},
-    "union",
-    doc_union
-);
-
-
-static py::oobj union_(const py::PKArgs& args) {
+static py::oobj union_(const py::XArgs& args) {
   named_colvec cc = columns_from_args(args);
   return _union(std::move(cc));
 }
+
+DECLARE_PYFN(&union_)
+    ->name("union")
+    ->docs(doc_dt_union)
+    ->allow_varargs();
+
 
 
 
@@ -426,103 +255,7 @@ static py::oobj _intersect(named_colvec&& cv) {
   return make_pyframe(std::move(sorted), std::move(buffer));
 }
 
-
-static const char* doc_intersect =
-R"(intersect(*frames)
---
-
-Find the intersection of sets of values in the `frames`.
-
-Each frame should have only a single column or be empty.
-The values in each frame will be treated as a set, and this function will
-perform the
-`intersection operation <https://en.wikipedia.org/wiki/Intersection_(set_theory)>`_
-on these sets, returning those values that are present in each
-of the provided `frames`.
-
-Parameters
-----------
-*frames: Frame, Frame, ...
-    Input single-column frames.
-
-return: Frame
-    A single-column frame. The column stype is the smallest common
-    stype of columns in the `frames`.
-
-except: ValueError | NotImplementedError
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :exc:`dt.exceptions.ValueError`
-          - raised when one of the input frames has more than one column.
-
-        * - :exc:`dt.exceptions.NotImplementedError`
-          - raised when one of the columns has stype `obj64`.
-
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt
-    >>>
-    >>> s1 = dt.Frame([4, 5, 6, 20, 42])
-    >>> s2 = dt.Frame([1, 2, 3, 5, 42])
-    >>>
-    >>> s1
-       |    C0
-       | int32
-    -- + -----
-     0 |     4
-     1 |     5
-     2 |     6
-     3 |    20
-     4 |    42
-    [5 rows x 1 column]
-
-    >>> s2
-       |    C0
-       | int32
-    -- + -----
-     0 |     1
-     1 |     2
-     2 |     3
-     3 |     5
-     4 |    42
-    [5 rows x 1 column]
-
-
-Intersection of the two frames::
-
-    >>> dt.intersect([s1, s2])
-       |    C0
-       | int32
-    -- + -----
-     0 |     5
-     1 |    42
-    [2 rows x 1 column]
-
-
-
-See Also
---------
-- :func:`setdiff()` -- calculate the set difference between the frames.
-- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
-- :func:`union()` -- calculate the union of values in the frames.
-- :func:`unique()` -- find unique values in a frame.
-)";
-
-static py::PKArgs args_intersect(
-    0, 0, 0,
-    true, false,
-    {},
-    "intersect",
-    doc_intersect
-);
-
-
-static py::oobj intersect(const py::PKArgs& args) {
+static py::oobj intersect(const py::XArgs& args) {
   named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
@@ -533,6 +266,12 @@ static py::oobj intersect(const py::PKArgs& args) {
     return _intersect<false>(std::move(cv));
   }
 }
+
+DECLARE_PYFN(&intersect)
+    ->name("intersect")
+    ->docs(doc_dt_intersect)
+    ->allow_varargs();
+
 
 
 
@@ -564,112 +303,19 @@ static py::oobj _setdiff(named_colvec&& cv) {
   return make_pyframe(std::move(sorted), std::move(buffer));
 }
 
-
-static const char* doc_setdiff =
-R"(setdiff(frame0, *frames)
---
-
-Find the set difference between `frame0` and the other `frames`.
-
-Each frame should have only a single column or be empty.
-The values in each frame will be treated as a set, and this function will
-compute the
-`set difference  <https://en.wikipedia.org/wiki/Complement_(set_theory)#Relative_complement>`_
-between the `frame0` and the union of the other
-frames, returning those values that are present in the `frame0`,
-but not present in any of the `frames`.
-
-Parameters
-----------
-frame0: Frame
-    Input single-column frame.
-
-*frames: Frame, Frame, ...
-    Input single-column frames.
-
-return: Frame
-    A single-column frame. The column stype is the smallest common
-    stype of columns from the `frames`.
-
-except: ValueError | NotImplementedError
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :exc:`dt.exceptions.ValueError`
-          - raised when one of the input frames, i.e. `frame0`
-            or any one from the `frames`, has more than one column.
-
-        * - :exc:`dt.exceptions.NotImplementedError`
-          - raised when one of the columns has stype `obj64`.
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt
-    >>>
-    >>> s1 = dt.Frame([4, 5, 6, 20, 42])
-    >>> s2 = dt.Frame([1, 2, 3, 5, 42])
-    >>>
-    >>> s1
-       |    C0
-       | int32
-    -- + -----
-     0 |     4
-     1 |     5
-     2 |     6
-     3 |    20
-     4 |    42
-    [5 rows x 1 column]
-
-    >>> s2
-       |    C0
-       | int32
-    -- + -----
-     0 |     1
-     1 |     2
-     2 |     3
-     3 |     5
-     4 |    42
-    [5 rows x 1 column]
-
-Set difference of the two frames::
-
-    >>> dt.setdiff(s1, s2)
-       |    C0
-       | int32
-    -- + -----
-     0 |     4
-     1 |     6
-     2 |    20
-    [3 rows x 1 column]
-
-
-
-See Also
---------
-- :func:`intersect()` -- calculate the set intersection of values in the frames.
-- :func:`symdiff()` -- calculate the symmetric difference between the sets of values in the frames.
-- :func:`union()` -- calculate the union of values in the frames.
-- :func:`unique()` -- find unique values in a frame.
-)";
-
-static py::PKArgs args_setdiff(
-    0, 0, 0,
-    true, false,
-    {},
-    "setdiff",
-    doc_setdiff
-);
-
-static py::oobj setdiff(const py::PKArgs& args) {
+static py::oobj setdiff(const py::XArgs& args) {
   named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
   }
   return _setdiff(std::move(cv));
 }
+
+DECLARE_PYFN(&setdiff)
+    ->name("setdiff")
+    ->docs(doc_dt_setdiff)
+    ->allow_varargs();
+
 
 
 
@@ -730,109 +376,7 @@ static py::oobj _symdiff(named_colvec&& cv) {
   return make_pyframe(std::move(sr), std::move(buffer));
 }
 
-
-static const char* doc_symdiff =
-R"(symdiff(*frames)
---
-
-Find the symmetric difference between the sets of values in all `frames`.
-
-Each frame should have only a single column or be empty.
-The values in each frame will be treated as a set, and this function will
-perform the
-`symmetric difference <https://en.wikipedia.org/wiki/Symmetric_difference>`_
-operation on these sets.
-
-The symmetric difference of two frames are those values that are present in
-either of the frames, but not in the both. The symmetric difference of more than
-two frames are those values that are present in an odd number of frames.
-
-Parameters
-----------
-*frames: Frame, Frame, ...
-    Input single-column frames.
-
-return: Frame
-    A single-column frame. The column stype is the smallest common
-    stype of columns from the `frames`.
-
-except: ValueError | NotImplementedError
-    .. list-table::
-        :widths: auto
-        :class: api-table
-
-        * - :exc:`dt.exceptions.ValueError`
-          - raised when one of the input frames has more than one column.
-
-        * - :exc:`dt.exceptions.NotImplementedError`
-          - raised when one of the columns has stype `obj64`.
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3, 4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Symmetric difference of all the columns in the entire frame; Note that each column is treated as a separate frame::
-
-    >>> dt.symdiff(*df)
-       |     A
-       | int32
-    -- + -----
-     0 |    NA
-     1 |     2
-     2 |     3
-     3 |     4
-     4 |     5
-    [5 rows x 1 column]
-
-
-Symmetric difference between two frames::
-
-    >>> dt.symdiff(df["A"], df["B"])
-       |     A
-       | int32
-    -- + -----
-     0 |    NA
-     1 |     1
-     2 |     3
-     3 |     4
-     4 |     5
-    [5 rows x 1 column]
-
-
-See Also
---------
-- :func:`intersect()` -- calculate the set intersection of values in the frames.
-- :func:`setdiff()` -- calculate the set difference between the frames.
-- :func:`union()` -- calculate the union of values in the frames.
-- :func:`unique()` -- find unique values in a frame.
-)";
-
-static py::PKArgs args_symdiff(
-    0, 0, 0,
-    true, false,
-    {},
-    "symdiff",
-    doc_symdiff
-);
-
-
-static py::oobj symdiff(const py::PKArgs& args) {
+static py::oobj symdiff(const py::XArgs& args) {
   named_colvec cv = columns_from_args(args);
   if (cv.columns.size() <= 1) {
     return _union(std::move(cv));
@@ -844,16 +388,12 @@ static py::oobj symdiff(const py::PKArgs& args) {
   }
 }
 
+DECLARE_PYFN(&symdiff)
+    ->name("symdiff")
+    ->docs(doc_dt_symdiff)
+    ->allow_varargs();
 
 
-} // namespace set
-} // namespace dt
 
 
-void py::DatatableModule::init_methods_sets() {
-  ADD_FN(&dt::set::unique, dt::set::args_unique);
-  ADD_FN(&dt::set::union_, dt::set::args_union);
-  ADD_FN(&dt::set::intersect, dt::set::args_intersect);
-  ADD_FN(&dt::set::setdiff, dt::set::args_setdiff);
-  ADD_FN(&dt::set::symdiff, dt::set::args_symdiff);
-}
+}} // namespace dt::set
