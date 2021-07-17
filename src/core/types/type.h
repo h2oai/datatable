@@ -63,8 +63,8 @@ class Type {
     static Type int32();
     static Type int64();
     static Type int8();
-    static Type list32(Type);
-    static Type list64(Type);
+    static Type arr32(Type);
+    static Type arr64(Type);
     static Type obj64();
     static Type str32();
     static Type str64();
@@ -83,6 +83,7 @@ class Type {
     const char* struct_format() const;
 
     SType stype() const;
+    bool is_array() const;
     bool is_boolean() const;
     bool is_compound() const;
     bool is_float() const;

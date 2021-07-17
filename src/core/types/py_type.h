@@ -55,7 +55,7 @@ class PyType : public py::XObject<PyType, true> {
     py::oobj get_name() const;
     py::oobj get_min() const;
     py::oobj get_max() const;
-    py::oobj list(const py::XArgs&);
+    py::oobj array(const py::XArgs&);
 
     Type get_type() const { return type_; }
 
