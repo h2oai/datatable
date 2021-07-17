@@ -36,9 +36,9 @@ __all__ = (
     "mean",
     "median",
     "min",
+    "nunique",
     "sd",
     "sum",
-    "nunique",
 )
 
 

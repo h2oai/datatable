@@ -167,12 +167,12 @@ Functions
       - Find the median element per a column
     * - :func:`min()`
       - Find the smallest element per a column
+    * - :func:`nunique()`
+      - Count the number of unique values per column
     * - :func:`sd()`
       - Calculate the standard deviation per a column
     * - :func:`sum()`
       - Calculate the sum of all values per a column
-    * - :func:`nunique()`
-      - Count the number of unique values per column
 
 
 Other

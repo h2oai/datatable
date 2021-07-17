@@ -19,7 +19,7 @@
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
-        has a non-numeric and non-string type.
+        has an obj64 type.
 
 
 

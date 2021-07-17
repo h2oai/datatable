@@ -30,7 +30,6 @@
 #include "utils/exceptions.h"
 #include "stype.h"
 #include <type_traits>
-#include <iostream>
 #include <set>
 namespace dt {
 namespace expr {
