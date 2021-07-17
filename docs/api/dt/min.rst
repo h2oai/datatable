@@ -2,7 +2,7 @@
 .. xfunction:: datatable.min
     :src: src/core/expr/head_reduce_unary.cc min_reducer
     :tests: tests/test-reduce.py
-    :cvar: doc_min
+    :cvar: doc_dt_min
     :signature: min(cols)
 
     Calculate the minimum value for each column from `cols`. It is recommended

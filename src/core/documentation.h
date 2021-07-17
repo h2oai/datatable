@@ -54,6 +54,7 @@ extern const char* doc_dt_symdiff;
 extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
 extern const char* doc_dt_update;
+extern const char* doc_dt_repeat;
 
 extern const char* doc_math_atan2;
 extern const char* doc_math_copysign;
