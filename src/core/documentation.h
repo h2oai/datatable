@@ -64,6 +64,9 @@ extern const char* doc_models_Ftrl_params;
 extern const char* doc_models_Ftrl_predict;
 extern const char* doc_models_Ftrl_reset;
 
+extern const char* doc_models_LinearModel;
+extern const char* doc_models_LinearModel_params;
+
 extern const char* doc_re_match;
 
 extern const char* doc_str_len;
@@ -126,9 +129,6 @@ extern const char* doc_Frame_to_tuples;
 extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
-
-extern const char* doc_models_LM;
-extern const char* doc_models_LM_params;
 
 extern const char* doc_Type;
 extern const char* doc_Type_list32;
