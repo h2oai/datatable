@@ -22,9 +22,10 @@
 #include <algorithm>                  // std::min
 #include <ctime>
 #include <sstream>
-#include "datatablemodule.h"
+#include "documentation.h"
 #include "frame/repr/html_widget.h"
 #include "python/string.h"
+#include "python/xargs.h"
 #include "utils/terminal/terminal.h"
 namespace dt {
 
@@ -149,41 +150,16 @@ void emit_stylesheet() {
 
 
 
-}  // namespace dt
-namespace py {
-
-static const char* doc_init_styles =
-R"(init_styles()
---
-Inject datatable's stylesheets into the Jupyter notebook. This
-function does nothing when it runs in a normal Python environment
-outside of Jupyter.
-
-When datatable runs in a Jupyter notebook, it renders its Frames
-as HTML tables. The appearance of these tables is enhanced using
-a custom stylesheet, which must be injected into the notebook at
-any point on the page. This is exactly what this function does.
-
-Normally, this function is called automatically when datatable
-is imported. However, in some circumstances Jupyter erases these
-stylesheets (for example, if you run ``import datatable`` cell
-twice). In such cases, you may need to call this method manually.
-
-)";
-
-static PKArgs args_init_styles(
-  0, 0, 0, false, false, {}, "init_styles", doc_init_styles
-);
-
-static void init_styles(const PKArgs&) {
+static py::oobj py_init_styles(const py::XArgs&) {
   dt::emit_stylesheet();
+  return py::None();
 }
 
-void DatatableModule::init_methods_styles() {
-  ADD_FN(&init_styles, args_init_styles);
-}
+DECLARE_PYFN(&py_init_styles)
+    ->name("init_styles")
+    ->docs(doc_dt_init_styles);
 
 
 
 
-} // namespace py
+}  // namespace dt

@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "documentation.h"
 #include "expr/fexpr_column.h"
 #include "expr/namespace.h"
 #include "expr/op.h"
@@ -105,20 +106,9 @@ oobj Namespace::m__getitem__(robj item) {
 // Init class info
 //------------------------------------------------------------------------------
 
-static const char* doc_Namespace =
-R"(
-A namespace is an environment that provides lazy access to columns of
-a frame when performing computations within
-:meth:`DT[i,j,...] <dt.Frame.__getitem__>`.
-
-This class should not be instantiated directly, instead use the
-singleton instances :data:`f <datatable.f>` and :data:`g <datatable.g>`
-exported from the :mod:`datatable` module.
-)";
-
 void Namespace::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.Namespace");
-  xt.set_class_doc(doc_Namespace);
+  xt.set_class_doc(dt::doc_Namespace);
   xt.set_subclassable(false);
   xt.add(CONSTRUCTOR(&Namespace::m__init__, args___init__));
   xt.add(DESTRUCTOR(&Namespace::m__dealloc__));
