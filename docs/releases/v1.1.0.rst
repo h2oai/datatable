@@ -12,7 +12,7 @@
     .. current-class:: FExpr
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
-      which behaves exactly as the equivalent base level functions :func:`dt.as_type()`.
+      which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
 
     General
     -------
