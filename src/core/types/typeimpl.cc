@@ -47,12 +47,12 @@ size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
+bool TypeImpl::is_array()    const { return false; }
 bool TypeImpl::is_boolean()  const { return false; }
 bool TypeImpl::is_compound() const { return false; }
 bool TypeImpl::is_float()    const { return false; }
 bool TypeImpl::is_integer()  const { return false; }
 bool TypeImpl::is_invalid()  const { return false; }
-bool TypeImpl::is_list()     const { return false; }
 bool TypeImpl::is_numeric()  const { return false; }
 bool TypeImpl::is_object()   const { return false; }
 bool TypeImpl::is_string()   const { return false; }

@@ -150,8 +150,8 @@ extern const char* doc_models_LM_params;
 extern const char* doc_Namespace;
 
 extern const char* doc_Type;
-extern const char* doc_Type_list32;
-extern const char* doc_Type_list64;
+extern const char* doc_Type_arr32;
+extern const char* doc_Type_arr64;
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;
 extern const char* doc_Type_name;

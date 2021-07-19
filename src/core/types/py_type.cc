@@ -324,25 +324,25 @@ py::oobj PyType::get_max() const {
 // Types as methods
 //------------------------------------------------------------------------------
 
-py::oobj PyType::list(const py::XArgs& args) {
+py::oobj PyType::array(const py::XArgs& args) {
   Type argT = args[0].is_none()? Type::void0()
                                : args[0].to_type_force();
-  auto t = args.get_info() == 32? Type::list32(argT) : Type::list64(argT);
+  auto t = args.get_info() == 32? Type::arr32(argT) : Type::arr64(argT);
   return PyType::make(t);
 }
 
-DECLARE_METHOD(&PyType::list)
-    ->name("list32")
-    ->docs(dt::doc_Type_list32)
+DECLARE_METHOD(&PyType::array)
+    ->name("arr32")
+    ->docs(dt::doc_Type_arr32)
     ->n_positional_args(1)
     ->n_required_args(1)
     ->arg_names({"T"})
     ->staticmethod()
     ->add_info(32);
 
-DECLARE_METHOD(&PyType::list)
-    ->name("list64")
-    ->docs(dt::doc_Type_list64)
+DECLARE_METHOD(&PyType::array)
+    ->name("arr64")
+    ->docs(dt::doc_Type_arr64)
     ->n_positional_args(1)
     ->n_required_args(1)
     ->arg_names({"T"})

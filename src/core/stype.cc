@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -76,6 +76,8 @@ const char* stype_name(SType stype) {
     case SType::FLOAT64: return "float64";
     case SType::STR32  : return "str32";
     case SType::STR64  : return "str64";
+    case SType::ARR32  : return "arr32";
+    case SType::ARR64  : return "arr64";
     case SType::TIME64 : return "time64";
     case SType::DATE32 : return "date32";
     case SType::OBJ    : return "obj64";
@@ -97,6 +99,8 @@ size_t stype_elemsize(SType stype) {
     case SType::FLOAT64: return sizeof(element_t<SType::FLOAT64>);
     case SType::STR32  : return sizeof(element_t<SType::STR32>);
     case SType::STR64  : return sizeof(element_t<SType::STR64>);
+    case SType::ARR32  : return sizeof(element_t<SType::ARR32>);
+    case SType::ARR64  : return sizeof(element_t<SType::ARR64>);
     case SType::TIME64 : return sizeof(element_t<SType::TIME64>);
     case SType::DATE32 : return sizeof(element_t<SType::DATE32>);
     case SType::OBJ    : return sizeof(element_t<SType::OBJ>);
