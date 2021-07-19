@@ -17,6 +17,18 @@
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
 
+    -[api] When creating Frame from a list of values, a floating-point ``nan``
+        value will now be treated as ``None``. In particular, ``nan``s can now
+        be safely mixed with values of other types, and a list consisting of
+        only ``nan``s will turn into a Column of type
+        :attr:`void <dt.Type.void>`. [#3083]
+
+    -[api] Converting string or object columns to numpy no longer produces a
+        masked array. Instead, we create a regular ``object`` array, filled
+        with ``None``s in place of NAs. Similarly, converting a string or object
+        column to pandas creates a Series with ``None`` values (instead of
+        ``nan``s as before) in place of NAs. [#3083]
+
 
     FExpr
     -----
