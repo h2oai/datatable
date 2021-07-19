@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,13 +19,12 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "documentation.h"
 #include "expr/fbinary/bimaker.h"
 #include "expr/fbinary/bimaker_impl.h"
 #include "ltype.h"
 #include "python/args.h"
 #include "utils/macros.h"
-
-
 namespace dt {
 namespace expr {
 
@@ -49,29 +48,7 @@ static SType _resolve_math_stypes(SType stype1, SType stype2,
 // Op::ARCTAN2
 //------------------------------------------------------------------------------
 
-static const char* doc_atan2 =
-R"(atan2(x, y)
---
-
-The inverse trigonometric tangent of ``y/x``, taking into account the signs
-of `x` and `y` to produce the correct result.
-
-
-If ``(x,y)`` is a point in a Cartesian plane, then ``arctan2(y, x)`` returns
-the radian measure of an angle formed by two rays: one starting at the origin
-and passing through point ``(0,1)``, and the other starting at the origin
-and passing through point ``(x,y)``. The angle is assumed positive if the
-rotation from the first ray to the second occurs counter-clockwise, and
-negative otherwise.
-
-As a special case, ``arctan2(0, 0) == 0``, and ``arctan2(0, -1) == tau/2``.
-
-See also
---------
-- :func:`arctan(x)` -- inverse tangent function.
-)";
-
-py::PKArgs args_atan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_atan2);
+py::PKArgs args_atan2(2, 0, 0, false, false, {"x", "y"}, "atan2", doc_math_atan2);
 
 
 template <typename T>
@@ -100,15 +77,7 @@ bimaker_ptr resolve_fn_atan2(SType stype1, SType stype2) {
 // Op::HYPOT
 //------------------------------------------------------------------------------
 
-static const char* doc_hypot =
-R"(hypot(x, y)
---
-
-The length of the hypotenuse of a right triangle with sides `x` and `y`,
-or in math notation :math:`\operatorname{hypot}(x, y) = \sqrt{x^2 + y^2}`.
-)";
-
-py::PKArgs args_hypot(2, 0, 0, false, false, {"x", "y"}, "hypot", doc_hypot);
+py::PKArgs args_hypot(2, 0, 0, false, false, {"x", "y"}, "hypot", doc_math_hypot);
 
 
 template <typename T>
@@ -136,17 +105,7 @@ bimaker_ptr resolve_fn_hypot(SType stype1, SType stype2) {
 // Op::POWERFN
 //------------------------------------------------------------------------------
 
-static const char* doc_pow =
-R"(pow(x, y)
---
-
-Number x raised to the power y. The return value will be float, even
-if the arguments x and y are integers.
-
-This function is equivalent to `x ** y`.
-)";
-
-py::PKArgs args_pow(2, 0, 0, false, false, {"x", "y"}, "pow", doc_pow);
+py::PKArgs args_pow(2, 0, 0, false, false, {"x", "y"}, "pow", doc_math_pow);
 
 
 template <typename T>
@@ -174,16 +133,8 @@ bimaker_ptr resolve_fn_pow(SType stype1, SType stype2) {
 // Op::COPYSIGN
 //------------------------------------------------------------------------------
 
-static const char* doc_copysign =
-R"(copysign(x, y)
---
-
-Return a float with the magnitude of `x` and the sign of `y`.
-)";
-
 py::PKArgs args_copysign(2, 0, 0, false, false, {"x", "y"}, "copysign",
-                         doc_copysign);
-
+                         doc_math_copysign);
 
 template <typename T>
 static bimaker_ptr _copysign(SType uptype1, SType uptype2, SType outtype) {
@@ -210,18 +161,8 @@ bimaker_ptr resolve_fn_copysign(SType stype1, SType stype2) {
 // Op::LOGADDEXP
 //------------------------------------------------------------------------------
 
-static const char* doc_logaddexp =
-R"(logaddexp(x, y)
---
-
-The logarithm of the sum of exponents of x and y. This function is
-equivalent to ``log(exp(x) + exp(y))``, but does not suffer from
-catastrophic precision loss for small values of x and y.
-)";
-
 py::PKArgs args_logaddexp(2, 0, 0, false, false, {"x", "y"}, "logaddexp",
-                          doc_logaddexp);
-
+                          doc_math_logaddexp);
 
 template <typename T>
 static T op_logaddexp(T x, T y) {
@@ -258,19 +199,8 @@ bimaker_ptr resolve_fn_logaddexp(SType stype1, SType stype2) {
 // Op::LOGADDEXP2
 //------------------------------------------------------------------------------
 
-static const char* doc_logaddexp2 =
-R"(logaddexp2(x, y)
---
-
-Binary logarithm of the sum of binary exponents of x and y. This
-function is equivalent to ``log2(exp2(x) + exp2(y))``, but does
-not suffer from catastrophic precision loss for small values of
-x and y.
-)";
-
 py::PKArgs args_logaddexp2(2, 0, 0, false, false, {"x", "y"}, "logaddexp2",
-                           doc_logaddexp2);
-
+                           doc_math_logaddexp2);
 
 template <typename T>
 static T op_logaddexp2(T x, T y) {
@@ -307,18 +237,7 @@ bimaker_ptr resolve_fn_logaddexp2(SType stype1, SType stype2) {
 // Op::FMOD
 //------------------------------------------------------------------------------
 
-static const char* doc_fmod =
-R"(fmod(x, y)
---
-
-Floating-point remainder of the division x/y. The result is always
-a float, even if the arguments are integers. This function uses
-``std::fmod()`` from the standard C++ library, its convention for
-handling of negative numbers may be different than the Python's.
-)";
-
-py::PKArgs args_fmod(2, 0, 0, false, false, {"x", "y"}, "fmod", doc_fmod);
-
+py::PKArgs args_fmod(2, 0, 0, false, false, {"x", "y"}, "fmod", doc_math_fmod);
 
 template <typename T>
 static bimaker_ptr _fmod(SType uptype1, SType uptype2, SType outtype) {
@@ -345,16 +264,8 @@ bimaker_ptr resolve_fn_fmod(SType stype1, SType stype2) {
 // Op::LDEXP
 //------------------------------------------------------------------------------
 
-static const char* doc_ldexp =
-R"(ldexp(x, y)
---
-
-Multiply x by 2 raised to the power y, i.e. compute ``x * 2**y``.
-Column x is expected to be float, and y integer.
-)";
-
-py::PKArgs args_ldexp(2, 0, 0, false, false, {"x", "y"}, "ldexp", doc_ldexp);
-
+py::PKArgs args_ldexp(2, 0, 0, false, false, {"x", "y"}, "ldexp",
+                      doc_math_ldexp);
 
 template <typename T>
 static bimaker_ptr _ldexp(SType uptype1, SType uptype2, SType outtype) {
