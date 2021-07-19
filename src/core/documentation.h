@@ -95,7 +95,25 @@ extern const char* doc_models_Ftrl_predict;
 extern const char* doc_models_Ftrl_reset;
 
 extern const char* doc_models_LinearModel;
+extern const char* doc_models_LinearModel___init__;
+extern const char* doc_models_LinearModel_eta0;
+extern const char* doc_models_LinearModel_eta_decay;
+extern const char* doc_models_LinearModel_eta_drop_rate;
+extern const char* doc_models_LinearModel_eta_schedule;
+extern const char* doc_models_LinearModel_double_precision;
+extern const char* doc_models_LinearModel_fit;
+extern const char* doc_models_LinearModel_is_fitted;
+extern const char* doc_models_LinearModel_labels;
+extern const char* doc_models_LinearModel_lambda1;
+extern const char* doc_models_LinearModel_lambda2;
+extern const char* doc_models_LinearModel_model;
+extern const char* doc_models_LinearModel_model_type;
+extern const char* doc_models_LinearModel_negative_class;
+extern const char* doc_models_LinearModel_nepochs;
 extern const char* doc_models_LinearModel_params;
+extern const char* doc_models_LinearModel_predict;
+extern const char* doc_models_LinearModel_reset;
+extern const char* doc_models_LinearModel_seed;
 
 extern const char* doc_re_match;
 

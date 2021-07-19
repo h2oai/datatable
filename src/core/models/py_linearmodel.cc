@@ -63,94 +63,6 @@ static const std::unordered_map<std::string, dt::LearningRateSchedule> LearningR
  *  Initialize LinearModel object with the provided parameters.
  */
 
-static const char* doc___init__ =
-R"(__init__(self,
-eta0=0.005, eta_decay=0.0001, eta_drop_rate=10.0, eta_schedule='constant',
-lambda1=0, lambda2=0, nepochs=1, double_precision=False, negative_class=False,
-model_type='auto', seed=0, params=None)
---
-
-Create a new :class:`LinearModel <datatable.models.LinearModel>` object.
-
-Parameters
-----------
-eta0: float
-    The initial learning rate, should be positive.
-
-eta_decay: float
-    Decay for the `"time-based"` and `"step-based"`
-    learning rate schedules, should be non-negative.
-
-eta_drop_rate: float
-    Drop rate for the `"step-based"` learning rate schedule,
-    should be positive.
-
-eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
-    Learning rate schedule. When it is `"constant"` the learning rate
-    `eta` is constant and equals to `eta0`. Otherwise,
-    after each training iteration `eta` is updated as follows:
-
-    - for `"time-based"` schedule as `eta0 / (1 + eta_decay * epoch)`;
-    - for `"step-based"` schedule as `eta0 * eta_decay ^ floor((1 + epoch) / eta_drop_rate)`;
-    - for `"exponential"` schedule as `eta0 / exp(eta_decay * epoch)`.
-
-    By default, the size of the training iteration is one epoch, it becomes
-    `nepochs_validation` when validation dataset is specified.
-
-lambda1: float
-    L1 regularization parameter, should be non-negative.
-
-lambda2: float
-    L2 regularization parameter, should be non-negative.
-
-nepochs: float
-    Number of training epochs, should be non-negative. When `nepochs`
-    is an integer number, the model will train on all the data
-    provided to :meth:`.fit` method `nepochs` times. If `nepochs`
-    has a fractional part `{nepochs}`, the model will train on all
-    the data `[nepochs]` times, i.e. the integer part of `nepochs`.
-    Plus, it will also perform an additional training iteration
-    on the `{nepochs}` fraction of data.
-
-double_precision: bool
-    An option to indicate whether double precision, i.e. `float64`,
-    or single precision, i.e. `float32`, arithmetic should be used
-    for computations. It is not guaranteed that setting
-    `double_precision` to `True` will automatically improve
-    the model accuracy. It will, however, roughly double the memory
-    footprint of the `LinearModel` object.
-
-negative_class: bool
-    An option to indicate if a "negative" class should be created
-    in the case of multinomial classification. For the "negative"
-    class the model will train on all the negatives, and if
-    a new label is encountered in the target column, its
-    coefficients will be initialized to the current "negative" class coefficients.
-    If `negative_class` is set to `False`, the initial coefficients
-    become zeros.
-
-model_type: "binomial" | "multinomial" | "regression" | "auto"
-    The model type to be built. When this option is `"auto"`
-    then the model type will be automatically chosen based on
-    the target column `stype`.
-
-seed: int
-    Seed for the quasi-random number generator that is used for
-    data shuffling when fitting the model, should be non-negative.
-    If seed is zero, no shuffling is performed.
-
-params: LinearModelParams
-    Named tuple of the above parameters. One can pass either this tuple,
-    or any combination of the individual parameters to the constructor,
-    but not both at the same time.
-
-except: ValueError
-    The exception is raised if both the `params` and one of the
-    individual model parameters are passed at the same time.
-
-)";
-
-
 static PKArgs args___init__(0, 1, LinearModel::N_PARAMS, false, false,
                                  {"params",
                                  "eta0", "eta_decay", "eta_drop_rate", "eta_schedule",
@@ -158,8 +70,7 @@ static PKArgs args___init__(0, 1, LinearModel::N_PARAMS, false, false,
                                  "nepochs", "double_precision", "negative_class",
                                  "model_type",
                                  "seed"},
-                                 "__init__", doc___init__);
-
+                                 "__init__", dt::doc_models_LinearModel___init__);
 
 
 void LinearModel::m__init__(const PKArgs& args) {
@@ -246,23 +157,24 @@ void LinearModel::init_dt_model(dt::LType target_ltype /* = dt::LType::MU */) {
   if (lm_) return;
 
   switch (dt_params_->model_type) {
-    case dt::LinearModelType::AUTO :    switch (target_ltype) {
-                                          case dt::LType::MU:
-                                          case dt::LType::BOOL:    lm_ = new dt::LinearModelBinomial<T>();
-                                                                   set_model_type({py::ostring("binomial"), "`LinearModelParams.model_type`"});
-                                                                   break;
-                                          case dt::LType::INT:
-                                          case dt::LType::REAL:    lm_ = new dt::LinearModelRegression<T>();
-                                                                   set_model_type({py::ostring("regression"), "`LinearModelParams.model_type`"});
-                                                                   break;
-                                          case dt::LType::STRING:  lm_ = new dt::LinearModelMultinomial<T>();
-                                                                   set_model_type({py::ostring("multinomial"), "`LinearModelParams.model_type`"});
-                                                                   break;
-                                          default: throw TypeError() << "Target column should have one of "
-                                            << "the following ltypes: `void`, `bool`, `int`, `real` or `string`, "
-                                            << "instead got: `" << target_ltype << "`";
-                                        }
-                                        break;
+    case dt::LinearModelType::AUTO :
+      switch (target_ltype) {
+        case dt::LType::MU:
+        case dt::LType::BOOL:    lm_ = new dt::LinearModelBinomial<T>();
+                                 set_model_type({py::ostring("binomial"), "`LinearModelParams.model_type`"});
+                                 break;
+        case dt::LType::INT:
+        case dt::LType::REAL:    lm_ = new dt::LinearModelRegression<T>();
+                                 set_model_type({py::ostring("regression"), "`LinearModelParams.model_type`"});
+                                 break;
+        case dt::LType::STRING:  lm_ = new dt::LinearModelMultinomial<T>();
+                                 set_model_type({py::ostring("multinomial"), "`LinearModelParams.model_type`"});
+                                 break;
+        default: throw TypeError() << "Target column should have one of "
+          << "the following ltypes: `void`, `bool`, `int`, `real` or `string`, "
+          << "instead got: `" << target_ltype << "`";
+      }
+      break;
 
     case dt::LinearModelType::REGRESSION :  lm_ = new dt::LinearModelRegression<T>();
                                             break;
@@ -281,61 +193,11 @@ void LinearModel::init_dt_model(dt::LType target_ltype /* = dt::LType::MU */) {
  *  Do dataset validation and a call to `lm_->dispatch_fit(...)` method.
  */
 
-static const char* doc_fit =
-R"(fit(self, X_train, y_train, X_validation=None, y_validation=None,
-    nepochs_validation=1, validation_error=0.01,
-    validation_average_niterations=1)
---
-
-Train model on the input samples and targets using the
-`parallel stochastic gradient descent <http://martin.zinkevich.org/publications/nips2010.pdf>`_
-method.
-
-Parameters
-----------
-X_train: Frame
-    Training frame.
-
-y_train: Frame
-    Target frame having as many rows as `X_train` and one column.
-
-X_validation: Frame
-    Validation frame having the same number of columns as `X_train`.
-
-y_validation: Frame
-    Validation target frame of shape `(nrows, 1)`.
-
-nepochs_validation: float
-    Parameter that specifies how often, in epoch units, validation
-    error should be checked.
-
-validation_error: float
-    The improvement of the relative validation error that should be
-    demonstrated by the model within `nepochs_validation` epochs,
-    otherwise the training will stop.
-
-validation_average_niterations: int
-    Number of iterations that is used to average the validation error.
-    Each iteration corresponds to `nepochs_validation` epochs.
-
-return: LinearModelFitOutput
-    `LinearModelFitOutput` is a `Tuple[float, float]` with two fields: `epoch` and `loss`,
-    representing the final fitting epoch and the final loss, respectively.
-    If validation dataset is not provided, the returned `epoch` equals to
-    `nepochs` and the `loss` is just `float('nan')`.
-
-See also
---------
-- :meth:`.predict` -- predict for the input samples.
-- :meth:`.reset` -- reset the model.
-
-)";
-
 static PKArgs args_fit(2, 5, 0, false, false, {"X_train", "y_train",
                        "X_validation", "y_validation",
                        "nepochs_validation", "validation_error",
                        "validation_average_niterations"}, "fit",
-                       doc_fit);
+                       dt::doc_models_LinearModel_fit);
 
 oobj LinearModel::fit(const PKArgs& args) {
   size_t i = 0;
@@ -511,32 +373,8 @@ oobj LinearModel::fit(const PKArgs& args) {
  *  return frame with predictions.
  */
 
-static const char* doc_predict =
-R"(predict(self, X)
---
-
-Predict for the input samples.
-
-Parameters
-----------
-X: Frame
-    A frame to make predictions for. It should have the same number
-    of columns as the training frame.
-
-return: Frame
-    A new frame of shape `(X.nrows, nlabels)` with the predicted probabilities
-    for each row of frame `X` and each of `nlabels` labels
-    the model was trained for.
-
-See also
---------
-- :meth:`.fit` -- train model on the input samples and targets.
-- :meth:`.reset` -- reset the model.
-
-)";
-
 static PKArgs args_predict(1, 0, 0, false, false, {"X"}, "predict",
-                           doc_predict);
+                           dt::doc_models_LinearModel_predict);
 
 
 oobj LinearModel::predict(const PKArgs& args) {
@@ -572,24 +410,8 @@ oobj LinearModel::predict(const PKArgs& args) {
  *  Reset the model by deleting the underlying `dt::LinearModel` object.
  */
 
-static const char* doc_reset =
-R"(reset(self)
---
-
-Reset linear model by resetting all the model coefficients and labels.
-
-Parameters
-----------
-return: None
-
-See also
---------
-- :meth:`.fit` -- train model on a dataset.
-- :meth:`.predict` -- predict on a dataset.
-
-)";
-
-static PKArgs args_reset(0, 0, 0, false, false, {}, "reset", doc_reset);
+static PKArgs args_reset(0, 0, 0, false, false, {}, "reset",
+                         dt::doc_models_LinearModel_reset);
 
 
 void LinearModel::reset(const PKArgs&) {
@@ -603,21 +425,10 @@ void LinearModel::reset(const PKArgs&) {
 /**
  *  .labels
  */
-static const char* doc_labels =
-R"(
-Classification labels the model was trained on.
-
-Parameters
-----------
-return: Frame
-    A one-column frame with the classification labels.
-    In the case of numeric regression, the label is
-    the target column name.
-)";
 
 static GSArgs args_labels(
   "labels",
-  doc_labels);
+  dt::doc_models_LinearModel_labels);
 
 
 oobj LinearModel::get_labels() const {
@@ -633,20 +444,8 @@ oobj LinearModel::get_labels() const {
  *  .is_fitted()
  */
 
-static const char* doc_is_fitted =
-R"(is_fitted(self)
---
-
-Report model status.
-
-Parameters
-----------
-return: bool
-    `True` if model is trained, `False` otherwise.
-
-)";
-
-static PKArgs args_is_fitted(0, 0, 0, false, false, {}, "is_fitted", doc_is_fitted);
+static PKArgs args_is_fitted(0, 0, 0, false, false, {}, "is_fitted",
+                             dt::doc_models_LinearModel_is_fitted);
 
 
 oobj LinearModel::is_fitted(const PKArgs&) {
@@ -662,22 +461,7 @@ oobj LinearModel::is_fitted(const PKArgs&) {
  *  .model
  */
 
-static const char* doc_model =
-R"(
-Trained models coefficients.
-
-Parameters
-----------
-return: Frame
-    A frame of shape `(nfeatures + 1, nlabels)`, where `nlabels` is
-    the number of labels the model was trained on, and
-    `nfeatures` is the number of features. Each column contains
-    model coefficients for the corresponding label: starting from
-    the intercept and following by the coefficients for each of
-    of the `nfeatures` features.
-)";
-
-static GSArgs args_model("model", doc_model);
+static GSArgs args_model("model", dt::doc_models_LinearModel_model);
 
 oobj LinearModel::get_model() const {
   if (lm_ == nullptr || !lm_->is_fitted()) {
@@ -722,25 +506,9 @@ void LinearModel::set_model(robj model) {
  *  .eta0
  */
 
-static const char* doc_eta0 =
-R"(
-Learning rate.
-
-Parameters
-----------
-return: float
-    Current `eta0` value.
-
-new_eta0: float
-    New `eta0` value, should be positive.
-
-except: ValueError
-    The exception is raised when `new_eta0` is not positive.
-)";
-
 static GSArgs args_eta0(
   "eta0",
-  doc_eta0
+  dt::doc_models_LinearModel_eta0
 );
 
 
@@ -762,25 +530,9 @@ void LinearModel::set_eta0(const Arg& py_eta0) {
  *  .eta_decay
  */
 
-static const char* doc_eta_decay =
-R"(
-Decay for the `"time-based"` and `"step-based"` learning rate schedules.
-
-Parameters
-----------
-return: float
-    Current `eta_decay` value.
-
-new_eta_decay: float
-    New `eta_decay` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_eta_decay` is negative.
-)";
-
 static GSArgs args_eta_decay(
   "eta_decay",
-  doc_eta_decay
+  dt::doc_models_LinearModel_eta_decay
 );
 
 
@@ -802,25 +554,9 @@ void LinearModel::set_eta_decay(const Arg& py_eta_decay) {
  *  .eta_drop_rate
  */
 
-static const char* doc_eta_drop_rate =
-R"(
-Drop rate for the `"step-based"` learning rate schedule.
-
-Parameters
-----------
-return: float
-    Current `eta_drop_rate` value.
-
-new_eta_drop_rate: float
-    New `eta_drop_rate` value, should be positive.
-
-except: ValueError
-    The exception is raised when `new_eta_drop_rate` is not positive.
-)";
-
 static GSArgs args_eta_drop_rate(
   "eta_drop_rate",
-  doc_eta_drop_rate
+  dt::doc_models_LinearModel_eta_drop_rate
 );
 
 
@@ -842,27 +578,9 @@ void LinearModel::set_eta_drop_rate(const Arg& py_eta_drop_rate) {
  *  .eta_schedule
  */
 
-static const char* doc_eta_schedule =
-R"(
-Learning rate `schedule <https://en.wikipedia.org/wiki/Learning_rate#Learning_rate_schedule>`_
-
-- `"constant"` for constant `eta`;
-- `"time-based"` for time-based schedule;
-- `"step-based"` for step-based schedule;
-- `"exponential"` for exponential schedule.
-
-Parameters
-----------
-return: str
-    Current `eta_schedule` value.
-
-new_eta_schedule: "constant" | "time-based" | "step-based" | "exponential"
-    New `eta_schedule` value.
-)";
-
 static GSArgs args_eta_schedule(
   "eta_schedule",
-  doc_eta_schedule
+  dt::doc_models_LinearModel_eta_schedule
 );
 
 
@@ -888,26 +606,9 @@ void LinearModel::set_eta_schedule(const Arg& py_eta_schedule) {
  *  .lambda1
  */
 
-static const char* doc_lambda1 =
-R"(
-L1 regularization parameter.
-
-Parameters
-----------
-return: float
-    Current `lambda1` value.
-
-new_lambda1: float
-    New `lambda1` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_lambda1` is negative.
-
-)";
-
 static GSArgs args_lambda1(
   "lambda1",
-  doc_lambda1
+  dt::doc_models_LinearModel_lambda1
 );
 
 
@@ -929,26 +630,9 @@ void LinearModel::set_lambda1(const Arg& py_lambda1) {
  *  .lambda2
  */
 
-static const char* doc_lambda2 =
-R"(
-L2 regularization parameter.
-
-Parameters
-----------
-return: float
-    Current `lambda2` value.
-
-new_lambda2: float
-    New `lambda2` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_lambda2` is negative.
-
-)";
-
 static GSArgs args_lambda2(
   "lambda2",
-  doc_lambda2
+  dt::doc_models_LinearModel_lambda2
 );
 
 
@@ -971,31 +655,9 @@ void LinearModel::set_lambda2(const Arg& py_lambda2) {
  *  .nepochs
  */
 
-static const char* doc_nepochs =
-R"(
-Number of training epochs. When `nepochs` is an integer number,
-the model will train on all the data provided to :meth:`.fit` method
-`nepochs` times. If `nepochs` has a fractional part `{nepochs}`,
-the model will train on all the data `[nepochs]` times,
-i.e. the integer part of `nepochs`. Plus, it will also perform an additional
-training iteration on the `{nepochs}` fraction of data.
-
-Parameters
-----------
-return: float
-    Current `nepochs` value.
-
-new_nepochs: float
-    New `nepochs` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when `new_nepochs` value is negative.
-
-)";
-
 static GSArgs args_nepochs(
   "nepochs",
-  doc_nepochs
+  dt::doc_models_LinearModel_nepochs
 );
 
 oobj LinearModel::get_nepochs() const {
@@ -1016,23 +678,9 @@ void LinearModel::set_nepochs(const Arg& arg_nepochs) {
  *  .double_precision
  */
 
-static const char* doc_double_precision =
-R"(
-An option to indicate whether double precision, i.e. `float64`,
-or single precision, i.e. `float32`, arithmetic should be
-used for computations. This option is read-only and can only be set
-during the `LinearModel` object :meth:`construction <datatable.models.LinearModel.__init__>`.
-
-Parameters
-----------
-return: bool
-    Current `double_precision` value.
-
-)";
-
 static GSArgs args_double_precision(
   "double_precision",
-  doc_double_precision
+  dt::doc_models_LinearModel_double_precision
 );
 
 
@@ -1056,35 +704,9 @@ void LinearModel::set_double_precision(const Arg& arg_double_precision) {
  *  .negative_class
  */
 
-static const char* doc_negative_class =
-R"(
-An option to indicate if a "negative" class should be created
-in the case of multinomial classification. For the "negative"
-class the model will train on all the negatives, and if
-a new label is encountered in the target column, its
-coefficients are initialized to the current "negative" class coefficients.
-If `negative_class` is set to `False`, the initial coefficients
-become zeros.
-
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: bool
-    Current `negative_class` value.
-
-new_negative_class: bool
-    New `negative_class` value.
-
-except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
-
-)";
-
 static GSArgs args_negative_class(
   "negative_class",
-  doc_negative_class
+  dt::doc_models_LinearModel_negative_class
 );
 
 
@@ -1109,33 +731,9 @@ void LinearModel::set_negative_class(const Arg& arg_negative_class) {
  *  .model_type
  */
 
-static const char* doc_model_type =
-R"(
-A type of the model `LinearModel` should build:
-
-- `"binomial"` for binomial classification;
-- `"multinomial"` for multinomial classification;
-- `"regression"` for numeric regression;
-- `"auto"` for automatic model type detection based on the target column `stype`.
-
-This option is read-only for a trained model.
-
-Parameters
-----------
-return: str
-    Current `model_type` value.
-
-new_model_type: "binomial" | "multinomial" | "regression" | "auto"
-    New `model_type` value.
-
-except: ValueError
-    The exception is raised when trying to change this option
-    for a model that has already been trained.
-)";
-
 static GSArgs args_model_type(
   "model_type",
-  doc_model_type
+  dt::doc_models_LinearModel_model_type
 );
 
 
@@ -1164,25 +762,9 @@ void LinearModel::set_model_type(const Arg& py_model_type) {
  *  .seed
  */
 
-static const char* doc_seed =
-R"(
-Seed for the quasi-random number generator that is used for
-data shuffling when fitting the model. If seed is `0`,
-no shuffling is performed.
-
-Parameters
-----------
-return: int
-    Current `seed` value.
-
-new_seed: int
-    New `seed` value, should be non-negative.
-
-)";
-
 static GSArgs args_seed(
   "seed",
-  doc_seed
+  dt::doc_models_LinearModel_seed
 );
 
 
