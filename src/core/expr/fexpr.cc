@@ -689,7 +689,8 @@ DECLARE_METHOD(&PyFExpr::as_type)
     ->name("as_type")
     ->docs(doc_as_type)
     ->arg_names({"new_type"})
-    ->n_positional_args(1);
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
 
 //------------------------------------------------------------------------------
