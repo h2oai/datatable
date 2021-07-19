@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,8 +20,9 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/repeated.h"
+#include "documentation.h"
 #include "frame/py_frame.h"
-#include "python/args.h"
+#include "python/xargs.h"
 #include "datatablemodule.h"
 #include "rowindex.h"
 namespace py {
@@ -32,59 +33,7 @@ namespace py {
 // datatable.repeat()
 //------------------------------------------------------------------------------
 
-static const char* doc_repeat =
-R"(repeat(frame, n)
---
-
-Concatenate `n` copies of the `frame` by rows and return the result.
-
-This is equivalent to ``dt.rbind([frame] * n)``.
-
-Example
--------
-::
-
-    >>> from datatable import dt
-    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
-    ...                "B": [None, 2, 3, 4, 5]})
-    >>> DT
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1     NA
-     1 |     1      2
-     2 |     2      3
-     3 |     1      4
-     4 |     2      5
-    [5 rows x 2 columns]
-
-::
-
-    >>> dt.repeat(DT, 2)
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1     NA
-     1 |     1      2
-     2 |     2      3
-     3 |     1      4
-     4 |     2      5
-     5 |     1     NA
-     6 |     1      2
-     7 |     2      3
-     8 |     1      4
-     9 |     2      5
-    [10 rows x 2 columns]
-)";
-
-
-
-static PKArgs args_repeat(
-    2, 0, 0, false, false, {"frame", "n"},
-    "repeat", doc_repeat);
-
-
-static oobj repeat(const PKArgs& args) {
+static oobj repeat(const XArgs& args) {
   DataTable* dt = args[0].to_datatable();
   size_t n = args[1].to_size_t();
 
@@ -103,12 +52,13 @@ static oobj repeat(const PKArgs& args) {
   return Frame::oframe(newdt);
 }
 
+DECLARE_PYFN(&repeat)
+    ->name("repeat")
+    ->docs(dt::doc_dt_repeat)
+    ->n_positional_args(2)
+    ->n_required_args(2)
+    ->arg_names({"frame", "n"});
 
-
-
-void DatatableModule::init_methods_repeat() {
-  ADD_FN(&repeat, args_repeat);
-}
 
 
 

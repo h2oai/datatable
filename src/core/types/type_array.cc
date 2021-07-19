@@ -21,35 +21,35 @@
 //------------------------------------------------------------------------------
 #include "stype.h"
 #include "types/type_invalid.h"
-#include "types/type_list.h"
+#include "types/type_array.h"
 #include "utils/assert.h"
 namespace dt {
 
 
 
 //------------------------------------------------------------------------------
-// Type_List32
+// Type_Arr32
 //------------------------------------------------------------------------------
 
-Type_List32::Type_List32(Type t)
-  : TypeImpl(SType::LIST32),
+Type_Arr32::Type_Arr32(Type t)
+  : TypeImpl(SType::ARR32),
     elementType_(t) {}
 
-bool Type_List32::is_compound() const { 
+bool Type_Arr32::is_compound() const {
   return true; 
 }
 
-bool Type_List32::is_list() const {
+bool Type_Arr32::is_array() const {
   return true;
 }
 
-std::string Type_List32::to_string() const {
-  return "list32(" + elementType_.to_string() + ")";
+std::string Type_Arr32::to_string() const {
+  return "arr32(" + elementType_.to_string() + ")";
 }
 
 
-TypeImpl* Type_List32::common_type(TypeImpl* other) {
-  if (other->is_list()) {
+TypeImpl* Type_Arr32::common_type(TypeImpl* other) {
+  if (other->is_array()) {
     return other->stype() > stype() ? other : this;
   }
   if (other->is_object() || other->is_invalid()) {
@@ -59,40 +59,41 @@ TypeImpl* Type_List32::common_type(TypeImpl* other) {
 }
 
 
-bool Type_List32::equals(const TypeImpl* other) const {
+bool Type_Arr32::equals(const TypeImpl* other) const {
   return other->stype() == stype() &&
-         elementType_ == reinterpret_cast<const Type_List32*>(other)->elementType_;
+         elementType_ == reinterpret_cast<const Type_Arr32*>(other)->elementType_;
 }
 
-size_t Type_List32::hash() const noexcept {
+size_t Type_Arr32::hash() const noexcept {
   return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
 }
 
 
 
+
 //------------------------------------------------------------------------------
-// Type_List64
+// Type_Arr64
 //------------------------------------------------------------------------------
 
-Type_List64::Type_List64(Type t)
-  : TypeImpl(SType::LIST64),
+Type_Arr64::Type_Arr64(Type t)
+  : TypeImpl(SType::ARR64),
     elementType_(t) {}
 
-bool Type_List64::is_compound() const { 
+bool Type_Arr64::is_compound() const {
   return true; 
 }
 
-bool Type_List64::is_list() const {
+bool Type_Arr64::is_array() const {
   return true;
 }
 
-std::string Type_List64::to_string() const {
-  return "list64(" + elementType_.to_string() + ")";
+std::string Type_Arr64::to_string() const {
+  return "arr64(" + elementType_.to_string() + ")";
 }
 
 
-TypeImpl* Type_List64::common_type(TypeImpl* other) {
-  if (other->is_list()) {
+TypeImpl* Type_Arr64::common_type(TypeImpl* other) {
+  if (other->is_array()) {
     return this;
   }
   if (other->is_object() || other->is_invalid()) {
@@ -102,12 +103,12 @@ TypeImpl* Type_List64::common_type(TypeImpl* other) {
 }
 
 
-bool Type_List64::equals(const TypeImpl* other) const {
+bool Type_Arr64::equals(const TypeImpl* other) const {
   return other->stype() == stype() &&
-         elementType_ == reinterpret_cast<const Type_List64*>(other)->elementType_;
+         elementType_ == reinterpret_cast<const Type_Arr64*>(other)->elementType_;
 }
 
-size_t Type_List64::hash() const noexcept {
+size_t Type_Arr64::hash() const noexcept {
   return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
 }
 

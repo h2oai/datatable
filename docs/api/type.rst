@@ -21,6 +21,8 @@
     ------
     The following types are currently available:
 
+    - :meth:`dt.Type.arr32(T)`
+    - :meth:`dt.Type.arr64(T)`
     - :attr:`dt.Type.bool8`
     - :attr:`dt.Type.date32`
     - :attr:`dt.Type.float32`
@@ -29,8 +31,6 @@
     - :attr:`dt.Type.int32`
     - :attr:`dt.Type.int64`
     - :attr:`dt.Type.int8`
-    - :meth:`dt.Type.list32(T)`
-    - :meth:`dt.Type.list64(T)`
     - :attr:`dt.Type.obj64`
     - :attr:`dt.Type.str32`
     - :attr:`dt.Type.str64`
@@ -57,6 +57,8 @@
 .. toctree::
     :hidden:
 
+    ⭑ arr32(T)  <type/arr32>
+    ⭑ arr64(T)  <type/arr64>
     ⭑ bool8     <type/bool8>
     ⭑ date32    <type/date32>
     ⭑ float32   <type/float32>
@@ -65,8 +67,6 @@
     ⭑ int16     <type/int16>
     ⭑ int32     <type/int32>
     ⭑ int64     <type/int64>
-    ⭑ list32(T) <type/list32>
-    ⭑ list64(T) <type/list64>
     ⭑ obj64     <type/obj64>
     ⭑ str32     <type/str32>
     ⭑ str64     <type/str64>
