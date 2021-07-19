@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.as_type
-    :src: src/core/expr/fexpr_astype.cc pyfn_astype3
+    :src: src/core/expr/fexpr_astype.cc pyfn_astype
     :tests: tests/dt/test-astype.py
     :cvar: doc_dt_as_type
     :signature: as_type(cols, new_type)
