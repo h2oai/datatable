@@ -34,6 +34,9 @@
         ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
         they produced errors during parsing. [#3065]
 
+    -[bug] :func:`fread()` will no longer fail while reading mostly empty
+        files. [#3055]
+
 
     General
     -------
