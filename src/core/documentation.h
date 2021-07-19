@@ -23,12 +23,12 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
-
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
 extern const char* doc_dt_count;
+extern const char* doc_dt_countna;
 extern const char* doc_dt_cov;
 extern const char* doc_dt_cut;
 extern const char* doc_dt_first;
@@ -179,7 +179,6 @@ extern const char* doc_Type_arr64;
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;
 extern const char* doc_Type_name;
-
 
 
 }  // namespace dt

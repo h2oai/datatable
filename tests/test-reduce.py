@@ -26,9 +26,9 @@ import pytest
 import random
 from datatable import (
     dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
-
 
 #-------------------------------------------------------------------------------
 # Count
