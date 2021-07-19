@@ -585,3 +585,11 @@ def test_issue2943():
     assert_equals(DT[:, 'A':'C'], EXP)
     DT = dt.fread(src2)
     assert_equals(DT[:, 'A':'C'], EXP)
+
+
+def test_issue_3055():
+    repeat = 1000000
+    text = "Nothing" + "\n" * repeat
+    EXP = dt.Frame(Nothing=[None]*(repeat-1))
+    RES = dt.fread(text)
+    assert_equals(EXP,RES)

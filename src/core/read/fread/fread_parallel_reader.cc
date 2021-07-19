@@ -54,7 +54,7 @@ void FreadParallelReader::adjust_chunk_coordinates(
   if (cc.is_end_approximate()) {
     const char* end = cc.get_end();
     while (*end=='\n' || *end=='\r') end++;
-    cc.set_end_approximate(end + 1);
+    cc.set_end_approximate(end);
   }
 }
 

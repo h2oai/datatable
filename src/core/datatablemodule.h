@@ -36,13 +36,9 @@ class DatatableModule : public ExtModule<DatatableModule> {
     }
 
     void init_methods();
-    void init_methods_aggregate(); // models/aggregate.cc
     void init_methods_jay();       // open_jay.cc
     void init_methods_join();      // frame/join.cc
     void init_methods_kfold();     // models/kfold.cc
-    void init_methods_repeat();    // frame/repeat.cc
-    void init_methods_sets();      // set_funcs.cc
-    void init_methods_styles();    // frame/repr/html_styles.cc
     void init_fbinary();           // expr/fbinary/pyfn.cc
     void init_fuzzy();             // utils/fuzzy.cc
     void init_funary();            // expr/funary/pyfn.cc
