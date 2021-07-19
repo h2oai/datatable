@@ -1202,7 +1202,7 @@ void LinearModel::set_seed(const Arg& arg_seed) {
  *  .params
  */
 
-static GSArgs args_params("params", dt::doc_models_LM_params);
+static GSArgs args_params("params", dt::doc_models_LinearModel_params);
 
 oobj LinearModel::get_params_namedtuple() const {
   return *py_params_;
@@ -1376,7 +1376,7 @@ void LinearModel::m__setstate__(const PKArgs& args) {
 
 void LinearModel::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.models.LinearModel");
-  xt.set_class_doc(dt::doc_models_LM);
+  xt.set_class_doc(dt::doc_models_LinearModel);
 
   xt.add(CONSTRUCTOR(&LinearModel::m__init__, args___init__));
   xt.add(DESTRUCTOR(&LinearModel::m__dealloc__));

@@ -68,6 +68,35 @@ extern const char* doc_math_logaddexp;
 extern const char* doc_math_pow;
 extern const char* doc_math_round;
 
+extern const char* doc_models_aggregate;
+
+extern const char* doc_models_Ftrl;
+extern const char* doc_models_Ftrl___init__;
+extern const char* doc_models_Ftrl_alpha;
+extern const char* doc_models_Ftrl_beta;
+extern const char* doc_models_Ftrl_colnames;
+extern const char* doc_models_Ftrl_colname_hashes;
+extern const char* doc_models_Ftrl_double_precision;
+extern const char* doc_models_Ftrl_feature_importances;
+extern const char* doc_models_Ftrl_fit;
+extern const char* doc_models_Ftrl_interactions;
+extern const char* doc_models_Ftrl_labels;
+extern const char* doc_models_Ftrl_lambda1;
+extern const char* doc_models_Ftrl_lambda2;
+extern const char* doc_models_Ftrl_model;
+extern const char* doc_models_Ftrl_model_type;
+extern const char* doc_models_Ftrl_model_type_trained;
+extern const char* doc_models_Ftrl_mantissa_nbits;
+extern const char* doc_models_Ftrl_nbins;
+extern const char* doc_models_Ftrl_negative_class;
+extern const char* doc_models_Ftrl_nepochs;
+extern const char* doc_models_Ftrl_params;
+extern const char* doc_models_Ftrl_predict;
+extern const char* doc_models_Ftrl_reset;
+
+extern const char* doc_models_LinearModel;
+extern const char* doc_models_LinearModel_params;
+
 extern const char* doc_re_match;
 
 extern const char* doc_str_len;
@@ -141,11 +170,6 @@ extern const char* doc_Frame_to_tuples;
 extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
-
-extern const char* doc_models_aggregate;
-
-extern const char* doc_models_LM;
-extern const char* doc_models_LM_params;
 
 extern const char* doc_Namespace;
 
