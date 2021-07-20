@@ -36,7 +36,6 @@
 #
 #-------------------------------------------------------------------------------
 import docutils
-import logging
 import re
 import sphinx.domains
 import sphinx.ext
@@ -45,7 +44,7 @@ import warnings
 from docutils.nodes import Node, system_message
 from typing import List, Dict, Tuple
 
-logger = logging.getLogger(__name__)
+logger = sphinx.util.logging.getLogger(__name__)
 
 
 #-------------------------------------------------------------------------------
@@ -416,7 +415,7 @@ class XPythonDomain(sphinx.domains.Domain):
         return fulltype
 
     def warn(self, msg):
-        print("\x1B[93mWarning\x1B[33m: " + msg + "\x1B[m")
+        logger.warn(msg)
 
     def error(self, msg, node=None):
         doc = None
@@ -428,7 +427,7 @@ class XPythonDomain(sphinx.domains.Domain):
             msg += f" -- at {doc}:{line}"
         else:
             msg += f" -- at {self.env.docname}"
-        logger.error(f"\x1B[91mError: {msg}\x1B[m")
+        logger.error(msg)
 
 
 
