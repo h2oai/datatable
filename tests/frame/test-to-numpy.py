@@ -78,8 +78,9 @@ def test_tonumpy_void(np):
     assert DT.shape == (10, 3)
     a = DT.to_numpy()
     assert a.shape == DT.shape
-    assert a.dtype == np.dtype('void')
-    assert a.tolist() == [[b''] * 3] * 10
+    assert a.dtype == np.dtype('float64')
+    assert all(len(row) == 3 and all(math.isnan(x) for x in row)
+               for row in a.tolist())
 
 
 @numpy_test
