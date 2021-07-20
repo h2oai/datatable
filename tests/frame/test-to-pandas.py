@@ -98,6 +98,20 @@ def test_topandas_bool_nas():
 
 
 @pandas_test
+def test_topandas_strings_nas():
+    DT = dt.Frame(["alpha", None, None, "omega"])
+    pf = DT.to_pandas()
+    assert pf.values.tolist() == [["alpha"], [None], [None], ["omega"]]
+
+
+@pandas_test
+def test_topandas_objects_nas():
+    DT = dt.Frame([dt, None, None, [1,2,3]], type=object)
+    pf = DT.to_pandas()
+    assert pf.values.tolist() == [[dt], [None], [None], [[1, 2, 3]]]
+
+
+@pandas_test
 def test_topandas_keyed(pd):
     DT = dt.Frame(A=[3, 5, 9, 11], B=[7, 14, 1, 0], R=['va', 'dfkjv', 'q', '...'])
     DT.key = 'A'

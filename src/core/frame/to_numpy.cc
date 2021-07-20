@@ -109,7 +109,7 @@ static oobj to_numpy_impl(oobj frame) {
     }
   }
   xassert(common_type);
-  if (common_type.stype() == dt::SType::VOID) {
+  if (common_type.is_void()) {
     return numpy.invoke("empty", {frame.get_attr("shape"), ostring("void")});
   }
 
@@ -164,7 +164,10 @@ static oobj to_numpy_impl(oobj frame) {
 
   // If there are any columns with NAs, replace the numpy.array with
   // numpy.ma.masked_array
-  if (!(common_type.is_float() || common_type.is_temporal()) && datatable_has_nas(dt)) {
+  if (!(common_type.is_float() || common_type.is_temporal() || common_type.is_object() ||
+        common_type.is_string())
+      && datatable_has_nas(dt))
+  {
     size_t dtsize = ncols * dt->nrows();
     Column mask_col = Column::new_data_column(dtsize, dt::SType::BOOL);
     bool* mask_data = static_cast<bool*>(mask_col.get_data_editable());

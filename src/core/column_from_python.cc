@@ -417,7 +417,7 @@ Column Column::reduce_type(bool strict) const {
   py::oobj item0;
   for (; i0 < nrows(); ++i0) {
     get_element(i0, &item0);
-    if (!item0.is_none()) break;
+    if (!(item0.is_none() || item0.is_float_nan())) break;
   }
   if (i0 == nrows()) {  // Also works when `nrows == 0`
     return Column::new_na_column(nrows(), dt::SType::VOID);

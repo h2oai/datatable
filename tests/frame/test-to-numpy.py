@@ -161,7 +161,7 @@ def test_tonumpy_strings_with_NAs(np):
     src = ["faa", None, "", "hooray", None]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
-    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert isinstance(a0, np.ndarray)
     assert a0.dtype == np.dtype('object')
     assert a0.T.tolist() == [src]
 
