@@ -49,8 +49,8 @@ enum class SType : uint8_t {
   FLOAT64 = 7,
   STR32   = 11,
   STR64   = 12,
-  LIST32  = 13,
-  LIST64  = 14,
+  ARR32   = 13,
+  ARR64   = 14,
   DATE32  = 17,
   TIME64  = 18,
   OBJ     = 21,
@@ -96,6 +96,8 @@ template <> struct _elt<SType::DATE32>  { using t = int32_t; };
 template <> struct _elt<SType::TIME64>  { using t = int64_t; };
 template <> struct _elt<SType::STR32>   { using t = uint32_t; };
 template <> struct _elt<SType::STR64>   { using t = uint64_t; };
+template <> struct _elt<SType::ARR32>   { using t = uint32_t; };
+template <> struct _elt<SType::ARR64>   { using t = uint64_t; };
 template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
 
 template <SType s>

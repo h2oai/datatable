@@ -156,23 +156,25 @@ Functions
     * - :func:`corr()`
       - Calculate correlation between two columns
     * - :func:`count()`
-      - Count non-missing values per a column
+      - Count non-missing values per column
+    * - :func:`countna()`
+      - Count the number of NA values per column
     * - :func:`cov()`
       - Calculate covariance between two columns
     * - :func:`max()`
-      - Find the largest element per a column
+      - Find the largest element per column
     * - :func:`mean()`
-      - Calculate mean value per a column
+      - Calculate mean value per column
     * - :func:`median()`
-      - Find the median element per a column
+      - Find the median element per column
     * - :func:`min()`
       - Find the smallest element per a column
     * - :func:`nunique()`
       - Count the number of unique values per column
     * - :func:`sd()`
-      - Calculate the standard deviation per a column
+      - Calculate the standard deviation per column
     * - :func:`sum()`
-      - Calculate the sum of all values per a column
+      - Calculate the sum of all values per column
 
 
 Other
@@ -222,6 +224,7 @@ Other
     cbind()           <dt/cbind>
     corr()            <dt/corr>
     count()           <dt/count>
+    countna()         <dt/countna>
     cov()             <dt/cov>
     cut()             <dt/cut>
     dt                <dt/dt>

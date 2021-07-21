@@ -23,11 +23,11 @@
 #include "python/obj.h"
 #include "stype.h"
 #include "types/type.h"
+#include "types/type_array.h"
 #include "types/type_bool.h"
 #include "types/type_date.h"
 #include "types/type_float.h"
 #include "types/type_int.h"
-#include "types/type_list.h"
 #include "types/type_object.h"
 #include "types/type_string.h"
 #include "types/type_time.h"
@@ -82,8 +82,8 @@ Type Type::int16()   { return Type(new Type_Int16); }
 Type Type::int32()   { return Type(new Type_Int32); }
 Type Type::int64()   { return Type(new Type_Int64); }
 Type Type::int8()    { return Type(new Type_Int8); }
-Type Type::list32(Type t) { return Type(new Type_List32(t)); }
-Type Type::list64(Type t) { return Type(new Type_List64(t)); }
+Type Type::arr32(Type t) { return Type(new Type_Arr32(t)); }
+Type Type::arr64(Type t) { return Type(new Type_Arr64(t)); }
 Type Type::obj64()   { return Type(new Type_Object); }
 Type Type::str32()   { return Type(new Type_String32); }
 Type Type::str64()   { return Type(new Type_String64); }
@@ -143,6 +143,7 @@ Type Type::common(const Type& type1, const Type& type2) {
 }
 
 
+bool Type::is_array()    const { return impl_ && impl_->is_array(); }
 bool Type::is_boolean()  const { return impl_ && impl_->is_boolean(); }
 bool Type::is_compound() const { return impl_ && impl_->is_compound(); }
 bool Type::is_float()    const { return impl_ && impl_->is_float(); }

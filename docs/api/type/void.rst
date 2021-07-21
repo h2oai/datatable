@@ -13,7 +13,7 @@
     it does not use the validity buffer either: all values are known to be
     invalid.
 
-    It converts into pyarrow's ``pa.null()`` type, or ``'|V0'`` dtype in numpy.
+    It converts into pyarrow's ``pa.null()`` type, or ``float64`` dtype in numpy.
     When converting into pandas, a Series of ``object`` type is created,
     consisting of python ``None`` objects.
 

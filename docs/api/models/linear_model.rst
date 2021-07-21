@@ -2,7 +2,7 @@
 .. xclass:: datatable.models.LinearModel
     :src: src/core/models/py_linearmodel.h LinearModel
     :tests: tests/models/test-linearmodel.py
-    :cvar: doc_models_LM
+    :cvar: doc_models_LinearModel
 
     This class implements the `Linear model`_ with the
     `stochastic gradient descent`_ learning. It supports linear

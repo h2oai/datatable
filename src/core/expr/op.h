@@ -32,7 +32,7 @@ static constexpr size_t UNOP_LAST     = 103;
 static constexpr size_t BINOP_FIRST   = 201;
 static constexpr size_t BINOP_LAST    = 218;
 static constexpr size_t REDUCER_FIRST = 401;
-static constexpr size_t REDUCER_LAST  = 413;
+static constexpr size_t REDUCER_LAST  = 414;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 554;
 static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
@@ -75,6 +75,7 @@ enum class Op : size_t {
   MEDIAN,                   // head_reduce_unary.cc
   COV,                      // head_reduce_binary.cc
   CORR,                     // head_reduce_binary.cc
+  COUNTNA,                  // head_reduce_unary.cc
   NUNIQUE = REDUCER_LAST,   // head_reduce_unary.cc
 
   // Math: trigonometric

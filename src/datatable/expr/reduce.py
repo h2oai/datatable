@@ -39,6 +39,7 @@ __all__ = (
     "nunique",
     "sd",
     "sum",
+    "countna",
 )
 
 
@@ -54,6 +55,10 @@ def count(iterable=None):
 
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
+
+
+def countna(iterable=None):
+    return Expr(OpCodes.COUNTNA, (iterable,))
 
 
 def first(iterable):
