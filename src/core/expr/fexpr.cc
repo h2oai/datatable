@@ -671,13 +671,6 @@ DECLARE_METHOD(&PyFExpr::first)
     ->docs(doc_first);
 
 
-static const char* doc_as_type =
-R"(as_type(new_type)
---
-
-Equivalent to :func:`dt.as_type(self)`.
-)";
-
 oobj PyFExpr::as_type(const XArgs& args) {
   auto as_typeFn = oobj::import("datatable", "as_type");
   oobj new_type = args[0].to_oobj();
@@ -687,7 +680,7 @@ oobj PyFExpr::as_type(const XArgs& args) {
 
 DECLARE_METHOD(&PyFExpr::as_type)
     ->name("as_type")
-    ->docs(doc_as_type)
+    ->docs(dt::doc_FExpr_as_type)
     ->arg_names({"new_type"})
     ->n_positional_args(1)
     ->n_required_args(1);
