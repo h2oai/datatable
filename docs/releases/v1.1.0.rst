@@ -32,11 +32,12 @@
 
     FExpr
     -----
-    .. current-class:: FExpr
+    .. current-class:: datatable.FExpr
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
       which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
-    -[enh] Added reducer function :func:`countna` [#2999]
+
+    -[enh] Added reducer function :func:`dt.countna()` [#2999]
 
 
     fread
