@@ -163,12 +163,14 @@ class _obj {
     bool is_bytes()         const noexcept;
     bool is_callable()      const noexcept;
     bool is_date()          const noexcept;
+    bool is_datetime()      const noexcept;
     bool is_dict()          const noexcept;
     bool is_dtexpr()        const noexcept;
     bool is_ellipsis()      const noexcept;
     bool is_false()         const noexcept;
     bool is_fexpr()         const noexcept;
     bool is_float()         const noexcept;
+    bool is_float_nan()     const noexcept;
     bool is_frame()         const noexcept;
     bool is_generator()     const noexcept;
     bool is_int()           const noexcept;

@@ -32,6 +32,7 @@
 #include "frame/py_frame.h"
 #include "ltype.h"
 #include "python/_all.h"
+#include "python/xargs.h"
 #include "stype.h"
 #include "utils/assert.h"
 #include "utils/misc.h"
@@ -55,12 +56,7 @@ static constexpr size_t INVALID_INDEX = size_t(-1);
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", dt::doc_Frame_rbind);
-
-
-
-void Frame::rbind(const PKArgs& args) {
+void Frame::rbind(const XArgs& args) {
   bool force = args[0].to<bool>(false);
   bool bynames = args[1].to<bool>(true);
 
@@ -187,10 +183,17 @@ void Frame::rbind(const PKArgs& args) {
   }
 
   _clear_types();
-  dt->rbind(dts, cols);
+  dt->rbind(dts, cols, force);
   dt->set_names(final_names);
 }
 
+
+DECLARE_METHODv(&Frame::rbind)
+    ->name("rbind")
+    ->docs(dt::doc_Frame_rbind)
+    ->allow_varargs()
+    ->n_keyword_args(2)
+    ->arg_names({"force", "bynames"});
 
 
 
@@ -198,32 +201,24 @@ void Frame::rbind(const PKArgs& args) {
 // dt.rbind
 //------------------------------------------------------------------------------
 
-static PKArgs args_py_rbind(
-  0, 0, 2, true, false, {"force", "bynames"}, "rbind", dt::doc_dt_rbind);
-
-static oobj py_rbind(const PKArgs& args) {
+static oobj py_rbind(const XArgs& args) {
   oobj r = oobj::import("datatable", "Frame").call();
   PyObject* rv = r.to_borrowed_ref();
   reinterpret_cast<Frame*>(rv)->rbind(args);
   return r;
 }
 
+DECLARE_PYFN(&py_rbind)
+    ->name("rbind")
+    ->docs(dt::doc_dt_rbind)
+    ->allow_varargs()
+    ->n_keyword_args(2)
+    ->arg_names({"force", "bynames"});
 
 
-void Frame::_init_rbind(XTypeMaker& xt) {
-  xt.add(METHOD(&Frame::rbind, args_rbind));
-}
 
-
-void DatatableModule::init_methods_rbind() {
-  ADD_FN(&py_rbind, args_py_rbind);
-}
 
 }  // namespace py
-
-
-
-
 //------------------------------------------------------------------------------
 // DataTable::rbind
 //------------------------------------------------------------------------------
@@ -242,7 +237,8 @@ void DatatableModule::init_methods_rbind() {
  */
 void DataTable::rbind(
     const std::vector<DataTable*>& dts,
-    const std::vector<sztvec>& col_indices)
+    const std::vector<sztvec>& col_indices,
+    bool force)
 {
   size_t new_ncols = col_indices.size();
   xassert(new_ncols >= ncols_);
@@ -267,7 +263,7 @@ void DataTable::rbind(
                       : dts[j]->get_column(k);
       cols_to_append[j] = std::move(col);
     }
-    columns_[i].rbind(cols_to_append);
+    columns_[i].rbind(cols_to_append, force);
   }
   ncols_ = new_ncols;
   nrows_ = new_nrows;
@@ -280,7 +276,10 @@ void DataTable::rbind(
 //  Column::rbind()
 //------------------------------------------------------------------------------
 
-void Column::rbind(colvec& columns) {
+// When `force` is True, we will rbind columns even if they have
+// incompatible types by converting both to strings.
+//
+void Column::rbind(colvec& columns, bool force) {
   _get_mutable_impl();
   // Is the current column "empty" ?
   bool col_empty = (stype() == dt::SType::VOID);
@@ -293,8 +292,13 @@ void Column::rbind(colvec& columns) {
     new_nrows += col.nrows();
     auto next_type = dt::Type::common(new_type, col.type());
     if (next_type.is_invalid()) {
-      throw TypeError() << "Cannot rbind column of type `" << col.type()
-          << "` to a column of type `" << new_type << "`";
+      if (force) {
+        next_type = dt::Type::str32();
+      } else {
+        throw TypeError() << "Cannot rbind column of type `" << col.type()
+            << "` to a column of type `" << new_type << "`. Consider using "
+               "force=True if you want to ignore this error.";
+      }
     }
     new_type = std::move(next_type);
   }

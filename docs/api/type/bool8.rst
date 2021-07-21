@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.bool8
     :src: --
+    :tests: tests/types/test-bool8.py
 
     The type of a column with boolean data.
 

@@ -17,6 +17,13 @@
     frames: Frame | List[Frame] | None
 
     force: bool
+        If True, then the frames are allowed to have mismatching set of
+        columns (either different counts or different names). Any gaps in
+        the data will be filled with NAs.
+
+        In addition, when this parameter is True, rbind will no longer
+        produce an error when combining columns of unrelated types.
+        Instead, both columns will be converted into strings.
 
     bynames: bool
 

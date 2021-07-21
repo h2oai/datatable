@@ -1,7 +1,16 @@
 
 .. xclass:: datatable.Namespace
     :src: src/core/expr/namespace.h Namespace
-    :doc: src/core/expr/namespace.cc doc_Namespace
+    :cvar: doc_Namespace
+
+    A namespace is an environment that provides lazy access to columns of
+    a frame when performing computations within
+    :meth:`DT[i,j,...] <dt.Frame.__getitem__>`.
+
+    This class should not be instantiated directly, instead use the
+    singleton instances :data:`f <datatable.f>` and :data:`g <datatable.g>`
+    exported from the :mod:`datatable` module.
+
 
     Special methods
     ---------------

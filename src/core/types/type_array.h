@@ -19,21 +19,21 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_LIST_h
-#define dt_TYPES_TYPE_LIST_h
+#ifndef dt_TYPES_TYPE_ARRAY_h
+#define dt_TYPES_TYPE_ARRAY_h
 #include "types/typeimpl.h"
 namespace dt {
 
 
 
-class Type_List32 : public TypeImpl {
+class Type_Arr32 : public TypeImpl {
   private:
     Type elementType_;
 
   public:
-    Type_List32(Type t);
+    Type_Arr32(Type t);
+    bool is_array() const override;
     bool is_compound() const override;
-    bool is_list() const override;
     std::string to_string() const override;
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
@@ -42,14 +42,14 @@ class Type_List32 : public TypeImpl {
 
 
 
-class Type_List64 : public TypeImpl {
+class Type_Arr64 : public TypeImpl {
   private:
     Type elementType_;
 
   public:
-    Type_List64(Type t);
+    Type_Arr64(Type t);
+    bool is_array() const override;
     bool is_compound() const override;
-    bool is_list() const override;
     std::string to_string() const override;
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;

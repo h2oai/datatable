@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -296,8 +296,9 @@ void GenericReader::init_sep(const py::Arg& arg) {
                             "supported: '" << str << "'";
   } else {
     if (c=='"' || c=='\'' || c=='`' || ('0' <= c && c <= '9') ||
-        ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z')) {
-      throw ValueError() << "Separator `" << c << "` is not allowed";
+        ('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') ||
+        c=='.' || c=='-' || c=='+') {
+      throw ValueError() << "Separator `'" << c << "'` is not allowed";
     }
     sep = c;
     D() << "sep = '" << sep << "'";

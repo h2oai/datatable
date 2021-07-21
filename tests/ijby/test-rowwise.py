@@ -257,7 +257,7 @@ def test_rowmean_wrong_types():
 def test_rowsd_single_column():
     DT = dt.Frame(A=range(5))
     RES = DT[:, rowsd(f[:])]
-    assert_equals(RES, dt.Frame([math.nan]*5))
+    assert_equals(RES, dt.Frame([None]*5, type=float))
 
 
 def test_rowsd_same_columns():
