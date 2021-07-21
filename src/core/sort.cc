@@ -1433,9 +1433,11 @@ RiGb group(const std::vector<Column>& columns,
   const Column& col0 = columns[0];
 
   size_t nrows = col0.nrows();
-  #if DT_DEBUG
-    for (const Column& col : columns) xassert(col.nrows() == nrows);
-  #endif
+  size_t n_const_cols = 0;
+  for (const Column& col : columns) {
+    xassert(col.nrows() == nrows);
+    n_const_cols += col.is_constant();
+  }
 
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing zero groups.
@@ -1443,9 +1445,9 @@ RiGb group(const std::vector<Column>& columns,
     result.second = Groupby::zero_groups();
     return result;
   }
-  if (nrows == 1) {
-    Buffer buf = Buffer::mem(sizeof(int32_t));
-    buf.set_element<int32_t>(0, 0);
+  if (nrows == 1 || n_const_cols == n) {
+    Buffer buf = Buffer::mem(sizeof(int32_t) * nrows);
+    std::memset(buf.xptr(), 0, buf.size());
     result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
     result.second = Groupby::single_group(nrows);
     return result;

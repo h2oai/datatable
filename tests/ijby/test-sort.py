@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1053,6 +1053,7 @@ def test_na_position_value_error(na_pos):
         DT[:, :, dt.sort(0, reverse=True, na_position=na_pos)]
 
 
+
 #-------------------------------------------------------------------------------
 # Misc issues
 #-------------------------------------------------------------------------------
@@ -1131,3 +1132,18 @@ def test_issue2348():
                   dt.Frame([[11], [6]],
                            names=["D", "count"],
                            stypes=[dt.int32, dt.int64]))
+
+
+def test_sort_consts():
+    DT = dt.Frame(A=[5], B=[7.9], C=["Hello"], D=[None])
+    DT = dt.repeat(DT, 1000)
+    assert_equals(DT[:, :, sort(f.A)], DT)
+    assert_equals(DT[:, :, sort(f.B)], DT)
+    assert_equals(DT[:, :, sort(f.C)], DT)
+    assert_equals(DT[:, :, sort(f.D)], DT)
+
+
+def test_sort_consts2():
+    # see issue #3088
+    DT = dt.Frame([dt.math.nan, dt.math.nan])[:, dt.count(), dt.by(0)]
+    assert_equals(DT, dt.Frame(C0=[None], count=[2]/dt.int64))

@@ -10,6 +10,10 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
+    -[enh] Void columns can now be used with :func:`dt.sort()`. In addition,
+        datatable will now skip sorting any column that it knows contains
+        constant values. [#3088]
+
     -[fix] Saving a frame with a :attr:`void <dt.Type.void>` column into Jay
         no longer leads to a crash. [#3074]
 
@@ -55,6 +59,6 @@
     General
     -------
 
-    -[imp] Parameter ``force=True`` in function :func:`rbind()` (or method
+    -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
