@@ -110,7 +110,8 @@ static oobj to_numpy_impl(oobj frame) {
   }
   xassert(common_type);
   if (common_type.is_void()) {
-    return numpy.invoke("empty", {frame.get_attr("shape"), ostring("void")});
+    return numpy.invoke("full",
+      {frame.get_attr("shape"), None(), ostring("float64")});
   }
 
   // date32 columns will be converted into int64 numpy arrays, and then
