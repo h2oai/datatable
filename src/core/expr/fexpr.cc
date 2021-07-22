@@ -30,6 +30,7 @@
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
+#include "documentation.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
