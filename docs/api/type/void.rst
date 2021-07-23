@@ -5,8 +5,8 @@
     The type of a column where all values are NAs.
 
     In datatable, any column can have NA values in it. There is, however,
-    a special type that can be assigned for a column where *all* values are
-    NAs: ``void``. This type's special property is that it can be used in
+    a special type for a column where *all* values are NAs: ``void``. This
+    type's special property is that it can be used in
     place where any other type could be expected.
 
     A column of this type does not occupy any storage space. Unlike other types,
@@ -16,6 +16,7 @@
     It converts into pyarrow's ``pa.null()`` type, or ``float64`` dtype in numpy.
     When converting into pandas, a Series of ``object`` type is created,
     consisting of python ``None`` objects.
+
 
     Examples
     --------
