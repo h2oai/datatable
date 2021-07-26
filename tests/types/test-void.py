@@ -100,3 +100,24 @@ def test_join_any_to_void(src):
     DT2.key = "A"
     RES = DT1[:, :, join(DT2)]
     assert_equals(RES, dt.Frame(A=src, B=['EM-cah-too', None, None, None]))
+
+
+
+#-------------------------------------------------------------------------------
+# Save to jay
+#-------------------------------------------------------------------------------
+
+def test_to_jay():
+    DT1 = dt.Frame([None] * 13)
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert DT2.type == dt.Type.void
+    assert_equals(DT1, DT2)
+
+
+def test_view_to_jay():
+    DT1 = dt.Frame([None] * 10)[:3, :]
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert DT2.type == dt.Type.void
+    assert_equals(DT1, DT2)
