@@ -81,3 +81,19 @@ def test_type_array_hashable():
     assert dt.Type.arr64(int) not in store
     assert dt.Type.arr64(float) not in store
     assert dt.Type.arr32(dt.Type.arr32(bool)) not in store
+
+
+@pytest.mark.parametrize('src', [0, 1])
+def test_query_methods(src):
+    tarr = dt.Type.arr32(int) if src else \
+           dt.Type.arr64(str)
+    assert     tarr.is_array()
+    assert not tarr.is_boolean()
+    assert     tarr.is_compound()
+    assert not tarr.is_float()
+    assert not tarr.is_integer()
+    assert not tarr.is_numeric()
+    assert not tarr.is_object()
+    assert not tarr.is_string()
+    assert not tarr.is_temporal()
+    assert not tarr.is_void()

@@ -27,6 +27,21 @@ from datatable import dt, f
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, list_equals
 
+@pytest.mark.parametrize('src', ['float32', 'float64'])
+def test_query_methods(src):
+    tfloat = dt.Type(src)
+    assert not tfloat.is_array()
+    assert not tfloat.is_boolean()
+    assert not tfloat.is_compound()
+    assert     tfloat.is_float()
+    assert not tfloat.is_integer()
+    assert     tfloat.is_numeric()
+    assert not tfloat.is_object()
+    assert not tfloat.is_string()
+    assert not tfloat.is_temporal()
+    assert not tfloat.is_void()
+
+
 
 #-------------------------------------------------------------------------------
 # Create float32 columns

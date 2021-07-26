@@ -29,6 +29,36 @@ from datatable import dt, f, join
 
 
 #-------------------------------------------------------------------------------
+# void type basic properties
+#-------------------------------------------------------------------------------
+
+def test_void_name():
+    assert repr(dt.Type.void) == "Type.void"
+    assert dt.Type.void.name == "void"
+
+
+def test_void_type_from_basic():
+    assert dt.Type(None) == dt.Type.void
+    assert dt.Type("void") == dt.Type.void
+
+
+def test_query_methods():
+    tvoid = dt.Type.void
+    assert tvoid.is_void()
+    assert tvoid.is_array()
+    assert tvoid.is_boolean()
+    assert tvoid.is_integer()
+    assert tvoid.is_float()
+    assert tvoid.is_numeric()
+    assert tvoid.is_string()
+    assert tvoid.is_temporal()
+    assert tvoid.is_object()
+    assert not tvoid.is_compound()
+
+
+
+
+#-------------------------------------------------------------------------------
 # Create column of void type
 #-------------------------------------------------------------------------------
 

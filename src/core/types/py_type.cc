@@ -321,6 +321,35 @@ py::oobj PyType::get_max() const {
 
 
 //------------------------------------------------------------------------------
+// .is_*() methods
+//------------------------------------------------------------------------------
+
+py::oobj PyType::is_array() const    { return py::obool(type_.is_array()); }
+py::oobj PyType::is_boolean() const  { return py::obool(type_.is_boolean()); }
+py::oobj PyType::is_compound() const { return py::obool(type_.is_compound()); }
+py::oobj PyType::is_float() const    { return py::obool(type_.is_float()); }
+py::oobj PyType::is_integer() const  { return py::obool(type_.is_integer()); }
+py::oobj PyType::is_numeric() const  { return py::obool(type_.is_numeric()); }
+py::oobj PyType::is_object() const   { return py::obool(type_.is_object()); }
+py::oobj PyType::is_string() const   { return py::obool(type_.is_string()); }
+py::oobj PyType::is_temporal() const { return py::obool(type_.is_temporal()); }
+py::oobj PyType::is_void() const     { return py::obool(type_.is_void()); }
+
+DECLARE_METHOD(&PyType::is_array)   ->name("is_array")   ->docs(doc_Type_is_array);
+DECLARE_METHOD(&PyType::is_boolean) ->name("is_boolean") ->docs(doc_Type_is_boolean);
+DECLARE_METHOD(&PyType::is_compound)->name("is_compound")->docs(doc_Type_is_compound);
+DECLARE_METHOD(&PyType::is_float)   ->name("is_float")   ->docs(doc_Type_is_float);
+DECLARE_METHOD(&PyType::is_integer) ->name("is_integer") ->docs(doc_Type_is_integer);
+DECLARE_METHOD(&PyType::is_numeric) ->name("is_numeric") ->docs(doc_Type_is_numeric);
+DECLARE_METHOD(&PyType::is_object)  ->name("is_object")  ->docs(doc_Type_is_object);
+DECLARE_METHOD(&PyType::is_string)  ->name("is_string")  ->docs(doc_Type_is_string);
+DECLARE_METHOD(&PyType::is_temporal)->name("is_temporal")->docs(doc_Type_is_temporal);
+DECLARE_METHOD(&PyType::is_void)    ->name("is_void")    ->docs(doc_Type_is_void);
+
+
+
+
+//------------------------------------------------------------------------------
 // Types as methods
 //------------------------------------------------------------------------------
 
