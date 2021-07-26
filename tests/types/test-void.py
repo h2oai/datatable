@@ -130,6 +130,13 @@ def test_view_to_jay():
     assert_equals(DT1, DT2)
 
 
+def test_view_to_jay_2():
+    DT1 = dt.Frame(A=[None, None], B=[None, "qoo"])[0, :]
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert_equals(DT2, dt.Frame(A=[None], B=[None]/dt.str32))
+
+
 
 #-------------------------------------------------------------------------------
 # Misc
