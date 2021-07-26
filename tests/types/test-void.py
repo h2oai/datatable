@@ -104,7 +104,7 @@ def test_join_any_to_void(src):
 
 
 #-------------------------------------------------------------------------------
-# Save to jay
+# Save to ...
 #-------------------------------------------------------------------------------
 
 def test_to_jay():
@@ -115,9 +115,27 @@ def test_to_jay():
     assert_equals(DT1, DT2)
 
 
+def test_to_csv():
+    DT = dt.Frame([None] * 9)
+    out = DT.to_csv()
+    assert out == "C0\n" + "\n" * 9
+
+
 def test_view_to_jay():
     DT1 = dt.Frame([None] * 10)[:3, :]
     saved = DT1.to_jay()
     DT2 = dt.fread(saved)
     assert DT2.type == dt.Type.void
     assert_equals(DT1, DT2)
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+def test_materialize():
+    DT = dt.Frame([None] * 5)
+    DT.materialize()
+    assert DT.type == dt.Type.void
+    assert DT.to_list() == [[None] * 5]
