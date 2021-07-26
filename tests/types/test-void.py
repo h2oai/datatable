@@ -122,6 +122,7 @@ def test_to_csv():
 
 
 def test_view_to_jay():
+    # See issue #3099
     DT1 = dt.Frame([None] * 10)[:3, :]
     saved = DT1.to_jay()
     DT2 = dt.fread(saved)
