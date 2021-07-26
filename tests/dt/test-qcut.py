@@ -261,3 +261,9 @@ def test_qcut_vs_pandas_random(pandas, seed):
 
     assert [list(PD_qcut[i]) for i in range(ncols)] == DT_qcut.to_list()
 
+
+def test_qcut_i_filter_issue_3061():
+    DT = dt.Frame(range(10))
+    DT["q"] = dt.qcut(dt.f.C0)
+    DT_filtered = DT[dt.f.q == 1, :]
+    assert_equals(DT_filtered, dt.Frame({"C0" : [1]/dt.int32, "q" : [1]/dt.int32}))

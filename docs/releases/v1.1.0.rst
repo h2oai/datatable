@@ -36,6 +36,8 @@
 
     -[enh] Added reducer function :func:`countna` [#2999]
 
+    -[fix] :func:`qcut` won't segfault anymore when used as an i-filter [#3061]
+
 
     fread
     -----
@@ -48,7 +50,7 @@
         ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
         they produced errors during parsing. [#3065]
 
-    -[bug] :func:`fread()` will no longer fail while reading mostly empty
+    -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 
 
