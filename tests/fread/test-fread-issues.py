@@ -557,7 +557,7 @@ def test_issue3092():
         dt.Frame(A=[1]*500 + [2, 3, 3, 3, 4, 4],
                  B=["abc"] * 500 + ['"d" ef', "ghij", "ghij", "ghij", '"klmn"', '"klmn"'],
                  C=[3]*500 + [4, None, None, None, 7, 7],
-                 D=[-3]*500 + [-3, None, None, None, 0, 0])
+                 D=[-3]*500 + [-1, None, None, None, 0, 0])
     )
 
 

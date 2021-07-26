@@ -340,7 +340,7 @@ void FreadReader::detect_sep_and_qr() {
           updated = true;
           // Two updates can happen for the same sep and quoteRule (e.g. issue_1113_fread.txt where sep=' ') so the
           // updated flag is just to print once.
-        } else if (topNumFields == 0 && nseps == 1 && quoteRule != 2) {
+        } else if (topNumFields == 0 && nseps == 1 && quoteRule != 3) {
           topNumFields = numFields[i];
           topSep = sep;
           topQuoteRule = quoteRule;
