@@ -163,7 +163,7 @@ def test_sort_void_simple2():
 
 def test_sort_void_multi1():
     DT = dt.Frame(A=[None] * 10)
-    DT.sort(f.A, f[0])
+    DT.sort(f.A, f[0], f[-1])
     assert DT.type == dt.Type.void
     assert DT.to_list() == [[None] * 10]
 

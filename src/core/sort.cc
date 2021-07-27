@@ -1452,6 +1452,18 @@ RiGb group(const std::vector<Column>& columns,
     result.second = Groupby::single_group(nrows);
     return result;
   }
+  if (n_const_cols > 0) {
+    std::vector<Column> new_columns;
+    std::vector<SortFlag> new_flags;
+    for (size_t i = 0; i < columns.size(); i++) {
+      const Column& col = columns[i];
+      if (!col.is_constant()) {
+        new_columns.push_back(col);
+        new_flags.push_back(flags[i]);
+      }
+    }
+    return group(new_columns, new_flags, na_pos);
+  }
 
   if (sort_new) {
     if (n == 1) {
