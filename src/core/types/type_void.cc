@@ -30,14 +30,14 @@ Type_Void::Type_Void()
   : TypeImpl(SType::VOID) {}
 
 
-bool Type_Void::is_array()    const { return true; }
-bool Type_Void::is_boolean()  const { return true; }
-bool Type_Void::is_float()    const { return true; }
-bool Type_Void::is_integer()  const { return true; }
+// bool Type_Void::is_array()    const { return true; }
+// bool Type_Void::is_boolean()  const { return true; }
+// bool Type_Void::is_float()    const { return true; }
+// bool Type_Void::is_integer()  const { return true; }
 bool Type_Void::is_numeric()  const { return true; }
-bool Type_Void::is_object()   const { return true; }
-bool Type_Void::is_string()   const { return true; }
-bool Type_Void::is_temporal() const { return true; }
+// bool Type_Void::is_object()   const { return true; }
+// bool Type_Void::is_string()   const { return true; }
+// bool Type_Void::is_temporal() const { return true; }
 bool Type_Void::is_void()     const { return true; }
 bool Type_Void::can_be_read_as_int8() const    { return true; }
 bool Type_Void::can_be_read_as_int16() const   { return true; }

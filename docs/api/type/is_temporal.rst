@@ -6,9 +6,8 @@
     .. x-version-added:: 1.1.0
 
     Test whether this type belongs to the category of time-related types. This
-    property returns ``True`` for :attr:`date32 <dt.Type.date32>`,
-    :attr:`time64 <dt.Type.time64>`, and :attr:`void <dt.Type.void>` types
-    only.
+    property returns ``True`` for :attr:`date32 <dt.Type.date32>` and
+    :attr:`time64 <dt.Type.time64>` types only.
 
 
     Parameters

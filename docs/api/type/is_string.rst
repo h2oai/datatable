@@ -6,9 +6,8 @@
     .. x-version-added:: 1.1.0
 
     Test whether this type belongs to the category of "string" types. This
-    property returns ``True`` for :attr:`str32 <dt.Type.str32>`,
-    :attr:`str64 <dt.Type.str64>`, and :attr:`void <dt.Type.void>` types
-    only.
+    property returns ``True`` for :attr:`str32 <dt.Type.str32>` and
+    :attr:`str64 <dt.Type.str64>` types only.
 
 
     Parameters
@@ -20,7 +19,7 @@
     --------
     >>> dt.Type.str64.is_string
     True
+    >>> dt.Type.str32.is_string
+    False
     >>> dt.Type.void.is_string
-    True
-    >>> dt.Type.int64.is_string
     False

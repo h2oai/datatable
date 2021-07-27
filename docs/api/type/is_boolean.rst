@@ -6,8 +6,7 @@
     .. x-version-added:: 1.1.0
 
     Test whether this type belongs to the category of "boolean" types. This
-    property returns ``True`` for :attr:`bool8 <dt.Type.bool8>`, and
-    :attr:`void <dt.Type.void>` types only.
+    property returns ``True`` for :attr:`bool8 <dt.Type.bool8>` type only.
 
 
     Parameters
@@ -20,6 +19,6 @@
     >>> dt.Type.bool8.is_boolean
     True
     >>> dt.Type.void.is_boolean
-    True
+    False
     >>> dt.Type.int8.is_boolean
     False

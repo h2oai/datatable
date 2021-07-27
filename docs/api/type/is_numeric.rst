@@ -6,8 +6,8 @@
     .. x-version-added:: 1.1.0
 
     Test whether this type belongs to the category of "numeric" types. All
-    boolean, integer and float types are considered numeric. Therefore, this
-    method returns ``True`` for types
+    boolean, integer, float and void types are considered numeric. Therefore,
+    this method returns ``True`` for types
 
         - :attr:`void <dt.Type.void>`
         - :attr:`bool8 <dt.Type.bool8>`
