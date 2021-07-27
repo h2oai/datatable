@@ -9,7 +9,6 @@
     boolean, integer, float and void types are considered numeric. Therefore,
     this method returns ``True`` for types
 
-        - :attr:`void <dt.Type.void>`
         - :attr:`bool8 <dt.Type.bool8>`
         - :attr:`int8 <dt.Type.int8>`
         - :attr:`int16 <dt.Type.int16>`
@@ -31,7 +30,7 @@
     >>> dt.Type.float64.is_numeric
     True
     >>> dt.Type.void.is_numeric
-    True
+    False
     >>> dt.Type.bool8.is_numeric
     True
     >>> dt.Type.str32.is_numeric

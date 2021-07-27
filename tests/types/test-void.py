@@ -49,7 +49,7 @@ def test_query_methods():
     assert not tvoid.is_compound
     assert not tvoid.is_integer
     assert not tvoid.is_float
-    assert     tvoid.is_numeric
+    assert not tvoid.is_numeric
     assert not tvoid.is_string
     assert not tvoid.is_temporal
     assert not tvoid.is_object
