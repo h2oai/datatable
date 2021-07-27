@@ -147,3 +147,42 @@ def test_materialize():
     DT.materialize()
     assert DT.type == dt.Type.void
     assert DT.to_list() == [[None] * 5]
+
+
+def test_sort_void_simple1():
+    DT = dt.Frame([None] * 111)
+    DT.sort(0)
+    assert DT.type == dt.Type.void
+    assert DT.to_list() == [[None] * 111]
+
+
+def test_sort_void_simple2():
+    DT = dt.Frame([None] * 2345)
+    assert_equals(DT[:, :, dt.sort(f[0])], DT)
+
+
+def test_sort_void_multi1():
+    DT = dt.Frame(A=[None] * 10)
+    DT.sort(f.A, f[0], f[-1])
+    assert DT.type == dt.Type.void
+    assert DT.to_list() == [[None] * 10]
+
+
+def test_sort_void_multi2():
+    DT = dt.Frame(A=[None] * 5, B=[3, 8, 1, 0, 2])
+    RES = DT[:, :, dt.sort(f.A, f.B)]
+    EXP = dt.Frame(A=[None] * 5, B=[0, 1, 2, 3, 8])
+    assert_equals(RES, EXP)
+
+
+def test_groupby_void():
+    DT = dt.Frame([None] * 5)[:, dt.count(), dt.by(0)]
+    assert_equals(DT, dt.Frame(C0=[None], count=[5]/dt.int64))
+
+
+def test_groupby_void2():
+    # See issue #3104
+    DT0 = dt.Frame(A=[None] * 5, B=range(5), C=['q'] * 5)
+    DT1 = DT0[:, dt.count(), dt.by(f.A, f.B)]
+    EXP = dt.Frame(A=[None]*5, B=range(5), count=([1] * 5)/dt.int64)
+    assert_equals(DT1, EXP)
