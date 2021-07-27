@@ -4,6 +4,8 @@
     :cvar: doc_Type_arr32
     :signature: arr32(T)
 
+    .. x-version-added:: 1.1.0
+
     Array type with 32-bit offsets. In a column of this type, every element
     is a list of values of type `T`.
 
