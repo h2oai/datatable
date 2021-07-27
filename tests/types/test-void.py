@@ -130,3 +130,50 @@ def test_join_any_to_void(src):
     DT2.key = "A"
     RES = DT1[:, :, join(DT2)]
     assert_equals(RES, dt.Frame(A=src, B=['EM-cah-too', None, None, None]))
+
+
+
+#-------------------------------------------------------------------------------
+# Save to ...
+#-------------------------------------------------------------------------------
+
+def test_to_jay():
+    DT1 = dt.Frame([None] * 13)
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert DT2.type == dt.Type.void
+    assert_equals(DT1, DT2)
+
+
+def test_to_csv():
+    DT = dt.Frame([None] * 9)
+    out = DT.to_csv()
+    assert out == "C0\n" + "\n" * 9
+
+
+def test_view_to_jay():
+    # See issue #3099
+    DT1 = dt.Frame([None] * 10)[:3, :]
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert DT2.type == dt.Type.void
+    assert_equals(DT1, DT2)
+
+
+def test_view_to_jay_2():
+    DT1 = dt.Frame(A=[None, None], B=[None, "qoo"])[0, :]
+    saved = DT1.to_jay()
+    DT2 = dt.fread(saved)
+    assert_equals(DT2, dt.Frame(A=[None], B=[None]/dt.str32))
+
+
+
+#-------------------------------------------------------------------------------
+# Misc
+#-------------------------------------------------------------------------------
+
+def test_materialize():
+    DT = dt.Frame([None] * 5)
+    DT.materialize()
+    assert DT.type == dt.Type.void
+    assert DT.to_list() == [[None] * 5]

@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/cast.h"
 #include "column/column_impl.h"
+#include "column/const.h"
 #include "column/nafilled.h"
 #include "column/sentinel_fw.h"
 #include "column/truncated.h"
@@ -124,7 +125,7 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
   (void) to_memory;  // default materialization is always to memory
   this->pre_materialize_hook();
   switch (stype()) {
-    case SType::VOID:    return; //stype() = dt::SType::BOOL; FALLTHROUGH;
+    case SType::VOID:    out = Column(new ConstNa_ColumnImpl(nrows_)); return;
     case SType::BOOL:
     case SType::INT8:    return _materialize_fw<int8_t> (out);
     case SType::INT16:   return _materialize_fw<int16_t>(out);
@@ -138,8 +139,8 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
     case SType::STR64:   return _materialize_str(out);
     case SType::OBJ:     return _materialize_obj(out);
     default:
-      throw NotImplError() << "Cannot materialize column of stype `"
-                           << stype() << "`";
+      throw NotImplError() << "Cannot materialize column of type `"
+                           << type() << "`";
   }
 }
 
