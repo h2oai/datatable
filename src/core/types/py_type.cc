@@ -321,8 +321,19 @@ py::oobj PyType::get_max() const {
 
 
 //------------------------------------------------------------------------------
-// .is_*() methods
+// .is_*() properties
 //------------------------------------------------------------------------------
+
+static py::GSArgs args_is_array   ("is_array",    doc_Type_is_array);
+static py::GSArgs args_is_boolean ("is_boolean",  doc_Type_is_boolean);
+static py::GSArgs args_is_compound("is_compound", doc_Type_is_compound);
+static py::GSArgs args_is_float   ("is_float",    doc_Type_is_float);
+static py::GSArgs args_is_integer ("is_integer",  doc_Type_is_integer);
+static py::GSArgs args_is_numeric ("is_numeric",  doc_Type_is_numeric);
+static py::GSArgs args_is_object  ("is_object",   doc_Type_is_object);
+static py::GSArgs args_is_string  ("is_string",   doc_Type_is_string);
+static py::GSArgs args_is_temporal("is_temporal", doc_Type_is_temporal);
+static py::GSArgs args_is_void    ("is_void",     doc_Type_is_void);
 
 py::oobj PyType::is_array() const    { return py::obool(type_.is_array()); }
 py::oobj PyType::is_boolean() const  { return py::obool(type_.is_boolean()); }
@@ -334,17 +345,6 @@ py::oobj PyType::is_object() const   { return py::obool(type_.is_object()); }
 py::oobj PyType::is_string() const   { return py::obool(type_.is_string()); }
 py::oobj PyType::is_temporal() const { return py::obool(type_.is_temporal()); }
 py::oobj PyType::is_void() const     { return py::obool(type_.is_void()); }
-
-DECLARE_METHOD(&PyType::is_array)   ->name("is_array")   ->docs(doc_Type_is_array);
-DECLARE_METHOD(&PyType::is_boolean) ->name("is_boolean") ->docs(doc_Type_is_boolean);
-DECLARE_METHOD(&PyType::is_compound)->name("is_compound")->docs(doc_Type_is_compound);
-DECLARE_METHOD(&PyType::is_float)   ->name("is_float")   ->docs(doc_Type_is_float);
-DECLARE_METHOD(&PyType::is_integer) ->name("is_integer") ->docs(doc_Type_is_integer);
-DECLARE_METHOD(&PyType::is_numeric) ->name("is_numeric") ->docs(doc_Type_is_numeric);
-DECLARE_METHOD(&PyType::is_object)  ->name("is_object")  ->docs(doc_Type_is_object);
-DECLARE_METHOD(&PyType::is_string)  ->name("is_string")  ->docs(doc_Type_is_string);
-DECLARE_METHOD(&PyType::is_temporal)->name("is_temporal")->docs(doc_Type_is_temporal);
-DECLARE_METHOD(&PyType::is_void)    ->name("is_void")    ->docs(doc_Type_is_void);
 
 
 
@@ -397,6 +397,16 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(GETTER(&PyType::get_name, args_get_name));
   xt.add(GETTER(&PyType::get_min, args_get_min));
   xt.add(GETTER(&PyType::get_max, args_get_max));
+  xt.add(GETTER(&PyType::is_array,    args_is_array));
+  xt.add(GETTER(&PyType::is_boolean,  args_is_boolean));
+  xt.add(GETTER(&PyType::is_compound, args_is_compound));
+  xt.add(GETTER(&PyType::is_float,    args_is_float));
+  xt.add(GETTER(&PyType::is_integer,  args_is_integer));
+  xt.add(GETTER(&PyType::is_numeric,  args_is_numeric));
+  xt.add(GETTER(&PyType::is_object,   args_is_object));
+  xt.add(GETTER(&PyType::is_string,   args_is_string));
+  xt.add(GETTER(&PyType::is_temporal, args_is_temporal));
+  xt.add(GETTER(&PyType::is_void,     args_is_void));
   INIT_METHODS_FOR_CLASS(PyType);
 
   pythonType = xt.get_type_object();

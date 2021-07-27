@@ -80,16 +80,16 @@ def test_time64_repr():
 
 def test_query_methods():
     ttime64 = dt.Type.time64
-    assert not ttime64.is_array()
-    assert not ttime64.is_boolean()
-    assert not ttime64.is_compound()
-    assert not ttime64.is_float()
-    assert not ttime64.is_integer()
-    assert not ttime64.is_numeric()
-    assert not ttime64.is_object()
-    assert not ttime64.is_string()
-    assert     ttime64.is_temporal()
-    assert not ttime64.is_void()
+    assert not ttime64.is_array
+    assert not ttime64.is_boolean
+    assert not ttime64.is_compound
+    assert not ttime64.is_float
+    assert not ttime64.is_integer
+    assert not ttime64.is_numeric
+    assert not ttime64.is_object
+    assert not ttime64.is_string
+    assert     ttime64.is_temporal
+    assert not ttime64.is_void
 
 
 

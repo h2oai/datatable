@@ -30,16 +30,16 @@ from tests import assert_equals
 
 def test_query_methods():
     tbool = dt.Type.bool8
-    assert not tbool.is_array()
-    assert     tbool.is_boolean()
-    assert not tbool.is_compound()
-    assert not tbool.is_float()
-    assert not tbool.is_integer()
-    assert     tbool.is_numeric()
-    assert not tbool.is_object()
-    assert not tbool.is_string()
-    assert not tbool.is_temporal()
-    assert not tbool.is_void()
+    assert not tbool.is_array
+    assert     tbool.is_boolean
+    assert not tbool.is_compound
+    assert not tbool.is_float
+    assert not tbool.is_integer
+    assert     tbool.is_numeric
+    assert not tbool.is_object
+    assert not tbool.is_string
+    assert not tbool.is_temporal
+    assert not tbool.is_void
 
 
 

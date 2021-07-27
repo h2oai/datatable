@@ -57,16 +57,16 @@ def test_date32_type_from_pyarrow(pa):
 
 def test_query_methods():
     tdate = dt.Type.date32
-    assert not tdate.is_array()
-    assert not tdate.is_boolean()
-    assert not tdate.is_compound()
-    assert not tdate.is_float()
-    assert not tdate.is_integer()
-    assert not tdate.is_numeric()
-    assert not tdate.is_object()
-    assert not tdate.is_string()
-    assert     tdate.is_temporal()
-    assert not tdate.is_void()
+    assert not tdate.is_array
+    assert not tdate.is_boolean
+    assert not tdate.is_compound
+    assert not tdate.is_float
+    assert not tdate.is_integer
+    assert not tdate.is_numeric
+    assert not tdate.is_object
+    assert not tdate.is_string
+    assert     tdate.is_temporal
+    assert not tdate.is_void
 
 
 

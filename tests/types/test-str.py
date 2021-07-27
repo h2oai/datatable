@@ -31,13 +31,13 @@ from tests import assert_equals
 @pytest.mark.parametrize('src', ['str32', 'str64'])
 def test_query_methods(src):
     tstr = dt.Type(src)
-    assert not tstr.is_array()
-    assert not tstr.is_boolean()
-    assert not tstr.is_compound()
-    assert not tstr.is_float()
-    assert not tstr.is_integer()
-    assert not tstr.is_numeric()
-    assert not tstr.is_object()
-    assert     tstr.is_string()
-    assert not tstr.is_temporal()
-    assert not tstr.is_void()
+    assert not tstr.is_array
+    assert not tstr.is_boolean
+    assert not tstr.is_compound
+    assert not tstr.is_float
+    assert not tstr.is_integer
+    assert not tstr.is_numeric
+    assert not tstr.is_object
+    assert     tstr.is_string
+    assert not tstr.is_temporal
+    assert not tstr.is_void

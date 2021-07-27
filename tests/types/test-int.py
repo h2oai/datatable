@@ -31,16 +31,16 @@ from tests import assert_equals
 @pytest.mark.parametrize('src', ['int8', 'int16', 'int32', 'int64'])
 def test_query_methods(src):
     tint = dt.Type(src)
-    assert not tint.is_array()
-    assert not tint.is_boolean()
-    assert not tint.is_compound()
-    assert not tint.is_float()
-    assert     tint.is_integer()
-    assert     tint.is_numeric()
-    assert not tint.is_object()
-    assert not tint.is_string()
-    assert not tint.is_temporal()
-    assert not tint.is_void()
+    assert not tint.is_array
+    assert not tint.is_boolean
+    assert not tint.is_compound
+    assert not tint.is_float
+    assert     tint.is_integer
+    assert     tint.is_numeric
+    assert not tint.is_object
+    assert not tint.is_string
+    assert not tint.is_temporal
+    assert not tint.is_void
 
 
 
