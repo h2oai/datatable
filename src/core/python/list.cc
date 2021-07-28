@@ -47,6 +47,13 @@ olist::olist(const robj& src) : oobj(src) {
 }
 
 
+rlist::rlist(const robj& src) : robj(src) {}
+
+rlist rlist::unchecked(const robj& src) {
+  return rlist(src);
+}
+
+
 
 //------------------------------------------------------------------------------
 // Element accessors
@@ -64,6 +71,15 @@ robj olist::operator[](size_t i) const {
 robj olist::operator[](int i) const {
   return this->operator[](static_cast<int64_t>(i));
 }
+
+robj rlist::operator[](int64_t i) const {
+  return robj(PyList_GET_ITEM(v, i));
+}
+
+robj rlist::operator[](size_t i) const {
+  return robj(PyList_GET_ITEM(v, static_cast<int64_t>(i)));
+}
+
 
 
 void olist::set(int64_t i, const _obj& value) {
@@ -115,6 +131,11 @@ olist::operator bool() const noexcept {
 }
 
 size_t olist::size() const noexcept {
+  return static_cast<size_t>(Py_SIZE(v));
+}
+
+
+size_t rlist::size() const noexcept {
   return static_cast<size_t>(Py_SIZE(v));
 }
 

@@ -66,6 +66,20 @@ class olist : public oobj {
 };
 
 
-}  // namespace py
 
+class rlist : public robj {
+  public:
+    static rlist unchecked(const robj&);
+    size_t size() const noexcept;
+    robj operator[](int64_t i) const;
+    robj operator[](size_t i) const;
+
+  private:
+    explicit rlist(const robj&);
+};
+
+
+
+
+}  // namespace py
 #endif
