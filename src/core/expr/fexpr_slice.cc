@@ -112,8 +112,9 @@ Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
   auto startCol = wfs[1].retrieve_column(0);
   auto stopCol = wfs[2].retrieve_column(0);
   auto stepCol = wfs[3].retrieve_column(0);
-  if (!startCol.type().is_integer() || !stopCol.type().is_integer() ||
-      !stepCol.type().is_integer()) {
+  if (!startCol.type().is_integer_or_void() ||
+      !stopCol.type().is_integer_or_void() ||
+      !stepCol.type().is_integer_or_void()) {
     throw TypeError()
         << "Non-integer expressions cannot be used inside a slice";
   }

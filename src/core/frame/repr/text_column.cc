@@ -95,7 +95,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   type_ = _escape_string(CString(type_name));
   width_ = std::max(std::max(width_, name_.size()),
                     name_.empty()? 0 : type_.size());
-  align_right_ = col.type().is_numeric();
+  align_right_ = col.type().is_numeric_or_void();
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
