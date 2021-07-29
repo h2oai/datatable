@@ -159,6 +159,10 @@ def replace_nas_in_column(frame):
         replacement_value = random.random() * 1000
     elif frame.types[icol] is str:
         replacement_value = random_string()
+    elif frame.types[icol] is None:
+        return
+    else:
+        raise RuntimeError("Unknown type %s" % frame.types[icol])
     res = frame.replace_nas_in_column(icol, replacement_value)
 
 
