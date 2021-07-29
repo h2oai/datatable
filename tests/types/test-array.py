@@ -81,3 +81,16 @@ def test_type_array_hashable():
     assert dt.Type.arr64(int) not in store
     assert dt.Type.arr64(float) not in store
     assert dt.Type.arr32(dt.Type.arr32(bool)) not in store
+
+
+
+
+#-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow(pa):
+    arr = pa.array([[1, 3, 8, -14, 5], [2, 0], None, [4], [], [1, -1, 1]],
+                   type=pa.list_(pa.int32()))
+    tbl = pa.Table([arr], names=["A"])
+    DT = dt.Frame(tbl)
