@@ -43,11 +43,12 @@ from tests_random.utils import (
 
 class Attacker:
 
-    def __init__(self, seed=None, exhaustive_checks=False):
+    def __init__(self, seed=None, exhaustive_checks=False, allow_forks=True):
         if seed is None:
             seed = random.getrandbits(64)
         self._seed = seed
         self._exhaustive_checks = exhaustive_checks
+        self._allow_forks = allow_forks
         random.seed(seed)
         print("# Seed: %r\n" % seed)
 
@@ -64,7 +65,7 @@ class Attacker:
                                     cum_weights=ATTACK_WEIGHTS, k=1)[0]
             if action:
                 action(frame)
-            else:
+            elif self._allow_forks:
                 # Non-standard actions
                 fork_and_run(frame, rounds - i)
                 break
@@ -212,7 +213,6 @@ def delete_columns_array(frame):
 def join_self(frame):
     if frame.ncols > 1000:
         return slice_columns(frame)
-
     frame.join_self()
 
 
@@ -286,6 +286,10 @@ if __name__ == "__main__":
     parser.add_argument("-x", "--exhaustive", action="store_true",
                         help="Run exhaustive checks, i.e. check for validity "
                              "after every step.")
+    parser.add_argument("--noforks", action="store_true",
+                        help="Disable fork action in random attacker")
     args = parser.parse_args()
-    ra = Attacker(args.seed, args.exhaustive)
+    ra = Attacker(seed=args.seed,
+                  exhaustive_checks=args.exhaustive,
+                  allow_forks=not args.noforks)
     ra.attack()

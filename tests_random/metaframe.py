@@ -404,7 +404,11 @@ class MetaFrame:
     @traced
     def cbind_numpy_column(self):
         import numpy as np
-        coltype = random_type()
+        # Numpy has no concept of "void" column (at least, not similar to ours),
+        # so avoid that random type:
+        coltype = None
+        while coltype is None:
+            coltype = random_type()
         mfraction = random.random()
         data, mmask = random_column(self.nrows, coltype, mfraction, False)
 
