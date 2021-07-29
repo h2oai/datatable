@@ -175,12 +175,27 @@ def test_sort_void_multi2():
     assert_equals(RES, EXP)
 
 
-def test_groupby_void():
+def test_groupby_void_results():
+    # See issue #3109
+    DT0 = dt.Frame([[None] * 5, [0, 1, 1, 2, 3]])
+    DT1 = DT0[:, :, dt.by("C0")]
+    assert_equals(DT1, DT0)
+
+
+def test_groupby_void_reducer():
     DT = dt.Frame([None] * 5)[:, dt.count(), dt.by(0)]
     assert_equals(DT, dt.Frame(C0=[None], count=[5]/dt.int64))
 
 
-def test_groupby_void2():
+def test_groupby_void_twice():
+    # See issue #3108
+    DT0 = dt.Frame([[None, None, None], [1, 2, 3]])
+    DT1 = DT0[:, :, dt.by("C0")]
+    DT2 = DT1[:, :, dt.by("C0")]
+    assert_equals(DT2, DT0)
+
+
+def test_groupby_void_multicolumn():
     # See issue #3104
     DT0 = dt.Frame(A=[None] * 5, B=range(5), C=['q'] * 5)
     DT1 = DT0[:, dt.count(), dt.by(f.A, f.B)]
