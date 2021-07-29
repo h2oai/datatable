@@ -1446,9 +1446,7 @@ RiGb group(const std::vector<Column>& columns,
     return result;
   }
   if (nrows == 1 || n_const_cols == n) {
-    Buffer buf = Buffer::mem(sizeof(int32_t) * nrows);
-    std::memset(buf.xptr(), 0, buf.size());
-    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+    result.first = RowIndex(0, nrows, 1);
     result.second = Groupby::single_group(nrows);
     return result;
   }
