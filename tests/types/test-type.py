@@ -220,6 +220,27 @@ def test_type_minmax():
     assert dt.Type.obj64.max is None
 
 
+def test_type_isxxx_properties():
+    T = dt.Type
+    all_types = [T.void, T.bool8, T.int8, T.int16, T.int32, T.int64, T.float32,
+                 T.float64, T.str32, T.str64, T.date32, T.time64, T.obj64,
+                 T.arr32(T.void), T.arr64(T.str32)]
+    all_properties = ["is_array", "is_boolean", "is_compound", "is_float",
+                      "is_integer", "is_numeric", "is_object", "is_string",
+                      "is_temporal", "is_void"]
+    for ttype in all_types:
+        for prop in all_properties:
+            assert hasattr(ttype, prop)
+            assert isinstance(getattr(ttype, prop), bool)
+            msg = ("attribute '%s' of 'datatable.Type' objects is not writable"
+                   % prop)
+            with pytest.raises(AttributeError, match=msg):
+                setattr(ttype, prop, False)
+            with pytest.raises(AttributeError, match=msg):
+                delattr(ttype, prop)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test stype enum
