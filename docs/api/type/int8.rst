@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.int8
     :src: --
+    :tests: tests/types/test-int.py
 
     Integer type that uses 1 byte per data element and can store values in the
     range ``-127 .. 127``.

@@ -154,6 +154,8 @@ bool Type::is_object()   const { return impl_ && impl_->is_object(); }
 bool Type::is_string()   const { return impl_ && impl_->is_string(); }
 bool Type::is_temporal() const { return impl_ && impl_->is_temporal(); }
 bool Type::is_void()     const { return impl_ && impl_->is_void(); }
+bool Type::is_integer_or_void() const { return impl_ && (impl_->is_integer() || impl_->is_void()); }
+bool Type::is_numeric_or_void() const { return impl_ && (impl_->is_numeric() || impl_->is_void()); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }

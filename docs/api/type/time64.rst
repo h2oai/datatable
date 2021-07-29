@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.time64
     :src: --
+    :tests: tests/types/test-time64.py
 
     .. x-version-added:: 1.0.0
 

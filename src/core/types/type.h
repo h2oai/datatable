@@ -88,8 +88,10 @@ class Type {
     bool is_compound() const;
     bool is_float() const;
     bool is_integer() const;
+    bool is_integer_or_void() const;
     bool is_invalid() const;
     bool is_numeric() const;
+    bool is_numeric_or_void() const;
     bool is_object() const;
     bool is_string() const;
     bool is_temporal() const;

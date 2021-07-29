@@ -66,3 +66,14 @@
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
+
+    -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
+        :attr:`.is_boolean <dt.Type.is_boolean>`,
+        :attr:`.is_compound <dt.Type.is_compound>`,
+        :attr:`.is_float <dt.Type.is_float>`,
+        :attr:`.is_integer <dt.Type.is_integer>`,
+        :attr:`.is_numeric <dt.Type.is_numeric>`,
+        :attr:`.is_object <dt.Type.is_object>`,
+        :attr:`.is_string <dt.Type.is_string>`,
+        :attr:`.is_temporal <dt.Type.is_temporal>`,
+        :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101]
