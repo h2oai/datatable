@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column.h"
+#include "column/arrow_array.h"
 #include "column/arrow_bool.h"
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
@@ -61,10 +62,10 @@ static Column _make_fw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array
 
 
 /**
-  * Create a variable-width column.
+  * Create a string column.
   */
 template <typename T>
-static Column _make_vw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
+static Column _make_str(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
   xassert((*array)->n_buffers == 3);
   size_t nrows = static_cast<size_t>((*array)->length);
   size_t datasize = static_cast<const T*>((*array)->buffers[1])[nrows];
@@ -76,6 +77,21 @@ static Column _make_vw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array
       Buffer::from_arrowarray((*array)->buffers[2], datasize, array)
   ));
 }
+
+
+template <typename T>
+static Column _make_arr(std::shared_ptr<dt::OArrowArray>&& array) {
+  xassert((*array)->n_buffers == 2);
+  xassert((*array)->n_children == 1);
+  size_t nrows = static_cast<size_t>((*array)->length);
+  return Column(new dt::ArrowArray_ColumnImpl<T>(
+    nrows,
+    Buffer::from_arrowarray((*array)->buffers[0], (nrows + 63)/64*8, array),
+    Buffer::from_arrowarray((*array)->buffers[1], (nrows + 1)*sizeof(T), array),
+    Column()
+  ));
+}
+
 
 
 Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
@@ -118,10 +134,10 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       return _make_fw(dt::SType::FLOAT64, std::move(array));
     }
     case 'u': {  // utf-8 string
-      return  _make_vw<uint32_t>(dt::SType::STR32, std::move(array));
+      return  _make_str<uint32_t>(dt::SType::STR32, std::move(array));
     }
     case 'U': {  // large  utf-8 string
-      return  _make_vw<uint64_t>(dt::SType::STR64, std::move(array));
+      return  _make_str<uint64_t>(dt::SType::STR64, std::move(array));
     }
     case 't': {  // various time formats
       if (format[1] == 'd') {
@@ -158,6 +174,15 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       }
       break;
     }
+  }
+  case '+': {
+    if (format[1] == 'l') {
+      return _make_arr<uint32_t>(std::move(array));
+    }
+    if (format[1] == 'L') {
+      return _make_arr<uint64_t>(std::move(array));
+    }
+    break;
   }
   throw NotImplError()
     << "Cannot create a column from an Arrow array with format `" << format << "`";
