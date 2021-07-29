@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,56 +19,38 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/virtual.h"
+#ifndef dt_COLUMN_ARROW_ARRAY_h
+#define dt_COLUMN_ARROW_ARRAY_h
+#include "column/arrow.h"
 namespace dt {
 
 
+template <typename T>
+class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
+  private:
+    Buffer validity_;
+    Buffer offsets_;
+    Column child_;
 
-bool Virtual_ColumnImpl::is_virtual() const noexcept {
-  return true;
-}
+  public:
+    ArrowArray_ColumnImpl(
+        size_t nrows, Buffer&& valid, Buffer&& offsets, Column&& child);
 
-size_t Virtual_ColumnImpl::memory_footprint() const noexcept {
-  return sizeof(*this);
-}
+    ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
+    size_t num_buffers() const noexcept override;
+    const void* get_buffer(size_t i) const override;
 
-
-
-NaStorage Virtual_ColumnImpl::get_na_storage_method() const noexcept {
-  return NaStorage::VIRTUAL;
-}
-
-
-size_t Virtual_ColumnImpl::get_num_data_buffers() const noexcept {
-  return 0;
-}
-
-
-bool Virtual_ColumnImpl::is_data_editable(size_t) const {
-  throw RuntimeError() << "Invalid data access for a virtual column";
-}
+    bool get_element(size_t i, Column* out) const override;
+};
 
 
-size_t Virtual_ColumnImpl::get_data_size(size_t) const {
-  throw RuntimeError() << "Invalid data access for a virtual column";
-}
-
-
-const void* Virtual_ColumnImpl::get_data_readonly(size_t) const {
-  throw RuntimeError() << "Invalid data access for a virtual column";
-}
-
-
-void* Virtual_ColumnImpl::get_data_editable(size_t) {
-  throw RuntimeError() << "Invalid data access for a virtual column";
-}
-
-
-Buffer Virtual_ColumnImpl::get_data_buffer(size_t) const {
-  throw RuntimeError() << "Invalid data access for a virtual column";
-}
+extern template class ArrowArray_ColumnImpl<uint32_t>;
+extern template class ArrowArray_ColumnImpl<uint64_t>;
 
 
 
 
 }  // namespace dt
+#endif

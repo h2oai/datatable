@@ -61,6 +61,7 @@ class ColumnImpl
   // Constructors
   //------------------------------------
   public:
+    ColumnImpl(size_t nrows, Type type);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
@@ -84,6 +85,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, double* out) const;
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::oobj* out) const;
+    virtual bool get_element(size_t i, Column* out) const;
 
 
   //------------------------------------

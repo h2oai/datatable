@@ -165,6 +165,7 @@ template<> bool Type::can_be_read_as<float>()    const { return impl_ && impl_->
 template<> bool Type::can_be_read_as<double>()   const { return impl_ && impl_->can_be_read_as_float64(); }
 template<> bool Type::can_be_read_as<CString>()  const { return impl_ && impl_->can_be_read_as_cstring(); }
 template<> bool Type::can_be_read_as<py::oobj>() const { return impl_ && impl_->can_be_read_as_pyobject(); }
+template<> bool Type::can_be_read_as<Column>()   const { return impl_ && impl_->can_be_read_as_column(); }
 
 
 bool Type::operator==(const Type& other) const {
