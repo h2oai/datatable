@@ -115,6 +115,11 @@ extern const char* doc_models_LinearModel_predict;
 extern const char* doc_models_LinearModel_reset;
 extern const char* doc_models_LinearModel_seed;
 
+extern const char* doc_options_debug_arg_max_size;
+extern const char* doc_options_debug_enabled;
+extern const char* doc_options_debug_logger;
+extern const char* doc_options_debug_report_args;
+
 extern const char* doc_re_match;
 
 extern const char* doc_str_len;
