@@ -1,7 +1,7 @@
 
 .. xattr:: datatable.options.debug.arg_max_size
     :src: src/core/call_logger.cc get_arg_max_size set_arg_max_size
-    :doc: doc_options_debug_arg_max_size
+    :cvar: doc_options_debug_arg_max_size
     :settable: value
 
     This option limits the display size of each argument in order

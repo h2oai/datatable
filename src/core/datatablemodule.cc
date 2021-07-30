@@ -30,6 +30,7 @@
 #include "call_logger.h"
 #include "csv/reader.h"
 #include "datatablemodule.h"
+#include "documentation.h"
 #include "expr/fexpr.h"
 #include "expr/head_func.h"
 #include "expr/head_reduce.h"
@@ -101,7 +102,7 @@ static_assert(sizeof(int64_t) == sizeof(Py_ssize_t),
 //------------------------------------------------------------------------------
 
 static std::pair<DataTable*, size_t>
-_unpack_frame_column_args(const py::PKArgs& args)
+_unpack_frame_column_args(const py::XArgs& args)
 {
   if (!args[0] || !args[1]) throw ValueError() << "Expected 2 arguments";
   DataTable* dt = args[0].to_datatable();
@@ -113,30 +114,7 @@ _unpack_frame_column_args(const py::PKArgs& args)
 }
 
 
-static const char* doc_frame_columns_virtual =
-R"(frame_columns_virtual(frame)
---
-.. x-version-deprecated:: 0.11.0
-
-Return the list indicating which columns in the `frame` are virtual.
-
-Parameters
-----------
-return: List[bool]
-    Each element in the list indicates whether the corresponding column
-    is virtual or not.
-
-Notes
------
-
-This function will be expanded and moved into the main :class:`dt.Frame` class.
-)";
-
-static py::PKArgs args_frame_columns_virtual(
-    1, 0, 0, false, false, {"frame"},
-    "frame_columns_virtual", doc_frame_columns_virtual);
-
-static py::oobj frame_columns_virtual(const py::PKArgs& args) {
+static py::oobj frame_columns_virtual(const py::XArgs& args) {
   DataTable* dt = args[0].to_datatable();
   py::olist virtuals(dt->ncols());
   for (size_t i = 0; i < dt->ncols(); ++i) {
@@ -145,31 +123,16 @@ static py::oobj frame_columns_virtual(const py::PKArgs& args) {
   return std::move(virtuals);
 }
 
+DECLARE_PYFN(&frame_columns_virtual)
+    ->name("frame_columns_virtual")
+    ->docs(dt::doc_internal_frame_columns_virtual)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"frame"});
 
-static const char* doc_frame_column_data_r =
-R"(frame_column_data_r(frame, i)
---
 
-Return C pointer to the main data array of the column `frame[i]`.
-The column will be materialized if it was virtual.
 
-Parameters
-----------
-frame: Frame
-    The :class:`dt.Frame` where to look up the column.
-
-i: int
-    The index of a column, in the range ``[0; ncols)``.
-
-return: ctypes.c_void_p
-    The pointer to the column's internal data.
-)";
-
-static py::PKArgs args_frame_column_data_r(
-    2, 0, 0, false, false, {"frame", "i"},
-    "frame_column_data_r", doc_frame_column_data_r);
-
-static py::oobj frame_column_data_r(const py::PKArgs& args) {
+static py::oobj frame_column_data_r(const py::XArgs& args) {
   static py::oobj c_void_p = py::oobj::import("ctypes", "c_void_p");
 
   auto u = _unpack_frame_column_args(args);
@@ -181,63 +144,35 @@ static py::oobj frame_column_data_r(const py::PKArgs& args) {
   return c_void_p.call({py::oint(iptr)});
 }
 
+DECLARE_PYFN(&frame_column_data_r)
+    ->name("frame_column_data_r")
+    ->docs(dt::doc_internal_frame_column_data_r)
+    ->n_positional_args(2)
+    ->n_required_args(2)
+    ->arg_names({"frame", "i"});
 
-static const char* doc_frame_integrity_check =
-R"(frame_integrity_check(frame)
---
 
-This function performs a range of tests on the `frame` to verify
-that its internal state is consistent. It returns None on success,
-or throws an ``AssertionError`` if any problems were found.
 
-Parameters
-----------
-frame: Frame
-    A :class:`dt.Frame` object that needs to be checked for internal consistency.
-
-return: None
-
-except: AssertionError
-    An exception is raised if there were any issues with the `frame`.
-)";
-
-static py::PKArgs args_frame_integrity_check(
-  1, 0, 0, false, false, {"frame"}, "frame_integrity_check",
-  doc_frame_integrity_check);
-
-static void frame_integrity_check(const py::PKArgs& args) {
+static py::oobj frame_integrity_check(const py::XArgs& args) {
   if (!args[0].is_frame()) {
     throw TypeError() << "Function `frame_integrity_check()` takes a Frame "
         "as a single positional argument";
   }
   auto frame = static_cast<py::Frame*>(args[0].to_borrowed_ref());
   frame->integrity_check();
+  return py::None();
 }
 
+DECLARE_PYFN(&frame_integrity_check)
+    ->name("frame_integrity_check")
+    ->docs(dt::doc_internal_frame_integrity_check)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"frame"});
 
-static const char* doc_get_thread_ids =
-R"(
-Return system ids of all threads used internally by datatable.
 
-Calling this function will cause the threads to spawn if they
-haven't done already. (This behavior may change in the future).
 
-Parameters
-----------
-return: List[str]
-    The list of thread ids used by the datatable. The first element
-    in the list is the id of the main thread.
-
-See Also
---------
-- :attr:`dt.options.nthreads <datatable.options.nthreads>` -- global option
-  that controls the number of threads in use.
-)";
-
-static py::PKArgs args_get_thread_ids(
-    0, 0, 0, false, false, {}, "get_thread_ids", doc_get_thread_ids);
-
-static py::oobj get_thread_ids(const py::PKArgs&) {
+static py::oobj get_thread_ids(const py::XArgs&) {
   std::mutex m;
   size_t n = dt::num_threads_in_pool();
   py::olist list(n);
@@ -258,14 +193,15 @@ static py::oobj get_thread_ids(const py::PKArgs&) {
   return std::move(list);
 }
 
+DECLARE_PYFN(&get_thread_ids)
+    ->name("get_thread_ids")
+    ->docs(dt::doc_internal_get_thread_ids);
 
 
 
-static py::PKArgs args__register_function(
-    2, 0, 0, false, false, {"n", "fn"}, "_register_function", nullptr);
 
-static void _register_function(const py::PKArgs& args) {
-  size_t n = args.get<size_t>(0);
+static py::oobj _register_function(const py::XArgs& args) {
+  size_t n = args[0].to_size_t();
   py::oobj fn = args[1].to_oobj();
 
   PyObject* fnref = std::move(fn).release();
@@ -276,7 +212,14 @@ static void _register_function(const py::PKArgs& args) {
     case 9: py::Expr_Type = fnref; break;
     default: throw ValueError() << "Unknown index: " << n;
   }
+  return py::None();
 }
+
+DECLARE_PYFN(&_register_function)
+    ->name("_register_function")
+    ->n_positional_args(2)
+    ->n_required_args(2)
+    ->arg_names({"n", "fn"});
 
 
 // This is a private function, used from build_info.py only.
@@ -303,12 +246,7 @@ DECLARE_PYFN(&compiler_version)
 
 
 
-static py::PKArgs args_apply_color(
-  2, 0, 0, false ,false, {"color", "text"}, "apply_color",
-  "Paint the text into the specified color with by appending "
-  "the appropriate terminal control sequences");
-
-static py::oobj apply_color(const py::PKArgs& args) {
+static py::oobj apply_color(const py::XArgs& args) {
   if (args[0].is_none_or_undefined()) {
     throw TypeError() << "Missing required argument `color`";
   }
@@ -341,32 +279,46 @@ static py::oobj apply_color(const py::PKArgs& args) {
   return py::ostring(ts.str());
 }
 
+DECLARE_PYFN(&apply_color)
+    ->name("apply_color")
+    ->docs("Paint the text into the specified color with by appending "
+           "the appropriate terminal control sequences")
+    ->n_positional_args(2)
+    ->n_required_args(2)
+    ->arg_names({"color", "text"});
 
 
-static py::PKArgs args_initialize_options(
-  1, 0, 0, false, false, {"options"}, "initialize_options",
-  "Signal to core C++ datatable to register all internal options\n"
-  "with the provided options manager.");
 
-static void initialize_options(const py::PKArgs& args) {
+static py::oobj initialize_options(const py::XArgs& args) {
   py::oobj options = args[0].to_oobj();
-  if (!options) return;
-
-  dt::use_options_store(options);
-  dt::ThreadPool::init_options();
-  dt::progress::init_options();
-  py::Frame::init_names_options();
-  py::Frame::init_display_options();
-  dt::read::GenericReader::init_options();
-  sort_init_options();
-  dt::CallLogger::init_options();
+  if (options) {
+    dt::use_options_store(options);
+    dt::ThreadPool::init_options();
+    dt::progress::init_options();
+    py::Frame::init_names_options();
+    py::Frame::init_display_options();
+    dt::read::GenericReader::init_options();
+    sort_init_options();
+    dt::CallLogger::init_options();
+  }
+  return py::None();
 }
+
+DECLARE_PYFN(&initialize_options)
+    ->name("initialize_options")
+    ->docs("Signal to core C++ datatable to register all internal options\n"
+           "with the provided options manager.")
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"options"});
+
 
 
 static py::oobj initialize_final(const py::XArgs&) {
   init_exceptions();
   return py::None();
 }
+
 DECLARE_PYFN(&initialize_final)
     ->name("initialize_final")
     ->docs("Called once at the end of initialization of the python datatable "
@@ -381,14 +333,6 @@ DECLARE_PYFN(&initialize_final)
 //------------------------------------------------------------------------------
 
 void py::DatatableModule::init_methods() {
-  ADD_FN(&_register_function, args__register_function);
-  ADD_FN(&frame_columns_virtual, args_frame_columns_virtual);
-  ADD_FN(&frame_column_data_r, args_frame_column_data_r);
-  ADD_FN(&frame_integrity_check, args_frame_integrity_check);
-  ADD_FN(&get_thread_ids, args_get_thread_ids);
-  ADD_FN(&initialize_options, args_initialize_options);
-  ADD_FN(&apply_color, args_apply_color);
-
   for (py::XArgs* xarg : py::XArgs::store()) {
     if (xarg->get_class_id() == 0) {
       add(xarg->get_method_def());

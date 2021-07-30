@@ -23,6 +23,7 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
+
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
@@ -56,6 +57,11 @@ extern const char* doc_dt_symdiff;
 extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
 extern const char* doc_dt_update;
+
+extern const char* doc_internal_frame_column_data_r;
+extern const char* doc_internal_frame_columns_virtual;
+extern const char* doc_internal_frame_integrity_check;
+extern const char* doc_internal_get_thread_ids;
 
 extern const char* doc_math_atan2;
 extern const char* doc_math_copysign;
