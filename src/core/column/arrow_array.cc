@@ -40,7 +40,8 @@ ArrowArray_ColumnImpl<T>::ArrowArray_ColumnImpl(
 {
   xassert(!validity_ || validity_.size() >= (nrows + 63)/64 * 8);
   xassert(offsets_.size() >= sizeof(T) * (nrows + 1));
-  xassert(child_.nrows() == nrows);
+  xassert(child_.nrows() >=
+          static_cast<size_t>(offsets_.get_element<T>(nrows)));
 }
 
 
@@ -94,6 +95,9 @@ bool ArrowArray_ColumnImpl<T>::get_element(size_t i, Column* out) const {
 }
 
 
+
+template class ArrowArray_ColumnImpl<uint32_t>;
+template class ArrowArray_ColumnImpl<uint64_t>;
 
 
 }  // namespace dt

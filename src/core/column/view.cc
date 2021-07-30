@@ -47,7 +47,7 @@ SliceView_ColumnImpl::SliceView_ColumnImpl(
     step_(step)
 {
   xassert(start < arg_.nrows());
-  xassert(start + count*step < arg_.nrows());
+  xassert(start + count*step <= arg_.nrows());
 }
 
 
