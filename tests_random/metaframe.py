@@ -22,9 +22,11 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import copy
+import datetime
 import pytest
 import random
 import re
+import sys
 import warnings
 from datatable import dt, f, join
 from datatable.internal import frame_integrity_check
@@ -81,10 +83,10 @@ class MetaFrame:
         assert isinstance(types, list) and len(types) == ncols
         assert isinstance(names, list) and len(names) == ncols
         assert isinstance(missing_fraction, float)
-        tt = {bool: 0, int: 0, float: 0, str: 0}
+        tt = {bool: 0, int: 0, float: 0, str: 0, None: 0}
         for t in types:
             tt[t] += 1
-        assert len(tt) == 4
+        assert len(tt) == 5
         print("# Making a frame with nrows=%d, ncols=%d" % (nrows, ncols))
         print("#   types: bool=%d, int=%d, float=%d, str=%d"
               % (tt[bool], tt[int], tt[float], tt[str]))
@@ -100,7 +102,7 @@ class MetaFrame:
         print(f"{frame.name} = dt.Frame(")
         print(f"    {repr_data(data, 4)},")
         print(f"    names={names},")
-        print(f"    stypes={repr_types(types)}")
+        print(f"    types={repr_types(types)}")
         print(f")")
         return frame
 
@@ -402,7 +404,11 @@ class MetaFrame:
     @traced
     def cbind_numpy_column(self):
         import numpy as np
-        coltype = random_type()
+        # Numpy has no concept of "void" column (at least, not similar to ours),
+        # so avoid that random type:
+        coltype = None
+        while coltype is None:
+            coltype = random_type()
         mfraction = random.random()
         data, mmask = random_column(self.nrows, coltype, mfraction, False)
 
@@ -529,9 +535,10 @@ class MetaFrame:
 
 _ltype_to_pytype = {
     dt.ltype.bool: bool,
-    dt.ltype.int: int,
+    dt.ltype.int:  int,
     dt.ltype.real: float,
     dt.ltype.str: str,
-    dt.ltype.time: None,
-    dt.ltype.obj: object
+    dt.ltype.time: datetime.datetime,
+    dt.ltype.obj: object,
+    dt.ltype.void: None,
 }

@@ -45,6 +45,7 @@ extern const char* doc_dt_median;
 extern const char* doc_dt_min;
 extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
+extern const char* doc_dt_repeat;
 extern const char* doc_dt_sd;
 extern const char* doc_dt_setdiff;
 extern const char* doc_dt_shift;
@@ -55,7 +56,6 @@ extern const char* doc_dt_symdiff;
 extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
 extern const char* doc_dt_update;
-extern const char* doc_dt_repeat;
 
 extern const char* doc_math_atan2;
 extern const char* doc_math_copysign;
@@ -74,8 +74,8 @@ extern const char* doc_models_Ftrl;
 extern const char* doc_models_Ftrl___init__;
 extern const char* doc_models_Ftrl_alpha;
 extern const char* doc_models_Ftrl_beta;
-extern const char* doc_models_Ftrl_colnames;
 extern const char* doc_models_Ftrl_colname_hashes;
+extern const char* doc_models_Ftrl_colnames;
 extern const char* doc_models_Ftrl_double_precision;
 extern const char* doc_models_Ftrl_feature_importances;
 extern const char* doc_models_Ftrl_fit;
@@ -83,10 +83,10 @@ extern const char* doc_models_Ftrl_interactions;
 extern const char* doc_models_Ftrl_labels;
 extern const char* doc_models_Ftrl_lambda1;
 extern const char* doc_models_Ftrl_lambda2;
+extern const char* doc_models_Ftrl_mantissa_nbits;
 extern const char* doc_models_Ftrl_model;
 extern const char* doc_models_Ftrl_model_type;
 extern const char* doc_models_Ftrl_model_type_trained;
-extern const char* doc_models_Ftrl_mantissa_nbits;
 extern const char* doc_models_Ftrl_nbins;
 extern const char* doc_models_Ftrl_negative_class;
 extern const char* doc_models_Ftrl_nepochs;
@@ -96,11 +96,11 @@ extern const char* doc_models_Ftrl_reset;
 
 extern const char* doc_models_LinearModel;
 extern const char* doc_models_LinearModel___init__;
+extern const char* doc_models_LinearModel_double_precision;
 extern const char* doc_models_LinearModel_eta0;
 extern const char* doc_models_LinearModel_eta_decay;
 extern const char* doc_models_LinearModel_eta_drop_rate;
 extern const char* doc_models_LinearModel_eta_schedule;
-extern const char* doc_models_LinearModel_double_precision;
 extern const char* doc_models_LinearModel_fit;
 extern const char* doc_models_LinearModel_is_fitted;
 extern const char* doc_models_LinearModel_labels;
@@ -194,9 +194,21 @@ extern const char* doc_Namespace;
 extern const char* doc_Type;
 extern const char* doc_Type_arr32;
 extern const char* doc_Type_arr64;
+extern const char* doc_Type_is_array;
+extern const char* doc_Type_is_boolean;
+extern const char* doc_Type_is_compound;
+extern const char* doc_Type_is_float;
+extern const char* doc_Type_is_integer;
+extern const char* doc_Type_is_numeric;
+extern const char* doc_Type_is_object;
+extern const char* doc_Type_is_string;
+extern const char* doc_Type_is_temporal;
+extern const char* doc_Type_is_void;
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;
 extern const char* doc_Type_name;
+
+
 
 
 }  // namespace dt

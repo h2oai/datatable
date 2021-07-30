@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.date32
     :src: --
+    :tests: tests/types/test-date32.py
 
     .. x-version-added:: 1.0.0
 

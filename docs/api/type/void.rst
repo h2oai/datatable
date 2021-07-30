@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.void
     :src: --
+    :tests: tests/types/test-void.py
 
     The type of a column where all values are NAs.
 

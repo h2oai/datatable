@@ -184,7 +184,8 @@ bool Column::allow_parallel_access() const {
 }
 
 bool Column::is_constant() const noexcept {
-  return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_));
+  return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_)) ||
+         impl_->type_.is_void();
 }
 
 size_t Column::elemsize() const noexcept {

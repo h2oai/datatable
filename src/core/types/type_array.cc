@@ -57,6 +57,9 @@ TypeImpl* Type_Arr32::common_type(TypeImpl* other) {
   if (other->is_array()) {
     return other->stype() > stype() ? other : this;
   }
+  if (other->is_void()) {
+    return this;
+  }
   if (other->is_object() || other->is_invalid()) {
     return other;
   }

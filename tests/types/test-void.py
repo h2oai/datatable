@@ -29,6 +29,36 @@ from datatable import dt, f, join
 
 
 #-------------------------------------------------------------------------------
+# void type basic properties
+#-------------------------------------------------------------------------------
+
+def test_void_name():
+    assert repr(dt.Type.void) == "Type.void"
+    assert dt.Type.void.name == "void"
+
+
+def test_void_type_from_basic():
+    assert dt.Type(None) == dt.Type.void
+    assert dt.Type("void") == dt.Type.void
+
+
+def test_query_methods():
+    tvoid = dt.Type.void
+    assert not tvoid.is_array
+    assert not tvoid.is_boolean
+    assert not tvoid.is_compound
+    assert not tvoid.is_integer
+    assert not tvoid.is_float
+    assert not tvoid.is_numeric
+    assert not tvoid.is_string
+    assert not tvoid.is_temporal
+    assert not tvoid.is_object
+    assert     tvoid.is_void
+
+
+
+
+#-------------------------------------------------------------------------------
 # Create column of void type
 #-------------------------------------------------------------------------------
 
@@ -175,12 +205,27 @@ def test_sort_void_multi2():
     assert_equals(RES, EXP)
 
 
-def test_groupby_void():
+def test_groupby_void_results():
+    # See issue #3109
+    DT0 = dt.Frame([[None] * 5, [0, 1, 1, 2, 3]])
+    DT1 = DT0[:, :, dt.by("C0")]
+    assert_equals(DT1, DT0)
+
+
+def test_groupby_void_reducer():
     DT = dt.Frame([None] * 5)[:, dt.count(), dt.by(0)]
     assert_equals(DT, dt.Frame(C0=[None], count=[5]/dt.int64))
 
 
-def test_groupby_void2():
+def test_groupby_void_twice():
+    # See issue #3108
+    DT0 = dt.Frame([[None, None, None], [1, 2, 3]])
+    DT1 = DT0[:, :, dt.by("C0")]
+    DT2 = DT1[:, :, dt.by("C0")]
+    assert_equals(DT2, DT0)
+
+
+def test_groupby_void_multicolumn():
     # See issue #3104
     DT0 = dt.Frame(A=[None] * 5, B=range(5), C=['q'] * 5)
     DT1 = DT0[:, dt.count(), dt.by(f.A, f.B)]

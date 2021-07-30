@@ -299,6 +299,7 @@ def _additional_stype_members():
         yield (v.name, v)
     for st, code in _stype_2_short.items():
         yield (code, st)
+    yield (None, stype.void)
     yield (bool, stype.bool8)
     yield ("bool", stype.bool8)
     yield ("boolean", stype.bool8)
