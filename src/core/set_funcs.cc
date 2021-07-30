@@ -62,6 +62,13 @@ static py::oobj make_pyframe(sort_result&& sorted, Buffer&& buf) {
   return py::Frame::oframe(dt);
 }
 
+static py::oobj make_empty(sort_result&& sorted) {
+    return py::Frame::oframe(new DataTable(
+        {Column::new_na_column(0, sorted.column.stype())},
+        {std::move(sorted.colname)}
+    ));
+}
+
 
 static named_colvec columns_from_args(const py::XArgs& args) {
   using FN = std::function<void(py::robj,size_t)>;
@@ -133,10 +140,7 @@ static py::oobj _union(named_colvec&& ncv) {
   const int32_t* groupOffsets = sorted.gb.offsets_r();
   xassert(groupOffsets != nullptr);
   if (groupOffsets[numGroups] == 0) {
-    return py::Frame::oframe(new DataTable(
-        {Column::new_na_column(0, sorted.column.stype())},
-        {std::move(sorted.colname)}
-    ));
+    return make_empty(std::move(sorted));
   }
   if (numGroups == 1) {
     size_t index;
@@ -229,7 +233,9 @@ static py::oobj _intersect(named_colvec&& cv) {
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.size();
   const int32_t* goffsets = sorted.gb.offsets_r();
-  if (goffsets[ngrps] == 0) ngrps = 0;
+  if (goffsets[ngrps] == 0) {
+    return make_empty(std::move(sorted));
+  }
 
   const int32_t* indices;
   Buffer indicesBuffer;
@@ -317,7 +323,9 @@ static py::oobj _setdiff(named_colvec&& cv) {
   sort_result sorted = sort_columns(std::move(cv));
   size_t ngrps = sorted.gb.size();
   const int32_t* goffsets = sorted.gb.offsets_r();
-  if (goffsets[ngrps] == 0) ngrps = 0;
+  if (goffsets[ngrps] == 0) {
+    return make_empty(std::move(sorted));
+  }
 
   const int32_t* indices;
   Buffer indicesBuffer;
@@ -369,7 +377,9 @@ static py::oobj _symdiff(named_colvec&& cv) {
   sort_result sr = sort_columns(std::move(cv));
   size_t ngrps = sr.gb.size();
   const int32_t* goffsets = sr.gb.offsets_r();
-  if (goffsets[ngrps] == 0) ngrps = 0;
+  if (goffsets[ngrps] == 0) {
+    return make_empty(std::move(sr));
+  }
 
   const int32_t* indices;
   Buffer indicesBuffer;
