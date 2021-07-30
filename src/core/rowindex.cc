@@ -220,13 +220,14 @@ static void _extract_into(const RowIndex& ri, T* target) {
 
 
 void RowIndex::extract_into(Buffer& buffer, int flags) const {
-  void* data = buffer.xptr();
   if (flags & RowIndex::ARR32) {
-    xassert(buffer.size() >= size() * sizeof(int32_t));
-    _extract_into<int32_t>(*this, static_cast<int32_t*>(data));
+    buffer.ensuresize(size() * sizeof(int32_t));
+    auto data = static_cast<int32_t*>(buffer.xptr());
+    _extract_into<int32_t>(*this, data);
   } else {
-    xassert(buffer.size() >= size() * sizeof(int64_t));
-    _extract_into<int64_t>(*this, static_cast<int64_t*>(data));
+    buffer.ensuresize(size() * sizeof(int64_t));
+    auto data = static_cast<int64_t*>(buffer.xptr());
+    _extract_into<int64_t>(*this, data);
   }
 }
 
