@@ -129,18 +129,44 @@ static py::oobj _union(named_colvec&& ncv) {
   }
   sort_result sorted = sort_columns(std::move(ncv));
 
-  size_t ngrps = sorted.gb.size();
-  const int32_t* goffsets = sorted.gb.offsets_r();
-  if (goffsets[ngrps] == 0) ngrps = 0;
-
-  const int32_t* indices = sorted.ri.indices32();
-  Buffer buf = Buffer::mem(ngrps * sizeof(int32_t));
-  int32_t* out_indices = static_cast<int32_t*>(buf.xptr());
-
-  for (size_t i = 0; i < ngrps; ++i) {
-    out_indices[i] = indices[goffsets[i]];
+  size_t numGroups = sorted.gb.size();
+  const int32_t* groupOffsets = sorted.gb.offsets_r();
+  xassert(groupOffsets != nullptr);
+  if (groupOffsets[numGroups] == 0) {
+    return py::Frame::oframe(new DataTable(
+        {Column::new_na_column(0, sorted.column.stype())},
+        {std::move(sorted.colname)}
+    ));
   }
-  return make_pyframe(std::move(sorted), std::move(buf));
+  if (numGroups == 1) {
+    size_t index;
+    bool valid = sorted.ri.get_element(0, &index);
+    if (valid) {
+      xassert(index == 0);
+      sorted.column.resize(1);
+      return py::Frame::oframe(new DataTable(
+          {std::move(sorted.column)},
+          {std::move(sorted.colname)}
+      ));
+    } else {
+      return py::Frame::oframe(new DataTable(
+          {Column::new_na_column(1, sorted.column.stype())},
+          {std::move(sorted.colname)}
+      ));
+    }
+  }
+  if (sorted.ri.isarr32()) {
+    const int32_t* indices = sorted.ri.indices32();
+    Buffer buf = Buffer::mem(numGroups * sizeof(int32_t));
+    int32_t* out_indices = static_cast<int32_t*>(buf.xptr());
+
+    for (size_t i = 0; i < numGroups; ++i) {
+      out_indices[i] = indices[groupOffsets[i]];
+    }
+    return make_pyframe(std::move(sorted), std::move(buf));
+  }
+  throw NotImplError() << "Unexpected RowIndex type "
+      << static_cast<int>(sorted.ri.type()) << " in _union()";
 }
 
 
@@ -205,7 +231,14 @@ static py::oobj _intersect(named_colvec&& cv) {
   const int32_t* goffsets = sorted.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
-  const int32_t* indices = sorted.ri.indices32();
+  const int32_t* indices;
+  Buffer indicesBuffer;
+  if (sorted.ri.isarr32()) {
+    indices = sorted.ri.indices32();
+  } else {
+    sorted.ri.extract_into(indicesBuffer, RowIndex::ARR32);
+    indices = static_cast<const int32_t*>(indicesBuffer.rptr());
+  }
   Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
   int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;
@@ -286,7 +319,14 @@ static py::oobj _setdiff(named_colvec&& cv) {
   const int32_t* goffsets = sorted.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
-  const int32_t* indices = sorted.ri.indices32();
+  const int32_t* indices;
+  Buffer indicesBuffer;
+  if (sorted.ri.isarr32()) {
+    indices = sorted.ri.indices32();
+  } else {
+    sorted.ri.extract_into(indicesBuffer, RowIndex::ARR32);
+    indices = static_cast<const int32_t*>(indicesBuffer.rptr());
+  }
   Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
   int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;
@@ -331,7 +371,14 @@ static py::oobj _symdiff(named_colvec&& cv) {
   const int32_t* goffsets = sr.gb.offsets_r();
   if (goffsets[ngrps] == 0) ngrps = 0;
 
-  const int32_t* indices = sr.ri.indices32();
+  const int32_t* indices;
+  Buffer indicesBuffer;
+  if (sr.ri.isarr32()) {
+    indices = sr.ri.indices32();
+  } else {
+    sr.ri.extract_into(indicesBuffer, RowIndex::ARR32);
+    indices = static_cast<const int32_t*>(indicesBuffer.rptr());
+  }
   Buffer buffer = Buffer::mem(ngrps * sizeof(int32_t));
   int32_t* out_indices = static_cast<int32_t*>(buffer.xptr());
   size_t j = 0;

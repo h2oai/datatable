@@ -231,3 +231,12 @@ def test_groupby_void_multicolumn():
     DT1 = DT0[:, dt.count(), dt.by(f.A, f.B)]
     EXP = dt.Frame(A=[None]*5, B=range(5), count=([1] * 5)/dt.int64)
     assert_equals(DT1, EXP)
+
+
+def test_void_set_functions():
+    # See issue #3126
+    DT = dt.Frame(Q=[None] * 17)
+    assert_equals(dt.unique(DT), dt.Frame(Q=[None]))
+    assert_equals(dt.union(DT, DT, DT), dt.Frame(Q=[None]))
+    assert_equals(dt.intersect(DT, DT), dt.Frame(Q=[None]))
+    assert_equals(dt.setdiff(DT, DT), dt.Frame(Q=[]))
