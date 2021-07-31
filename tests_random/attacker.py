@@ -100,11 +100,6 @@ def fattack(filename, seed, nrounds):
 # Individual attack methods
 #---------------------------------------------------------------------------
 
-def rbind_self(frame):
-    t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
-    res = frame.rbind([frame] * t)
-
-
 def select_rows_array(frame):
     if frame.nrows == 0:
         return
@@ -225,7 +220,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    rbind_self: 1,
     select_rows_array: 1,
     delete_rows_array: 1,
     select_rows_with_boolean_column: 1,

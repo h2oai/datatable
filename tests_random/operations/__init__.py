@@ -43,12 +43,15 @@ class OperationsLibrary:
         from .change_nrows import ChangeNrows
         from .slice_rows import SliceRows
         from .slice_columns import SliceColumns
+        from .rbind_self import RbindSelf
+        assert not OperationsLibrary._instance
 
         self._methods = [
             CbindSelf,
             ChangeNrows,
             SliceColumns,
             SliceRows,
+            RbindSelf,
         ]
         self._weights = []
         total_weight = 0
