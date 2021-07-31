@@ -122,9 +122,9 @@ correspond to one of the datatable's types::
      3 |        4
     [4 rows x 1 column]
 
-Or datatable's :class:`stype`/:class:`ltype`::
+Or datatable's :class:`Type`::
 
-    >>> DT[:, dt.float64]
+    >>> DT[:, dt.Type.float64]
        |  floats
        | float64
     -- + -------
@@ -134,7 +134,7 @@ Or datatable's :class:`stype`/:class:`ltype`::
      3 |   -13
     [4 rows x 1 column]
 
-    >>> DT[:, dt.ltype.time]
+    >>> DT[:, dt.Type.date32]
        | dates
        | date32
     -- + ----------
@@ -363,7 +363,8 @@ for nifty selections::
 In this example we want to select columns that are numeric (integers or floats)
 and whose average is greater than 3::
 
-    >>> DT[:, [column.stype.ltype.name in ("real", "int") and column.mean1() > 3
+    >>> DT[:, [column.type.is_numeric 
+    ...        and column.mean1() > 3 
     ...        for column in DT]]
        |  floats
        | float64
@@ -929,7 +930,7 @@ Deselection of rows/columns is possible via `list comprehension`_/`generator exp
 - Deselect by data type::
 
     >>> # This selects columns that are not numeric
-    >>> DT[2 : 7, (dtype.name not in ("real", "int") for dtype in DT.ltypes)]
+    >>> DT[2:7, [not coltype.is_numeric for coltype in DT.types]]
        | dates       strings
        | date32      str32
     -- + ----------  -------
