@@ -363,9 +363,9 @@ for nifty selections::
 In this example we want to select columns that are numeric (integers or floats)
 and whose average is greater than 3::
 
-    >>> DT[:, [frame.type.is_numeric 
-    ...        and frame.mean1() > 3 
-    ...        for frame in DT]]
+    >>> DT[:, [column.type.is_numeric 
+    ...        and column.mean1() > 3 
+    ...        for column in DT]]
        |  floats
        | float64
     -- + -------
@@ -930,7 +930,7 @@ Deselection of rows/columns is possible via `list comprehension`_/`generator exp
 - Deselect by data type::
 
     >>> # This selects columns that are not numeric
-    >>> DT[2:7, [not dtype.is_numeric for dtype in DT.types]]
+    >>> DT[2:7, [not coltype.is_numeric for coltype in DT.types]]
        | dates       strings
        | date32      str32
     -- + ----------  -------
