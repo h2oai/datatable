@@ -44,6 +44,7 @@ class OperationsLibrary:
         from .slice_rows import SliceRows
         from .slice_columns import SliceColumns
         from .rbind_self import RbindSelf
+        from .select_rows_array import SelectRowsArray
         assert not OperationsLibrary._instance
 
         self._methods = [
@@ -52,6 +53,7 @@ class OperationsLibrary:
             SliceColumns,
             SliceRows,
             RbindSelf,
+            SelectRowsArray,
         ]
         self._weights = []
         total_weight = 0

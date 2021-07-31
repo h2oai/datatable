@@ -100,12 +100,6 @@ def fattack(filename, seed, nrounds):
 # Individual attack methods
 #---------------------------------------------------------------------------
 
-def select_rows_array(frame):
-    if frame.nrows == 0:
-        return
-    s = random_array(frame.nrows)
-    frame.slice_rows(s)
-
 
 def delete_rows_array(frame):
     if frame.nrows == 0:
@@ -220,7 +214,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    select_rows_array: 1,
     delete_rows_array: 1,
     select_rows_with_boolean_column: 1,
     replace_nas_in_column: 1,

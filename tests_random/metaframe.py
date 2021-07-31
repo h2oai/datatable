@@ -246,20 +246,6 @@ class MetaFrame:
     #---------------------------------------------------------------------------
 
     @traced
-    def slice_rows(self, s):
-        self.df = self.df[s, :]
-        if isinstance(s, slice):
-            for i in range(self.ncols):
-                self.data[i] = self.data[i][s]
-        else:
-            assert isinstance(s, list)
-            for i in range(self.ncols):
-                col = self.data[i]
-                self.data[i] = [col[j] for j in s]
-        self.nkeys = 0
-
-
-    @traced
     def delete_rows(self, s):
         assert isinstance(s, slice) or isinstance(s, list)
         nrows = self.nrows
