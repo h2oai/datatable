@@ -29,6 +29,7 @@ import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
+from tests_random.operations import OperationsLibrary, EvaluationContext
 from tests_random.utils import (
     repr_slice,
     random_array,
@@ -57,25 +58,28 @@ class Attacker:
         if rounds is None:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
-        if frame is None:
-            frame = MetaFrame.random()
+
         print("# Launching an attack for %d rounds" % rounds)
+        context = EvaluationContext()
         for i in range(rounds):
-            action = random.choices(population=ATTACK_METHODS,
-                                    cum_weights=ATTACK_WEIGHTS, k=1)[0]
-            if action:
-                action(frame)
-            elif self._allow_forks:
-                # Non-standard actions
-                fork_and_run(frame, rounds - i)
-                break
+            action = OperationsLibrary.random()(context)
+            action.log_to_console()
+            action.apply_to_dtframe()
+            action.apply_to_pyframe()
+            # action = random.choices(population=ATTACK_METHODS,
+            #                         cum_weights=ATTACK_WEIGHTS, k=1)[0]
+            # if action:
+            # elif self._allow_forks:
+            #     # Non-standard actions
+            #     # fork_and_run(frame, rounds - i)
+            #     break
             if self._exhaustive_checks:
-                frame.check()
+                context.check()
             if time.time() - t0 > 60:
                 print(">>> Stopped early, taking too long <<<")
                 break
         print("\nAttack ended, checking the outcome... ", end='')
-        frame.check()
+        context.check_all()
         print(core.apply_color("bright_green", "PASSED"))
         t1 = time.time()
         print("Time taken = %.3fs" % (t1 - t0))
@@ -95,32 +99,6 @@ def fattack(filename, seed, nrounds):
 #---------------------------------------------------------------------------
 # Individual attack methods
 #---------------------------------------------------------------------------
-
-def resize_rows(frame):
-    t = random.random()
-    curr_nrows = frame.nrows
-    new_nrows = int(curr_nrows * 10 / (19 * t + 1) + 1)
-    frame.resize_rows(new_nrows)
-
-
-def slice_rows(frame):
-    s = random_slice(frame.nrows)
-    new_nrows = len(range(*s.indices(frame.nrows)))
-    frame.slice_rows(s)
-
-
-def slice_columns(frame):
-    s = random_slice(frame.ncols)
-    new_ncols = len(range(*s.indices(frame.ncols)))
-    frame.slice_cols(s)
-
-
-def cbind_self(frame):
-    if frame.ncols > 1000:
-        return slice_columns(frame)
-    t = random.randint(1, min(5, 100 // (1 + frame.ncols)) + 1)
-    frame.cbind([frame] * t)
-
 
 def rbind_self(frame):
     t = random.randint(1, min(5, 1000 // (1 + frame.nrows)) + 1)
@@ -247,10 +225,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    resize_rows: 1,
-    slice_rows: 3,
-    slice_columns: 0.5,
-    cbind_self: 1,
     rbind_self: 1,
     select_rows_array: 1,
     delete_rows_array: 1,

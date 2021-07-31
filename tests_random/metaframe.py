@@ -246,26 +246,6 @@ class MetaFrame:
     #---------------------------------------------------------------------------
 
     @traced
-    def resize_rows(self, nrows):
-        curr_nrows = self.nrows
-        if self.nkeys and nrows > curr_nrows:
-            msg = "Cannot increase the number of rows in a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                self.df.nrows = nrows
-
-        else:
-            self.df.nrows = nrows
-
-            if curr_nrows < nrows:
-                append = [None] * (nrows - curr_nrows)
-                for i, elem in enumerate(self.data):
-                    self.data[i] = elem + append
-            elif curr_nrows > nrows:
-                for i, elem in enumerate(self.data):
-                    elem[:] = elem[:nrows]
-
-
-    @traced
     def slice_rows(self, s):
         self.df = self.df[s, :]
         if isinstance(s, slice):
@@ -313,15 +293,6 @@ class MetaFrame:
             self.names = [self.names[i] for i in new_column_ids]
             self.types = [self.types[i] for i in new_column_ids]
             self.nkeys -= nkeys_remove
-
-
-    @traced
-    def slice_cols(self, s):
-        self.df = self.df[:, s]
-        self.data = self.data[s]
-        self.names = self.names[s]
-        self.types = self.types[s]
-        self.nkeys = 0
 
 
     @traced
