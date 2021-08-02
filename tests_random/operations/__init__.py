@@ -118,12 +118,14 @@ class OperationsLibrary:
         from .slice_columns import SliceColumns
         from .rbind_self import RbindSelf
         from .select_rows_array import SelectRowsArray
+        from .delete_rows_array import DeleteRowsArray
         assert not OperationsLibrary._instance
 
         self._weights = []  # List[float]
         self._methods = [   # List[RandomAttackMethod]
             CbindSelf,
             ChangeNrows,
+            DeleteRowsArray,
             SliceColumns,
             SliceRows,
             RbindSelf,

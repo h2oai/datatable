@@ -102,14 +102,6 @@ def fattack(filename, seed, nrounds):
 #---------------------------------------------------------------------------
 
 
-def delete_rows_array(frame):
-    if frame.nrows == 0:
-        return
-    s = random_array(frame.nrows, positive=True)
-    s = sorted(set(s))
-    frame.delete_rows(s)
-
-
 def select_rows_with_boolean_column(frame):
     bool_columns = [i for i in range(frame.ncols) if frame.types[i] is bool]
     if frame.ncols <= 1 or not bool_columns:
@@ -215,7 +207,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    delete_rows_array: 1,
     select_rows_with_boolean_column: 1,
     replace_nas_in_column: 1,
     sort_columns: 1,

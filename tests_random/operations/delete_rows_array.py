@@ -26,29 +26,30 @@ from tests_random.utils import random_array
 from . import RandomAttackMethod
 
 
-class SelectRowsArray(RandomAttackMethod):
+class DeleteRowsArray(RandomAttackMethod):
 
     def __init__(self, context):
         super().__init__(context)
-        if self.frame.nrows == 0:
-            self.skipped = True
-        else:
-            self.array = random_array(self.frame.nrows)
+        self.skipped = (self.frame.nrows == 0)
+        if not self.skipped:
+            self.array = random_array(self.frame.nrows, positive=True)
+            self.array = sorted(set(self.array))
 
 
     def log_to_console(self):
         DT = repr(self.frame)
-        print(f"{DT} = {DT}[{self.array}, :]")
+        print(f"del {DT}[{self.array}, :]")
 
 
     def apply_to_dtframe(self):
         DT = self.frame.df
-        self.frame.df = DT[self.array, :]
+        del DT[self.array, :]
 
 
     def apply_to_pyframe(self):
         DF = self.frame
-        DF.nkeys = 0
+        nrows_current = len(DF.data[0])
+        index = sorted(set(range(nrows_current)) - set(self.array))
         for i in range(DF.ncols):
             col = DF.data[i]
-            DF.data[i] = [col[j] for j in self.array]
+            DF.data[i] = [col[j] for j in index]
