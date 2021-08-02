@@ -38,8 +38,7 @@ class RandomAttackMethod(ABC):
          a random attack.
       3. Implement the constructor and 3 methods defined by this
          abstract class.
-      4. Add your new method into the `OperationsLibrary._methods`
-         list below.
+      4. Import the "x.py" file at the bottom of this script.
     """
     weight = 1
 
@@ -91,53 +90,36 @@ class RandomAttackMethod(ABC):
         """
         raise NotImplementedError
 
+    @classmethod
+    def __init_subclass__(cls):
+        super().__init_subclass__()
+        OperationsLibrary.register_attack_method(cls)
 
 
 
 
 class OperationsLibrary:
-    _instance = None
+    _methods = []  # List[float]
+    _weights = []  # List[RandomAttackMethod]
 
     @staticmethod
     def random_action(context):
-        lib = OperationsLibrary._instance
-        if lib is None:
-            lib = OperationsLibrary()
-            OperationsLibrary._instance = lib
-        Cls = random.choices(population=lib._methods,
-                             cum_weights=lib._weights, k=1)[0]
+        Lib = OperationsLibrary
+        Cls = random.choices(population=Lib._methods,
+                             cum_weights=Lib._weights, k=1)[0]
         return Cls(context)
 
+    @staticmethod
+    def register_attack_method(cls):
+        assert issubclass(cls, RandomAttackMethod), \
+                f"{cls} is not derived from RandomAttackMethod class"
+        Lib = OperationsLibrary
+        current_total_weight = Lib._weights[-1] if Lib._weights else 0
+        Lib._methods.append(cls)
+        Lib._weights.append(cls.weight + current_total_weight)
 
     def __init__(self):
-        # The import statements are declared here in order to avoid
-        # circular dependency among imports.
-        from .cbind_self import CbindSelf
-        from .change_nrows import ChangeNrows
-        from .slice_rows import SliceRows
-        from .slice_columns import SliceColumns
-        from .rbind_self import RbindSelf
-        from .select_rows_array import SelectRowsArray
-        from .delete_rows_array import DeleteRowsArray
-        assert not OperationsLibrary._instance
-
-        self._weights = []  # List[float]
-        self._methods = [   # List[RandomAttackMethod]
-            CbindSelf,
-            ChangeNrows,
-            DeleteRowsArray,
-            SliceColumns,
-            SliceRows,
-            RbindSelf,
-            SelectRowsArray,
-        ]
-        total_weight = 0
-        for meth in self._methods:
-            assert issubclass(meth, RandomAttackMethod), \
-                f"{meth} is not derived from RandomAttackMethod class"
-            assert meth.weight >= 0
-            total_weight += meth.weight
-            self._weights.append(total_weight)
+        raise RuntimeError("OperationsLibrary should not be instantiated")
 
 
 
@@ -170,3 +152,20 @@ class EvaluationContext:
         for frame in self._frames:
             frame.check()
         self._unchecked.clear()
+
+
+
+
+#-------------------------------------------------------------------------------
+# Individual attack methods
+#-------------------------------------------------------------------------------
+
+# These are imported here in order to break circular dependence between
+# scripts.
+import tests_random.operations.cbind_self
+import tests_random.operations.change_nrows
+import tests_random.operations.delete_rows_array
+import tests_random.operations.rbind_self
+import tests_random.operations.select_rows_array
+import tests_random.operations.slice_columns
+import tests_random.operations.slice_rows
