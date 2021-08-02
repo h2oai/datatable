@@ -22,18 +22,20 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from tests_random.utils import random_slice, repr_slice
+from . import RandomAttackMethod
 
 
-class SliceRows:
+class SliceRows(RandomAttackMethod):
     weight = 3
 
     def __init__(self, context):
-        self.frame = context.get_any_frame()
+        super().__init__(context)
         self.slice = random_slice(self.frame.nrows)
 
 
     def log_to_console(self):
-        print(f"{self.frame} = {self.frame}[{repr_slice(self.slice)}, :]")
+        DT = repr(self.frame)
+        print(f"{DT} = {DT}[{repr_slice(self.slice)}, :]")
 
 
     def apply_to_dtframe(self):

@@ -23,34 +23,30 @@
 #-------------------------------------------------------------------------------
 import random
 from tests_random.utils import random_array
+from . import RandomAttackMethod
 
 
-class SelectRowsArray:
-    weight = 1
+class SelectRowsArray(RandomAttackMethod):
 
     def __init__(self, context):
-        self.frame = context.get_any_frame()
+        super().__init__(context)
         self.skipped = (self.frame.nrows == 0)
         self.array = random_array(self.frame.nrows)
 
 
     def log_to_console(self):
-        if self.skipped:
-            print(f"# SKIPPED: SelectRowsArray on {self.frame}")
         DT = repr(self.frame)
         print(f"{DT} = {DT}[{self.array}, :]")
 
 
     def apply_to_dtframe(self):
-        if not self.skipped:
-            DT = self.frame.df
-            self.frame.df = DT[self.array, :]
+        DT = self.frame.df
+        self.frame.df = DT[self.array, :]
 
 
     def apply_to_pyframe(self):
-        if not self.skipped:
-            DF = self.frame
-            DF.nkeys = 0
-            for i in range(DF.ncols):
-                col = DF.data[i]
-                DF.data[i] = [col[j] for j in self.array]
+        DF = self.frame
+        DF.nkeys = 0
+        for i in range(DF.ncols):
+            col = DF.data[i]
+            DF.data[i] = [col[j] for j in self.array]

@@ -23,37 +23,36 @@
 #-------------------------------------------------------------------------------
 import copy
 import random
+from . import RandomAttackMethod
 
 
-class RbindSelf:
-    weight = 1
+class RbindSelf(RandomAttackMethod):
 
     def __init__(self, context):
-        self.frame = context.get_any_frame()
-        self.skipped = (self.frame.nkeys > 0) and (self.frame.nrows > 0)
+        super().__init__(context)
+        self.raises = (self.frame.nkeys > 0) and (self.frame.nrows > 0)
         self.mul = random.randint(1, min(5, 1000 // (1 + self.frame.nrows)) + 1)
 
 
     def log_to_console(self):
+        if self.raises:
+            print("# raises: ", end="")
         DT = repr(self.frame)
-        out = f"{DT}.rbind([{DT}] * {self.mul})"
-        if self.skipped:
-            out = "# SKIPPED: " + out
-        print(out)
+        print(f"{DT}.rbind([{DT}] * {self.mul})")
 
 
     def apply_to_dtframe(self):
-        if self.skipped:
+        DT = self.frame.df
+        if self.raises:
             msg = "Cannot rbind to a keyed frame"
             with pytest.raises(ValueError, match=msg):
                 DT.rbind([DT] * self.mul)
         else:
-            DT = self.frame.df
             DT.rbind([DT] * self.mul)
 
 
     def apply_to_pyframe(self):
-        if not self.skipped:
+        if not self.raises:
             DF = self.frame
             for i in range(DF.ncols):
                 DF.data[i] *= self.mul + 1

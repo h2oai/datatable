@@ -25,40 +25,35 @@ import copy
 import datatable as dt
 import random
 import warnings
+from . import RandomAttackMethod
 
 
-class CbindSelf:
-    weight = 1
+class CbindSelf(RandomAttackMethod):
 
     def __init__(self, context):
-        self.frame = context.get_any_frame()
-        self.skipped = (self.frame.ncols > 1000)
+        super().__init__(context)
         self.mul = random.randint(1, min(5, 100 // (1 + self.frame.ncols)) + 1)
+        self.skipped = self.frame.ncols * (1 + self.mul) > 1000
 
 
     def log_to_console(self):
         DT = repr(self.frame)
-        out = f"{DT}.cbind([{DT}] * {self.mul})"
-        if self.skipped:
-            out = "# SKIPPED: " + out
-        print(out)
+        print(f"{DT}.cbind([{DT}] * {self.mul})")
 
 
     def apply_to_dtframe(self):
-        if not self.skipped:
-            DT = self.frame.df
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
-                DT.cbind([DT] * self.mul)
+        DT = self.frame.df
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
+            DT.cbind([DT] * self.mul)
 
 
     def apply_to_pyframe(self):
-        if not self.skipped:
-            DF = self.frame
-            newdata = copy.deepcopy(DF.data)
-            for i in range(self.mul):
-                newdata += copy.deepcopy(DF.data)
-            DF.data = newdata
-            DF.names *= self.mul + 1
-            DF.types *= self.mul + 1
-            DF.dedup_names()
+        DF = self.frame
+        newdata = copy.deepcopy(DF.data)
+        for i in range(self.mul):
+            newdata += copy.deepcopy(DF.data)
+        DF.data = newdata
+        DF.names *= self.mul + 1
+        DF.types *= self.mul + 1
+        DF.dedup_names()

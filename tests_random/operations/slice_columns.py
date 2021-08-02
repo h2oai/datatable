@@ -22,13 +22,14 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from tests_random.utils import random_slice, repr_slice
+from . import RandomAttackMethod
 
 
-class SliceColumns:
+class SliceColumns(RandomAttackMethod):
     weight = 0.5
 
     def __init__(self, context):
-        self.frame = context.get_any_frame()
+        super().__init__(context)
         self.slice = random_slice(self.frame.ncols)
 
 

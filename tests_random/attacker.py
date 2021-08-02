@@ -62,13 +62,14 @@ class Attacker:
         print("# Launching an attack for %d rounds" % rounds)
         context = EvaluationContext()
         for i in range(rounds):
-            action = OperationsLibrary.random()(context)
-            action.log_to_console()
-            action.apply_to_dtframe()
-            action.apply_to_pyframe()
-            # action = random.choices(population=ATTACK_METHODS,
-            #                         cum_weights=ATTACK_WEIGHTS, k=1)[0]
-            # if action:
+            action = OperationsLibrary.random_action(context)
+            if action.skipped:
+                print(f"# SKIPPED: {action.__class__.__name__}")
+            else:
+                action.log_to_console()
+                action.apply_to_dtframe()
+                action.apply_to_pyframe()
+
             # elif self._allow_forks:
             #     # Non-standard actions
             #     # fork_and_run(frame, rounds - i)
