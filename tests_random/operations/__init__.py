@@ -169,3 +169,4 @@ import tests_random.operations.rbind_self
 import tests_random.operations.select_rows_array
 import tests_random.operations.slice_columns
 import tests_random.operations.slice_rows
+import tests_random.operations.select_rows_with_boolean_column

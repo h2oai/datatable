@@ -101,15 +101,6 @@ def fattack(filename, seed, nrounds):
 # Individual attack methods
 #---------------------------------------------------------------------------
 
-
-def select_rows_with_boolean_column(frame):
-    bool_columns = [i for i in range(frame.ncols) if frame.types[i] is bool]
-    if frame.ncols <= 1 or not bool_columns:
-        return
-    filter_column = random.choice(bool_columns)
-    frame.filter_on_bool_column(filter_column)
-
-
 def replace_nas_in_column(frame):
     icol = random.randint(0, frame.ncols - 1)
     if frame.types[icol] is bool:
@@ -207,7 +198,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    select_rows_with_boolean_column: 1,
     replace_nas_in_column: 1,
     sort_columns: 1,
     cbind_numpy_column: 1,
