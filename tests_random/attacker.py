@@ -33,7 +33,6 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
 from tests_random.operations import OperationsLibrary, EvaluationContext
 from tests_random.utils import (
-    repr_slice,
     random_array,
     random_slice,
     random_string
@@ -125,14 +124,6 @@ def set_key_columns(frame):
     frame.set_key_columns(keys, names)
 
 
-def delete_columns_array(frame):
-    # datatable supports a shape of n x 0 for non-zero n's, while
-    # python doesn't, so we never remove all the columns from a Frame.
-    if frame.ncols < 2:
-        return
-    s = random_array(frame.ncols - 1, positive=True)
-    frame.delete_columns(s)
-
 
 def join_self(frame):
     if frame.ncols > 1000:
@@ -173,7 +164,6 @@ _METHODS = {
     None: 1,
     cbind_numpy_column: 1,
     set_key_columns: 1,
-    delete_columns_array: 1,
     join_self: 1,
     shallow_copy: 1,
 }

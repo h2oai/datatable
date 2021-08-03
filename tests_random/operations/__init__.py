@@ -175,6 +175,7 @@ import tests_random.operations.add_range_column
 import tests_random.operations.cbind_self
 import tests_random.operations.change_nrows
 import tests_random.operations.delete_rows_array
+import tests_random.operations.delete_columns_array
 import tests_random.operations.rbind_self
 import tests_random.operations.select_rows_array
 import tests_random.operations.slice_columns
