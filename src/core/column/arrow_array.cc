@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,71 +19,85 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/arrow_str.h"
-#include "cstring.h"
-#include "stype.h"
-#include "utils/assert.h"
+#include "column/arrow_array.h"
+#include "column/view.h"
 namespace dt {
 
 
 template <typename T>
-ArrowStr_ColumnImpl<T>::ArrowStr_ColumnImpl(
-    size_t nrows, SType stype, Buffer&& valid, Buffer&& offsets, Buffer&& data
-)
-  : Arrow_ColumnImpl(nrows, stype),
+Type _type_with_child(const Type& t) {
+  return (sizeof(T) == 4)? Type::arr32(t) : Type::arr64(t);
+}
+
+
+template <typename T>
+ArrowArray_ColumnImpl<T>::ArrowArray_ColumnImpl(
+    size_t nrows, Buffer&& valid, Buffer&& offsets, Column&& child)
+  : Arrow_ColumnImpl(nrows, _type_with_child<T>(child.type())),
     validity_(std::move(valid)),
     offsets_(std::move(offsets)),
-    strdata_(std::move(data))
+    child_(std::move(child))
 {
-  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
+  xassert(!validity_ || validity_.size() >= (nrows + 63)/64 * 8);
   xassert(offsets_.size() >= sizeof(T) * (nrows + 1));
-  xassert(stype_elemsize(stype) == sizeof(T));
+  xassert(child_.nrows() >=
+          static_cast<size_t>(offsets_.get_element<T>(nrows)));
 }
 
 
 template <typename T>
-ColumnImpl* ArrowStr_ColumnImpl<T>::clone() const {
-  return new ArrowStr_ColumnImpl(
-      nrows(), stype(), Buffer(validity_), Buffer(offsets_), Buffer(strdata_));
-}
-
-template <typename T>
-size_t ArrowStr_ColumnImpl<T>::num_buffers() const noexcept {
-  return 3;
-}
-
-template <typename T>
-const void* ArrowStr_ColumnImpl<T>::get_buffer(size_t i) const {
-  xassert(i < 3);
-  return (i == 0)? validity_.rptr() :
-         (i == 1)? offsets_.rptr() :
-         (i == 2)? strdata_.rptr() : nullptr;
+ColumnImpl* ArrowArray_ColumnImpl<T>::clone() const {
+  return new ArrowArray_ColumnImpl<T>(
+      nrows_, Buffer(validity_), Buffer(offsets_), Column(child_));
 }
 
 
+template <typename T>
+size_t ArrowArray_ColumnImpl<T>::n_children() const noexcept {
+  return 1;
+}
 
-//------------------------------------------------------------------------------
-// Element access
-//------------------------------------------------------------------------------
 
 template <typename T>
-bool ArrowStr_ColumnImpl<T>::get_element(size_t i, CString* out) const {
+const Column& ArrowArray_ColumnImpl<T>::child(size_t) const {
+  return child_;
+}
+
+
+template <typename T>
+size_t ArrowArray_ColumnImpl<T>::num_buffers() const noexcept {
+  return 2;
+}
+
+
+template <typename T>
+const void* ArrowArray_ColumnImpl<T>::get_buffer(size_t i) const {
+  xassert(i <= 1);
+  return (i == 0)? validity_.rptr() : offsets_.rptr();
+}
+
+
+
+template <typename T>
+bool ArrowArray_ColumnImpl<T>::get_element(size_t i, Column* out) const {
   xassert(i < nrows_);
   auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
   bool valid = (!validity_data) || (validity_data[i / 8] & (1 << (i & 7)));
   if (valid) {
-    T start = static_cast<const T*>(offsets_.rptr())[i];
-    T end = static_cast<const T*>(offsets_.rptr())[i + 1];
-    xassert(end >= start);
-    out->set(static_cast<const char*>(strdata_.rptr()) + start, end - start);
+    auto offsets_data = static_cast<const T*>(offsets_.rptr());
+    auto start = static_cast<size_t>(offsets_data[i]);
+    auto end = static_cast<size_t>(offsets_data[i + 1]);
+    *out = Column(
+      new SliceView_ColumnImpl(Column(child_), start, end - start, 1)
+    );
   }
   return valid;
 }
 
 
 
-template class ArrowStr_ColumnImpl<uint32_t>;
-template class ArrowStr_ColumnImpl<uint64_t>;
+template class ArrowArray_ColumnImpl<uint32_t>;
+template class ArrowArray_ColumnImpl<uint64_t>;
 
 
 }  // namespace dt

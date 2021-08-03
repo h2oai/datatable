@@ -36,10 +36,13 @@ namespace dt {
 // Constructor
 //------------------------------------------------------------------------------
 
-ColumnImpl::ColumnImpl(size_t nrows, SType stype)
-  : type_(Type::from_stype(stype)),
+ColumnImpl::ColumnImpl(size_t nrows, Type type)
+  : type_(std::move(type)),
     nrows_(nrows),
     refcount_(1) {}
+
+ColumnImpl::ColumnImpl(size_t nrows, SType stype)
+  : ColumnImpl(nrows, Type::from_stype(stype)) {}
 
 
 
@@ -48,20 +51,21 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
 // Data access
 //------------------------------------------------------------------------------
 
-[[noreturn]] static void err(SType col_stype, const char* type) {
+[[noreturn]] static void err(Type col_type, const char* type) {
   throw NotImplError()
       << "Cannot retrieve " << type
-      << " values from a column of type " << col_stype;
+      << " values from a column of type " << col_type;
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype(), "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype(), "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype(), "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype(), "int64"); }
-bool ColumnImpl::get_element(size_t, float*)   const { err(stype(), "float32"); }
-bool ColumnImpl::get_element(size_t, double*)  const { err(stype(), "float64"); }
-bool ColumnImpl::get_element(size_t, CString*) const { err(stype(), "string"); }
-bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype(), "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)  const { err(type(), "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*) const { err(type(), "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*) const { err(type(), "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*) const { err(type(), "int64"); }
+bool ColumnImpl::get_element(size_t, float*)   const { err(type(), "float32"); }
+bool ColumnImpl::get_element(size_t, double*)  const { err(type(), "float64"); }
+bool ColumnImpl::get_element(size_t, CString*) const { err(type(), "string"); }
+bool ColumnImpl::get_element(size_t, py::oobj*)const { err(type(), "object"); }
+bool ColumnImpl::get_element(size_t, Column*)  const { err(type(), "array"); }
 
 
 

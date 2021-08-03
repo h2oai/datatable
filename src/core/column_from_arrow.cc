@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <memory>
 #include "column.h"
+#include "column/arrow_array.h"
 #include "column/arrow_bool.h"
 #include "column/arrow_fw.h"
 #include "column/arrow_str.h"
@@ -61,10 +62,10 @@ static Column _make_fw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array
 
 
 /**
-  * Create a variable-width column.
+  * Create a string column.
   */
 template <typename T>
-static Column _make_vw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
+static Column _make_str(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array) {
   xassert((*array)->n_buffers == 3);
   size_t nrows = static_cast<size_t>((*array)->length);
   size_t datasize = static_cast<const T*>((*array)->buffers[1])[nrows];
@@ -78,15 +79,47 @@ static Column _make_vw(dt::SType stype, std::shared_ptr<dt::OArrowArray>&& array
 }
 
 
+/**
+  * Create an Array column, corresponding to Arrow's "list" or "large_list"
+  * types.
+  */
+template <typename T>
+static Column _make_arr(std::shared_ptr<dt::OArrowArray>&& array,
+                        const dt::ArrowSchema* schema)
+{
+  xassert((*array)->n_buffers == 2);
+  xassert((*array)->n_children == 1);
+  xassert(schema->n_children == 1);
+  auto nrows = static_cast<size_t>((*array)->length);
+  return Column(new dt::ArrowArray_ColumnImpl<T>(
+    nrows,
+    Buffer::from_arrowarray((*array)->buffers[0], (nrows + 63)/64*8, array),
+    Buffer::from_arrowarray((*array)->buffers[1], (nrows + 1)*sizeof(T), array),
+    Column::from_arrow(array->detach_child(0), schema->children[0])
+  ));
+}
+
+
+
 Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
                           const dt::ArrowSchema* schema)
 {
   const char* format = schema->format;
   size_t nrows = static_cast<size_t>((*array)->length);
   if ((*array)->offset) {
+    // This should work, in theory:
+    // auto delta = (*array)->offset;
+    // auto length = (*array)->length;
+    // (*array)->length = length + delta;
+    // (*array)->offset = 0;
+    // Column result = Column::from_arrow(std::shared_ptr<dt::OArrowArray>(*array), schema);
+    // (*array)->length = length;
+    // (*array)->offset = delta;
+    // result.apply_rowindex(RowIndex(static_cast<size_t>(delta),
+    //                                static_cast<size_t>(length), 1));
+    // return result;
     throw NotImplError() << "Arrow arrays with an offset are not supported";
   }
-  // size_t nullcount = static_cast<size_t>((*array)->null_count);
 
   switch (format[0]) {
     case 'n': {  // null
@@ -118,10 +151,10 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
       return _make_fw(dt::SType::FLOAT64, std::move(array));
     }
     case 'u': {  // utf-8 string
-      return  _make_vw<uint32_t>(dt::SType::STR32, std::move(array));
+      return  _make_str<uint32_t>(dt::SType::STR32, std::move(array));
     }
     case 'U': {  // large  utf-8 string
-      return  _make_vw<uint64_t>(dt::SType::STR64, std::move(array));
+      return  _make_str<uint64_t>(dt::SType::STR64, std::move(array));
     }
     case 't': {  // various time formats
       if (format[1] == 'd') {
@@ -155,6 +188,15 @@ Column Column::from_arrow(std::shared_ptr<dt::OArrowArray>&& array,
           return Column(new dt::TimeScaled_ColumnImpl(
               _make_fw(dt::SType::INT64, std::move(array)), SECONDS));
         }
+      }
+      break;
+    }
+    case '+': {
+      if (format[1] == 'l') {
+        return _make_arr<uint32_t>(std::move(array), schema);
+      }
+      if (format[1] == 'L') {
+        return _make_arr<uint64_t>(std::move(array), schema);
       }
       break;
     }

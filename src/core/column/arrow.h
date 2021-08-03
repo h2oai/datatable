@@ -41,8 +41,6 @@ class Arrow_ColumnImpl : public Virtual_ColumnImpl {
 
     virtual size_t num_buffers() const noexcept = 0;
     virtual const void* get_buffer(size_t i) const = 0;
-
-    virtual size_t num_children() const noexcept { return 0; }
 };
 
 

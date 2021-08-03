@@ -97,3 +97,20 @@ def test_query_methods(src):
     assert not tarr.is_string
     assert not tarr.is_temporal
     assert not tarr.is_void
+
+
+
+
+#-------------------------------------------------------------------------------
+# Create from Arrow
+#-------------------------------------------------------------------------------
+
+def test_create_from_arrow(pa):
+    src = [[1, 3, 8, -14, 5], [2, 0], None, [4], [], [1, -1, 1]]
+    arr = pa.array(src, type=pa.list_(pa.int32()))
+    tbl = pa.Table.from_arrays([arr], names=["A"])
+    DT = dt.Frame(tbl)
+    assert DT.shape == (6, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.int32)
+    assert DT.names == ("A",)
+    assert DT.to_list() == [src]

@@ -67,6 +67,7 @@ class TypeImpl {
     virtual bool can_be_read_as_date() const;
     virtual bool can_be_read_as_cstring() const;
     virtual bool can_be_read_as_pyobject() const;
+    virtual bool can_be_read_as_column() const;
 
     // Default implementation only checks the equality of stypes.
     // Override if your TypeImpl contains more information.
