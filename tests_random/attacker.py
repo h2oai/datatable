@@ -109,10 +109,6 @@ def fattack(filename, seed, nrounds):
 #---------------------------------------------------------------------------
 
 
-def shallow_copy(frame):
-    frame.shallow_copy()
-
-
 def fork_and_run(frame, nrounds):
     import multiprocessing as mp
     import tempfile
@@ -140,7 +136,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    shallow_copy: 1,
 }
 ATTACK_WEIGHTS = list(itertools.accumulate(_METHODS.values()))
 ATTACK_METHODS = list(_METHODS.keys())

@@ -182,6 +182,7 @@ import tests_random.methods.replace_nas_in_column
 import tests_random.methods.select_rows_array
 import tests_random.methods.select_rows_with_boolean_column
 import tests_random.methods.set_key_columns
+import tests_random.methods.shallow_copy
 import tests_random.methods.slice_columns
 import tests_random.methods.slice_rows
 import tests_random.methods.sort_columns

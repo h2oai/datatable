@@ -21,41 +21,39 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import copy
-from datatable import join
 from . import RandomAttackMethod
+from tests_random.utils import assert_equals
 
 
-class JoinSelf(RandomAttackMethod):
+
+class ShallowCopy(RandomAttackMethod):
 
     def __init__(self, context):
         super().__init__(context)
-        ncols = self.frame.ncols
-        if ncols > 1000:
-            self.skipped = True
-        elif self.frame.nkeys == 0:
-            self.raises = ValueError
-            self.error_message = "The join frame is not keyed"
-        else:
-            pass
+        context.add_deferred_check(future_frame_check(self.frame))
 
 
     def log_to_console(self):
         DT = repr(self.frame)
-        print(f"{DT} = {DT}[:, :, join({DT})]")
+        print(f"# Scheduled a check of {DT}.copy()")
 
 
     def apply_to_dtframe(self):
-        DT = self.frame.df
-        self.frame.df = DT[:, :, join(DT)]
-
+        pass
 
     def apply_to_pyframe(self):
-        DF = self.frame
-        ncols = len(DF.data)
-        s = slice(DF.nkeys, ncols)
-        DF.data  += copy.deepcopy(DF.data[s])
-        DF.types += DF.types[s]
-        DF.names += DF.names[s]
-        DF.nkeys = 0
-        DF.dedup_names()
+        pass
+
+
+
+def future_frame_check(frame):
+    frame_name = repr(frame)
+    frame_deep = frame.df.copy(deep=True)
+    frame_shallow = frame.df.copy()
+    del frame
+
+    def check():
+        print(f"# Checking if {frame_name}.copy() hasn't changed")
+        assert_equals(frame_shallow, frame_deep)
+
+    return check

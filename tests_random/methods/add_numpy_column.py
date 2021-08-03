@@ -100,6 +100,7 @@ def deferred_nparray_check(array):
     """
     array_copy = copy.deepcopy(array)
     def check():
+        print("# Checking if source nparray hasn't changed")
         assert len(array) == len(array_copy)
         assert np.array_equal(array, array_copy)
 
