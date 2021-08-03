@@ -19,6 +19,9 @@
 
     -[fix] Joining with void columns now works correctly. [#3094]
 
+    -[fix] :func:`dt.sum()` now works correctly when applied to the same
+        column as :func:`dt.by()` [#3110]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
