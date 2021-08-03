@@ -28,7 +28,7 @@ import random
 import re
 import sys
 import warnings
-from datatable import dt, f, join
+import datatable as dt
 from datatable.internal import frame_integrity_check
 from tests_random.utils import (
     assert_equals,
@@ -37,8 +37,7 @@ from tests_random.utils import (
     random_type,
     repr_data,
     repr_row,
-    repr_types,
-    traced
+    repr_types
 )
 
 
@@ -51,10 +50,6 @@ class MetaFrame:
         self.names = None
         self.types = None
         self.nkeys = 0
-        self.np_data = []
-        self.np_data_deepcopy = []
-        self.df_shallow_copy = None
-        self.df_deep_copy = None
         self._name = "DT" + str(MetaFrame.COUNTER)
         MetaFrame.COUNTER += 1
 
@@ -117,9 +112,32 @@ class MetaFrame:
         frame.names = list(DT.names)
         frame.types = [_ltype_to_pytype[lt] for lt in DT.ltypes]
         frame.nkeys = len(DT.key)
-        print(f"{frame.name} = <loaded from {filename}>")
+        print(f"{frame.name} = dt.fread({repr(filename)}")
         return frame
 
+
+    def save_to_jay(self, filename):
+        self.df.to_jay(filename)
+
+
+    def dedup_names(self):
+        seen_names = set()
+        for i, name in enumerate(self.names):
+            if name in seen_names:
+                base = name
+                while base[-1].isdigit():
+                    base = base[:-1]
+                if base == name:
+                    if base[-1] != '.':
+                        base += "."
+                    num = -1  # will be incremented to 0 in the while-loop
+                else:
+                    num = int(name[len(base):])
+                while name in seen_names:
+                    num += 1
+                    name = base + str(num)
+                self.names[i] = name
+            seen_names.add(name)
 
 
     #---------------------------------------------------------------------------
@@ -152,10 +170,6 @@ class MetaFrame:
 
     def check(self):
         frame_integrity_check(self.df)
-        if self.df_shallow_copy:
-            frame_integrity_check(self.df_shallow_copy)
-            frame_integrity_check(self.df_deep_copy)
-            assert_equals(self.df_shallow_copy, self.df_deep_copy)
         self.check_shape()
         self.check_types()
         self.check_keys()
@@ -164,7 +178,6 @@ class MetaFrame:
                   "       py.names=%r" % (self.df.names, tuple(self.names)))
             sys.exit(1)
         self.check_data()
-        self.check_np_data()
 
     def check_shape(self):
         df_nrows = self.df.nrows
@@ -218,70 +231,6 @@ class MetaFrame:
                     sys.exit(1)
             assert False, "Data check failed..."
 
-
-    def check_np_data(self):
-        import numpy as np
-        np_data1 = self.np_data
-        np_data2 = self.np_data_deepcopy
-
-        assert len(np_data1) == len(np_data2), "Numpy data shape check failed..."
-        for i, np_col1 in enumerate(np_data1):
-            np_col2 = np_data2[i]
-            assert len(np_col1) == len(np_col2), "Numpy column shape check failed..."
-            if np.array_equal(np_col1, np_col2):
-                continue
-            print("ERROR: numpy data mismatch at column %d" % i)
-            for j, np_val1 in enumerate(np_col1):
-                np_val2 = np_col2[j]
-                if np_val1 == np_val2:
-                    continue
-                print("  first difference: np_col1[%d]=%r != np_col2[%d]=%r"
-                      % (j, np_val1, j, np_val2))
-                print("  np_col1 data: %s" % repr_row(list(np_col1), j))
-                print("  np_col2 data: %s" % repr_row(list(np_col2), j))
-                sys.exit(1)
-            assert False, "Numpy data check failed..."
-
-    #---------------------------------------------------------------------------
-    # Operations
-    #---------------------------------------------------------------------------
-
-
-    @traced
-    def shallow_copy(self):
-        # This is a noop for the python data
-        self.df_shallow_copy = self.df.copy()
-        self.df_deep_copy = copy.deepcopy(self.df)
-
-
-
-
-    #---------------------------------------------------------------------------
-    # Helpers
-    #---------------------------------------------------------------------------
-
-    def save_to_jay(self, filename):
-        self.df.to_jay(filename)
-
-
-    def dedup_names(self):
-        seen_names = set()
-        for i, name in enumerate(self.names):
-            if name in seen_names:
-                base = name
-                while base[-1].isdigit():
-                    base = base[:-1]
-                if base == name:
-                    if base[-1] != '.':
-                        base += "."
-                    num = -1  # will be incremented to 0 in the while-loop
-                else:
-                    num = int(name[len(base):])
-                while name in seen_names:
-                    num += 1
-                    name = base + str(num)
-                self.names[i] = name
-            seen_names.add(name)
 
 
 _ltype_to_pytype = {
