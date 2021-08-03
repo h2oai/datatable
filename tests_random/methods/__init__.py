@@ -69,7 +69,7 @@ class RandomAttackMethod(ABC):
         corresponding error with the matching message. The method
         `apply_to_pyframe()` will not be called.
         """
-        self.frame = context.get_any_frame()
+        self.frame = context.frame
         self.skipped = False
         self.raises = None
         self.error_message = None
@@ -136,32 +136,30 @@ class MethodsLibrary:
 class EvaluationContext:
 
     def __init__(self):
-        self._frames = []
-        self._unchecked = set()
+        self._frame = None         # MetaFrame
+        self._delayed_checks = []  # List[callable]
 
 
-    def get_any_frame(self):
-        if len(self._frames) == 0:
-            new_frame = MetaFrame.random()
-            self._frames.append(new_frame)
-        if len(self._frames) == 1:
-            frame = self._frames[0]
-        else:
-            frame = random.choice(self._frames)
-        self._unchecked.add(frame)
-        return frame
+    @property
+    def frame(self):
+        if self._frame is None:
+            self._frame = MetaFrame.random()
+        return self._frame
+
+
+    def add_deferred_check(self, fn):
+        self._delayed_checks.append(fn)
 
 
     def check(self):
-        for frame in self._unchecked:
-            frame.check()
-        self._unchecked.clear()
+        if self._frame:
+            self._frame.check()
 
 
     def check_all(self):
-        for frame in self._frames:
-            frame.check()
-        self._unchecked.clear()
+        self.check()
+        for action in self._delayed_checks:
+            action()
 
 
 
@@ -172,6 +170,7 @@ class EvaluationContext:
 
 # These are imported here in order to break circular dependence between
 # scripts.
+import tests_random.methods.add_numpy_column
 import tests_random.methods.add_range_column
 import tests_random.methods.cbind_self
 import tests_random.methods.change_nrows

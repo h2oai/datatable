@@ -38,7 +38,8 @@ from tests_random.utils import (
     repr_data,
     repr_row,
     repr_types,
-    traced)
+    traced
+)
 
 
 class MetaFrame:
@@ -246,119 +247,6 @@ class MetaFrame:
     #---------------------------------------------------------------------------
 
     @traced
-    def delete_rows(self, s):
-        assert isinstance(s, slice) or isinstance(s, list)
-        nrows = self.nrows
-        del self.df[s, :]
-        if isinstance(s, slice):
-            s = list(range(nrows))[s]
-        index = sorted(set(range(nrows)) - set(s))
-        for i in range(self.ncols):
-            col = self.data[i]
-            self.data[i] = [col[j] for j in index]
-
-
-    @traced
-    def delete_columns(self, s):
-        assert isinstance(s, slice) or isinstance(s, list)
-        if isinstance(s, slice):
-            s = list(range(self.ncols))[s]
-        set_keys = set(range(self.nkeys))
-        set_delcols = set(s)
-        nkeys_remove = len(set_keys.intersection(set_delcols))
-
-        if (nkeys_remove > 0 and nkeys_remove < self.nkeys and self.nrows > 0):
-            msg = "Cannot delete a column that is a part of a multi-column key"
-            with pytest.raises(ValueError, match=msg):
-                del self.df[:, s]
-        else:
-            ncols = self.ncols
-            del self.df[:, s]
-            new_column_ids = sorted(set(range(ncols)) - set(s))
-            self.data = [self.data[i] for i in new_column_ids]
-            self.names = [self.names[i] for i in new_column_ids]
-            self.types = [self.types[i] for i in new_column_ids]
-            self.nkeys -= nkeys_remove
-
-
-    @traced
-    def cbind(self, frames):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
-            self.df.cbind(*[iframe.df for iframe in frames])
-        newdata = copy.deepcopy(self.data)
-        newnames = self.names.copy()
-        newtypes = self.types.copy()
-        for iframe in frames:
-            newdata += copy.deepcopy(iframe.data)
-            newnames += iframe.names
-            newtypes += iframe.types
-        self.data = newdata
-        self.names = newnames
-        self.types = newtypes
-        self.dedup_names()
-
-
-    @traced
-    def rbind(self, frames):
-        if (self.nkeys > 0) and (self.nrows > 0):
-            msg = "Cannot rbind to a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                self.df.rbind(*[iframe.df for iframe in frames])
-
-        else:
-            self.df.rbind(*[iframe.df for iframe in frames])
-
-            newdata = [col.copy() for col in self.data]
-            for iframe in frames:
-                assert iframe.ncols == self.ncols
-                for j in range(self.ncols):
-                    assert self.types[j] == iframe.types[j]
-                    assert self.names[j] == iframe.names[j]
-                    newdata[j] += iframe.data[j]
-            self.data = newdata
-
-
-    @traced
-    def filter_on_bool_column(self, icol):
-        assert self.types[icol] is bool
-        filter_col = self.data[icol]
-        self.data = [[value for i, value in enumerate(column) if filter_col[i]]
-                     for column in self.data]
-        self.df = self.df[f[icol], :]
-        self.nkeys = 0
-
-
-    @traced
-    def replace_nas_in_column(self, icol, replacement_value):
-        assert 0 <= icol < self.ncols
-        assert isinstance(replacement_value, self.types[icol])
-
-        if icol < self.nkeys:
-            msg = 'Cannot change values in a key column %s' % self.names[icol]
-            msg = re.escape(msg)
-            with pytest.raises(ValueError, match=msg):
-                self.df[f[icol] == None, f[icol]] = replacement_value
-
-        else:
-            self.df[f[icol] == None, f[icol]] = replacement_value
-            column = self.data[icol]
-            for i, value in enumerate(column):
-                if value is None:
-                    column[i] = replacement_value
-
-
-    @traced
-    def sort_columns(self, a):
-        self.df = self.df.sort(a)
-        if self.nrows:
-            data = list(zip(*self.data))
-            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
-            self.data = list(map(list, zip(*data)))
-        self.nkeys = 0
-
-
-    @traced
     def cbind_numpy_column(self):
         import numpy as np
         # Numpy has no concept of "void" column (at least, not similar to ours),
@@ -394,40 +282,6 @@ class MetaFrame:
         self.names += names
         self.dedup_names()
 
-
-    @traced
-    def add_range_column(self, name, rangeobj):
-        self.data += [list(rangeobj)]
-        self.names += [name]
-        self.types += [int]
-        self.dedup_names()
-        self.df.cbind(dt.Frame(rangeobj, names=[name]))
-
-
-    @traced
-    def set_key_columns(self, keys, names):
-        key_data = [self.data[i] for i in keys]
-        unique_rows = set(zip(*key_data))
-        if len(unique_rows) == self.nrows:
-            self.df.key = names
-
-            nonkeys = sorted(set(range(self.ncols)) - set(keys))
-            new_column_order = keys + nonkeys
-
-            self.types = [self.types[i] for i in new_column_order]
-            self.names = [self.names[i] for i in new_column_order]
-            self.nkeys = len(keys)
-
-            if self.nrows:
-                data = list(zip(*self.data))
-                data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
-                self.data = list(map(list, zip(*data)))
-                self.data = [self.data[i] for i in new_column_order]
-
-        else:
-            msg = "Cannot set a key: the values are not unique"
-            with pytest.raises(ValueError, match=msg):
-                self.df.key = names
 
 
     @traced

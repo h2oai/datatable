@@ -35,7 +35,6 @@ class ChangeNrows(RandomAttackMethod):
     def __init__(self, context):
         super().__init__(context)
         t = random.random()
-        self.frame = context.get_any_frame()
         self.current_nrows = self.frame.nrows
         self.new_nrows = int(self.current_nrows * 10 / (19 * t + 1) + 1)
         if (self.frame.nkeys > 0 and

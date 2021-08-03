@@ -192,8 +192,11 @@ def random_array(n, positive=False):
     return [random.randint(lb, ub) for i in range(newn)]
 
 
-def random_type():
-    return random.choice([bool, int, float, str]*2 + [None])
+def random_type(allow_void = True):
+    possible_types = [bool, int, float, str]*2
+    if allow_void:
+        possible_types += [None]
+    return random.choice(possible_types)
 
 
 def random_names(ncols):
@@ -225,7 +228,6 @@ def random_string(alphabet="abcdefghijklmnopqrstuvwxyz"):
         name = "".join(random.choice(alphabet) for _ in range(n))
         if not(name.isdigit() or name.isspace()):
             return name
-
 
 
 def random_column(nrows, ttype, missing_fraction, missing_nones=True):

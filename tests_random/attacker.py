@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -108,11 +108,6 @@ def fattack(filename, seed, nrounds):
 # Individual attack methods
 #---------------------------------------------------------------------------
 
-
-def cbind_numpy_column(frame):
-    frame.cbind_numpy_column()
-
-
 def join_self(frame):
     if frame.ncols > 1000:
         return slice_columns(frame)
@@ -150,7 +145,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    cbind_numpy_column: 1,
     join_self: 1,
     shallow_copy: 1,
 }
