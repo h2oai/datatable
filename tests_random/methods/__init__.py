@@ -128,6 +128,11 @@ class MethodsLibrary:
         Lib._methods.append(cls)
         Lib._weights.append(cls.weight + current_total_weight)
 
+    @staticmethod
+    def n_methods():
+        return len(MethodsLibrary._methods)
+
+
     def __init__(self):
         raise RuntimeError("MethodsLibrary should not be instantiated")
 
@@ -145,6 +150,10 @@ class EvaluationContext:
         if self._frame is None:
             self._frame = MetaFrame.random()
         return self._frame
+
+    @frame.setter
+    def frame(self, frame):
+        self._frame = frame
 
 
     def add_deferred_check(self, fn):

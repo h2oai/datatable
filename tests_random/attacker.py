@@ -22,7 +22,6 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import sys
-import itertools
 import os
 import pytest
 import random
@@ -32,11 +31,6 @@ from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
 from tests_random.methods import MethodsLibrary, EvaluationContext
-from tests_random.utils import (
-    random_array,
-    random_slice,
-    random_string
-)
 
 
 #---------------------------------------------------------------------------
@@ -54,15 +48,27 @@ class Attacker:
         random.seed(seed)
         print("# Seed: %r\n" % seed)
 
+
     def attack(self, frame=None, rounds=None):
         t0 = time.time()
         if rounds is None:
             rounds = int(random.expovariate(0.05) + 2)
         assert isinstance(rounds, int)
+        if self._allow_forks:
+            fork_probability = 1 / MethodsLibrary.n_methods()
+        else:
+            fork_probability = 0
 
         print("# Launching an attack for %d rounds" % rounds)
         context = EvaluationContext()
+        if frame is not None:
+            context.frame = frame
+
         for i in range(rounds):
+            if random.random() < fork_probability:
+                fork_and_run(context.frame, rounds - i)
+                break
+
             action = MethodsLibrary.random_action(context)
             if action.skipped:
                 print(f"# SKIPPED: {action.__class__.__name__}")
@@ -77,10 +83,6 @@ class Attacker:
                 action.apply_to_dtframe()
                 action.apply_to_pyframe()
 
-            # elif self._allow_forks:
-            #     # Non-standard actions
-            #     # fork_and_run(frame, rounds - i)
-            #     break
             if self._exhaustive_checks:
                 context.check()
             if time.time() - t0 > 60:
@@ -90,35 +92,30 @@ class Attacker:
         context.check_all()
         print(core.apply_color("bright_green", "PASSED"))
         t1 = time.time()
-        print("Time taken = %.3fs" % (t1 - t0))
+        print("# Time taken = %.3fs" % (t1 - t0))
+
 
 
 def fattack(filename, seed, nrounds):
     """
     Entry-point function for a forked process.
     """
-    print("Entering child process")
+    print("\n# Entering child process")
     frame = MetaFrame.load_from_jay(filename)
     attacker = Attacker(seed=seed)
     attacker.attack(frame, nrounds)
 
 
-
-#---------------------------------------------------------------------------
-# Individual attack methods
-#---------------------------------------------------------------------------
-
-
 def fork_and_run(frame, nrounds):
     import multiprocessing as mp
     import tempfile
-    print(f"Forking the parent process")
+    print(f"\n# Forking the parent process")
     filename = tempfile.mktemp(suffix=".jay")
     seed = random.getrandbits(64)
     try:
         frame.save_to_jay(filename)
-        print("Starting mp.Process for fattack(%r, %r, %r)"
-              % (filename, seed, nrounds))
+        print(f"# Starting mp.Process for fattack({repr(filename)}, "
+              f"{seed}, {nrounds})")
         process = mp.Process(target=fattack, args=(filename, seed, nrounds))
         process.start()
         process.join()
@@ -127,19 +124,6 @@ def fork_and_run(frame, nrounds):
             raise RuntimeError(f"Child terminated with exit code {ret}")
     finally:
         os.remove(filename)
-
-
-
-#---------------------------------------------------------------------------
-# Helpers
-#---------------------------------------------------------------------------
-
-_METHODS = {
-    None: 1,
-}
-ATTACK_WEIGHTS = list(itertools.accumulate(_METHODS.values()))
-ATTACK_METHODS = list(_METHODS.keys())
-del _METHODS
 
 
 
