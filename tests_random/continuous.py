@@ -22,7 +22,9 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 #
-# For usage information, run:
+# Run a battery of randomized datatable tests.
+#
+# For usage information, see
 #
 #     python tests_random/continuous.py --help
 #

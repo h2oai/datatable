@@ -21,6 +21,15 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
+#
+# Run a single session of randomized datatable tests, parametrized by a SEED.
+# See also: `continuous.py`, which serves as a driver for this script.
+#
+# For usage information, see
+#
+#     python tests_random/single.py --help
+#
+#-------------------------------------------------------------------------------
 import sys
 import os
 import pytest
@@ -33,9 +42,9 @@ from tests_random.metaframe import MetaFrame
 from tests_random.methods import MethodsLibrary, EvaluationContext
 
 
-#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Main Attacker class
-#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 class Attacker:
 
@@ -127,9 +136,9 @@ def fork_and_run(frame, nrounds):
 
 
 
-#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 # Script runner
-#---------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import argparse
