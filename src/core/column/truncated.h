@@ -50,6 +50,11 @@ class Truncated_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, double*)   const override;
     bool get_element(size_t, CString*)  const override;
     bool get_element(size_t, py::oobj*) const override;
+    bool get_element(size_t, Column*)   const override;
+
+  private:
+    template <typename S>
+    bool _get_element(size_t, S*) const;
 };
 
 

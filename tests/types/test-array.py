@@ -102,7 +102,7 @@ def test_query_methods(src):
 
 
 #-------------------------------------------------------------------------------
-# Create from Arrow
+# Create from ...
 #-------------------------------------------------------------------------------
 
 def test_create_from_arrow(pa):
@@ -113,4 +113,63 @@ def test_create_from_arrow(pa):
     assert DT.shape == (6, 1)
     assert DT.type == dt.Type.arr32(dt.Type.int32)
     assert DT.names == ("A",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python1():
+    src = [[1, 2, 3], [], [4, 5], [6], None, [7, 8, 10, -1]]
+    DT = dt.Frame(A=src)
+    assert DT.shape == (6, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.int32)
+    assert DT.names == ("A",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python2():
+    src = [None, [1.5, 2, 3], [], None, [7, 8.99, 10, None, -1]]
+    DT = dt.Frame(B=src)
+    assert DT.shape == (5, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.float64)
+    assert DT.names == ("B",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python3():
+    src = [[], [], [], []]
+    DT = dt.Frame(D=src)
+    assert DT.shape == (4, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.void)
+    assert DT.names == ("D",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python4():
+    src = [None, [], [], [None] * 5, [], None, []]
+    DT = dt.Frame(E=src)
+    assert DT.shape == (7, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.void)
+    assert DT.names == ("E",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python5():
+    src = [["a", "b", "c"], None, ["d"], ["efg", None]]
+    DT = dt.Frame(F=src)
+    assert DT.shape == (4, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.str32)
+    assert DT.names == ("F",)
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python_array_of_arrays():
+    src = [
+            [[1], [2, 3]],
+            [],
+            None,
+            [[0, 4, 111], None, [15, -2]]
+          ]
+    DT = dt.Frame(N=src)
+    assert DT.shape == (4, 1)
+    assert DT.type == dt.Type.arr32(dt.Type.arr32(dt.Type.int32))
+    assert DT.names == ("N",)
     assert DT.to_list() == [src]

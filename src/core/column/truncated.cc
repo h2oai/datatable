@@ -59,46 +59,22 @@ const Column& Truncated_ColumnImpl::child(size_t i) const {
 
 
 
-
-bool Truncated_ColumnImpl::get_element(size_t i, int8_t* out)   const {
+template <typename S>
+bool Truncated_ColumnImpl::_get_element(size_t i, S* out) const {
   xassert(i < nrows_);
   return arg_.get_element(i, out);
 }
 
-bool Truncated_ColumnImpl::get_element(size_t i, int16_t* out)  const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
 
-bool Truncated_ColumnImpl::get_element(size_t i, int32_t* out)  const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
-
-bool Truncated_ColumnImpl::get_element(size_t i, int64_t* out)  const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
-
-bool Truncated_ColumnImpl::get_element(size_t i, float* out)    const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
-
-bool Truncated_ColumnImpl::get_element(size_t i, double* out)   const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
-
-bool Truncated_ColumnImpl::get_element(size_t i, CString* out)  const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
-
-bool Truncated_ColumnImpl::get_element(size_t i, py::oobj* out) const {
-  xassert(i < nrows_);
-  return arg_.get_element(i, out);
-}
+bool Truncated_ColumnImpl::get_element(size_t i, int8_t* out)   const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, int16_t* out)  const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, int32_t* out)  const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, int64_t* out)  const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, float* out)    const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, double* out)   const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, CString* out)  const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, py::oobj* out) const { return _get_element(i, out); }
+bool Truncated_ColumnImpl::get_element(size_t i, Column* out)   const { return _get_element(i, out); }
 
 
 

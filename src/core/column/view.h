@@ -52,6 +52,7 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::oobj* out) const override;
+    bool get_element(size_t i, Column* out) const override;
 };
 
 
@@ -87,9 +88,13 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::oobj* out) const override;
+    bool get_element(size_t i, Column* out) const override;
 
   private:
     void set_rowindex(const RowIndex&);
+
+    template <typename S>
+    bool _get_element(size_t i, S* out) const;
 };
 
 
