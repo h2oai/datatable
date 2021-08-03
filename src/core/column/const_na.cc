@@ -41,6 +41,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, float*)    const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, double*)   const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, CString*)  const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, py::oobj*) const { return false; }
+bool ConstNa_ColumnImpl::get_element(size_t, Column*)   const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::clone() const {

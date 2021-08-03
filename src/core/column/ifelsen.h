@@ -51,6 +51,7 @@ class IfElseN_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, double*)   const override;
     bool get_element(size_t, CString*)  const override;
     bool get_element(size_t, py::oobj*) const override;
+    bool get_element(size_t, Column*)   const override;
 
   private:
     template <typename T> inline bool _get(size_t i, T* out) const;

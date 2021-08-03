@@ -173,3 +173,20 @@ def test_create_from_python_array_of_arrays():
     assert DT.type == dt.Type.arr32(dt.Type.arr32(dt.Type.int32))
     assert DT.names == ("N",)
     assert DT.to_list() == [src]
+
+
+def test_create_from_python_nested():
+    src = [[[[[[]]]]]]
+    DT = dt.Frame(Q=src)
+    a = dt.Type.arr32
+    assert DT.shape == (1, 1)
+    assert DT.type == a(a(a(a(a(dt.Type.void)))))
+    assert DT.to_list() == [src]
+
+
+def test_create_from_python_array_incompatible_child_types():
+    src = [[1, 2, 3], ["one"]]
+    msg = "Cannot create column: element at index 3 is of type " \
+          "<class 'str'>, whereas previous elements were int32"
+    with pytest.raises(TypeError, match=msg):
+        DT = dt.Frame(E=src)
