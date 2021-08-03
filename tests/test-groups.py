@@ -285,6 +285,12 @@ def test_reduce_sum():
                             [2, 6, 18]]
 
 
+def test_reduce_sum_same_column():
+    # See issue #3110
+    f0 = dt.Frame({"ints" : [0, 1, 0, 0, 1, 2]})
+    f1 = f0[:, {"sum" : sum(f.ints)}, f.ints]
+    frame_integrity_check(f1)
+    assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "sum" : [0, 2, 2]/dt.int64}))
 
 
 #-------------------------------------------------------------------------------
