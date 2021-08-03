@@ -38,30 +38,23 @@ class ChangeNrows(RandomAttackMethod):
         self.frame = context.get_any_frame()
         self.current_nrows = self.frame.nrows
         self.new_nrows = int(self.current_nrows * 10 / (19 * t + 1) + 1)
-        self.raises = (self.frame.nkeys > 0) and \
-                      (self.new_nrows > self.current_nrows)
+        if (self.frame.nkeys > 0 and
+                self.new_nrows > self.current_nrows):
+            self.raises = ValueError
+            self.error_message = \
+                "Cannot increase the number of rows in a keyed frame"
 
 
     def log_to_console(self):
-        if self.raises:
-            print(f"# raises: ", end="")
         print(f"{self.frame}.nrows = {self.new_nrows}")
 
 
     def apply_to_dtframe(self):
         DT = self.frame.df
-        if self.raises:
-            msg = "Cannot increase the number of rows in a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                DT.nrows = self.new_nrows
-        else:
-            DT.nrows = self.new_nrows
+        DT.nrows = self.new_nrows
 
 
     def apply_to_pyframe(self):
-        if self.raises:
-            return
-
         if self.new_nrows > self.current_nrows:
             append = [None] * (self.new_nrows - self.current_nrows)
             for column in self.frame.data:

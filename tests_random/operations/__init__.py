@@ -60,9 +60,18 @@ class RandomAttackMethod(ABC):
         not be executed any further. Otherwise, the attacker will
         invoke `log_to_console()`, `apply_to_dtframe()` and
         `apply_to_pyframe()` in order.
+
+        In addition, you can set `self.raises` to an error class
+        (such as `ValueError`) and `self.error_message` to the
+        corresponding error message. In this case the attacker will
+        expect that calling `apply_to_dtframe()` will produce the
+        corresponding error with the matching message. The method
+        `apply_to_pyframe()` will not be called.
         """
         self.frame = context.get_any_frame()
         self.skipped = False
+        self.raises = None
+        self.error_message = None
 
     @abstractmethod
     def log_to_console(self):

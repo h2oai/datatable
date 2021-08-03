@@ -24,7 +24,9 @@
 import sys
 import itertools
 import os
+import pytest
 import random
+import re
 import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -65,6 +67,12 @@ class Attacker:
             action = OperationsLibrary.random_action(context)
             if action.skipped:
                 print(f"# SKIPPED: {action.__class__.__name__}")
+            elif action.raises:
+                print(f"# RAISES: ", end="")
+                action.log_to_console()
+                msg = re.escape(action.error_message)
+                with pytest.raises(action.raises, match=msg):
+                    action.apply_to_dtframe()
             else:
                 action.log_to_console()
                 action.apply_to_dtframe()

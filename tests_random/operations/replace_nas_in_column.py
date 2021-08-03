@@ -46,7 +46,11 @@ class ReplaceNAsInColumn(RandomAttackMethod):
             self.skipped = True
         else:
             raise RuntimeError(f"Unknown type {coltype}")
-        self.raises = (self.icol < self.frame.nkeys)
+        if self.icol < self.frame.nkeys:
+            colname = self.frame.names[self.icol]
+            self.raises = ValueError
+            self.error_message = \
+                f"Cannot change values in a key column {colname}"
 
 
     def log_to_console(self):
@@ -56,20 +60,12 @@ class ReplaceNAsInColumn(RandomAttackMethod):
 
 
     def apply_to_dtframe(self):
-        DT = self.frame.df
         icol = self.icol
-        if self.raises:
-            msg = f'Cannot change values in a key column {self.names[icol]}'
-            msg = re.escape(msg)
-            with pytest.raises(ValueError, match=msg):
-                DT[f[icol] == None, f[icol]] = self.replacement_value
-        else:
-            DT[f[icol] == None, f[icol]] = self.replacement_value
+        DT = self.frame.df
+        DT[f[icol] == None, f[icol]] = self.replacement_value
 
 
     def apply_to_pyframe(self):
-        if self.raises:
-            return
         DF = self.frame
         column = DF.data[self.icol]
         for i, value in enumerate(column):

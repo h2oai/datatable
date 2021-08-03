@@ -30,8 +30,10 @@ class RbindSelf(RandomAttackMethod):
 
     def __init__(self, context):
         super().__init__(context)
-        self.raises = (self.frame.nkeys > 0) and (self.frame.nrows > 0)
         self.mul = random.randint(1, min(5, 1000 // (1 + self.frame.nrows)) + 1)
+        if (self.frame.nkeys > 0) and (self.frame.nrows > 0):
+            self.raises = ValueError
+            self.error_message = "Cannot rbind to a keyed frame"
 
 
     def log_to_console(self):
@@ -43,16 +45,10 @@ class RbindSelf(RandomAttackMethod):
 
     def apply_to_dtframe(self):
         DT = self.frame.df
-        if self.raises:
-            msg = "Cannot rbind to a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                DT.rbind([DT] * self.mul)
-        else:
-            DT.rbind([DT] * self.mul)
+        DT.rbind([DT] * self.mul)
 
 
     def apply_to_pyframe(self):
-        if not self.raises:
-            DF = self.frame
-            for i in range(DF.ncols):
-                DF.data[i] *= self.mul + 1
+        DF = self.frame
+        for i in range(DF.ncols):
+            DF.data[i] *= self.mul + 1
