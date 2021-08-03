@@ -174,12 +174,13 @@ class EvaluationContext:
 import tests_random.operations.add_range_column
 import tests_random.operations.cbind_self
 import tests_random.operations.change_nrows
-import tests_random.operations.delete_rows_array
 import tests_random.operations.delete_columns_array
+import tests_random.operations.delete_rows_array
 import tests_random.operations.rbind_self
+import tests_random.operations.replace_nas_in_column
 import tests_random.operations.select_rows_array
+import tests_random.operations.select_rows_with_boolean_column
+import tests_random.operations.set_key_columns
 import tests_random.operations.slice_columns
 import tests_random.operations.slice_rows
-import tests_random.operations.select_rows_with_boolean_column
-import tests_random.operations.replace_nas_in_column
 import tests_random.operations.sort_columns

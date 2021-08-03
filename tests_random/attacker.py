@@ -113,18 +113,6 @@ def cbind_numpy_column(frame):
     frame.cbind_numpy_column()
 
 
-def set_key_columns(frame):
-    if frame.ncols == 0:
-        return
-
-    nkeys = min(int(random.expovariate(1.0)) + 1, frame.ncols)
-    keys = random.sample(range(0, frame.ncols), nkeys)
-    names = [frame.names[i] for i in keys]
-
-    frame.set_key_columns(keys, names)
-
-
-
 def join_self(frame):
     if frame.ncols > 1000:
         return slice_columns(frame)
@@ -163,7 +151,6 @@ def fork_and_run(frame, nrounds):
 _METHODS = {
     None: 1,
     cbind_numpy_column: 1,
-    set_key_columns: 1,
     join_self: 1,
     shallow_copy: 1,
 }
