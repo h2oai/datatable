@@ -176,6 +176,7 @@ import tests_random.methods.cbind_self
 import tests_random.methods.change_nrows
 import tests_random.methods.delete_columns_array
 import tests_random.methods.delete_rows_array
+import tests_random.methods.join_self
 import tests_random.methods.rbind_self
 import tests_random.methods.replace_nas_in_column
 import tests_random.methods.select_rows_array

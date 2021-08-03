@@ -108,11 +108,6 @@ def fattack(filename, seed, nrounds):
 # Individual attack methods
 #---------------------------------------------------------------------------
 
-def join_self(frame):
-    if frame.ncols > 1000:
-        return slice_columns(frame)
-    frame.join_self()
-
 
 def shallow_copy(frame):
     frame.shallow_copy()
@@ -145,7 +140,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    join_self: 1,
     shallow_copy: 1,
 }
 ATTACK_WEIGHTS = list(itertools.accumulate(_METHODS.values()))

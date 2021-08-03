@@ -246,66 +246,6 @@ class MetaFrame:
     # Operations
     #---------------------------------------------------------------------------
 
-    @traced
-    def cbind_numpy_column(self):
-        import numpy as np
-        # Numpy has no concept of "void" column (at least, not similar to ours),
-        # so avoid that random type:
-        coltype = None
-        while coltype is None:
-            coltype = random_type()
-        mfraction = random.random()
-        data, mmask = random_column(self.nrows, coltype, mfraction, False)
-
-        # On Linux/Mac numpy's default int type is np.int64,
-        # while on Windows it is np.int32. Here we force it to be
-        # np.int64 for consistency.
-        np_dtype = np.int64 if coltype == int else np.dtype(coltype)
-        np_data = np.ma.array(data, mask=mmask, dtype=np_dtype)
-
-        # Save random numpy arrays to make sure they don't change with
-        # munging. Arrays that are not saved here will be eventually deleted
-        # by Python, in such a case we also test datatable behaviour.
-        if random.random() > 0.5:
-            self.np_data += [np_data]
-            self.np_data_deepcopy += [copy.deepcopy(np_data)]
-
-        names = random_names(1)
-        df = dt.Frame(np_data.T, names=names)
-
-        for i in range(self.nrows):
-            if mmask[i]: data[i] = None
-
-        self.df.cbind(df)
-        self.data += [data]
-        self.types += [coltype]
-        self.names += names
-        self.dedup_names()
-
-
-
-    @traced
-    def join_self(self):
-        ncols = self.ncols
-        if self.nkeys:
-            self.df = self.df[:, :, join(self.df)]
-
-            s = slice(self.nkeys, ncols)
-            join_data = copy.deepcopy(self.data[s])
-            join_types = self.types[s].copy()
-            join_names = self.names[s].copy()
-
-            self.data += join_data
-            self.types += join_types
-            self.names += join_names
-            self.nkeys = 0
-            self.dedup_names()
-
-        else:
-            msg = "The join frame is not keyed"
-            with pytest.raises(ValueError, match=msg):
-                self.df = self.df[:, :, join(self.df)]
-
 
     @traced
     def shallow_copy(self):
@@ -314,15 +254,15 @@ class MetaFrame:
         self.df_deep_copy = copy.deepcopy(self.df)
 
 
-    @traced
-    def save_to_jay(self, filename):
-        self.df.to_jay(filename)
-
 
 
     #---------------------------------------------------------------------------
     # Helpers
     #---------------------------------------------------------------------------
+
+    def save_to_jay(self, filename):
+        self.df.to_jay(filename)
+
 
     def dedup_names(self):
         seen_names = set()
