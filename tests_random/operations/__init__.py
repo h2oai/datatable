@@ -171,6 +171,7 @@ class EvaluationContext:
 
 # These are imported here in order to break circular dependence between
 # scripts.
+import tests_random.operations.add_range_column
 import tests_random.operations.cbind_self
 import tests_random.operations.change_nrows
 import tests_random.operations.delete_rows_array

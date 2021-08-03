@@ -22,37 +22,39 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import random
+import datatable as dt
+from tests_random.utils import random_string
 from . import RandomAttackMethod
 
 
 
-class SortColumns(RandomAttackMethod):
+class AddRangeColumn(RandomAttackMethod):
 
     def __init__(self, context):
         super().__init__(context)
-        ncols = self.frame.ncols
-        if ncols:
-            ncols_sort = min(int(random.expovariate(1.0)) + 1, ncols)
-            self.cols_to_sort = random.sample(range(0, ncols), ncols_sort)
-        else:
-            self.skipped = True
+        start = int(random.expovariate(0.05) - 5)
+        step = 0
+        while step == 0:
+            step = int(1 + random.random() * 3)
+        stop = start + step * self.frame.nrows
+        self.range = range(start, stop, step)
+        self.name = random_string()
 
 
     def log_to_console(self):
         DT = repr(self.frame)
-        print(f"{DT} = {DT}.sort({self.cols_to_sort})")
+        name = repr(self.name)
+        print(f"{DT}.cbind(dt.Frame({{{name}: {self.range})}})")
 
 
     def apply_to_dtframe(self):
         DT = self.frame.df
-        self.frame.df = DT.sort(self.cols_to_sort)
+        DT.cbind(dt.Frame({self.name: self.range}))
 
 
     def apply_to_pyframe(self):
         DF = self.frame
-        DF.nkeys = 0
-        if DF.nrows:
-            data = list(zip(*DF.data))
-            data.sort(key=lambda x: tuple(
-                (x[i] is not None, x[i]) for i in self.cols_to_sort))
-            DF.data = list(map(list, zip(*data)))
+        DF.data += [list(self.range)]
+        DF.names += [self.name]
+        DF.types += [int]
+        DF.dedup_names()

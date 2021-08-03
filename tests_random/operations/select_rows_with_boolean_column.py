@@ -23,7 +23,6 @@
 #-------------------------------------------------------------------------------
 import random
 from datatable import f
-from tests_random.utils import random_array
 from . import RandomAttackMethod
 
 

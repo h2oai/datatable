@@ -114,17 +114,6 @@ def cbind_numpy_column(frame):
     frame.cbind_numpy_column()
 
 
-def add_range_column(frame):
-    start = int(random.expovariate(0.05) - 5)
-    step = 0
-    while step == 0:
-        step = int(1 + random.random() * 3)
-    stop = start + step * frame.nrows
-    rangeobj = range(start, stop, step)
-    name = random_string()
-    frame.add_range_column(name, rangeobj)
-
-
 def set_key_columns(frame):
     if frame.ncols == 0:
         return
@@ -183,7 +172,6 @@ def fork_and_run(frame, nrounds):
 _METHODS = {
     None: 1,
     cbind_numpy_column: 1,
-    add_range_column: 1,
     set_key_columns: 1,
     delete_columns_array: 1,
     join_self: 1,
