@@ -125,7 +125,7 @@ void register_option(const char* name,
   auto p = static_cast<py::config_option*>(v);
   p->name = py::ostring(name);
   p->default_value = getter();
-  p->docstring = py::ostring(docstring);
+  p->docstring = py::ostring(docstring? docstring : "");
   p->getter = std::move(getter);
   p->setter = std::move(setter);
   p->arg = new py::Arg(name);

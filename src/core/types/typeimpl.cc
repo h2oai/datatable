@@ -69,6 +69,7 @@ bool TypeImpl::can_be_read_as_float64()  const { return false; }
 bool TypeImpl::can_be_read_as_date()     const { return false; }
 bool TypeImpl::can_be_read_as_cstring()  const { return false; }
 bool TypeImpl::can_be_read_as_pyobject() const { return false; }
+bool TypeImpl::can_be_read_as_column()   const { return false; }
 
 bool TypeImpl::equals(const TypeImpl* other) const {
   return stype_ == other->stype_;

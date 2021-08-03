@@ -32,12 +32,13 @@ namespace dt {
 
 class SliceView_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    Column arg;
-    size_t start;
-    size_t step;
+    Column arg_;
+    size_t start_;
+    size_t step_;
 
   public:
     SliceView_ColumnImpl(Column&& col, const RowIndex& ri);
+    SliceView_ColumnImpl(Column&& col, size_t start, size_t count, size_t step);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
     size_t n_children() const noexcept override;

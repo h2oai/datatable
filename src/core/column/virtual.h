@@ -32,7 +32,7 @@ namespace dt {
 class Virtual_ColumnImpl : public ColumnImpl
 {
   public:
-    Virtual_ColumnImpl(size_t nrows, SType stype);
+    using ColumnImpl::ColumnImpl;
 
     bool is_virtual() const noexcept override;
     size_t memory_footprint() const noexcept override;

@@ -38,7 +38,8 @@ from datatable.lib import core
 def start_random_attack(n_attacks=None,
                         maxfail=None,
                         skip_successful_seeds=False,
-                        save_logs_to_file=False):
+                        save_logs_to_file=False,
+                        no_forks=False):
     if n_attacks is None:
         n_attacks = 10**10
     if maxfail is None:
@@ -53,7 +54,7 @@ def start_random_attack(n_attacks=None,
     try:
         for i in range(n_attacks):
             seed = random.getrandbits(63)
-            is_success = try_seed(seed, skip_successful_seeds, log_dir)
+            is_success = try_seed(seed, skip_successful_seeds, log_dir, no_forks)
             n_tests += 1
             n_errors += not is_success
             if n_errors >= maxfail:
@@ -70,11 +71,12 @@ def start_random_attack(n_attacks=None,
 
 
 
-def try_seed(seed, skip_successful_seeds, log_dir):
+def try_seed(seed, skip_successful_seeds, log_dir, no_forks):
     utf8_env = os.environ
     utf8_env['PYTHONIOENCODING'] = 'utf-8'
     script = os.path.join(os.path.dirname(__file__), "attacker.py")
-    proc = subprocess.Popen([sys.executable, script, str(seed)],
+    proc = subprocess.Popen([sys.executable, script, str(seed)] +
+                            ["--noforks"] * no_forks,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                             env=utf8_env)
     try:
@@ -152,9 +154,12 @@ if __name__ == "__main__":
                         help="Show log messages for each test run. If this "
                              "flag is not set, the messages will be stored in "
                              "a file")
+    parser.add_argument("--noforks", action="store_true",
+                        help="Disable fork action in random attacker")
 
     args = parser.parse_args()
     start_random_attack(n_attacks=args.ntests,
                         maxfail=args.maxfail,
                         skip_successful_seeds=not args.showall,
-                        save_logs_to_file=not args.verbose)
+                        save_logs_to_file=not args.verbose,
+                        no_forks=args.noforks)

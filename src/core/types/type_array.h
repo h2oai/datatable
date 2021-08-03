@@ -34,6 +34,7 @@ class Type_Arr32 : public TypeImpl {
     Type_Arr32(Type t);
     bool is_array() const override;
     bool is_compound() const override;
+    bool can_be_read_as_column() const override;
     std::string to_string() const override;
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
@@ -50,6 +51,7 @@ class Type_Arr64 : public TypeImpl {
     Type_Arr64(Type t);
     bool is_array() const override;
     bool is_compound() const override;
+    bool can_be_read_as_column() const override;
     std::string to_string() const override;
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;

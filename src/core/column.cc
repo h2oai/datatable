@@ -184,7 +184,8 @@ bool Column::allow_parallel_access() const {
 }
 
 bool Column::is_constant() const noexcept {
-  return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_));
+  return bool(dynamic_cast<const dt::Const_ColumnImpl*>(impl_)) ||
+         impl_->type_.is_void();
 }
 
 size_t Column::elemsize() const noexcept {
@@ -245,6 +246,11 @@ bool Column::get_element(size_t i, py::oobj* out) const {
   return impl_->get_element(i, out);
 }
 
+bool Column::get_element(size_t i, Column* out) const {
+  xassert(i < nrows());
+  return impl_->get_element(i, out);
+}
+
 
 
 template <typename T>
@@ -285,9 +291,24 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
       bool isvalid = get_element(i, &x);
       return isvalid? x : py::None();
     }
+    case dt::SType::ARR32:
+    case dt::SType::ARR64: {
+      Column elem;
+      bool isvalid = get_element(i, &elem);
+      if (isvalid) {
+        auto n = elem.nrows();
+        auto res = py::olist(n);
+        for (size_t j = 0; j < n; j++) {
+          res.set(j, elem.get_element_as_pyobject(j));
+        }
+        return std::move(res);
+      } else {
+        return py::None();
+      }
+    }
     default:
-      throw NotImplError() << "Unable to convert elements of stype `"
-        << stype() << "` into python objects";
+      throw NotImplError() << "Unable to convert elements of type `"
+        << type() << "` into python objects";
   }
 }
 

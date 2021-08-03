@@ -30,11 +30,7 @@ class Type_Void : public TypeImpl {
   public:
     Type_Void();
 
-    bool is_boolean() const override;
-    bool is_integer() const override;
-    bool is_float()   const override;
-    bool is_numeric() const override;
-    bool is_void()    const override;
+    bool is_void()     const override;
     bool can_be_read_as_int8() const override;
     bool can_be_read_as_int16() const override;
     bool can_be_read_as_int32() const override;

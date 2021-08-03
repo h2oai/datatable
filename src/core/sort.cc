@@ -256,39 +256,6 @@ void swap(rmem& left, rmem& right) noexcept {
 // Options
 //------------------------------------------------------------------------------
 
-static const char* doc_sort_insert_method_threshold =
-R"(
-Largest n at which sorting will be performed using insert sort
-method. This setting also governs the recursive parts of the
-radix sort algorithm, when we need to sort smaller sub-parts of
-the input.
-)";
-
-static const char* doc_sort_thread_multiplier =
-R"(
-Internal
-)";
-
-static const char* doc_sort_max_chunk_length =
-R"(
-Internal
-)";
-
-static const char* doc_sort_max_radix_bits =
-R"(
-Internal
-)";
-
-static const char* doc_sort_over_radix_bits =
-R"(
-Internal
-)";
-
-static const char* doc_sort_nthreads =
-R"(
-Internal
-)";
-
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
 static size_t sort_max_chunk_length = 1 << 8;
@@ -306,7 +273,12 @@ void sort_init_options() {
       if (n < 0) n = 0;
       sort_insert_method_threshold = static_cast<size_t>(n);
     },
-    doc_sort_insert_method_threshold
+    R"(
+    Largest n at which sorting will be performed using insert sort
+    method. This setting also governs the recursive parts of the
+    radix sort algorithm, when we need to sort smaller sub-parts of
+    the input.
+    )"
   );
 
   dt::register_option(
@@ -317,7 +289,7 @@ void sort_init_options() {
       if (n < 1) n = 1;
       sort_thread_multiplier = static_cast<size_t>(n);
     },
-    doc_sort_thread_multiplier
+    nullptr
   );
 
   dt::register_option(
@@ -328,7 +300,7 @@ void sort_init_options() {
       if (n < 1) n = 1;
       sort_max_chunk_length = static_cast<size_t>(n);
     },
-    doc_sort_max_chunk_length
+    nullptr
   );
 
   dt::register_option(
@@ -340,7 +312,7 @@ void sort_init_options() {
         throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
       sort_max_radix_bits = static_cast<uint8_t>(n);
     },
-    doc_sort_max_radix_bits
+    nullptr
   );
 
   dt::register_option(
@@ -352,7 +324,7 @@ void sort_init_options() {
         throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
       sort_over_radix_bits = static_cast<uint8_t>(n);
     },
-    doc_sort_over_radix_bits
+    nullptr
   );
 
   dt::register_option(
@@ -364,7 +336,7 @@ void sort_init_options() {
       if (nth <= 0) nth = 1;
       sort_nthreads = static_cast<uint8_t>(nth);
     },
-    doc_sort_nthreads
+    nullptr
   );
 
   dt::register_option(
@@ -372,7 +344,8 @@ void sort_init_options() {
     []{ return py::obool(sort_new); },
     [](const py::Arg& value) {
       sort_new = value.to_bool_strict();
-    }, "");
+    },
+    nullptr);
 }
 
 
@@ -1446,9 +1419,7 @@ RiGb group(const std::vector<Column>& columns,
     return result;
   }
   if (nrows == 1 || n_const_cols == n) {
-    Buffer buf = Buffer::mem(sizeof(int32_t) * nrows);
-    std::memset(buf.xptr(), 0, buf.size());
-    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+    result.first = RowIndex(0, nrows, 1);
     result.second = Groupby::single_group(nrows);
     return result;
   }

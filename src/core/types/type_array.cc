@@ -33,7 +33,7 @@ namespace dt {
 
 Type_Arr32::Type_Arr32(Type t)
   : TypeImpl(SType::ARR32),
-    elementType_(t) {}
+    elementType_(std::move(t)) {}
 
 bool Type_Arr32::is_compound() const {
   return true; 
@@ -43,6 +43,11 @@ bool Type_Arr32::is_array() const {
   return true;
 }
 
+bool Type_Arr32::can_be_read_as_column() const {
+  return true;
+}
+
+
 std::string Type_Arr32::to_string() const {
   return "arr32(" + elementType_.to_string() + ")";
 }
@@ -51,6 +56,9 @@ std::string Type_Arr32::to_string() const {
 TypeImpl* Type_Arr32::common_type(TypeImpl* other) {
   if (other->is_array()) {
     return other->stype() > stype() ? other : this;
+  }
+  if (other->is_void()) {
+    return this;
   }
   if (other->is_object() || other->is_invalid()) {
     return other;
@@ -77,13 +85,17 @@ size_t Type_Arr32::hash() const noexcept {
 
 Type_Arr64::Type_Arr64(Type t)
   : TypeImpl(SType::ARR64),
-    elementType_(t) {}
+    elementType_(std::move(t)) {}
 
 bool Type_Arr64::is_compound() const {
   return true; 
 }
 
 bool Type_Arr64::is_array() const {
+  return true;
+}
+
+bool Type_Arr64::can_be_read_as_column() const {
   return true;
 }
 

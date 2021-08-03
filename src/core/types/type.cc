@@ -154,6 +154,8 @@ bool Type::is_object()   const { return impl_ && impl_->is_object(); }
 bool Type::is_string()   const { return impl_ && impl_->is_string(); }
 bool Type::is_temporal() const { return impl_ && impl_->is_temporal(); }
 bool Type::is_void()     const { return impl_ && impl_->is_void(); }
+bool Type::is_integer_or_void() const { return impl_ && (impl_->is_integer() || impl_->is_void()); }
+bool Type::is_numeric_or_void() const { return impl_ && (impl_->is_numeric() || impl_->is_void()); }
 
 
 template<typename T> bool Type::can_be_read_as() const { return false; }
@@ -165,6 +167,7 @@ template<> bool Type::can_be_read_as<float>()    const { return impl_ && impl_->
 template<> bool Type::can_be_read_as<double>()   const { return impl_ && impl_->can_be_read_as_float64(); }
 template<> bool Type::can_be_read_as<CString>()  const { return impl_ && impl_->can_be_read_as_cstring(); }
 template<> bool Type::can_be_read_as<py::oobj>() const { return impl_ && impl_->can_be_read_as_pyobject(); }
+template<> bool Type::can_be_read_as<Column>()   const { return impl_ && impl_->can_be_read_as_column(); }
 
 
 bool Type::operator==(const Type& other) const {
