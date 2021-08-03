@@ -180,3 +180,4 @@ import tests_random.operations.slice_columns
 import tests_random.operations.slice_rows
 import tests_random.operations.select_rows_with_boolean_column
 import tests_random.operations.replace_nas_in_column
+import tests_random.operations.sort_columns

@@ -110,14 +110,6 @@ def fattack(filename, seed, nrounds):
 #---------------------------------------------------------------------------
 
 
-def sort_columns(frame):
-    if frame.ncols == 0:
-        return
-    ncols_sort = min(int(random.expovariate(1.0)) + 1, frame.ncols)
-    a = random.sample(range(0, frame.ncols), ncols_sort)
-    frame.sort_columns(a)
-
-
 def cbind_numpy_column(frame):
     frame.cbind_numpy_column()
 
@@ -190,7 +182,6 @@ def fork_and_run(frame, nrounds):
 
 _METHODS = {
     None: 1,
-    sort_columns: 1,
     cbind_numpy_column: 1,
     add_range_column: 1,
     set_key_columns: 1,
