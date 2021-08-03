@@ -24,6 +24,7 @@
 #include <cstring>         // std::memcpy
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
+#include "column/arrow_array.h"
 #include "column/pysources.h"  // PyList_ColumnImpl, ...
 #include "column/range.h"
 #include "python/_all.h"
@@ -384,9 +385,9 @@ Column _parse_time64(const Column& inputcol, size_t i0, bool strict) {
   */
 
 template <typename T>
-Column _parse_array_impl(const Column& inputcol, size_t nn) {
+Column _parse_array_impl(const Column& inputcol, size_t nn, bool strict) {
   size_t n = inputcol.nrows();
-  Buffer validitybuf = Buffer::mem((n + 63)/64);
+  Buffer validitybuf = Buffer::mem((n + 63)/64 * 8);
   Buffer offsetsbuf = Buffer::mem((n + 1) * sizeof(T));
   Buffer databuf = Buffer::mem(nn * sizeof(PyObject*));
   auto validity_ptr = static_cast<size_t*>(validitybuf.xptr());
@@ -418,7 +419,19 @@ Column _parse_array_impl(const Column& inputcol, size_t nn) {
   }
   databuf.set_pyobjects(/*clear_data=*/ false);
 
-  return Column();  // TODO
+  Column child_column =
+    Column::new_mbuf_column(nn, dt::SType::OBJ, std::move(databuf))
+      .reduce_type(strict);
+
+  if (!strict && child_column.type().is_object()) {
+    return inputcol;
+  }
+  return Column(new dt::ArrowArray_ColumnImpl<T>(
+      n,
+      std::move(validitybuf),
+      std::move(offsetsbuf),
+      std::move(child_column)
+  ));
 }
 
 Column _parse_array(const Column& inputcol, size_t i0, bool strict) {
@@ -438,9 +451,9 @@ Column _parse_array(const Column& inputcol, size_t i0, bool strict) {
   constexpr size_t MAX = std::numeric_limits<int32_t>::max();
   Column out;
   if (n >= MAX || nn >= MAX) {
-    out = _parse_array_impl<int64_t>(inputcol, nn);
+    out = _parse_array_impl<uint64_t>(inputcol, nn, strict);
   } else {
-    out = _parse_array_impl<int32_t>(inputcol, nn);
+    out = _parse_array_impl<uint32_t>(inputcol, nn, strict);
   }
   return out;
 }
