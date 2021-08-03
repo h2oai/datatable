@@ -31,7 +31,7 @@ import time
 from datatable.lib import core
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 from tests_random.metaframe import MetaFrame
-from tests_random.operations import OperationsLibrary, EvaluationContext
+from tests_random.methods import MethodsLibrary, EvaluationContext
 from tests_random.utils import (
     random_array,
     random_slice,
@@ -63,7 +63,7 @@ class Attacker:
         print("# Launching an attack for %d rounds" % rounds)
         context = EvaluationContext()
         for i in range(rounds):
-            action = OperationsLibrary.random_action(context)
+            action = MethodsLibrary.random_action(context)
             if action.skipped:
                 print(f"# SKIPPED: {action.__class__.__name__}")
             elif action.raises:

@@ -26,6 +26,7 @@ import random
 from tests_random.metaframe import MetaFrame
 
 
+
 class RandomAttackMethod(ABC):
     """
     All individual random attack methods must derive from this class.
@@ -102,18 +103,18 @@ class RandomAttackMethod(ABC):
     @classmethod
     def __init_subclass__(cls):
         super().__init_subclass__()
-        OperationsLibrary.register_attack_method(cls)
+        MethodsLibrary.register_attack_method(cls)
 
 
 
 
-class OperationsLibrary:
+class MethodsLibrary:
     _methods = []  # List[float]
     _weights = []  # List[RandomAttackMethod]
 
     @staticmethod
     def random_action(context):
-        Lib = OperationsLibrary
+        Lib = MethodsLibrary
         Cls = random.choices(population=Lib._methods,
                              cum_weights=Lib._weights, k=1)[0]
         return Cls(context)
@@ -122,13 +123,13 @@ class OperationsLibrary:
     def register_attack_method(cls):
         assert issubclass(cls, RandomAttackMethod), \
                 f"{cls} is not derived from RandomAttackMethod class"
-        Lib = OperationsLibrary
+        Lib = MethodsLibrary
         current_total_weight = Lib._weights[-1] if Lib._weights else 0
         Lib._methods.append(cls)
         Lib._weights.append(cls.weight + current_total_weight)
 
     def __init__(self):
-        raise RuntimeError("OperationsLibrary should not be instantiated")
+        raise RuntimeError("MethodsLibrary should not be instantiated")
 
 
 
@@ -171,16 +172,16 @@ class EvaluationContext:
 
 # These are imported here in order to break circular dependence between
 # scripts.
-import tests_random.operations.add_range_column
-import tests_random.operations.cbind_self
-import tests_random.operations.change_nrows
-import tests_random.operations.delete_columns_array
-import tests_random.operations.delete_rows_array
-import tests_random.operations.rbind_self
-import tests_random.operations.replace_nas_in_column
-import tests_random.operations.select_rows_array
-import tests_random.operations.select_rows_with_boolean_column
-import tests_random.operations.set_key_columns
-import tests_random.operations.slice_columns
-import tests_random.operations.slice_rows
-import tests_random.operations.sort_columns
+import tests_random.methods.add_range_column
+import tests_random.methods.cbind_self
+import tests_random.methods.change_nrows
+import tests_random.methods.delete_columns_array
+import tests_random.methods.delete_rows_array
+import tests_random.methods.rbind_self
+import tests_random.methods.replace_nas_in_column
+import tests_random.methods.select_rows_array
+import tests_random.methods.select_rows_with_boolean_column
+import tests_random.methods.set_key_columns
+import tests_random.methods.slice_columns
+import tests_random.methods.slice_rows
+import tests_random.methods.sort_columns
