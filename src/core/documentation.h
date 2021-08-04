@@ -190,6 +190,12 @@ extern const char* doc_options_fread_log_escape_unicode;
 extern const char* doc_options_fread_parse_dates;
 extern const char* doc_options_fread_parse_times;
 extern const char* doc_options_nthreads;
+extern const char* doc_options_progress_allow_interruption;
+extern const char* doc_options_progress_callback;
+extern const char* doc_options_progress_clear_on_success;
+extern const char* doc_options_progress_enabled;
+extern const char* doc_options_progress_min_duration;
+extern const char* doc_options_progress_updates_per_second;
 
 extern const char* doc_re_match;
 
