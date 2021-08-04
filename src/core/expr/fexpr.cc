@@ -294,13 +294,6 @@ DECLARE_METHOD(&PyFExpr::re_match)
 // Miscellaneous
 //------------------------------------------------------------------------------
 
-static const char* doc_sum =
-R"(sum()
---
-
-Equivalent to :func:`dt.sum(self)`.
-)";
-
 oobj PyFExpr::sum(const XArgs&) {
   auto sumFn = oobj::import("datatable", "sum");
   return sumFn.call({this});
@@ -308,14 +301,9 @@ oobj PyFExpr::sum(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::sum)
     ->name("sum")
-    ->docs(doc_sum);
+    ->docs(dt::doc_FExpr_sum);
 
-static const char* doc_max =
-R"(max()
---
 
-Equivalent to :func:`dt.max(self)`.
-)";
 
 oobj PyFExpr::max(const XArgs&) {
   auto maxFn = oobj::import("datatable", "max");
@@ -324,15 +312,9 @@ oobj PyFExpr::max(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::max)
     ->name("max")
-    ->docs(doc_max);
+    ->docs(dt::doc_FExpr_max);
 
 
-static const char* doc_mean =
-R"(mean()
---
-
-Equivalent to :func:`dt.mean(self)`.
-)";
 
 oobj PyFExpr::mean(const XArgs&) {
   auto meanFn = oobj::import("datatable", "mean");
@@ -341,15 +323,9 @@ oobj PyFExpr::mean(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::mean)
     ->name("mean")
-    ->docs(doc_mean);
+    ->docs(dt::doc_FExpr_mean);
 
 
-static const char* doc_median =
-R"(median()
---
-
-Equivalent to :func:`dt.median(self)`.
-)";
 
 oobj PyFExpr::median(const XArgs&) {
   auto medianFn = oobj::import("datatable", "median");
@@ -358,15 +334,9 @@ oobj PyFExpr::median(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::median)
     ->name("median")
-    ->docs(doc_median);
+    ->docs(dt::doc_FExpr_median);
 
 
-static const char* doc_min =
-R"(min()
---
-
-Equivalent to :func:`dt.min(self)`.
-)";
 
 oobj PyFExpr::min(const XArgs&) {
   auto minFn = oobj::import("datatable", "min");
@@ -375,13 +345,9 @@ oobj PyFExpr::min(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::min)
     ->name("min")
-    ->docs(doc_min);
-static const char* doc_rowall =
-R"(rowall()
---
+    ->docs(dt::doc_FExpr_min);
 
-Equivalent to :func:`dt.rowall(self)`.
-)";
+
 
 oobj PyFExpr::rowall(const XArgs&) {
   auto rowallFn = oobj::import("datatable", "rowall");
@@ -390,15 +356,9 @@ oobj PyFExpr::rowall(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowall)
     ->name("rowall")
-    ->docs(doc_rowall);
+    ->docs(dt::doc_FExpr_rowall);
 
 
-static const char* doc_rowany =
-R"(rowany()
---
-
-Equivalent to :func:`dt.rowany(self)`.
-)";
 
 oobj PyFExpr::rowany(const XArgs&) {
   auto rowanyFn = oobj::import("datatable", "rowany");
@@ -407,15 +367,9 @@ oobj PyFExpr::rowany(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowany)
     ->name("rowany")
-    ->docs(doc_rowany);
+    ->docs(dt::doc_FExpr_rowany);
 
 
-static const char* doc_rowcount =
-R"(rowcount()
---
-
-Equivalent to :func:`dt.rowcount(self)`.
-)";
 
 oobj PyFExpr::rowcount(const XArgs&) {
   auto rowcountFn = oobj::import("datatable", "rowcount");
@@ -424,15 +378,9 @@ oobj PyFExpr::rowcount(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowcount)
     ->name("rowcount")
-    ->docs(doc_rowcount);
+    ->docs(dt::doc_FExpr_rowcount);
 
 
-static const char* doc_rowfirst =
-R"(rowfirst()
---
-
-Equivalent to :func:`dt.rowfirst(self)`.
-)";
 
 oobj PyFExpr::rowfirst(const XArgs&) {
   auto rowfirstFn = oobj::import("datatable", "rowfirst");
@@ -441,15 +389,9 @@ oobj PyFExpr::rowfirst(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowfirst)
     ->name("rowfirst")
-    ->docs(doc_rowfirst);
+    ->docs(dt::doc_FExpr_rowfirst);
 
 
-static const char* doc_rowlast =
-R"(rowlast()
---
-
-Equivalent to :func:`dt.rowlast(self)`.
-)";
 
 oobj PyFExpr::rowlast(const XArgs&) {
   auto rowlastFn = oobj::import("datatable", "rowlast");
@@ -458,15 +400,9 @@ oobj PyFExpr::rowlast(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowlast)
     ->name("rowlast")
-    ->docs(doc_rowlast);
+    ->docs(dt::doc_FExpr_rowlast);
 
 
-static const char* doc_rowmax =
-R"(rowmax()
---
-
-Equivalent to :func:`dt.rowmax(self)`.
-)";
 
 oobj PyFExpr::rowmax(const XArgs&) {
   auto rowmaxFn = oobj::import("datatable", "rowmax");
@@ -475,15 +411,9 @@ oobj PyFExpr::rowmax(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowmax)
     ->name("rowmax")
-    ->docs(doc_rowmax);
+    ->docs(dt::doc_FExpr_rowmax);
 
 
-static const char* doc_rowmean =
-R"(rowmean()
---
-
-Equivalent to :func:`dt.rowmean(self)`.
-)";
 
 oobj PyFExpr::rowmean(const XArgs&) {
   auto rowmeanFn = oobj::import("datatable", "rowmean");
@@ -492,15 +422,9 @@ oobj PyFExpr::rowmean(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowmean)
     ->name("rowmean")
-    ->docs(doc_rowmean);
+    ->docs(dt::doc_FExpr_rowmean);
 
 
-static const char* doc_rowmin =
-R"(rowmin()
---
-
-Equivalent to :func:`dt.rowmin(self)`.
-)";
 
 oobj PyFExpr::rowmin(const XArgs&) {
   auto rowminFn = oobj::import("datatable", "rowmin");
@@ -509,15 +433,9 @@ oobj PyFExpr::rowmin(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowmin)
     ->name("rowmin")
-    ->docs(doc_rowmin);
+    ->docs(dt::doc_FExpr_rowmin);
 
 
-static const char* doc_rowsd =
-R"(rowsd()
---
-
-Equivalent to :func:`dt.rowsd(self)`.
-)";
 
 oobj PyFExpr::rowsd(const XArgs&) {
   auto rowsdFn = oobj::import("datatable", "rowsd");
@@ -526,15 +444,9 @@ oobj PyFExpr::rowsd(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowsd)
     ->name("rowsd")
-    ->docs(doc_rowsd);
+    ->docs(dt::doc_FExpr_rowsd);
 
 
-static const char* doc_rowsum =
-R"(rowsum()
---
-
-Equivalent to :func:`dt.rowsum(self)`.
-)";
 
 oobj PyFExpr::rowsum(const XArgs&) {
   auto rowsumFn = oobj::import("datatable", "rowsum");
@@ -543,15 +455,9 @@ oobj PyFExpr::rowsum(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::rowsum)
     ->name("rowsum")
-    ->docs(doc_rowsum);
+    ->docs(dt::doc_FExpr_rowsum);
 
 
-static const char* doc_sd =
-R"(sd()
---
-
-Equivalent to :func:`dt.sd(self)`.
-)";
 
 oobj PyFExpr::sd(const XArgs&) {
   auto sdFn = oobj::import("datatable", "sd");
@@ -560,15 +466,9 @@ oobj PyFExpr::sd(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::sd)
     ->name("sd")
-    ->docs(doc_sd);
+    ->docs(dt::doc_FExpr_sd);
 
 
-static const char* doc_shift =
-R"(shift(n=1)
---
-
-Equivalent to :func:`dt.shift(self, n)`.
-)";
 
 oobj PyFExpr::shift(const XArgs& args) {
   auto shiftFn = oobj::import("datatable", "shift");
@@ -578,16 +478,11 @@ oobj PyFExpr::shift(const XArgs& args) {
 
 DECLARE_METHOD(&PyFExpr::shift)
     ->name("shift")
-    ->docs(doc_shift)
+    ->docs(dt::doc_FExpr_shift)
     ->arg_names({"n"})
     ->n_positional_or_keyword_args(1);
 
-static const char* doc_last =
-R"(last()
---
 
-Equivalent to :func:`dt.last(self)`.
-)";
 
 oobj PyFExpr::last(const XArgs&) {
   auto lastFn = oobj::import("datatable", "last");
@@ -596,15 +491,9 @@ oobj PyFExpr::last(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::last)
     ->name("last")
-    ->docs(doc_last);
+    ->docs(dt::doc_FExpr_last);
 
 
-static const char* doc_count =
-R"(count()
---
-
-Equivalent to :func:`dt.count(self)`.
-)";
 
 oobj PyFExpr::count(const XArgs&) {
   auto countFn = oobj::import("datatable", "count");
@@ -613,15 +502,9 @@ oobj PyFExpr::count(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::count)
     ->name("count")
-    ->docs(doc_count);
+    ->docs(dt::doc_FExpr_count);
 
 
-static const char* doc_first =
-R"(first()
---
-
-Equivalent to :func:`dt.first(self)`.
-)";
 
 oobj PyFExpr::first(const XArgs&) {
   auto firstFn = oobj::import("datatable", "first");
@@ -630,7 +513,9 @@ oobj PyFExpr::first(const XArgs&) {
 
 DECLARE_METHOD(&PyFExpr::first)
     ->name("first")
-    ->docs(doc_first);
+    ->docs(dt::doc_FExpr_first);
+
+
 
 
 //------------------------------------------------------------------------------
@@ -644,10 +529,7 @@ void PyFExpr::impl_init_type(XTypeMaker& xt) {
 
   xt.add(CONSTRUCTOR(&PyFExpr::m__init__, args__init__));
   xt.add(DESTRUCTOR(&PyFExpr::m__dealloc__));
-  // xt.add(METHOD(&PyFExpr::extend, args_extend));
-  // xt.add(METHOD(&PyFExpr::remove, args_remove));
   xt.add(METHOD0(&PyFExpr::len, "len"));
-  // xt.add(METHOD(&PyFExpr::re_match, args_re_match));
 
   xt.add(METHOD__REPR__(&PyFExpr::m__repr__));
   xt.add(METHOD__ADD__(&PyFExpr::nb__add__));
