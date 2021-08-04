@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "documentation.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
@@ -65,25 +66,7 @@ static umaker_ptr _resolve_special(SType stype, const char* name,
 // Op::ERF
 //------------------------------------------------------------------------------
 
-static const char* doc_erf =
-R"(erf(x)
---
-
-Error function ``erf(x)``, which is defined as the integral
-
-.. math::
-
-    \operatorname{erf}(x) = \frac{2}{\sqrt{\tau}} \int^{x/\sqrt{2}}_0 e^{-\frac12 t^2}dt
-
-This function is used in computing probabilities arising from the normal
-distribution.
-
-See also
---------
-- :func:`erfc(x) <datatable.math.erfc>` -- complimentary error function.
-)";
-
-py::PKArgs args_erf(1, 0, 0, false, false, {"x"}, "erf", doc_erf);
+py::PKArgs args_erf(1, 0, 0, false, false, {"x"}, "erf", dt::doc_math_erf);
 
 umaker_ptr resolve_op_erf(SType stype) {
   return _resolve_special(stype, "erf", &std::erf, &std::erf);
@@ -96,28 +79,7 @@ umaker_ptr resolve_op_erf(SType stype) {
 // Op::ERFC
 //------------------------------------------------------------------------------
 
-static const char* doc_erfc =
-R"(erfc(x)
---
-
-Complementary error function ``erfc(x) = 1 - erf(x)``.
-
-The complementary error function is defined as the integral
-
-.. math::
-
-    \operatorname{erfc}(x) = \frac{2}{\sqrt{\tau}} \int^{\infty}_{x/\sqrt{2}} e^{-\frac12 t^2}dt
-
-Although mathematically `erfc(x) = 1-erf(x)`, in practice the RHS
-suffers catastrophic loss of precision at large values of `x`. This
-function, however, does not have such a drawback.
-
-See also
---------
-- :func:`erf(x) <datatable.math.erf>` -- the error function.
-)";
-
-py::PKArgs args_erfc(1, 0, 0, false, false, {"x"}, "erfc", doc_erfc);
+py::PKArgs args_erfc(1, 0, 0, false, false, {"x"}, "erfc", dt::doc_math_erfc);
 
 umaker_ptr resolve_op_erfc(SType stype) {
   return _resolve_special(stype, "erfc", &std::erfc, &std::erfc);
@@ -130,33 +92,7 @@ umaker_ptr resolve_op_erfc(SType stype) {
 // Op::GAMMA
 //------------------------------------------------------------------------------
 
-static const char* doc_gamma =
-R"(gamma(x)
---
-
-Euler Gamma function of x.
-
-The gamma function is defined for all ``x`` except for the negative
-integers. For positive ``x`` it can be computed via the integral
-
-.. math::
-    \Gamma(x) = \int_0^\infty t^{x-1}e^{-t}dt
-
-For negative ``x`` it can be computed as
-
-.. math::
-    \Gamma(x) = \frac{\Gamma(x + k)}{x(x+1)\cdot...\cdot(x+k-1)}
-
-where :math:`k` is any integer such that :math:`x+k` is positive.
-
-If `x` is a positive integer, then :math:`\Gamma(x) = (x - 1)!`.
-
-See also
---------
-- :func:`lgamma(x) <datatable.math.lgamma>` -- log-gamma function.
-)";
-
-py::PKArgs args_gamma(1, 0, 0, false, false, {"x"}, "gamma", doc_gamma);
+py::PKArgs args_gamma(1, 0, 0, false, false, {"x"}, "gamma", dt::doc_math_gamma);
 
 umaker_ptr resolve_op_gamma(SType stype) {
   return _resolve_special(stype, "gamma", &std::tgamma, &std::tgamma);
@@ -169,15 +105,7 @@ umaker_ptr resolve_op_gamma(SType stype) {
 // Op::LGAMMA
 //------------------------------------------------------------------------------
 
-static const char* doc_lgamma =
-R"(lgamma(x)
---
-
-Natural logarithm of the absolute value of the Euler Gamma
-function of `x`.
-)";
-
-py::PKArgs args_lgamma(1, 0, 0, false, false, {"x"}, "lgamma", doc_lgamma);
+py::PKArgs args_lgamma(1, 0, 0, false, false, {"x"}, "lgamma", dt::doc_math_lgamma);
 
 umaker_ptr resolve_op_lgamma(SType stype) {
   return _resolve_special(stype, "lgamma", &std::lgamma, &std::lgamma);

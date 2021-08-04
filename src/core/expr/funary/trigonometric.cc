@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "documentation.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
@@ -65,23 +66,7 @@ static umaker_ptr _resolve_trig(SType stype, const char* name,
 // Op::SIN
 //------------------------------------------------------------------------------
 
-static const char* doc_sin =
-R"(sin(x)
---
-
-Compute the trigonometric sine of angle ``x`` measured in radians.
-
-This function can only be applied to numeric columns (real, integer, or
-boolean), and produces a float64 result, except when the argument ``x`` is
-float32, in which case the result is float32 as well.
-
-See also
---------
-- :func:`cos(x)` -- the trigonometric cosine function;
-- :func:`arcsin(x)` -- the inverse sine function.
-)";
-
-py::PKArgs args_sin(1, 0, 0, false, false, {"x"}, "sin", doc_sin);
+py::PKArgs args_sin(1, 0, 0, false, false, {"x"}, "sin", dt::doc_math_sin);
 
 
 umaker_ptr resolve_op_sin(SType stype) {
@@ -95,23 +80,7 @@ umaker_ptr resolve_op_sin(SType stype) {
 // Op::COS
 //------------------------------------------------------------------------------
 
-static const char* doc_cos =
-R"(cos(x)
---
-
-Compute the trigonometric cosine of angle ``x`` measured in radians.
-
-This function can only be applied to numeric columns (real, integer, or
-boolean), and produces a float64 result, except when the argument ``x`` is
-float32, in which case the result is float32 as well.
-
-See also
---------
-- :func:`sin(x)` -- the trigonometric sine function;
-- :func:`arccos(x)` -- the inverse cosine function.
-)";
-
-py::PKArgs args_cos(1, 0, 0, false, false, {"x"}, "cos", doc_cos);
+py::PKArgs args_cos(1, 0, 0, false, false, {"x"}, "cos", dt::doc_math_cos);
 
 
 umaker_ptr resolve_op_cos(SType stype) {
@@ -125,23 +94,7 @@ umaker_ptr resolve_op_cos(SType stype) {
 // Op::TAN
 //------------------------------------------------------------------------------
 
-static const char* doc_tan =
-R"(tan(x)
---
-
-Compute the trigonometric tangent of ``x``, which is the ratio
-``sin(x)/cos(x)``.
-
-This function can only be applied to numeric columns (real, integer, or
-boolean), and produces a float64 result, except when the argument ``x`` is
-float32, in which case the result is float32 as well.
-
-See also
---------
-- :func:`arctan(x)` -- the inverse tangent function.
-)";
-
-py::PKArgs args_tan(1, 0, 0, false, false, {"x"}, "tan", doc_tan);
+py::PKArgs args_tan(1, 0, 0, false, false, {"x"}, "tan", dt::doc_math_tan);
 
 
 umaker_ptr resolve_op_tan(SType stype) {
@@ -155,27 +108,7 @@ umaker_ptr resolve_op_tan(SType stype) {
 // Op::ARCSIN
 //------------------------------------------------------------------------------
 
-static const char* doc_arcsin =
-R"(arcsin(x)
---
-
-Inverse trigonometric sine of `x`.
-
-In mathematics, this may be written as :math:`\arcsin x` or
-:math:`\sin^{-1}x`.
-
-The returned value is in the interval :math:`[-\frac14 \tau, \frac14\tau]`,
-and NA for the values of ``x`` that lie outside the interval ``[-1, 1]``.
-This function is the inverse of :func:`sin()` in the sense
-that `sin(arcsin(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
-
-See also
---------
-- :func:`sin(x)` -- the trigonometric sine function;
-- :func:`arccos(x)` -- the inverse cosine function.
-)";
-
-py::PKArgs args_arcsin(1, 0, 0, false, false, {"x"}, "arcsin", doc_arcsin);
+py::PKArgs args_arcsin(1, 0, 0, false, false, {"x"}, "arcsin", dt::doc_math_arcsin);
 
 
 umaker_ptr resolve_op_arcsin(SType stype) {
@@ -189,28 +122,7 @@ umaker_ptr resolve_op_arcsin(SType stype) {
 // Op::ARCCOS
 //------------------------------------------------------------------------------
 
-static const char* doc_arccos =
-R"(arccos(x)
---
-
-Inverse trigonometric cosine of `x`.
-
-In mathematics, this may be written as :math:`\arccos x` or
-:math:`\cos^{-1}x`.
-
-The returned value is in the interval :math:`[0, \frac12\tau]`,
-and NA for the values of ``x`` that lie outside the interval
-``[-1, 1]``. This function is the inverse of
-:func:`cos()` in the sense that
-`cos(arccos(x)) == x` for all ``x`` in the interval ``[-1, 1]``.
-
-See also
---------
-- :func:`cos(x)` -- the trigonometric cosine function;
-- :func:`arcsin(x)` -- the inverse sine function.
-)";
-
-py::PKArgs args_arccos(1, 0, 0, false, false, {"x"}, "arccos", doc_arccos);
+py::PKArgs args_arccos(1, 0, 0, false, false, {"x"}, "arccos", dt::doc_math_arccos);
 
 
 umaker_ptr resolve_op_arccos(SType stype) {
@@ -224,21 +136,7 @@ umaker_ptr resolve_op_arccos(SType stype) {
 // Op::ARCTAN
 //------------------------------------------------------------------------------
 
-static const char* doc_arctan =
-R"(arctan(x)
---
-
-Inverse trigonometric tangent of `x`.
-
-This function satisfies the property that ``tan(arctan(x)) == x``.
-
-See also
---------
-- :func:`atan2(x, y)` -- two-argument inverse tangent function;
-- :func:`tan(x)` -- the trigonometric tangent function.
-)";
-
-py::PKArgs args_arctan(1, 0, 0, false, false, {"x"}, "arctan", doc_arctan);
+py::PKArgs args_arctan(1, 0, 0, false, false, {"x"}, "arctan", dt::doc_math_arctan);
 
 
 umaker_ptr resolve_op_arctan(SType stype) {
@@ -252,19 +150,7 @@ umaker_ptr resolve_op_arctan(SType stype) {
 // Op::DEG2RAD
 //------------------------------------------------------------------------------
 
-static const char* doc_deg2rad =
-R"(deg2rad(x)
---
-
-Convert angle measured in degrees into radians:
-:math:`\operatorname{deg2rad}(x) = x\cdot\frac{\tau}{360}`.
-
-See also
---------
-- :func:`rad2deg(x)` -- convert radians into degrees.
-)";
-
-py::PKArgs args_deg2rad(1, 0, 0, false, false, {"x"}, "deg2rad", doc_deg2rad);
+py::PKArgs args_deg2rad(1, 0, 0, false, false, {"x"}, "deg2rad", dt::doc_math_deg2rad);
 
 
 static double f64_deg2rad(double x) {
@@ -289,19 +175,7 @@ umaker_ptr resolve_op_deg2rad(SType stype) {
 // Op::RAD2DEG
 //------------------------------------------------------------------------------
 
-static const char* doc_rad2deg =
-R"(rad2deg(x)
---
-
-Convert angle measured in radians into degrees:
-:math:`\operatorname{rad2deg}(x) = x\cdot\frac{360}{\tau}`.
-
-See also
---------
-- :func:`deg2rad(x)` -- convert degrees into radians.
-)";
-
-py::PKArgs args_rad2deg(1, 0, 0, false, false, {"x"}, "rad2deg", doc_rad2deg);
+py::PKArgs args_rad2deg(1, 0, 0, false, false, {"x"}, "rad2deg", dt::doc_math_rad2deg);
 
 
 static double f64_rad2deg(double x) {

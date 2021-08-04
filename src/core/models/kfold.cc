@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -24,10 +24,12 @@
 #include <numeric>   // std::accumulate
 #include <random>    // std::random_device, std::normal_distribution
 #include <vector>    // std::vector
+#include "documentation.h"
 #include "frame/py_frame.h"
 #include "parallel/api.h"
 #include "python/_all.h"
 #include "python/arg.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
 #include "utils/function.h"
 #include "column.h"
@@ -40,7 +42,7 @@ namespace py {
 // Misc. helper functions
 //------------------------------------------------------------------------------
 
-static void extract_args(const PKArgs& args,
+static void extract_args(const XArgs& args,
                          size_t* out_nrows, size_t* out_nsplits)
 {
   if (!args[0]) throw TypeError() << "Required parameter `nrows` is missing";
@@ -107,54 +109,7 @@ static size_t hypergeom(dt::function<double(void)> rnd,
 // kfold()
 //------------------------------------------------------------------------------
 
-static const char* doc_kfold =
-R"(kfold(nrows, nsplits)
---
-
-Perform k-fold split of data with `nrows` rows into `nsplits` train/test
-subsets. The dataset itself is not passed to this function:
-it is sufficient to know only the number of rows in order to decide
-how the data should be split.
-
-The range `[0; nrows)` is split into `nsplits` approximately equal parts,
-i.e. folds, and then each `i`-th split will use the `i`-th fold as a
-test part, and all the remaining rows as the train part. Thus, `i`-th split is
-comprised of:
-
-  - train rows: `[0; i*nrows/nsplits) + [(i+1)*nrows/nsplits; nrows)`;
-  - test rows: `[i*nrows/nsplits; (i+1)*nrows/nsplits)`.
-
-where integer division is assumed.
-
-Parameters
-----------
-nrows: int
-    The number of rows in the frame that is going to be split.
-
-nsplits: int
-    Number of folds, must be at least `2`, but not larger than `nrows`.
-
-return: List[Tuple]
-    This function returns a list of `nsplits` tuples `(train_rows, test_rows)`,
-    where each component of the tuple is a rows selector that can be applied
-    to any frame with `nrows` rows to select the desired folds.
-    Some of these row selectors will be simple python ranges,
-    others will be single-column Frame objects.
-
-See Also
---------
-:func:`kfold_random()` -- Perform randomized k-fold split.
-
-)";
-
-static PKArgs args_kfold_simple(
-  0, 0, 2, false, false,
-  {"nrows", "nsplits"}, "kfold",
-  doc_kfold
-);
-
-
-static oobj kfold(const PKArgs& args) {
+static oobj kfold(const XArgs& args) {
   size_t nrows, nsplits;
   extract_args(args, &nrows, &nsplits);
 
@@ -201,63 +156,18 @@ static oobj kfold(const PKArgs& args) {
   return std::move(res);
 }
 
+DECLARE_PYFN(&kfold)
+    ->name("kfold")
+    ->docs(dt::doc_models_kfold)
+    ->n_keyword_args(2)
+    ->arg_names({"nrows", "nsplits"});
+
 
 
 
 //------------------------------------------------------------------------------
 // kfold_random()
 //------------------------------------------------------------------------------
-
-static const char* doc_kfold_random =
-R"(kfold_random(nrows, nsplits, seed=None)
---
-
-Perform randomized k-fold split of data with `nrows` rows into
-`nsplits` train/test subsets. The dataset itself is not passed to this
-function: it is sufficient to know only the number of rows in order to decide
-how the data should be split.
-
-The train/test subsets produced by this function will have the following
-properties:
-
-  - all test folds will be of approximately the same size `nrows/nsplits`;
-  - all observations have equal ex-ante chance of getting assigned into each fold;
-  - the row indices in all train and test folds will be sorted.
-
-The function uses single-pass parallelized algorithm to construct the
-folds.
-
-Parameters
-----------
-nrows: int
-    The number of rows in the frame that you want to split.
-
-nsplits: int
-    Number of folds, must be at least `2`, but not larger than `nrows`.
-
-seed: int
-    Seed value for the random number generator used by this function.
-    Calling the function several times with the same seed values
-    will produce same results each time.
-
-return: List[Tuple]
-    This function returns a list of `nsplits` tuples `(train_rows, test_rows)`,
-    where each component of the tuple is a rows selector that can be applied to
-    to any frame with `nrows` rows to select the desired folds.
-
-
-See Also
---------
-:func:`kfold()` -- Perform k-fold split.
-
-)";
-
-static PKArgs args_kfold_random(
-  0, 0, 3, false, false,
-  {"nrows", "nsplits", "seed"}, "kfold_random",
-  doc_kfold_random
-);
-
 
 static constexpr size_t CHUNK_SIZE = 4096;
 
@@ -266,7 +176,7 @@ inline static size_t chunk_start(size_t i, size_t nchunks, size_t nrows) {
 }
 
 
-static oobj kfold_random(const PKArgs& args) {
+static oobj kfold_random(const XArgs& args) {
   size_t nrows, nsplits;
   extract_args(args, &nrows, &nsplits);
 
@@ -421,12 +331,13 @@ static oobj kfold_random(const PKArgs& args) {
   return std::move(res);
 }
 
+DECLARE_PYFN(&kfold_random)
+    ->name("kfold_random")
+    ->docs(dt::doc_models_kfold_random)
+    ->n_keyword_args(3)
+    ->arg_names({"nrows", "nsplits", "seed"});
 
 
-void DatatableModule::init_methods_kfold() {
-  ADD_FN(&kfold, args_kfold_simple);
-  ADD_FN(&kfold_random, args_kfold_random);
-}
 
 
 } // namespace py
