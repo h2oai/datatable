@@ -345,10 +345,6 @@ void py::DatatableModule::init_methods() {
   init_fbinary();
   init_funary();
   init_fuzzy();
-
-  #ifdef DTTEST
-    init_tests();
-  #endif
 }
 
 
