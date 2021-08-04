@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <iostream>
+#include "documentation.h"
 #include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
 #include "expr/fexpr_column.h"
@@ -230,73 +231,31 @@ oobj PyFExpr::nb__pos__() {
 
 //----- Other methods ----------------------------------------------------------
 
-static const char* doc_extend =
-R"(extend(self, arg)
---
-
-Append ``FExpr`` `arg` to the current FExpr.
-
-Each ``FExpr`` represents a collection of columns, or a columnset. This
-method takes two such columnsets and combines them into a single one,
-similar to :func:`cbind() <datatable.cbind>`.
-
-
-Parameters
-----------
-arg: FExpr
-    The expression to append.
-
-return: FExpr
-    New FExpr which is a combination of the current FExpr and `arg`.
-
-
-See also
---------
-- :meth:`remove() <dt.FExpr.remove>` -- remove columns from a columnset.
-)";
-
-static PKArgs args_extend(1, 0, 0, false, false, {"arg"}, "extend", doc_extend);
-
-oobj PyFExpr::extend(const PKArgs& args) {
+oobj PyFExpr::extend(const XArgs& args) {
   auto arg = args[0].to<oobj>(py::None());
   return make_binexpr(dt::expr::Op::SETPLUS, robj(this), arg);
 }
 
-
-static const char* doc_remove =
-R"(remove(self, arg)
---
-
-Remove columns `arg` from the current FExpr.
-
-Each ``FExpr`` represents a collection of columns, or a columnset. Some
-of those columns are computed while others are specified "by reference",
-for example ``f.A``, ``f[:3]`` or ``f[int]``. This method allows you to
-remove by-reference columns from an existing FExpr.
+DECLARE_METHOD(&PyFExpr::extend)
+    ->name("extend")
+    ->docs(dt::doc_FExpr_extend)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
 
 
-Parameters
-----------
-arg: FExpr
-    The columns to remove. These must be "columns-by-reference", i.e.
-    they cannot be computed columns.
 
-return: FExpr
-    New FExpr which is a obtained from the current FExpr by removing
-    the columns in `arg`.
-
-
-See also
---------
-- :meth:`extend() <dt.FExpr.extend>` -- append a columnset.
-)";
-
-static PKArgs args_remove(1, 0, 0, false, false, {"arg"}, "remove", doc_remove);
-
-oobj PyFExpr::remove(const PKArgs& args) {
+oobj PyFExpr::remove(const XArgs& args) {
   auto arg = args[0].to_oobj();
   return make_binexpr(dt::expr::Op::SETMINUS, robj(this), arg);
 }
+
+DECLARE_METHOD(&PyFExpr::remove)
+    ->name("remove")
+    ->docs(dt::doc_FExpr_remove)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
 
 
 
@@ -310,10 +269,8 @@ oobj PyFExpr::len() {
 }
 
 
-static PKArgs args_re_match(
-    0, 1, 0, false, false, {"pattern"}, "re_match", nullptr);
 
-oobj PyFExpr::re_match(const PKArgs& args) {
+oobj PyFExpr::re_match(const XArgs& args) {
   auto arg_pattern = args[0].to_oobj_or_none();
   auto w = DeprecationWarning();
   w << "Method Expr.re_match() is deprecated since 0.11.0, "
@@ -322,6 +279,13 @@ oobj PyFExpr::re_match(const PKArgs& args) {
   w.emit_warning();
   return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern));
 }
+
+DECLARE_METHOD(&PyFExpr::re_match)
+    ->name("re_match")
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"pattern"});
+
+
 
 
 
@@ -673,56 +637,17 @@ DECLARE_METHOD(&PyFExpr::first)
 // Class decoration
 //------------------------------------------------------------------------------
 
-static const char* doc_fexpr =
-R"(
-FExpr is an object that encapsulates computations to be done on a frame.
-
-FExpr objects are rarely constructed directly (though it is possible too),
-instead they are more commonly created as inputs/outputs from various
-functions in :mod:`datatable`.
-
-Consider the following example::
-
-    math.sin(2 * f.Angle)
-
-Here accessing column "Angle" in namespace ``f`` creates an ``FExpr``.
-Multiplying this ``FExpr`` by a python scalar ``2`` creates a new ``FExpr``.
-And finally, applying the sine function creates yet another ``FExpr``. The
-resulting expression can be applied to a frame via the
-:meth:`DT[i,j] <dt.Frame.__getitem__>` method, which will compute that expression
-using the data of that particular frame.
-
-Thus, an ``FExpr`` is a stored computation, which can later be applied to a
-Frame, or to multiple frames.
-
-Because of its delayed nature, an ``FExpr`` checks its correctness at the time
-when it is applied to a frame, not sooner. In particular, it is possible for
-the same expression to work with one frame, but fail with another. In the
-example above, the expression may raise an error if there is no column named
-"Angle" in the frame, or if the column exists but has non-numeric type.
-
-Most functions in datatable that accept an ``FExpr`` as an input, return
-a new ``FExpr`` as an output, thus creating a tree of ``FExpr``s as the
-resulting evaluation graph.
-
-Also, all functions that accept ``FExpr``s as arguments, will also accept
-certain other python types as an input, essentially converting them into
-``FExpr``s. Thus, we will sometimes say that a function accepts **FExpr-like**
-objects as arguments.
-
-)";
-
 void PyFExpr::impl_init_type(XTypeMaker& xt) {
   xt.set_class_name("datatable.FExpr");
-  xt.set_class_doc(doc_fexpr);
+  xt.set_class_doc(dt::doc_FExpr);
   xt.set_subclassable(false);
 
   xt.add(CONSTRUCTOR(&PyFExpr::m__init__, args__init__));
   xt.add(DESTRUCTOR(&PyFExpr::m__dealloc__));
-  xt.add(METHOD(&PyFExpr::extend, args_extend));
-  xt.add(METHOD(&PyFExpr::remove, args_remove));
+  // xt.add(METHOD(&PyFExpr::extend, args_extend));
+  // xt.add(METHOD(&PyFExpr::remove, args_remove));
   xt.add(METHOD0(&PyFExpr::len, "len"));
-  xt.add(METHOD(&PyFExpr::re_match, args_re_match));
+  // xt.add(METHOD(&PyFExpr::re_match, args_re_match));
 
   xt.add(METHOD__REPR__(&PyFExpr::m__repr__));
   xt.add(METHOD__ADD__(&PyFExpr::nb__add__));

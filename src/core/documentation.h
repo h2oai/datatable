@@ -204,6 +204,10 @@ extern const char* doc_Frame_type;
 extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
+extern const char* doc_FExpr;
+extern const char* doc_FExpr_extend;
+extern const char* doc_FExpr_remove;
+
 extern const char* doc_Namespace;
 
 extern const char* doc_Type;
