@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
+#include "documentation.h"
 #include "parallel/api.h"
 #include "parallel/job_shutdown.h"
 #include "parallel/thread_pool.h"
@@ -203,29 +204,6 @@ size_t get_hardware_concurrency() noexcept {
 }
 
 
-static const char* doc_options_nthreads =
-R"(
-
-This option controls the number of threads used by datatable
-for parallel calculations.
-
-Parameters
-----------
-return: int
-    Current `nthreads` value. Initially, this option is set to
-    the value returned by C++ call `std::thread::hardware_concurrency()`,
-    and usually equals to the number of available cores.
-
-new_nthreads: int
-    New `nthreads` value. It can be greater or smaller than the initial setting.
-    For example, setting `nthreads = 1` will force the library into
-    a single-threaded mode. Setting `nthreads` to `0` will restore
-    the initial value equal to the number of processor cores.
-    Setting `nthreads` to a value less than `0` is equivalent to requesting
-    that fewer threads than the maximum.
-
-)";
-
 
 static py::oobj get_nthreads() {
   return py::oint(num_threads_in_pool());
@@ -246,7 +224,7 @@ void ThreadPool::init_options() {
     "nthreads",
     get_nthreads,
     set_nthreads,
-    doc_options_nthreads
+    dt::doc_options_nthreads
   );
 }
 
