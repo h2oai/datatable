@@ -6,16 +6,27 @@ The documentation for ``datatable`` project is written entirely in the
 ReStructured Text (RST) format and rendered using the Sphinx engine. These
 technologies are standard for Python.
 
-The basic workflow for developing documentation, after
-:ref:`setting up a local datatable repository <local-setup>`, is to go into
-the ``docs/`` directory and run
+The source RST files for the documentation live in the ``/docs`` directory
+of the project. With every pull request they are sent to ``readthedocs.io``
+host, where they are automatically compiled into HTML and made available
+to the public. You can find the link to this new build in the list of "checks"
+at the bottom of every PR.
 
-.. code-block:: console
+The basic workflow for developing documentation is following:
 
-    $ make html
+    1. :ref:`Set up <local-setup>` a local datatable repository;
 
-After that, if there were no errors, the documentation can be viewed locally
-by opening the file ``docs/_build/html/index.html`` in a browser.
+    2. Go into the ``docs/`` directory and create new or change existing
+       documentation files;
+
+    3. Run in a terminal
+
+        .. code-block:: console
+
+            $ make html
+
+    4. If there were no errors, the documentation can be viewed locally
+       by opening the file ``docs/_build/html/index.html`` in a browser.
 
 The ``make html`` command needs to be re-run after every change you make.
 Occasionally you may also need to ``make clean`` if something doesn't seem to
