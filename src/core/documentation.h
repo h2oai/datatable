@@ -124,6 +124,8 @@ extern const char* doc_math_tanh;
 extern const char* doc_math_trunc;
 
 extern const char* doc_models_aggregate;
+extern const char* doc_models_kfold;
+extern const char* doc_models_kfold_random;
 
 extern const char* doc_models_Ftrl;
 extern const char* doc_models_Ftrl___init__;

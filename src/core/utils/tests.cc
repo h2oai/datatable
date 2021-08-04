@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@
 #include "datatablemodule.h"
 #include "python/_all.h"
 #include "python/args.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
 #ifdef DTTEST
@@ -192,28 +193,22 @@ static oobj get_tests_in_suite(const PKArgs& args) {
 }
 
 
-static const char* doc_run_test =
-R"(run_test(suite, test)
---
-
-Run a test within the test suite. The test does not return anything,
-but an error will be thrown if something goes wrong.
-)";
-
-static PKArgs arg_run_test(
-    2, 0, 0, false, false, {"suite", "test"}, "run_test", doc_run_test);
-
-static void run_test(const PKArgs& args) {
+static py::oobj run_test(const XArgs& args) {
   std::string suite = args[0].to_string();
   std::string test  = args[1].to_string();
   dt::tests::run_test(suite, test);
+  return py::None();
 }
+
+DECLARE_PYFN(&run_test)
+    ->name("run_test")
+    ->n_positional_args(2)
+    ->arg_names({"suite", "test"});
 
 
 void DatatableModule::init_tests() {
   ADD_FN(&get_test_suites, arg_get_test_suites);
   ADD_FN(&get_tests_in_suite, arg_get_tests_in_suite);
-  ADD_FN(&run_test, arg_run_test);
 }
 
 
