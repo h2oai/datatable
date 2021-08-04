@@ -125,6 +125,10 @@ extern const char* doc_options_debug_arg_max_size;
 extern const char* doc_options_debug_enabled;
 extern const char* doc_options_debug_logger;
 extern const char* doc_options_debug_report_args;
+extern const char* doc_options_fread_log_anonymize;
+extern const char* doc_options_fread_log_escape_unicode;
+extern const char* doc_options_fread_parse_dates;
+extern const char* doc_options_fread_parse_times;
 
 extern const char* doc_re_match;
 
