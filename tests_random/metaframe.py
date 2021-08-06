@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -28,7 +28,7 @@ import random
 import re
 import sys
 import warnings
-from datatable import dt, f, join
+import datatable as dt
 from datatable.internal import frame_integrity_check
 from tests_random.utils import (
     assert_equals,
@@ -37,8 +37,8 @@ from tests_random.utils import (
     random_type,
     repr_data,
     repr_row,
-    repr_types,
-    traced)
+    repr_types
+)
 
 
 class MetaFrame:
@@ -50,10 +50,6 @@ class MetaFrame:
         self.names = None
         self.types = None
         self.nkeys = 0
-        self.np_data = []
-        self.np_data_deepcopy = []
-        self.df_shallow_copy = None
-        self.df_deep_copy = None
         self._name = "DT" + str(MetaFrame.COUNTER)
         MetaFrame.COUNTER += 1
 
@@ -116,9 +112,32 @@ class MetaFrame:
         frame.names = list(DT.names)
         frame.types = [_ltype_to_pytype[lt] for lt in DT.ltypes]
         frame.nkeys = len(DT.key)
-        print(f"{frame.name} = <loaded from {filename}>")
+        print(f"{frame.name} = dt.fread({repr(filename)}")
         return frame
 
+
+    def save_to_jay(self, filename):
+        self.df.to_jay(filename)
+
+
+    def dedup_names(self):
+        seen_names = set()
+        for i, name in enumerate(self.names):
+            if name in seen_names:
+                base = name
+                while base[-1].isdigit():
+                    base = base[:-1]
+                if base == name:
+                    if base[-1] != '.':
+                        base += "."
+                    num = -1  # will be incremented to 0 in the while-loop
+                else:
+                    num = int(name[len(base):])
+                while name in seen_names:
+                    num += 1
+                    name = base + str(num)
+                self.names[i] = name
+            seen_names.add(name)
 
 
     #---------------------------------------------------------------------------
@@ -151,10 +170,6 @@ class MetaFrame:
 
     def check(self):
         frame_integrity_check(self.df)
-        if self.df_shallow_copy:
-            frame_integrity_check(self.df_shallow_copy)
-            frame_integrity_check(self.df_deep_copy)
-            assert_equals(self.df_shallow_copy, self.df_deep_copy)
         self.check_shape()
         self.check_types()
         self.check_keys()
@@ -163,7 +178,6 @@ class MetaFrame:
                   "       py.names=%r" % (self.df.names, tuple(self.names)))
             sys.exit(1)
         self.check_data()
-        self.check_np_data()
 
     def check_shape(self):
         df_nrows = self.df.nrows
@@ -217,320 +231,6 @@ class MetaFrame:
                     sys.exit(1)
             assert False, "Data check failed..."
 
-
-    def check_np_data(self):
-        import numpy as np
-        np_data1 = self.np_data
-        np_data2 = self.np_data_deepcopy
-
-        assert len(np_data1) == len(np_data2), "Numpy data shape check failed..."
-        for i, np_col1 in enumerate(np_data1):
-            np_col2 = np_data2[i]
-            assert len(np_col1) == len(np_col2), "Numpy column shape check failed..."
-            if np.array_equal(np_col1, np_col2):
-                continue
-            print("ERROR: numpy data mismatch at column %d" % i)
-            for j, np_val1 in enumerate(np_col1):
-                np_val2 = np_col2[j]
-                if np_val1 == np_val2:
-                    continue
-                print("  first difference: np_col1[%d]=%r != np_col2[%d]=%r"
-                      % (j, np_val1, j, np_val2))
-                print("  np_col1 data: %s" % repr_row(list(np_col1), j))
-                print("  np_col2 data: %s" % repr_row(list(np_col2), j))
-                sys.exit(1)
-            assert False, "Numpy data check failed..."
-
-    #---------------------------------------------------------------------------
-    # Operations
-    #---------------------------------------------------------------------------
-
-    @traced
-    def resize_rows(self, nrows):
-        curr_nrows = self.nrows
-        if self.nkeys and nrows > curr_nrows:
-            msg = "Cannot increase the number of rows in a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                self.df.nrows = nrows
-
-        else:
-            self.df.nrows = nrows
-
-            if curr_nrows < nrows:
-                append = [None] * (nrows - curr_nrows)
-                for i, elem in enumerate(self.data):
-                    self.data[i] = elem + append
-            elif curr_nrows > nrows:
-                for i, elem in enumerate(self.data):
-                    elem[:] = elem[:nrows]
-
-
-    @traced
-    def slice_rows(self, s):
-        self.df = self.df[s, :]
-        if isinstance(s, slice):
-            for i in range(self.ncols):
-                self.data[i] = self.data[i][s]
-        else:
-            assert isinstance(s, list)
-            for i in range(self.ncols):
-                col = self.data[i]
-                self.data[i] = [col[j] for j in s]
-        self.nkeys = 0
-
-
-    @traced
-    def delete_rows(self, s):
-        assert isinstance(s, slice) or isinstance(s, list)
-        nrows = self.nrows
-        del self.df[s, :]
-        if isinstance(s, slice):
-            s = list(range(nrows))[s]
-        index = sorted(set(range(nrows)) - set(s))
-        for i in range(self.ncols):
-            col = self.data[i]
-            self.data[i] = [col[j] for j in index]
-
-
-    @traced
-    def delete_columns(self, s):
-        assert isinstance(s, slice) or isinstance(s, list)
-        if isinstance(s, slice):
-            s = list(range(self.ncols))[s]
-        set_keys = set(range(self.nkeys))
-        set_delcols = set(s)
-        nkeys_remove = len(set_keys.intersection(set_delcols))
-
-        if (nkeys_remove > 0 and nkeys_remove < self.nkeys and self.nrows > 0):
-            msg = "Cannot delete a column that is a part of a multi-column key"
-            with pytest.raises(ValueError, match=msg):
-                del self.df[:, s]
-        else:
-            ncols = self.ncols
-            del self.df[:, s]
-            new_column_ids = sorted(set(range(ncols)) - set(s))
-            self.data = [self.data[i] for i in new_column_ids]
-            self.names = [self.names[i] for i in new_column_ids]
-            self.types = [self.types[i] for i in new_column_ids]
-            self.nkeys -= nkeys_remove
-
-
-    @traced
-    def slice_cols(self, s):
-        self.df = self.df[:, s]
-        self.data = self.data[s]
-        self.names = self.names[s]
-        self.types = self.types[s]
-        self.nkeys = 0
-
-
-    @traced
-    def cbind(self, frames):
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", dt.exceptions.DatatableWarning)
-            self.df.cbind(*[iframe.df for iframe in frames])
-        newdata = copy.deepcopy(self.data)
-        newnames = self.names.copy()
-        newtypes = self.types.copy()
-        for iframe in frames:
-            newdata += copy.deepcopy(iframe.data)
-            newnames += iframe.names
-            newtypes += iframe.types
-        self.data = newdata
-        self.names = newnames
-        self.types = newtypes
-        self.dedup_names()
-
-
-    @traced
-    def rbind(self, frames):
-        if (self.nkeys > 0) and (self.nrows > 0):
-            msg = "Cannot rbind to a keyed frame"
-            with pytest.raises(ValueError, match=msg):
-                self.df.rbind(*[iframe.df for iframe in frames])
-
-        else:
-            self.df.rbind(*[iframe.df for iframe in frames])
-
-            newdata = [col.copy() for col in self.data]
-            for iframe in frames:
-                assert iframe.ncols == self.ncols
-                for j in range(self.ncols):
-                    assert self.types[j] == iframe.types[j]
-                    assert self.names[j] == iframe.names[j]
-                    newdata[j] += iframe.data[j]
-            self.data = newdata
-
-
-    @traced
-    def filter_on_bool_column(self, icol):
-        assert self.types[icol] is bool
-        filter_col = self.data[icol]
-        self.data = [[value for i, value in enumerate(column) if filter_col[i]]
-                     for column in self.data]
-        self.df = self.df[f[icol], :]
-        self.nkeys = 0
-
-
-    @traced
-    def replace_nas_in_column(self, icol, replacement_value):
-        assert 0 <= icol < self.ncols
-        assert isinstance(replacement_value, self.types[icol])
-
-        if icol < self.nkeys:
-            msg = 'Cannot change values in a key column %s' % self.names[icol]
-            msg = re.escape(msg)
-            with pytest.raises(ValueError, match=msg):
-                self.df[f[icol] == None, f[icol]] = replacement_value
-
-        else:
-            self.df[f[icol] == None, f[icol]] = replacement_value
-            column = self.data[icol]
-            for i, value in enumerate(column):
-                if value is None:
-                    column[i] = replacement_value
-
-
-    @traced
-    def sort_columns(self, a):
-        self.df = self.df.sort(a)
-        if self.nrows:
-            data = list(zip(*self.data))
-            data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in a])
-            self.data = list(map(list, zip(*data)))
-        self.nkeys = 0
-
-
-    @traced
-    def cbind_numpy_column(self):
-        import numpy as np
-        # Numpy has no concept of "void" column (at least, not similar to ours),
-        # so avoid that random type:
-        coltype = None
-        while coltype is None:
-            coltype = random_type()
-        mfraction = random.random()
-        data, mmask = random_column(self.nrows, coltype, mfraction, False)
-
-        # On Linux/Mac numpy's default int type is np.int64,
-        # while on Windows it is np.int32. Here we force it to be
-        # np.int64 for consistency.
-        np_dtype = np.int64 if coltype == int else np.dtype(coltype)
-        np_data = np.ma.array(data, mask=mmask, dtype=np_dtype)
-
-        # Save random numpy arrays to make sure they don't change with
-        # munging. Arrays that are not saved here will be eventually deleted
-        # by Python, in such a case we also test datatable behaviour.
-        if random.random() > 0.5:
-            self.np_data += [np_data]
-            self.np_data_deepcopy += [copy.deepcopy(np_data)]
-
-        names = random_names(1)
-        df = dt.Frame(np_data.T, names=names)
-
-        for i in range(self.nrows):
-            if mmask[i]: data[i] = None
-
-        self.df.cbind(df)
-        self.data += [data]
-        self.types += [coltype]
-        self.names += names
-        self.dedup_names()
-
-
-    @traced
-    def add_range_column(self, name, rangeobj):
-        self.data += [list(rangeobj)]
-        self.names += [name]
-        self.types += [int]
-        self.dedup_names()
-        self.df.cbind(dt.Frame(rangeobj, names=[name]))
-
-
-    @traced
-    def set_key_columns(self, keys, names):
-        key_data = [self.data[i] for i in keys]
-        unique_rows = set(zip(*key_data))
-        if len(unique_rows) == self.nrows:
-            self.df.key = names
-
-            nonkeys = sorted(set(range(self.ncols)) - set(keys))
-            new_column_order = keys + nonkeys
-
-            self.types = [self.types[i] for i in new_column_order]
-            self.names = [self.names[i] for i in new_column_order]
-            self.nkeys = len(keys)
-
-            if self.nrows:
-                data = list(zip(*self.data))
-                data.sort(key=lambda x: [(x[i] is not None, x[i]) for i in keys])
-                self.data = list(map(list, zip(*data)))
-                self.data = [self.data[i] for i in new_column_order]
-
-        else:
-            msg = "Cannot set a key: the values are not unique"
-            with pytest.raises(ValueError, match=msg):
-                self.df.key = names
-
-
-    @traced
-    def join_self(self):
-        ncols = self.ncols
-        if self.nkeys:
-            self.df = self.df[:, :, join(self.df)]
-
-            s = slice(self.nkeys, ncols)
-            join_data = copy.deepcopy(self.data[s])
-            join_types = self.types[s].copy()
-            join_names = self.names[s].copy()
-
-            self.data += join_data
-            self.types += join_types
-            self.names += join_names
-            self.nkeys = 0
-            self.dedup_names()
-
-        else:
-            msg = "The join frame is not keyed"
-            with pytest.raises(ValueError, match=msg):
-                self.df = self.df[:, :, join(self.df)]
-
-
-    @traced
-    def shallow_copy(self):
-        # This is a noop for the python data
-        self.df_shallow_copy = self.df.copy()
-        self.df_deep_copy = copy.deepcopy(self.df)
-
-
-    @traced
-    def save_to_jay(self, filename):
-        self.df.to_jay(filename)
-
-
-
-    #---------------------------------------------------------------------------
-    # Helpers
-    #---------------------------------------------------------------------------
-
-    def dedup_names(self):
-        seen_names = set()
-        for i, name in enumerate(self.names):
-            if name in seen_names:
-                base = name
-                while base[-1].isdigit():
-                    base = base[:-1]
-                if base == name:
-                    if base[-1] != '.':
-                        base += "."
-                    num = -1  # will be incremented to 0 in the while-loop
-                else:
-                    num = int(name[len(base):])
-                while name in seen_names:
-                    num += 1
-                    name = base + str(num)
-                self.names[i] = name
-            seen_names.add(name)
 
 
 _ltype_to_pytype = {

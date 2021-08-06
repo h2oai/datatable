@@ -22,7 +22,9 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 #
-# For usage information, run:
+# Run a battery of randomized datatable tests.
+#
+# For usage information, see
 #
 #     python tests_random/continuous.py --help
 #
@@ -74,7 +76,7 @@ def start_random_attack(n_attacks=None,
 def try_seed(seed, skip_successful_seeds, log_dir, no_forks):
     utf8_env = os.environ
     utf8_env['PYTHONIOENCODING'] = 'utf-8'
-    script = os.path.join(os.path.dirname(__file__), "attacker.py")
+    script = os.path.join(os.path.dirname(__file__), "single.py")
     proc = subprocess.Popen([sys.executable, script, str(seed)] +
                             ["--noforks"] * no_forks,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE,

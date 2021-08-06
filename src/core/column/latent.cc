@@ -83,6 +83,7 @@ bool Latent_ColumnImpl::get_element(size_t i, float* out)    const { return vivi
 bool Latent_ColumnImpl::get_element(size_t i, double* out)   const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, CString* out)  const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, py::oobj* out) const { return vivify()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, Column* out)   const { return vivify()->get_element(i, out); }
 
 
 // This method is not thread-safe!
