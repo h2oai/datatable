@@ -1127,6 +1127,7 @@ class SortContext {
    */
   template <bool make_groups>
   void radix_psort() {
+    start:
     int32_t* ores = o;
     determine_sorting_parameters();
     build_histogram();
@@ -1140,7 +1141,8 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      _radix_recurse<make_groups>(rrmap_ptr);
+      bool retry = _radix_recurse<make_groups>(rrmap_ptr);
+      if (retry) goto start;
       nsigbits = _nsigbits;
     }
     else if (make_groups) {
@@ -1199,7 +1201,7 @@ class SortContext {
    * radix range, our job will be complete.
    */
   template <bool make_groups>
-  void _radix_recurse(radix_range* rrmap) {
+  bool _radix_recurse(radix_range* rrmap) {
     xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
@@ -1244,6 +1246,17 @@ class SortContext {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
+        // If `strstart` characters in all strings were the same, then instead
+        // of recursing into `radix_psort` below, we will exit the method with
+        // the special "retry" status. The caller will then try to sort again.
+        // This works because we have already incremented `strstart` above,
+        // thus the caller will be retrying with the next character.
+        // We're doing this trick instead of a normal recursive call, because
+        // if we are sorting very long identical strings, there is a danger to
+        // create a very deep chain of recursion which will result in a stack
+        // overflow and a crash. With this return status we're effectively
+        // doing a manual tail-call elimination. See issue #3134.
+        if (sz == n && is_string) return true;
         elemsize = _elemsize;
         n = sz;
         x = rmem(_x, off * elemsize, n * elemsize);
@@ -1336,6 +1349,7 @@ class SortContext {
     if (own_tmp) {
       delete[] tmp;
     }
+    return false;
   }
 
 
