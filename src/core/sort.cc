@@ -1128,7 +1128,7 @@ class SortContext {
    */
   template <bool make_groups>
   void radix_psort() {
-    // start:
+    start:
     int32_t* ores = o;
     determine_sorting_parameters();
     build_histogram();
@@ -1142,10 +1142,9 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      // bool retry =
+      bool retry =
       _radix_recurse<make_groups>(rrmap_ptr);
-      // xassert(!retry);
-      // if (retry) goto start;
+      if (retry) goto start;
       nsigbits = _nsigbits;
     }
     else if (make_groups) {
