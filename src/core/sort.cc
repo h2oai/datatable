@@ -1297,54 +1297,49 @@ class SortContext {
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
-      // size_t size_all = size0 * nthreads * sizeof(int32_t);
-      // if ((size_t)_next_elemsize * _n <= size_all) {
-      //   tmp = (int32_t*)_x;
-      // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nth];
-      // }
-    }
 
-    dt::parallel_region(dt::NThreads(nth),
-      [&] {
-        size_t tnum = dt::this_thread_index();
-        int32_t* oo = tmp + tnum * size0;
-        GroupGatherer tgg;
+      dt::parallel_region(dt::NThreads(nth),
+        [&] {
+          size_t tnum = dt::this_thread_index();
+          int32_t* oo = tmp + tnum * size0;
+          GroupGatherer tgg;
 
-        dt::nested_for_static(
-          /* n_iterations */ _nradixes,
-          [&](size_t i) {
-            size_t zn  = rrmap[i].size;
-            size_t off = rrmap[i].offset;
-            if (zn > rrlarge) {
-              rrmap[i].size = zn & ~GROUPED;
-            } else if (zn > 1) {
-              int32_t  tn = static_cast<int32_t>(zn);
-              rmem     tx { _x, off * elemsize, zn * elemsize };
-              int32_t* to = _o + off;
-              if (make_groups) {
-                tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
-              }
-              if (is_string) {
-                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
-              } else {
-                switch (elemsize) {
-                  case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
-                  case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
-                  case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
-                  case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+          dt::nested_for_static(
+            /* n_iterations */ _nradixes,
+            [&](size_t i) {
+              size_t zn  = rrmap[i].size;
+              size_t off = rrmap[i].offset;
+              if (zn > rrlarge) {
+                rrmap[i].size = zn & ~GROUPED;
+              } else if (zn > 1) {
+                int32_t  tn = static_cast<int32_t>(zn);
+                rmem     tx { _x, off * elemsize, zn * elemsize };
+                int32_t* to = _o + off;
+                if (make_groups) {
+                  tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
                 }
+                if (is_string) {
+                  insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
+                } else {
+                  switch (elemsize) {
+                    case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
+                    case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
+                    case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
+                    case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+                  }
+                }
+                if (make_groups) {
+                  rrmap[i].size = static_cast<size_t>(tgg.size());
+                }
+              } else if (zn == 1 && make_groups) {
+                ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
+                rrmap[i].size = 1;
               }
-              if (make_groups) {
-                rrmap[i].size = static_cast<size_t>(tgg.size());
-              }
-            } else if (zn == 1 && make_groups) {
-              ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
-              rrmap[i].size = 1;
-            }
-          });  // dt::nested_for_static
-      });  // dt::parallel_region
+            });  // dt::nested_for_static
+        });  // dt::parallel_region
+    }
 
     // Consolidate groups into a single contiguous chunk
     if (make_groups) {
