@@ -6,13 +6,13 @@ The documentation for ``datatable`` project is written entirely in the
 ReStructured Text (RST) format and rendered using the Sphinx engine. These
 technologies are standard for Python.
 
-The source RST files for the documentation live in the ``/docs`` directory
+The source RST files for the documentation live in the ``docs/`` directory
 of the project. With every pull request they are sent to ``readthedocs.io``
 host, where they are automatically compiled into HTML and made available
 to the public. You can find the link to this new build in the list of "checks"
 at the bottom of every PR.
 
-The basic workflow for developing documentation is following:
+The basic workflow for developing documentation is the following:
 
     1. :ref:`Set up <local-setup>` a local datatable repository;
 
