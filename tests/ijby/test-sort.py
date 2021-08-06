@@ -1147,3 +1147,17 @@ def test_sort_consts2():
     # see issue #3088
     DT = dt.Frame([dt.math.nan, dt.math.nan])[:, dt.count(), dt.by(0)]
     assert_equals(DT, dt.Frame(C0=[None], count=[2]/dt.int64))
+
+
+def test_sort_long_identical_strings():
+    # see issue #3134
+    src = ["o" * 20000] * 1000
+    DT = dt.Frame(src).sort(0)
+    assert_equals(DT, dt.Frame(src))
+
+
+def test_sort_long_nnearly_identical_strings():
+    # see issue #3134
+    src = ["o" * 20000 + str(i % 10) for i in range(1000)]
+    DT = dt.Frame(src).sort(0)
+    assert_equals(DT, dt.Frame(sorted(src)))
