@@ -127,7 +127,6 @@
 #include <cstdlib>    // std::abs
 #include <cstring>    // std::memset, std::memcpy
 #include <vector>     // std::vector
-#include <iostream>
 #include "buffer.h"
 #include "column.h"
 #include "column/view.h"
