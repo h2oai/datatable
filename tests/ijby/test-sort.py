@@ -1149,7 +1149,6 @@ def test_sort_consts2():
     assert_equals(DT, dt.Frame(C0=[None], count=[2]/dt.int64))
 
 
-@pytest.mark.skip()
 def test_sort_long_identical_strings():
     # see issue #3134
     src = ["o" * 20000] * 1000
@@ -1157,7 +1156,6 @@ def test_sort_long_identical_strings():
     assert_equals(DT, dt.Frame(src))
 
 
-@pytest.mark.skip()
 def test_sort_long_nnearly_identical_strings():
     # see issue #3134
     src = ["o" * 20000 + str(i % 10) for i in range(1000)]

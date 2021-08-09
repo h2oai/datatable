@@ -1128,8 +1128,10 @@ class SortContext {
    */
   template <bool make_groups>
   void radix_psort() {
-    start:
     int32_t* ores = o;
+    size_t strstart0 = strstart;
+
+    start:
     determine_sorting_parameters();
     build_histogram();
     reorder_data();
@@ -1142,8 +1144,7 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      bool retry =
-      _radix_recurse<make_groups>(rrmap_ptr);
+      bool retry = _radix_recurse<make_groups>(rrmap_ptr);
       if (retry) goto start;
       nsigbits = _nsigbits;
     }
@@ -1158,6 +1159,7 @@ class SortContext {
       next_o = o;
       o = ores;
     }
+    strstart = strstart0;
   }
 
   void _fill_rrmap_from_histogram(radix_range* rrmap) {
@@ -1259,8 +1261,7 @@ class SortContext {
         // overflow and a crash. With this return status we're effectively
         // doing a manual tail-call elimination. See issue #3134.
         if (sz == n && off == 0 && is_string) {
-          // std::cout << "shortcut\n";
-          // return true;
+          return true;
         }
         elemsize = _elemsize;
         n = sz;
