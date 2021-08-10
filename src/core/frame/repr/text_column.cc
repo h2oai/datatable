@@ -209,6 +209,40 @@ tstring Data_TextColumn::_render_value_time(const Column& col, size_t i) const {
 }
 
 
+tstring Data_TextColumn::_render_value_array(const Column& col, size_t i) const {
+  Column value;
+  bool isvalid = col.get_element(i, &value);
+  if (isvalid) {
+    bool allow_unicode = term_->unicode_allowed();
+    int max_width0 = max_width_;
+    // Leave 5 chars for [, …]
+    int remaining_width = max_width_ - 5;
+    tstring out;
+    out << tstring("[");
+    for (size_t j = 0; j < value.nrows(); j++) {
+      if (j > 0) {
+        out << tstring(", ");
+        remaining_width -= 2;
+      }
+      const_cast<Data_TextColumn*>(this)->max_width_ = remaining_width;
+      tstring repr = _render_value(value, j);
+      out << repr;
+      remaining_width -= repr.size();
+      if (remaining_width <= 0) {
+        out << tstring(", ");
+        out << tstring(allow_unicode? "\xE2\x80\xA6" : "~", style::dim);
+        break;
+      }
+    }
+    out << tstring("]");
+    const_cast<Data_TextColumn*>(this)->max_width_ = max_width0;
+    return out;
+  } else {
+    return na_value_;
+  }
+}
+
+
 bool Data_TextColumn::_needs_escaping(const CString& str) const {
   size_t n = str.size();
   if (static_cast<int>(n) > max_width_) return true;
@@ -348,6 +382,8 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::STR64:   return _render_value_string(col, i);
     case SType::DATE32:  return _render_value_date(col, i);
     case SType::TIME64:  return _render_value_time(col, i);
+    case SType::ARR32:
+    case SType::ARR64:   return _render_value_array(col, i);
     default: return tstring("<unknown>", style::dim);
   }
 }

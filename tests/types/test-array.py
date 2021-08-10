@@ -190,3 +190,61 @@ def test_create_from_python_array_incompatible_child_types():
           "<class 'str'>, whereas previous elements were int32"
     with pytest.raises(TypeError, match=msg):
         DT = dt.Frame(E=src)
+
+
+
+#-------------------------------------------------------------------------------
+# Convert to (any)
+#-------------------------------------------------------------------------------
+
+def test_arr32_repr_in_terminal():
+    DT = dt.Frame(A=[[1], [2, 3], None, [4, 5, 6], []])
+    assert str(DT) == (
+        "   | A           \n"
+        "   | arr32(int32)\n"
+        "-- + ------------\n"
+        " 0 | [1]         \n"
+        " 1 | [2, 3]      \n"
+        " 2 | NA          \n"
+        " 3 | [4, 5, 6]   \n"
+        " 4 | []          \n"
+        "[5 rows x 1 column]\n"
+    )
+
+
+def test_arr32_repr_in_terminal2():
+    DT = dt.Frame(A=[['abeerfaer'] * 30])
+    assert str(DT) == (
+        "   | A                                                                                                   \n"
+        "   | arr32(str32)                                                                                        \n"
+        "-- + ----------------------------------------------------------------------------------------------------\n"
+        " 0 | [abeerfaer, abeerfaer, abeerfaer, abeerfaer, abeerfaer, abeerfaer, abeerfaer, abeerfaer, abeerf…, …]\n"
+        "[1 row x 1 column]\n"
+    )
+
+
+def test_arr32_arr32_repr():
+    DT = dt.Frame(V=[[[1, 2, 3], [4, 9]], None, [None], [[-1], [0, 13]]])
+    assert str(DT) == (
+        "   | V                  \n"
+        "   | arr32(arr32(int32))\n"
+        "-- + -------------------\n"
+        " 0 | [[1, 2, 3], [4, 9]]\n"
+        " 1 | NA                 \n"
+        " 2 | [NA]               \n"
+        " 3 | [[-1], [0, 13]]    \n"
+        "[4 rows x 1 column]\n"
+    )
+
+
+def test_arr32_of_strings_repr():
+    DT = dt.Frame(W=[['ad', 'dfkvjn'], ['b b, f', None], ['r', 'w', 'dfvdf']])
+    assert str(DT) == (
+        "   | W            \n"
+        "   | arr32(str32) \n"
+        "-- + -------------\n"
+        " 0 | [ad, dfkvjn] \n"
+        " 1 | [b b, f, NA] \n"
+        " 2 | [r, w, dfvdf]\n"
+        "[3 rows x 1 column]\n"
+    )
