@@ -235,3 +235,16 @@ def test_arr32_arr32_repr():
         " 3 | [[-1], [0, 13]]    \n"
         "[4 rows x 1 column]\n"
     )
+
+
+def test_arr32_of_strings_repr():
+    DT = dt.Frame(W=[['ad', 'dfkvjn'], ['b b, f', None], ['r', 'w', 'dfvdf']])
+    assert str(DT) == (
+        "   | W            \n"
+        "   | arr32(str32) \n"
+        "-- + -------------\n"
+        " 0 | [ad, dfkvjn] \n"
+        " 1 | [b b, f, NA] \n"
+        " 2 | [r, w, dfvdf]\n"
+        "[3 rows x 1 column]\n"
+    )
