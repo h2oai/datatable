@@ -1128,6 +1128,9 @@ class SortContext {
   template <bool make_groups>
   void radix_psort() {
     int32_t* ores = o;
+    size_t strstart0 = strstart;
+
+    start:
     determine_sorting_parameters();
     build_histogram();
     reorder_data();
@@ -1140,7 +1143,8 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      _radix_recurse<make_groups>(rrmap_ptr);
+      bool retry = _radix_recurse<make_groups>(rrmap_ptr);
+      if (retry) goto start;
       nsigbits = _nsigbits;
     }
     else if (make_groups) {
@@ -1154,6 +1158,7 @@ class SortContext {
       next_o = o;
       o = ores;
     }
+    strstart = strstart0;
   }
 
   void _fill_rrmap_from_histogram(radix_range* rrmap) {
@@ -1199,7 +1204,7 @@ class SortContext {
    * radix range, our job will be complete.
    */
   template <bool make_groups>
-  void _radix_recurse(radix_range* rrmap) {
+  bool _radix_recurse(radix_range* rrmap) {
     xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
@@ -1244,6 +1249,19 @@ class SortContext {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
+        // If `strstart` characters in all strings were the same, then instead
+        // of recursing into `radix_psort` below, we will exit the method with
+        // the special "retry" status. The caller will then try to sort again.
+        // This works because we have already incremented `strstart` above,
+        // thus the caller will be retrying with the next character.
+        // We're doing this trick instead of a normal recursive call, because
+        // if we are sorting very long identical strings, there is a danger to
+        // create a very deep chain of recursion which will result in a stack
+        // overflow and a crash. With this return status we're effectively
+        // doing a manual tail-call elimination. See issue #3134.
+        if (sz == n && off == 0 && is_string) {
+          return true;
+        }
         elemsize = _elemsize;
         n = sz;
         x = rmem(_x, off * elemsize, n * elemsize);
@@ -1279,54 +1297,49 @@ class SortContext {
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
-      // size_t size_all = size0 * nthreads * sizeof(int32_t);
-      // if ((size_t)_next_elemsize * _n <= size_all) {
-      //   tmp = (int32_t*)_x;
-      // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nth];
-      // }
-    }
 
-    dt::parallel_region(dt::NThreads(nth),
-      [&] {
-        size_t tnum = dt::this_thread_index();
-        int32_t* oo = tmp + tnum * size0;
-        GroupGatherer tgg;
+      dt::parallel_region(dt::NThreads(nth),
+        [&] {
+          size_t tnum = dt::this_thread_index();
+          int32_t* oo = tmp + tnum * size0;
+          GroupGatherer tgg;
 
-        dt::nested_for_static(
-          /* n_iterations */ _nradixes,
-          [&](size_t i) {
-            size_t zn  = rrmap[i].size;
-            size_t off = rrmap[i].offset;
-            if (zn > rrlarge) {
-              rrmap[i].size = zn & ~GROUPED;
-            } else if (zn > 1) {
-              int32_t  tn = static_cast<int32_t>(zn);
-              rmem     tx { _x, off * elemsize, zn * elemsize };
-              int32_t* to = _o + off;
-              if (make_groups) {
-                tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
-              }
-              if (is_string) {
-                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
-              } else {
-                switch (elemsize) {
-                  case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
-                  case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
-                  case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
-                  case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+          dt::nested_for_static(
+            /* n_iterations */ _nradixes,
+            [&](size_t i) {
+              size_t zn  = rrmap[i].size;
+              size_t off = rrmap[i].offset;
+              if (zn > rrlarge) {
+                rrmap[i].size = zn & ~GROUPED;
+              } else if (zn > 1) {
+                int32_t  tn = static_cast<int32_t>(zn);
+                rmem     tx { _x, off * elemsize, zn * elemsize };
+                int32_t* to = _o + off;
+                if (make_groups) {
+                  tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
                 }
+                if (is_string) {
+                  insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
+                } else {
+                  switch (elemsize) {
+                    case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
+                    case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
+                    case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
+                    case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+                  }
+                }
+                if (make_groups) {
+                  rrmap[i].size = static_cast<size_t>(tgg.size());
+                }
+              } else if (zn == 1 && make_groups) {
+                ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
+                rrmap[i].size = 1;
               }
-              if (make_groups) {
-                rrmap[i].size = static_cast<size_t>(tgg.size());
-              }
-            } else if (zn == 1 && make_groups) {
-              ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
-              rrmap[i].size = 1;
-            }
-          });  // dt::nested_for_static
-      });  // dt::parallel_region
+            });  // dt::nested_for_static
+        });  // dt::parallel_region
+    }
 
     // Consolidate groups into a single contiguous chunk
     if (make_groups) {
@@ -1336,6 +1349,7 @@ class SortContext {
     if (own_tmp) {
       delete[] tmp;
     }
+    return false;
   }
 
 
