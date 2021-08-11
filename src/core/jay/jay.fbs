@@ -45,7 +45,19 @@ enum SType : uint8 {
   Date32,
   Time64,
   Void0,
+  Arr32,
+  Arr64,
 }
+
+union TypeData {
+  child : Type
+}
+
+table Type {
+  stype:  SType;
+  extra: TypeData;
+}
+
 
 union Stats {
   Bool    : StatsBool,
