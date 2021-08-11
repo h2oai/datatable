@@ -30,42 +30,42 @@ struct ColumnBuilder;
 
 struct Buffer;
 
-enum Type {
-  Type_Bool8 = 0,
-  Type_Int8 = 1,
-  Type_Int16 = 2,
-  Type_Int32 = 3,
-  Type_Int64 = 4,
-  Type_Float32 = 5,
-  Type_Float64 = 6,
-  Type_Str32 = 7,
-  Type_Str64 = 8,
-  Type_Date32 = 9,
-  Type_Time64 = 10,
-  Type_Void0 = 11,
-  Type_MIN = Type_Bool8,
-  Type_MAX = Type_Void0
+enum SType {
+  SType_Bool8 = 0,
+  SType_Int8 = 1,
+  SType_Int16 = 2,
+  SType_Int32 = 3,
+  SType_Int64 = 4,
+  SType_Float32 = 5,
+  SType_Float64 = 6,
+  SType_Str32 = 7,
+  SType_Str64 = 8,
+  SType_Date32 = 9,
+  SType_Time64 = 10,
+  SType_Void0 = 11,
+  SType_MIN = SType_Bool8,
+  SType_MAX = SType_Void0
 };
 
-inline const Type (&EnumValuesType())[12] {
-  static const Type values[] = {
-    Type_Bool8,
-    Type_Int8,
-    Type_Int16,
-    Type_Int32,
-    Type_Int64,
-    Type_Float32,
-    Type_Float64,
-    Type_Str32,
-    Type_Str64,
-    Type_Date32,
-    Type_Time64,
-    Type_Void0
+inline const SType (&EnumValuesSType())[12] {
+  static const SType values[] = {
+    SType_Bool8,
+    SType_Int8,
+    SType_Int16,
+    SType_Int32,
+    SType_Int64,
+    SType_Float32,
+    SType_Float64,
+    SType_Str32,
+    SType_Str64,
+    SType_Date32,
+    SType_Time64,
+    SType_Void0
   };
   return values;
 }
 
-inline const char * const *EnumNamesType() {
+inline const char * const *EnumNamesSType() {
   static const char * const names[13] = {
     "Bool8",
     "Int8",
@@ -84,10 +84,10 @@ inline const char * const *EnumNamesType() {
   return names;
 }
 
-inline const char *EnumNameType(Type e) {
-  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Void0)) return "";
+inline const char *EnumNameSType(SType e) {
+  if (flatbuffers::IsOutRange(e, SType_Bool8, SType_Void0)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesType()[index];
+  return EnumNamesSType()[index];
 }
 
 enum Stats {
@@ -441,7 +441,7 @@ inline flatbuffers::Offset<Frame> CreateFrameDirect(
 struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ColumnBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TYPE = 4,
+    VT_STYPE = 4,
     VT_DATA = 6,
     VT_STRDATA = 8,
     VT_NAME = 10,
@@ -449,8 +449,8 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STATS_TYPE = 14,
     VT_STATS = 16
   };
-  jay::Type type() const {
-    return static_cast<jay::Type>(GetField<uint8_t>(VT_TYPE, 0));
+  jay::SType stype() const {
+    return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
   }
   const jay::Buffer *data() const {
     return GetStruct<const jay::Buffer *>(VT_DATA);
@@ -494,7 +494,7 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_STYPE) &&
            VerifyField<jay::Buffer>(verifier, VT_DATA) &&
            VerifyField<jay::Buffer>(verifier, VT_STRDATA) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -539,8 +539,8 @@ struct ColumnBuilder {
   typedef Column Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_type(jay::Type type) {
-    fbb_.AddElement<uint8_t>(Column::VT_TYPE, static_cast<uint8_t>(type), 0);
+  void add_stype(jay::SType stype) {
+    fbb_.AddElement<uint8_t>(Column::VT_STYPE, static_cast<uint8_t>(stype), 0);
   }
   void add_data(const jay::Buffer *data) {
     fbb_.AddStruct(Column::VT_DATA, data);
@@ -574,7 +574,7 @@ struct ColumnBuilder {
 
 inline flatbuffers::Offset<Column> CreateColumn(
     flatbuffers::FlatBufferBuilder &_fbb,
-    jay::Type type = jay::Type_Bool8,
+    jay::SType stype = jay::SType_Bool8,
     const jay::Buffer *data = 0,
     const jay::Buffer *strdata = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
@@ -588,13 +588,13 @@ inline flatbuffers::Offset<Column> CreateColumn(
   builder_.add_strdata(strdata);
   builder_.add_data(data);
   builder_.add_stats_type(stats_type);
-  builder_.add_type(type);
+  builder_.add_stype(stype);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Column> CreateColumnDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    jay::Type type = jay::Type_Bool8,
+    jay::SType stype = jay::SType_Bool8,
     const jay::Buffer *data = 0,
     const jay::Buffer *strdata = 0,
     const char *name = nullptr,
@@ -604,7 +604,7 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
   auto name__ = name ? _fbb.CreateString(name) : 0;
   return jay::CreateColumn(
       _fbb,
-      type,
+      stype,
       data,
       strdata,
       name__,

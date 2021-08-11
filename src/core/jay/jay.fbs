@@ -32,7 +32,7 @@ namespace jay;
 // Types
 //------------------------------------------------------------------------------
 
-enum Type : uint8 {
+enum SType : uint8 {
   Bool8,
   Int8,
   Int16,
@@ -79,7 +79,7 @@ table Frame {
 }
 
 table Column {
-  type:      Type;
+  stype:     SType;   // deprecated -- use Type instead
   data:      Buffer;
   strdata:   Buffer;
   name:      string;

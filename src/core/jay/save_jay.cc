@@ -37,7 +37,7 @@
 #include "writebuf.h"
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
-static jay::Type stype_to_jaytype[dt::STYPES_COUNT];
+static jay::SType stype_to_jaytype[dt::STYPES_COUNT];
 static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 template <typename T, typename StatBuilder>
 static flatbuffers::Offset<void> saveStats(
@@ -162,7 +162,7 @@ flatbuffers::Offset<jay::Column> Column::write_to_jay(
   auto sname = fbb.CreateString(name.c_str());
 
   jay::ColumnBuilder cbb(fbb);
-  cbb.add_type(stype_to_jaytype[static_cast<int>(stype())]);
+  cbb.add_stype(stype_to_jaytype[static_cast<int>(stype())]);
   cbb.add_name(sname);
   cbb.add_nullcount(na_count());
   write_data_to_jay(cbb, wb);
@@ -263,7 +263,7 @@ void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
         nrows_ > Column::MAX_ARR32_SIZE) {
       // [FIXME]
       // stype_ = SType::STR64;
-      cbb.add_type(stype_to_jaytype[static_cast<int>(SType::STR64)]);
+      cbb.add_stype(stype_to_jaytype[static_cast<int>(SType::STR64)]);
     }
   }
 
@@ -450,18 +450,18 @@ void Frame::_init_jay(XTypeMaker& xt) {
   args_to_jay.add_synonym_arg("_strategy", "method");
   xt.add(METHOD(&Frame::to_jay, args_to_jay));
 
-  stype_to_jaytype[int(dt::SType::BOOL)]    = jay::Type_Bool8;
-  stype_to_jaytype[int(dt::SType::INT8)]    = jay::Type_Int8;
-  stype_to_jaytype[int(dt::SType::INT16)]   = jay::Type_Int16;
-  stype_to_jaytype[int(dt::SType::INT32)]   = jay::Type_Int32;
-  stype_to_jaytype[int(dt::SType::INT64)]   = jay::Type_Int64;
-  stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::Type_Float32;
-  stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::Type_Float64;
-  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::Type_Date32;
-  stype_to_jaytype[int(dt::SType::TIME64)]  = jay::Type_Time64;
-  stype_to_jaytype[int(dt::SType::STR32)]   = jay::Type_Str32;
-  stype_to_jaytype[int(dt::SType::STR64)]   = jay::Type_Str64;
-  stype_to_jaytype[int(dt::SType::VOID)]    = jay::Type_Void0;
+  stype_to_jaytype[int(dt::SType::BOOL)]    = jay::SType_Bool8;
+  stype_to_jaytype[int(dt::SType::INT8)]    = jay::SType_Int8;
+  stype_to_jaytype[int(dt::SType::INT16)]   = jay::SType_Int16;
+  stype_to_jaytype[int(dt::SType::INT32)]   = jay::SType_Int32;
+  stype_to_jaytype[int(dt::SType::INT64)]   = jay::SType_Int64;
+  stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::SType_Float32;
+  stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::SType_Float64;
+  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::SType_Date32;
+  stype_to_jaytype[int(dt::SType::TIME64)]  = jay::SType_Time64;
+  stype_to_jaytype[int(dt::SType::STR32)]   = jay::SType_Str32;
+  stype_to_jaytype[int(dt::SType::STR64)]   = jay::SType_Str64;
+  stype_to_jaytype[int(dt::SType::VOID)]    = jay::SType_Void0;
 }
 
 
