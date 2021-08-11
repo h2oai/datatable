@@ -49,13 +49,13 @@ enum SType : uint8 {
   Arr64,
 }
 
-union TypeData {
+union TypeExtra {
   child : Type
 }
 
 table Type {
-  stype:  SType;
-  extra: TypeData;
+  stype: SType;
+  extra: TypeExtra;
 }
 
 
@@ -97,6 +97,9 @@ table Column {
   name:      string;
   nullcount: uint64;
   stats:     Stats;
+  type:      Type;
+  validity:  Buffer;
+  children:  [Column];
 }
 
 struct Buffer {

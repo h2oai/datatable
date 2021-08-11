@@ -99,22 +99,22 @@ inline const char *EnumNameSType(SType e) {
   return EnumNamesSType()[index];
 }
 
-enum TypeData {
-  TypeData_NONE = 0,
-  TypeData_child = 1,
-  TypeData_MIN = TypeData_NONE,
-  TypeData_MAX = TypeData_child
+enum TypeExtra {
+  TypeExtra_NONE = 0,
+  TypeExtra_child = 1,
+  TypeExtra_MIN = TypeExtra_NONE,
+  TypeExtra_MAX = TypeExtra_child
 };
 
-inline const TypeData (&EnumValuesTypeData())[2] {
-  static const TypeData values[] = {
-    TypeData_NONE,
-    TypeData_child
+inline const TypeExtra (&EnumValuesTypeExtra())[2] {
+  static const TypeExtra values[] = {
+    TypeExtra_NONE,
+    TypeExtra_child
   };
   return values;
 }
 
-inline const char * const *EnumNamesTypeData() {
+inline const char * const *EnumNamesTypeExtra() {
   static const char * const names[3] = {
     "NONE",
     "child",
@@ -123,22 +123,22 @@ inline const char * const *EnumNamesTypeData() {
   return names;
 }
 
-inline const char *EnumNameTypeData(TypeData e) {
-  if (flatbuffers::IsOutRange(e, TypeData_NONE, TypeData_child)) return "";
+inline const char *EnumNameTypeExtra(TypeExtra e) {
+  if (flatbuffers::IsOutRange(e, TypeExtra_NONE, TypeExtra_child)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesTypeData()[index];
+  return EnumNamesTypeExtra()[index];
 }
 
-template<typename T> struct TypeDataTraits {
-  static const TypeData enum_value = TypeData_NONE;
+template<typename T> struct TypeExtraTraits {
+  static const TypeExtra enum_value = TypeExtra_NONE;
 };
 
-template<> struct TypeDataTraits<jay::Type> {
-  static const TypeData enum_value = TypeData_child;
+template<> struct TypeExtraTraits<jay::Type> {
+  static const TypeExtra enum_value = TypeExtra_child;
 };
 
-bool VerifyTypeData(flatbuffers::Verifier &verifier, const void *obj, TypeData type);
-bool VerifyTypeDataVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
+bool VerifyTypeExtra(flatbuffers::Verifier &verifier, const void *obj, TypeExtra type);
+bool VerifyTypeExtraVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 enum Stats {
   Stats_NONE = 0,
@@ -409,22 +409,22 @@ struct Type FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   jay::SType stype() const {
     return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
   }
-  jay::TypeData extra_type() const {
-    return static_cast<jay::TypeData>(GetField<uint8_t>(VT_EXTRA_TYPE, 0));
+  jay::TypeExtra extra_type() const {
+    return static_cast<jay::TypeExtra>(GetField<uint8_t>(VT_EXTRA_TYPE, 0));
   }
   const void *extra() const {
     return GetPointer<const void *>(VT_EXTRA);
   }
   template<typename T> const T *extra_as() const;
   const jay::Type *extra_as_child() const {
-    return extra_type() == jay::TypeData_child ? static_cast<const jay::Type *>(extra()) : nullptr;
+    return extra_type() == jay::TypeExtra_child ? static_cast<const jay::Type *>(extra()) : nullptr;
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_STYPE) &&
            VerifyField<uint8_t>(verifier, VT_EXTRA_TYPE) &&
            VerifyOffset(verifier, VT_EXTRA) &&
-           VerifyTypeData(verifier, extra(), extra_type()) &&
+           VerifyTypeExtra(verifier, extra(), extra_type()) &&
            verifier.EndTable();
   }
 };
@@ -440,7 +440,7 @@ struct TypeBuilder {
   void add_stype(jay::SType stype) {
     fbb_.AddElement<uint8_t>(Type::VT_STYPE, static_cast<uint8_t>(stype), 0);
   }
-  void add_extra_type(jay::TypeData extra_type) {
+  void add_extra_type(jay::TypeExtra extra_type) {
     fbb_.AddElement<uint8_t>(Type::VT_EXTRA_TYPE, static_cast<uint8_t>(extra_type), 0);
   }
   void add_extra(flatbuffers::Offset<void> extra) {
@@ -461,7 +461,7 @@ struct TypeBuilder {
 inline flatbuffers::Offset<Type> CreateType(
     flatbuffers::FlatBufferBuilder &_fbb,
     jay::SType stype = jay::SType_Bool8,
-    jay::TypeData extra_type = jay::TypeData_NONE,
+    jay::TypeExtra extra_type = jay::TypeExtra_NONE,
     flatbuffers::Offset<void> extra = 0) {
   TypeBuilder builder_(_fbb);
   builder_.add_extra(extra);
@@ -568,7 +568,10 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_NAME = 10,
     VT_NULLCOUNT = 12,
     VT_STATS_TYPE = 14,
-    VT_STATS = 16
+    VT_STATS = 16,
+    VT_TYPE = 18,
+    VT_VALIDITY = 20,
+    VT_CHILDREN = 22
   };
   jay::SType stype() const {
     return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
@@ -613,6 +616,15 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const jay::StatsFloat64 *stats_as_Float64() const {
     return stats_type() == jay::Stats_Float64 ? static_cast<const jay::StatsFloat64 *>(stats()) : nullptr;
   }
+  const jay::Type *type() const {
+    return GetPointer<const jay::Type *>(VT_TYPE);
+  }
+  const jay::Buffer *validity() const {
+    return GetStruct<const jay::Buffer *>(VT_VALIDITY);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *children() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *>(VT_CHILDREN);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<uint8_t>(verifier, VT_STYPE) &&
@@ -624,6 +636,12 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_STATS_TYPE) &&
            VerifyOffset(verifier, VT_STATS) &&
            VerifyStats(verifier, stats(), stats_type()) &&
+           VerifyOffset(verifier, VT_TYPE) &&
+           verifier.VerifyTable(type()) &&
+           VerifyField<jay::Buffer>(verifier, VT_VALIDITY) &&
+           VerifyOffset(verifier, VT_CHILDREN) &&
+           verifier.VerifyVector(children()) &&
+           verifier.VerifyVectorOfTables(children()) &&
            verifier.EndTable();
   }
 };
@@ -681,6 +699,15 @@ struct ColumnBuilder {
   void add_stats(flatbuffers::Offset<void> stats) {
     fbb_.AddOffset(Column::VT_STATS, stats);
   }
+  void add_type(flatbuffers::Offset<jay::Type> type) {
+    fbb_.AddOffset(Column::VT_TYPE, type);
+  }
+  void add_validity(const jay::Buffer *validity) {
+    fbb_.AddStruct(Column::VT_VALIDITY, validity);
+  }
+  void add_children(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children) {
+    fbb_.AddOffset(Column::VT_CHILDREN, children);
+  }
   explicit ColumnBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -701,9 +728,15 @@ inline flatbuffers::Offset<Column> CreateColumn(
     flatbuffers::Offset<flatbuffers::String> name = 0,
     uint64_t nullcount = 0,
     jay::Stats stats_type = jay::Stats_NONE,
-    flatbuffers::Offset<void> stats = 0) {
+    flatbuffers::Offset<void> stats = 0,
+    flatbuffers::Offset<jay::Type> type = 0,
+    const jay::Buffer *validity = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children = 0) {
   ColumnBuilder builder_(_fbb);
   builder_.add_nullcount(nullcount);
+  builder_.add_children(children);
+  builder_.add_validity(validity);
+  builder_.add_type(type);
   builder_.add_stats(stats);
   builder_.add_name(name);
   builder_.add_strdata(strdata);
@@ -721,8 +754,12 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
     const char *name = nullptr,
     uint64_t nullcount = 0,
     jay::Stats stats_type = jay::Stats_NONE,
-    flatbuffers::Offset<void> stats = 0) {
+    flatbuffers::Offset<void> stats = 0,
+    flatbuffers::Offset<jay::Type> type = 0,
+    const jay::Buffer *validity = 0,
+    const std::vector<flatbuffers::Offset<jay::Column>> *children = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto children__ = children ? _fbb.CreateVector<flatbuffers::Offset<jay::Column>>(*children) : 0;
   return jay::CreateColumn(
       _fbb,
       stype,
@@ -731,15 +768,18 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
       name__,
       nullcount,
       stats_type,
-      stats);
+      stats,
+      type,
+      validity,
+      children__);
 }
 
-inline bool VerifyTypeData(flatbuffers::Verifier &verifier, const void *obj, TypeData type) {
+inline bool VerifyTypeExtra(flatbuffers::Verifier &verifier, const void *obj, TypeExtra type) {
   switch (type) {
-    case TypeData_NONE: {
+    case TypeExtra_NONE: {
       return true;
     }
-    case TypeData_child: {
+    case TypeExtra_child: {
       auto ptr = reinterpret_cast<const jay::Type *>(obj);
       return verifier.VerifyTable(ptr);
     }
@@ -747,12 +787,12 @@ inline bool VerifyTypeData(flatbuffers::Verifier &verifier, const void *obj, Typ
   }
 }
 
-inline bool VerifyTypeDataVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+inline bool VerifyTypeExtraVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
   if (!values || !types) return !values && !types;
   if (values->size() != types->size()) return false;
   for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
-    if (!VerifyTypeData(
-        verifier,  values->Get(i), types->GetEnum<TypeData>(i))) {
+    if (!VerifyTypeExtra(
+        verifier,  values->Get(i), types->GetEnum<TypeExtra>(i))) {
       return false;
     }
   }
