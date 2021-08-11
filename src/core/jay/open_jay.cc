@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <string>
 #include <cstring>              // std::memcmp
+#include "column/arrow_array.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
@@ -30,9 +31,11 @@
 
 
 // Helper functions
-static Column column_from_jay(size_t nrows,
-                              const jay::Column* jaycol,
-                              const Buffer& jaybuf);
+static Column column_from_jay1(size_t nrows,
+                               const jay::Column* jaycol,
+                               const Buffer& jaybuf);
+static Column column_from_jay2(const jay::Column* jaycol,
+                               const Buffer& jaybuf);
 
 static void check_jay_signature(const uint8_t* ptr, size_t size);
 
@@ -91,7 +94,8 @@ DataTable* open_jay_from_mbuf(const Buffer& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column col = column_from_jay(nrows, jcol, mbuf);
+    Column col = jcol->type() ? column_from_jay2(jcol, mbuf)
+                              : column_from_jay1(nrows, jcol, mbuf);
     if (col.nrows() != nrows) {
       throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
@@ -168,9 +172,13 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static Column column_from_jay(
+static Column column_from_jay1(
     size_t nrows, const jay::Column* jcol, const Buffer& jaybuf)
 {
+  xassert(jcol->type() == nullptr);
+  xassert(jcol->nrows() == 0);
+  xassert(jcol->buffers() == nullptr);
+  xassert(jcol->children() == nullptr);
   jay::SType jtype = jcol->stype();
 
   auto stype = dt::SType::INVALID;
@@ -187,6 +195,7 @@ static Column column_from_jay(
     case jay::SType_Date32:  stype = dt::SType::DATE32; break;
     case jay::SType_Time64:  stype = dt::SType::TIME64; break;
     case jay::SType_Void0:   stype = dt::SType::VOID; break;
+    default: throw NotImplError() << "Unknown column type " << jtype << " in a Jay file";
   }
 
   Column col;
@@ -219,6 +228,74 @@ static Column column_from_jay(
 
   return col;
 }
+
+
+static dt::Type _resolve_jtype(const jay::Type* jtype) {
+  switch (jtype->stype()) {
+    case jay::SType_Bool8:   return dt::Type::bool8();
+    case jay::SType_Int8:    return dt::Type::int8();
+    case jay::SType_Int16:   return dt::Type::int16();
+    case jay::SType_Int32:   return dt::Type::int32();
+    case jay::SType_Int64:   return dt::Type::int64();
+    case jay::SType_Float32: return dt::Type::float32();
+    case jay::SType_Float64: return dt::Type::float64();
+    case jay::SType_Str32:   return dt::Type::str32();
+    case jay::SType_Str64:   return dt::Type::str64();
+    case jay::SType_Date32:  return dt::Type::date32();
+    case jay::SType_Time64:  return dt::Type::time64();
+    case jay::SType_Void0:   return dt::Type::void0();
+    case jay::SType_Arr32:   return dt::Type::arr32(_resolve_jtype(jtype->extra_as_child()));
+    case jay::SType_Arr64:   return dt::Type::arr64(_resolve_jtype(jtype->extra_as_child()));
+  }
+  throw NotImplError() << "Unknown column type " << jtype->stype() << " in a Jay file";
+}
+
+
+static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
+  xassert(jcol->stype() == 0);
+  xassert(jcol->data() == nullptr);
+  xassert(jcol->strdata() == nullptr);
+
+  size_t nrows = jcol->nrows();
+  size_t nullcount = jcol->nullcount();
+  dt::Type coltype = _resolve_jtype(jcol->type());
+  if (coltype.is_void()) {
+    return Column::new_na_column(nrows, dt::SType::VOID);
+  }
+  std::vector<Buffer> buffers;
+  auto jbuffers = jcol->buffers();
+  if (jbuffers) {
+    for (unsigned i = 0; i < jbuffers->size(); i++) {
+      buffers.push_back(extract_buffer(jaybuf, (*jbuffers)[i]));
+    }
+  }
+  auto jchildren = jcol->children();
+  std::vector<Column> children;
+  if (jchildren) {
+    for (unsigned i = 0; i < jchildren->size(); i++) {
+      children.push_back(column_from_jay2((*jchildren)[i], jaybuf));
+    }
+  }
+
+  switch (coltype.stype()) {
+    case dt::SType::ARR32: {
+      return Column(new dt::ArrowArray_ColumnImpl<uint32_t>(
+          nrows, nullcount,
+          std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+      ));
+    }
+    case dt::SType::ARR64: {
+      return Column(new dt::ArrowArray_ColumnImpl<uint64_t>(
+          nrows, nullcount,
+          std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+      ));
+    }
+  }
+
+  throw NotImplError() << "Cannot restore a column of type " << coltype
+      << " from Jay file";
+}
+
 
 
 
