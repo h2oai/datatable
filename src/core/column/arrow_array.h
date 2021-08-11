@@ -31,10 +31,12 @@ class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
     Buffer validity_;
     Buffer offsets_;
     Column child_;
+    size_t null_count_;
 
   public:
     ArrowArray_ColumnImpl(
-        size_t nrows, Buffer&& valid, Buffer&& offsets, Column&& child);
+        size_t nrows, size_t nullcount,
+        Buffer&& valid, Buffer&& offsets, Column&& child);
 
     ColumnImpl* clone() const override;
     size_t n_children() const noexcept override;
@@ -43,6 +45,8 @@ class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
     const void* get_buffer(size_t i) const override;
 
     bool get_element(size_t i, Column* out) const override;
+
+    size_t null_count() const override;
 };
 
 

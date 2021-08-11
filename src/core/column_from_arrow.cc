@@ -91,8 +91,10 @@ static Column _make_arr(std::shared_ptr<dt::OArrowArray>&& array,
   xassert((*array)->n_children == 1);
   xassert(schema->n_children == 1);
   auto nrows = static_cast<size_t>((*array)->length);
+  auto nullcount = static_cast<size_t>((*array)->null_count);
   return Column(new dt::ArrowArray_ColumnImpl<T>(
     nrows,
+    nullcount,
     Buffer::from_arrowarray((*array)->buffers[0], (nrows + 63)/64*8, array),
     Buffer::from_arrowarray((*array)->buffers[1], (nrows + 1)*sizeof(T), array),
     Column::from_arrow(array->detach_child(0), schema->children[0])

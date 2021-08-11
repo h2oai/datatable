@@ -230,6 +230,9 @@ void ColumnImpl::truncate(size_t new_nrows, Column& out) {
   out = Column(new Truncated_ColumnImpl(std::move(out), new_nrows));
 }
 
+size_t ColumnImpl::null_count() const {
+  return stats()->nacount();
+}
 
 
 
