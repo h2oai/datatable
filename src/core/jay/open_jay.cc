@@ -21,10 +21,11 @@
 //------------------------------------------------------------------------------
 #include <string>
 #include <cstring>              // std::memcmp
-#include "frame/py_frame.h"
-#include "jay/jay_nowarnings.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "frame/py_frame.h"
+#include "jay/jay_nowarnings.h"
+#include "python/xargs.h"
 #include "stype.h"
 
 
@@ -226,13 +227,7 @@ static Column column_from_jay(
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_open_jay(
-  1, 0, 0, false, false, {"file"}, "open_jay",
-  "open_jay(file)\n--\n\n"
-  "Open a Frame from the provided .jay file.\n");
-
-
-static oobj open_jay(const PKArgs& args)
+static oobj open_jay(const XArgs& args)
 {
   if (args[0].is_bytes()) {
     // TODO: create & use class obytes
@@ -254,9 +249,15 @@ static oobj open_jay(const PKArgs& args)
   }
 }
 
+DECLARE_PYFN(&open_jay)
+    ->name("open_jay")
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"file"})
+    ->docs("open_jay(file)\n--\n\n"
+           "Open a Frame from the provided .jay file.\n");
 
-void DatatableModule::init_methods_jay() {
-  ADD_FN(&open_jay, args_open_jay);
-}
+
+
 
 } // namespace py
