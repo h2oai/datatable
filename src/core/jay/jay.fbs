@@ -99,6 +99,7 @@ table Column {
   nullcount: uint64;
   stats:     Stats;
   type:      Type;
+  nrows:     uint64;
   buffers:   [Buffer];
   children:  [Column];
 }

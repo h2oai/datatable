@@ -570,8 +570,9 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STATS_TYPE = 14,
     VT_STATS = 16,
     VT_TYPE = 18,
-    VT_BUFFERS = 20,
-    VT_CHILDREN = 22
+    VT_NROWS = 20,
+    VT_BUFFERS = 22,
+    VT_CHILDREN = 24
   };
   jay::SType stype() const {
     return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
@@ -619,6 +620,9 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const jay::Type *type() const {
     return GetPointer<const jay::Type *>(VT_TYPE);
   }
+  uint64_t nrows() const {
+    return GetField<uint64_t>(VT_NROWS, 0);
+  }
   const flatbuffers::Vector<const jay::Buffer *> *buffers() const {
     return GetPointer<const flatbuffers::Vector<const jay::Buffer *> *>(VT_BUFFERS);
   }
@@ -638,6 +642,7 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyStats(verifier, stats(), stats_type()) &&
            VerifyOffset(verifier, VT_TYPE) &&
            verifier.VerifyTable(type()) &&
+           VerifyField<uint64_t>(verifier, VT_NROWS) &&
            VerifyOffset(verifier, VT_BUFFERS) &&
            verifier.VerifyVector(buffers()) &&
            VerifyOffset(verifier, VT_CHILDREN) &&
@@ -703,6 +708,9 @@ struct ColumnBuilder {
   void add_type(flatbuffers::Offset<jay::Type> type) {
     fbb_.AddOffset(Column::VT_TYPE, type);
   }
+  void add_nrows(uint64_t nrows) {
+    fbb_.AddElement<uint64_t>(Column::VT_NROWS, nrows, 0);
+  }
   void add_buffers(flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers) {
     fbb_.AddOffset(Column::VT_BUFFERS, buffers);
   }
@@ -731,9 +739,11 @@ inline flatbuffers::Offset<Column> CreateColumn(
     jay::Stats stats_type = jay::Stats_NONE,
     flatbuffers::Offset<void> stats = 0,
     flatbuffers::Offset<jay::Type> type = 0,
+    uint64_t nrows = 0,
     flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children = 0) {
   ColumnBuilder builder_(_fbb);
+  builder_.add_nrows(nrows);
   builder_.add_nullcount(nullcount);
   builder_.add_children(children);
   builder_.add_buffers(buffers);
@@ -757,6 +767,7 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
     jay::Stats stats_type = jay::Stats_NONE,
     flatbuffers::Offset<void> stats = 0,
     flatbuffers::Offset<jay::Type> type = 0,
+    uint64_t nrows = 0,
     const std::vector<jay::Buffer> *buffers = nullptr,
     const std::vector<flatbuffers::Offset<jay::Column>> *children = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
@@ -772,6 +783,7 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
       stats_type,
       stats,
       type,
+      nrows,
       buffers__,
       children__);
 }
