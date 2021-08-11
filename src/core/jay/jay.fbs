@@ -22,7 +22,7 @@
 // In order to compile:
 //     $ flatc --cpp jay.fbs
 //
-// then fix all warnings emitted by Clang
+// then review the generated file and fix inadvertent changes
 //------------------------------------------------------------------------------
 namespace jay;
 
@@ -91,14 +91,15 @@ table Frame {
 }
 
 table Column {
-  stype:     SType;   // deprecated -- use Type instead
-  data:      Buffer;
-  strdata:   Buffer;
+  stype:     SType;   // deprecated -- use `type` instead
+  data:      Buffer;  // deprecated -- use `buffers` instead
+  strdata:   Buffer;  // deprecated -- use `buffers` instead
+
   name:      string;
   nullcount: uint64;
   stats:     Stats;
   type:      Type;
-  validity:  Buffer;
+  buffers:   [Buffer];
   children:  [Column];
 }
 

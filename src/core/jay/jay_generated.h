@@ -570,7 +570,7 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
     VT_STATS_TYPE = 14,
     VT_STATS = 16,
     VT_TYPE = 18,
-    VT_VALIDITY = 20,
+    VT_BUFFERS = 20,
     VT_CHILDREN = 22
   };
   jay::SType stype() const {
@@ -619,8 +619,8 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const jay::Type *type() const {
     return GetPointer<const jay::Type *>(VT_TYPE);
   }
-  const jay::Buffer *validity() const {
-    return GetStruct<const jay::Buffer *>(VT_VALIDITY);
+  const flatbuffers::Vector<const jay::Buffer *> *buffers() const {
+    return GetPointer<const flatbuffers::Vector<const jay::Buffer *> *>(VT_BUFFERS);
   }
   const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *children() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *>(VT_CHILDREN);
@@ -638,7 +638,8 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyStats(verifier, stats(), stats_type()) &&
            VerifyOffset(verifier, VT_TYPE) &&
            verifier.VerifyTable(type()) &&
-           VerifyField<jay::Buffer>(verifier, VT_VALIDITY) &&
+           VerifyOffset(verifier, VT_BUFFERS) &&
+           verifier.VerifyVector(buffers()) &&
            VerifyOffset(verifier, VT_CHILDREN) &&
            verifier.VerifyVector(children()) &&
            verifier.VerifyVectorOfTables(children()) &&
@@ -702,8 +703,8 @@ struct ColumnBuilder {
   void add_type(flatbuffers::Offset<jay::Type> type) {
     fbb_.AddOffset(Column::VT_TYPE, type);
   }
-  void add_validity(const jay::Buffer *validity) {
-    fbb_.AddStruct(Column::VT_VALIDITY, validity);
+  void add_buffers(flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers) {
+    fbb_.AddOffset(Column::VT_BUFFERS, buffers);
   }
   void add_children(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children) {
     fbb_.AddOffset(Column::VT_CHILDREN, children);
@@ -730,12 +731,12 @@ inline flatbuffers::Offset<Column> CreateColumn(
     jay::Stats stats_type = jay::Stats_NONE,
     flatbuffers::Offset<void> stats = 0,
     flatbuffers::Offset<jay::Type> type = 0,
-    const jay::Buffer *validity = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children = 0) {
   ColumnBuilder builder_(_fbb);
   builder_.add_nullcount(nullcount);
   builder_.add_children(children);
-  builder_.add_validity(validity);
+  builder_.add_buffers(buffers);
   builder_.add_type(type);
   builder_.add_stats(stats);
   builder_.add_name(name);
@@ -756,9 +757,10 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
     jay::Stats stats_type = jay::Stats_NONE,
     flatbuffers::Offset<void> stats = 0,
     flatbuffers::Offset<jay::Type> type = 0,
-    const jay::Buffer *validity = 0,
+    const std::vector<jay::Buffer> *buffers = nullptr,
     const std::vector<flatbuffers::Offset<jay::Column>> *children = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto buffers__ = buffers ? _fbb.CreateVectorOfStructs<jay::Buffer>(*buffers) : 0;
   auto children__ = children ? _fbb.CreateVector<flatbuffers::Offset<jay::Column>>(*children) : 0;
   return jay::CreateColumn(
       _fbb,
@@ -770,7 +772,7 @@ inline flatbuffers::Offset<Column> CreateColumnDirect(
       stats_type,
       stats,
       type,
-      validity,
+      buffers__,
       children__);
 }
 
