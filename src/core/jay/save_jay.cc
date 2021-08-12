@@ -39,9 +39,6 @@
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::SType stype_to_jaytype[dt::STYPES_COUNT];
 static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
-template <typename T, typename StatBuilder>
-static flatbuffers::Offset<void> saveStats(
-    Stats* stats, flatbuffers::FlatBufferBuilder& fbb);
 
 
 //------------------------------------------------------------------------------
@@ -125,6 +122,9 @@ class ColumnJayData {
     flatbuffers::Offset<flatbuffers::String> _name_offset;
     flatbuffers::Offset<jay::Type> _type_offset;
     flatbuffers::Offset<void> _stats_offset;
+    flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer*>> _buffers_vector;
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>>
+        _children_vector;
     jay::Stats _stats_kind;
     jay::SType _stype;
     size_t : 32;
@@ -195,6 +195,19 @@ class ColumnJayData {
     }
 
 
+    void store_buffers(const std::vector<const jay::Buffer*>& buffers) {
+      _buffers_vector = _fbb.CreateVector<const jay::Buffer*>(buffers);
+    }
+
+
+    void store_children(
+        const std::vector<flatbuffers::Offset<jay::Column>>& children)
+    {
+      _children_vector =
+          _fbb.CreateVector<flatbuffers::Offset<jay::Column>>(children);
+    }
+
+
     flatbuffers::Offset<jay::Column> write() {
       jay::ColumnBuilder cbb(_fbb);
       if (!_name_offset.IsNull()) {
@@ -216,6 +229,12 @@ class ColumnJayData {
       else {
         cbb.add_type(_type_offset);
         cbb.add_nrows(_column.nrows());
+        if (!_buffers_vector.IsNull()) {
+          cbb.add_buffers(_buffers_vector);
+        }
+        if (!_children_vector.IsNull()) {
+          cbb.add_children(_children_vector);
+        }
       }
       return cbb.Finish();
     }
