@@ -77,6 +77,11 @@ size_t Type_Arr32::hash() const noexcept {
 }
 
 
+Type Type_Arr32::child_type() const {
+  return elementType_;
+}
+
+
 
 
 //------------------------------------------------------------------------------
@@ -122,6 +127,11 @@ bool Type_Arr64::equals(const TypeImpl* other) const {
 
 size_t Type_Arr64::hash() const noexcept {
   return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
+}
+
+
+Type Type_Arr64::child_type() const {
+  return elementType_;
 }
 
 

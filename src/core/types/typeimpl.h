@@ -45,6 +45,7 @@ class TypeImpl {
     virtual py::oobj max() const;
     virtual const char* struct_format() const;
     virtual TypeImpl* common_type(TypeImpl* other) = 0;
+    virtual Type child_type() const;
 
     virtual bool is_array() const;
     virtual bool is_boolean() const;

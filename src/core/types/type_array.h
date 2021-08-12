@@ -39,6 +39,7 @@ class Type_Arr32 : public TypeImpl {
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Type child_type() const override;
 };
 
 
@@ -56,6 +57,7 @@ class Type_Arr64 : public TypeImpl {
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Type child_type() const override;
 };
 
 

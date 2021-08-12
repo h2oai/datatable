@@ -142,6 +142,10 @@ Type Type::common(const Type& type1, const Type& type2) {
   return Type(std::move(res));
 }
 
+Type Type::child() const {
+  return impl_? impl_->child_type() : Type();
+}
+
 
 bool Type::is_array()    const { return impl_ && impl_->is_array(); }
 bool Type::is_boolean()  const { return impl_ && impl_->is_boolean(); }

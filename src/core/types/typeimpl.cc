@@ -80,6 +80,7 @@ py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
 const char* TypeImpl::struct_format() const { return ""; }
 
+Type TypeImpl::child_type() const { return Type(); }
 
 Column TypeImpl::cast_column(Column&&) const {
   throw NotImplError()

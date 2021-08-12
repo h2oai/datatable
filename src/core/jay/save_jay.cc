@@ -117,63 +117,155 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 // Save a column
 //------------------------------------------------------------------------------
 
+class ColumnJayData {
+  private:
+    Column& _column;
+    WritableBuffer* _wb;
+    flatbuffers::FlatBufferBuilder& _fbb;
+    flatbuffers::Offset<flatbuffers::String> _name_offset;
+    flatbuffers::Offset<jay::Type> _type_offset;
+    flatbuffers::Offset<void> _stats_offset;
+    jay::Stats _stats_kind;
+    jay::SType _stype;
+    size_t : 32;
+
+  public:
+    ColumnJayData(
+        Column& col,
+        flatbuffers::FlatBufferBuilder& fbb,
+        WritableBuffer* wb
+    ) : _column(col), _wb(wb), _fbb(fbb) {}
+
+
+    void store_name(const std::string& name) {
+      _name_offset = _fbb.CreateString(name.c_str());
+    }
+
+
+    void store_type() {
+      _type_offset = _prepare_type(_column.type());
+    }
+
+
+    void store_stats() {
+      Stats* colstats = _column.get_stats_if_exist();
+      if (!colstats) {
+        return;
+      }
+      switch (_column.stype()) {
+        case dt::SType::BOOL: {
+          _stats_kind = jay::Stats_Bool;
+          _stats_offset = _save_stats<int8_t, jay::StatsBool>(colstats);
+          return;
+        }
+        case dt::SType::INT8: {
+          _stats_kind = jay::Stats_Int8;
+          _stats_offset = _save_stats<int8_t, jay::StatsInt8>(colstats);
+          return;
+        }
+        case dt::SType::INT16: {
+          _stats_kind = jay::Stats_Int16;
+          _stats_offset = _save_stats<int16_t, jay::StatsInt16>(colstats);
+          return;
+        }
+        case dt::SType::DATE32:
+        case dt::SType::INT32: {
+          _stats_kind = jay::Stats_Int32;
+          _stats_offset = _save_stats<int32_t, jay::StatsInt32>(colstats);
+          return;
+        }
+        case dt::SType::TIME64:
+        case dt::SType::INT64: {
+          _stats_kind = jay::Stats_Int64;
+          _stats_offset = _save_stats<int64_t, jay::StatsInt64>(colstats);
+          return;
+        }
+        case dt::SType::FLOAT32: {
+          _stats_kind = jay::Stats_Float32;
+          _stats_offset = _save_stats<float,  jay::StatsFloat32>(colstats);
+          return;
+        }
+        case dt::SType::FLOAT64: {
+          _stats_kind = jay::Stats_Float64;
+          _stats_offset = _save_stats<double, jay::StatsFloat64>(colstats);
+          return;
+        }
+        default: break;
+      }
+    }
+
+
+    flatbuffers::Offset<jay::Column> write() {
+      jay::ColumnBuilder cbb(_fbb);
+      if (!_name_offset.IsNull()) {
+        cbb.add_name(_name_offset);
+      }
+      if (!_stats_offset.IsNull()) {
+        cbb.add_stats_type(_stats_kind);
+        cbb.add_stats(_stats_offset);
+      }
+      cbb.add_nullcount(_column.na_count());
+
+      // Old-style column
+      if (_type_offset.IsNull()) {
+        auto jstype = stype_to_jaytype[static_cast<int>(_column.stype())];
+        cbb.add_stype(jstype);
+        _column.write_data_to_jay(cbb, _wb);
+      }
+      // New-style column (Arrow)
+      else {
+        cbb.add_type(_type_offset);
+        cbb.add_nrows(_column.nrows());
+      }
+      return cbb.Finish();
+    }
+
+  private:
+    flatbuffers::Offset<jay::Type> _prepare_type(dt::Type type) {
+      jay::SType j_stype = stype_to_jaytype[static_cast<int>(type.stype())];
+      jay::TypeExtra j_extra_type = jay::TypeExtra_NONE;
+      flatbuffers::Offset<void> j_extra;
+      if (type.is_array()) {
+        j_extra_type = jay::TypeExtra_child;
+        j_extra = _prepare_type(type.child()).Union();
+      }
+      jay::TypeBuilder tbb(_fbb);
+      tbb.add_stype(j_stype);
+      if (j_extra_type != jay::TypeExtra_NONE) {
+        tbb.add_extra_type(j_extra_type);
+        tbb.add_extra(j_extra);
+      }
+      return tbb.Finish();
+    }
+
+    template <typename T, typename StatBuilder>
+    flatbuffers::Offset<void> _save_stats(Stats* stats) {
+      using R = typename std::conditional<std::is_integral<T>::value, int64_t, double>::type;
+      if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max))) {
+        return 0;
+      }
+      R min, max;
+      bool min_valid = stats->get_stat(Stat::Min, &min);
+      bool max_valid = stats->get_stat(Stat::Max, &max);
+      StatBuilder ss(min_valid? static_cast<T>(min) : dt::GETNA<T>(),
+                     max_valid? static_cast<T>(max) : dt::GETNA<T>());
+      return _fbb.CreateStruct(ss).Union();
+    }
+};
+
+
+
 flatbuffers::Offset<jay::Column> Column::write_to_jay(
         const std::string& name,
         flatbuffers::FlatBufferBuilder& fbb,
         WritableBuffer* wb)
 {
-  jay::Stats jsttype = jay::Stats_NONE;
-  flatbuffers::Offset<void> jsto;
-  Stats* colstats = get_stats_if_exist();
-  switch (stype()) {
-    case dt::SType::BOOL:
-      jsto = saveStats<int8_t,  jay::StatsBool>(colstats, fbb);
-      jsttype = jay::Stats_Bool;
-      break;
-    case dt::SType::INT8:
-      jsto = saveStats<int8_t,  jay::StatsInt8>(colstats, fbb);
-      jsttype = jay::Stats_Int8;
-      break;
-    case dt::SType::INT16:
-      jsto = saveStats<int16_t, jay::StatsInt16>(colstats, fbb);
-      jsttype = jay::Stats_Int16;
-      break;
-    case dt::SType::DATE32:
-    case dt::SType::INT32:
-      jsto = saveStats<int32_t, jay::StatsInt32>(colstats, fbb);
-      jsttype = jay::Stats_Int32;
-      break;
-    case dt::SType::TIME64:
-    case dt::SType::INT64:
-      jsto = saveStats<int64_t, jay::StatsInt64>(colstats, fbb);
-      jsttype = jay::Stats_Int64;
-      break;
-    case dt::SType::FLOAT32:
-      jsto = saveStats<float,   jay::StatsFloat32>(colstats, fbb);
-      jsttype = jay::Stats_Float32;
-      break;
-    case dt::SType::FLOAT64:
-      jsto = saveStats<double,  jay::StatsFloat64>(colstats, fbb);
-      jsttype = jay::Stats_Float64;
-      break;
-    default: break;
-  }
-
-  auto sname = fbb.CreateString(name.c_str());
-
-  jay::ColumnBuilder cbb(fbb);
-  cbb.add_stype(stype_to_jaytype[static_cast<int>(stype())]);
-  cbb.add_name(sname);
-  cbb.add_nullcount(na_count());
-  write_data_to_jay(cbb, wb);
-
-  if (!jsto.IsNull()) {
-    cbb.add_stats_type(jsttype);
-    cbb.add_stats(jsto);
-  }
-
-  return cbb.Finish();
+  ColumnJayData cj(*this, fbb, wb);
+  cj.store_name(name);
+  cj.store_stats();
+  return cj.write();
 }
+
 
 
 void Column::write_data_to_jay(jay::ColumnBuilder& cbb, WritableBuffer* wb) {
@@ -378,27 +470,6 @@ static jay::Buffer saveMemoryRange(
   return jay::Buffer(pos - 8, len);
 }
 
-
-
-template <typename T, typename StatBuilder>
-static flatbuffers::Offset<void> saveStats(
-    Stats* stats, flatbuffers::FlatBufferBuilder& fbb)
-{
-  static_assert(std::is_constructible<StatBuilder, T, T>::value,
-                "Invalid StatBuilder class");
-  static_assert(std::is_integral<T>::value || std::is_floating_point<T>::value,
-                "Only integer / floating values are supporteds");
-  using R = typename std::conditional<std::is_integral<T>::value, int64_t, double>::type;
-  if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max)))
-    return 0;
-  R min, max;
-  bool min_valid = stats->get_stat(Stat::Min, &min);
-  bool max_valid = stats->get_stat(Stat::Max, &max);
-  StatBuilder ss(min_valid? static_cast<T>(min) : dt::GETNA<T>(),
-                 max_valid? static_cast<T>(max) : dt::GETNA<T>());
-  flatbuffers::Offset<void> o = fbb.CreateStruct(ss).Union();
-  return o;
-}
 
 
 
