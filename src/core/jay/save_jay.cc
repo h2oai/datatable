@@ -42,75 +42,6 @@ static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 
 
 //------------------------------------------------------------------------------
-// Save DataTable
-//------------------------------------------------------------------------------
-
-/**
- * Save Frame in Jay format to the provided file.
- */
-void DataTable::save_jay(const std::string& path,
-                         WritableBuffer::Strategy wstrategy)
-{
-  size_t sizehint = (wstrategy == WritableBuffer::Strategy::Auto)
-                    ? memory_footprint() : 0;
-  auto wb = WritableBuffer::create_target(path, sizehint, wstrategy);
-  save_jay_impl(wb.get());
-}
-
-
-/**
- * Save Frame in Jay format to memory,
- */
-Buffer DataTable::save_jay() {
-  auto wb = std::unique_ptr<MemoryWritableBuffer>(
-                new MemoryWritableBuffer(memory_footprint()));
-  save_jay_impl(wb.get());
-  return wb->get_mbuf();
-}
-
-
-void DataTable::save_jay_impl(WritableBuffer* wb) {
-  wb->write(8, "JAY1\0\0\0\0");
-
-  flatbuffers::FlatBufferBuilder fbb(1024);
-
-  std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
-  for (size_t i = 0; i < ncols_; ++i) {
-    Column& col = get_column(i);
-    if (col.stype() == dt::SType::OBJ) {
-      auto w = DatatableWarning();
-      w << "Column `" << names_[i] << "` of type obj64 was not saved";
-      w.emit_warning();
-    } else {
-      auto saved_col = col.write_to_jay(names_[i], fbb, wb);
-      msg_columns.push_back(saved_col);
-    }
-  }
-  xassert((wb->size() & 7) == 0);
-
-  auto frame = jay::CreateFrameDirect(fbb,
-                  nrows_,
-                  msg_columns.size(),
-                  static_cast<int>(nkeys_),
-                  &msg_columns);
-  fbb.Finish(frame);
-
-  uint8_t* metaBytes = fbb.GetBufferPointer();
-  size_t   metaSize = fbb.GetSize();
-  wb->write(metaSize, metaBytes);
-  if (metaSize & 7) {
-    wb->write(8 - (metaSize & 7), "\0\0\0\0\0\0\0");
-    metaSize += 8 - (metaSize & 7);
-  }
-
-  wb->write(8, &metaSize);
-  wb->write(8, "\0\0\0\0" "1JAY");
-  wb->finalize();
-}
-
-
-
-//------------------------------------------------------------------------------
 // Save a column
 //------------------------------------------------------------------------------
 
@@ -467,6 +398,76 @@ void dt::Rbound_ColumnImpl::write_data_to_jay(
   } else {
     _write_fw_to_jay(cbb, wb);
   }
+}
+
+
+
+
+//------------------------------------------------------------------------------
+// Save DataTable
+//------------------------------------------------------------------------------
+
+/**
+ * Save Frame in Jay format to the provided file.
+ */
+void DataTable::save_jay(const std::string& path,
+                         WritableBuffer::Strategy wstrategy)
+{
+  size_t sizehint = (wstrategy == WritableBuffer::Strategy::Auto)
+                    ? memory_footprint() : 0;
+  auto wb = WritableBuffer::create_target(path, sizehint, wstrategy);
+  save_jay_impl(wb.get());
+}
+
+
+/**
+ * Save Frame in Jay format to memory,
+ */
+Buffer DataTable::save_jay() {
+  auto wb = std::unique_ptr<MemoryWritableBuffer>(
+                new MemoryWritableBuffer(memory_footprint()));
+  save_jay_impl(wb.get());
+  return wb->get_mbuf();
+}
+
+
+void DataTable::save_jay_impl(WritableBuffer* wb) {
+  wb->write(8, "JAY1\0\0\0\0");
+
+  flatbuffers::FlatBufferBuilder fbb(1024);
+
+  std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
+  for (size_t i = 0; i < ncols_; ++i) {
+    Column& col = get_column(i);
+    if (col.stype() == dt::SType::OBJ) {
+      auto w = DatatableWarning();
+      w << "Column `" << names_[i] << "` of type obj64 was not saved";
+      w.emit_warning();
+    } else {
+      auto saved_col = col.write_to_jay(names_[i], fbb, wb);
+      msg_columns.push_back(saved_col);
+    }
+  }
+  xassert((wb->size() & 7) == 0);
+
+  auto frame = jay::CreateFrameDirect(fbb,
+                  nrows_,
+                  msg_columns.size(),
+                  static_cast<int>(nkeys_),
+                  &msg_columns);
+  fbb.Finish(frame);
+
+  uint8_t* metaBytes = fbb.GetBufferPointer();
+  size_t   metaSize = fbb.GetSize();
+  wb->write(metaSize, metaBytes);
+  if (metaSize & 7) {
+    wb->write(8 - (metaSize & 7), "\0\0\0\0\0\0\0");
+    metaSize += 8 - (metaSize & 7);
+  }
+
+  wb->write(8, &metaSize);
+  wb->write(8, "\0\0\0\0" "1JAY");
+  wb->finalize();
 }
 
 
