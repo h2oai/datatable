@@ -122,6 +122,8 @@ def test_create_from_python1():
     assert DT.shape == (6, 1)
     assert DT.type == dt.Type.arr32(dt.Type.int32)
     assert DT.names == ("A",)
+    assert DT.ltypes == (dt.ltype.invalid,) # These properties are deprecated, also
+    assert DT.stypes == (dt.stype.arr32,)   # see issue #3142
     assert DT.to_list() == [src]
 
 

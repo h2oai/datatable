@@ -851,7 +851,7 @@ def test_single_element_extraction_from_view(dt0):
 @pytest.mark.parametrize('st', list(dt.stype))
 def test_single_element_all_stypes(st):
     from datetime import date as dd
-    if st == dt.stype.time64:
+    if st in (dt.stype.time64, dt.stype.arr32, dt.stype.arr64):
         return
     pt = (bool if st == dt.stype.bool8 else
           int if st.ltype == dt.ltype.int else

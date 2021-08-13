@@ -46,6 +46,8 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
+    arr32 = 13
+    arr64 = 14
     date32 = 17
     time64 = 18
     obj64 = 21
@@ -140,6 +142,7 @@ class ltype(enum.Enum):
     str = 4
     time = 5
     obj = 7
+    invalid = 8
 
     def __repr__(self):
         return str(self)
@@ -194,6 +197,8 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
+    stype.arr32: "a4",
+    stype.arr64: "a8",
     stype.time64: "t8",
     stype.date32: "d4",
     stype.obj64: "o8",
@@ -210,6 +215,8 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
+    stype.arr32: ltype.invalid,
+    stype.arr64: ltype.invalid,
     stype.date32: ltype.time,
     stype.time64: ltype.time,
     stype.obj64: ltype.obj,

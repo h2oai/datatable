@@ -25,6 +25,9 @@
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
 
+    -[fix] Fixed a crash when :attr:`.ltypes` or :attr:`.stypes` properties
+        were accessed for a frame containing array columns. [#3142]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
