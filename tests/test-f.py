@@ -199,6 +199,8 @@ def test_f_columnset_stypes(DT):
 
 def test_f_columnset_ltypes(DT):
     for lt in dt.ltype:
+        if lt == dt.ltype.invalid:
+            return
         assert_equals(DT[:, f[lt]],
                       DT[:, [i for i in range(DT.ncols)
                              if DT.ltypes[i] == lt]])

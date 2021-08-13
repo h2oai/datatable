@@ -151,6 +151,8 @@ void init_py_stype_objs(PyObject* stype_enum) {
   _init_py_stype(SType::FLOAT64);
   _init_py_stype(SType::STR32);
   _init_py_stype(SType::STR64);
+  _init_py_stype(SType::ARR32);
+  _init_py_stype(SType::ARR64);
   _init_py_stype(SType::TIME64);
   _init_py_stype(SType::DATE32);
   _init_py_stype(SType::OBJ);

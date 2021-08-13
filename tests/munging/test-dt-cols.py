@@ -292,7 +292,7 @@ def test_j_type(t, dt1):
 
 @pytest.mark.parametrize("t", ltype)
 def test_j_ltype(t, dt1):
-    if t == ltype.time:
+    if t in (ltype.time, ltype.invalid):
         return
     DT2 = dt1[:, t]
     sl2 = (slice(0, 1) if t == ltype.bool else
