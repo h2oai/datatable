@@ -19,7 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <memory>
 #include "column/column_impl.h"
+#include "column/const.h"
 #include "column/rbound.h"
 #include "column/sentinel.h"
 #include "column/virtual.h"
@@ -38,7 +40,8 @@
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::SType stype_to_jaytype[dt::STYPES_COUNT];
-static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
+static std::unique_ptr<jay::Buffer> saveMemoryRange(
+    const void*, size_t, WritableBuffer*);
 
 
 //------------------------------------------------------------------------------
@@ -59,14 +62,26 @@ class ColumnJayData {
     jay::Stats _stats_kind;
     jay::SType _stype;
     size_t : 32;
+    std::unique_ptr<jay::Buffer> _databuf;
+    std::unique_ptr<jay::Buffer> _strdatabuf;
 
   public:
     ColumnJayData(
         Column& col,
         flatbuffers::FlatBufferBuilder& fbb,
         WritableBuffer* wb
-    ) : _column(col), _wb(wb), _fbb(fbb) {}
+    ) : _column(col),
+        _wb(wb),
+        _fbb(fbb),
+        _stype(jay::SType_Void0)
+    {}
 
+    Column& get_column() { return _column; }
+    WritableBuffer* get_output_buffer() { return _wb; }
+
+    void prepare() {
+      _column.save_to_jay(*this);
+    }
 
     void store_name(const std::string& name) {
       _name_offset = _fbb.CreateString(name.c_str());
@@ -77,6 +92,17 @@ class ColumnJayData {
       _type_offset = _prepare_type(_column.type());
     }
 
+    void store_stype(dt::SType stype) {
+      _stype = stype_to_jaytype[static_cast<int>(stype)];
+    }
+
+    void store_databuf(std::unique_ptr<jay::Buffer>&& buf) {
+      _databuf = std::move(buf);
+    }
+
+    void store_strdatabuf(std::unique_ptr<jay::Buffer>&& buf) {
+      _strdatabuf = std::move(buf);
+    }
 
     void store_stats() {
       Stats* colstats = _column.get_stats_if_exist();
@@ -152,9 +178,9 @@ class ColumnJayData {
 
       // Old-style column
       if (_type_offset.IsNull()) {
-        auto jstype = stype_to_jaytype[static_cast<int>(_column.stype())];
-        cbb.add_stype(jstype);
-        _column.write_data_to_jay(cbb, _wb);
+        cbb.add_stype(_stype);
+        if (_databuf) cbb.add_data(_databuf.get());
+        if (_strdatabuf) cbb.add_strdata(_strdatabuf.get());
       }
       // New-style column (Arrow)
       else {
@@ -205,50 +231,41 @@ class ColumnJayData {
 
 
 
-flatbuffers::Offset<jay::Column> Column::write_to_jay(
-        const std::string& name,
-        flatbuffers::FlatBufferBuilder& fbb,
-        WritableBuffer* wb)
-{
-  ColumnJayData cj(*this, fbb, wb);
-  cj.store_name(name);
+void Column::save_to_jay(ColumnJayData& cj) {
+  const_cast<dt::ColumnImpl*>(impl_)->save_to_jay(cj);
+}
+
+void dt::Virtual_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  Column& col = cj.get_column();
+  col.materialize();
+  col.save_to_jay(cj);
+}
+
+void dt::Sentinel_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  auto wb = cj.get_output_buffer();
+  cj.store_stype(stype());
   cj.store_stats();
-  return cj.write();
-}
-
-
-
-void Column::write_data_to_jay(jay::ColumnBuilder& cbb, WritableBuffer* wb) {
-  const_cast<dt::ColumnImpl*>(impl_)->write_data_to_jay(*this, cbb, wb);
-}
-
-
-void dt::Sentinel_ColumnImpl::write_data_to_jay(
-    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
   size_t nbufs = get_num_data_buffers();
   for (size_t i = 0; i < nbufs; ++i) {
-    const void* data = get_data_readonly(i);
-    size_t size = get_data_size(i);
-    jay::Buffer saved_buf = saveMemoryRange(data, size, wb);
-    if (i == 0) cbb.add_data(&saved_buf);
-    if (i == 1) cbb.add_strdata(&saved_buf);
+    auto data = get_data_readonly(i);
+    auto size = get_data_size(i);
+    auto saved_buf = saveMemoryRange(data, size, wb);
+    if (i == 0) cj.store_databuf(std::move(saved_buf));
+    if (i == 1) cj.store_strdatabuf(std::move(saved_buf));
+  }
+}
+
+void dt::ConstNa_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  if (stype() == dt::SType::VOID) {
+    cj.store_stype(stype());
+  } else {
+    Virtual_ColumnImpl::save_to_jay(cj);
   }
 }
 
 
-void dt::Virtual_ColumnImpl::write_data_to_jay(
-    Column& thiscol, jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
-  thiscol.materialize(false);
-  thiscol.write_data_to_jay(cbb, wb);
-}
-
-
-
-void dt::Rbound_ColumnImpl::_write_fw_to_jay(
-    jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
+void dt::Rbound_ColumnImpl::_write_fw_to_jay(ColumnJayData& cj) {
+  auto wb = cj.get_output_buffer();
   size_t pos0 = 0;
   size_t size_total = 0;
   for (const Column& col : chunks_) {
@@ -269,8 +286,7 @@ void dt::Rbound_ColumnImpl::_write_fw_to_jay(
     wb->write(8 - (size_total & 7), &zero);
   }
   xassert(pos0 >= 8);
-  jay::Buffer saved_buf(pos0 - 8, size_total);
-  cbb.add_data(&saved_buf);
+  cj.store_databuf(std::make_unique<jay::Buffer>(pos0 - 8, size_total));
 }
 
 
@@ -290,9 +306,8 @@ static Buffer _recode_offsets(const void* data, size_t n, size_t offset0) {
 }
 
 
-void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
-    jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
+void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(ColumnJayData& cj) {
+  auto wb = cj.get_output_buffer();
   // Check whether the column may end up being over the maximum
   // allowed size for the STR32 stype.
   if (stype() == dt::SType::STR32) {
@@ -301,11 +316,8 @@ void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
       xassert(!col.is_virtual());
       strdata_size += col.get_data_size(1);
     }
-    if (strdata_size > Column::MAX_ARR32_SIZE ||
-        nrows_ > Column::MAX_ARR32_SIZE) {
-      // [FIXME]
-      // stype_ = SType::STR64;
-      cbb.add_stype(stype_to_jaytype[static_cast<int>(SType::STR64)]);
+    if (strdata_size > Column::MAX_ARR32_SIZE || nrows_ > Column::MAX_ARR32_SIZE) {
+      cj.store_stype(SType::STR64);
     }
   }
 
@@ -352,14 +364,12 @@ void dt::Rbound_ColumnImpl::_write_str_offsets_to_jay(
     wb->write(8 - (offsets_size & 7), &zero);
   }
   xassert(pos0 >= 8);
-  jay::Buffer saved_buf(pos0 - 8, offsets_size);
-  cbb.add_data(&saved_buf);
+  cj.store_databuf(std::make_unique<jay::Buffer>(pos0 - 8, offsets_size));
 }
 
 
-void dt::Rbound_ColumnImpl::_write_str_data_to_jay(
-    jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
+void dt::Rbound_ColumnImpl::_write_str_data_to_jay(ColumnJayData& cj) {
+  auto wb = cj.get_output_buffer();
   size_t pos0 = 0;
   size_t size_total = 0;
   for (const Column& col : chunks_) {
@@ -379,24 +389,22 @@ void dt::Rbound_ColumnImpl::_write_str_data_to_jay(
     wb->write(8 - (size_total & 7), &zero);
   }
   xassert(pos0 >= 8);
-  jay::Buffer saved_buf(pos0 - 8, size_total);
-  cbb.add_strdata(&saved_buf);
+  cj.store_strdatabuf(std::make_unique<jay::Buffer>(pos0 - 8, size_total));
 }
 
 
-
-void dt::Rbound_ColumnImpl::write_data_to_jay(
-    Column&, jay::ColumnBuilder& cbb, WritableBuffer* wb)
-{
+void dt::Rbound_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   for (Column& col : chunks_) {
     col.materialize();
   }
+  cj.store_stype(stype());
+  cj.store_stats();
 
   if (stype() == dt::SType::STR32 || stype() == dt::SType::STR64) {
-    _write_str_offsets_to_jay(cbb, wb);
-    _write_str_data_to_jay(cbb, wb);
+    _write_str_offsets_to_jay(cj);
+    _write_str_data_to_jay(cj);
   } else {
-    _write_fw_to_jay(cbb, wb);
+    _write_fw_to_jay(cj);
   }
 }
 
@@ -436,25 +444,28 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 
   flatbuffers::FlatBufferBuilder fbb(1024);
 
-  std::vector<flatbuffers::Offset<jay::Column>> msg_columns;
+  std::vector<flatbuffers::Offset<jay::Column>> stored_columns;
   for (size_t i = 0; i < ncols_; ++i) {
     Column& col = get_column(i);
-    if (col.stype() == dt::SType::OBJ) {
+    if (col.type().is_object()) {
       auto w = DatatableWarning();
-      w << "Column `" << names_[i] << "` of type obj64 was not saved";
+      w << "Column `" << names_[i] << "` of type obj64 cannot be saved to Jay";
       w.emit_warning();
-    } else {
-      auto saved_col = col.write_to_jay(names_[i], fbb, wb);
-      msg_columns.push_back(saved_col);
+      continue;
     }
+    ColumnJayData cj(col, fbb, wb);
+    cj.store_name(names_[i]);
+    cj.prepare();
+    auto offset = cj.write();
+    stored_columns.push_back(offset);
   }
   xassert((wb->size() & 7) == 0);
 
   auto frame = jay::CreateFrameDirect(fbb,
                   nrows_,
-                  msg_columns.size(),
+                  stored_columns.size(),
                   static_cast<int>(nkeys_),
-                  &msg_columns);
+                  &stored_columns);
   fbb.Finish(frame);
 
   uint8_t* metaBytes = fbb.GetBufferPointer();
@@ -477,7 +488,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 // Helpers
 //------------------------------------------------------------------------------
 
-static jay::Buffer saveMemoryRange(
+static std::unique_ptr<jay::Buffer> saveMemoryRange(
     const void* data, size_t len, WritableBuffer* wb)
 {
   size_t pos = wb->prepare_write(len, data);
@@ -487,7 +498,7 @@ static jay::Buffer saveMemoryRange(
     uint64_t zero = 0;
     wb->write(8 - (len & 7), &zero);
   }
-  return jay::Buffer(pos - 8, len);
+  return std::make_unique<jay::Buffer>(pos - 8, len);
 }
 
 
@@ -541,6 +552,7 @@ void Frame::_init_jay(XTypeMaker& xt) {
   args_to_jay.add_synonym_arg("_strategy", "method");
   xt.add(METHOD(&Frame::to_jay, args_to_jay));
 
+  stype_to_jaytype[int(dt::SType::VOID)]    = jay::SType_Void0;
   stype_to_jaytype[int(dt::SType::BOOL)]    = jay::SType_Bool8;
   stype_to_jaytype[int(dt::SType::INT8)]    = jay::SType_Int8;
   stype_to_jaytype[int(dt::SType::INT16)]   = jay::SType_Int16;
@@ -548,11 +560,12 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::INT64)]   = jay::SType_Int64;
   stype_to_jaytype[int(dt::SType::FLOAT32)] = jay::SType_Float32;
   stype_to_jaytype[int(dt::SType::FLOAT64)] = jay::SType_Float64;
-  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::SType_Date32;
-  stype_to_jaytype[int(dt::SType::TIME64)]  = jay::SType_Time64;
   stype_to_jaytype[int(dt::SType::STR32)]   = jay::SType_Str32;
   stype_to_jaytype[int(dt::SType::STR64)]   = jay::SType_Str64;
-  stype_to_jaytype[int(dt::SType::VOID)]    = jay::SType_Void0;
+  stype_to_jaytype[int(dt::SType::ARR32)]   = jay::SType_Arr32;
+  stype_to_jaytype[int(dt::SType::ARR64)]   = jay::SType_Arr64;
+  stype_to_jaytype[int(dt::SType::DATE32)]  = jay::SType_Date32;
+  stype_to_jaytype[int(dt::SType::TIME64)]  = jay::SType_Time64;
 }
 
 

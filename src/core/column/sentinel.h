@@ -42,8 +42,7 @@ class Sentinel_ColumnImpl : public ColumnImpl
     NaStorage get_na_storage_method() const noexcept override;
     size_t n_children() const noexcept override;
 
-    void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                           WritableBuffer*) override;
+    void save_to_jay(ColumnJayData& cj) override;
 
   protected:
     Sentinel_ColumnImpl(size_t nrows, SType stype);

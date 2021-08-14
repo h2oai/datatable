@@ -68,8 +68,7 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     void na_pad(size_t nrows, Column&) override;
     void rbind_impl(
         colvec& columns, size_t new_nrows, bool col_empty, dt::SType&) override;
-    void write_data_to_jay(
-        Column&, jay::ColumnBuilder&, WritableBuffer*) override;
+    void save_to_jay(ColumnJayData&) override;
 };
 
 
