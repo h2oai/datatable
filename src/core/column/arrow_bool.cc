@@ -48,9 +48,8 @@ size_t ArrowBool_ColumnImpl::num_buffers() const noexcept {
   return 2;
 }
 
-const void* ArrowBool_ColumnImpl::get_buffer(size_t i) const {
-  return (i == 0)? validity_.rptr() :
-         (i == 1)? data_.rptr() : nullptr;
+Buffer ArrowBool_ColumnImpl::get_buffer(size_t i) const {
+  return (i == 0)? validity_ : data_;
 }
 
 

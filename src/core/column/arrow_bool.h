@@ -39,7 +39,7 @@ class ArrowBool_ColumnImpl : public Arrow_ColumnImpl {
     ColumnImpl* clone() const override;
     // void materialize(Column&, bool) override;
     size_t num_buffers() const noexcept override;
-    const void* get_buffer(size_t i) const override;
+    Buffer get_buffer(size_t i) const override;
 
     bool get_element(size_t, int8_t*)  const override;
 };

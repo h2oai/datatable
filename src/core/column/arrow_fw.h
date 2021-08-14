@@ -48,7 +48,7 @@ class ArrowFw_ColumnImpl : public Arrow_ColumnImpl {
     bool get_element(size_t, double*)  const override;
 
     size_t num_buffers() const noexcept override;
-    const void* get_buffer(size_t i) const override;
+    Buffer get_buffer(size_t i) const override;
 
   private:
     template <typename T> inline bool _get(size_t, T*) const;

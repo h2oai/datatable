@@ -53,11 +53,9 @@ size_t ArrowStr_ColumnImpl<T>::num_buffers() const noexcept {
 }
 
 template <typename T>
-const void* ArrowStr_ColumnImpl<T>::get_buffer(size_t i) const {
+Buffer ArrowStr_ColumnImpl<T>::get_buffer(size_t i) const {
   xassert(i < 3);
-  return (i == 0)? validity_.rptr() :
-         (i == 1)? offsets_.rptr() :
-         (i == 2)? strdata_.rptr() : nullptr;
+  return (i == 0)? validity_ : (i == 1)? offsets_ : strdata_;
 }
 
 

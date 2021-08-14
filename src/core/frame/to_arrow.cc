@@ -111,7 +111,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   if (n_buffers) {
     data->buffers().reserve(n_buffers);
     for (size_t i = 0; i < n_buffers; ++i) {
-      const void* buffer_ptr = arrow_impl->get_buffer(i);
+      const void* buffer_ptr = arrow_impl->get_buffer(i).rptr();
       data->buffers().push_back( buffer_ptr );
     }
     (*aarr)->buffers = data->buffers().data();

@@ -38,8 +38,8 @@ size_t ArrowVoid_ColumnImpl::num_buffers() const noexcept {
   return 1;
 }
 
-const void* ArrowVoid_ColumnImpl::get_buffer(size_t) const {
-  return validity_.rptr();
+Buffer ArrowVoid_ColumnImpl::get_buffer(size_t) const {
+  return validity_;
 }
 
 

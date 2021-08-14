@@ -35,7 +35,7 @@ class ArrowVoid_ColumnImpl : public Arrow_ColumnImpl {
     ColumnImpl* clone() const override;
 
     size_t num_buffers() const noexcept override;
-    const void* get_buffer(size_t) const override;
+    Buffer get_buffer(size_t) const override;
     bool get_element(size_t, int8_t*) const override;
 };
 

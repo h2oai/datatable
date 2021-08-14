@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <memory>
+#include "column/arrow.h"
 #include "column/column_impl.h"
 #include "column/const.h"
 #include "column/rbound.h"
@@ -76,6 +77,10 @@ class ColumnJayData {
         _stype(jay::SType_Void0)
     {}
 
+    ColumnJayData for_column(Column& col) {
+      return ColumnJayData(col, _fbb, _wb);
+    }
+
     Column& get_column() { return _column; }
     WritableBuffer* get_output_buffer() { return _wb; }
 
@@ -86,7 +91,6 @@ class ColumnJayData {
     void store_name(const std::string& name) {
       _name_offset = _fbb.CreateString(name.c_str());
     }
-
 
     void store_type() {
       _type_offset = _prepare_type(_column.type());
@@ -152,8 +156,9 @@ class ColumnJayData {
     }
 
 
-    void store_buffers(const std::vector<const jay::Buffer*>& buffers) {
-      _buffers_vector = _fbb.CreateVector<const jay::Buffer*>(buffers);
+    void store_buffers(const std::vector<std::unique_ptr<jay::Buffer>>& buffers) {
+      auto ptr = reinterpret_cast<const jay::Buffer*>(buffers.data());
+      _buffers_vector = _fbb.CreateVector<const jay::Buffer*>(&ptr, buffers.size());
     }
 
 
@@ -230,16 +235,17 @@ class ColumnJayData {
 };
 
 
-
 void Column::save_to_jay(ColumnJayData& cj) {
   const_cast<dt::ColumnImpl*>(impl_)->save_to_jay(cj);
 }
+
 
 void dt::Virtual_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   Column& col = cj.get_column();
   col.materialize();
   col.save_to_jay(cj);
 }
+
 
 void dt::Sentinel_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   auto wb = cj.get_output_buffer();
@@ -255,11 +261,56 @@ void dt::Sentinel_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   }
 }
 
+
+void dt::Arrow_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  auto wb = cj.get_output_buffer();
+  cj.store_stats();
+  cj.store_type();
+  if (num_buffers()) {
+    std::vector<std::unique_ptr<jay::Buffer>> buffer_vec;
+    for (size_t i = 0; i < num_buffers(); i++) {
+      auto buf = get_buffer(i);
+      buffer_vec.push_back(
+        saveMemoryRange(buf.rptr(), buf.size(), wb)
+      );
+    }
+    cj.store_buffers(buffer_vec);
+  }
+  if (n_children()) {
+    std::vector<flatbuffers::Offset<jay::Column>> children_vec;
+    for (size_t i = 0; i < n_children(); i++) {
+      Column child_col = child(i);
+      auto ccj = cj.for_column(child_col);
+      ccj.prepare();
+      auto offset = ccj.write();
+      children_vec.push_back(offset);
+    }
+    cj.store_children(children_vec);
+  }
+}
+
+
 void dt::ConstNa_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   if (stype() == dt::SType::VOID) {
     cj.store_stype(stype());
   } else {
     Virtual_ColumnImpl::save_to_jay(cj);
+  }
+}
+
+
+void dt::Rbound_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  for (Column& col : chunks_) {
+    col.materialize();
+  }
+  cj.store_stype(stype());
+  cj.store_stats();
+
+  if (stype() == dt::SType::STR32 || stype() == dt::SType::STR64) {
+    _write_str_offsets_to_jay(cj);
+    _write_str_data_to_jay(cj);
+  } else {
+    _write_fw_to_jay(cj);
   }
 }
 
@@ -390,22 +441,6 @@ void dt::Rbound_ColumnImpl::_write_str_data_to_jay(ColumnJayData& cj) {
   }
   xassert(pos0 >= 8);
   cj.store_strdatabuf(std::make_unique<jay::Buffer>(pos0 - 8, size_total));
-}
-
-
-void dt::Rbound_ColumnImpl::save_to_jay(ColumnJayData& cj) {
-  for (Column& col : chunks_) {
-    col.materialize();
-  }
-  cj.store_stype(stype());
-  cj.store_stats();
-
-  if (stype() == dt::SType::STR32 || stype() == dt::SType::STR64) {
-    _write_str_offsets_to_jay(cj);
-    _write_str_data_to_jay(cj);
-  } else {
-    _write_fw_to_jay(cj);
-  }
 }
 
 
@@ -567,6 +602,8 @@ void Frame::_init_jay(XTypeMaker& xt) {
   stype_to_jaytype[int(dt::SType::DATE32)]  = jay::SType_Date32;
   stype_to_jaytype[int(dt::SType::TIME64)]  = jay::SType_Time64;
 }
+
+
 
 
 } // namespace py
