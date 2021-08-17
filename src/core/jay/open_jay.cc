@@ -22,6 +22,7 @@
 #include <string>
 #include <cstring>              // std::memcmp
 #include "column/arrow_array.h"
+#include "column/arrow_str.h"
 #include "datatable.h"
 #include "datatablemodule.h"
 #include "frame/py_frame.h"
@@ -252,7 +253,6 @@ static dt::Type _resolve_jtype(const jay::Type* jtype) {
 
 
 static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
-  xassert(jcol->stype() == 0);
   xassert(jcol->data() == nullptr);
   xassert(jcol->strdata() == nullptr);
 
@@ -276,24 +276,60 @@ static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
       children.push_back(column_from_jay2((*jchildren)[i], jaybuf));
     }
   }
+  bool has_validity = (*jbuffers).size() > 0 && (*jbuffers)[0]->length() > 0;
 
-  switch (coltype.stype()) {
-    case dt::SType::ARR32: {
-      return Column(new dt::ArrowArray_ColumnImpl<uint32_t>(
-          nrows, nullcount,
-          std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+  Column col;
+  if (coltype.is_string()) {
+    xassert((*jbuffers).size() == 3);
+    if (has_validity && coltype.stype() == dt::SType::STR32) {
+      col = Column(new dt::ArrowStr_ColumnImpl<uint32_t>(
+        nrows, coltype.stype(), std::move(buffers[0]), std::move(buffers[1]), std::move(buffers[2])
       ));
     }
-    case dt::SType::ARR64: {
-      return Column(new dt::ArrowArray_ColumnImpl<uint64_t>(
-          nrows, nullcount,
-          std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+    else if (has_validity && coltype.stype() == dt::SType::STR64) {
+      col = Column(new dt::ArrowStr_ColumnImpl<uint32_t>(
+        nrows, coltype.stype(), std::move(buffers[0]), std::move(buffers[1]), std::move(buffers[2])
       ));
+    }
+    else {
+      col = Column::new_string_column(nrows, std::move(buffers[1]), std::move(buffers[2]));
     }
   }
+  else if (coltype.is_array()) {
+    xassert(jbuffers->size() == 2);
+    xassert(jchildren->size() == 1);
+    if (coltype.stype() == dt::SType::ARR32) {
+      col = Column(new dt::ArrowArray_ColumnImpl<uint32_t>(
+                nrows, nullcount,
+                std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+            ));
+    } else {
+      col = Column(new dt::ArrowArray_ColumnImpl<uint64_t>(
+                nrows, nullcount,
+                std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+            ));
+    }
+  }
+  else {
+    xassert(!has_validity);
+    xassert(jbuffers->size() == 2);
+    xassert(jchildren->size() == 0);
+    col = Column::new_mbuf_column(nrows, coltype.stype(), std::move(buffers[1]));
+  }
 
-  throw NotImplError() << "Cannot restore a column of type " << coltype
-      << " from Jay file";
+  switch (coltype.stype()) {
+    case dt::SType::BOOL:    initStats<int8_t,  jay::StatsBool>(col.stats(), jcol); break;
+    case dt::SType::INT8:    initStats<int8_t,  jay::StatsInt8>(col.stats(), jcol); break;
+    case dt::SType::INT16:   initStats<int16_t, jay::StatsInt16>(col.stats(), jcol); break;
+    case dt::SType::DATE32:
+    case dt::SType::INT32:   initStats<int32_t, jay::StatsInt32>(col.stats(), jcol); break;
+    case dt::SType::TIME64:
+    case dt::SType::INT64:   initStats<int64_t, jay::StatsInt64>(col.stats(), jcol); break;
+    case dt::SType::FLOAT32: initStats<float,   jay::StatsFloat32>(col.stats(), jcol); break;
+    case dt::SType::FLOAT64: initStats<double,  jay::StatsFloat64>(col.stats(), jcol); break;
+    default: break;
+  }
+  return col;
 }
 
 

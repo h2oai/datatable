@@ -39,10 +39,16 @@
 #include "stype.h"
 #include "writebuf.h"
 
+template <typename T>
+using FbOffset = typename flatbuffers::Offset<T>;
+template <typename T>
+using FbVector = typename flatbuffers::Vector<T>;
+using FbString = flatbuffers::String;
+
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::SType stype_to_jaytype[dt::STYPES_COUNT];
-static std::unique_ptr<jay::Buffer> saveMemoryRange(
-    const void*, size_t, WritableBuffer*);
+static std::unique_ptr<jay::Buffer> saveMemoryRange(const void*, size_t, WritableBuffer*);
+static jay::Buffer saveMemoryRange2(const void*, size_t, WritableBuffer*);
 
 
 //------------------------------------------------------------------------------
@@ -54,15 +60,14 @@ class ColumnJayData {
     Column& _column;
     WritableBuffer* _wb;
     flatbuffers::FlatBufferBuilder& _fbb;
-    flatbuffers::Offset<flatbuffers::String> _name_offset;
-    flatbuffers::Offset<jay::Type> _type_offset;
-    flatbuffers::Offset<void> _stats_offset;
-    flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer*>> _buffers_vector;
-    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>>
-        _children_vector;
+    int : 32;
+    FbOffset<FbString> _name_offset;
+    FbOffset<jay::Type> _type_offset;
+    FbOffset<void> _stats_offset;
+    FbOffset<FbVector<const jay::Buffer*>> _buffers_vector;
+    FbOffset<FbVector<FbOffset<jay::Column>>> _children_vector;
     jay::Stats _stats_kind;
     jay::SType _stype;
-    size_t : 32;
     std::unique_ptr<jay::Buffer> _databuf;
     std::unique_ptr<jay::Buffer> _strdatabuf;
 
@@ -156,21 +161,17 @@ class ColumnJayData {
     }
 
 
-    void store_buffers(const std::vector<std::unique_ptr<jay::Buffer>>& buffers) {
-      auto ptr = reinterpret_cast<const jay::Buffer*>(buffers.data());
-      _buffers_vector = _fbb.CreateVector<const jay::Buffer*>(&ptr, buffers.size());
+    void store_buffers(const std::vector<jay::Buffer>& buffers) {
+      _buffers_vector = _fbb.CreateVectorOfStructs(buffers);
     }
 
 
-    void store_children(
-        const std::vector<flatbuffers::Offset<jay::Column>>& children)
-    {
-      _children_vector =
-          _fbb.CreateVector<flatbuffers::Offset<jay::Column>>(children);
+    void store_children(const std::vector<FbOffset<jay::Column>>& children) {
+      _children_vector = _fbb.CreateVector<FbOffset<jay::Column>>(children);
     }
 
 
-    flatbuffers::Offset<jay::Column> write() {
+    FbOffset<jay::Column> write() {
       jay::ColumnBuilder cbb(_fbb);
       if (!_name_offset.IsNull()) {
         cbb.add_name(_name_offset);
@@ -202,10 +203,10 @@ class ColumnJayData {
     }
 
   private:
-    flatbuffers::Offset<jay::Type> _prepare_type(dt::Type type) {
+    FbOffset<jay::Type> _prepare_type(dt::Type type) {
       jay::SType j_stype = stype_to_jaytype[static_cast<int>(type.stype())];
       jay::TypeExtra j_extra_type = jay::TypeExtra_NONE;
-      flatbuffers::Offset<void> j_extra;
+      FbOffset<void> j_extra;
       if (type.is_array()) {
         j_extra_type = jay::TypeExtra_child;
         j_extra = _prepare_type(type.child()).Union();
@@ -220,7 +221,7 @@ class ColumnJayData {
     }
 
     template <typename T, typename StatBuilder>
-    flatbuffers::Offset<void> _save_stats(Stats* stats) {
+    FbOffset<void> _save_stats(Stats* stats) {
       using R = typename std::conditional<std::is_integral<T>::value, int64_t, double>::type;
       if (!(stats && stats->is_computed(Stat::Min) && stats->is_computed(Stat::Max))) {
         return 0;
@@ -249,16 +250,17 @@ void dt::Virtual_ColumnImpl::save_to_jay(ColumnJayData& cj) {
 
 void dt::Sentinel_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   auto wb = cj.get_output_buffer();
-  cj.store_stype(stype());
   cj.store_stats();
-  size_t nbufs = get_num_data_buffers();
-  for (size_t i = 0; i < nbufs; ++i) {
-    auto data = get_data_readonly(i);
-    auto size = get_data_size(i);
-    auto saved_buf = saveMemoryRange(data, size, wb);
-    if (i == 0) cj.store_databuf(std::move(saved_buf));
-    if (i == 1) cj.store_strdatabuf(std::move(saved_buf));
+  cj.store_type();
+  std::vector<jay::Buffer> buffer_vec;
+  buffer_vec.push_back(jay::Buffer(0, 0));  // validity buf
+  for (size_t i = 0; i < get_num_data_buffers(); i++) {
+    auto buf = get_data_buffer(i);
+    buffer_vec.push_back(
+      saveMemoryRange2(buf.rptr(), buf.size(), wb)
+    );
   }
+  cj.store_buffers(buffer_vec);
 }
 
 
@@ -267,17 +269,17 @@ void dt::Arrow_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   cj.store_stats();
   cj.store_type();
   if (num_buffers()) {
-    std::vector<std::unique_ptr<jay::Buffer>> buffer_vec;
+    std::vector<jay::Buffer> buffer_vec;
     for (size_t i = 0; i < num_buffers(); i++) {
       auto buf = get_buffer(i);
       buffer_vec.push_back(
-        saveMemoryRange(buf.rptr(), buf.size(), wb)
+        saveMemoryRange2(buf.rptr(), buf.size(), wb)
       );
     }
     cj.store_buffers(buffer_vec);
   }
   if (n_children()) {
-    std::vector<flatbuffers::Offset<jay::Column>> children_vec;
+    std::vector<FbOffset<jay::Column>> children_vec;
     for (size_t i = 0; i < n_children(); i++) {
       Column child_col = child(i);
       auto ccj = cj.for_column(child_col);
@@ -285,7 +287,7 @@ void dt::Arrow_ColumnImpl::save_to_jay(ColumnJayData& cj) {
       auto offset = ccj.write();
       children_vec.push_back(offset);
     }
-    cj.store_children(children_vec);
+    cj.store_children(std::move(children_vec));
   }
 }
 
@@ -479,7 +481,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 
   flatbuffers::FlatBufferBuilder fbb(1024);
 
-  std::vector<flatbuffers::Offset<jay::Column>> stored_columns;
+  std::vector<FbOffset<jay::Column>> stored_columns;
   for (size_t i = 0; i < ncols_; ++i) {
     Column& col = get_column(i);
     if (col.type().is_object()) {
@@ -534,6 +536,19 @@ static std::unique_ptr<jay::Buffer> saveMemoryRange(
     wb->write(8 - (len & 7), &zero);
   }
   return std::make_unique<jay::Buffer>(pos - 8, len);
+}
+
+static jay::Buffer saveMemoryRange2(
+    const void* data, size_t len, WritableBuffer* wb)
+{
+  size_t pos = wb->prepare_write(len, data);
+  wb->write_at(pos, len, data);
+  xassert(pos >= 8);
+  if (len & 7) {  // Align the buffer to 8-byte boundary
+    uint64_t zero = 0;
+    wb->write(8 - (len & 7), &zero);
+  }
+  return jay::Buffer(pos - 8, len);
 }
 
 
