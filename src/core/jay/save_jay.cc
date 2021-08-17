@@ -47,8 +47,7 @@ using FbString = flatbuffers::String;
 
 using WritableBufferPtr = std::unique_ptr<WritableBuffer>;
 static jay::SType stype_to_jaytype[dt::STYPES_COUNT];
-static std::unique_ptr<jay::Buffer> saveMemoryRange(const void*, size_t, WritableBuffer*);
-static jay::Buffer saveMemoryRange2(const void*, size_t, WritableBuffer*);
+static jay::Buffer saveMemoryRange(const void*, size_t, WritableBuffer*);
 
 
 //------------------------------------------------------------------------------
@@ -257,7 +256,7 @@ void dt::Sentinel_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   for (size_t i = 0; i < get_num_data_buffers(); i++) {
     auto buf = get_data_buffer(i);
     buffer_vec.push_back(
-      saveMemoryRange2(buf.rptr(), buf.size(), wb)
+      saveMemoryRange(buf.rptr(), buf.size(), wb)
     );
   }
   cj.store_buffers(buffer_vec);
@@ -273,7 +272,7 @@ void dt::Arrow_ColumnImpl::save_to_jay(ColumnJayData& cj) {
     for (size_t i = 0; i < num_buffers(); i++) {
       auto buf = get_buffer(i);
       buffer_vec.push_back(
-        saveMemoryRange2(buf.rptr(), buf.size(), wb)
+        saveMemoryRange(buf.rptr(), buf.size(), wb)
       );
     }
     cj.store_buffers(buffer_vec);
@@ -525,20 +524,7 @@ void DataTable::save_jay_impl(WritableBuffer* wb) {
 // Helpers
 //------------------------------------------------------------------------------
 
-static std::unique_ptr<jay::Buffer> saveMemoryRange(
-    const void* data, size_t len, WritableBuffer* wb)
-{
-  size_t pos = wb->prepare_write(len, data);
-  wb->write_at(pos, len, data);
-  xassert(pos >= 8);
-  if (len & 7) {  // Align the buffer to 8-byte boundary
-    uint64_t zero = 0;
-    wb->write(8 - (len & 7), &zero);
-  }
-  return std::make_unique<jay::Buffer>(pos - 8, len);
-}
-
-static jay::Buffer saveMemoryRange2(
+static jay::Buffer saveMemoryRange(
     const void* data, size_t len, WritableBuffer* wb)
 {
   size_t pos = wb->prepare_write(len, data);
