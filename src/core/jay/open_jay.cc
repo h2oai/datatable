@@ -280,7 +280,7 @@ static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
 
   Column col;
   if (coltype.is_string()) {
-    xassert((*jbuffers).size() == 3);
+    xassert(buffers.size() == 3);
     if (has_validity && coltype.stype() == dt::SType::STR32) {
       col = Column(new dt::ArrowStr_ColumnImpl<uint32_t>(
         nrows, coltype.stype(), std::move(buffers[0]), std::move(buffers[1]), std::move(buffers[2])
@@ -296,8 +296,8 @@ static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
     }
   }
   else if (coltype.is_array()) {
-    xassert(jbuffers->size() == 2);
-    xassert(jchildren->size() == 1);
+    xassert(buffers.size() == 2);
+    xassert(children.size() == 1);
     if (coltype.stype() == dt::SType::ARR32) {
       col = Column(new dt::ArrowArray_ColumnImpl<uint32_t>(
                 nrows, nullcount,
@@ -312,8 +312,8 @@ static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
   }
   else {
     xassert(!has_validity);
-    xassert(jbuffers->size() == 2);
-    xassert(jchildren->size() == 0);
+    xassert(buffers.size() == 2);
+    xassert(children.size() == 0);
     col = Column::new_mbuf_column(nrows, coltype.stype(), std::move(buffers[1]));
   }
 
