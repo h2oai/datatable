@@ -1143,7 +1143,7 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      bool retry = _radix_recurse<make_groups>(rrmap_ptr);
+      bool retry = _radix_recurse<make_groups>(rrmap_ptr, true);
       if (retry) goto start;
       nsigbits = _nsigbits;
     }
@@ -1204,7 +1204,7 @@ class SortContext {
    * radix range, our job will be complete.
    */
   template <bool make_groups>
-  bool _radix_recurse(radix_range* rrmap) {
+  bool _radix_recurse(radix_range* rrmap, bool allow_retry = false) {
     xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
@@ -1259,7 +1259,7 @@ class SortContext {
         // create a very deep chain of recursion which will result in a stack
         // overflow and a crash. With this return status we're effectively
         // doing a manual tail-call elimination. See issue #3134.
-        if (sz == n && off == 0 && is_string) {
+        if (sz == n && off == 0 && is_string && allow_retry) {
           return true;
         }
         elemsize = _elemsize;
