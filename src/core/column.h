@@ -273,13 +273,9 @@ class Column
     // erroneous state.
     void verify_integrity() const;
 
-    // Serialize the column into a Jay format.
-    // See jay/save_jay.cc
-    flatbuffers::Offset<jay::Column> write_to_jay(
-        const std::string& name,
-        flatbuffers::FlatBufferBuilder&,
-        WritableBuffer*);
-    void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
+    // Save the column's data into the provided data structure `cj`.
+    // However, do not call `cj.write()`.
+    void save_to_jay(ColumnJayData& cj);
 
     // See frame/to_arrow.cc
     std::unique_ptr<dt::OArrowArray> to_arrow() const;

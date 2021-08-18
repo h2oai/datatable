@@ -250,3 +250,11 @@ def test_arr32_of_strings_repr():
         " 2 | [r, w, dfvdf]\n"
         "[3 rows x 1 column]\n"
     )
+
+
+def test_arr32_to_jay():
+    DT = dt.Frame(W=[['ad', 'dfkvjn'], ['b b, f', None], ['r', 'w', 'dfvdf']])
+    assert DT.type == dt.Type.arr32(dt.Type.str32)
+    out = DT.to_jay()
+    RES = dt.fread(out)
+    assert_equals(RES, DT)

@@ -102,7 +102,7 @@ class ColumnImpl
     virtual size_t n_children() const noexcept = 0;
     virtual const Column& child(size_t i) const;
     Stats* stats() const;
-
+    virtual size_t null_count() const;
 
   //------------------------------------
   // Data buffers
@@ -116,8 +116,7 @@ class ColumnImpl
     virtual void*       get_data_editable(size_t k) = 0;
     virtual Buffer      get_data_buffer(size_t k) const = 0;
 
-    virtual void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                                   WritableBuffer*) = 0;
+    virtual void save_to_jay(ColumnJayData& cj) = 0;
 
 
   //------------------------------------

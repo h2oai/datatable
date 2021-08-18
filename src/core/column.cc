@@ -156,7 +156,7 @@ size_t Column::nrows() const noexcept {
 }
 
 size_t Column::na_count() const {
-  return stats()->nacount();
+  return impl_->null_count();
 }
 
 const dt::Type& Column::type() const noexcept {

@@ -50,8 +50,7 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, py::oobj* out) const override;
     bool get_element(size_t i, Column* out)   const override;
 
-    void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                           WritableBuffer*) override;
+    void save_to_jay(ColumnJayData& cj) override;
 
   private:
     void calculate_nacount();
@@ -60,9 +59,9 @@ class Rbound_ColumnImpl : public Virtual_ColumnImpl {
     void calculate_float_stats();
 
     // defined in save_jay.cc
-    void _write_fw_to_jay(jay::ColumnBuilder&, WritableBuffer*);
-    void _write_str_offsets_to_jay(jay::ColumnBuilder&, WritableBuffer*);
-    void _write_str_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
+    void _write_fw_to_jay(ColumnJayData&);
+    void _write_str_offsets_to_jay(ColumnJayData&);
+    void _write_str_data_to_jay(ColumnJayData&);
 };
 
 

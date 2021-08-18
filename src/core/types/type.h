@@ -104,6 +104,8 @@ class Type {
     operator bool() const;
     std::string to_string() const;
 
+    Type child() const;
+
     // (Optionally) change the current type so that it becomes
     // compatible with the type `other`. This can be used, for
     // example, when two columns of different types are passed to a

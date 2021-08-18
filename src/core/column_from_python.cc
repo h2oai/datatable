@@ -399,6 +399,7 @@ Column _parse_array_impl(const Column& inputcol, size_t nn, bool strict) {
   py::oobj item;
   int validity_shift = 0;
   T current_offset = 0;
+  size_t null_count = 0;
   for (size_t i = 0; i < n; i++) {
     inputcol.get_element(i, &item);
     if (item.is_list()) {
@@ -409,6 +410,8 @@ Column _parse_array_impl(const Column& inputcol, size_t nn, bool strict) {
         *data_ptr++ = py::oobj(list[j]).release();
       }
       current_offset += static_cast<T>(list_size);
+    } else {
+      null_count++;
     }
     *offsets_ptr++ = current_offset;
     validity_shift++;
@@ -427,7 +430,7 @@ Column _parse_array_impl(const Column& inputcol, size_t nn, bool strict) {
     return inputcol;
   }
   return Column(new dt::ArrowArray_ColumnImpl<T>(
-      n,
+      n, null_count,
       std::move(validitybuf),
       std::move(offsetsbuf),
       std::move(child_column)

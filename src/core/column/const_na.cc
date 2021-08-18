@@ -65,17 +65,6 @@ bool ConstNa_ColumnImpl::is_virtual() const noexcept {
 }
 
 
-void ConstNa_ColumnImpl::write_data_to_jay(
-        Column& thiscol, jay::ColumnBuilder& cb, WritableBuffer* wbb) {
-  if (type_.is_void()) {
-    // no data to write
-  } else {
-    // For NA columns of non-void type, defer to regular writer
-    Virtual_ColumnImpl::write_data_to_jay(thiscol, cb, wbb);
-  }
-}
-
-
 
 //------------------------------------------------------------------------------
 // Materializing

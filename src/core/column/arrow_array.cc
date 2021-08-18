@@ -32,11 +32,13 @@ Type _type_with_child(const Type& t) {
 
 template <typename T>
 ArrowArray_ColumnImpl<T>::ArrowArray_ColumnImpl(
-    size_t nrows, Buffer&& valid, Buffer&& offsets, Column&& child)
-  : Arrow_ColumnImpl(nrows, _type_with_child<T>(child.type())),
+    size_t nrows, size_t nullcount,
+    Buffer&& valid, Buffer&& offsets, Column&& child
+) : Arrow_ColumnImpl(nrows, _type_with_child<T>(child.type())),
     validity_(std::move(valid)),
     offsets_(std::move(offsets)),
-    child_(std::move(child))
+    child_(std::move(child)),
+    null_count_(nullcount)
 {
   xassert(!validity_ || validity_.size() >= (nrows + 63)/64 * 8);
   xassert(offsets_.size() >= sizeof(T) * (nrows + 1));
@@ -48,7 +50,7 @@ ArrowArray_ColumnImpl<T>::ArrowArray_ColumnImpl(
 template <typename T>
 ColumnImpl* ArrowArray_ColumnImpl<T>::clone() const {
   return new ArrowArray_ColumnImpl<T>(
-      nrows_, Buffer(validity_), Buffer(offsets_), Column(child_));
+      nrows_, null_count_, Buffer(validity_), Buffer(offsets_), Column(child_));
 }
 
 
@@ -71,9 +73,9 @@ size_t ArrowArray_ColumnImpl<T>::num_buffers() const noexcept {
 
 
 template <typename T>
-const void* ArrowArray_ColumnImpl<T>::get_buffer(size_t i) const {
+Buffer ArrowArray_ColumnImpl<T>::get_buffer(size_t i) const {
   xassert(i <= 1);
-  return (i == 0)? validity_.rptr() : offsets_.rptr();
+  return (i == 0)? validity_ : offsets_;
 }
 
 
@@ -93,6 +95,13 @@ bool ArrowArray_ColumnImpl<T>::get_element(size_t i, Column* out) const {
   }
   return valid;
 }
+
+
+template <typename T>
+size_t ArrowArray_ColumnImpl<T>::null_count() const {
+  return null_count_;
+}
+
 
 
 
