@@ -48,6 +48,7 @@ class TypeImpl {
 
     virtual bool is_array() const;
     virtual bool is_boolean() const;
+    virtual bool is_categorical() const;
     virtual bool is_compound() const;
     virtual bool is_float() const;
     virtual bool is_integer() const;
@@ -64,7 +65,6 @@ class TypeImpl {
     virtual bool can_be_read_as_int64() const;
     virtual bool can_be_read_as_float32() const;
     virtual bool can_be_read_as_float64() const;
-    virtual bool can_be_read_as_date() const;
     virtual bool can_be_read_as_cstring() const;
     virtual bool can_be_read_as_pyobject() const;
     virtual bool can_be_read_as_column() const;

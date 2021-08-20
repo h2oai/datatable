@@ -25,6 +25,9 @@
     - :meth:`dt.Type.arr64(T)`
     - :attr:`dt.Type.bool8`
     - :attr:`dt.Type.date32`
+    - :meth:`dt.Type.cat8(T)`
+    - :meth:`dt.Type.cat16(T)`
+    - :meth:`dt.Type.cat32(T)`
     - :attr:`dt.Type.float32`
     - :attr:`dt.Type.float64`
     - :attr:`dt.Type.int16`
@@ -52,6 +55,9 @@
 
         * - :attr:`.is_compound`
           - Is this a compound type?
+
+        * - :attr:`.is_categorical`
+          - Is this a categorical type?
 
         * - :attr:`.is_float`
           - Is this a float type?
@@ -87,31 +93,35 @@
 .. toctree::
     :hidden:
 
-    ⭑ arr32(T)    <type/arr32>
-    ⭑ arr64(T)    <type/arr64>
-    ⭑ bool8       <type/bool8>
-    ⭑ date32      <type/date32>
-    ⭑ float32     <type/float32>
-    ⭑ float64     <type/float64>
-    ⭑ int8        <type/int8>
-    ⭑ int16       <type/int16>
-    ⭑ int32       <type/int32>
-    ⭑ int64       <type/int64>
-    ⭑ obj64       <type/obj64>
-    ⭑ str32       <type/str32>
-    ⭑ str64       <type/str64>
-    ⭑ time64      <type/time64>
-    ⭑ void        <type/void>
-    is_array      <type/is_array>
-    is_boolean    <type/is_boolean>
-    is_compound   <type/is_compound>
-    is_float      <type/is_float>
-    is_integer    <type/is_integer>
-    is_numeric    <type/is_numeric>
-    is_object     <type/is_object>
-    is_string     <type/is_string>
-    is_temporal   <type/is_temporal>
-    is_void       <type/is_void>
-    max           <type/max>
-    min           <type/min>
-    name          <type/name>
+    ⭑ arr32(T)     <type/arr32>
+    ⭑ arr64(T)     <type/arr64>
+    ⭑ bool8        <type/bool8>
+    ⭑ cat8(T)      <type/cat8>
+    ⭑ cat16(T)     <type/cat16>
+    ⭑ cat32(T)     <type/cat32>
+    ⭑ date32       <type/date32>
+    ⭑ float32      <type/float32>
+    ⭑ float64      <type/float64>
+    ⭑ int8         <type/int8>
+    ⭑ int16        <type/int16>
+    ⭑ int32        <type/int32>
+    ⭑ int64        <type/int64>
+    ⭑ obj64        <type/obj64>
+    ⭑ str32        <type/str32>
+    ⭑ str64        <type/str64>
+    ⭑ time64       <type/time64>
+    ⭑ void         <type/void>
+    is_array       <type/is_array>
+    is_boolean     <type/is_boolean>
+    is_categorical <type/is_categorical>
+    is_compound    <type/is_compound>
+    is_float       <type/is_float>
+    is_integer     <type/is_integer>
+    is_numeric     <type/is_numeric>
+    is_object      <type/is_object>
+    is_string      <type/is_string>
+    is_temporal    <type/is_temporal>
+    is_void        <type/is_void>
+    max            <type/max>
+    min            <type/min>
+    name           <type/name>

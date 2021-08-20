@@ -84,7 +84,7 @@ def test_type_array_hashable():
 
 
 @pytest.mark.parametrize('src', [0, 1])
-def test_query_methods(src):
+def test_type_array_query_methods(src):
     tarr = dt.Type.arr32(int) if src else \
            dt.Type.arr64(str)
     assert     tarr.is_array

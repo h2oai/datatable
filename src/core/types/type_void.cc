@@ -38,7 +38,6 @@ bool Type_Void::can_be_read_as_int32() const   { return true; }
 bool Type_Void::can_be_read_as_int64() const   { return true; }
 bool Type_Void::can_be_read_as_float32() const { return true; }
 bool Type_Void::can_be_read_as_float64() const { return true; }
-bool Type_Void::can_be_read_as_date() const    { return true; }
 bool Type_Void::can_be_read_as_cstring() const { return true; }
 
 

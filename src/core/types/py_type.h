@@ -53,11 +53,13 @@ class PyType : public py::XObject<PyType, true> {
     size_t m__hash__() const;
 
     py::oobj array(const py::XArgs&);
+    py::oobj categorical(const py::XArgs&);
     py::oobj get_max() const;
     py::oobj get_min() const;
     py::oobj get_name() const;
     py::oobj is_array() const;
     py::oobj is_boolean() const;
+    py::oobj is_categorical() const;
     py::oobj is_compound() const;
     py::oobj is_float() const;
     py::oobj is_integer() const;
