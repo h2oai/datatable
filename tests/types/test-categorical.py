@@ -31,10 +31,14 @@ from tests import assert_equals
 # Type object
 #-------------------------------------------------------------------------------
 
-def test_type_categorical_wrong():
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
+def test_type_categorical_wrong(t):
     msg = r"Categories are not allowed to be of a categorical type"
     with pytest.raises(TypeError, match=msg):
-        dt.Type.cat8(dt.Type.cat32(dt.str64))
+        t(t(dt.str64))
+
 
 def test_type_categorical_repr():
     assert repr(dt.Type.cat8(int)) == "Type.cat8(int64)"
