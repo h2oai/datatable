@@ -50,8 +50,27 @@ bool Type_Array::can_be_read_as_column() const {
 
 
 TypeImpl* Type_Array::common_type(TypeImpl* other) {
+  if (equals(other)) {
+    return this;
+  }
   if (other->is_array()) {
-    return other->stype() > stype() ? other : this;
+    auto stype0 = stype();
+    auto stype1 = other->stype();
+    auto stypeR = stype0 > stype1 ? stype0 : stype1;
+    auto child0 = child_type();
+    auto child1 = other->child_type();
+    auto childR = Type::common(child0, child1);
+    if (stypeR == stype0 && childR == child0) {
+      return this;
+    }
+    if (stypeR == stype1 && childR == child1) {
+      return other;
+    }
+    if (!childR.is_invalid()) {
+      if (stypeR == SType::ARR32) return new Type_Arr32(childR);
+      if (stypeR == SType::ARR64) return new Type_Arr64(childR);
+    }
+    // otherwise fall-through and return an invalid type
   }
   if (other->is_void()) {
     return this;

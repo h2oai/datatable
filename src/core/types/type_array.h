@@ -37,6 +37,7 @@ class Type_Array : public TypeImpl {
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
+    // Column cast_column(Column&& col) const override;
     Type child_type() const override;
 };
 
