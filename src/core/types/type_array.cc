@@ -28,32 +28,28 @@ namespace dt {
 
 
 //------------------------------------------------------------------------------
-// Type_Arr32
+// Type_Array
 //------------------------------------------------------------------------------
 
-Type_Arr32::Type_Arr32(Type t)
-  : TypeImpl(SType::ARR32),
-    elementType_(std::move(t)) {}
+Type_Array::Type_Array(Type t, SType stype)
+  : TypeImpl(stype),
+    childType_(std::move(t)) {}
 
-bool Type_Arr32::is_compound() const {
-  return true; 
-}
 
-bool Type_Arr32::is_array() const {
+bool Type_Array::is_compound() const {
   return true;
 }
 
-bool Type_Arr32::can_be_read_as_column() const {
+bool Type_Array::is_array() const {
+  return true;
+}
+
+bool Type_Array::can_be_read_as_column() const {
   return true;
 }
 
 
-std::string Type_Arr32::to_string() const {
-  return "arr32(" + elementType_.to_string() + ")";
-}
-
-
-TypeImpl* Type_Arr32::common_type(TypeImpl* other) {
+TypeImpl* Type_Array::common_type(TypeImpl* other) {
   if (other->is_array()) {
     return other->stype() > stype() ? other : this;
   }
@@ -67,18 +63,35 @@ TypeImpl* Type_Arr32::common_type(TypeImpl* other) {
 }
 
 
-bool Type_Arr32::equals(const TypeImpl* other) const {
+bool Type_Array::equals(const TypeImpl* other) const {
   return other->stype() == stype() &&
-         elementType_ == reinterpret_cast<const Type_Arr32*>(other)->elementType_;
-}
-
-size_t Type_Arr32::hash() const noexcept {
-  return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
+         childType_ == reinterpret_cast<const Type_Array*>(other)->childType_;
 }
 
 
-Type Type_Arr32::child_type() const {
-  return elementType_;
+size_t Type_Array::hash() const noexcept {
+  return static_cast<size_t>(stype()) + STYPES_COUNT * childType_.hash();
+}
+
+
+Type Type_Array::child_type() const {
+  return childType_;
+}
+
+
+
+
+
+//------------------------------------------------------------------------------
+// Type_Arr32
+//------------------------------------------------------------------------------
+
+Type_Arr32::Type_Arr32(Type t)
+  : Type_Array(std::move(t), SType::ARR32) {}
+
+
+std::string Type_Arr32::to_string() const {
+  return "arr32(" + childType_.to_string() + ")";
 }
 
 
@@ -89,49 +102,11 @@ Type Type_Arr32::child_type() const {
 //------------------------------------------------------------------------------
 
 Type_Arr64::Type_Arr64(Type t)
-  : TypeImpl(SType::ARR64),
-    elementType_(std::move(t)) {}
+  : Type_Array(std::move(t), SType::ARR64) {}
 
-bool Type_Arr64::is_compound() const {
-  return true; 
-}
-
-bool Type_Arr64::is_array() const {
-  return true;
-}
-
-bool Type_Arr64::can_be_read_as_column() const {
-  return true;
-}
 
 std::string Type_Arr64::to_string() const {
-  return "arr64(" + elementType_.to_string() + ")";
-}
-
-
-TypeImpl* Type_Arr64::common_type(TypeImpl* other) {
-  if (other->is_array()) {
-    return this;
-  }
-  if (other->is_object() || other->is_invalid()) {
-    return other;
-  }
-  return new Type_Invalid();
-}
-
-
-bool Type_Arr64::equals(const TypeImpl* other) const {
-  return other->stype() == stype() &&
-         elementType_ == reinterpret_cast<const Type_Arr64*>(other)->elementType_;
-}
-
-size_t Type_Arr64::hash() const noexcept {
-  return static_cast<size_t>(stype()) + STYPES_COUNT * elementType_.hash();
-}
-
-
-Type Type_Arr64::child_type() const {
-  return elementType_;
+  return "arr64(" + childType_.to_string() + ")";
 }
 
 
