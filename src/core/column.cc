@@ -200,6 +200,13 @@ size_t Column::memory_footprint() const noexcept {
   return sizeof(Column) + (impl_? impl_->memory_footprint() : 0);
 }
 
+size_t Column::n_children() const noexcept {
+  return impl_? impl_->n_children() : 0;
+}
+
+const Column& Column::child(size_t i) const {
+  return impl_->child(i);
+}
 
 
 //------------------------------------------------------------------------------

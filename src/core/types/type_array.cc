@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column.h"
 #include "stype.h"
 #include "types/type_invalid.h"
 #include "types/type_array.h"
@@ -96,6 +97,36 @@ size_t Type_Array::hash() const noexcept {
 Type Type_Array::child_type() const {
   return childType_;
 }
+
+
+// Cast column `col` into an array type. This should support all
+// target types.
+//
+Column Type_Array::cast_column(Column&& col) const {
+  const auto st = stype();
+  switch (col.stype()) {
+    case SType::VOID:
+      return Column::new_na_column(col.nrows(), st);
+
+    // case SType::STR32:
+    // case SType::STR64:
+    //   if (st == col.stype()) return std::move(col);
+    //   return Column(new CastString_ColumnImpl(st, std::move(col)));
+
+    case SType::ARR32:
+    case SType::ARR64: {
+
+      // break;
+    }
+    case SType::OBJ:
+      // return Column(new CastObject_ColumnImpl(st, std::move(col)));
+
+    default:
+      throw NotImplError() << "Unable to cast column of type `" << col.type()
+                           << "` into `" << to_string() << "`";
+  }
+}
+
 
 
 
