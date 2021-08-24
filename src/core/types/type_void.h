@@ -37,7 +37,6 @@ class Type_Void : public TypeImpl {
     bool can_be_read_as_int64() const override;
     bool can_be_read_as_float32() const override;
     bool can_be_read_as_float64() const override;
-    bool can_be_read_as_date() const override;
     bool can_be_read_as_cstring() const override;
 
     std::string to_string() const override;

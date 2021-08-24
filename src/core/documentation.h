@@ -300,8 +300,13 @@ extern const char* doc_Namespace;
 extern const char* doc_Type;
 extern const char* doc_Type_arr32;
 extern const char* doc_Type_arr64;
+extern const char* doc_Type_cat8;
+extern const char* doc_Type_cat16;
+extern const char* doc_Type_cat32;
+
 extern const char* doc_Type_is_array;
 extern const char* doc_Type_is_boolean;
+extern const char* doc_Type_is_categorical;
 extern const char* doc_Type_is_compound;
 extern const char* doc_Type_is_float;
 extern const char* doc_Type_is_integer;
@@ -310,6 +315,7 @@ extern const char* doc_Type_is_object;
 extern const char* doc_Type_is_string;
 extern const char* doc_Type_is_temporal;
 extern const char* doc_Type_is_void;
+
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;
 extern const char* doc_Type_name;

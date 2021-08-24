@@ -19,49 +19,57 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/const.h"
-#include "stype.h"
-#include "types/type_void.h"
+#ifndef dt_TYPES_TYPE_CATEGORICAL_h
+#define dt_TYPES_TYPE_CATEGORICAL_h
+#include "types/typeimpl.h"
 namespace dt {
 
 
+class Type_Cat : public TypeImpl {
+  protected:
+    Type elementType_;
 
-Type_Void::Type_Void() 
-  : TypeImpl(SType::VOID) {}
+  public:
+    Type_Cat(SType, Type);
+    bool is_categorical() const override;
+    bool is_compound() const override;
 
+    bool can_be_read_as_int8() const override;
+    bool can_be_read_as_int16() const override;
+    bool can_be_read_as_int32() const override;
+    bool can_be_read_as_int64() const override;
+    bool can_be_read_as_float32() const override;
+    bool can_be_read_as_float64() const override;
+    bool can_be_read_as_cstring() const override;
+    bool can_be_read_as_pyobject() const override;
+    bool can_be_read_as_column() const override;
 
-bool Type_Void::is_void()     const { return true; }
-
-bool Type_Void::can_be_read_as_int8() const    { return true; }
-bool Type_Void::can_be_read_as_int16() const   { return true; }
-bool Type_Void::can_be_read_as_int32() const   { return true; }
-bool Type_Void::can_be_read_as_int64() const   { return true; }
-bool Type_Void::can_be_read_as_float32() const { return true; }
-bool Type_Void::can_be_read_as_float64() const { return true; }
-bool Type_Void::can_be_read_as_cstring() const { return true; }
-
-
-std::string Type_Void::to_string() const {
-  return "void"; 
-}
-
-
-TypeImpl* Type_Void::common_type(TypeImpl* other) {
-  return other;
-}
-
-
-const char* Type_Void::struct_format() const {
-  return "V"; 
-}
+    bool equals(const TypeImpl* other) const override;
+    size_t hash() const noexcept override;
+    TypeImpl* common_type(TypeImpl* other) override;
+};
 
 
-// We allow columns of any type to be "cast into void". Not sure why.
-Column Type_Void::cast_column(Column&& col) const {
-  return Column(new ConstNa_ColumnImpl(col.nrows(), SType::VOID));
-}
+class Type_Cat8 : public Type_Cat {
+  public:
+    Type_Cat8(Type t);
+    std::string to_string() const override;
+};
 
 
+class Type_Cat16 : public Type_Cat {
+  public:
+    Type_Cat16(Type t);
+    std::string to_string() const override;
+};
+
+
+class Type_Cat32 : public Type_Cat {
+  public:
+    Type_Cat32(Type t);
+    std::string to_string() const override;
+};
 
 
 }  // namespace dt
+#endif

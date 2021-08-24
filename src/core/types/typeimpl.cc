@@ -47,17 +47,18 @@ size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
-bool TypeImpl::is_array()    const { return false; }
-bool TypeImpl::is_boolean()  const { return false; }
-bool TypeImpl::is_compound() const { return false; }
-bool TypeImpl::is_float()    const { return false; }
-bool TypeImpl::is_integer()  const { return false; }
-bool TypeImpl::is_invalid()  const { return false; }
-bool TypeImpl::is_numeric()  const { return false; }
-bool TypeImpl::is_object()   const { return false; }
-bool TypeImpl::is_string()   const { return false; }
-bool TypeImpl::is_temporal() const { return false; }
-bool TypeImpl::is_void()     const { return false; }
+bool TypeImpl::is_array()       const { return false; }
+bool TypeImpl::is_boolean()     const { return false; }
+bool TypeImpl::is_categorical() const { return false; }
+bool TypeImpl::is_compound()    const { return false; }
+bool TypeImpl::is_float()       const { return false; }
+bool TypeImpl::is_integer()     const { return false; }
+bool TypeImpl::is_invalid()     const { return false; }
+bool TypeImpl::is_numeric()     const { return false; }
+bool TypeImpl::is_object()      const { return false; }
+bool TypeImpl::is_string()      const { return false; }
+bool TypeImpl::is_temporal()    const { return false; }
+bool TypeImpl::is_void()        const { return false; }
 
 
 bool TypeImpl::can_be_read_as_int8()     const { return false; }
@@ -66,7 +67,6 @@ bool TypeImpl::can_be_read_as_int32()    const { return false; }
 bool TypeImpl::can_be_read_as_int64()    const { return false; }
 bool TypeImpl::can_be_read_as_float32()  const { return false; }
 bool TypeImpl::can_be_read_as_float64()  const { return false; }
-bool TypeImpl::can_be_read_as_date()     const { return false; }
 bool TypeImpl::can_be_read_as_cstring()  const { return false; }
 bool TypeImpl::can_be_read_as_pyobject() const { return false; }
 bool TypeImpl::can_be_read_as_column()   const { return false; }
