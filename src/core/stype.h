@@ -54,9 +54,11 @@ enum class SType : uint8_t {
   DATE32  = 17,
   TIME64  = 18,
   OBJ     = 21,
-
-  AUTO    = 22,
-  INVALID = 23,
+  CAT8    = 22,
+  CAT16   = 23,
+  CAT32   = 24,
+  AUTO    = 30,
+  INVALID = 31,
 };
 
 constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);

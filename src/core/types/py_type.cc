@@ -324,27 +324,29 @@ py::oobj PyType::get_max() const {
 // .is_*() properties
 //------------------------------------------------------------------------------
 
-static py::GSArgs args_is_array   ("is_array",    doc_Type_is_array);
-static py::GSArgs args_is_boolean ("is_boolean",  doc_Type_is_boolean);
-static py::GSArgs args_is_compound("is_compound", doc_Type_is_compound);
-static py::GSArgs args_is_float   ("is_float",    doc_Type_is_float);
-static py::GSArgs args_is_integer ("is_integer",  doc_Type_is_integer);
-static py::GSArgs args_is_numeric ("is_numeric",  doc_Type_is_numeric);
-static py::GSArgs args_is_object  ("is_object",   doc_Type_is_object);
-static py::GSArgs args_is_string  ("is_string",   doc_Type_is_string);
-static py::GSArgs args_is_temporal("is_temporal", doc_Type_is_temporal);
-static py::GSArgs args_is_void    ("is_void",     doc_Type_is_void);
+static py::GSArgs args_is_array      ("is_array",       doc_Type_is_array);
+static py::GSArgs args_is_boolean    ("is_boolean",     doc_Type_is_boolean);
+static py::GSArgs args_is_categorical("is_categorical", doc_Type_is_categorical);
+static py::GSArgs args_is_compound   ("is_compound",    doc_Type_is_compound);
+static py::GSArgs args_is_float      ("is_float",       doc_Type_is_float);
+static py::GSArgs args_is_integer    ("is_integer",     doc_Type_is_integer);
+static py::GSArgs args_is_numeric    ("is_numeric",     doc_Type_is_numeric);
+static py::GSArgs args_is_object     ("is_object",      doc_Type_is_object);
+static py::GSArgs args_is_string     ("is_string",      doc_Type_is_string);
+static py::GSArgs args_is_temporal   ("is_temporal",    doc_Type_is_temporal);
+static py::GSArgs args_is_void       ("is_void",        doc_Type_is_void);
 
-py::oobj PyType::is_array() const    { return py::obool(type_.is_array()); }
-py::oobj PyType::is_boolean() const  { return py::obool(type_.is_boolean()); }
-py::oobj PyType::is_compound() const { return py::obool(type_.is_compound()); }
-py::oobj PyType::is_float() const    { return py::obool(type_.is_float()); }
-py::oobj PyType::is_integer() const  { return py::obool(type_.is_integer()); }
-py::oobj PyType::is_numeric() const  { return py::obool(type_.is_numeric()); }
-py::oobj PyType::is_object() const   { return py::obool(type_.is_object()); }
-py::oobj PyType::is_string() const   { return py::obool(type_.is_string()); }
-py::oobj PyType::is_temporal() const { return py::obool(type_.is_temporal()); }
-py::oobj PyType::is_void() const     { return py::obool(type_.is_void()); }
+py::oobj PyType::is_array() const       { return py::obool(type_.is_array()); }
+py::oobj PyType::is_boolean() const     { return py::obool(type_.is_boolean()); }
+py::oobj PyType::is_categorical() const { return py::obool(type_.is_categorical()); }
+py::oobj PyType::is_compound() const    { return py::obool(type_.is_compound()); }
+py::oobj PyType::is_float() const       { return py::obool(type_.is_float()); }
+py::oobj PyType::is_integer() const     { return py::obool(type_.is_integer()); }
+py::oobj PyType::is_numeric() const     { return py::obool(type_.is_numeric()); }
+py::oobj PyType::is_object() const      { return py::obool(type_.is_object()); }
+py::oobj PyType::is_string() const      { return py::obool(type_.is_string()); }
+py::oobj PyType::is_temporal() const    { return py::obool(type_.is_temporal()); }
+py::oobj PyType::is_void() const        { return py::obool(type_.is_void()); }
 
 
 
@@ -352,6 +354,8 @@ py::oobj PyType::is_void() const     { return py::obool(type_.is_void()); }
 //------------------------------------------------------------------------------
 // Types as methods
 //------------------------------------------------------------------------------
+
+// Array
 
 py::oobj PyType::array(const py::XArgs& args) {
   Type argT = args[0].is_none()? Type::void0()
@@ -379,7 +383,51 @@ DECLARE_METHOD(&PyType::array)
     ->add_info(64);
 
 
+// Categorical
 
+py::oobj PyType::categorical(const py::XArgs& args) {
+  Type argT = args[0].is_none()? Type::void0()
+                               : args[0].to_type_force();
+
+  int info = args.get_info();
+  Type t;
+  switch (info) {
+    case 8 : t = Type::cat8(argT); break;
+    case 16 : t = Type::cat16(argT); break;
+    case 32 : t = Type::cat32(argT); break;
+    default : throw RuntimeError() << "Unknown categorical info: " << info;
+  }
+
+  return PyType::make(t);
+
+}
+
+DECLARE_METHOD(&PyType::categorical)
+    ->name("cat8")
+    ->docs(dt::doc_Type_cat8)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod()
+    ->add_info(8);
+
+DECLARE_METHOD(&PyType::categorical)
+    ->name("cat16")
+    ->docs(dt::doc_Type_cat16)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod()
+    ->add_info(16);
+
+DECLARE_METHOD(&PyType::categorical)
+    ->name("cat32")
+    ->docs(dt::doc_Type_cat32)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"T"})
+    ->staticmethod()
+    ->add_info(32);
 
 
 //------------------------------------------------------------------------------
@@ -395,18 +443,19 @@ void PyType::impl_init_type(py::XTypeMaker& xt) {
   xt.add(METHOD__CMP__(&PyType::m__compare__));
   xt.add(METHOD__HASH__(&PyType::m__hash__));
   xt.add(GETTER(&PyType::get_name, args_get_name));
-  xt.add(GETTER(&PyType::get_min, args_get_min));
-  xt.add(GETTER(&PyType::get_max, args_get_max));
-  xt.add(GETTER(&PyType::is_array,    args_is_array));
-  xt.add(GETTER(&PyType::is_boolean,  args_is_boolean));
-  xt.add(GETTER(&PyType::is_compound, args_is_compound));
-  xt.add(GETTER(&PyType::is_float,    args_is_float));
-  xt.add(GETTER(&PyType::is_integer,  args_is_integer));
-  xt.add(GETTER(&PyType::is_numeric,  args_is_numeric));
-  xt.add(GETTER(&PyType::is_object,   args_is_object));
-  xt.add(GETTER(&PyType::is_string,   args_is_string));
-  xt.add(GETTER(&PyType::is_temporal, args_is_temporal));
-  xt.add(GETTER(&PyType::is_void,     args_is_void));
+  xt.add(GETTER(&PyType::get_min,  args_get_min));
+  xt.add(GETTER(&PyType::get_max,  args_get_max));
+  xt.add(GETTER(&PyType::is_array,       args_is_array));
+  xt.add(GETTER(&PyType::is_boolean,     args_is_boolean));
+  xt.add(GETTER(&PyType::is_categorical, args_is_categorical));
+  xt.add(GETTER(&PyType::is_compound,    args_is_compound));
+  xt.add(GETTER(&PyType::is_float,       args_is_float));
+  xt.add(GETTER(&PyType::is_integer,     args_is_integer));
+  xt.add(GETTER(&PyType::is_numeric,     args_is_numeric));
+  xt.add(GETTER(&PyType::is_object,      args_is_object));
+  xt.add(GETTER(&PyType::is_string,      args_is_string));
+  xt.add(GETTER(&PyType::is_temporal,    args_is_temporal));
+  xt.add(GETTER(&PyType::is_void,        args_is_void));
   INIT_METHODS_FOR_CLASS(PyType);
 
   pythonType = xt.get_type_object();

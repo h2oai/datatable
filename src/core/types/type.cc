@@ -25,6 +25,7 @@
 #include "types/type.h"
 #include "types/type_array.h"
 #include "types/type_bool.h"
+#include "types/type_categorical.h"
 #include "types/type_date.h"
 #include "types/type_float.h"
 #include "types/type_int.h"
@@ -74,21 +75,24 @@ Type::~Type() {
 
 
 
-Type Type::bool8()   { return Type(new Type_Bool8); }
-Type Type::date32()  { return Type(new Type_Date32); }
-Type Type::float32() { return Type(new Type_Float32); }
-Type Type::float64() { return Type(new Type_Float64); }
-Type Type::int16()   { return Type(new Type_Int16); }
-Type Type::int32()   { return Type(new Type_Int32); }
-Type Type::int64()   { return Type(new Type_Int64); }
-Type Type::int8()    { return Type(new Type_Int8); }
 Type Type::arr32(Type t) { return Type(new Type_Arr32(t)); }
 Type Type::arr64(Type t) { return Type(new Type_Arr64(t)); }
-Type Type::obj64()   { return Type(new Type_Object); }
-Type Type::str32()   { return Type(new Type_String32); }
-Type Type::str64()   { return Type(new Type_String64); }
-Type Type::time64()  { return Type(new Type_Time64); }
-Type Type::void0()   { return Type(new Type_Void); }
+Type Type::bool8()       { return Type(new Type_Bool8); }
+Type Type::cat8(Type t)  { return Type(new Type_Cat8(t)); }
+Type Type::cat16(Type t) { return Type(new Type_Cat16(t)); }
+Type Type::cat32(Type t) { return Type(new Type_Cat32(t)); }
+Type Type::date32()      { return Type(new Type_Date32); }
+Type Type::float32()     { return Type(new Type_Float32); }
+Type Type::float64()     { return Type(new Type_Float64); }
+Type Type::int16()       { return Type(new Type_Int16); }
+Type Type::int32()       { return Type(new Type_Int32); }
+Type Type::int64()       { return Type(new Type_Int64); }
+Type Type::int8()        { return Type(new Type_Int8); }
+Type Type::obj64()       { return Type(new Type_Object); }
+Type Type::str32()       { return Type(new Type_String32); }
+Type Type::str64()       { return Type(new Type_String64); }
+Type Type::time64()      { return Type(new Type_Time64); }
+Type Type::void0()       { return Type(new Type_Void); }
 
 Type Type::from_stype(SType stype) {
   switch (stype) {
@@ -147,17 +151,18 @@ Type Type::child() const {
 }
 
 
-bool Type::is_array()    const { return impl_ && impl_->is_array(); }
-bool Type::is_boolean()  const { return impl_ && impl_->is_boolean(); }
-bool Type::is_compound() const { return impl_ && impl_->is_compound(); }
-bool Type::is_float()    const { return impl_ && impl_->is_float(); }
-bool Type::is_integer()  const { return impl_ && impl_->is_integer(); }
-bool Type::is_invalid()  const { return impl_ && impl_->is_invalid(); }
-bool Type::is_numeric()  const { return impl_ && impl_->is_numeric(); }
-bool Type::is_object()   const { return impl_ && impl_->is_object(); }
-bool Type::is_string()   const { return impl_ && impl_->is_string(); }
-bool Type::is_temporal() const { return impl_ && impl_->is_temporal(); }
-bool Type::is_void()     const { return impl_ && impl_->is_void(); }
+bool Type::is_array()           const { return impl_ && impl_->is_array(); }
+bool Type::is_boolean()         const { return impl_ && impl_->is_boolean(); }
+bool Type::is_categorical()     const { return impl_ && impl_->is_categorical(); }
+bool Type::is_compound()        const { return impl_ && impl_->is_compound(); }
+bool Type::is_float()           const { return impl_ && impl_->is_float(); }
+bool Type::is_integer()         const { return impl_ && impl_->is_integer(); }
+bool Type::is_invalid()         const { return impl_ && impl_->is_invalid(); }
+bool Type::is_numeric()         const { return impl_ && impl_->is_numeric(); }
+bool Type::is_object()          const { return impl_ && impl_->is_object(); }
+bool Type::is_string()          const { return impl_ && impl_->is_string(); }
+bool Type::is_temporal()        const { return impl_ && impl_->is_temporal(); }
+bool Type::is_void()            const { return impl_ && impl_->is_void(); }
 bool Type::is_integer_or_void() const { return impl_ && (impl_->is_integer() || impl_->is_void()); }
 bool Type::is_numeric_or_void() const { return impl_ && (impl_->is_numeric() || impl_->is_void()); }
 
