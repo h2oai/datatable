@@ -30,33 +30,33 @@ Columns can be created via a number of options:
 
 
 By assignment
-^^^^^^^^^^^^^^
-::
+^^^^^^^^^^^^^
 
     >>> DT['double'] = DT[:, f.integers * 2]
-      | dates       integers   floats  strings  double
-      | date32         int32  float64  str32     int32
-   -- + ----------  --------  -------  -------  ------
-    0 | 2000-01-05         1     10    A             2
-    1 | 2010-11-23         2     11.5  B             4
-    2 | 2020-02-29         3     12.3  NA            6
-    3 | NA                 4    -13    D             8
+    >>> DT
+       | dates       integers   floats  strings  double
+       | date32         int32  float64  str32     int32
+    -- + ----------  --------  -------  -------  ------
+     0 | 2000-01-05         1     10    A             2
+     1 | 2010-11-23         2     11.5  B             4
+     2 | 2020-02-29         3     12.3  NA            6
+     3 | NA                 4    -13    D             8
     [4 rows x 5 columns]
 
 
 
-Via `extend`
-^^^^^^^^^^^^
-::
+Via the `extend` method
+^^^^^^^^^^^^^^^^^^^^^^^
 
     >>> DT = DT[:, f[:].extend({"concat":f.strings + '_tail'})]
-      | dates       integers   floats  strings  double  concat
-      | date32         int32  float64  str32     int32  str32 
-   -- + ----------  --------  -------  -------  ------  ------
-    0 | 2000-01-05         1     10    A             2  A_tail
-    1 | 2010-11-23         2     11.5  B             4  B_tail
-    2 | 2020-02-29         3     12.3  NA            6  NA    
-    3 | NA                 4    -13    D             8  D_tail
+    >>> DT
+       | dates       integers   floats  strings  double  concat
+       | date32         int32  float64  str32     int32  str32 
+    -- + ----------  --------  -------  -------  ------  ------
+     0 | 2000-01-05         1     10    A             2  A_tail
+     1 | 2010-11-23         2     11.5  B             4  B_tail
+     2 | 2020-02-29         3     12.3  NA            6  NA    
+     3 | NA                 4    -13    D             8  D_tail
     [4 rows x 6 columns]
 
 
@@ -65,16 +65,175 @@ Via :func:`update`
 This is an inplace operation; unlike the previous two, an assignment is not required::
 
     >>> DT[:, update(month = dt.time.month(f.dates))]
-      | dates       integers   floats  strings  double  concat  month
-      | date32         int32  float64  str32     int32  str32   int32
-   -- + ----------  --------  -------  -------  ------  ------  -----
-    0 | 2000-01-05         1     10    A             2  A_tail      1
-    1 | 2010-11-23         2     11.5  B             4  B_tail     11
-    2 | 2020-02-29         3     12.3  NA            6  NA          2
-    3 | NA                 4    -13    D             8  D_tail     NA
+    >>> DT
+       | dates       integers   floats  strings  double  concat  month
+       | date32         int32  float64  str32     int32  str32   int32
+    -- + ----------  --------  -------  -------  ------  ------  -----
+     0 | 2000-01-05         1     10    A             2  A_tail      1
+     1 | 2010-11-23         2     11.5  B             4  B_tail     11
+     2 | 2020-02-29         3     12.3  NA            6  NA          2
+     3 | NA                 4    -13    D             8  D_tail     NA
     [4 rows x 7 columns]
 
-Or datatable's :class:`Type`::
+Multiple columns can be added in one go:: 
+
+    >>> data = {"A": [1, 2, 3, 4, 5],
+    ...         "B": [4, 5, 6, 7, 8],
+    ...         "C": [7, 8, 9, 10, 11],
+    ...         "D": [5, 7, 2, 9, -1]}
+    >>>
+    >>> DF = dt.Frame(data)
+    >>> DF
+       |     A      B      C      D
+       | int32  int32  int32  int32
+    -- + -----  -----  -----  -----
+     0 |     1      4      7      5
+     1 |     2      5      8      7
+     2 |     3      6      9      2
+     3 |     4      7     10      9
+     4 |     5      8     11     -1
+    [5 rows x 4 columns]
+
+    >>> # via assignment
+    >>> DF[:, ['E', 'F']] = DF[:, [f.A*2, f.B-4]]
+    >>> DF
+       |     A      B      C      D      E      F
+       | int32  int32  int32  int32  int32  int32
+    -- + -----  -----  -----  -----  -----  -----
+     0 |     1      4      7      5      2      0
+     1 |     2      5      8      7      4      1
+     2 |     3      6      9      2      6      2
+     3 |     4      7     10      9      8      3
+     4 |     5      8     11     -1     10      4
+    [5 rows x 6 columns]
+
+
+    >>> # via extend
+    >>> DF = DF[:, f[:].extend({"string"  : dt.as_type(f.A, str), 
+    ...                         "integers": range(5)})]
+    >>> DF
+       |     A      B      C      D      E      F  string  integers
+       | int32  int32  int32  int32  int32  int32  str32      int32
+    -- + -----  -----  -----  -----  -----  -----  ------  --------
+     0 |     1      4      7      5      2      0  1              0
+     1 |     2      5      8      7      4      1  2              1
+     2 |     3      6      9      2      6      2  3              2
+     3 |     4      7     10      9      8      3  4              3
+     4 |     5      8     11     -1     10      4  5              4
+    [5 rows x 8 columns]
+
+
+    >>> # via update
+    >>> DF[:, update(G = f.D, letters = "letters")]
+    >>> DF
+       |     A      B      C      D      E      F  string  integers      G  letters
+       | int32  int32  int32  int32  int32  int32  str32      int32  int32  str32  
+    -- + -----  -----  -----  -----  -----  -----  ------  --------  -----  -------
+     0 |     1      4      7      5      2      0  1              0      5  letters
+     1 |     2      5      8      7      4      1  2              1      7  letters
+     2 |     3      6      9      2      6      2  3              2      2  letters
+     3 |     4      7     10      9      8      3  4              3      9  letters
+     4 |     5      8     11     -1     10      4  5              4     -1  letters
+    [5 rows x 10 columns]
+
+Mutate Existing Columns
+-----------------------
+The assignment and :func:`update()` options can be used to mutate existing columns::
+
+    >>> # via assignment
+    >>> DT['double'] = DT[:, f.double ** 2]
+    >>> DT
+       | dates       integers   floats  strings   double  concat  month
+       | date32         int32  float64  str32    float64  str32   int32
+    -- + ----------  --------  -------  -------  -------  ------  -----
+     0 | 2000-01-05         1     10    A              4  A_tail      1
+     1 | 2010-11-23         2     11.5  B             16  B_tail     11
+     2 | 2020-02-29         3     12.3  NA            36  NA          2
+     3 | NA                 4    -13    D             64  D_tail     NA
+    [4 rows x 7 columns]
+
+    >>> # via update
+    >>> DT[:, update(concat = f.concat[:1])]
+    >>> DT
+       | dates       integers   floats  strings   double  concat  month
+       | date32         int32  float64  str32    float64  str32   int32
+    -- + ----------  --------  -------  -------  -------  ------  -----
+     0 | 2000-01-05         1     10    A              4  A           1
+     1 | 2010-11-23         2     11.5  B             16  B          11
+     2 | 2020-02-29         3     12.3  NA            36  NA          2
+     3 | NA                 4    -13    D             64  D          NA
+    [4 rows x 7 columns]
+
+The extend method adds new columns to the Frame; it does not change existing columns.
+
+Operations between Columns
+--------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     >>> DT[:, dt.Type.float64]
        |  floats
