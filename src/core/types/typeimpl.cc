@@ -43,6 +43,13 @@ void TypeImpl::release() noexcept {
   if (refcount_ == 0) delete this;
 }
 
+Type TypeImpl::make_type() const {
+  TypeImpl* copy = const_cast<TypeImpl*>(this);
+  copy->acquire();
+  return Type(std::move(copy));
+}
+
+
 size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }

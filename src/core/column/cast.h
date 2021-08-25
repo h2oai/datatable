@@ -317,6 +317,17 @@ class CastArrayToArray_ColumnImpl : public Cast_ColumnImpl {
 };
 
 
+class CastObjectToArray_ColumnImpl : public Cast_ColumnImpl {
+  private:
+    Type childType_;
+
+  public:
+    CastObjectToArray_ColumnImpl(Column&&, Type targetType);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, Column*) const override;
+};
+
+
 
 
 }  // namespace dt

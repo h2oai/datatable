@@ -101,9 +101,14 @@ Type Type_Array::child_type() const {
 }
 
 
-// Cast column `col` into an array type. This should support all
-// target types.
-//
+/**
+  * Cast column `col` into this array type.
+  *
+  * The following type casts are supported:
+  *   * void    -> arr?<S>
+  *   * arr?<T> -> arr?<S>
+  *   * obj64   -> arr?<S>
+  */
 Column Type_Array::cast_column(Column&& col) const {
   const auto st = stype();
   switch (col.stype()) {
@@ -140,10 +145,11 @@ Column Type_Array::cast_column(Column&& col) const {
         }
       }
       return Column(
-          new CastArrayToArray_ColumnImpl(std::move(col), childType_));
+          new CastArrayToArray_ColumnImpl(std::move(col), make_type()));
     }
     case SType::OBJ:
-      // return Column(new CastObject_ColumnImpl(st, std::move(col)));
+      return Column(
+          new CastObjectToArray_ColumnImpl(std::move(col), make_type()));
 
     default:
       throw NotImplError() << "Unable to cast column of type `" << col.type()

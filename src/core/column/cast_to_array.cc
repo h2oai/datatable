@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/cast.h"
+#include "python/list.h"
 #include "read/parsers/info.h"
 #include "stype.h"
 namespace dt {
@@ -50,6 +51,36 @@ bool CastArrayToArray_ColumnImpl::get_element(size_t i, Column* out) const {
     out->cast_inplace(childType_);
   }
   return isvalid;
+}
+
+
+
+//------------------------------------------------------------------------------
+// CastObjectToArray_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastObjectToArray_ColumnImpl::CastObjectToArray_ColumnImpl(
+    Column&& arg, Type targetType)
+  : Cast_ColumnImpl(targetType, std::move(arg)),
+    childType_(targetType.child())
+{
+  xassert(arg_.type().is_object());
+}
+
+
+ColumnImpl* CastObjectToArray_ColumnImpl::clone() const {
+  return new CastObjectToArray_ColumnImpl(Column(arg_), type());
+}
+
+
+bool CastObjectToArray_ColumnImpl::get_element(size_t i, Column* out) const {
+  py::oobj value;
+  bool isvalid = arg_.get_element(i, &value);
+  if (isvalid && value.is_list_or_tuple()) {
+    *out = Column::from_pylist(value.to_pylist(), childType_);
+    return true;
+  }
+  return false;
 }
 
 
