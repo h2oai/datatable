@@ -20,6 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column.h"
+#include "column/arrow_array.h"
+#include "column/cast.h"
 #include "stype.h"
 #include "types/type_invalid.h"
 #include "types/type_array.h"
@@ -115,8 +117,30 @@ Column Type_Array::cast_column(Column&& col) const {
 
     case SType::ARR32:
     case SType::ARR64: {
-
-      // break;
+      if (col.is_arrow() && col.stype() == st) {
+        xassert(col.n_children() == 1);
+        auto childcol = col.child(0);
+        auto newChild = childcol.cast(childType_);
+        if (st == SType::ARR32) {
+          return Column(new ArrowArray_ColumnImpl<uint32_t>(
+            col.nrows(),
+            col.na_count(),
+            col.get_data_buffer(0),
+            col.get_data_buffer(1),
+            std::move(newChild)
+          ));
+        } else {
+          return Column(new ArrowArray_ColumnImpl<uint64_t>(
+            col.nrows(),
+            col.na_count(),
+            col.get_data_buffer(0),
+            col.get_data_buffer(1),
+            std::move(newChild)
+          ));
+        }
+      }
+      return Column(
+          new CastArrayToArray_ColumnImpl(std::move(col), childType_));
     }
     case SType::OBJ:
       // return Column(new CastObject_ColumnImpl(st, std::move(col)));

@@ -284,6 +284,7 @@ class Column
     std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
 
     // "Materialize" the column into arrow format
+    bool is_arrow() const;
     Column as_arrow() const;
 
     // A shortcut for `.type().can_be_read_as<T>()`. The latter call

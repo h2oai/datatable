@@ -19,42 +19,40 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_ARROW_ARRAY_h
-#define dt_COLUMN_ARROW_ARRAY_h
-#include "column/arrow.h"
+#include "column/cast.h"
+#include "read/parsers/info.h"
+#include "stype.h"
 namespace dt {
 
 
-template <typename T>
-class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
-  private:
-    Buffer validity_;
-    Buffer offsets_;
-    Column child_;
-    size_t null_count_;
 
-  public:
-    ArrowArray_ColumnImpl(
-        size_t nrows, size_t nullcount,
-        Buffer&& valid, Buffer&& offsets, Column&& child);
+//------------------------------------------------------------------------------
+// CastArrayToArray_ColumnImpl
+//------------------------------------------------------------------------------
 
-    ColumnImpl* clone() const override;
-    size_t n_children() const noexcept override;
-    const Column& child(size_t i) const override;
-    size_t get_num_data_buffers() const noexcept override;
-    Buffer get_data_buffer(size_t i) const override;
-
-    bool get_element(size_t i, Column* out) const override;
-
-    size_t null_count() const override;
-};
+CastArrayToArray_ColumnImpl::CastArrayToArray_ColumnImpl(
+    Column&& arg, Type targetType)
+  : Cast_ColumnImpl(targetType, std::move(arg)),
+    childType_(targetType.child())
+{
+  xassert(arg_.type().is_array());
+}
 
 
-extern template class ArrowArray_ColumnImpl<uint32_t>;
-extern template class ArrowArray_ColumnImpl<uint64_t>;
+ColumnImpl* CastArrayToArray_ColumnImpl::clone() const {
+  return new CastArrayToArray_ColumnImpl(Column(arg_), type());
+}
+
+
+bool CastArrayToArray_ColumnImpl::get_element(size_t i, Column* out) const {
+  bool isvalid = arg_.get_element(i, out);
+  if (isvalid) {
+    out->cast_inplace(childType_);
+  }
+  return isvalid;
+}
 
 
 
 
 }  // namespace dt
-#endif

@@ -98,7 +98,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   auto arrow_impl = dynamic_cast<const dt::Arrow_ColumnImpl*>(data->column().impl_);
   xassert(arrow_impl);
   size_t na_count = arrow_impl->stats()->nacount();
-  size_t n_buffers = arrow_impl->num_buffers();
+  size_t n_buffers = arrow_impl->get_num_data_buffers();
   size_t n_children = arrow_impl->n_children();
   xassert(n_children == 0);
 
@@ -111,7 +111,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   if (n_buffers) {
     data->buffers().reserve(n_buffers);
     for (size_t i = 0; i < n_buffers; ++i) {
-      const void* buffer_ptr = arrow_impl->get_buffer(i).rptr();
+      const void* buffer_ptr = arrow_impl->get_data_buffer(i).rptr();
       data->buffers().push_back( buffer_ptr );
     }
     (*aarr)->buffers = data->buffers().data();
@@ -156,6 +156,9 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
   return osch;
 }
 
+bool Column::is_arrow() const {
+  return dynamic_cast<const dt::Arrow_ColumnImpl*>(impl_) != nullptr;
+}
 
 Column Column::as_arrow() const {
   return impl_->as_arrow();
