@@ -22,7 +22,6 @@
 #ifndef dt_COLUMN_CATEGORICAL_h
 #define dt_COLUMN_CATEGORICAL_h
 
-#include "column/categorical.h"
 #include "column/virtual.h"
 
 

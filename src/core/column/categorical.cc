@@ -92,64 +92,55 @@ bool Categorical_ColumnImpl<T>::get_element_(size_t i, U* out) const {
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, float* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, double* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, CString* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
 template <typename T>
 bool Categorical_ColumnImpl<T>::get_element(size_t i, Column* out) const {
-  bool valid = get_element_(i, out);
-  return valid;
+  return get_element_(i, out);
 }
 
 
