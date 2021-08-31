@@ -113,7 +113,7 @@ Column Type_Array::cast_column(Column&& col) const {
   const auto st = stype();
   switch (col.stype()) {
     case SType::VOID:
-      return Column::new_na_column(col.nrows(), st);
+      return Column::new_na_column(col.nrows(), make_type());
 
     // case SType::STR32:
     // case SType::STR64:
