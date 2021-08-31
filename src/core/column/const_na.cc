@@ -28,6 +28,9 @@ namespace dt {
 
 
 
+ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, Type type)
+  : Const_ColumnImpl(nrows, type) {}
+
 ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, SType stype)
   : Const_ColumnImpl(nrows, stype) {}
 

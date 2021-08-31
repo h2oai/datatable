@@ -94,6 +94,7 @@ class Column
     ~Column();
 
     static Column new_data_column(size_t nrows, dt::SType);
+    static Column new_na_column(size_t nrows, dt::Type type);
     static Column new_na_column(size_t nrows, dt::SType stype);
     static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);

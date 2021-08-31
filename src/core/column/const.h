@@ -49,6 +49,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
   */
 class ConstNa_ColumnImpl : public Const_ColumnImpl {
   public:
+    ConstNa_ColumnImpl(size_t nrows, Type type);
     ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID);
 
     bool get_element(size_t, int8_t*)   const override;

@@ -151,31 +151,120 @@ RiGb FExpr_Literal_Type::evaluate_iby(EvalContext&) const {
 }
 
 
-static void _resolve_type(py::robj value_, SType* out_stype, LType* out_ltype)
-{
-  *out_stype = SType::AUTO;
-  *out_ltype = LType::MU;
+//------------------------------------------------------------------------------
+
+class TypeMatcher {
+  public:
+    virtual ~TypeMatcher() {}
+    virtual dt::Type convert(const dt::Type&) const = 0;
+};
+
+class PyLong_TypeMatcher : public TypeMatcher {
+  public:
+    dt::Type convert(const dt::Type& inType) const override {
+      return (inType.is_integer())? inType : dt::Type::int32();
+    }
+};
+
+class PyFloat_TypeMatcher : public TypeMatcher {
+  public:
+    dt::Type convert(const dt::Type& inType) const override {
+      return (inType.is_float())? inType : dt::Type::float64();
+    }
+};
+
+class PyUnicode_TypeMatcher : public TypeMatcher {
+  public:
+    dt::Type convert(const dt::Type& inType) const override {
+      return (inType.is_string())? inType : dt::Type::str32();
+    }
+};
+
+class PyBool_TypeMatcher : public TypeMatcher {
+  public:
+    dt::Type convert(const dt::Type& inType) const override {
+      return (inType.is_boolean())? inType : dt::Type::bool8();
+    }
+};
+
+class PyObject_TypeMatcher : public TypeMatcher {
+  public:
+    dt::Type convert(const dt::Type& inType) const override {
+      return (inType.is_object())? inType : dt::Type::obj64();
+    }
+};
+
+class Type_TypeMatcher : public TypeMatcher {
+  private:
+    dt::Type targetType_;
+  public:
+    Type_TypeMatcher(dt::Type type) : targetType_(type) {}
+    dt::Type convert(const dt::Type&) const override {
+      return targetType_;
+    }
+};
+
+class SType_TypeMatcher : public TypeMatcher {
+  private:
+    SType targetSType_;
+    size_t : 56;
+  public:
+    SType_TypeMatcher(SType stype) : targetSType_(stype) {}
+    dt::Type convert(const dt::Type& inType) const override {
+      return inType && inType.stype() == targetSType_
+        ? inType : dt::Type::from_stype(targetSType_);
+    }
+};
+
+class LType_TypeMatcher : public TypeMatcher {
+  private:
+    LType targetLType_;
+    SType targetSType_;
+    size_t : 48;
+  public:
+    LType_TypeMatcher(LType ltype)
+      : targetLType_(ltype),
+        targetSType_(ltype == LType::BOOL? SType::BOOL :
+                     ltype == LType::INT?  SType::INT32 :
+                     ltype == LType::REAL? SType::FLOAT64 :
+                     ltype == LType::STRING? SType::STR32 :
+                     ltype == LType::OBJECT? SType::OBJ :
+                     SType::INVALID)
+    {}
+    dt::Type convert(const dt::Type& inType) const override {
+      return inType && stype_to_ltype(inType.stype()) == targetLType_
+        ? inType : dt::Type::from_stype(targetSType_);
+    }
+};
+
+using TMptr = std::unique_ptr<TypeMatcher>;
+static TMptr _resolve_type(py::robj value_) {
   if (value_.is_pytype()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
-    *out_ltype = (et == &PyLong_Type)?       LType::INT :
-                 (et == &PyFloat_Type)?      LType::REAL :
-                 (et == &PyUnicode_Type)?    LType::STRING :
-                 (et == &PyBool_Type)?       LType::BOOL :
-                 (et == &PyBaseObject_Type)? LType::OBJECT :
-                 LType::MU;
+    if (et == &PyLong_Type)       return TMptr(new PyLong_TypeMatcher());
+    if (et == &PyFloat_Type)      return TMptr(new PyFloat_TypeMatcher());
+    if (et == &PyUnicode_Type)    return TMptr(new PyUnicode_TypeMatcher());
+    if (et == &PyBool_Type)       return TMptr(new PyBool_TypeMatcher());
+    if (et == &PyBaseObject_Type) return TMptr(new PyObject_TypeMatcher());
   }
   else if (value_.is_type()) {
     auto type = value_.to_type();
-    *out_stype = type.stype();
+    return TMptr(new Type_TypeMatcher(type));
   }
   else if (value_.is_ltype()) {
     auto lt = value_.get_attr("value").to_size_t();
-    *out_ltype = (lt < LTYPES_COUNT)? static_cast<LType>(lt) : LType::MU;
+    if (lt < LTYPES_COUNT) {
+      return TMptr(new LType_TypeMatcher(static_cast<LType>(lt)));
+    }
   }
   else if (value_.is_stype()) {
     auto st = value_.get_attr("value").to_size_t();
-    *out_stype = (st < STYPES_COUNT)? static_cast<SType>(st) : SType::INVALID;
+    if (st < STYPES_COUNT) {
+      return TMptr(new SType_TypeMatcher(static_cast<SType>(st)));
+    }
   }
+  throw ValueError() << "Unknown type " << value_
+                     << " used in the replacement expression";
 }
 
 
@@ -186,20 +275,8 @@ Workframe FExpr_Literal_Type::evaluate_r(
     throw ValueError()
         << "Partial reassignment of Column's type is not possible";
   }
-  SType target_stype;
-  LType target_ltype;
-  _resolve_type(value_, &target_stype, &target_ltype);
-  if (target_stype == SType::AUTO && target_ltype == LType::MU) {
-    throw ValueError() << "Unknown type " << value_
-                       << " used in the replacement expression";
-  }
-  if (target_stype == SType::AUTO) {
-    target_stype = (target_ltype == LType::BOOL)? SType::BOOL :
-                   (target_ltype == LType::INT)? SType::INT32 :
-                   (target_ltype == LType::REAL)? SType::FLOAT64 :
-                   (target_ltype == LType::STRING)? SType::STR32 :
-                   (target_ltype == LType::OBJECT)? SType::OBJ : SType::INVALID;
-  }
+  auto typeMatcher = _resolve_type(value_);
+  xassert(typeMatcher);
 
   auto dt0 = ctx.get_datatable(0);
   Workframe res(ctx);
@@ -207,16 +284,11 @@ Workframe FExpr_Literal_Type::evaluate_r(
     Column newcol;
     if (i < dt0->ncols()) {
       newcol = dt0->get_column(i);  // copy
-      if (target_ltype != LType::MU) {
-        if (newcol.ltype() != target_ltype) {
-          newcol.cast_inplace(target_stype);
-        }
-      } else if (target_stype != SType::AUTO) {
-        newcol.cast_inplace(target_stype);
-      }
+      newcol.cast_inplace( typeMatcher->convert(newcol.type()) );
     }
     else {
-      newcol = Column::new_na_column(dt0->nrows(), target_stype);
+      newcol = Column::new_na_column(dt0->nrows(),
+                    typeMatcher->convert(dt::Type()));
     }
 
     res.add_column(std::move(newcol), "", Grouping::GtoALL);

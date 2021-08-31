@@ -40,6 +40,11 @@ Column Column::new_data_column(size_t nrows, dt::SType stype) {
 }
 
 
+Column Column::new_na_column(size_t nrows, dt::Type type) {
+  return Column(new dt::ConstNa_ColumnImpl(nrows, type));
+}
+
+
 Column Column::new_na_column(size_t nrows, dt::SType stype) {
   return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
