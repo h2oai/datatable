@@ -25,39 +25,36 @@
 namespace dt {
 
 
-
-class Type_Arr32 : public TypeImpl {
-  private:
-    Type elementType_;
+class Type_Array : public TypeImpl {
+  protected:
+    Type childType_;
 
   public:
-    Type_Arr32(Type t);
+    Type_Array(Type t, SType stype);
     bool is_array() const override;
     bool is_compound() const override;
     bool can_be_read_as_column() const override;
-    std::string to_string() const override;
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
+    Column cast_column(Column&& col) const override;
     Type child_type() const override;
 };
 
 
 
-class Type_Arr64 : public TypeImpl {
-  private:
-    Type elementType_;
+class Type_Arr32 : public Type_Array {
+  public:
+    Type_Arr32(Type t);
+    std::string to_string() const override;
+};
 
+
+
+class Type_Arr64 : public Type_Array {
   public:
     Type_Arr64(Type t);
-    bool is_array() const override;
-    bool is_compound() const override;
-    bool can_be_read_as_column() const override;
     std::string to_string() const override;
-    bool equals(const TypeImpl* other) const override;
-    size_t hash() const noexcept override;
-    TypeImpl* common_type(TypeImpl* other) override;
-    Type child_type() const override;
 };
 
 

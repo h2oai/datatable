@@ -267,10 +267,10 @@ void dt::Arrow_ColumnImpl::save_to_jay(ColumnJayData& cj) {
   auto wb = cj.get_output_buffer();
   cj.store_stats();
   cj.store_type();
-  if (num_buffers()) {
+  if (get_num_data_buffers()) {
     std::vector<jay::Buffer> buffer_vec;
-    for (size_t i = 0; i < num_buffers(); i++) {
-      auto buf = get_buffer(i);
+    for (size_t i = 0; i < get_num_data_buffers(); i++) {
+      auto buf = get_data_buffer(i);
       buffer_vec.push_back(
         saveMemoryRange(buf.rptr(), buf.size(), wb)
       );

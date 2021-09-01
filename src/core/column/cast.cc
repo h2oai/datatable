@@ -29,6 +29,11 @@ Cast_ColumnImpl::Cast_ColumnImpl(SType new_stype, Column&& col)
     arg_(std::move(col)) {}
 
 
+Cast_ColumnImpl::Cast_ColumnImpl(Type new_type, Column&& col)
+  : Virtual_ColumnImpl(col.nrows(), new_type),
+    arg_(std::move(col)) {}
+
+
 size_t Cast_ColumnImpl::n_children() const noexcept {
   return 1;
 }

@@ -40,6 +40,11 @@ Column Column::new_data_column(size_t nrows, dt::SType stype) {
 }
 
 
+Column Column::new_na_column(size_t nrows, dt::Type type) {
+  return Column(new dt::ConstNa_ColumnImpl(nrows, type));
+}
+
+
 Column Column::new_na_column(size_t nrows, dt::SType stype) {
   return Column(new dt::ConstNa_ColumnImpl(nrows, stype));
 }
@@ -200,6 +205,13 @@ size_t Column::memory_footprint() const noexcept {
   return sizeof(Column) + (impl_? impl_->memory_footprint() : 0);
 }
 
+size_t Column::n_children() const noexcept {
+  return impl_? impl_->n_children() : 0;
+}
+
+const Column& Column::child(size_t i) const {
+  return impl_->child(i);
+}
 
 
 //------------------------------------------------------------------------------

@@ -43,11 +43,11 @@ ColumnImpl* ArrowFw_ColumnImpl::clone() const {
 }
 
 
-size_t ArrowFw_ColumnImpl::num_buffers() const noexcept {
+size_t ArrowFw_ColumnImpl::get_num_data_buffers() const noexcept {
   return 2;
 }
 
-Buffer ArrowFw_ColumnImpl::get_buffer(size_t i) const {
+Buffer ArrowFw_ColumnImpl::get_data_buffer(size_t i) const {
   return (i == 0)? validity_ : data_;
 }
 

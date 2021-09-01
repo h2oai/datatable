@@ -41,8 +41,8 @@ class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
     ColumnImpl* clone() const override;
     size_t n_children() const noexcept override;
     const Column& child(size_t i) const override;
-    size_t num_buffers() const noexcept override;
-    Buffer get_buffer(size_t i) const override;
+    size_t get_num_data_buffers() const noexcept override;
+    Buffer get_data_buffer(size_t i) const override;
 
     bool get_element(size_t i, Column* out) const override;
 

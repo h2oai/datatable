@@ -126,6 +126,7 @@ class Type {
     Column cast_column(Column&& column) const;
 
   private:
+    friend class TypeImpl;
     Type(TypeImpl*&&) noexcept;
 };
 
