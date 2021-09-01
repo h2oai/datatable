@@ -29,7 +29,7 @@ class TypeImpl {
   private:
     SType stype_;
     int : 24;
-    int32_t refcount_;
+    mutable int32_t refcount_;
     friend class Type;
 
     void acquire() noexcept;
@@ -40,6 +40,7 @@ class TypeImpl {
     virtual ~TypeImpl();
 
     SType stype() const { return stype_; }
+    Type make_type() const;
     virtual size_t hash() const noexcept;
     virtual py::oobj min() const;
     virtual py::oobj max() const;

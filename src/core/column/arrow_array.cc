@@ -67,13 +67,13 @@ const Column& ArrowArray_ColumnImpl<T>::child(size_t) const {
 
 
 template <typename T>
-size_t ArrowArray_ColumnImpl<T>::num_buffers() const noexcept {
+size_t ArrowArray_ColumnImpl<T>::get_num_data_buffers() const noexcept {
   return 2;
 }
 
 
 template <typename T>
-Buffer ArrowArray_ColumnImpl<T>::get_buffer(size_t i) const {
+Buffer ArrowArray_ColumnImpl<T>::get_data_buffer(size_t i) const {
   xassert(i <= 1);
   return (i == 0)? validity_ : offsets_;
 }

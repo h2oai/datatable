@@ -258,3 +258,43 @@ def test_arr32_to_jay():
     out = DT.to_jay()
     RES = dt.fread(out)
     assert_equals(RES, DT)
+
+
+
+
+#-------------------------------------------------------------------------------
+# Casts
+#-------------------------------------------------------------------------------
+
+def test_void_to_arr32():
+    DT = dt.Frame([None] * 11)
+    DT[0] = dt.Type.arr32(dt.Type.str32)
+    assert DT.type == dt.Type.arr32(dt.Type.str32)
+    assert DT.to_list() == [[None] * 11]
+
+
+def test_obj_to_arr32():
+    DT = dt.Frame(A=[None, [1, 2], [5, 8, None], []], type=object)
+    DT['A'] = dt.Type.arr32(dt.Type.int32)
+    assert_equals(DT,
+        dt.Frame(A=[None, [1, 2], [5, 8, None], []])
+    )
+
+
+def test_obj_to_arr32_bad():
+    DT = dt.Frame(A=[["hi"], [1, 2, 3]], type=object)
+    DT['A'] = dt.Type.arr32('int32')
+    assert_equals(DT,
+        dt.Frame(A=[[None], [1, 2, 3]])
+    )
+
+
+def teest_arr_to_arr():
+    DT = dt.Frame(A=[[1, 5], [12, None], [-99]])
+    assert DT.type == dt.Type.arr32(dt.Type.int32)
+    DT['A'] = dt.Type.arr32(dt.Type.int64)
+    assert DT.type == dt.Type.arr32(dt.Type.int64)
+    assert DT.to_list() == [[1, 5], [12, None], [-99]]
+    DT['A'] = dt.Type.arr32(str)
+    assert DT.type == dt.Type.arr32(dt.Type.str32)
+    assert DT.to_list() == [['1', '5'], ['12', None], ['-99']]

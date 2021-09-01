@@ -94,6 +94,7 @@ class Column
     ~Column();
 
     static Column new_data_column(size_t nrows, dt::SType);
+    static Column new_na_column(size_t nrows, dt::Type type);
     static Column new_na_column(size_t nrows, dt::SType stype);
     static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
@@ -199,6 +200,8 @@ class Column
     void*       get_data_editable(size_t k = 0);
     Buffer      get_data_buffer(size_t k = 0) const;
 
+    size_t n_children() const noexcept;
+    const Column& child(size_t i) const;
 
   //------------------------------------
   // Stats
@@ -280,6 +283,10 @@ class Column
     // See frame/to_arrow.cc
     std::unique_ptr<dt::OArrowArray> to_arrow() const;
     std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
+
+    // "Materialize" the column into arrow format
+    bool is_arrow() const;
+    Column as_arrow() const;
 
     // A shortcut for `.type().can_be_read_as<T>()`. The latter call
     // is not compatible with some compilers, for instance Clang 11.
