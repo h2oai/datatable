@@ -75,6 +75,7 @@ bool CastArrayToObject_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   Column value;
   bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
+    value.cast_inplace(dt::Type::obj64());
     auto n = value.nrows();
     auto res = py::olist(n);
     py::oobj item;

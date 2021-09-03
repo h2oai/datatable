@@ -289,12 +289,19 @@ def test_obj_to_arr32_bad():
     )
 
 
-def teest_arr_to_arr():
+def test_arr_to_arr():
     DT = dt.Frame(A=[[1, 5], [12, None], [-99]])
     assert DT.type == dt.Type.arr32(dt.Type.int32)
     DT['A'] = dt.Type.arr32(dt.Type.int64)
     assert DT.type == dt.Type.arr32(dt.Type.int64)
-    assert DT.to_list() == [[1, 5], [12, None], [-99]]
+    assert DT.to_list() == [[[1, 5], [12, None], [-99]]]
     DT['A'] = dt.Type.arr32(str)
     assert DT.type == dt.Type.arr32(dt.Type.str32)
-    assert DT.to_list() == [['1', '5'], ['12', None], ['-99']]
+    assert DT.to_list() == [[['1', '5'], ['12', None], ['-99']]]
+
+
+def test_arr_to_obj():
+    DT = dt.Frame(A=[None, [1, 5], [12, None], [-99]])
+    DT['A'] = dt.Type.obj64
+    assert DT.type == dt.Type.obj64
+    assert DT.to_list() == [[None, [1, 5], [12, None], [-99]]]
