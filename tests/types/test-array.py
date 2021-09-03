@@ -260,6 +260,29 @@ def test_arr32_to_jay():
     assert_equals(RES, DT)
 
 
+def test_arr32_to_and_from_numpy(np):
+    src = [[3, 9, 0], None, [11, -1, 3, 23], [None], [], [0]]
+    DT = dt.Frame(S=src)
+    assert DT.type == dt.Type.arr32(dt.Type.int32)
+    arr = DT.to_numpy()
+    assert arr.dtype == np.dtype('object')
+    assert arr.T.tolist() == [src]
+    DT2 = dt.Frame(arr, names=['S'])
+    assert_equals(DT, DT2)
+
+
+def test_arr32_to_and_from_pandas(pd):
+    src = [[3, 9, 0], None, [11, -1, 3, 23], [None], [], [0]]
+    DT = dt.Frame(S=src)
+    assert DT.type == dt.Type.arr32(dt.Type.int32)
+    pdf = DT.to_pandas()
+    assert pdf.dtypes[0] == object
+    assert pdf.columns.tolist() == ['S']
+    assert pdf['S'].tolist() == src
+    DT2 = dt.Frame(pdf)
+    assert_equals(DT, DT2)
+
+
 
 
 #-------------------------------------------------------------------------------
