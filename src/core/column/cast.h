@@ -328,6 +328,14 @@ class CastObjectToArray_ColumnImpl : public Cast_ColumnImpl {
 };
 
 
+class CastArrayToObject_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastArrayToObject_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, py::oobj*) const override;
+};
+
+
 
 
 }  // namespace dt

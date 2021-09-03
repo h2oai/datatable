@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/cast.h"
 #include "python/datetime.h"
+#include "python/list.h"
 #include "read/parsers/info.h"
 #include "stype.h"
 namespace dt {
@@ -48,6 +49,40 @@ bool CastTime64ToObj64_ColumnImpl::get_element(size_t i, py::oobj* out) const {
   bool isvalid = arg_.get_element(i, &value);
   if (isvalid) {
     *out = py::odatetime(value);
+  }
+  return isvalid;
+}
+
+
+
+//------------------------------------------------------------------------------
+// CastArrayToObject_ColumnImpl
+//------------------------------------------------------------------------------
+
+CastArrayToObject_ColumnImpl::CastArrayToObject_ColumnImpl(Column&& arg)
+  : Cast_ColumnImpl(SType::OBJ, std::move(arg))
+{
+  xassert(arg_.can_be_read_as<Column>());
+}
+
+
+ColumnImpl* CastArrayToObject_ColumnImpl::clone() const {
+  return new CastArrayToObject_ColumnImpl(Column(arg_));
+}
+
+
+bool CastArrayToObject_ColumnImpl::get_element(size_t i, py::oobj* out) const {
+  Column value;
+  bool isvalid = arg_.get_element(i, &value);
+  if (isvalid) {
+    auto n = value.nrows();
+    auto res = py::olist(n);
+    py::oobj item;
+    for (size_t j = 0; j < n; j++) {
+      bool item_isvalid = value.get_element(j, &item);
+      res.set(j, item_isvalid? item : py::None());
+    }
+    *out = std::move(res);
   }
   return isvalid;
 }
