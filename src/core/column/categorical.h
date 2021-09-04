@@ -55,6 +55,7 @@ class Categorical_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, py::oobj*) const override;
     bool get_element(size_t, Column*)   const override;
 
+    void materialize(Column&, bool) override;
 };
 
 

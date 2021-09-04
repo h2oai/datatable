@@ -264,7 +264,7 @@ def test_stype():
     assert stype.time64
     assert stype.obj64
     # When new stypes are added, don't forget to update this test suite
-    assert len(stype) == 15
+    assert len(stype) == 18
 
 
 def test_stype_names():
@@ -401,7 +401,8 @@ def test_stype_instantiate_bad():
 def test_stype_minmax(st):
     from datatable import stype, ltype
     if st in (stype.void, stype.str32, stype.str64, stype.obj64, stype.time64,
-              stype.date32, stype.arr32, stype.arr64):
+              stype.date32, stype.arr32, stype.arr64, stype.cat8, stype.cat16,
+              stype.cat32):
         assert st.min is None
         assert st.max is None
     else:

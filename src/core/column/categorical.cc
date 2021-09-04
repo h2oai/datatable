@@ -25,27 +25,32 @@ namespace dt {
 
 
 template <typename T>
-Type _type_with_child(const Type& t) {
-  Type tcat;
+Type _type_from_cattype(const Type& tcat) {
+  Type t;
   switch (sizeof(T)) {
-    case 1: tcat = Type::cat8(t); break;
-    case 2: tcat = Type::cat16(t); break;
-    case 4: tcat = Type::cat32(t); break;
+    case 1: t = Type::cat8(tcat); break;
+    case 2: t = Type::cat16(tcat); break;
+    case 4: t = Type::cat32(tcat); break;
     default : throw RuntimeError() << "Type is not supported";
   }
-  return tcat;
+  return t;
 }
 
 
 template <typename T>
 Categorical_ColumnImpl<T>::Categorical_ColumnImpl(
     size_t nrows, Buffer&& codes, Column&& categories
-) : Virtual_ColumnImpl(categories.nrows(),
-                       _type_with_child<T>(categories.type())),
+) : Virtual_ColumnImpl(nrows, _type_from_cattype<T>(categories.type())),
     codes_(std::move(codes)),
     categories_(std::move(categories))
 {
-  xassert(codes_.size() >= sizeof(T) * (nrows + 1));
+  xassert(codes_.size() >= sizeof(T) * nrows);
+}
+
+
+template <typename T>
+void Categorical_ColumnImpl<T>::materialize(Column&, bool) {
+  categories_.materialize();
 }
 
 
@@ -63,7 +68,8 @@ size_t Categorical_ColumnImpl<T>::n_children() const noexcept {
 
 
 template <typename T>
-const Column& Categorical_ColumnImpl<T>::child(size_t) const {
+const Column& Categorical_ColumnImpl<T>::child(size_t i) const {
+  xassert(i == 0);
   return categories_;
 }
 
