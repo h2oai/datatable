@@ -115,11 +115,11 @@ size_t Type_Cat::hash() const noexcept {
 
 
 /**
-  * Cast column `col` into the cat? type.
+  * Cast column `col` into the categorical type.
   *
-  * The following type casts are supported:
-  *   * void    -> cat?<S>
-  *   * obj64   -> cat?<S>
+  * The following type casts are currently supported:
+  *   * void    -> cat*<T>
+  *   * obj64   -> cat*<T>
   */
 Column Type_Cat::cast_column(Column&& col) const {
   switch (col.stype()) {
@@ -128,9 +128,9 @@ Column Type_Cat::cast_column(Column&& col) const {
 
     case SType::OBJ: {
       switch (stype()) {
-        case SType::CAT8:  cast_obj_column<uint8_t>(col); break;
-        case SType::CAT16: cast_obj_column<uint16_t>(col); break;
-        case SType::CAT32: cast_obj_column<uint32_t>(col); break;
+        case SType::CAT8:  cast_obj_column_<uint8_t>(col); break;
+        case SType::CAT16: cast_obj_column_<uint16_t>(col); break;
+        case SType::CAT32: cast_obj_column_<uint32_t>(col); break;
         default: throw RuntimeError() << "Unknown categorical type";
       }
       return std::move(col);
@@ -143,9 +143,19 @@ Column Type_Cat::cast_column(Column&& col) const {
 }
 
 
+
+/**
+  * This method will create a buffer `buf` with the codes and will modify
+  * `col` in-place by only leaving one element per category. It will
+  * then create a categorical column from the codes and categories
+  * finally assigning it to `col`.
+  */
 template <typename T>
-void Type_Cat::cast_obj_column(Column& col) const {
+void Type_Cat::cast_obj_column_(Column& col) const {
   size_t nrows = col.nrows(); // save nrows as `col` will be modified in-place
+
+  // First, cast `col` to the requested `elementType_` and obtain
+  // the categories (groups) information.
   col.cast_inplace(elementType_);
   auto res = group({col}, {SortFlag::NONE});
   RowIndex ri = std::move(res.first);
@@ -165,6 +175,9 @@ void Type_Cat::cast_obj_column(Column& col) const {
       << "can accomodate, i.e. `" << MAX_CATS << "`";
   }
 
+  // Fill out two buffers:
+  // - `buf_cat` with row indices of unique elements (one element per category)
+  // - `buf` with the codes of categories (group ids).
   dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
       size_t jj;
@@ -177,10 +190,12 @@ void Type_Cat::cast_obj_column(Column& col) const {
       }
     });
 
+  // Modify `col` in-place by only leaving one element per a category
   const RowIndex ri_cat(std::move(buf_cat), RowIndex::ARR32);
   col.apply_rowindex(ri_cat);
   col.materialize();
 
+  // Replace `col` with the corresponding categorical column
   col = Column(new Categorical_ColumnImpl<T>(nrows, std::move(buf), std::move(col)));
 }
 

@@ -65,4 +65,6 @@ extern template class Categorical_ColumnImpl<uint32_t>;
 
 
 }  // namespace dt
+
+
 #endif

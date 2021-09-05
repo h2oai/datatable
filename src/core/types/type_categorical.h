@@ -29,6 +29,10 @@ namespace dt {
 
 
 class Type_Cat : public TypeImpl {
+  private:
+    template <typename T>
+    void cast_obj_column_(Column& col) const;
+
   protected:
     Type elementType_;
 
@@ -50,11 +54,7 @@ class Type_Cat : public TypeImpl {
     bool equals(const TypeImpl* other) const override;
     size_t hash() const noexcept override;
     TypeImpl* common_type(TypeImpl* other) override;
-
     Column cast_column(Column&& col) const override;
-
-    template <typename T>
-    void cast_obj_column(Column& col) const;
 };
 
 
