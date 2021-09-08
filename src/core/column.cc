@@ -273,7 +273,10 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 }
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
-  switch (stype()) {
+  dt::SType st = type().is_categorical()? child(0).stype()
+                                        : stype();
+
+  switch (st) {
     case dt::SType::VOID:    return py::None();
     case dt::SType::BOOL: {
       int8_t x;
@@ -325,7 +328,10 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 bool Column::get_element_isvalid(size_t i) const {
-  switch (stype()) {
+  dt::SType st = type().is_categorical()? child(0).stype()
+                                        : stype();
+
+  switch (st) {
     case dt::SType::VOID: return false;
     case dt::SType::BOOL:
     case dt::SType::INT8: {
@@ -361,7 +367,7 @@ bool Column::get_element_isvalid(size_t i) const {
     }
     default:
       throw NotImplError() << "Unable to check validity of the element "
-        << "for stype: `" << stype() << "`";
+        << "for type: `" << type() << "`";
   }
 }
 

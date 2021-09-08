@@ -108,8 +108,8 @@ class ColumnImpl
   // Data buffers
   //------------------------------------
   public:
-    virtual NaStorage get_na_storage_method() const noexcept = 0;
-    virtual size_t    get_num_data_buffers() const noexcept = 0;
+    virtual NaStorage   get_na_storage_method() const noexcept = 0;
+    virtual size_t      get_num_data_buffers() const noexcept = 0;
     virtual bool        is_data_editable(size_t k) const = 0;
     virtual size_t      get_data_size(size_t k) const = 0;
     virtual const void* get_data_readonly(size_t k) const = 0;

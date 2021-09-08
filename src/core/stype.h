@@ -101,6 +101,9 @@ template <> struct _elt<SType::STR64>   { using t = uint64_t; };
 template <> struct _elt<SType::ARR32>   { using t = uint32_t; };
 template <> struct _elt<SType::ARR64>   { using t = uint64_t; };
 template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+template <> struct _elt<SType::CAT8>    { using t = uint8_t; };
+template <> struct _elt<SType::CAT16>   { using t = uint16_t; };
+template <> struct _elt<SType::CAT32>   { using t = uint32_t; };
 
 template <SType s>
 using element_t = typename _elt<s>::t;
