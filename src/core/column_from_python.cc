@@ -24,6 +24,7 @@
 #include <cstring>         // std::memcpy
 #include <limits>          // std::numeric_limits
 #include <type_traits>     // std::is_same
+#include "column/arrow_array.h"
 #include "column/pysources.h"  // PyList_ColumnImpl, ...
 #include "column/range.h"
 #include "python/_all.h"
@@ -378,6 +379,92 @@ Column _parse_time64(const Column& inputcol, size_t i0, bool strict) {
 }
 
 
+/**
+  * Parse a column containing python lists, as a `arr32<T>` or
+  * `arr64<T>` type. The type `T` will be inferred.
+  */
+
+template <typename T>
+Column _parse_array_impl(const Column& inputcol, size_t nn, bool strict) {
+  size_t n = inputcol.nrows();
+  Buffer validitybuf = Buffer::mem((n + 63)/64 * 8);
+  Buffer offsetsbuf = Buffer::mem((n + 1) * sizeof(T));
+  Buffer databuf = Buffer::mem(nn * sizeof(PyObject*));
+  auto validity_ptr = static_cast<size_t*>(validitybuf.xptr());
+  auto offsets_ptr = static_cast<T*>(offsetsbuf.xptr());
+  auto data_ptr = static_cast<PyObject**>(databuf.xptr());
+  *offsets_ptr++ = 0;
+  *validity_ptr = 0;
+
+  py::oobj item;
+  int validity_shift = 0;
+  T current_offset = 0;
+  size_t null_count = 0;
+  for (size_t i = 0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.is_list()) {
+      *validity_ptr |= uint64_t(1) << validity_shift;
+      auto list = py::rlist::unchecked(item);
+      auto list_size = list.size();
+      for (size_t j = 0; j < list_size; j++) {
+        *data_ptr++ = py::oobj(list[j]).release();
+      }
+      current_offset += static_cast<T>(list_size);
+    } else {
+      null_count++;
+    }
+    *offsets_ptr++ = current_offset;
+    validity_shift++;
+    if (validity_shift == 64) {
+      *++validity_ptr = 0;
+      validity_shift = 0;
+    }
+  }
+  databuf.set_pyobjects(/*clear_data=*/ false);
+
+  Column child_column =
+    Column::new_mbuf_column(nn, dt::SType::OBJ, std::move(databuf))
+      .reduce_type(strict);
+
+  if (!strict && child_column.type().is_object()) {
+    return inputcol;
+  }
+  return Column(new dt::ArrowArray_ColumnImpl<T>(
+      n, null_count,
+      std::move(validitybuf),
+      std::move(offsetsbuf),
+      std::move(child_column)
+  ));
+}
+
+Column _parse_array(const Column& inputcol, size_t i0, bool strict) {
+  py::oobj item;
+  size_t n = inputcol.nrows();
+  size_t nn = 0;
+  for (size_t i = i0; i < n; i++) {
+    inputcol.get_element(i, &item);
+    if (item.is_none()) continue;
+    if (item.is_list()) {
+      nn += py::rlist::unchecked(item).size();
+    } else {
+      return _invalid(inputcol, strict, i, item, "arr32");
+    }
+  }
+
+  constexpr size_t MAX = std::numeric_limits<int32_t>::max();
+  Column out;
+  if (n >= MAX || nn >= MAX) {
+    out = _parse_array_impl<uint64_t>(inputcol, nn, strict);
+  } else {
+    out = _parse_array_impl<uint32_t>(inputcol, nn, strict);
+  }
+  return out;
+}
+
+
+
+//------------------------------------------------------------------------------
+
 Column resolve_column(const Column& inputcol, dt::Type type0) {
   if (type0) {
     Column out = inputcol.cast(type0);
@@ -447,6 +534,9 @@ Column Column::reduce_type(bool strict) const {
   }
   else if (item0.is_datetime()) {
     return _parse_time64(*this, i0, strict);
+  }
+  else if (item0.is_list()) {
+    return _parse_array(*this, i0, strict);
   }
   else if ((npbits = item0.is_numpy_float())) {
     if (npbits == 4) return _parse_npfloat<float>(*this, i0, strict);

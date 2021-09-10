@@ -34,12 +34,12 @@ ColumnImpl* ArrowVoid_ColumnImpl::clone() const {
 }
 
 
-size_t ArrowVoid_ColumnImpl::num_buffers() const noexcept {
+size_t ArrowVoid_ColumnImpl::get_num_data_buffers() const noexcept {
   return 1;
 }
 
-const void* ArrowVoid_ColumnImpl::get_buffer(size_t) const {
-  return validity_.rptr();
+Buffer ArrowVoid_ColumnImpl::get_data_buffer(size_t) const {
+  return validity_;
 }
 
 

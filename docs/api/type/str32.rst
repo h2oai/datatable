@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.str32
     :src: --
+    :tests: tests/types/test-str.py
 
     The type of a column with string data.
 

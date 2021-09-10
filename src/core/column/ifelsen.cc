@@ -81,6 +81,7 @@ bool IfElseN_ColumnImpl::get_element(size_t i, float* out)    const { return _ge
 bool IfElseN_ColumnImpl::get_element(size_t i, double* out)   const { return _get(i, out); }
 bool IfElseN_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(i, out); }
 bool IfElseN_ColumnImpl::get_element(size_t i, py::oobj* out) const { return _get(i, out); }
+bool IfElseN_ColumnImpl::get_element(size_t i, Column* out)   const { return _get(i, out); }
 
 
 

@@ -1,6 +1,7 @@
 
 .. xattr:: datatable.Type.int32
     :src: --
+    :tests: tests/types/test-int.py
 
     Integer type, corresponding to ``int32_t`` in C. This type uses 4 bytes per
     data element, and can store values in the range ``-2,147,483,647 ..

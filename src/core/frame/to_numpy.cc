@@ -140,6 +140,23 @@ static oobj to_numpy_impl(oobj frame) {
   // `.astype()` after the conversion.
   bool is_time64 = common_type.stype() == dt::SType::TIME64;
 
+  bool convert_to_object = common_type.is_array();
+  if (convert_to_object) {
+    common_type = dt::Type::obj64();
+    colvec columns;
+    columns.reserve(dt->ncols());
+    for (size_t i = 0; i < ncols; i++) {
+      columns.push_back(dt->get_column(i).cast(common_type));
+    }
+    // Note: `frame` is the owner of the `dt` pointer. First line creates a
+    // new (unowned) DataTable object and stores the pointer in the `dt`
+    // variable. The second line puts the new `dt` pointer into the `frame`
+    // object, which will now be its owner. At the same time,
+    // previous DataTable object owned by `frame` is now destroyed.
+    dt = new DataTable(std::move(columns), DataTable::default_names);
+    frame = Frame::oframe(dt);
+  }
+
   oobj res;
   {
     getbuffer_exception = nullptr;

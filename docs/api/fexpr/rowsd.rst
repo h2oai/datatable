@@ -1,4 +1,7 @@
 
 .. xmethod:: datatable.FExpr.rowsd
     :src: src/core/expr/fexpr.cc PyFExpr::rowsd
-    :doc: src/core/expr/fexpr.cc doc_rowsd
+    :cvar: doc_FExpr_rowsd
+    :signature: rowsd()
+
+    Equivalent to :func:`dt.rowsd(self)`.

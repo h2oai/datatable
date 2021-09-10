@@ -162,6 +162,18 @@ class OArrowArray {
     ArrowArray array_;
 
   private:
+    /**
+      * Create a new OArrowArray structure from an existing
+      * ArrowArray* pointer, which will be marked as "released".
+      *
+      * According to Arrow's documentation:
+      *   > The consumer can move the ArrowArray structure by bitwise
+      *   > copying or shallow member-wise copying. Then it MUST mark
+      *   > the source structure released but without calling the release
+      *   > callback. This ensures that only one live copy of the
+      *   > struct is active at any given time and that lifetime is
+      *   > correctly communicated to the producer.
+      */
     OArrowArray(ArrowArray* arr) noexcept {
       array_.length       = arr->length;
       array_.null_count   = arr->null_count;
@@ -229,7 +241,7 @@ class OArrowArray {
       * structure. Effectively, after this call, `this` will be owned
       * by itself.
       *
-      * This method can only be called when there established a
+      * This method can only be called when there is an established
       * promise that its `->release()` callback will be called at a
       * future time.
       */
@@ -238,6 +250,12 @@ class OArrowArray {
       data->store(std::unique_ptr<OArrowArray>(this));
     }
 };
+
+
+static_assert(sizeof(ArrowArray) == sizeof(OArrowArray),
+    "Sizes of ArrowArray and OArrowArray do not match");
+static_assert(sizeof(ArrowSchema) == sizeof(OArrowSchema),
+    "Sizes of ArrowSchema and OArrowSchema do not match");
 
 
 

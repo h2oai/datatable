@@ -116,6 +116,7 @@ class Data_TextColumn : public TextColumn {
     tstring _render_value_string(const Column&, size_t i) const;
     tstring _render_value_date(const Column&, size_t i) const;
     tstring _render_value_time(const Column&, size_t i) const;
+    tstring _render_value_array(const Column&, size_t i) const;
 
     bool _needs_escaping(const CString&) const;
     tstring _escape_string(const CString&) const;

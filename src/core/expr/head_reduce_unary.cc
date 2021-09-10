@@ -232,34 +232,68 @@ static Column compute_sum(Column&& arg, const Groupby& gby) {
 // sum(A:grouped)
 //------------------------------------------------------------------------------
 
+// T - type of input elements in the `arg` column
+// U - type of output elements
 template <typename T, typename U>
-bool sum_greducer(const Column& col, size_t i0, size_t i1, U* out) {
-  T value;
-  bool isvalid = col.get_element(i0, &value);
-  *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
-                : U(0);
-  return true;  // *out is not NA
-}
+class SumGrouped_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
 
+  public:
+    SumGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
+        arg(std::move(col)),
+        groupby(grpby)
+        {}
 
+    ColumnImpl* clone() const override {
+      return new SumGrouped_ColumnImpl<T, U>(Column(arg), groupby);
+    }
 
-template <typename T, typename U>
-static Column _gsum(Column&& arg, const Groupby& gby) {
-  return Column(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, sum_greducer<T, U>
-            ));
-}
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+    bool get_element(size_t i, U* out) const override {
+      T value;
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      bool isvalid = arg.get_element(i, &value);
+      *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
+                    : U(0);
+      return true; // *out is never an NA
+    }
+
+};
+
 
 static Column compute_gsum(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _gsum<int8_t,  int64_t>(std::move(arg), gby);
-    case SType::INT16:   return _gsum<int16_t, int64_t>(std::move(arg), gby);
-    case SType::INT32:   return _gsum<int32_t, int64_t>(std::move(arg), gby);
-    case SType::INT64:   return _gsum<int64_t, int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _gsum<float,   float>  (std::move(arg), gby);
-    case SType::FLOAT64: return _gsum<double,  double> (std::move(arg), gby);
+    case SType::INT8:    return Column(new SumGrouped_ColumnImpl<int8_t,  int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT16:   return Column(new SumGrouped_ColumnImpl<int16_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT32:   return Column(new SumGrouped_ColumnImpl<int32_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT64:   return Column(new SumGrouped_ColumnImpl<int64_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT32: return Column(new SumGrouped_ColumnImpl<float,   float>  (
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT64: return Column(new SumGrouped_ColumnImpl<double,  double> (
+                                    std::move(arg), gby
+                                ));
     default: throw _error("sum", arg.stype());
   }
 }

@@ -35,6 +35,7 @@ class Cast_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     Cast_ColumnImpl(SType new_stype, Column&& col);
+    Cast_ColumnImpl(Type new_type, Column&& col);
 
     size_t n_children() const noexcept override;
     const Column& child(size_t) const override;
@@ -291,6 +292,45 @@ class CastTime64ToString_ColumnImpl : public Cast_ColumnImpl {
 class CastTime64ToObj64_ColumnImpl : public Cast_ColumnImpl {
   public:
     CastTime64ToObj64_ColumnImpl(Column&&);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, py::oobj*) const override;
+};
+
+
+
+
+//------------------------------------------------------------------------------
+// Array -> Any casts
+//------------------------------------------------------------------------------
+
+/**
+  * This class is responsible for casting `arr<T>` into `arr<S>`.
+  */
+class CastArrayToArray_ColumnImpl : public Cast_ColumnImpl {
+  private:
+    Type childType_;
+
+  public:
+    CastArrayToArray_ColumnImpl(Column&&, Type targetType);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, Column*) const override;
+};
+
+
+class CastObjectToArray_ColumnImpl : public Cast_ColumnImpl {
+  private:
+    Type childType_;
+
+  public:
+    CastObjectToArray_ColumnImpl(Column&&, Type targetType);
+    ColumnImpl* clone() const override;
+    bool get_element(size_t, Column*) const override;
+};
+
+
+class CastArrayToObject_ColumnImpl : public Cast_ColumnImpl {
+  public:
+    CastArrayToObject_ColumnImpl(Column&&);
     ColumnImpl* clone() const override;
     bool get_element(size_t, py::oobj*) const override;
 };

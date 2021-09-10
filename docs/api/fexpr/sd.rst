@@ -1,4 +1,7 @@
 
 .. xmethod:: datatable.FExpr.sd
     :src: src/core/expr/fexpr.cc PyFExpr::sd
-    :doc: src/core/expr/fexpr.cc doc_sd
+    :cvar: doc_FExpr_sd
+    :signature: sd()
+
+    Equivalent to :func:`dt.sd(self)`.

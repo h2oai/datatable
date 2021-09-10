@@ -10,12 +10,23 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
-    -[enh] Void columns can now be used with :func:`dt.sort()`. In addition,
-        datatable will now skip sorting any column that it knows contains
-        constant values. [#3088]
+    -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
+        In addition, datatable will now skip sorting any column that it knows contains
+        constant values. [#3088] [#3104] [#3108] [#3109]
 
     -[fix] Saving a frame with a :attr:`void <dt.Type.void>` column into Jay
-        no longer leads to a crash. [#3074]
+        no longer leads to a crash. [#3074] [#3099]
+
+    -[fix] Joining with void columns now works correctly. [#3094]
+
+    -[fix] :func:`dt.sum()` now works correctly when applied to the same
+        column as :func:`dt.by()` [#3110]
+
+    -[fix] Fixed a crash which could have occurred when sorting very long
+        identical or nearly identical strings. [#3134]
+
+    -[fix] Fixed support for :attr:`.max_column_width <datatable.options.display.max_column_width>`
+        option when rendering frames in Jupyter notebooks. [#3160]
 
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
@@ -40,6 +51,8 @@
 
     -[enh] Added reducer function :func:`countna` [#2999]
 
+    -[fix] :func:`qcut` won't segfault anymore when used as an i-filter [#3061]
+
 
     fread
     -----
@@ -52,7 +65,7 @@
         ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
         they produced errors during parsing. [#3065]
 
-    -[bug] :func:`fread()` will no longer fail while reading mostly empty
+    -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 
 
@@ -62,3 +75,14 @@
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
+
+    -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
+        :attr:`.is_boolean <dt.Type.is_boolean>`,
+        :attr:`.is_compound <dt.Type.is_compound>`,
+        :attr:`.is_float <dt.Type.is_float>`,
+        :attr:`.is_integer <dt.Type.is_integer>`,
+        :attr:`.is_numeric <dt.Type.is_numeric>`,
+        :attr:`.is_object <dt.Type.is_object>`,
+        :attr:`.is_string <dt.Type.is_string>`,
+        :attr:`.is_temporal <dt.Type.is_temporal>`,
+        :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101]

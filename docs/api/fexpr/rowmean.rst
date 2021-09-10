@@ -1,4 +1,7 @@
 
 .. xmethod:: datatable.FExpr.rowmean
     :src: src/core/expr/fexpr.cc PyFExpr::rowmean
-    :doc: src/core/expr/fexpr.cc doc_rowmean
+    :cvar: doc_FExpr_rowmean
+    :signature: rowmean()
+
+    Equivalent to :func:`dt.rowmean(self)`.
