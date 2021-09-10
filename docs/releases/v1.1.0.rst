@@ -25,6 +25,9 @@
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
 
+    -[fix] Fixed support for :attr:`.max_column_width <datatable.options.display.max_column_width>`
+        option when rendering frames in Jupyter notebooks. [#3160]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]

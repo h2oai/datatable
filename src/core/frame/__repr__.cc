@@ -64,7 +64,7 @@ static PKArgs args__repr_html_(
   0, 0, 0, false, false, {}, "_repr_html_", nullptr);
 
 oobj Frame::_repr_html_(const PKArgs&) {
-  dt::HtmlWidget widget(dt);
+  dt::HtmlWidget widget(dt, dt::display_max_column_width);
   return widget.to_python();
 }
 
