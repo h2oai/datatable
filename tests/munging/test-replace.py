@@ -203,7 +203,6 @@ def test_replace_floats_numpy():
     df.replace([None, np.float64(3.14), inf],
                [np.float64(101.3), np.float64(3.1), np.float64(18.4)])
     assert df.stypes == (dt.float64, dt.float64)
-    print(df)
     frame_integrity_check(df)
     assert df.to_list() == [[1.2, 18.4, 101.3, 101.3, -inf], [3.1, 18.4, 92.0, 101.3, 6.0]]
 
