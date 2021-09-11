@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import numpy as np
 import pytest
 import random
 import sys
@@ -92,6 +93,15 @@ def test_replace_bool_na():
     assert df.to_list() == [[True, False, False]]
 
 
+def test_replace_bool_numpy():
+    df = dt.Frame([True, None, False, True, False, False])
+    df.replace({None: np.bool8(False),
+                np.bool8(True): np.bool8(False),
+                np.bool8(False): None
+               })
+    frame_integrity_check(df)
+    assert df.stypes == (dt.bool8,)
+    assert df.to_list() == [[False, False, None, False, None, None]]
 
 
 #-------------------------------------------------------------------------------
@@ -103,6 +113,17 @@ def test_replace_int_simple():
     df.replace(0, -1)
     frame_integrity_check(df)
     assert df.to_list() == [[-1, 1, 2, 3, 4]]
+
+
+def test_replace_int_numpy():
+    df = dt.Frame([0, 1, None, 1, 0, 30])
+    df.replace({np.int8(0): None,
+                np.int8(1): np.int32(-1),
+                None: np.int8(100)
+               })
+    assert df.stypes == (dt.int32,)
+    frame_integrity_check(df)
+    assert df.to_list() == [[None, -1, 100, -1, None, 30]]
 
 
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
@@ -175,6 +196,16 @@ def test_replace_floats(st):
     else:
         assert list_equals(pydt[0], res[0])
         assert list_equals(pydt[1], res[1])
+
+
+def test_replace_floats_numpy():
+    df = dt.Frame([[1.2, inf, nan, None, -inf], [3.14, inf, 92, None, 6.0]])
+    df.replace([None, np.float64(3.14), inf],
+               [np.float64(101.3), np.float64(3.1), np.float64(18.4)])
+    assert df.stypes == (dt.float64, dt.float64)
+    print(df)
+    frame_integrity_check(df)
+    assert df.to_list() == [[1.2, 18.4, 101.3, 101.3, -inf], [3.1, 18.4, 92.0, 101.3, 6.0]]
 
 
 def test_replace_infs():

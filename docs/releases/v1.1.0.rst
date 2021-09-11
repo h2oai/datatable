@@ -10,6 +10,8 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
+    -[enh] :meth:`.replace` now supports numpy scalars. [#3164]
+
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
         constant values. [#3088] [#3104] [#3108] [#3109]
