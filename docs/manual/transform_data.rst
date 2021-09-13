@@ -109,7 +109,7 @@ Datatable Functions can be applied to the columns::
     3 |    NA
    [4 rows x 1 column]
 
-Functions can be applied across columns::
+Functions can be applied across columns, row-wise and column-wise::
 
    >>> DT[:, f['integers':'floats'].sum()]
       | integers   floats
@@ -128,11 +128,21 @@ Functions can be applied across columns::
     3 |    -9  
    [4 rows x 1 column]
 
-Transformation of a column based on a condition is possible, via :func:`ifelse()`::
+Transformation of a column based on a condition is possible, via :func:`ifelse()`, which operates similarly to Python's `if-else` idiom::
+
+   >>> DT[:, ifelse(f.integers % 2 == 0, 'even', 'odd')]
+      | C0   
+      | str32
+   -- + -----
+    0 | odd  
+    1 | even 
+    2 | odd  
+    3 | even 
+   [4 rows x 1 column]
 
 Iteration on a Frame
 --------------------
-Iterating through a :class:`Frame` allows access to the columns; each column is treated as a :class:`Frame`::
+Iterating through a :class:`Frame` allows access to the individual columns; each column is treated as a :class:`Frame`::
 
    >>> [frame for frame in DT]
 
@@ -174,7 +184,7 @@ Iterating through a :class:`Frame` allows access to the columns; each column is 
    
 With iteration, different operations can be applied to different columns::
 
-   >>> outcome = [frame.mean() if frame.type.is_numeric else frame[0, :]  for frame in DT]
+   >>> outcome = [frame.mean() if frame.type.is_numeric else frame[0, :] for frame in DT]
    >>> outcome
       | dates     
       | date32    
