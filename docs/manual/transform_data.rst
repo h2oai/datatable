@@ -2,7 +2,7 @@
 Transforming Data
 =================
 
-This section looks at the different options within the `j` section of ``DT[i, j, by]`` for transforming data. We'll also see how to create new columns and update existing ones.
+This section looks at the different options for transforming data. We'll also see how to create new columns and update existing ones.
 
 Example Data
 ------------
@@ -128,6 +128,8 @@ Functions can be applied across columns::
     3 |    -9  
    [4 rows x 1 column]
 
+Transformation of a column based on a condition is possible, via :func:`ifelse()`::
+
 Iteration on a Frame
 --------------------
 Iterating through a :class:`Frame` allows access to the columns; each column is treated as a :class:`Frame`::
@@ -209,3 +211,154 @@ With iteration, different operations can be applied to different columns::
 
 Sorting a Frame
 ---------------
+A :class:`Frame` can be sorted via the :func:`sort()` function, or the :meth:`datatable.Frame.sort` method::
+
+   >>> DT[:, :, dt.sort('dates')]
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32  
+   -- + ----------  --------  -------  -------
+    0 | NA                 4    -13    D      
+    1 | 2000-01-05         1     10    A      
+    2 | 2010-11-23         2     11.5  B      
+    3 | 2020-02-29         3     12.3  NA     
+   [4 rows x 4 columns]
+
+   >>> DT.sort('dates')
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32  
+   -- + ----------  --------  -------  -------
+    0 | NA                 4    -13    D      
+    1 | 2000-01-05         1     10    A      
+    2 | 2010-11-23         2     11.5  B      
+    3 | 2020-02-29         3     12.3  NA     
+   [4 rows x 4 columns]
+
+Sorting is possible via :ref:`f-expressions`::
+
+   >>>  DT[:, :, dt.sort(f.floats)]
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32  
+   -- + ----------  --------  -------  -------
+    0 | NA                 4    -13    D      
+    1 | 2000-01-05         1     10    A      
+    2 | 2010-11-23         2     11.5  B      
+    3 | 2020-02-29         3     12.3  NA     
+   [4 rows x 4 columns]
+
+   >>> DT.sort(f.strings)
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32  
+   -- + ----------  --------  -------  -------
+    0 | 2020-02-29         3     12.3  NA     
+    1 | 2000-01-05         1     10    A      
+    2 | 2010-11-23         2     11.5  B      
+    3 | NA                 4    -13    D      
+   [4 rows x 4 columns]
+
+The default sorting order is ascending; and if there are any nulls in the sorting columns, they go to the top. 
+
+The sorting order and the position of nulls can be changed in a number of ways:
+
+-  Sorting can be in descending order via the `reverse` parameter::
+
+      >>> DT[:, :, dt.sort('integers', reverse = True)]
+         | dates       integers   floats  strings
+         | date32         int32  float64  str32  
+      -- + ----------  --------  -------  -------
+       0 | NA                 4    -13    D      
+       1 | 2020-02-29         3     12.3  NA     
+       2 | 2010-11-23         2     11.5  B      
+       3 | 2000-01-05         1     10    A      
+      [4 rows x 4 columns]
+
+.. note::
+
+   The ``reverse`` parameter is available only in the :func:`sort()` function
+
+- Sorting in descending order is possible by negating the :ref:`f-expressions` within the :func:`sort()` function, or the :meth:`datatable.Frame.sort` method::
+
+      >>> DT[:, :, dt.sort(-f.integers)]
+         | dates       integers   floats  strings
+         | date32         int32  float64  str32  
+      -- + ----------  --------  -------  -------
+       0 | NA                 4    -13    D      
+       1 | 2020-02-29         3     12.3  NA     
+       2 | 2010-11-23         2     11.5  B      
+       3 | 2000-01-05         1     10    A      
+      [4 rows x 4 columns]
+
+
+      >>> DT.sort(-f.integers)
+         | dates       integers   floats  strings
+         | date32         int32  float64  str32  
+      -- + ----------  --------  -------  -------
+       0 | NA                 4    -13    D      
+       1 | 2020-02-29         3     12.3  NA     
+       2 | 2010-11-23         2     11.5  B      
+       3 | 2000-01-05         1     10    A      
+      [4 rows x 4 columns]
+
+- The position of null values within the sorting column can be controlled with the ``na_position`` parameter::
+
+      >>> DT[:, :, dt.sort('dates', na_position = 'last')]
+         | dates       integers   floats  strings
+         | date32         int32  float64  str32  
+      -- + ----------  --------  -------  -------
+       0 | 2000-01-05         1     10    A      
+       1 | 2010-11-23         2     11.5  B      
+       2 | 2020-02-29         3     12.3  NA     
+       3 | NA                 4    -13    D      
+      [4 rows x 4 columns]
+
+.. note::
+
+   The `na_position` parameter is available only in the :func:`sort()` function
+
+.. note::
+
+   The default value for ``na_position`` is `first`
+
+Sorting is possible on multiple columns::
+
+   >>> multiples = dt.Frame({'OrderID': ['o1','o2','o3','o4','o5'],
+   ...                       'CustomerID': ['c1','c1','c2','c2','c3'],
+   ...                       'CustomerRating': [5,1,3, np.NaN,np.NaN]
+   ...                     })
+   >>>
+   >>> multiples
+      | OrderID  CustomerID  CustomerRating
+      | str32    str32              float64
+   -- + -------  ----------  --------------
+    0 | o1       c1                       5
+    1 | o2       c1                       1
+    2 | o3       c2                       3
+    3 | o4       c2                      NA
+    4 | o5       c3                      NA
+   [5 rows x 3 columns]
+
+
+   >>> multiples[:, :, dt.sort(f.CustomerID, -f.OrderID)]
+      | OrderID  CustomerID  CustomerRating
+      | str32    str32              float64
+   -- + -------  ----------  --------------
+    0 | o2       c1                       1
+    1 | o1       c1                       5
+    2 | o4       c2                      NA
+    3 | o3       c2                       3
+    4 | o5       c3                      NA
+   [5 rows x 3 columns]
+
+   >>> multiples.sort(f.CustomerID, -f.OrderID)
+      | OrderID  CustomerID  CustomerRating
+      | str32    str32              float64
+   -- + -------  ----------  --------------
+    0 | o2       c1                       1
+    1 | o1       c1                       5
+    2 | o4       c2                      NA
+    3 | o3       c2                       3
+    4 | o5       c3                      NA
+   [5 rows x 3 columns]
+
+
+Column Assignment
+-----------------
