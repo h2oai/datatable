@@ -958,8 +958,7 @@ def test_void_frame_roundtrip():
     assert_equals(DT, dt.Frame([None] * 10))
 
 
-# Uncomment the line below when all the tests pass
-# @pytest.mark.usefixtures("release_only")
+@pytest.mark.usefixtures("release_only")
 def test_create_from_pandas_large(pd):
     # See issue 3169
     N1 = 30
