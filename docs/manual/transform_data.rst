@@ -370,140 +370,143 @@ Sorting is possible on multiple columns::
 
 Column Assignment
 -----------------
-Transformed columns can be assigned to new columns, or replace existing columns via direct assignment and update. A third option, `extend`, applies only when creating new columns.
+Transformed columns can be assigned to new columns, or replace existing columns via direct assignment and the :func:`update()` function. A third option, `extend`, applies only when creating new columns.
 
-- Direct Assignment
+Direct Assignment
+^^^^^^^^^^^^^^^^^
 
-   - Single column::
+- Single column::
 
-      >>> DT['months'] = DT[:, dt.time.month(f.dates)]
-      >>> DT
-         | dates       integers   floats  strings  months
-         | date32         int32  float64  str32     int32
-      -- + ----------  --------  -------  -------  ------
-       0 | 2000-01-05         1     10    A             1
-       1 | 2010-11-23         2     11.5  B            11
-       2 | 2020-02-29         3     12.3  NA            2
-       3 | NA                 4    -13    D            NA
-      [4 rows x 5 columns]
+   >>> DT['months'] = DT[:, dt.time.month(f.dates)]
+   >>> DT
+      | dates       integers   floats  strings  months
+      | date32         int32  float64  str32     int32
+   -- + ----------  --------  -------  -------  ------
+    0 | 2000-01-05         1     10    A             1
+    1 | 2010-11-23         2     11.5  B            11
+    2 | 2020-02-29         3     12.3  NA            2
+    3 | NA                 4    -13    D            NA
+   [4 rows x 5 columns]
 
-   - Multiple columns::
+- Multiple columns::
 
-      >>> DT[:, ['months', 'int_squared']] = DT[:, [dt.time.month(f.dates),
-      ...                                           f.integers**2]]
-      >>> DT
-         | dates       integers   floats  strings  months  int_squared
-         | date32         int32  float64  str32     int32      float64
-      -- + ----------  --------  -------  -------  ------  -----------
-       0 | 2000-01-05         1     10    A             1            1
-       1 | 2010-11-23         2     11.5  B            11            4
-       2 | 2020-02-29         3     12.3  NA            2            9
-       3 | NA                 4    -13    D            NA           16
-      [4 rows x 6 columns]
+   >>> DT[:, ['months', 'int_squared']] = DT[:, [dt.time.month(f.dates),
+   ...                                           f.integers**2]]
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared
+      | date32         int32  float64  str32     int32      float64
+   -- + ----------  --------  -------  -------  ------  -----------
+    0 | 2000-01-05         1     10    A             1            1
+    1 | 2010-11-23         2     11.5  B            11            4
+    2 | 2020-02-29         3     12.3  NA            2            9
+    3 | NA                 4    -13    D            NA           16
+   [4 rows x 6 columns]
 
-   - Update existing column::
+- Update existing column::
 
-      >>> DT['strings'] = DT[:, f.strings + "_end"]
-      >>> DT
-         | dates       integers   floats  strings  months  int_squared
-         | date32         int32  float64  str32     int32      float64
-      -- + ----------  --------  -------  -------  ------  -----------
-       0 | 2000-01-05         1     10    A_end         1            1
-       1 | 2010-11-23         2     11.5  B_end        11            4
-       2 | 2020-02-29         3     12.3  NA            2            9
-       3 | NA                 4    -13    D_end        NA           16
-      [4 rows x 6 columns]
-
-
-- :func:`update()`
-
-   :func:`update()` is an in-place operation, and as such, a direct reassignment is not required.
-
-   :func:`update()` uses keyword arguments, where the key in the dictionary is the name of the new column, while the value is the :ref:`f-expressions` to be computed.
+   >>> DT['strings'] = DT[:, f.strings + "_end"]
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared
+      | date32         int32  float64  str32     int32      float64
+   -- + ----------  --------  -------  -------  ------  -----------
+    0 | 2000-01-05         1     10    A_end         1            1
+    1 | 2010-11-23         2     11.5  B_end        11            4
+    2 | 2020-02-29         3     12.3  NA            2            9
+    3 | NA                 4    -13    D_end        NA           16
+   [4 rows x 6 columns]
 
 
-   - Single column::
+:func:`update()`
+^^^^^^^^^^^^^^^^
 
-      >>> DT[:, update(year = dt.time.year(f.dates))]
-      >>> DT
-         | dates       integers   floats  strings  months  int_squared   year
-         | date32         int32  float64  str32     int32      float64  int32
-      -- + ----------  --------  -------  -------  ------  -----------  -----
-       0 | 2000-01-05         1     10    A_end         1            1   2000
-       1 | 2010-11-23         2     11.5  B_end        11            4   2010
-       2 | 2020-02-29         3     12.3  NA            2            9   2020
-       3 | NA                 4    -13    D_end        NA           16     NA
-      [4 rows x 7 columns]
+:func:`update()` is an in-place operation, and as such, a direct reassignment is not required.
 
-   - Multiple columns::
-
-      >>> DT[:, update(year = dt.time.year(f.dates),
-      ...              float_doubled = f.floats * 2)]
-      >>> DT
-         | dates       integers   floats  strings  months  int_squared   year  float_doubled
-         | date32         int32  float64  str32     int32      float64  int32        float64
-      -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
-       0 | 2000-01-05         1     10    A_end         1            1   2000           20
-       1 | 2010-11-23         2     11.5  B_end        11            4   2010           23
-       2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
-       3 | NA                 4    -13    D_end        NA           16     NA          -26
-      [4 rows x 8 columns]
-
-   - Update existing column::
-
-      >>> DT[:, update(strings = f.strings[:1])]
-      >>> DT
-         | dates       integers   floats  strings  months  int_squared   year  float_doubled
-         | date32         int32  float64  str32     int32      float64  int32        float64
-      -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
-       0 | 2000-01-05         1     10    A             1            1   2000           20
-       1 | 2010-11-23         2     11.5  B            11            4   2010           23
-       2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
-       3 | NA                 4    -13    D            NA           16     NA          -26
-      [4 rows x 8 columns]
+:func:`update()` uses keyword arguments, where the key in the dictionary is the name of the new column, while the value is the :ref:`f-expressions` to be computed.
 
 
+- Single column::
 
-- Extend
+   >>> DT[:, update(year = dt.time.year(f.dates))]
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared   year
+      | date32         int32  float64  str32     int32      float64  int32
+   -- + ----------  --------  -------  -------  ------  -----------  -----
+    0 | 2000-01-05         1     10    A_end         1            1   2000
+    1 | 2010-11-23         2     11.5  B_end        11            4   2010
+    2 | 2020-02-29         3     12.3  NA            2            9   2020
+    3 | NA                 4    -13    D_end        NA           16     NA
+   [4 rows x 7 columns]
 
-    The `extend` method works via :ref:`f-expressions` to creates new columns; it does not update existing columns.
+- Multiple columns::
 
-    The `extend` method uses a dictionary to create the new columns, where the key in the dictionary is the name of the new column, while the value is the :ref:`f-expressions` to be computed::
+   >>> DT[:, update(year = dt.time.year(f.dates),
+   ...              float_doubled = f.floats * 2)]
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared   year  float_doubled
+      | date32         int32  float64  str32     int32      float64  int32        float64
+   -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
+    0 | 2000-01-05         1     10    A_end         1            1   2000           20
+    1 | 2010-11-23         2     11.5  B_end        11            4   2010           23
+    2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
+    3 | NA                 4    -13    D_end        NA           16     NA          -26
+   [4 rows x 8 columns]
 
-      >>> DT = DT[:, :4]
-      >>> DT
-         | dates       integers   floats  strings
-         | date32         int32  float64  str32
-      -- + ----------  --------  -------  -------
-       0 | 2000-01-05         1     10    A
-       1 | 2010-11-23         2     11.5  B
-       2 | 2020-02-29         3     12.3  NA
-       3 | NA                 4    -13    D
-      [4 rows x 4 columns]
+- Update existing column::
 
-   - Single column::
+   >>> DT[:, update(strings = f.strings[:1])]
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared   year  float_doubled
+      | date32         int32  float64  str32     int32      float64  int32        float64
+   -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
+    0 | 2000-01-05         1     10    A             1            1   2000           20
+    1 | 2010-11-23         2     11.5  B            11            4   2010           23
+    2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
+    3 | NA                 4    -13    D            NA           16     NA          -26
+   [4 rows x 8 columns]
 
-      >>> DT = DT[:, f[:].extend({"months" : dt.time.month(f.dates)})]
-      >>> DT
-         | dates       integers   floats  strings  months
-         | date32         int32  float64  str32     int32
-      -- + ----------  --------  -------  -------  ------
-       0 | 2000-01-05         1     10    A             1
-       1 | 2010-11-23         2     11.5  B            11
-       2 | 2020-02-29         3     12.3  NA            2
-       3 | NA                 4    -13    D            NA
-      [4 rows x 5 columns]
 
-   - Multiple columns::
 
-      >>> DT = DT[:, f[:].extend({"year" : dt.time.year(f.dates),
-      ...                         "int_squared" : f.integers ** 2})]
-      >>> DT
-         | dates       integers   floats  strings  months   year  int_squared
-         | date32         int32  float64  str32     int32  int32      float64
-      -- + ----------  --------  -------  -------  ------  -----  -----------
-       0 | 2000-01-05         1     10    A             1   2000            1
-       1 | 2010-11-23         2     11.5  B            11   2010            4
-       2 | 2020-02-29         3     12.3  NA            2   2020            9
-       3 | NA                 4    -13    D            NA     NA           16
-      [4 rows x 7 columns]
+Extend
+^^^^^^
+
+The `extend` method works via :ref:`f-expressions` to creates new columns; it does not update existing columns.
+
+The `extend` method uses a dictionary to create the new columns, where the key in the dictionary is the name of the new column, while the value is the :ref:`f-expressions` to be computed::
+
+   >>> DT = DT[:, :4]
+   >>> DT
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05         1     10    A
+    1 | 2010-11-23         2     11.5  B
+    2 | 2020-02-29         3     12.3  NA
+    3 | NA                 4    -13    D
+   [4 rows x 4 columns]
+
+- Single column::
+
+   >>> DT = DT[:, f[:].extend({"months" : dt.time.month(f.dates)})]
+   >>> DT
+      | dates       integers   floats  strings  months
+      | date32         int32  float64  str32     int32
+   -- + ----------  --------  -------  -------  ------
+    0 | 2000-01-05         1     10    A             1
+    1 | 2010-11-23         2     11.5  B            11
+    2 | 2020-02-29         3     12.3  NA            2
+    3 | NA                 4    -13    D            NA
+   [4 rows x 5 columns]
+
+- Multiple columns::
+
+   >>> DT = DT[:, f[:].extend({"year" : dt.time.year(f.dates),
+   ...                         "int_squared" : f.integers ** 2})]
+   >>> DT
+      | dates       integers   floats  strings  months   year  int_squared
+      | date32         int32  float64  str32     int32  int32      float64
+   -- + ----------  --------  -------  -------  ------  -----  -----------
+    0 | 2000-01-05         1     10    A             1   2000            1
+    1 | 2010-11-23         2     11.5  B            11   2010            4
+    2 | 2020-02-29         3     12.3  NA            2   2020            9
+    3 | NA                 4    -13    D            NA     NA           16
+   [4 rows x 7 columns]
