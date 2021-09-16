@@ -961,12 +961,13 @@ def test_void_frame_roundtrip():
 @pytest.mark.usefixtures("release_only")
 def test_create_from_pandas_large(pd):
     # See issue 3169
-    N1 = 30
-    N2 = 2 * 10**7
-    S = "0123456789" * N1
-    PD = pd.DataFrame([S] * N2)
+    text = "0123456789" * 30
+    nrows = 2 * 10**7
+    PD = pd.DataFrame([text] * nrows)
     DT = dt.Frame(PD)
-    assert DT[0, 0] == S
+    assert DT.shape == (nrows, 1)
+    assert DT.type == dt.Type.str64
+    assert DT[0, 0] == text
     assert DT.nunique1() == 1
 
 
