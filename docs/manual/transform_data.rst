@@ -131,6 +131,118 @@ Transformation of a column based on a condition is possible via :func:`ifelse()`
     3 | even
    [4 rows x 1 column]
 
+Transforming a column via a boolean condition in the `i` section is possible; note that this could result in a reduced number of rows::
+
+   >>> DT[f.dates < dt.time.ymd(2020,1,1), f.integers ** 4]
+      |      C0
+      | float64
+   -- + -------
+    0 |       1
+    1 |      16
+   [2 rows x 1 column]
+
+
+Column type can be changed with the :func:`as_type()` function
+
+   - Single column::
+
+      >>> DT[:, dt.as_type(f.integers, str)]
+         | integers
+         | str32
+      -- + --------
+       0 | 1
+       1 | 2
+       2 | 3
+       3 | 4
+      [4 rows x 1 column]
+
+- Multiple columns::
+
+      >>> DT[:, dt.as_type(f['integers', 'floats'], str)]
+         | integers  floats
+         | str32     str32
+      -- + --------  ------
+       0 | 1         10.0
+       1 | 2         11.5
+       2 | 3         12.3
+       3 | 4         -13.0
+      [4 rows x 2 columns]
+
+Values across multiple columns can be replaced with the :meth:`datatable.Frame.replace` method; this works on the entire frame, and is an in-place operation.
+
+The :meth:`datatable.Frame.replace` syntax is -> ``frame.replace(replace_what, replace_with)``, where `replace_what` values in the frame are replaced with `replaced_with`::
+
+   >>> DF = DT.copy()
+   >>> DF.replace(1, -1)
+   >>> DF
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05        -1     10    A
+    1 | 2010-11-23         2     11.5  B
+    2 | 2020-02-29         3     12.3  NA
+    3 | NA                 4    -13    D
+   [4 rows x 4 columns]
+
+For multiple values, a list or a dictionary can be used.
+
+If a list is used, the number of entries in the `replace_what` list must match the number of entries in the `replace_with` list, or the number of entries in `replace_with` must be exactly 1::
+
+   >>> DF.replace(['A', 10.0], ['A_pre', 30.0])
+   >>> DF
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23         2     11.5  B
+    2 | 2020-02-29         3     12.3  NA
+    3 | NA                 4    -13    D
+   [4 rows x 4 columns]
+
+   >>> DF.replace([2, 3], 20)
+   >>> DF
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23        20     11.5  B
+    2 | 2020-02-29        20     12.3  NA
+    3 | NA                 4    -13    D
+   [4 rows x 4 columns]
+
+If a dictionary is used, the `replace_what` values serve as the keys, while the `replace_with` values are the values in the dictionary::
+
+   >>> DF.replace({4: 24, 'B': 'BBB'})
+   >>> DF
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23         2     11.5  BBB
+    2 | 2020-02-29         3     12.3  NA
+    3 | NA                24    -13    D
+   [4 rows x 4 columns]
+
+Note that the data type in `replace_what` and `replace_with` must match the data type of the existing column::
+
+   >>> DF.replace({2 : 2.0})
+   TypeError: Cannot replace integer value 2 with a value of type <class 'float'>
+
+If the values in `replace_what` is not in the frame, there is no replacement; it is simply returned as-is::
+
+   >>> DF.replace({355:26})
+   >>> DF
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23         2     11.5  BBB
+    2 | 2020-02-29         3     12.3  NA
+    3 | NA                24    -13    D
+   [4 rows x 4 columns]
+
+Have a look at :meth:`datatable.Frame.replace` for more options, especially when replacing null values
+
 Iteration on a Frame
 --------------------
 Iterating through a :class:`Frame` allows access to the individual columns; in this case, each column is treated as a frame::
