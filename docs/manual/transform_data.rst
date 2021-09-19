@@ -100,7 +100,7 @@ Various datatable functions can be applied to the columns::
 
 There are some datatable functions that only operate column-wise::
 
-   >>> DT[:, f['integers':'floats'].sum()]
+   >>> DT[:, dt.sum(f['integers':'floats'])]
       | integers   floats
       |    int64  float64
    -- + --------  -------
@@ -109,7 +109,7 @@ There are some datatable functions that only operate column-wise::
 
 while some other datatable functions operate row-wise::
 
-   >>> DT[:, f['integers':'floats'].rowsum()]
+   >>> DT[:, dt.rowsum(f['integers':'floats'])]
       |      C0
       | float64
    -- + -------
@@ -156,6 +156,16 @@ Column type can be changed with the :func:`as_type()` function
        3 | 4
       [4 rows x 1 column]
 
+      >>> DT[:, dt.as_type(f.integers, dt.Type.str32)]
+         | integers
+         | str32
+      -- + --------
+       0 | 1
+       1 | 2
+       2 | 3
+       3 | 4
+      [4 rows x 1 column]
+
 - Multiple columns::
 
       >>> DT[:, dt.as_type(f['integers', 'floats'], str)]
@@ -172,9 +182,8 @@ Values across multiple columns can be replaced with the :meth:`datatable.Frame.r
 
 The :meth:`datatable.Frame.replace` syntax is -> ``frame.replace(replace_what, replace_with)``, where `replace_what` values in the frame are replaced with `replaced_with`::
 
-   >>> DF = DT.copy()
-   >>> DF.replace(1, -1)
-   >>> DF
+   >>> DT.replace(1, -1)
+   >>> DT
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
@@ -188,8 +197,8 @@ For multiple values, a list or a dictionary can be used.
 
 If a list is used, the number of entries in the `replace_what` list must match the number of entries in the `replace_with` list, or the number of entries in `replace_with` must be exactly 1::
 
-   >>> DF.replace(['A', 10.0], ['A_pre', 30.0])
-   >>> DF
+   >>> DT.replace(['A', 10.0], ['A_pre', 30.0])
+   >>> DT
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
@@ -199,8 +208,8 @@ If a list is used, the number of entries in the `replace_what` list must match t
     3 | NA                 4    -13    D
    [4 rows x 4 columns]
 
-   >>> DF.replace([2, 3], 20)
-   >>> DF
+   >>> DT.replace([2, 3], 20)
+   >>> DT
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
@@ -212,8 +221,8 @@ If a list is used, the number of entries in the `replace_what` list must match t
 
 If a dictionary is used, the `replace_what` values serve as the keys, while the `replace_with` values are the values in the dictionary::
 
-   >>> DF.replace({4: 24, 'B': 'BBB'})
-   >>> DF
+   >>> DT.replace({4: 24, 'B': 'BBB'})
+   >>> DT
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
@@ -223,15 +232,11 @@ If a dictionary is used, the `replace_what` values serve as the keys, while the 
     3 | NA                24    -13    D
    [4 rows x 4 columns]
 
-Note that the data type in `replace_what` and `replace_with` must match the data type of the existing column::
-
-   >>> DF.replace({2 : 2.0})
-   TypeError: Cannot replace integer value 2 with a value of type <class 'float'>
 
 If the values in `replace_what` is not in the frame, there is no replacement; it is simply returned as-is::
 
-   >>> DF.replace({355:26})
-   >>> DF
+   >>> DT.replace({355:26})
+   >>> DT
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
@@ -241,14 +246,13 @@ If the values in `replace_what` is not in the frame, there is no replacement; it
     3 | NA                24    -13    D
    [4 rows x 4 columns]
 
-Have a look at :meth:`datatable.Frame.replace` for more options, especially when replacing null values
+Have a look at :meth:`datatable.Frame.replace` for more options, especially when replacing null values.
 
 Iteration on a Frame
 --------------------
 Iterating through a :class:`Frame` allows access to the individual columns; in this case, each column is treated as a frame::
 
    >>> [frame for frame in DT]
-
       | dates
       | date32
    -- + ----------
@@ -261,16 +265,16 @@ Iterating through a :class:`Frame` allows access to the individual columns; in t
       | integers
       |    int32
    -- + --------
-    0 |        1
-    1 |        2
-    2 |        3
-    3 |        4
+    0 |       -1
+    1 |       20
+    2 |       20
+    3 |       24
    [4 rows x 1 column]
 
       |  floats
       | float64
    -- + -------
-    0 |    10
+    0 |    30
     1 |    11.5
     2 |    12.3
     3 |   -13
@@ -279,9 +283,9 @@ Iterating through a :class:`Frame` allows access to the individual columns; in t
       | strings
       | str32
    -- + -------
-    0 | A
-    1 | B
-    2 | NA
+    0 | A_pre
+    1 | BBB
+    2 | None
     3 | D
    [4 rows x 1 column]
 
@@ -298,19 +302,19 @@ With iteration, different operations can be applied to different columns::
       | integers
       |  float64
    -- + --------
-    0 |      2.5
+    0 |    15.75
    [1 row x 1 column]
 
       |  floats
       | float64
    -- + -------
-    0 |     5.2
+    0 |    10.2
    [1 row x 1 column]
 
       | strings
       | str32
    -- + -------
-    0 | A
+    0 | A_pre
    [1 row x 1 column]
 
 
@@ -318,7 +322,7 @@ With iteration, different operations can be applied to different columns::
       | dates       integers   floats  strings
       | date32       float64  float64  str32
    -- + ----------  --------  -------  -------
-    0 | 2000-01-05       2.5      5.2  A
+    0 | 2000-01-05     15.75     10.2  A_pre
    [1 row x 4 columns]
 
 
@@ -330,20 +334,20 @@ A frame can be sorted via the :func:`sort()` function, or the :meth:`datatable.F
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | NA                 4    -13    D
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | 2020-02-29         3     12.3  NA
+    0 | NA                24    -13    D
+    1 | 2000-01-05        -1     30    A_pre
+    2 | 2010-11-23        20     11.5  BBB
+    3 | 2020-02-29        20     12.3  None
    [4 rows x 4 columns]
 
    >>> DT.sort('dates')
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | NA                 4    -13    D
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | 2020-02-29         3     12.3  NA
+    0 | NA                24    -13    D
+    1 | 2000-01-05        -1     30    A_pre
+    2 | 2010-11-23        20     11.5  BBB
+    3 | 2020-02-29        20     12.3  None
    [4 rows x 4 columns]
 
 Sorting is possible via :ref:`f-expressions`::
@@ -352,20 +356,20 @@ Sorting is possible via :ref:`f-expressions`::
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | NA                 4    -13    D
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | 2020-02-29         3     12.3  NA
+    0 | NA                24    -13    D
+    1 | 2010-11-23        20     11.5  BBB
+    2 | 2020-02-29        20     12.3  None
+    3 | 2000-01-05        -1     30    A_pre
    [4 rows x 4 columns]
 
    >>> DT.sort(f.strings)
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | 2020-02-29         3     12.3  NA
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | NA                 4    -13    D
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23        20     11.5  BBB
+    2 | NA                24    -13    D
+    3 | 2020-02-29        20     12.3  None
    [4 rows x 4 columns]
 
 The default sorting order is ascending; if there are any nulls in the sorting columns, they go to the top.
@@ -378,10 +382,10 @@ The sorting order and the position of nulls can be changed in a number of ways:
          | dates       integers   floats  strings
          | date32         int32  float64  str32
       -- + ----------  --------  -------  -------
-       0 | NA                 4    -13    D
-       1 | 2020-02-29         3     12.3  NA
-       2 | 2010-11-23         2     11.5  B
-       3 | 2000-01-05         1     10    A
+       0 | NA                24    -13    D
+       1 | 2010-11-23        20     11.5  BBB
+       2 | 2020-02-29        20     12.3  None
+       3 | 2000-01-05        -1     30    A_pre
       [4 rows x 4 columns]
 
 .. note::
@@ -394,10 +398,10 @@ The sorting order and the position of nulls can be changed in a number of ways:
          | dates       integers   floats  strings
          | date32         int32  float64  str32
       -- + ----------  --------  -------  -------
-       0 | NA                 4    -13    D
-       1 | 2020-02-29         3     12.3  NA
-       2 | 2010-11-23         2     11.5  B
-       3 | 2000-01-05         1     10    A
+       0 | NA                24    -13    D
+       1 | 2010-11-23        20     11.5  BBB
+       2 | 2020-02-29        20     12.3  None
+       3 | 2000-01-05        -1     30    A_pre
       [4 rows x 4 columns]
 
 
@@ -405,10 +409,10 @@ The sorting order and the position of nulls can be changed in a number of ways:
          | dates       integers   floats  strings
          | date32         int32  float64  str32
       -- + ----------  --------  -------  -------
-       0 | NA                 4    -13    D
-       1 | 2020-02-29         3     12.3  NA
-       2 | 2010-11-23         2     11.5  B
-       3 | 2000-01-05         1     10    A
+       0 | NA                24    -13    D
+       1 | 2010-11-23        20     11.5  BBB
+       2 | 2020-02-29        20     12.3  None
+       3 | 2000-01-05        -1     30    A_pre
       [4 rows x 4 columns]
 
 - The position of null values within the sorting column can be controlled with the ``na_position`` parameter::
@@ -417,10 +421,10 @@ The sorting order and the position of nulls can be changed in a number of ways:
          | dates       integers   floats  strings
          | date32         int32  float64  str32
       -- + ----------  --------  -------  -------
-       0 | 2000-01-05         1     10    A
-       1 | 2010-11-23         2     11.5  B
-       2 | 2020-02-29         3     12.3  NA
-       3 | NA                 4    -13    D
+       0 | 2000-01-05        -1     30    A_pre
+       1 | 2010-11-23        20     11.5  BBB
+       2 | 2020-02-29        20     12.3  None
+       3 | NA                24    -13    D
       [4 rows x 4 columns]
 
 - Rows with null values can be removed as well by passing `remove` to the ``na_position`` parameter::
@@ -430,9 +434,9 @@ The sorting order and the position of nulls can be changed in a number of ways:
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | 2000-01-05         1     10    A
-    1 | 2010-11-23         2     11.5  B
-    2 | 2020-02-29         3     12.3  NA
+    0 | 2000-01-05        -1     30    A_pre
+    1 | 2010-11-23        20     11.5  BBB
+    2 | 2020-02-29        20     12.3  None
    [3 rows x 4 columns]
 
 .. note::
@@ -449,21 +453,43 @@ Sorting is possible on multiple columns::
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | NA                 4    -13    D
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | 2020-02-29         3     12.3  NA
+    0 | NA                24    -13    D
+    1 | 2000-01-05        -1     30    A_pre
+    2 | 2010-11-23        20     11.5  BBB
+    3 | 2020-02-29        20     12.3  None
    [4 rows x 4 columns]
+
 
    >>> DT.sort('dates', 'integers')
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | NA                 4    -13    D
-    1 | 2000-01-05         1     10    A
-    2 | 2010-11-23         2     11.5  B
-    3 | 2020-02-29         3     12.3  NA
+    0 | NA                24    -13    D
+    1 | 2000-01-05        -1     30    A_pre
+    2 | 2010-11-23        20     11.5  BBB
+    3 | 2020-02-29        20     12.3  None
    [4 rows x 4 columns]
+
+   >>> DT[:, :, dt.sort(-f.integers, f.dates)]
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | NA                24    -13    D
+    1 | 2010-11-23        20     11.5  BBB
+    2 | 2020-02-29        20     12.3  None
+    3 | 2000-01-05        -1     30    A_pre
+   [4 rows x 4 columns]
+
+   >>> DT.sort(-f.integers, f.dates)
+      | dates       integers   floats  strings
+      | date32         int32  float64  str32
+   -- + ----------  --------  -------  -------
+    0 | NA                24    -13    D
+    1 | 2010-11-23        20     11.5  BBB
+    2 | 2020-02-29        20     12.3  None
+    3 | 2000-01-05        -1     30    A_pre
+   [4 rows x 4 columns]
+
 
 
 Column Assignment
@@ -480,11 +506,12 @@ Direct Assignment
       | dates       integers   floats  strings  months
       | date32         int32  float64  str32     int32
    -- + ----------  --------  -------  -------  ------
-    0 | 2000-01-05         1     10    A             1
-    1 | 2010-11-23         2     11.5  B            11
-    2 | 2020-02-29         3     12.3  NA            2
-    3 | NA                 4    -13    D            NA
+    0 | 2000-01-05        -1     30    A_pre         1
+    1 | 2010-11-23        20     11.5  BBB          11
+    2 | 2020-02-29        20     12.3  None          2
+    3 | NA                24    -13    D            NA
    [4 rows x 5 columns]
+
 
 - Multiple columns::
 
@@ -494,23 +521,23 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared
       | date32         int32  float64  str32     int32      float64
    -- + ----------  --------  -------  -------  ------  -----------
-    0 | 2000-01-05         1     10    A             1            1
-    1 | 2010-11-23         2     11.5  B            11            4
-    2 | 2020-02-29         3     12.3  NA            2            9
-    3 | NA                 4    -13    D            NA           16
+    0 | 2000-01-05        -1     30    A_pre         1            1
+    1 | 2010-11-23        20     11.5  BBB          11          400
+    2 | 2020-02-29        20     12.3  None          2          400
+    3 | NA                24    -13    D            NA          576
    [4 rows x 6 columns]
 
 - Update existing column::
 
-   >>> DT['strings'] = DT[:, f.strings + "_end"]
+   >>> DT['strings'] = DT[:, f.strings[:1]]
    >>> DT
       | dates       integers   floats  strings  months  int_squared
       | date32         int32  float64  str32     int32      float64
    -- + ----------  --------  -------  -------  ------  -----------
-    0 | 2000-01-05         1     10    A_end         1            1
-    1 | 2010-11-23         2     11.5  B_end        11            4
-    2 | 2020-02-29         3     12.3  NA            2            9
-    3 | NA                 4    -13    D_end        NA           16
+    0 | 2000-01-05        -1     30    A             1            1
+    1 | 2010-11-23        20     11.5  B            11          400
+    2 | 2020-02-29        20     12.3  NA            2          400
+    3 | NA                24    -13    D            NA          576
    [4 rows x 6 columns]
 
 
@@ -529,10 +556,10 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared   year
       | date32         int32  float64  str32     int32      float64  int32
    -- + ----------  --------  -------  -------  ------  -----------  -----
-    0 | 2000-01-05         1     10    A_end         1            1   2000
-    1 | 2010-11-23         2     11.5  B_end        11            4   2010
-    2 | 2020-02-29         3     12.3  NA            2            9   2020
-    3 | NA                 4    -13    D_end        NA           16     NA
+    0 | 2000-01-05        -1     30    A             1            1   2000
+    1 | 2010-11-23        20     11.5  B            11          400   2010
+    2 | 2020-02-29        20     12.3  NA            2          400   2020
+    3 | NA                24    -13    D            NA          576     NA
    [4 rows x 7 columns]
 
 - Multiple columns::
@@ -543,23 +570,23 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared   year  float_doubled
       | date32         int32  float64  str32     int32      float64  int32        float64
    -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
-    0 | 2000-01-05         1     10    A_end         1            1   2000           20
-    1 | 2010-11-23         2     11.5  B_end        11            4   2010           23
-    2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
-    3 | NA                 4    -13    D_end        NA           16     NA          -26
+    0 | 2000-01-05        -1     30    A             1            1   2000           60
+    1 | 2010-11-23        20     11.5  B            11          400   2010           23
+    2 | 2020-02-29        20     12.3  NA            2          400   2020           24.6
+    3 | NA                24    -13    D            NA          576     NA          -26
    [4 rows x 8 columns]
 
 - Update existing column::
 
-   >>> DT[:, update(strings = f.strings[:1])]
+   >>> DT[:, update(year = f.year / 12)]
    >>> DT
-      | dates       integers   floats  strings  months  int_squared   year  float_doubled
-      | date32         int32  float64  str32     int32      float64  int32        float64
-   -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
-    0 | 2000-01-05         1     10    A             1            1   2000           20
-    1 | 2010-11-23         2     11.5  B            11            4   2010           23
-    2 | 2020-02-29         3     12.3  NA            2            9   2020           24.6
-    3 | NA                 4    -13    D            NA           16     NA          -26
+      | dates       integers   floats  strings  months  int_squared     year  float_doubled
+      | date32         int32  float64  str32     int32      float64  float64        float64
+   -- + ----------  --------  -------  -------  ------  -----------  -------  -------------
+    0 | 2000-01-05        -1     30    A             1            1  166.667           60
+    1 | 2010-11-23        20     11.5  B            11          400  167.5             23
+    2 | 2020-02-29        20     12.3  NA            2          400  168.333           24.6
+    3 | NA                24    -13    D            NA          576   NA              -26
    [4 rows x 8 columns]
 
 
@@ -571,7 +598,7 @@ The `extend` method works via :ref:`f-expressions` to create new columns; it doe
 
 The `extend` method uses a dictionary to create the new columns, where the key in the dictionary is the name of the new column, while the value is the :ref:`f-expressions` to be computed.
 
-First, let's restore DT to the original frame::
+First, let's trim the ``DT`` frame::
 
    >>> DT = DT[:, :4]
    >>> DT
@@ -591,10 +618,10 @@ First, let's restore DT to the original frame::
       | dates       integers   floats  strings  months
       | date32         int32  float64  str32     int32
    -- + ----------  --------  -------  -------  ------
-    0 | 2000-01-05         1     10    A             1
-    1 | 2010-11-23         2     11.5  B            11
-    2 | 2020-02-29         3     12.3  NA            2
-    3 | NA                 4    -13    D            NA
+    0 | 2000-01-05        -1     30    A             1
+    1 | 2010-11-23        20     11.5  B            11
+    2 | 2020-02-29        20     12.3  NA            2
+    3 | NA                24    -13    D            NA
    [4 rows x 5 columns]
 
 - Multiple columns::
@@ -605,10 +632,10 @@ First, let's restore DT to the original frame::
       | dates       integers   floats  strings  months   year  int_squared
       | date32         int32  float64  str32     int32  int32      float64
    -- + ----------  --------  -------  -------  ------  -----  -----------
-    0 | 2000-01-05         1     10    A             1   2000            1
-    1 | 2010-11-23         2     11.5  B            11   2010            4
-    2 | 2020-02-29         3     12.3  NA            2   2020            9
-    3 | NA                 4    -13    D            NA     NA           16
+    0 | 2000-01-05        -1     30    A             1   2000            1
+    1 | 2010-11-23        20     11.5  B            11   2010          400
+    2 | 2020-02-29        20     12.3  NA            2   2020          400
+    3 | NA                24    -13    D            NA     NA          576
    [4 rows x 7 columns]
 
 
