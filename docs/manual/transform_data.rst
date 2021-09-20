@@ -540,6 +540,19 @@ Direct Assignment
     3 | NA                24    -13    D            NA          576
    [4 rows x 6 columns]
 
+- You can assign an :ref:`f-expressions` to create a new column or update an existing column::
+
+   >>> DT['integers'] = f.integers * 3
+   >>> DT
+      | dates       integers   floats  strings  months  int_squared
+      | date32         int32  float64  str32     int32      float64
+   -- + ----------  --------  -------  -------  ------  -----------
+    0 | 2000-01-05        -3     30    A             1            1
+    1 | 2010-11-23        60     11.5  B            11          400
+    2 | 2020-02-29        60     12.3  NA            2          400
+    3 | NA                72    -13    D            NA          576
+   [4 rows x 6 columns]
+
 
 :func:`update()`
 ^^^^^^^^^^^^^^^^
