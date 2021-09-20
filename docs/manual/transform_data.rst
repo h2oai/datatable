@@ -569,10 +569,10 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared   year
       | date32         int32  float64  str32     int32      float64  int32
    -- + ----------  --------  -------  -------  ------  -----------  -----
-    0 | 2000-01-05        -1     30    A             1            1   2000
-    1 | 2010-11-23        20     11.5  B            11          400   2010
-    2 | 2020-02-29        20     12.3  NA            2          400   2020
-    3 | NA                24    -13    D            NA          576     NA
+    0 | 2000-01-05        -3     30    A             1            1   2000
+    1 | 2010-11-23        60     11.5  B            11          400   2010
+    2 | 2020-02-29        60     12.3  NA            2          400   2020
+    3 | NA                72    -13    D            NA          576     NA
    [4 rows x 7 columns]
 
 - Multiple columns::
@@ -583,10 +583,10 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared   year  float_doubled
       | date32         int32  float64  str32     int32      float64  int32        float64
    -- + ----------  --------  -------  -------  ------  -----------  -----  -------------
-    0 | 2000-01-05        -1     30    A             1            1   2000           60
-    1 | 2010-11-23        20     11.5  B            11          400   2010           23
-    2 | 2020-02-29        20     12.3  NA            2          400   2020           24.6
-    3 | NA                24    -13    D            NA          576     NA          -26
+    0 | 2000-01-05        -3     30    A             1            1   2000           60
+    1 | 2010-11-23        60     11.5  B            11          400   2010           23
+    2 | 2020-02-29        60     12.3  NA            2          400   2020           24.6
+    3 | NA                72    -13    D            NA          576     NA          -26
    [4 rows x 8 columns]
 
 - Update existing column::
@@ -596,10 +596,10 @@ Direct Assignment
       | dates       integers   floats  strings  months  int_squared     year  float_doubled
       | date32         int32  float64  str32     int32      float64  float64        float64
    -- + ----------  --------  -------  -------  ------  -----------  -------  -------------
-    0 | 2000-01-05        -1     30    A             1            1  166.667           60
-    1 | 2010-11-23        20     11.5  B            11          400  167.5             23
-    2 | 2020-02-29        20     12.3  NA            2          400  168.333           24.6
-    3 | NA                24    -13    D            NA          576   NA              -26
+    0 | 2000-01-05        -3     30    A             1            1  166.667           60
+    1 | 2010-11-23        60     11.5  B            11          400  167.5             23
+    2 | 2020-02-29        60     12.3  NA            2          400  168.333           24.6
+    3 | NA                72    -13    D            NA          576   NA              -26
    [4 rows x 8 columns]
 
 
@@ -618,10 +618,10 @@ First, let's trim the ``DT`` frame::
       | dates       integers   floats  strings
       | date32         int32  float64  str32
    -- + ----------  --------  -------  -------
-    0 | 2000-01-05         1     10    A
-    1 | 2010-11-23         2     11.5  B
-    2 | 2020-02-29         3     12.3  NA
-    3 | NA                 4    -13    D
+    0 | 2000-01-05        -3     10    A
+    1 | 2010-11-23        60     11.5  B
+    2 | 2020-02-29        60     12.3  NA
+    3 | NA                72    -13    D
    [4 rows x 4 columns]
 
 - Single column::
@@ -631,10 +631,10 @@ First, let's trim the ``DT`` frame::
       | dates       integers   floats  strings  months
       | date32         int32  float64  str32     int32
    -- + ----------  --------  -------  -------  ------
-    0 | 2000-01-05        -1     30    A             1
-    1 | 2010-11-23        20     11.5  B            11
-    2 | 2020-02-29        20     12.3  NA            2
-    3 | NA                24    -13    D            NA
+    0 | 2000-01-05        -3     30    A             1
+    1 | 2010-11-23        60     11.5  B            11
+    2 | 2020-02-29        60     12.3  NA            2
+    3 | NA                72    -13    D            NA
    [4 rows x 5 columns]
 
 - Multiple columns::
@@ -645,10 +645,10 @@ First, let's trim the ``DT`` frame::
       | dates       integers   floats  strings  months   year  int_squared
       | date32         int32  float64  str32     int32  int32      float64
    -- + ----------  --------  -------  -------  ------  -----  -----------
-    0 | 2000-01-05        -1     30    A             1   2000            1
-    1 | 2010-11-23        20     11.5  B            11   2010          400
-    2 | 2020-02-29        20     12.3  NA            2   2020          400
-    3 | NA                24    -13    D            NA     NA          576
+    0 | 2000-01-05        -3     30    A             1   2000            1
+    1 | 2010-11-23        60     11.5  B            11   2010          400
+    2 | 2020-02-29        60     12.3  NA            2   2020          400
+    3 | NA                72    -13    D            NA     NA          576
    [4 rows x 7 columns]
 
 
