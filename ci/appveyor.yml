@@ -1,6 +1,6 @@
 image:
-  - Visual Studio 2019
-  - Ubuntu
+  # - Visual Studio 2019
+  # - Ubuntu
   - macos-bigsur
 
 init:
