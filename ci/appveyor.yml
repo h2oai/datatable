@@ -87,6 +87,8 @@ build_script:
 
     python -V
 
+    python -c "import platform; print(platform.mac_ver())"
+
     python ci/ext.py wheel
 
     DT_WHEEL=`ls dist/*-cp39-*.whl`
