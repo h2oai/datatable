@@ -49,7 +49,7 @@
     -----
     .. current-module:: datatable
 
-    -[enh] Added reducer function :func:`countna` [#2999]
+    -[enh] Added reducer functions :func:`countna` and :func:`nunique`  [#2999]
 
     -[fix] :func:`qcut` won't segfault anymore when used as an i-filter [#3061]
 
