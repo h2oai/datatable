@@ -19,7 +19,7 @@
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
-        has an obj64 type.
+        has an `obj64` type.
 
 
 
@@ -45,7 +45,7 @@
          5 |     2      5      4
         [6 rows x 3 columns]
 
-    Count the number of unique values of all rows:
+    Count the number of unique values for each column in the frame:
 
         >>> df[:, dt.nunique(f[:])]
            |     A      B      C
@@ -54,7 +54,7 @@
          0 |     2      4      3
         [1 row x 3 columns]
 
-    Count the number of unique values of column `B`:
+    Count the number of unique values for column `B` only:
 
         >>> df[:, dt.nunique(f.B)]
            |     B

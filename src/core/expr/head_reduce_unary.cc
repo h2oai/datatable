@@ -751,6 +751,39 @@ static Column compute_max(Column&& arg, const Groupby& gby) {
 }
 
 
+//------------------------------------------------------------------------------
+// nunique(A:grouped)
+//------------------------------------------------------------------------------
+
+// T is the type of the input column
+
+
+template <typename T, bool NA>
+static Column _gnunique(Column&& arg, const Groupby& gby) {
+  return Column(new CountGrouped_ColumnImpl<T,NA>(std::move(arg), gby));
+}
+
+template<bool NA=false>
+static Column compute_gnunique(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _gnunique<int8_t,NA>(std::move(arg), gby);
+    case SType::INT16:   return _gnunique<int16_t,NA>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _gnunique<int32_t,NA>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _gnunique<int64_t,NA>(std::move(arg), gby);
+    case SType::FLOAT32: return _gnunique<float,NA>(std::move(arg), gby);
+    case SType::FLOAT64: return _gnunique<double,NA>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _gnunique<CString,NA>(std::move(arg), gby);
+    default: throw _error("nunique", arg.stype());
+  }
+}
+
+
+
+
 
 //------------------------------------------------------------------------------
 // nunique
@@ -947,7 +980,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::COUNT:  fn = compute_gcount<false>; break;
       case Op::COUNTNA:fn = compute_gcount<true>; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
-      case Op::NUNIQUE:fn = compute_nunique; break;
+      case Op::NUNIQUE:fn = compute_gnunique; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }

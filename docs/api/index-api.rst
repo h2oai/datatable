@@ -168,7 +168,7 @@ Functions
     * - :func:`median()`
       - Find the median element per column
     * - :func:`min()`
-      - Find the smallest element per a column
+      - Find the smallest element per column
     * - :func:`nunique()`
       - Count the number of unique values per column
     * - :func:`sd()`

@@ -66,3 +66,11 @@ def test_dt_nunique(src):
     EXP = df.nunique()
     RES = df[:, dt.nunique(f[:])]
     assert_equals(EXP,RES)
+
+
+
+def test_dt_nunique_with_by():
+    DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
+    EXP = dt.Frame(G=[1,2], V1=[0,2], V2=[0,3])
+    RES = DT[:, [dt.nunique(f.V), dt.nunique(dt.mean(f.V))], dt.by(f.G)]
+    assert EXP.to_list() == RES.to_list()
