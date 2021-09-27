@@ -89,9 +89,11 @@ build_script:
 
     python -c "import platform; print(platform.mac_ver())"
 
-    python -c "import wheel.pep425tags; print(wheel.pep425tags.get_supported())"
+    # python -c "import wheel.pep425tags; print(wheel.pep425tags.get_supported())"
 
     python -c "import distutils.util; print(distutils.util.get_platform())"
+
+    python -m pip debug --verbose
 
     python ci/ext.py wheel
 
