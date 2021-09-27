@@ -89,6 +89,10 @@ build_script:
 
     python -c "import platform; print(platform.mac_ver())"
 
+    python -c "import wheel; print(wheel.pep425tags.get_supported())"
+
+    print -c "import distutils; print(distutils.util.get_platform())"
+
     python ci/ext.py wheel
 
     DT_WHEEL=`ls dist/*-cp39-*.whl`
@@ -100,10 +104,6 @@ build_script:
     echo "------------------------------------------------------------------"
 
     python -m pip install --upgrade pip
-
-    python -c "import wheel; print(wheel.pep425tags.get_supported())"
-
-    print -c "import distutils; print(distutils.util.get_platform())"
 
     python -m pip install $DT_WHEEL pytest docutils pandas
 
