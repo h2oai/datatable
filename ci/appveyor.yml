@@ -91,7 +91,7 @@ build_script:
 
     python -c "import wheel; print(wheel.pep425tags.get_supported())"
 
-    print -c "import distutils; print(distutils.util.get_platform())"
+    python -c "import distutils; print(distutils.util.get_platform())"
 
     python ci/ext.py wheel
 
