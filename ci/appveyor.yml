@@ -101,6 +101,8 @@ build_script:
 
     python -m pip install --upgrade pip
 
+    python -c "from pip import pep425tags;print(pep425tags.supported_tags)"
+
     python -m pip install $DT_WHEEL pytest docutils pandas
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
