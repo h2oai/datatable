@@ -798,7 +798,7 @@ bool op_nunique(const Column& col, size_t i0, size_t i1, int64_t* out) {
     bool isvalid = col.get_element(i, &value);
     if (isvalid) ss.insert(value);
   }
-  *out = ss.size();
+  *out = static_cast<int64_t>(ss.size());
   return true;  // *out is not NA
 }
 
