@@ -80,16 +80,14 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.9
+    #   Build and test wheel for Python 3.8
     # =======================================================================
 
-    source $HOME/venv3.9/bin/activate
+    source $HOME/venv3.8/bin/activate
 
     python -V
 
     python -c "import platform; print(platform.mac_ver())"
-
-    # python -c "import wheel.pep425tags; print(wheel.pep425tags.get_supported())"
 
     python -c "import distutils.util; print(distutils.util.get_platform())"
 
@@ -97,9 +95,9 @@ build_script:
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp39-*.whl`
+    DT_WHEEL=`ls dist/*-cp38-*.whl`
 
-    echo "----- _build_info.py for Python 3.9 ------------------------------"
+    echo "----- _build_info.py for Python 3.8 ------------------------------"
 
     cat src/datatable/_build_info.py
 
