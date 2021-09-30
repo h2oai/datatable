@@ -21,10 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import math
 import pytest
 from datatable import dt, f
-from datatable.internal import frame_integrity_check
 from tests import assert_equals
 from math import inf, nan
 
@@ -56,27 +54,24 @@ srcs_str = [["foo", None, "bar", "baaz", None],
 srcs_numeric = srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
-#-------------------------------------------------------------------------------
-#  nunique
-#-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("src", srcs_all)
 def test_dt_nunique(src):
-    df = dt.Frame(src)
-    EXP = df.nunique()
-    RES = df[:, dt.nunique(f[:])]
-    assert_equals(EXP,RES)
+    DT = dt.Frame(src)
+    EXP = DT.nunique()
+    RES = DT[:, dt.nunique(f[:])]
+    assert_equals(EXP, RES)
 
 
-def test_dt_nunique_with_by_1():
-    DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
-    EXP = dt.Frame(G=[1,2], V1=[0,2], V2=[0,1])
-    RES = DT[:, [dt.nunique(f.V), dt.nunique(dt.mean(f.V))], dt.by(f.G)]
-    assert EXP.to_list() == RES.to_list()
+def test_dt_nunique_with_by_for_ungroupped():
+    DT = dt.Frame(G=[1, 1, 1, 2, 2, 2], V=[None, None, None, None, 3, 5])
+    EXP = dt.Frame(G=[1, 2], V1=[0, 2]/dt.int64, V2=[0, 1]/dt.int64)
+    RES = DT[:, {"V1": dt.nunique(f.V), "V2": dt.nunique(dt.mean(f.V))}, dt.by(f.G)]
+    assert_equals(EXP, RES)
 
 
-def test_dt_nunique_with_by_2():
-    DT = dt.Frame([1, 1, 2])
-    EXP = dt.Frame(C0=[1,2], nunique=[1,1])
+def test_dt_nunique_with_by_for_groupped():
+    DT = dt.Frame([1, None, 1, 2, None, None])
+    EXP = dt.Frame(C0=[None, 1, 2], nunique=[0, 1, 1]/dt.int64)
     RES = DT[:, {"nunique" : dt.nunique(f[0])}, dt.by(f[0])]
-    assert EXP.to_list() == RES.to_list()
+    assert_equals(EXP, RES)

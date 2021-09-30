@@ -814,12 +814,9 @@ static Column compute_gnunique(Column&& arg, const Groupby& gby) {
 
 
 
-
-
 //------------------------------------------------------------------------------
 // nunique
 //------------------------------------------------------------------------------
-
 
 template <typename T>
 bool op_nunique(const Column& col, size_t i0, size_t i1, int64_t* out) {
@@ -862,6 +859,8 @@ static Column compute_nunique(Column&& arg, const Groupby& gby) {
     default: throw _error("nunique", arg.stype());
   }
 }
+
+
 
 //------------------------------------------------------------------------------
 // Median
@@ -965,8 +964,6 @@ static Column compute_gmedian(Column&& arg, const Groupby&) {
   arg.cast_inplace(res_stype);
   return std::move(arg);
 }
-
-
 
 
 
