@@ -775,14 +775,7 @@ class NuniqueGrouped_ColumnImpl : public Virtual_ColumnImpl
 
     bool get_element(size_t i, int64_t* out) const override {
       T value;
-      bool isvalid = arg.get_element(i, &value);
-      if (isvalid) {
-        size_t i0, i1;
-        groupby.get_group(i, &i0, &i1);
-        *out = 1;
-      } else {
-        *out = 0;
-      }
+      *out = arg.get_element(i, &value);
       return true;
     }
 
