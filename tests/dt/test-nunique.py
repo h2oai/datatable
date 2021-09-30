@@ -68,9 +68,15 @@ def test_dt_nunique(src):
     assert_equals(EXP,RES)
 
 
-
-def test_dt_nunique_with_by():
+def test_dt_nunique_with_by_1():
     DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
-    EXP = dt.Frame(G=[1,2], V1=[0,2], V2=[0,3])
+    EXP = dt.Frame(G=[1,2], V1=[0,2], V2=[0,1])
     RES = DT[:, [dt.nunique(f.V), dt.nunique(dt.mean(f.V))], dt.by(f.G)]
+    assert EXP.to_list() == RES.to_list()
+
+
+def test_dt_nunique_with_by_2():
+    DT = dt.Frame([1, 1, 2])
+    EXP = dt.Frame(C0=[1,2], nunique=[1,1])
+    RES = DT[:, {"nunique" : dt.nunique(f[0])}, dt.by(f[0])]
     assert EXP.to_list() == RES.to_list()

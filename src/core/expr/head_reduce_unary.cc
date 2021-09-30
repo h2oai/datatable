@@ -756,27 +756,65 @@ static Column compute_max(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 
 // T is the type of the input column
+template <typename T>
+class NuniqueGrouped_ColumnImpl : public Virtual_ColumnImpl
+{
+  private:
+    Column arg;
+    Groupby groupby;
 
+  public:
+    NuniqueGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), SType::INT64),
+        arg(std::move(col)),
+        groupby(grpby) {}
 
-template <typename T, bool NA>
+    ColumnImpl* clone() const override {
+      return new NuniqueGrouped_ColumnImpl<T>(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int64_t* out) const override {
+      T value;
+      bool isvalid = arg.get_element(i, &value);
+      if (isvalid) {
+        size_t i0, i1;
+        groupby.get_group(i, &i0, &i1);
+        *out = 1;
+      } else {
+        *out = 0;
+      }
+      return true;
+    }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+};
+
+template <typename T>
 static Column _gnunique(Column&& arg, const Groupby& gby) {
-  return Column(new CountGrouped_ColumnImpl<T,NA>(std::move(arg), gby));
+  return Column(new NuniqueGrouped_ColumnImpl<T>(std::move(arg), gby));
 }
 
-template<bool NA=false>
 static Column compute_gnunique(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _gnunique<int8_t,NA>(std::move(arg), gby);
-    case SType::INT16:   return _gnunique<int16_t,NA>(std::move(arg), gby);
+    case SType::INT8:    return _gnunique<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _gnunique<int16_t>(std::move(arg), gby);
     case SType::DATE32:
-    case SType::INT32:   return _gnunique<int32_t,NA>(std::move(arg), gby);
+    case SType::INT32:   return _gnunique<int32_t>(std::move(arg), gby);
     case SType::TIME64:
-    case SType::INT64:   return _gnunique<int64_t,NA>(std::move(arg), gby);
-    case SType::FLOAT32: return _gnunique<float,NA>(std::move(arg), gby);
-    case SType::FLOAT64: return _gnunique<double,NA>(std::move(arg), gby);
+    case SType::INT64:   return _gnunique<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _gnunique<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _gnunique<double>(std::move(arg), gby);
     case SType::STR32:
-    case SType::STR64:   return _gnunique<CString,NA>(std::move(arg), gby);
+    case SType::STR64:   return _gnunique<CString>(std::move(arg), gby);
     default: throw _error("nunique", arg.stype());
   }
 }
