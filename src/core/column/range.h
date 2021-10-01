@@ -32,8 +32,8 @@ namespace dt {
   * column is created when a `range` object is passed into Frame
   * constructor.
   *
-  * By default, this column will take stype INT32. However, if the
-  * range is sufficiently large, the stype will become INT64. However,
+  * By default, this column will take stype INT32. If the range is
+  * sufficiently large, the stype will become INT64. However,
   * we do not support further promotion into FLOAT64 stype for even
   * larger integers.
   */

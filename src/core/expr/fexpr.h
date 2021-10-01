@@ -176,10 +176,10 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj nb__neg__();
     py::oobj nb__pos__();
 
-    py::oobj extend(const py::PKArgs&);
-    py::oobj remove(const py::PKArgs&);
+    py::oobj extend(const py::XArgs&);
+    py::oobj remove(const py::XArgs&);
     py::oobj len();                         // [DEPRECATED]
-    py::oobj re_match(const py::PKArgs&);   // [DEPRECATED]
+    py::oobj re_match(const py::XArgs&);   // [DEPRECATED]
 
     py::oobj sum(const py::XArgs&);
     py::oobj max(const py::XArgs&);

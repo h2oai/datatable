@@ -95,7 +95,7 @@ Data_TextColumn::Data_TextColumn(const std::string& name,
   type_ = _escape_string(CString(type_name));
   width_ = std::max(std::max(width_, name_.size()),
                     name_.empty()? 0 : type_.size());
-  align_right_ = col.type().is_numeric();
+  align_right_ = col.type().is_numeric_or_void();
   margin_left_ = true;
   margin_right_ = true;
   _render_all_data(col, indices);
@@ -202,6 +202,40 @@ tstring Data_TextColumn::_render_value_time(const Column& col, size_t i) const {
     out << std::string(tmp, 10);
     out << tstring("T", style::dim);
     out << std::string(tmp + 11, static_cast<size_t>(ch - tmp - 11));
+    return out;
+  } else {
+    return na_value_;
+  }
+}
+
+
+tstring Data_TextColumn::_render_value_array(const Column& col, size_t i) const {
+  Column value;
+  bool isvalid = col.get_element(i, &value);
+  if (isvalid) {
+    bool allow_unicode = term_->unicode_allowed();
+    int max_width0 = max_width_;
+    // Leave 5 chars for [, …]
+    int remaining_width = max_width_ - 5;
+    tstring out;
+    out << tstring("[");
+    for (size_t j = 0; j < value.nrows(); j++) {
+      if (j > 0) {
+        out << tstring(", ");
+        remaining_width -= 2;
+      }
+      const_cast<Data_TextColumn*>(this)->max_width_ = remaining_width;
+      tstring repr = _render_value(value, j);
+      out << repr;
+      remaining_width -= repr.size();
+      if (remaining_width <= 0) {
+        out << tstring(", ");
+        out << tstring(allow_unicode? "\xE2\x80\xA6" : "~", style::dim);
+        break;
+      }
+    }
+    out << tstring("]");
+    const_cast<Data_TextColumn*>(this)->max_width_ = max_width0;
     return out;
   } else {
     return na_value_;
@@ -335,7 +369,10 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 
 
 tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
-  switch (col.stype()) {
+  SType st = col.type().is_categorical()? col.child(0).stype()
+                                        : col.stype();
+
+  switch (st) {
     case SType::VOID:    return na_value_;
     case SType::BOOL:    return _render_value_bool(col, i);
     case SType::INT8:    return _render_value_int<int8_t>(col, i);
@@ -348,6 +385,8 @@ tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
     case SType::STR64:   return _render_value_string(col, i);
     case SType::DATE32:  return _render_value_date(col, i);
     case SType::TIME64:  return _render_value_time(col, i);
+    case SType::ARR32:
+    case SType::ARR64:   return _render_value_array(col, i);
     default: return tstring("<unknown>", style::dim);
   }
 }

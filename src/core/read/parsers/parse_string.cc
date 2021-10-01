@@ -374,8 +374,10 @@ void parse_string(const ParseContext& ctx) {
   switch (ctx.quoteRule) {
     case 0: parse_string_quoted<DOUBLED>(ctx); break;
     case 1: parse_string_quoted<ESCAPED>(ctx); break;
-    case 2: parse_string_naive(ctx);           break;
-    case 3: parse_string_unquoted<false>(ctx); break;
+    case 2: parse_string_unquoted<false>(ctx); break;
+    case 3: parse_string_naive(ctx);           break;
+    default: throw RuntimeError()
+        << "Invalid quoteRule: " << static_cast<int>(ctx.quoteRule);
   }
   auto len = ctx.target->str32.length;
   auto off = ctx.target->str32.offset;

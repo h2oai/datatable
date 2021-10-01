@@ -24,6 +24,7 @@
 #include <iostream>
 #include "call_logger.h"
 #include "cstring.h"
+#include "documentation.h"
 #include "options.h"
 #include "python/args.h"
 #include "python/bool.h"
@@ -88,84 +89,6 @@ static constexpr size_t N_IMPLS = 10;
 //------------------------------------------------------------------------------
 // Options
 //------------------------------------------------------------------------------
-
-static const char* doc_options_debug_enabled =
-R"(
-This option controls whether or not all the calls to the datatable core
-functions should be logged.
-
-
-Parameters
-----------
-return: bool
-    Current `enabled` value. Initially, this option is set to `False`.
-
-new_enabled: bool
-    New `enabled` value. If set to `True`, all the calls to the datatable
-    core functions will be logged along with their respective timings.
-
-)";
-
-static const char* doc_options_debug_logger =
-R"(
-The logger object used for reporting calls to datatable core
-functions. This option has no effect if
-:attr:`debug.enabled <datatable.options.debug.enabled>` is `False`.
-
-Parameters
-----------
-return: object
-    Current `logger` value. Initially, this option is set to `None`,
-    meaning that the built-in logger should be used.
-
-new_logger: object
-    New `logger` value.
-
-except: TypeError
-    The exception is raised when `new_logger` is not an object
-    having a method `.debug(self, msg)`.
-
-)";
-
-static const char* doc_options_debug_report_args =
-R"(
-This option controls whether log messages for the function
-and method calls should contain information about the arguments
-of those calls.
-
-Parameters
-----------
-return: bool
-    Current `report_args` value. Initially, this option is set to `False`.
-
-new_report_args: object
-    New `report_args` value.
-
-)";
-
-
-static const char* doc_options_debug_arg_max_size =
-R"(
-
-This option limits the display size of each argument in order
-to prevent potentially huge outputs. It has no effect,
-if :attr:`debug.report_args <datatable.options.debug.report_args>` is
-`False`.
-
-Parameters
-----------
-return: int
-    Current `arg_max_size` value. Initially, this option is set to `100`.
-
-new_arg_max_size: int
-    New `arg_max_size` value, should be non-negative.
-    If `new_arg_max_size < 10`, then `arg_max_size` will be set to `10`.
-
-except: TypeError
-    The exception is raised when `new_arg_max_size` is negative.
-
-)";
-
 
 static bool opt_report_args = false;
 static size_t opt_arg_max_size = 100;

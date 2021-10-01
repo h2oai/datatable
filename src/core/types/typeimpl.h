@@ -29,7 +29,7 @@ class TypeImpl {
   private:
     SType stype_;
     int : 24;
-    int32_t refcount_;
+    mutable int32_t refcount_;
     friend class Type;
 
     void acquire() noexcept;
@@ -40,14 +40,17 @@ class TypeImpl {
     virtual ~TypeImpl();
 
     SType stype() const { return stype_; }
+    Type make_type() const;
     virtual size_t hash() const noexcept;
     virtual py::oobj min() const;
     virtual py::oobj max() const;
     virtual const char* struct_format() const;
     virtual TypeImpl* common_type(TypeImpl* other) = 0;
+    virtual Type child_type() const;
 
     virtual bool is_array() const;
     virtual bool is_boolean() const;
+    virtual bool is_categorical() const;
     virtual bool is_compound() const;
     virtual bool is_float() const;
     virtual bool is_integer() const;
@@ -64,9 +67,9 @@ class TypeImpl {
     virtual bool can_be_read_as_int64() const;
     virtual bool can_be_read_as_float32() const;
     virtual bool can_be_read_as_float64() const;
-    virtual bool can_be_read_as_date() const;
     virtual bool can_be_read_as_cstring() const;
     virtual bool can_be_read_as_pyobject() const;
+    virtual bool can_be_read_as_column() const;
 
     // Default implementation only checks the equality of stypes.
     // Override if your TypeImpl contains more information.

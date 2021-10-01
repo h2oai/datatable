@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "documentation.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
@@ -65,15 +66,7 @@ static umaker_ptr _resolve_exp(SType stype, const char* name,
 // Op::CBRT
 //------------------------------------------------------------------------------
 
-static const char* doc_cbrt =
-R"(cbrt(x)
---
-
-Cubic root of x.
-)";
-
-py::PKArgs args_cbrt(1, 0, 0, false, false, {"x"}, "cbrt", doc_cbrt);
-
+py::PKArgs args_cbrt(1, 0, 0, false, false, {"x"}, "cbrt", dt::doc_math_cbrt);
 
 umaker_ptr resolve_op_cbrt(SType stype) {
   return _resolve_exp(stype, "cbrt", &std::cbrt, &std::cbrt);
@@ -86,20 +79,7 @@ umaker_ptr resolve_op_cbrt(SType stype) {
 // Op::EXP
 //------------------------------------------------------------------------------
 
-static const char* doc_exp =
-R"(exp(x)
---
-
-The exponent of `x`, that is :math:`e^x`.
-
-See also
---------
-- :data:`e` -- the Euler's number;
-- :func:`expm1(x)` -- exponent function minus one;
-- :func:`exp2(x)` -- binary exponent;
-)";
-
-py::PKArgs args_exp(1, 0, 0, false, false, {"x"}, "exp", doc_exp);
+py::PKArgs args_exp(1, 0, 0, false, false, {"x"}, "exp", dt::doc_math_exp);
 
 umaker_ptr resolve_op_exp(SType stype) {
   return _resolve_exp(stype, "exp", &std::exp, &std::exp);
@@ -112,18 +92,7 @@ umaker_ptr resolve_op_exp(SType stype) {
 // Op::EXP2
 //------------------------------------------------------------------------------
 
-static const char* doc_exp2 =
-R"(exp2(x)
---
-
-Binary exponent of x, same as :math:`2^x`.
-
-See also
---------
-- :func:`exp(x)` -- base-:math:`e` exponent.
-)";
-
-py::PKArgs args_exp2(1, 0, 0, false, false, {"x"}, "exp2", doc_exp2);
+py::PKArgs args_exp2(1, 0, 0, false, false, {"x"}, "exp2", dt::doc_math_exp2);
 
 umaker_ptr resolve_op_exp2(SType stype) {
   return _resolve_exp(stype, "exp2", &std::exp2, &std::exp2);
@@ -136,15 +105,7 @@ umaker_ptr resolve_op_exp2(SType stype) {
 // Op::EXPM1
 //------------------------------------------------------------------------------
 
-static const char* doc_expm1 =
-R"(expm1(x)
---
-
-The exponent of `x` minus 1, that is :math:`e^x - 1`. This function is
-more accurate for arguments `x` close to zero.
-)";
-
-py::PKArgs args_expm1(1, 0, 0, false, false, {"x"}, "expm1", doc_expm1);
+py::PKArgs args_expm1(1, 0, 0, false, false, {"x"}, "expm1", dt::doc_math_expm1);
 
 umaker_ptr resolve_op_expm1(SType stype) {
   return _resolve_exp(stype, "expm1", &std::expm1, &std::expm1);
@@ -157,20 +118,7 @@ umaker_ptr resolve_op_expm1(SType stype) {
 // Op::LOG
 //------------------------------------------------------------------------------
 
-static const char* doc_log =
-R"(log(x)
---
-
-Natural logarithm of `x`, aka :math:`\ln x`. This function is the
-inverse of :func:`exp()`.
-
-See also
---------
-- :func:`log10()` -- decimal logarithm;
-- :func:`log2()` -- binary logarithm.
-)";
-
-py::PKArgs args_log(1, 0, 0, false, false, {"x"}, "log", doc_log);
+py::PKArgs args_log(1, 0, 0, false, false, {"x"}, "log", dt::doc_math_log);
 
 umaker_ptr resolve_op_log(SType stype) {
   return _resolve_exp(stype, "log", &std::log, &std::log);
@@ -183,21 +131,7 @@ umaker_ptr resolve_op_log(SType stype) {
 // Op::LOG10
 //------------------------------------------------------------------------------
 
-static const char* doc_log10 =
-R"(log10(x)
---
-
-Decimal (base-10) logarithm of x, which is :math:`\lg(x)` or
-:math:`\log_{10} x`. This function is the inverse of
-:func:`pow(10, x)`.
-
-See also
---------
-- :func:`log()` -- natural logarithm;
-- :func:`log2()` -- binary logarithm.
-)";
-
-py::PKArgs args_log10(1, 0, 0, false, false, {"x"}, "log10", doc_log10);
+py::PKArgs args_log10(1, 0, 0, false, false, {"x"}, "log10", dt::doc_math_log10);
 
 umaker_ptr resolve_op_log10(SType stype) {
   return _resolve_exp(stype, "log10", &std::log10, &std::log10);
@@ -210,15 +144,7 @@ umaker_ptr resolve_op_log10(SType stype) {
 // Op::LOG1P
 //------------------------------------------------------------------------------
 
-static const char* doc_log1p =
-R"(log1p(x)
---
-
-Natural logarithm of 1 plus `x`, or :math:`\ln(1 + x)`. This function
-has improved numeric precision for small values of `x`.
-)";
-
-py::PKArgs args_log1p(1, 0, 0, false, false, {"x"}, "log1p", doc_log1p);
+py::PKArgs args_log1p(1, 0, 0, false, false, {"x"}, "log1p", dt::doc_math_log1p);
 
 umaker_ptr resolve_op_log1p(SType stype) {
   return _resolve_exp(stype, "log1p", &std::log1p, &std::log1p);
@@ -231,19 +157,7 @@ umaker_ptr resolve_op_log1p(SType stype) {
 // Op::LOG2
 //------------------------------------------------------------------------------
 
-static const char* doc_log2 =
-R"(log2(x)
---
-
-Binary (base-2) logarithm of x, which in mathematics is :math:`\log_2 x`.
-
-See also
---------
-- :func:`log()` -- natural logarithm;
-- :func:`log10()` -- decimal logarithm.
-)";
-
-py::PKArgs args_log2(1, 0, 0, false, false, {"x"}, "log2", doc_log2);
+py::PKArgs args_log2(1, 0, 0, false, false, {"x"}, "log2", dt::doc_math_log2);
 
 umaker_ptr resolve_op_log2(SType stype) {
   return _resolve_exp(stype, "log2", &std::log2, &std::log2);
@@ -256,14 +170,7 @@ umaker_ptr resolve_op_log2(SType stype) {
 // Op::SQRT
 //------------------------------------------------------------------------------
 
-static const char* doc_sqrt =
-R"(sqrt(x)
---
-
-The square root of x, same as ``x ** 0.5``.
-)";
-
-py::PKArgs args_sqrt(1, 0, 0, false, false, {"x"}, "sqrt", doc_sqrt);
+py::PKArgs args_sqrt(1, 0, 0, false, false, {"x"}, "sqrt", dt::doc_math_sqrt);
 
 umaker_ptr resolve_op_sqrt(SType stype) {
   return _resolve_exp(stype, "sqrt", &std::sqrt, &std::sqrt);
@@ -276,16 +183,7 @@ umaker_ptr resolve_op_sqrt(SType stype) {
 // Op::SQUARE
 //------------------------------------------------------------------------------
 
-static const char* doc_square =
-R"(square(x)
---
-
-The square of x, same as ``x ** 2.0``. As with all other math
-functions, the result is floating-point, even if the argument
-x is integer.
-)";
-
-py::PKArgs args_square(1, 0, 0, false, false, {"x"}, "square", doc_square);
+py::PKArgs args_square(1, 0, 0, false, false, {"x"}, "square", dt::doc_math_square);
 
 
 static float fn_square(float x) {

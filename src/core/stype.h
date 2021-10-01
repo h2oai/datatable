@@ -54,9 +54,11 @@ enum class SType : uint8_t {
   DATE32  = 17,
   TIME64  = 18,
   OBJ     = 21,
-
-  AUTO    = 22,
-  INVALID = 23,
+  CAT8    = 22,
+  CAT16   = 23,
+  CAT32   = 24,
+  AUTO    = 30,
+  INVALID = 31,
 };
 
 constexpr size_t STYPES_COUNT = static_cast<size_t>(SType::INVALID);
@@ -99,6 +101,9 @@ template <> struct _elt<SType::STR64>   { using t = uint64_t; };
 template <> struct _elt<SType::ARR32>   { using t = uint32_t; };
 template <> struct _elt<SType::ARR64>   { using t = uint64_t; };
 template <> struct _elt<SType::OBJ>     { using t = PyObject*; };
+template <> struct _elt<SType::CAT8>    { using t = uint8_t; };
+template <> struct _elt<SType::CAT16>   { using t = uint16_t; };
+template <> struct _elt<SType::CAT32>   { using t = uint32_t; };
 
 template <SType s>
 using element_t = typename _elt<s>::t;

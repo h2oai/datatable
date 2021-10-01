@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,12 +32,13 @@ namespace dt {
 
 class SliceView_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    Column arg;
-    size_t start;
-    size_t step;
+    Column arg_;
+    size_t start_;
+    size_t step_;
 
   public:
     SliceView_ColumnImpl(Column&& col, const RowIndex& ri);
+    SliceView_ColumnImpl(Column&& col, size_t start, size_t count, size_t step);
     ColumnImpl* clone() const override;
     bool allow_parallel_access() const override;
     size_t n_children() const noexcept override;
@@ -51,6 +52,7 @@ class SliceView_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::oobj* out) const override;
+    bool get_element(size_t i, Column* out) const override;
 };
 
 
@@ -86,9 +88,13 @@ class ArrayView_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t i, double* out)   const override;
     bool get_element(size_t i, CString* out)  const override;
     bool get_element(size_t i, py::oobj* out) const override;
+    bool get_element(size_t i, Column* out) const override;
 
   private:
     void set_rowindex(const RowIndex&);
+
+    template <typename S>
+    bool _get_element(size_t i, S* out) const;
 };
 
 

@@ -34,7 +34,7 @@ bool TypeImpl_Numeric::is_numeric() const {
 
 
 TypeImpl* TypeImpl_Numeric::common_type(TypeImpl* other) {
-  if (other->is_numeric()) {
+  if (other->is_numeric() || other->is_void()) {
     auto stype1 = static_cast<int>(this->stype());
     auto stype2 = static_cast<int>(other->stype());
     return stype1 >= stype2? this : other;

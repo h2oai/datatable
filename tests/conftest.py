@@ -55,13 +55,14 @@ def noppc64():
 
 
 @pytest.fixture(scope="session")
-def is_release():
-    """Helper function to determine the release mode"""
-    return os.environ.get("DT_RELEASE")
+def release_only():
+    """Run this test for release only"""
+    if not os.environ.get("DT_RELEASE"):
+        pytest.skip("Enabled for release only")
 
 
 @pytest.fixture(scope="session")
-def winonly():
+def win_only():
     """Skip this test when running not on Windows"""
     if platform.system() != "Windows":
         pytest.skip("Enabled on Windows only")

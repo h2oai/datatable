@@ -28,6 +28,9 @@ namespace dt {
 
 
 
+ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, Type type)
+  : Const_ColumnImpl(nrows, type) {}
+
 ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, SType stype)
   : Const_ColumnImpl(nrows, stype) {}
 
@@ -41,6 +44,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, float*)    const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, double*)   const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, CString*)  const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, py::oobj*) const { return false; }
+bool ConstNa_ColumnImpl::get_element(size_t, Column*)   const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::clone() const {
@@ -61,17 +65,6 @@ bool ConstNa_ColumnImpl::allow_parallel_access() const {
 
 bool ConstNa_ColumnImpl::is_virtual() const noexcept {
   return !type_.is_void();  // A VOID column is considered non-virtual
-}
-
-
-void ConstNa_ColumnImpl::write_data_to_jay(
-        Column& thiscol, jay::ColumnBuilder& cb, WritableBuffer* wbb) {
-  if (type_.is_void()) {
-    // no data to write
-  } else {
-    // For NA columns of non-void type, defer to regular writer
-    Virtual_ColumnImpl::write_data_to_jay(thiscol, cb, wbb);
-  }
 }
 
 

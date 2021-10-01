@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "documentation.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"
 #include "expr/funary/umaker_impl.h"
@@ -65,20 +66,7 @@ static umaker_ptr _resolve_hyp(SType stype, const char* name,
 // Op::SINH
 //------------------------------------------------------------------------------
 
-static const char* doc_sinh =
-R"(sinh(x)
---
-
-Hyperbolic sine of `x`, defined as
-:math:`\sinh x = \frac12(e^x - e^{-x})`.
-
-See also
---------
-- :func:`cosh` -- hyperbolic cosine;
-- :func:`arsinh` -- inverse hyperbolic sine.
-)";
-
-py::PKArgs args_sinh(1, 0, 0, false, false, {"x"}, "sinh", doc_sinh);
+py::PKArgs args_sinh(1, 0, 0, false, false, {"x"}, "sinh", dt::doc_math_sinh);
 
 
 umaker_ptr resolve_op_sinh(SType stype) {
@@ -92,20 +80,7 @@ umaker_ptr resolve_op_sinh(SType stype) {
 // Op::COSH
 //------------------------------------------------------------------------------
 
-static const char* doc_cosh =
-R"(cosh(x)
---
-
-The hyperbolic cosine of `x`, defined as
-:math:`\cosh x = \frac12(e^x + e^{-x})`.
-
-See also
---------
-- :func:`sinh` -- hyperbolic sine;
-- :func:`arcosh` -- inverse hyperbolic cosine.
-)";
-
-py::PKArgs args_cosh(1, 0, 0, false, false, {"x"}, "cosh", doc_cosh);
+py::PKArgs args_cosh(1, 0, 0, false, false, {"x"}, "cosh", dt::doc_math_cosh);
 
 
 umaker_ptr resolve_op_cosh(SType stype) {
@@ -119,19 +94,7 @@ umaker_ptr resolve_op_cosh(SType stype) {
 // Op::TANH
 //------------------------------------------------------------------------------
 
-static const char* doc_tanh =
-R"(tanh(x)
---
-
-Hyperbolic tangent of `x`, defined as
-:math:`\tanh x = \frac{\sinh x}{\cosh x} = \frac{e^x-e^{-x}}{e^x+e^{-x}}`.
-
-See also
---------
-- :func:`artanh` -- inverse hyperbolic tangent.
-)";
-
-py::PKArgs args_tanh(1, 0, 0, false, false, {"x"}, "tanh", doc_tanh);
+py::PKArgs args_tanh(1, 0, 0, false, false, {"x"}, "tanh", dt::doc_math_tanh);
 
 
 umaker_ptr resolve_op_tanh(SType stype) {
@@ -145,23 +108,7 @@ umaker_ptr resolve_op_tanh(SType stype) {
 // Op::ARSINH
 //------------------------------------------------------------------------------
 
-static const char* doc_arsinh =
-R"(arsinh(x)
---
-
-The inverse hyperbolic sine of `x`.
-
-This function satisfies the property that ``sinh(arcsinh(x)) == x``.
-Alternatively, this function can also be computed as
-:math:`\sinh^{-1}(x) = \ln(x + \sqrt{x^2 + 1})`.
-
-See also
---------
-- :func:`sinh` -- hyperbolic sine;
-- :func:`arcosh` -- inverse hyperbolic cosine.
-)";
-
-py::PKArgs args_arsinh(1, 0, 0, false, false, {"x"}, "arsinh", doc_arsinh);
+py::PKArgs args_arsinh(1, 0, 0, false, false, {"x"}, "arsinh", dt::doc_math_arsinh);
 
 
 umaker_ptr resolve_op_arsinh(SType stype) {
@@ -175,23 +122,7 @@ umaker_ptr resolve_op_arsinh(SType stype) {
 // Op::ARCOSH
 //------------------------------------------------------------------------------
 
-static const char* doc_arcosh =
-R"(arcosh(x)
---
-
-The inverse hyperbolic cosine of `x`.
-
-This function satisfies the property that ``cosh(arccosh(x)) == x``.
-Alternatively, this function can also be computed as
-:math:`\cosh^{-1}(x) = \ln(x + \sqrt{x^2 - 1})`.
-
-See also
---------
-- :func:`cosh` -- hyperbolic cosine;
-- :func:`arsinh` -- inverse hyperbolic sine.
-)";
-
-py::PKArgs args_arcosh(1, 0, 0, false, false, {"x"}, "arcosh", doc_arcosh);
+py::PKArgs args_arcosh(1, 0, 0, false, false, {"x"}, "arcosh", dt::doc_math_arcosh);
 
 
 umaker_ptr resolve_op_arcosh(SType stype) {
@@ -205,22 +136,7 @@ umaker_ptr resolve_op_arcosh(SType stype) {
 // Op::ARTANH
 //------------------------------------------------------------------------------
 
-static const char* doc_artanh =
-R"(artanh(x)
---
-
-The inverse hyperbolic tangent of `x`.
-
-This function satisfies the property that ``tanh(artanh(x)) == x``.
-Alternatively, this function can also be computed as
-:math:`\tanh^{-1}(x) = \frac12\ln\frac{1+x}{1-x}`.
-
-See also
---------
-- :func:`tanh` -- hyperbolic tangent;
-)";
-
-py::PKArgs args_artanh(1, 0, 0, false, false, {"x"}, "artanh", doc_artanh);
+py::PKArgs args_artanh(1, 0, 0, false, false, {"x"}, "artanh", dt::doc_math_artanh);
 
 
 umaker_ptr resolve_op_artanh(SType stype) {

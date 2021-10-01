@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -76,6 +76,7 @@ bool IfElse_ColumnImpl::get_element(size_t i, float* out)    const { return _get
 bool IfElse_ColumnImpl::get_element(size_t i, double* out)   const { return _get(i, out); }
 bool IfElse_ColumnImpl::get_element(size_t i, CString* out)  const { return _get(i, out); }
 bool IfElse_ColumnImpl::get_element(size_t i, py::oobj* out) const { return _get(i, out); }
+bool IfElse_ColumnImpl::get_element(size_t i, Column* out)   const { return _get(i, out); }
 
 
 

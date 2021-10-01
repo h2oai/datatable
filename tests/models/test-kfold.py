@@ -25,7 +25,6 @@ import datatable as dt
 import pytest
 import random
 from datatable.models import kfold, kfold_random
-from tests import assert_type_error, assert_value_error
 
 
 #-------------------------------------------------------------------------------
@@ -33,38 +32,47 @@ from tests import assert_type_error, assert_value_error
 #-------------------------------------------------------------------------------
 
 def test_kfold_api():
-    assert_type_error(lambda: kfold(),
-        "Required parameter nrows is missing")
+    msg = "Required parameter nrows is missing"
+    with pytest.raises(TypeError, match=msg):
+        kfold()
 
-    assert_type_error(lambda: kfold(nrows=5),
-        "Required parameter nsplits is missing")
+    msg = "Required parameter nsplits is missing"
+    with pytest.raises(TypeError, match=msg):
+        kfold(nrows=5)
 
-    assert_type_error(lambda: kfold(nrows=5, nsplits=2, seed=12345),
-        "kfold() got an unexpected keyword argument seed")
+    msg = r"kfold\(\) got an unexpected keyword argument seed"
+    with pytest.raises(TypeError, match=msg):
+        kfold(nrows=5, nsplits=2, seed=12345)
 
-    assert_type_error(lambda: kfold(5, 2),
-        "kfold() takes no positional arguments, but 2 were given")
+    msg = r"kfold\(\) takes no positional arguments, but 2 were given"
+    with pytest.raises(TypeError, match=msg):
+        kfold(5, 2)
 
-    assert_type_error(lambda: kfold(nrows=5, nsplits=3.3),
-        "Argument nsplits in kfold() should be an integer")
+    msg = r"Argument nsplits in function datatable.kfold\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        kfold(nrows=5, nsplits=3.3)
 
-    assert_type_error(lambda: kfold(nrows=None, nsplits=7),
-        "Argument nrows in kfold() should be an integer")
+    msg = r"Argument nrows in function datatable.kfold\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        kfold(nrows=None, nsplits=7)
 
 
 def test_bad_args2():
-    assert_value_error(lambda: kfold(nrows=-1, nsplits=1),
-        "Argument nrows in kfold() cannot be negative")
+    msg = r"Argument nrows in function datatable.kfold\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
+        kfold(nrows=-1, nsplits=1)
 
-    assert_value_error(lambda: kfold(nrows=3, nsplits=-3),
-        "Argument nsplits in kfold() cannot be negative")
+    msg = r"Argument nsplits in function datatable.kfold\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
+        kfold(nrows=3, nsplits=-3)
 
-    assert_value_error(lambda: kfold(nrows=5, nsplits=0),
-        "The number of splits cannot be less than two")
+    msg = "The number of splits cannot be less than two"
+    with pytest.raises(ValueError, match=msg):
+        kfold(nrows=5, nsplits=0)
 
-    assert_value_error(lambda: kfold(nrows=1, nsplits=2),
-        "The number of splits cannot exceed the number of rows")
-
+    msg = "The number of splits cannot exceed the number of rows"
+    with pytest.raises(ValueError, match=msg):
+        kfold(nrows=1, nsplits=2)
 
 
 def test_kfold_simple():
@@ -126,40 +134,51 @@ def test_kfold_k_any(seed):
 #-------------------------------------------------------------------------------
 
 def test_kfold_random_api():
-    assert_type_error(lambda: kfold_random(),
-        "Required parameter nrows is missing")
+    msg = "Required parameter nrows is missing"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random()
 
-    assert_type_error(lambda: kfold_random(nrows=5, seed=12345678),
-        "Required parameter nsplits is missing")
+    msg = "Required parameter nsplits is missing"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random(nrows=5, seed=12345678)
 
-    assert_type_error(lambda: kfold_random(5, 2),
-        "kfold_random() takes no positional arguments, but 2 were given")
+    msg = r"kfold_random\(\) takes no positional arguments, but 2 were given"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random(5, 2)
 
-    assert_type_error(lambda: kfold_random(nrows=5, nsplits=3.3),
-        "Argument nsplits in kfold_random() should be an integer")
+    msg = r"Argument nsplits in function datatable.kfold_random\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random(nrows=5, nsplits=3.3)
 
-    assert_type_error(lambda: kfold_random(nrows=None, nsplits=7),
-        "Argument nrows in kfold_random() should be an integer")
+    msg = r"Argument nrows in function datatable.kfold_random\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random(nrows=None, nsplits=7)
 
-    assert_type_error(lambda: kfold_random(nrows=5, nsplits=2, seed="boo"),
-        "Argument seed in kfold_random() should be an integer")
+    msg = r"Argument seed in function datatable.kfold_random\(\) should be an integer"
+    with pytest.raises(TypeError, match=msg):
+        kfold_random(nrows=5, nsplits=2, seed="boo")
 
 
 def test_kfold_random_bad_args():
-    assert_value_error(lambda: kfold_random(nrows=-1, nsplits=1),
-        "Argument nrows in kfold_random() cannot be negative")
+    msg = r"Argument nrows in function datatable.kfold_random\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
+        kfold_random(nrows=-1, nsplits=1)
 
-    assert_value_error(lambda: kfold_random(nrows=3, nsplits=-3),
-        "Argument nsplits in kfold_random() cannot be negative")
+    msg = r"Argument nsplits in function datatable.kfold_random\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
+        kfold_random(nrows=3, nsplits=-3)
 
-    assert_value_error(lambda: kfold_random(nrows=10, nsplits=3, seed=-1),
-        "Argument seed in kfold_random() cannot be negative")
+    msg = r"Argument seed in function datatable.kfold_random\(\) cannot be negative"
+    with pytest.raises(ValueError, match=msg):
+        kfold_random(nrows=10, nsplits=3, seed=-1)
 
-    assert_value_error(lambda: kfold_random(nrows=5, nsplits=0),
-        "The number of splits cannot be less than two")
+    msg = "The number of splits cannot be less than two"
+    with pytest.raises(ValueError, match=msg):
+        kfold_random(nrows=5, nsplits=0)
 
-    assert_value_error(lambda: kfold_random(nrows=1, nsplits=2),
-        "The number of splits cannot exceed the number of rows")
+    msg = "The number of splits cannot exceed the number of rows"
+    with pytest.raises(ValueError, match=msg):
+        kfold_random(nrows=1, nsplits=2)
 
 
 def test_kfold_random_2_2():
