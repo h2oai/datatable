@@ -49,11 +49,14 @@
 
     FExpr
     -----
-    .. current-module:: datatable
+    .. current-class:: datatable.FExpr
 
-    -[enh] Added reducer functions :func:`countna` and :func:`nunique`  [#2999]
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
+      which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
 
-    -[fix] :func:`qcut` won't segfault anymore when used as an i-filter [#3061]
+    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`  [#2999]
+
+    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
 
 
     fread

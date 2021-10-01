@@ -201,6 +201,10 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj last(const py::XArgs&);
     py::oobj count(const py::XArgs&);
     py::oobj first(const py::XArgs&);
+    py::oobj as_type(const py::XArgs&);
+
+
+
 
     static void impl_init_type(py::XTypeMaker& xt);
 };

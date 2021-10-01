@@ -31,6 +31,7 @@
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
+#include "documentation.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -516,6 +517,21 @@ DECLARE_METHOD(&PyFExpr::first)
     ->docs(dt::doc_FExpr_first);
 
 
+
+
+oobj PyFExpr::as_type(const XArgs& args) {
+  auto as_typeFn = oobj::import("datatable", "as_type");
+  oobj new_type = args[0].to_oobj();
+  return as_typeFn.call({this, new_type});
+}
+
+
+DECLARE_METHOD(&PyFExpr::as_type)
+    ->name("as_type")
+    ->docs(dt::doc_FExpr_as_type)
+    ->arg_names({"new_type"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
 
 //------------------------------------------------------------------------------
