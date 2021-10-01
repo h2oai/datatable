@@ -61,6 +61,7 @@ class ColumnImpl
   // Constructors
   //------------------------------------
   public:
+    ColumnImpl(size_t nrows, Type type);
     ColumnImpl(size_t nrows, SType stype);
     ColumnImpl(const ColumnImpl&) = delete;
     ColumnImpl(ColumnImpl&&) = delete;
@@ -84,6 +85,7 @@ class ColumnImpl
     virtual bool get_element(size_t i, double* out) const;
     virtual bool get_element(size_t i, CString* out) const;
     virtual bool get_element(size_t i, py::oobj* out) const;
+    virtual bool get_element(size_t i, Column* out) const;
 
 
   //------------------------------------
@@ -100,22 +102,21 @@ class ColumnImpl
     virtual size_t n_children() const noexcept = 0;
     virtual const Column& child(size_t i) const;
     Stats* stats() const;
-
+    virtual size_t null_count() const;
 
   //------------------------------------
   // Data buffers
   //------------------------------------
   public:
-    virtual NaStorage get_na_storage_method() const noexcept = 0;
-    virtual size_t    get_num_data_buffers() const noexcept = 0;
+    virtual NaStorage   get_na_storage_method() const noexcept = 0;
+    virtual size_t      get_num_data_buffers() const noexcept = 0;
     virtual bool        is_data_editable(size_t k) const = 0;
     virtual size_t      get_data_size(size_t k) const = 0;
     virtual const void* get_data_readonly(size_t k) const = 0;
     virtual void*       get_data_editable(size_t k) = 0;
     virtual Buffer      get_data_buffer(size_t k) const = 0;
 
-    virtual void write_data_to_jay(Column&, jay::ColumnBuilder&,
-                                   WritableBuffer*) = 0;
+    virtual void save_to_jay(ColumnJayData& cj) = 0;
 
 
   //------------------------------------

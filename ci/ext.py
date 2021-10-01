@@ -616,11 +616,12 @@ def build_sdist(sdist_directory, config_settings=None):
     files += glob.glob("src/core/**/*.cc", recursive=True)
     files += glob.glob("src/core/**/*.h", recursive=True)
     files += glob.glob("ci/xbuild/*.py")
+    files += glob.glob("docs/**/*.rst", recursive=True)
     files += [f for f in glob.glob("tests/**/*.py", recursive=True)]
     files += [f for f in glob.glob("tests_random/*.py")]
     files += ["src/datatable/include/datatable.h"]
     files.sort()
-    files += ["ci/ext.py", "ci/__init__.py"]
+    files += ["ci/ext.py", "ci/__init__.py", "ci/gendoc.py"]
     files += ["pyproject.toml"]
     files += ["LICENSE"]
     # See `is_source_distribution()`

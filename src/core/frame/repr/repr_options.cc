@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "documentation.h"
 #include "frame/repr/repr_options.h"
 #include "frame/py_frame.h"
 #include "python/_all.h"
@@ -39,159 +40,6 @@ bool   display_interactive = false;
 bool   display_use_colors = true;
 bool   display_allow_unicode = true;
 
-static const char* doc_options_display_use_colors =
-R"(
-This option controls whether or not to use colors when printing
-datatable messages into the console. Turn this off if your terminal is unable to
-display ANSI escape sequences, or if the colors make output not legible.
-
-Parameters
-----------
-return: bool
-    Current `use_colors` value. Initially, this option is set to `True`.
-
-new_use_colors: bool
-    New `use_colors` value.
-
-)";
-
-static const char* doc_options_display_allow_unicode =
-R"(
-
-This option controls whether or not unicode characters are
-allowed in the datatable output.
-
-Parameters
-----------
-return: bool
-    Current `allow_unicode` value. Initially, this option is set to `True`.
-
-new_allow_unicode: bool
-    New `allow_unicode` value. If `True`, datatable will allow unicode
-    characters (encoded as UTF-8) to be printed into the output.
-    If `False`, then unicode characters will either be avoided, or
-    hex-escaped as necessary.
-
-)";
-
-static const char* doc_options_display_interactive =
-R"(
-
-**Warning: This option is currently not working properly**
-`[#2669] <https://github.com/h2oai/datatable/issues/2669>`_
-
-This option controls the behavior of a Frame when it is viewed in a
-text console. To enter the interactive mode manually, one can still
-call the :meth:`Frame.view() <dt.Frame.view>` method.
-
-Parameters
-----------
-return: bool
-    Current `interactive` value. Initially, this option is set to `False`.
-
-new_interactive: bool
-    New `interactive` value. If `True`, frames will be shown in
-    the interactove mode, allowing you to navigate the rows/columns
-    with the keyboard. If `False`, frames will be shown in regular,
-    non-interactive mode.
-
-)";
-
-static const char* doc_options_display_max_nrows =
-R"(
-
-This option controls the threshold for the number of rows
-in a frame to be truncated when printed to the console.
-
-If a frame has more rows than `max_nrows`, it will be displayed
-truncated: only its first
-:attr:`head_nrows <datatable.options.display.head_nrows>`
-and last
-:attr:`tail_nrows <datatable.options.display.tail_nrows>`
-rows will be printed. Otherwise, no truncation will occur.
-It is recommended to have `head_nrows + tail_nrows <= max_nrows`.
-
-Parameters
-----------
-return: int
-    Current `max_nrows` value. Initially, this option is set to `30`.
-
-new_max_nrows: int
-    New `max_nrows` value. If this option is set to `None` or
-    to a negative value, no frame truncation will occur when printed,
-    which may cause the console to become unresponsive for frames
-    with large number of rows.
-
-)";
-
-static const char* doc_options_display_tail_nrows =
-R"(
-
-This option controls the number of rows from the bottom of a frame
-to be displayed when the frame's output is truncated due to the total number of
-rows exceeding :attr:`max_nrows <datatable.options.display.max_nrows>`
-value.
-
-Parameters
-----------
-return: int
-    Current `tail_nrows` value. Initially, this option is set to `5`.
-
-new_tail_nrows: int
-    New `tail_nrows` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when the `new_tail_nrows` is negative.
-
-)";
-
-static const char* doc_options_display_head_nrows =
-R"(
-
-This option controls the number of rows from the top of a frame
-to be displayed when the frame's output is truncated due to the total number of
-rows exceeding :attr:`display.max_nrows <datatable.options.display.max_nrows>`
-value.
-
-Parameters
-----------
-return: int
-    Current `head_nrows` value. Initially, this option is set to `15`.
-
-new_head_nrows: int
-    New `head_nrows` value, should be non-negative.
-
-except: ValueError
-    The exception is raised when the `new_head_nrows` is negative.
-
-)";
-
-
-static const char* doc_options_display_max_column_width =
-R"(
-
-This option controls the threshold for the column's width
-to be truncated. If a column's name or its values exceed
-the `max_column_width`, the content of the column is truncated
-to `max_column_width` characters when printed.
-
-This option applies to both the rendering of a frame in a terminal,
-and the rendering in a Jupyter notebook.
-
-Parameters
-----------
-return: int
-    Current `max_column_width` value. Initially, this option is set to `100`.
-
-new_max_column_width: int
-    New `max_column_width` value, cannot be less than `2`.
-    If `new_max_column_width` equals to `None`, the column's content
-    would never be truncated.
-
-except: ValueError
-    The exception is raised when the `new_max_column_width` is less than `2`.
-
-)";
 
 
 static py::oobj get_use_colors() {
@@ -284,49 +132,49 @@ static void _init_options()
     "display.use_colors",
     get_use_colors,
     set_use_colors,
-    doc_options_display_use_colors
+    dt::doc_options_display_use_colors
   );
 
   register_option(
     "display.allow_unicode",
     get_allow_unicode,
     set_allow_unicode,
-    doc_options_display_allow_unicode
+    dt::doc_options_display_allow_unicode
   );
 
   register_option(
     "display.interactive",
     get_interactive,
     set_interactive,
-    doc_options_display_interactive
+    dt::doc_options_display_interactive
   );
 
   register_option(
     "display.max_nrows",
     get_max_nrows,
     set_max_nrows,
-    doc_options_display_max_nrows
+    dt::doc_options_display_max_nrows
   );
 
   register_option(
     "display.head_nrows",
     get_head_nrows,
     set_head_nrows,
-    doc_options_display_head_nrows
+    dt::doc_options_display_head_nrows
   );
 
   register_option(
     "display.tail_nrows",
     get_tail_nrows,
     set_tail_nrows,
-    doc_options_display_tail_nrows
+    dt::doc_options_display_tail_nrows
   );
 
   register_option(
     "display.max_column_width",
     get_max_column_width,
     set_max_column_width,
-    doc_options_display_max_column_width
+    dt::doc_options_display_max_column_width
   );
 }
 

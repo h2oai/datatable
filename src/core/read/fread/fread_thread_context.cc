@@ -172,7 +172,7 @@ void FreadThreadContext::read_chunk(
         }
 
         // Type-bump. This may only happen if cc.is_start_exact() is true, which
-        // is can only happen to one thread at a time. Thus, there is no need
+        // can only happen to one thread at a time. Thus, there is no need
         // for "critical" section here.
         auto& colj = preframe_.column(j);
         if (ptype_iter.has_incremented()) {
@@ -192,21 +192,6 @@ void FreadThreadContext::read_chunk(
         }
         parse_ctx_.target ++;
         j++;
-        if (tch < parse_ctx_.eof && j < ncols && *tch=='\n' && sep!=' ') {
-          const char* prev_tch = tch;
-          while (*tch!=sep) {
-            tch--;
-            if (*tch=='\n') {
-              tch = prev_tch;
-              break;
-            }
-          }
-          if (*tch==sep) {
-            tch++;
-            ++ptype_iter;
-            continue;
-          }
-        }
         if (tch < parse_ctx_.eof && *tch==sep) { tch++; continue; }
         if (fill && (tch == parse_ctx_.eof || *tch=='\n' || *tch=='\r') && j <= ncols) {
           // All parsers have already stored NA to target; except for string

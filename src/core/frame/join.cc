@@ -49,11 +49,13 @@ static cmpptr _make_comparator1(const DataTable& Xdt, const DataTable& Jdt,
   const Column& colj = Jdt.get_column(ji);
   dt::SType stype1 = colx.stype();
   dt::SType stype2 = colj.stype();
+  if (stype1 == dt::SType::VOID) stype1 = stype2;
+  if (stype2 == dt::SType::VOID) stype2 = stype1;
   auto cmp = cmps[static_cast<size_t>(stype1)][static_cast<size_t>(stype2)];
   if (!cmp) {
     throw TypeError() << "Column `" << Xdt.get_names()[xi] << "` of type "
-        << stype1 << " in the left Frame cannot be joined to column `"
-        << Jdt.get_names()[ji] << "` of incompatible type " << stype2
+        << colx.type() << " in the left Frame cannot be joined to column `"
+        << Jdt.get_names()[ji] << "` of incompatible type " << colj.type()
         << " in the right Frame";
   }
   return cmp(colx, colj);
@@ -302,6 +304,10 @@ static void _init_comparators() {
       cmps[i][j] = nullptr;
     }
   }
+  // TODO: simplify many of these comparators by using casts
+  //       I.e. we don't need, say, separate int8-to-int16 comparator,
+  //       as we can always upcast both into int32
+  size_t void0 = static_cast<size_t>(dt::SType::VOID);
   size_t bool8 = static_cast<size_t>(dt::SType::BOOL);
   size_t int08 = static_cast<size_t>(dt::SType::INT8);
   size_t int16 = static_cast<size_t>(dt::SType::INT16);
@@ -313,6 +319,7 @@ static void _init_comparators() {
   size_t str64 = static_cast<size_t>(dt::SType::STR64);
   size_t dat32 = static_cast<size_t>(dt::SType::DATE32);
   size_t tim64 = static_cast<size_t>(dt::SType::TIME64);
+  cmps[void0][void0] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][bool8] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int08] = FwCmp<int8_t, int8_t>::make;
   cmps[bool8][int16] = FwCmp<int8_t, int16_t>::make;

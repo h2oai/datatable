@@ -57,7 +57,7 @@ class CString
     explicit CString(const char* ptr, size_t size);
     explicit CString(const std::string&);
     CString(std::string&&) = delete;
-    CString(const CString&) = delete;
+    CString(const CString&);
     CString(CString&&) noexcept;
     CString& operator=(CString&&);
     CString& operator=(const std::string& str);

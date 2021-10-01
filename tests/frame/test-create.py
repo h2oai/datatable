@@ -270,7 +270,7 @@ def test_create_from_empty_list_of_lists():
     frame_integrity_check(d6)
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
-    assert d6.ltypes == (ltype.void, )
+    assert d6.types == [dt.Type.void]
 
 
 
@@ -623,18 +623,6 @@ def test_create_from_list_of_dicts_bad3():
 # Type auto-detection
 #-------------------------------------------------------------------------------
 
-def test_auto_void1():
-    DT = dt.Frame([None] * 5)
-    assert DT.type == dt.Type.void
-    assert DT.shape == (5, 1)
-
-
-def test_auto_void2():
-    DT = dt.Frame([math.nan] * 15)
-    assert DT.type == dt.Type.void
-    assert DT.shape == (15, 1)
-
-
 def test_auto_str32_1():
     d0 = dt.Frame(["start", None, "end"])
     frame_integrity_check(d0)
@@ -970,6 +958,17 @@ def test_void_frame_roundtrip():
     assert_equals(DT, dt.Frame([None] * 10))
 
 
+@pytest.mark.usefixtures("release_only")
+def test_create_from_pandas_large(pd):
+    # See issue 3169
+    text = "0123456789" * 30
+    nrows = 2 * 10**7
+    PD = pd.DataFrame([text] * nrows)
+    DT = dt.Frame(PD)
+    assert DT.shape == (nrows, 1)
+    assert DT.type == dt.Type.str64
+    assert DT[0, 0] == text
+    assert DT.nunique1() == 1
 
 
 #-------------------------------------------------------------------------------

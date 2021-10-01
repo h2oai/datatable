@@ -23,9 +23,6 @@
 namespace dt {
 
 
-Virtual_ColumnImpl::Virtual_ColumnImpl(size_t nrows, SType stype)
-  : ColumnImpl(nrows, stype) {}
-
 
 bool Virtual_ColumnImpl::is_virtual() const noexcept {
   return true;

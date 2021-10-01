@@ -26,6 +26,7 @@
 #include "csv/reader_arff.h"
 #include "csv/reader_fread.h"
 #include "datatable.h"
+#include "documentation.h"
 #include "encodings.h"
 #include "frame/py_frame.h"
 #include "options.h"
@@ -46,63 +47,6 @@ namespace read {
 //------------------------------------------------------------------------------
 // options
 //------------------------------------------------------------------------------
-
-static const char * doc_options_fread_log_anonymize =
-R"(
-
-This option controls logs anonymization that is useful in production
-systems, when reading sensitive data that must not accidentally leak
-into log files or be printed with the error messages.
-
-Parameters
-----------
-return: bool
-    Current `anonymize` value. Initially, this option is set to `False`.
-
-new_anonymize: bool
-    New `anonymize` value. If `True`, any snippets of data being read
-    that are printed in the log will be first anonymized by converting
-    all non-zero digits to `1`, all lowercase letters to `a`,
-    all uppercase letters to `A`, and all unicode characters to `U`.
-    If `False`, no data anonymization will be performed.
-
-)";
-
-static const char * doc_options_fread_log_escape_unicode =
-R"(
-
-This option controls escaping of the unicode characters.
-
-Use this option if your terminal cannot print unicode,
-or if the output gets somehow corrupted because of the unicode characters.
-
-Parameters
-----------
-return: bool
-    Current `escape_unicode` value. Initially, this option is set to `False`.
-
-new_escape_unicode: bool
-    If `True`, all unicode characters in the verbose log will be written
-    in hexadecimal notation. If `False`, no escaping of the unicode
-    characters will be performed.
-
-)";
-
-static const char * doc_options_fread_parse_dates =
-R"(
-If True, fread will attempt to detect columns of date32 type. If False,
-then columns with date values will be returned as strings.
-
-This option is temporary and will be removed in the future.
-)";
-
-static const char * doc_options_fread_parse_times =
-R"(
-If True, fread will attempt to detect columns of time64 type. If False,
-then columns with timestamps will be returned as strings.
-
-This option is temporary and will be removed in the future.
-)";
 
 static bool log_anonymize = false;
 static bool log_escape_unicode = false;
@@ -139,28 +83,28 @@ void GenericReader::init_options() {
     "fread.log.anonymize",
     get_anonymize,
     set_anonymize,
-    doc_options_fread_log_anonymize
+    dt::doc_options_fread_log_anonymize
   );
 
   dt::register_option(
     "fread.log.escape_unicode",
     get_escape_unicode,
     set_escape_unicode,
-    doc_options_fread_log_escape_unicode
+    dt::doc_options_fread_log_escape_unicode
   );
 
   dt::register_option(
     "fread.parse_dates",
     []{ return py::obool(parse_dates); },
     [](const py::Arg& value){ parse_dates = value.to_bool_strict(); },
-    doc_options_fread_parse_dates
+    dt::doc_options_fread_parse_dates
   );
 
   dt::register_option(
     "fread.parse_times",
     []{ return py::obool(parse_times); },
     [](const py::Arg& value){ parse_times = value.to_bool_strict(); },
-    doc_options_fread_parse_times
+    dt::doc_options_fread_parse_times
   );
 }
 

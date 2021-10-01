@@ -21,17 +21,22 @@
 //------------------------------------------------------------------------------
 #include <string>
 #include <cstring>              // std::memcmp
-#include "frame/py_frame.h"
-#include "jay/jay_nowarnings.h"
+#include "column/arrow_array.h"
+#include "column/arrow_str.h"
 #include "datatable.h"
 #include "datatablemodule.h"
+#include "frame/py_frame.h"
+#include "jay/jay_nowarnings.h"
+#include "python/xargs.h"
 #include "stype.h"
 
 
 // Helper functions
-static Column column_from_jay(size_t nrows,
-                              const jay::Column* jaycol,
-                              const Buffer& jaybuf);
+static Column column_from_jay1(size_t nrows,
+                               const jay::Column* jaycol,
+                               const Buffer& jaybuf);
+static Column column_from_jay2(const jay::Column* jaycol,
+                               const Buffer& jaybuf);
 
 static void check_jay_signature(const uint8_t* ptr, size_t size);
 
@@ -90,7 +95,8 @@ DataTable* open_jay_from_mbuf(const Buffer& mbuf)
   columns.reserve(ncols);
   size_t i = 0;
   for (const jay::Column* jcol : *msg_columns) {
-    Column col = column_from_jay(nrows, jcol, mbuf);
+    Column col = jcol->type() ? column_from_jay2(jcol, mbuf)
+                              : column_from_jay1(nrows, jcol, mbuf);
     if (col.nrows() != nrows) {
       throw IOError() << "Length of column " << i << " is " << col.nrows()
           << ", however the Frame contains " << nrows << " rows";
@@ -167,25 +173,30 @@ static void initStats(Stats* stats, const jay::Column* jcol) {
 }
 
 
-static Column column_from_jay(
+static Column column_from_jay1(
     size_t nrows, const jay::Column* jcol, const Buffer& jaybuf)
 {
-  jay::Type jtype = jcol->type();
+  xassert(jcol->type() == nullptr);
+  xassert(jcol->nrows() == 0);
+  xassert(jcol->buffers() == nullptr);
+  xassert(jcol->children() == nullptr);
+  jay::SType jtype = jcol->stype();
 
   auto stype = dt::SType::INVALID;
   switch (jtype) {
-    case jay::Type_Bool8:   stype = dt::SType::BOOL; break;
-    case jay::Type_Int8:    stype = dt::SType::INT8; break;
-    case jay::Type_Int16:   stype = dt::SType::INT16; break;
-    case jay::Type_Int32:   stype = dt::SType::INT32; break;
-    case jay::Type_Int64:   stype = dt::SType::INT64; break;
-    case jay::Type_Float32: stype = dt::SType::FLOAT32; break;
-    case jay::Type_Float64: stype = dt::SType::FLOAT64; break;
-    case jay::Type_Str32:   stype = dt::SType::STR32; break;
-    case jay::Type_Str64:   stype = dt::SType::STR64; break;
-    case jay::Type_Date32:  stype = dt::SType::DATE32; break;
-    case jay::Type_Time64:  stype = dt::SType::TIME64; break;
-    case jay::Type_Void0:   stype = dt::SType::VOID; break;
+    case jay::SType_Bool8:   stype = dt::SType::BOOL; break;
+    case jay::SType_Int8:    stype = dt::SType::INT8; break;
+    case jay::SType_Int16:   stype = dt::SType::INT16; break;
+    case jay::SType_Int32:   stype = dt::SType::INT32; break;
+    case jay::SType_Int64:   stype = dt::SType::INT64; break;
+    case jay::SType_Float32: stype = dt::SType::FLOAT32; break;
+    case jay::SType_Float64: stype = dt::SType::FLOAT64; break;
+    case jay::SType_Str32:   stype = dt::SType::STR32; break;
+    case jay::SType_Str64:   stype = dt::SType::STR64; break;
+    case jay::SType_Date32:  stype = dt::SType::DATE32; break;
+    case jay::SType_Time64:  stype = dt::SType::TIME64; break;
+    case jay::SType_Void0:   stype = dt::SType::VOID; break;
+    default: throw NotImplError() << "Unknown column type " << jtype << " in a Jay file";
   }
 
   Column col;
@@ -204,20 +215,123 @@ static Column column_from_jay(
 
   Stats* stats = col.stats();
   switch (jtype) {
-    case jay::Type_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
-    case jay::Type_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
-    case jay::Type_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
-    case jay::Type_Date32:
-    case jay::Type_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
-    case jay::Type_Time64:
-    case jay::Type_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
-    case jay::Type_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;
-    case jay::Type_Float64: initStats<double,  jay::StatsFloat64>(stats, jcol); break;
+    case jay::SType_Bool8:   initStats<int8_t,  jay::StatsBool>(stats, jcol); break;
+    case jay::SType_Int8:    initStats<int8_t,  jay::StatsInt8>(stats, jcol); break;
+    case jay::SType_Int16:   initStats<int16_t, jay::StatsInt16>(stats, jcol); break;
+    case jay::SType_Date32:
+    case jay::SType_Int32:   initStats<int32_t, jay::StatsInt32>(stats, jcol); break;
+    case jay::SType_Time64:
+    case jay::SType_Int64:   initStats<int64_t, jay::StatsInt64>(stats, jcol); break;
+    case jay::SType_Float32: initStats<float,   jay::StatsFloat32>(stats, jcol); break;
+    case jay::SType_Float64: initStats<double,  jay::StatsFloat64>(stats, jcol); break;
     default: break;
   }
 
   return col;
 }
+
+
+static dt::Type _resolve_jtype(const jay::Type* jtype) {
+  switch (jtype->stype()) {
+    case jay::SType_Bool8:   return dt::Type::bool8();
+    case jay::SType_Int8:    return dt::Type::int8();
+    case jay::SType_Int16:   return dt::Type::int16();
+    case jay::SType_Int32:   return dt::Type::int32();
+    case jay::SType_Int64:   return dt::Type::int64();
+    case jay::SType_Float32: return dt::Type::float32();
+    case jay::SType_Float64: return dt::Type::float64();
+    case jay::SType_Str32:   return dt::Type::str32();
+    case jay::SType_Str64:   return dt::Type::str64();
+    case jay::SType_Date32:  return dt::Type::date32();
+    case jay::SType_Time64:  return dt::Type::time64();
+    case jay::SType_Void0:   return dt::Type::void0();
+    case jay::SType_Arr32:   return dt::Type::arr32(_resolve_jtype(jtype->extra_as_child()));
+    case jay::SType_Arr64:   return dt::Type::arr64(_resolve_jtype(jtype->extra_as_child()));
+  }
+  throw NotImplError() << "Unknown column type " << jtype->stype() << " in a Jay file";
+}
+
+
+static Column column_from_jay2(const jay::Column* jcol, const Buffer& jaybuf) {
+  xassert(jcol->data() == nullptr);
+  xassert(jcol->strdata() == nullptr);
+
+  size_t nrows = jcol->nrows();
+  size_t nullcount = jcol->nullcount();
+  dt::Type coltype = _resolve_jtype(jcol->type());
+  if (coltype.is_void()) {
+    return Column::new_na_column(nrows, dt::SType::VOID);
+  }
+  std::vector<Buffer> buffers;
+  auto jbuffers = jcol->buffers();
+  if (jbuffers) {
+    for (unsigned i = 0; i < jbuffers->size(); i++) {
+      buffers.push_back(extract_buffer(jaybuf, (*jbuffers)[i]));
+    }
+  }
+  auto jchildren = jcol->children();
+  std::vector<Column> children;
+  if (jchildren) {
+    for (unsigned i = 0; i < jchildren->size(); i++) {
+      children.push_back(column_from_jay2((*jchildren)[i], jaybuf));
+    }
+  }
+  bool has_validity = (*jbuffers).size() > 0 && (*jbuffers)[0]->length() > 0;
+
+  Column col;
+  if (coltype.is_string()) {
+    xassert(buffers.size() == 3);
+    if (has_validity && coltype.stype() == dt::SType::STR32) {
+      col = Column(new dt::ArrowStr_ColumnImpl<uint32_t>(
+        nrows, coltype.stype(), std::move(buffers[0]), std::move(buffers[1]), std::move(buffers[2])
+      ));
+    }
+    else if (has_validity && coltype.stype() == dt::SType::STR64) {
+      col = Column(new dt::ArrowStr_ColumnImpl<uint32_t>(
+        nrows, coltype.stype(), std::move(buffers[0]), std::move(buffers[1]), std::move(buffers[2])
+      ));
+    }
+    else {
+      col = Column::new_string_column(nrows, std::move(buffers[1]), std::move(buffers[2]));
+    }
+  }
+  else if (coltype.is_array()) {
+    xassert(buffers.size() == 2);
+    xassert(children.size() == 1);
+    if (coltype.stype() == dt::SType::ARR32) {
+      col = Column(new dt::ArrowArray_ColumnImpl<uint32_t>(
+                nrows, nullcount,
+                std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+            ));
+    } else {
+      col = Column(new dt::ArrowArray_ColumnImpl<uint64_t>(
+                nrows, nullcount,
+                std::move(buffers[0]), std::move(buffers[1]), std::move(children[0])
+            ));
+    }
+  }
+  else {
+    xassert(!has_validity);
+    xassert(buffers.size() == 2);
+    xassert(children.size() == 0);
+    col = Column::new_mbuf_column(nrows, coltype.stype(), std::move(buffers[1]));
+  }
+
+  switch (coltype.stype()) {
+    case dt::SType::BOOL:    initStats<int8_t,  jay::StatsBool>(col.stats(), jcol); break;
+    case dt::SType::INT8:    initStats<int8_t,  jay::StatsInt8>(col.stats(), jcol); break;
+    case dt::SType::INT16:   initStats<int16_t, jay::StatsInt16>(col.stats(), jcol); break;
+    case dt::SType::DATE32:
+    case dt::SType::INT32:   initStats<int32_t, jay::StatsInt32>(col.stats(), jcol); break;
+    case dt::SType::TIME64:
+    case dt::SType::INT64:   initStats<int64_t, jay::StatsInt64>(col.stats(), jcol); break;
+    case dt::SType::FLOAT32: initStats<float,   jay::StatsFloat32>(col.stats(), jcol); break;
+    case dt::SType::FLOAT64: initStats<double,  jay::StatsFloat64>(col.stats(), jcol); break;
+    default: break;
+  }
+  return col;
+}
+
 
 
 
@@ -226,13 +340,7 @@ static Column column_from_jay(
 //------------------------------------------------------------------------------
 namespace py {
 
-static PKArgs args_open_jay(
-  1, 0, 0, false, false, {"file"}, "open_jay",
-  "open_jay(file)\n--\n\n"
-  "Open a Frame from the provided .jay file.\n");
-
-
-static oobj open_jay(const PKArgs& args)
+static oobj open_jay(const XArgs& args)
 {
   if (args[0].is_bytes()) {
     // TODO: create & use class obytes
@@ -254,9 +362,15 @@ static oobj open_jay(const PKArgs& args)
   }
 }
 
+DECLARE_PYFN(&open_jay)
+    ->name("open_jay")
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"file"})
+    ->docs("open_jay(file)\n--\n\n"
+           "Open a Frame from the provided .jay file.\n");
 
-void DatatableModule::init_methods_jay() {
-  ADD_FN(&open_jay, args_open_jay);
-}
+
+
 
 } // namespace py

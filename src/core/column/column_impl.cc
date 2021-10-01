@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/cast.h"
 #include "column/column_impl.h"
+#include "column/const.h"
 #include "column/nafilled.h"
 #include "column/sentinel_fw.h"
 #include "column/truncated.h"
@@ -35,10 +36,13 @@ namespace dt {
 // Constructor
 //------------------------------------------------------------------------------
 
-ColumnImpl::ColumnImpl(size_t nrows, SType stype)
-  : type_(Type::from_stype(stype)),
+ColumnImpl::ColumnImpl(size_t nrows, Type type)
+  : type_(std::move(type)),
     nrows_(nrows),
     refcount_(1) {}
+
+ColumnImpl::ColumnImpl(size_t nrows, SType stype)
+  : ColumnImpl(nrows, Type::from_stype(stype)) {}
 
 
 
@@ -47,20 +51,21 @@ ColumnImpl::ColumnImpl(size_t nrows, SType stype)
 // Data access
 //------------------------------------------------------------------------------
 
-[[noreturn]] static void err(SType col_stype, const char* type) {
+[[noreturn]] static void err(Type col_type, const char* type) {
   throw NotImplError()
       << "Cannot retrieve " << type
-      << " values from a column of type " << col_stype;
+      << " values from a column of type " << col_type;
 }
 
-bool ColumnImpl::get_element(size_t, int8_t*)  const { err(stype(), "int8"); }
-bool ColumnImpl::get_element(size_t, int16_t*) const { err(stype(), "int16"); }
-bool ColumnImpl::get_element(size_t, int32_t*) const { err(stype(), "int32"); }
-bool ColumnImpl::get_element(size_t, int64_t*) const { err(stype(), "int64"); }
-bool ColumnImpl::get_element(size_t, float*)   const { err(stype(), "float32"); }
-bool ColumnImpl::get_element(size_t, double*)  const { err(stype(), "float64"); }
-bool ColumnImpl::get_element(size_t, CString*) const { err(stype(), "string"); }
-bool ColumnImpl::get_element(size_t, py::oobj*)const { err(stype(), "object"); }
+bool ColumnImpl::get_element(size_t, int8_t*)  const { err(type(), "int8"); }
+bool ColumnImpl::get_element(size_t, int16_t*) const { err(type(), "int16"); }
+bool ColumnImpl::get_element(size_t, int32_t*) const { err(type(), "int32"); }
+bool ColumnImpl::get_element(size_t, int64_t*) const { err(type(), "int64"); }
+bool ColumnImpl::get_element(size_t, float*)   const { err(type(), "float32"); }
+bool ColumnImpl::get_element(size_t, double*)  const { err(type(), "float64"); }
+bool ColumnImpl::get_element(size_t, CString*) const { err(type(), "string"); }
+bool ColumnImpl::get_element(size_t, py::oobj*)const { err(type(), "object"); }
+bool ColumnImpl::get_element(size_t, Column*)  const { err(type(), "array"); }
 
 
 
@@ -124,7 +129,7 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
   (void) to_memory;  // default materialization is always to memory
   this->pre_materialize_hook();
   switch (stype()) {
-    case SType::VOID:    return; //stype() = dt::SType::BOOL; FALLTHROUGH;
+    case SType::VOID:    out = Column(new ConstNa_ColumnImpl(nrows_)); return;
     case SType::BOOL:
     case SType::INT8:    return _materialize_fw<int8_t> (out);
     case SType::INT16:   return _materialize_fw<int16_t>(out);
@@ -138,8 +143,8 @@ void ColumnImpl::materialize(Column& out, bool to_memory) {
     case SType::STR64:   return _materialize_str(out);
     case SType::OBJ:     return _materialize_obj(out);
     default:
-      throw NotImplError() << "Cannot materialize column of stype `"
-                           << stype() << "`";
+      throw NotImplError() << "Cannot materialize column of type `"
+                           << type() << "`";
   }
 }
 
@@ -225,6 +230,9 @@ void ColumnImpl::truncate(size_t new_nrows, Column& out) {
   out = Column(new Truncated_ColumnImpl(std::move(out), new_nrows));
 }
 
+size_t ColumnImpl::null_count() const {
+  return stats()->nacount();
+}
 
 
 
