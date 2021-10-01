@@ -169,6 +169,8 @@ Functions
       - Find the median element per column
     * - :func:`min()`
       - Find the smallest element per column
+    * - :func:`nunique()`
+      - Count the number of unique values per column
     * - :func:`sd()`
       - Calculate the standard deviation per column
     * - :func:`sum()`
@@ -240,6 +242,7 @@ Other
     mean()            <dt/mean>
     median()          <dt/median>
     min()             <dt/min>
+    nunique()         <dt/nunique>
     qcut()            <dt/qcut>
     rbind()           <dt/rbind>
     repeat()          <dt/repeat>

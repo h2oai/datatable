@@ -551,3 +551,4 @@ def test_corr_multiple():
     assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
+

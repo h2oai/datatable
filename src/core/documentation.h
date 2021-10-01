@@ -44,6 +44,7 @@ extern const char* doc_dt_max;
 extern const char* doc_dt_mean;
 extern const char* doc_dt_median;
 extern const char* doc_dt_min;
+extern const char* doc_dt_nunique;
 extern const char* doc_dt_qcut;
 extern const char* doc_dt_rbind;
 extern const char* doc_dt_repeat;
