@@ -19,7 +19,7 @@
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
-        has an unsupported type, i.e. `obj64`.
+        has an unsupported type, e.g. `obj64`.
 
 
 
