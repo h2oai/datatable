@@ -29,6 +29,7 @@ from builtins import max as _builtin_max
 __all__ = (
     "corr",
     "count",
+    "countna",
     "cov",
     "first",
     "last",
@@ -36,10 +37,10 @@ __all__ = (
     "mean",
     "median",
     "min",
+    "mode"
     "nunique",
     "sd",
     "sum",
-    "countna",
 )
 
 
@@ -55,6 +56,10 @@ def count(iterable=None):
 
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
+
+
+def mode(iterable=None):
+    return Expr(OpCodes.MODE, (iterable,))
 
 
 def countna(iterable=None):

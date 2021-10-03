@@ -31,6 +31,8 @@
 #include "stype.h"
 #include <type_traits>
 #include <set>
+#include <algorithm>
+#include <map>
 namespace dt {
 namespace expr {
 
@@ -863,6 +865,55 @@ static Column compute_nunique(Column&& arg, const Groupby& gby) {
 
 
 //------------------------------------------------------------------------------
+// mode
+//------------------------------------------------------------------------------
+
+template <typename T>
+bool op_mode(const Column& col, size_t i0, size_t i1, int64_t* out) {
+  std::map<T, int64_t> mm;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) ++mm[value];
+  }
+  *out = 1;
+  //*out = std::max_element(mm.begin(), mm.end()) - mm.begin();
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _mode(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, int64_t>(
+                 SType::INT64, std::move(arg), gby, op_mode<T>
+            )));
+}
+
+
+static Column compute_mode(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::VOID:
+    case SType::BOOL:
+    case SType::INT8:    return _mode<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _mode<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _mode<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _mode<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _mode<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _mode<double>(std::move(arg), gby);
+    //case SType::STR32:
+    //case SType::STR64:   return _mode<std::string>(std::move(arg), gby);
+    default: throw _error("mode", arg.stype());
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
 // Median
 //------------------------------------------------------------------------------
 
@@ -993,6 +1044,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::COUNTNA:fn = compute_countna; break;
       case Op::MEDIAN: fn = compute_median; break;
       case Op::NUNIQUE:fn = compute_nunique; break;
+      case Op::MODE:   fn = compute_mode; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }

@@ -65,6 +65,7 @@ class OpCodes(enum.Enum):
     CORR = 412
     COUNTNA = 413
     NUNIQUE = 414
+    MODE = 415
 
     # Math: trigonometric
     SIN = 501
