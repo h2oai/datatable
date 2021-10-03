@@ -334,11 +334,15 @@ void FExpr_List::prepare_by(
   if (args_.empty()) return;
 
   auto kind = _resolve_list_kind(args_);
-  bool reverse = ctx.reverse_sort();
+  //bool reverse = ctx.reverse_sort();
+  bool reverse;
   if (kind == Kind::Str || kind == Kind::Int) {
+    size_t id = 0;
     for (const auto& arg : args_) {
+      reverse = ctx.reverse_sort(id);
       outwf.cbind( arg->evaluate_f(ctx, 0) );
       set_outflags(ctx, outflags, reverse);
+      ++id;
     }
   }
   else if (kind == Kind::Func) {
@@ -352,7 +356,7 @@ void FExpr_List::prepare_by(
         outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
-        set_outflags(ctx, outflags, reverse);
+        set_outflags(ctx, outflags, true);
       }
     }
   }

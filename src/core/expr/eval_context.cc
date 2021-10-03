@@ -60,7 +60,8 @@ void EvalContext::add_groupby(py::oby obj) {
   }
   byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
-  reverse_ = false;
+  reverse_.push_back(false);
+  //reverse_ = false;
 }
 
 
@@ -69,11 +70,20 @@ void EvalContext::add_sortby(py::osort obj) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
   sortexpr_ = as_fexpr(obj.get_arguments());
-  if (!obj.get_reverse().empty() && obj.get_reverse().at(0)) {
-    reverse_ = true;
-  } else {
-    reverse_ = false;
+  if (!obj.get_reverse().empty()) {
+    for (auto r : obj.get_reverse()) {
+      reverse_.push_back(r);
+    }
+  }  else {
+      reverse_.push_back(false);
   }
+
+
+  //if (!obj.get_reverse().empty() && obj.get_reverse().at(0)) {
+  //  reverse_ = true;
+  //} else {
+  //  reverse_ = false;
+  //}
   na_position_ = obj.get_na_position().at(0);
 }
 
@@ -236,8 +246,8 @@ void EvalContext::create_placeholder_columns() {
 // single group might be empty if the frame has 0 rows.
 //
 
-bool EvalContext::reverse_sort() {
-  return reverse_;
+bool EvalContext::reverse_sort(size_t id) {
+  return reverse_.at(id);
 }
 
 NaPosition EvalContext::get_na_position() const {

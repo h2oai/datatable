@@ -118,7 +118,8 @@ class EvalContext
     strvec     newnames_;
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
-    bool       reverse_;
+    // bool       reverse_;
+    std::vector<bool> reverse_;
     ModType    mod_type_;
     NaPosition na_position_;
 
@@ -153,7 +154,7 @@ class EvalContext
     void replace_groupby(Groupby&& gb_);
     void set_groupby_columns(Workframe&&);
 
-    bool reverse_sort();
+    bool reverse_sort(size_t id);
     NaPosition get_na_position() const;
     ModType get_mod_type() const;
   private:
