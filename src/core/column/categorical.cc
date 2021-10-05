@@ -69,7 +69,7 @@ size_t Categorical_ColumnImpl<T>::n_children() const noexcept {
 
 template <typename T>
 const Column& Categorical_ColumnImpl<T>::child(size_t i) const {
-  xassert(i == 0);
+  xassert(i == 0); (void) i;
   return categories_;
 }
 
