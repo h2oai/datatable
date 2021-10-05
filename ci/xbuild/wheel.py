@@ -451,7 +451,7 @@ class Wheel:
             abi_tag = self._get_abi_tag()
             # TODO: remove `distutils` dependency as it has been deprecated
             platform = distutils.util.get_platform()
-            # Meanwhile, a workaround for macOS Big Sur
+            # Meanwhile, a workaround for macOS Big Sur, see #3175
             if platform.startswith("macosx-11"):
                 plat_tag = re.sub("-11(.*)-", "_11_0_", platform)
             else:
