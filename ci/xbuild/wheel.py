@@ -449,8 +449,13 @@ class Wheel:
         if self._tag is None:
             impl_tag = self._get_python_tag()
             abi_tag = self._get_abi_tag()
-            plat_tag = distutils.util.get_platform() \
-                       .replace('.', '_').replace('-', '_')
+            # TODO: remove `distutils` dependency as it has been deprecated
+            platform = distutils.util.get_platform()
+            # Meanwhile, a workaround for macOS Big Sur
+            if platform.startswith("macosx-11"):
+                plat_tag = re.sub("-11(.*)-", "_11_0_", platform)
+            else:
+                plat_tag = platform.replace('.', '_').replace('-', '_')
             self._tag = "%s-%s-%s" % (impl_tag, abi_tag, plat_tag)
         return self._tag
 
