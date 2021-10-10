@@ -60,8 +60,6 @@ void EvalContext::add_groupby(py::oby obj) {
   }
   byexpr_ = as_fexpr(obj.get_arguments());
   add_groupby_columns_ = obj.get_add_columns();
-  //reverse_.push_back(false);
-  //reverse_ = false;
 }
 
 
@@ -235,7 +233,7 @@ void EvalContext::create_placeholder_columns() {
 // single group might be empty if the frame has 0 rows.
 //
 
-bool EvalContext::reverse_sort(size_t id) {
+bool EvalContext::get_reverse_flag(size_t id) {
   return reverse_.at(id);
 }
 

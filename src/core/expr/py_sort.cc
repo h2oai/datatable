@@ -24,7 +24,6 @@
 #include "expr/py_sort.h"
 #include "python/_all.h"
 #include "utils/exceptions.h"
-#include <iostream>
 namespace py {
 
 static NaPosition  get_na_position_from_string(const std::string& str) {
@@ -49,12 +48,10 @@ void osort::osort_pyobject::fill_rev_flag_vec(size_t len, bool flag) {
 
 size_t osort::osort_pyobject::get_num_cols(const PKArgs& args) {
   for (robj arg : args.varargs()) {
-    if (arg.is_list_or_tuple()) {
-      return arg.to_pylist().size();
-    } else {
-      return args.num_vararg_args();
-    }
+    if (arg.is_list_or_tuple()) return arg.to_pylist().size();
+    else return args.num_vararg_args();
   }
+  return 0;
 }
 
 void osort::osort_pyobject::m__init__(const PKArgs& args)

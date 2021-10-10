@@ -25,7 +25,6 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include <algorithm>             // std::sort
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -338,7 +337,7 @@ void FExpr_List::prepare_by(
   if (kind == Kind::Str || kind == Kind::Int) {
     size_t id = 0;
     for (const auto& arg : args_) {
-      bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.reverse_sort(id);
+      bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.get_reverse_flag(id);
       outwf.cbind( arg->evaluate_f(ctx, 0) );
       set_outflags(ctx, outflags, reverse);
       ++id;
@@ -347,7 +346,7 @@ void FExpr_List::prepare_by(
   else if (kind == Kind::Func) {
     size_t id = 0;
     for (const auto& arg : args_) {
-      bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.reverse_sort(id);
+      bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.get_reverse_flag(id);
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
