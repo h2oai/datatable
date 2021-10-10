@@ -36,6 +36,8 @@ class osort : public oobj
       oobj cols_;
       std::vector<bool>* reverse_;
       std::vector<NaPosition>* na_position_;
+      void fill_rev_flag_vec(size_t len, bool flag);
+      size_t get_num_cols(const PKArgs& args);
 
     public:
       void m__init__(const PKArgs&);

@@ -70,20 +70,9 @@ void EvalContext::add_sortby(py::osort obj) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
   sortexpr_ = as_fexpr(obj.get_arguments());
-  if (!obj.get_reverse().empty()) {
-    for (auto r : obj.get_reverse()) {
-      reverse_.push_back(r);
-    }
-  }  else {
-      reverse_.push_back(false);
+  for (auto r : obj.get_reverse()) {
+    reverse_.push_back(r);
   }
-
-
-  //if (!obj.get_reverse().empty() && obj.get_reverse().at(0)) {
-  //  reverse_ = true;
-  //} else {
-  //  reverse_ = false;
-  //}
   na_position_ = obj.get_na_position().at(0);
 }
 

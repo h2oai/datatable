@@ -339,7 +339,6 @@ void FExpr_List::prepare_by(
     size_t id = 0;
     for (const auto& arg : args_) {
       bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.reverse_sort(id);
-//      std::cout << "The reverse flag in top : " << reverse << std::endl;
       outwf.cbind( arg->evaluate_f(ctx, 0) );
       set_outflags(ctx, outflags, reverse);
       ++id;
@@ -349,13 +348,9 @@ void FExpr_List::prepare_by(
     size_t id = 0;
     for (const auto& arg : args_) {
       bool reverse = (ctx.get_mod_type() == ModType::BY) ? false : ctx.reverse_sort(id);
-//      std::cout << "The reverse flag in bottom : " << reverse << std::endl;
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
-        //if (ctx.get_mod_type() == ModType::BY) {
-        //  reverse = false;
-        //}
         outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
