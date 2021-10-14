@@ -72,10 +72,8 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
     auto revlist = arg_reverse.to_pylist();
     size_t nflags = revlist.size();
     if (nflags != ncols) {
-        throw AssertionError()
-          << "Mismatch between the number of columns (ncols=" << ncols
-          << ") to be sorted and number of elements (nflags=" << nflags
-          << ") in the reverse flag list";
+        throw ValueError() << "Mismatch between the number of columns (ncols=" << ncols << ") to be sorted and "
+          "number of elements (nflags=" << nflags << ") in the reverse flag list";
     }
     for (size_t i = 0; i < nflags; ++i) {
       (*reverse_)[i] = revlist[i].to_bool_strict();

@@ -27,6 +27,9 @@
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
 
+    -[fix] It is possible now to sorts all columns according to booleans flags in the
+        reverse list [#3168]
+
     -[fix] Fixed support for :attr:`.max_column_width <datatable.options.display.max_column_width>`
         option when rendering frames in Jupyter notebooks. [#3160]
 
