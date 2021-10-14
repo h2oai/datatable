@@ -118,9 +118,10 @@ class EvalContext
     strvec     newnames_;
     EvalMode   eval_mode_;
     bool       add_groupby_columns_;
-    std::vector<bool> reverse_;
     ModType    mod_type_;
+    size_t : 8;
     NaPosition na_position_;
+    std::vector<bool> reverse_;
 
   public:
     EvalContext(DataTable*, EvalMode = EvalMode::SELECT);
