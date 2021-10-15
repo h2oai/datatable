@@ -45,6 +45,7 @@ PTypeIterator& PTypeIterator::operator++() {
       if (curr_ptype == PT::Time64ISO && !parse_times) continue;
     } else {
       *pqr = *pqr + 1;
+      xassert(*pqr <= 3);
     }
     return *this;
   }

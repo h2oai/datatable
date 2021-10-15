@@ -22,7 +22,7 @@
 // In order to compile:
 //     $ flatc --cpp jay.fbs
 //
-// then fix all warnings emitted by Clang
+// then review the generated file and fix inadvertent changes
 //------------------------------------------------------------------------------
 namespace jay;
 
@@ -32,7 +32,7 @@ namespace jay;
 // Types
 //------------------------------------------------------------------------------
 
-enum Type : uint8 {
+enum SType : uint8 {
   Bool8,
   Int8,
   Int16,
@@ -44,7 +44,20 @@ enum Type : uint8 {
   Str64,
   Date32,
   Time64,
+  Void0,
+  Arr32,
+  Arr64,
 }
+
+union TypeExtra {
+  child : Type
+}
+
+table Type {
+  stype: SType;
+  extra: TypeExtra;
+}
+
 
 union Stats {
   Bool    : StatsBool,
@@ -78,12 +91,17 @@ table Frame {
 }
 
 table Column {
-  type:      Type;
-  data:      Buffer;
-  strdata:   Buffer;
+  stype:     SType;   // deprecated -- use `type` instead
+  data:      Buffer;  // deprecated -- use `buffers` instead
+  strdata:   Buffer;  // deprecated -- use `buffers` instead
+
   name:      string;
   nullcount: uint64;
   stats:     Stats;
+  type:      Type;
+  nrows:     uint64;
+  buffers:   [Buffer];
+  children:  [Column];
 }
 
 struct Buffer {

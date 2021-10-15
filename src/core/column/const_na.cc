@@ -28,6 +28,9 @@ namespace dt {
 
 
 
+ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, Type type)
+  : Const_ColumnImpl(nrows, type) {}
+
 ConstNa_ColumnImpl::ConstNa_ColumnImpl(size_t nrows, SType stype)
   : Const_ColumnImpl(nrows, stype) {}
 
@@ -41,6 +44,7 @@ bool ConstNa_ColumnImpl::get_element(size_t, float*)    const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, double*)   const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, CString*)  const { return false; }
 bool ConstNa_ColumnImpl::get_element(size_t, py::oobj*) const { return false; }
+bool ConstNa_ColumnImpl::get_element(size_t, Column*)   const { return false; }
 
 
 ColumnImpl* ConstNa_ColumnImpl::clone() const {
@@ -52,6 +56,17 @@ void ConstNa_ColumnImpl::na_pad(size_t nrows, Column&) {
   xassert(nrows >= nrows_);
   nrows_ = nrows;
 }
+
+
+bool ConstNa_ColumnImpl::allow_parallel_access() const {
+  return true;
+}
+
+
+bool ConstNa_ColumnImpl::is_virtual() const noexcept {
+  return !type_.is_void();  // A VOID column is considered non-virtual
+}
+
 
 
 //------------------------------------------------------------------------------

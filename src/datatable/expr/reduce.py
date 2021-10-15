@@ -36,8 +36,10 @@ __all__ = (
     "mean",
     "median",
     "min",
+    "nunique",
     "sd",
     "sum",
+    "countna",
 )
 
 
@@ -49,6 +51,14 @@ def count(iterable=None):
         return Expr(OpCodes.COUNT0, ())
     else:
         return _builtin_sum((x is not None) for x in iterable)
+
+
+def nunique(iterable=None):
+    return Expr(OpCodes.NUNIQUE, (iterable,))
+
+
+def countna(iterable=None):
+    return Expr(OpCodes.COUNTNA, (iterable,))
 
 
 def first(iterable):

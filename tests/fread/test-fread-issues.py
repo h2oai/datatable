@@ -544,9 +544,21 @@ def test_issue2523():
 
 
 def test_issue2680():
-    src = '1\tWild Hogs (2007)\tAdevnture\n' * 500 + '2\t"Great Performances" Cats (1998)\tMusical\n' * 500
+    src = '1\tWild Hogs (2007)\tAdventure\n' * 500 + '2\t"Great Performances" Cats (1998)\tMusical\n' * 500
     DT = dt.fread(src, fill=True)
     assert DT.to_tuples()[900] == (2, '"Great Performances" Cats (1998)', 'Musical')
+
+
+def test_issue3092():
+    src = 'A,B,C,D\n' + '1,abc,3,-3\n' * 500 + '2,"d" ef,4,-1\n' + '3,ghij\n' * 3 + '4,"klmn",7,0\n' * 2
+    DT = dt.fread(src, fill=True)
+    assert_equals(
+        DT,
+        dt.Frame(A=[1]*500 + [2, 3, 3, 3, 4, 4],
+                 B=["abc"] * 500 + ['"d" ef', "ghij", "ghij", "ghij", '"klmn"', '"klmn"'],
+                 C=[3]*500 + [4, None, None, None, 7, 7],
+                 D=[-3]*500 + [-1, None, None, None, 0, 0])
+    )
 
 
 def test_issue934():
@@ -585,3 +597,11 @@ def test_issue2943():
     assert_equals(DT[:, 'A':'C'], EXP)
     DT = dt.fread(src2)
     assert_equals(DT[:, 'A':'C'], EXP)
+
+
+def test_issue_3055():
+    repeat = 1000000
+    text = "Nothing" + "\n" * repeat
+    EXP = dt.Frame(Nothing=[None]*(repeat-1))
+    RES = dt.fread(text)
+    assert_equals(EXP,RES)

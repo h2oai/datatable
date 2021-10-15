@@ -270,7 +270,7 @@ def test_create_from_empty_list_of_lists():
     frame_integrity_check(d6)
     assert d6.shape == (0, 1)
     assert d6.names == ("C0", )
-    assert d6.ltypes == (ltype.void, )
+    assert d6.types == [dt.Type.void]
 
 
 
@@ -623,106 +623,6 @@ def test_create_from_list_of_dicts_bad3():
 # Type auto-detection
 #-------------------------------------------------------------------------------
 
-def test_auto_bool8():
-    d0 = dt.Frame([True, False, None])
-    frame_integrity_check(d0)
-    assert d0.stypes == (stype.bool8,)
-
-
-
-def test_auto_int8_1():
-    src = [0, 1, 0, None, 0]
-    DT = dt.Frame(src)
-    frame_integrity_check(DT)
-    assert DT.stype == dt.int8
-    assert DT.to_list() == [src]
-
-
-def test_auto_int8_2():
-    src = [1, 0, False, True, None, 1, True]
-    DT = dt.Frame(src)
-    frame_integrity_check(DT)
-    assert DT.stype == dt.int8
-    assert DT.to_list() == [[1, 0, 0, 1, None, 1, 1]]
-
-
-def test_auto_int8_3(numpy):
-    i8 = numpy.int8
-    src = [i8(3), i8(5), None, 1, True, False, i8(-1)]
-    DT = dt.Frame(src)
-    frame_integrity_check(DT)
-    assert DT.stype == dt.int8
-    assert DT.to_list() == [[3, 5, None, 1, 1, 0, -1]]
-
-
-
-def test_auto_int16_1(numpy):
-    i16 = numpy.int16
-    src = [i16(50), i16(2303), None, i16(-45)]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int16
-    assert d0.to_list() == [[50, 2303, None, -45]]
-
-
-def test_auto_int16_2(numpy):
-    i16 = numpy.int16
-    src = [i16(1), i16(0)]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int16
-    assert d0.to_list() == [[1, 0]]
-
-
-def test_auto_int16_3(numpy):
-    i8 = numpy.int8
-    i16 = numpy.int16
-    src = [i16(1), i16(0), 1, 0, i8(1), i8(0), True, False, None]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int16
-    assert d0.to_list() == [[1, 0, 1, 0, 1, 0, 1, 0, None]]
-
-
-
-def test_auto_int32_1():
-    src = [0, 1, 2]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list() == [[0, 1, 2]]
-
-
-def test_auto_int32_2():
-    src = [None, 0, 1, 44, 9548, 428570247, -12]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int32
-    assert d0.to_list()[0] == src
-
-
-def test_auto_int32_3(np):
-    src = [None, 0, np.int8(0), np.int16(0), np.int32(0)]
-    DT = dt.Frame(src)
-    assert_equals(DT, dt.Frame([None, 0, 0, 0, 0] / dt.int32))
-
-
-def test_auto_int64():
-    src = [None, 0, 1, 44, 9548, 145928450, 2245982454589145, 333, 2]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.int64
-    assert d0.to_list()[0] == src
-
-
-def test_auto_float64():
-    src = [5, 12, 5.2, None, 11, 0.998, -1]
-    d0 = dt.Frame(src)
-    frame_integrity_check(d0)
-    assert d0.stype == dt.float64
-    assert d0.to_list()[0] == src
-
-
 def test_auto_str32_1():
     d0 = dt.Frame(["start", None, "end"])
     frame_integrity_check(d0)
@@ -737,10 +637,31 @@ def test_auto_str32_2():
 
 
 def test_auto_str32_3():
-    DT = dt.Frame([True, 5.75, 9, "hi", 4, False])
+    DT = dt.Frame([math.nan, "start", None, "end"])
     frame_integrity_check(DT)
-    assert DT.stype == stype.str32
-    assert DT.to_list() == [["True", "5.75", "9", "hi", "4", "False"]]
+    assert DT.types == [dt.Type.str32]
+    assert DT.to_list() == [[None, "start", None, "end"]]
+
+
+def test_create_from_strings_and_nans1():
+    DT = dt.Frame(["a", 'bb', math.nan])
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.str32
+    assert DT.to_list() == [["a", "bb", None]]
+
+
+def test_create_from_strings_and_nans2():
+    DT = dt.Frame([math.nan, None, math.nan, "a", 'bb'])
+    frame_integrity_check(DT)
+    assert DT.type == dt.Type.str32
+    assert DT.to_list() == [[None, None, None, "a", "bb"]]
+
+
+def test_auto_str32_3():
+    msg = "Cannot create column: element at index 1 is of type " \
+          "<class 'float'>, whereas previous elements were boolean"
+    with pytest.raises(TypeError, match=msg):
+        DT = dt.Frame([True, 5.75, 9, "hi", 4, False])
 
 
 def test_auto_str64():
@@ -760,11 +681,12 @@ def test_create_large_string_column():
 
 def test_no_auto_object_column():
     src = [3, "ha!", dt, [0]]
-    msg = r"Cannot create column from a python list"
+    msg = r"Cannot create column: element at index 1 is of type " \
+          r"<class 'str'>, whereas previous elements were int32"
     with pytest.raises(TypeError, match=msg):
         dt.Frame(src)
     # Requesting 'object' stype explicitly should create a valid frame
-    DT = dt.Frame(src, stype=object)
+    DT = dt.Frame(src, type=object)
     assert DT.shape == (4, 1)
     assert DT.types == [dt.Type.obj64]
     assert DT.to_list() == [src]
@@ -782,39 +704,12 @@ def test_create_from_nones():
     assert d0.shape == (3, 1)
 
 
-def test_create_as_int8():
-    d0 = dt.Frame([1, None, -1, 1000, 2.7, "123", "boo"], type=stype.int8)
-    frame_integrity_check(d0)
-    assert d0.stypes == (stype.int8, )
-    assert d0.shape == (7, 1)
-    assert d0.to_list() == [[1, None, -1, -24, 2, 123, None]]
-
-
-def test_create_as_int16():
-    d0 = dt.Frame([1e50, 1000, None, "27", "?", True], type=stype.int16)
-    frame_integrity_check(d0)
-    assert d0.stypes == (stype.int16, )
-    assert d0.shape == (6, 1)
-    # int(1e50) = 2407412430484045 * 2**115, which is ≡0 (mod 2**16)
-    assert d0.to_list() == [[0, 1000, None, 27, None, 1]]
-
-
 def test_create_as_int32():
     d0 = dt.Frame([1, 2, 5, 3.14, (1, 2)], type=stype.int32)
     frame_integrity_check(d0)
     assert d0.stypes == (stype.int32, )
     assert d0.shape == (5, 1)
     assert d0.to_list() == [[1, 2, 5, 3, None]]
-
-
-def test_create_as_float32():
-    d0 = dt.Frame([1, 5, 2.6, "7.7777", -1.2e+50, 1.3e-50],
-                  stype=stype.float32)
-    frame_integrity_check(d0)
-    assert d0.stypes == (stype.float32, )
-    assert d0.shape == (6, 1)
-    # Apparently, float "inf" converts into double "inf" when cast. Good!
-    assert list_equals(d0.to_list(), [[1, 5, 2.6, 7.7777, -math.inf, 0]])
 
 
 def test_create_as_float64():
@@ -927,42 +822,42 @@ def test_create_names_bad4():
 # Create from Pandas
 #-------------------------------------------------------------------------------
 
-def test_create_from_pandas(pandas):
+def test_create_from_pandas(pd):
     src = {"A": [2, 5, 8], "B": ["e", "r", "qq"]}
-    p = pandas.DataFrame(src)
+    p = pd.DataFrame(src)
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.shape == (3, 2)
     assert d.to_dict() == src
 
 
-def test_create_from_pandas2(pandas, numpy):
-    p = pandas.DataFrame(numpy.ones((3, 5)))
+def test_create_from_pandas2(pd, np):
+    p = pd.DataFrame(np.ones((3, 5)))
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.shape == (3, 5)
     assert d.names == ("0", "1", "2", "3", "4")
 
 
-def test_create_from_pandas_series(pandas):
+def test_create_from_pandas_series(pd):
     src = [1, 5, 9, -12, 0, 123]
-    p = pandas.Series(src)
+    p = pd.Series(src)
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.shape == (len(src), 1)
     assert d.to_list() == [src]
 
 
-def test_create_from_pandas_with_names(pandas):
-    p = pandas.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
+def test_create_from_pandas_with_names(pd):
+    p = pd.DataFrame({"A": [2, 5, 8], "B": ["e", "r", "qq"]})
     d = dt.Frame(p, names=["miniature", "miniscule"])
     frame_integrity_check(d)
     assert d.shape == (3, 2)
     assert list_equals(d.names, ("miniature", "miniscule"))
 
 
-def test_create_from_pandas_series_with_names(pandas):
-    p = pandas.Series([10000, 5, 19, -12])
+def test_create_from_pandas_series_with_names(pd):
+    p = pd.Series([10000, 5, 19, -12])
     d = dt.Frame(p, names=["ha!"])
     frame_integrity_check(d)
     assert d.shape == (4, 1)
@@ -970,9 +865,9 @@ def test_create_from_pandas_series_with_names(pandas):
     assert d.to_list() == [[10000, 5, 19, -12]]
 
 
-def test_create_from_pandas_float16_series(pandas):
+def test_create_from_pandas_float16_series(pd):
     src = [1.5, 2.6, 7.8]
-    p = pandas.Series(src, dtype="float16")
+    p = pd.Series(src, dtype="float16")
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.stypes == (stype.float32, )
@@ -982,15 +877,16 @@ def test_create_from_pandas_float16_series(pandas):
     assert all(abs(src[i] - res[i]) < 1e-3 for i in range(3))
 
 
-def test_create_from_pandas_float16_dataframe(pandas):
-    p = pandas.DataFrame([[1, 3, 5], [7, 8, 9]], dtype="float16")
+def test_create_from_pandas_float16_dataframe(pd):
+    p = pd.DataFrame([[1, 3, 5], [7, 8, 9]], dtype="float16")
     d = dt.Frame(p)
     frame_integrity_check(d)
     assert d.stypes == (stype.float32,) * 3
     assert d.shape == (2, 3)
 
 
-def test_create_from_pandas_issue1235(pandas):
+@pytest.mark.usefixtures("pandas")
+def test_create_from_pandas_issue1235():
     df = dt.fread("A\n" + "\U00010000" * 50).to_pandas()
     table = dt.Frame(df)
     frame_integrity_check(table)
@@ -998,39 +894,37 @@ def test_create_from_pandas_issue1235(pandas):
     assert table[0, 0] == "\U00010000" * 50
 
 
-def test_create_from_pandas_with_stypes(pandas):
+def test_create_from_pandas_with_stypes(pd):
     with pytest.raises(TypeError) as e:
-        p = pandas.DataFrame([[1, 2, 3]])
+        p = pd.DataFrame([[1, 2, 3]])
         dt.Frame(p, stype=str)
     assert ("Argument types is not supported in Frame() constructor "
             "when creating a Frame from pandas DataFrame" == str(e.value))
 
 
-def test_create_from_pandas_with_bad_names(pandas):
+def test_create_from_pandas_with_bad_names(pd):
     with pytest.raises(ValueError) as e:
-        p = pandas.DataFrame([[1, 2, 3]])
+        p = pd.DataFrame([[1, 2, 3]])
         dt.Frame(p, names=["A", "Z"])
     assert ("The names argument contains 2 elements, which is less than the "
             "number of columns being created (3)" == str(e.value))
 
 
-def test_create_from_pandas_string_with_nans(pandas):
-    pf = pandas.DataFrame(["Hello", math.nan, "world!"])
+def test_create_from_pandas_string_with_nans(pd):
+    pf = pd.DataFrame(["Hello", math.nan, "world!"])
     df = dt.Frame(pf)
-    assert df.stypes == (dt.str32,)
-    assert df.to_list() == [["Hello", None, "world!"]]
+    assert_equals(df, dt.Frame(["Hello", None, "world!"], names=["0"]))
 
 
-def test_create_from_pandas_boolean_with_nans(pandas):
-    pf = pandas.DataFrame([True, math.nan, False])
+def test_create_from_pandas_boolean_with_nans(pd):
+    pf = pd.DataFrame({"A": [True, math.nan, False]})
     df = dt.Frame(pf)
-    assert df.stypes == (dt.bool8,)
-    assert df.to_list() == [[True, None, False]]
+    assert_equals(df, dt.Frame(A=[True, None, False]))
 
 
-def test_create_from_pandas_with_duplicate_names(pandas):
+def test_create_from_pandas_with_duplicate_names(pd):
     # See issue 1816
-    Y = pandas.DataFrame([[1, 2, 3]], columns=list("AAA"))
+    Y = pd.DataFrame([[1, 2, 3]], columns=list("AAA"))
     with pytest.warns(DatatableWarning):
         X = dt.Frame(Y)
     assert X.shape == (1, 3)
@@ -1038,19 +932,43 @@ def test_create_from_pandas_with_duplicate_names(pandas):
     assert X.to_list() == [[1], [2], [3]]
 
 
-def test_create_from_pandas_categorical(pandas):
-    df = pandas.cut(pandas.Series(range(10)), bins=3)
+def test_create_from_pandas_categorical(pd):
+    df = pd.cut(pd.Series(range(10)), bins=3)
     DT = dt.Frame(df)
     assert_equals(DT, dt.Frame(["(-0.009, 3.0]"] * 4 +
                                ["(3.0, 6.0]"] * 3 +
                                ["(6.0, 9.0]"] * 3))
 
 
-def test_issue2517(pandas):
-    DT = dt.Frame(pandas.DataFrame(['секрет秘密']))
+def test_issue2517(pd):
+    DT = dt.Frame(pd.DataFrame(['секрет秘密']))
     assert_equals(DT, dt.Frame(['секрет秘密'], names=["0"]))
 
 
+def test_create_from_pandas_nones(pd):
+    df = pd.DataFrame(dict(N=[None] * 10))
+    DT = dt.Frame(df)
+    assert_equals(DT, dt.Frame(N=[None]*10))
+
+
+@pytest.mark.usefixtures("pandas")
+def test_void_frame_roundtrip():
+    pf = dt.Frame([None]*10).to_pandas()
+    DT = dt.Frame(pf)
+    assert_equals(DT, dt.Frame([None] * 10))
+
+
+@pytest.mark.usefixtures("release_only")
+def test_create_from_pandas_large(pd):
+    # See issue 3169
+    text = "0123456789" * 30
+    nrows = 2 * 10**7
+    PD = pd.DataFrame([text] * nrows)
+    DT = dt.Frame(PD)
+    assert DT.shape == (nrows, 1)
+    assert DT.type == dt.Type.str64
+    assert DT[0, 0] == text
+    assert DT.nunique1() == 1
 
 
 #-------------------------------------------------------------------------------
@@ -1272,17 +1190,6 @@ def test_create_from_numpy_ints2(numpy):
                             [7, 34871, 66]]
 
 
-def test_create_from_numpy_ints_mixed(numpy):
-    np = numpy
-    DT = dt.Frame([[np.int8(1), np.int16(2), np.int32(3), np.int64(4)],
-                   [np.int64(1), np.int32(2), np.int16(3), np.int8(4)],
-                   [np.int8(3), np.int32(3), np.int16(3), np.int8(3)]])
-    frame_integrity_check(DT)
-    assert DT.shape == (4, 3)
-    assert DT.stypes == (dt.int64, dt.int64, dt.int32)
-    assert DT.to_list() == [[1, 2, 3, 4], [1, 2, 3, 4], [3, 3, 3, 3]]
-
-
 def test_create_from_numpy_floats(numpy):
     np = numpy
     DT = dt.Frame([[np.float32(4), np.float32(3.7), np.float32(88.5)],
@@ -1294,15 +1201,6 @@ def test_create_from_numpy_floats(numpy):
     assert DT.to_list() == [[4.0, float(np.float32(3.7)), 88.5],
                             [2.0, 2.5, 7.75],
                             [0.0, 4.4, 99.999]]
-
-
-def test_create_from_numpy_floats_mixed(numpy):
-    np = numpy
-    DT = dt.Frame([np.float32(4), np.float16(3.5), None, np.float64(9.33)])
-    frame_integrity_check(DT)
-    assert DT.shape == (4, 1)
-    assert DT.stype == dt.float64
-    assert DT.to_list() == [[4.0, 3.5, None, 9.33]]
 
 
 def test_create_from_numpy_strings(np):

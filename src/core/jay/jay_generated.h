@@ -8,6 +8,9 @@
 
 namespace jay {
 
+struct Type;
+struct TypeBuilder;
+
 struct StatsBool;
 
 struct StatsInt8;
@@ -30,41 +33,47 @@ struct ColumnBuilder;
 
 struct Buffer;
 
-enum Type {
-  Type_Bool8 = 0,
-  Type_Int8 = 1,
-  Type_Int16 = 2,
-  Type_Int32 = 3,
-  Type_Int64 = 4,
-  Type_Float32 = 5,
-  Type_Float64 = 6,
-  Type_Str32 = 7,
-  Type_Str64 = 8,
-  Type_Date32 = 9,
-  Type_Time64 = 10,
-  Type_MIN = Type_Bool8,
-  Type_MAX = Type_Time64
+enum SType {
+  SType_Bool8 = 0,
+  SType_Int8 = 1,
+  SType_Int16 = 2,
+  SType_Int32 = 3,
+  SType_Int64 = 4,
+  SType_Float32 = 5,
+  SType_Float64 = 6,
+  SType_Str32 = 7,
+  SType_Str64 = 8,
+  SType_Date32 = 9,
+  SType_Time64 = 10,
+  SType_Void0 = 11,
+  SType_Arr32 = 12,
+  SType_Arr64 = 13,
+  SType_MIN = SType_Bool8,
+  SType_MAX = SType_Arr64
 };
 
-inline const Type (&EnumValuesType())[11] {
-  static const Type values[] = {
-    Type_Bool8,
-    Type_Int8,
-    Type_Int16,
-    Type_Int32,
-    Type_Int64,
-    Type_Float32,
-    Type_Float64,
-    Type_Str32,
-    Type_Str64,
-    Type_Date32,
-    Type_Time64
+inline const SType (&EnumValuesSType())[14] {
+  static const SType values[] = {
+    SType_Bool8,
+    SType_Int8,
+    SType_Int16,
+    SType_Int32,
+    SType_Int64,
+    SType_Float32,
+    SType_Float64,
+    SType_Str32,
+    SType_Str64,
+    SType_Date32,
+    SType_Time64,
+    SType_Void0,
+    SType_Arr32,
+    SType_Arr64
   };
   return values;
 }
 
-inline const char * const *EnumNamesType() {
-  static const char * const names[12] = {
+inline const char * const *EnumNamesSType() {
+  static const char * const names[15] = {
     "Bool8",
     "Int8",
     "Int16",
@@ -76,16 +85,60 @@ inline const char * const *EnumNamesType() {
     "Str64",
     "Date32",
     "Time64",
+    "Void0",
+    "Arr32",
+    "Arr64",
     nullptr
   };
   return names;
 }
 
-inline const char *EnumNameType(Type e) {
-  if (flatbuffers::IsOutRange(e, Type_Bool8, Type_Time64)) return "";
+inline const char *EnumNameSType(SType e) {
+  if (flatbuffers::IsOutRange(e, SType_Bool8, SType_Arr64)) return "";
   const size_t index = static_cast<size_t>(e);
-  return EnumNamesType()[index];
+  return EnumNamesSType()[index];
 }
+
+enum TypeExtra {
+  TypeExtra_NONE = 0,
+  TypeExtra_child = 1,
+  TypeExtra_MIN = TypeExtra_NONE,
+  TypeExtra_MAX = TypeExtra_child
+};
+
+inline const TypeExtra (&EnumValuesTypeExtra())[2] {
+  static const TypeExtra values[] = {
+    TypeExtra_NONE,
+    TypeExtra_child
+  };
+  return values;
+}
+
+inline const char * const *EnumNamesTypeExtra() {
+  static const char * const names[3] = {
+    "NONE",
+    "child",
+    nullptr
+  };
+  return names;
+}
+
+inline const char *EnumNameTypeExtra(TypeExtra e) {
+  if (flatbuffers::IsOutRange(e, TypeExtra_NONE, TypeExtra_child)) return "";
+  const size_t index = static_cast<size_t>(e);
+  return EnumNamesTypeExtra()[index];
+}
+
+template<typename T> struct TypeExtraTraits {
+  static const TypeExtra enum_value = TypeExtra_NONE;
+};
+
+template<> struct TypeExtraTraits<jay::Type> {
+  static const TypeExtra enum_value = TypeExtra_child;
+};
+
+bool VerifyTypeExtra(flatbuffers::Verifier &verifier, const void *obj, TypeExtra type);
+bool VerifyTypeExtraVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types);
 
 enum Stats {
   Stats_NONE = 0,
@@ -346,6 +399,77 @@ FLATBUFFERS_MANUALLY_ALIGNED_STRUCT(8) Buffer FLATBUFFERS_FINAL_CLASS {
 };
 FLATBUFFERS_STRUCT_END(Buffer, 16);
 
+struct Type FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef TypeBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_STYPE = 4,
+    VT_EXTRA_TYPE = 6,
+    VT_EXTRA = 8
+  };
+  jay::SType stype() const {
+    return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
+  }
+  jay::TypeExtra extra_type() const {
+    return static_cast<jay::TypeExtra>(GetField<uint8_t>(VT_EXTRA_TYPE, 0));
+  }
+  const void *extra() const {
+    return GetPointer<const void *>(VT_EXTRA);
+  }
+  template<typename T> const T *extra_as() const;
+  const jay::Type *extra_as_child() const {
+    return extra_type() == jay::TypeExtra_child ? static_cast<const jay::Type *>(extra()) : nullptr;
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<uint8_t>(verifier, VT_STYPE) &&
+           VerifyField<uint8_t>(verifier, VT_EXTRA_TYPE) &&
+           VerifyOffset(verifier, VT_EXTRA) &&
+           VerifyTypeExtra(verifier, extra(), extra_type()) &&
+           verifier.EndTable();
+  }
+};
+
+template<> inline const jay::Type *Type::extra_as<jay::Type>() const {
+  return extra_as_child();
+}
+
+struct TypeBuilder {
+  typedef Type Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_stype(jay::SType stype) {
+    fbb_.AddElement<uint8_t>(Type::VT_STYPE, static_cast<uint8_t>(stype), 0);
+  }
+  void add_extra_type(jay::TypeExtra extra_type) {
+    fbb_.AddElement<uint8_t>(Type::VT_EXTRA_TYPE, static_cast<uint8_t>(extra_type), 0);
+  }
+  void add_extra(flatbuffers::Offset<void> extra) {
+    fbb_.AddOffset(Type::VT_EXTRA, extra);
+  }
+  explicit TypeBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  TypeBuilder &operator=(const TypeBuilder &);
+  flatbuffers::Offset<Type> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Type>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Type> CreateType(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    jay::SType stype = jay::SType_Bool8,
+    jay::TypeExtra extra_type = jay::TypeExtra_NONE,
+    flatbuffers::Offset<void> extra = 0) {
+  TypeBuilder builder_(_fbb);
+  builder_.add_extra(extra);
+  builder_.add_extra_type(extra_type);
+  builder_.add_stype(stype);
+  return builder_.Finish();
+}
+
 struct Frame FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef FrameBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
@@ -438,16 +562,20 @@ inline flatbuffers::Offset<Frame> CreateFrameDirect(
 struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ColumnBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_TYPE = 4,
+    VT_STYPE = 4,
     VT_DATA = 6,
     VT_STRDATA = 8,
     VT_NAME = 10,
     VT_NULLCOUNT = 12,
     VT_STATS_TYPE = 14,
-    VT_STATS = 16
+    VT_STATS = 16,
+    VT_TYPE = 18,
+    VT_NROWS = 20,
+    VT_BUFFERS = 22,
+    VT_CHILDREN = 24
   };
-  jay::Type type() const {
-    return static_cast<jay::Type>(GetField<uint8_t>(VT_TYPE, 0));
+  jay::SType stype() const {
+    return static_cast<jay::SType>(GetField<uint8_t>(VT_STYPE, 0));
   }
   const jay::Buffer *data() const {
     return GetStruct<const jay::Buffer *>(VT_DATA);
@@ -489,9 +617,21 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   const jay::StatsFloat64 *stats_as_Float64() const {
     return stats_type() == jay::Stats_Float64 ? static_cast<const jay::StatsFloat64 *>(stats()) : nullptr;
   }
+  const jay::Type *type() const {
+    return GetPointer<const jay::Type *>(VT_TYPE);
+  }
+  uint64_t nrows() const {
+    return GetField<uint64_t>(VT_NROWS, 0);
+  }
+  const flatbuffers::Vector<const jay::Buffer *> *buffers() const {
+    return GetPointer<const flatbuffers::Vector<const jay::Buffer *> *>(VT_BUFFERS);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *children() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<jay::Column>> *>(VT_CHILDREN);
+  }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<uint8_t>(verifier, VT_TYPE) &&
+           VerifyField<uint8_t>(verifier, VT_STYPE) &&
            VerifyField<jay::Buffer>(verifier, VT_DATA) &&
            VerifyField<jay::Buffer>(verifier, VT_STRDATA) &&
            VerifyOffset(verifier, VT_NAME) &&
@@ -500,6 +640,14 @@ struct Column FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
            VerifyField<uint8_t>(verifier, VT_STATS_TYPE) &&
            VerifyOffset(verifier, VT_STATS) &&
            VerifyStats(verifier, stats(), stats_type()) &&
+           VerifyOffset(verifier, VT_TYPE) &&
+           verifier.VerifyTable(type()) &&
+           VerifyField<uint64_t>(verifier, VT_NROWS) &&
+           VerifyOffset(verifier, VT_BUFFERS) &&
+           verifier.VerifyVector(buffers()) &&
+           VerifyOffset(verifier, VT_CHILDREN) &&
+           verifier.VerifyVector(children()) &&
+           verifier.VerifyVectorOfTables(children()) &&
            verifier.EndTable();
   }
 };
@@ -536,8 +684,8 @@ struct ColumnBuilder {
   typedef Column Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_type(jay::Type type) {
-    fbb_.AddElement<uint8_t>(Column::VT_TYPE, static_cast<uint8_t>(type), 0);
+  void add_stype(jay::SType stype) {
+    fbb_.AddElement<uint8_t>(Column::VT_STYPE, static_cast<uint8_t>(stype), 0);
   }
   void add_data(const jay::Buffer *data) {
     fbb_.AddStruct(Column::VT_DATA, data);
@@ -557,6 +705,18 @@ struct ColumnBuilder {
   void add_stats(flatbuffers::Offset<void> stats) {
     fbb_.AddOffset(Column::VT_STATS, stats);
   }
+  void add_type(flatbuffers::Offset<jay::Type> type) {
+    fbb_.AddOffset(Column::VT_TYPE, type);
+  }
+  void add_nrows(uint64_t nrows) {
+    fbb_.AddElement<uint64_t>(Column::VT_NROWS, nrows, 0);
+  }
+  void add_buffers(flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers) {
+    fbb_.AddOffset(Column::VT_BUFFERS, buffers);
+  }
+  void add_children(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children) {
+    fbb_.AddOffset(Column::VT_CHILDREN, children);
+  }
   explicit ColumnBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
     start_ = fbb_.StartTable();
@@ -571,43 +731,86 @@ struct ColumnBuilder {
 
 inline flatbuffers::Offset<Column> CreateColumn(
     flatbuffers::FlatBufferBuilder &_fbb,
-    jay::Type type = jay::Type_Bool8,
+    jay::SType stype = jay::SType_Bool8,
     const jay::Buffer *data = 0,
     const jay::Buffer *strdata = 0,
     flatbuffers::Offset<flatbuffers::String> name = 0,
     uint64_t nullcount = 0,
     jay::Stats stats_type = jay::Stats_NONE,
-    flatbuffers::Offset<void> stats = 0) {
+    flatbuffers::Offset<void> stats = 0,
+    flatbuffers::Offset<jay::Type> type = 0,
+    uint64_t nrows = 0,
+    flatbuffers::Offset<flatbuffers::Vector<const jay::Buffer *>> buffers = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<jay::Column>>> children = 0) {
   ColumnBuilder builder_(_fbb);
+  builder_.add_nrows(nrows);
   builder_.add_nullcount(nullcount);
+  builder_.add_children(children);
+  builder_.add_buffers(buffers);
+  builder_.add_type(type);
   builder_.add_stats(stats);
   builder_.add_name(name);
   builder_.add_strdata(strdata);
   builder_.add_data(data);
   builder_.add_stats_type(stats_type);
-  builder_.add_type(type);
+  builder_.add_stype(stype);
   return builder_.Finish();
 }
 
 inline flatbuffers::Offset<Column> CreateColumnDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
-    jay::Type type = jay::Type_Bool8,
+    jay::SType stype = jay::SType_Bool8,
     const jay::Buffer *data = 0,
     const jay::Buffer *strdata = 0,
     const char *name = nullptr,
     uint64_t nullcount = 0,
     jay::Stats stats_type = jay::Stats_NONE,
-    flatbuffers::Offset<void> stats = 0) {
+    flatbuffers::Offset<void> stats = 0,
+    flatbuffers::Offset<jay::Type> type = 0,
+    uint64_t nrows = 0,
+    const std::vector<jay::Buffer> *buffers = nullptr,
+    const std::vector<flatbuffers::Offset<jay::Column>> *children = nullptr) {
   auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto buffers__ = buffers ? _fbb.CreateVectorOfStructs<jay::Buffer>(*buffers) : 0;
+  auto children__ = children ? _fbb.CreateVector<flatbuffers::Offset<jay::Column>>(*children) : 0;
   return jay::CreateColumn(
       _fbb,
-      type,
+      stype,
       data,
       strdata,
       name__,
       nullcount,
       stats_type,
-      stats);
+      stats,
+      type,
+      nrows,
+      buffers__,
+      children__);
+}
+
+inline bool VerifyTypeExtra(flatbuffers::Verifier &verifier, const void *obj, TypeExtra type) {
+  switch (type) {
+    case TypeExtra_NONE: {
+      return true;
+    }
+    case TypeExtra_child: {
+      auto ptr = reinterpret_cast<const jay::Type *>(obj);
+      return verifier.VerifyTable(ptr);
+    }
+    default: return true;
+  }
+}
+
+inline bool VerifyTypeExtraVector(flatbuffers::Verifier &verifier, const flatbuffers::Vector<flatbuffers::Offset<void>> *values, const flatbuffers::Vector<uint8_t> *types) {
+  if (!values || !types) return !values && !types;
+  if (values->size() != types->size()) return false;
+  for (flatbuffers::uoffset_t i = 0; i < values->size(); ++i) {
+    if (!VerifyTypeExtra(
+        verifier,  values->Get(i), types->GetEnum<TypeExtra>(i))) {
+      return false;
+    }
+  }
+  return true;
 }
 
 inline bool VerifyStats(flatbuffers::Verifier &verifier, const void *obj, Stats type) {

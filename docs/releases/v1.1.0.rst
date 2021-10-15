@@ -6,11 +6,88 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[enh] Frames with columns of type :attr:`obj64 <dt.Type.obj64>` can now
+        be saved into CSV. The values in the object column will be stringified
+        upon saving. [#3064]
+
+    -[enh] :meth:`.replace` now supports numpy scalars. [#3164]
+
+    -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
+        In addition, datatable will now skip sorting any column that it knows contains
+        constant values. [#3088] [#3104] [#3108] [#3109]
+
+    -[fix] Saving a frame with a :attr:`void <dt.Type.void>` column into Jay
+        no longer leads to a crash. [#3074] [#3099]
+
+    -[fix] Joining with void columns now works correctly. [#3094]
+
+    -[fix] :func:`dt.sum()` now works correctly when applied to the same
+        column as :func:`dt.by()` [#3110]
+
+    -[fix] Fixed a crash which could have occurred when sorting very long
+        identical or nearly identical strings. [#3134]
+
+    -[fix] Fixed support for :attr:`.max_column_width <datatable.options.display.max_column_width>`
+        option when rendering frames in Jupyter notebooks. [#3160]
+
+    -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
+        now produces a pandas ``object`` column filled with ``None``s. Converting
+        such column back into datatable produces a ``void`` column again. [#3063]
+
+    -[api] When creating Frame from a list of values, a floating-point ``nan``
+        value will now be treated as ``None``. In particular, ``nan``s can now
+        be safely mixed with values of other types, and a list consisting of
+        only ``nan``s will turn into a Column of type
+        :attr:`void <dt.Type.void>`. [#3083]
+
+    -[api] Converting string or object columns to numpy no longer produces a
+        masked array. Instead, we create a regular ``object`` array, filled
+        with ``None``s in place of NAs. Similarly, converting a string or object
+        column to pandas creates a Series with ``None`` values (instead of
+        ``nan``s as before) in place of NAs. [#3083]
+
 
     FExpr
     -----
+    .. current-class:: datatable.FExpr
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
+      which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
+
+    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`  [#2999]
+
+    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
+
+
+    fread
+    -----
     .. current-module:: datatable
+
+    -[enh] When reading Excel files, datetime fields will now be converted into
+        ``time64`` columns in the resulting frame.
+
+    -[api] Parameter ``sep=`` in :func:`fread()` will no longer accept values
+        ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
+        they produced errors during parsing. [#3065]
+
+    -[fix] :func:`fread()` will no longer fail while reading mostly empty
+        files. [#3055]
 
 
     General
     -------
+
+    -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
+        :meth:`dt.Frame.rbind()`) will now allow combining columns
+        of incompatible types. [#3062]
+
+    -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
+        :attr:`.is_boolean <dt.Type.is_boolean>`,
+        :attr:`.is_compound <dt.Type.is_compound>`,
+        :attr:`.is_float <dt.Type.is_float>`,
+        :attr:`.is_integer <dt.Type.is_integer>`,
+        :attr:`.is_numeric <dt.Type.is_numeric>`,
+        :attr:`.is_object <dt.Type.is_object>`,
+        :attr:`.is_string <dt.Type.is_string>`,
+        :attr:`.is_temporal <dt.Type.is_temporal>`,
+        :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101]

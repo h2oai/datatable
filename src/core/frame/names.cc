@@ -229,50 +229,6 @@ void Frame::_init_names(XTypeMaker& xt) {
 // Options
 //------------------------------------------------------------------------------
 
-static const char * doc_options_frame_names_auto_index =
-R"(
-
-This option controls the starting index that is used for auto-naming
-the columns. By default, the names that datatable assigns to frame's columns are
-`C0`, `C1`, `C2`, etc. Setting `names_auto_index`, for instance, to
-`1` will cause the columns to be named as `C1`, `C2`, `C3`, etc.
-
-Parameters
-----------
-return: int
-    Current `names_auto_index` value. Initially, this option is set to `0`.
-
-new_names_auto_index: int
-    New `names_auto_index` value.
-
-See Also
---------
-- :ref:`name-mangling` -- tutorial on name mangling.
-
-)";
-
-static const char * doc_options_frame_names_auto_prefix =
-R"(
-
-This option controls the prefix that is used for auto-naming
-the columns. By default, the names that datatable assigns to frame's columns are
-`C0`, `C1`, `C2`, etc. Setting `names_auto_prefix`, for instance, to
-`Z` will cause the columns to be named as `Z1`, `Z2`, `Z3`, etc.
-
-Parameters
-----------
-return: str
-    Current `names_auto_prefix` value. Initially, this option is set to `C`.
-
-new_names_auto_prefix: str
-    New `names_auto_prefix` value.
-
-See Also
---------
-- :ref:`name-mangling` -- tutorial on name mangling.
-
-)";
-
 static int64_t     names_auto_index = 0;
 static std::string names_auto_prefix = "C";
 
@@ -300,14 +256,14 @@ void py::Frame::init_names_options() {
     "frame.names_auto_index",
     get_names_auto_index,
     set_names_auto_index,
-    doc_options_frame_names_auto_index
+    dt::doc_options_frame_names_auto_index
   );
 
   dt::register_option(
     "frame.names_auto_prefix",
     get_names_auto_prefix,
     set_names_auto_prefix,
-    doc_options_frame_names_auto_prefix
+    dt::doc_options_frame_names_auto_prefix
   );
 }
 

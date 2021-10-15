@@ -98,8 +98,8 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   auto arrow_impl = dynamic_cast<const dt::Arrow_ColumnImpl*>(data->column().impl_);
   xassert(arrow_impl);
   size_t na_count = arrow_impl->stats()->nacount();
-  size_t n_buffers = arrow_impl->num_buffers();
-  size_t n_children = arrow_impl->num_children();
+  size_t n_buffers = arrow_impl->get_num_data_buffers();
+  size_t n_children = arrow_impl->n_children();
   xassert(n_children == 0);
 
   std::unique_ptr<dt::OArrowArray> aarr(new dt::OArrowArray());
@@ -111,7 +111,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
   if (n_buffers) {
     data->buffers().reserve(n_buffers);
     for (size_t i = 0; i < n_buffers; ++i) {
-      const void* buffer_ptr = arrow_impl->get_buffer(i);
+      const void* buffer_ptr = arrow_impl->get_data_buffer(i).rptr();
       data->buffers().push_back( buffer_ptr );
     }
     (*aarr)->buffers = data->buffers().data();
@@ -145,13 +145,23 @@ std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
     case dt::SType::TIME64:  (*osch)->format = "tsn:"; break;  // timezone after :
     case dt::SType::STR32:   (*osch)->format = "u"; break;
     case dt::SType::STR64:   (*osch)->format = "U"; break;
+    case dt::SType::ARR32:   (*osch)->format = "+l"; break;
+    case dt::SType::ARR64:   (*osch)->format = "+L"; break;
     default:
-      throw NotImplError() << "Cannot convert column of type " << stype()
+      throw NotImplError() << "Cannot convert column of type " << type()
                            << " into arrow";
   }
   (*osch)->flags = ARROW_FLAG_NULLABLE;
   (*osch)->release = release_arrow_schema;
   return osch;
+}
+
+bool Column::is_arrow() const {
+  return dynamic_cast<const dt::Arrow_ColumnImpl*>(impl_) != nullptr;
+}
+
+Column Column::as_arrow() const {
+  return impl_->as_arrow();
 }
 
 
@@ -314,19 +324,20 @@ Column dt::ColumnImpl::_as_arrow_str() const {
   */
 Column dt::ColumnImpl::as_arrow() const {
   switch (stype()) {
-    case SType::VOID: return _as_arrow_void();
-    case SType::BOOL: return _as_arrow_bool();
-    case SType::INT8: return _as_arrow_fw<int8_t>();
-    case SType::INT16: return _as_arrow_fw<int16_t>();
-    case SType::INT32: return _as_arrow_fw<int32_t>();
-    case SType::INT64: return _as_arrow_fw<int64_t>();
+    case SType::VOID:    return _as_arrow_void();
+    case SType::BOOL:    return _as_arrow_bool();
+    case SType::INT8:    return _as_arrow_fw<int8_t>();
+    case SType::INT16:   return _as_arrow_fw<int16_t>();
+    case SType::DATE32:
+    case SType::INT32:   return _as_arrow_fw<int32_t>();
+    case SType::TIME64:
+    case SType::INT64:   return _as_arrow_fw<int64_t>();
     case SType::FLOAT32: return _as_arrow_fw<float>();
     case SType::FLOAT64: return _as_arrow_fw<double>();
-    case SType::DATE32: return _as_arrow_fw<int32_t>();
-    case SType::TIME64: return _as_arrow_fw<int64_t>();
-    case SType::STR32: return _as_arrow_str<uint32_t>();
-    case SType::STR64: return _as_arrow_str<uint64_t>();
+    case SType::STR32:   return _as_arrow_str<uint32_t>();
+    case SType::STR64:   return _as_arrow_str<uint64_t>();
     default: break;
   }
-  throw NotImplError() << "Cannot convert column of type " << stype() << " into arrow";
+  throw NotImplError() << "Cannot convert column of type "
+      << type() << " into arrow";
 }

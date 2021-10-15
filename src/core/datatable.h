@@ -90,7 +90,8 @@ class DataTable {
     void resize_columns(const strvec& new_names);
     void apply_rowindex(const RowIndex&);
     void materialize(bool to_memory);
-    void rbind(const std::vector<DataTable*>&, const std::vector<sztvec>&);
+    void rbind(const std::vector<DataTable*>&, const std::vector<sztvec>&,
+               bool force = false);
     void cbind(const std::vector<DataTable*>&);
     DataTable extract_column(size_t i) const;
     size_t memory_footprint() const noexcept;

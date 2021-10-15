@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -76,9 +76,14 @@ const char* stype_name(SType stype) {
     case SType::FLOAT64: return "float64";
     case SType::STR32  : return "str32";
     case SType::STR64  : return "str64";
+    case SType::ARR32  : return "arr32";
+    case SType::ARR64  : return "arr64";
     case SType::TIME64 : return "time64";
     case SType::DATE32 : return "date32";
     case SType::OBJ    : return "obj64";
+    case SType::CAT8   : return "cat8";
+    case SType::CAT16  : return "cat16";
+    case SType::CAT32  : return "cat32";
     case SType::AUTO   : return "auto";
     default            : return "unknown";
   }
@@ -97,9 +102,14 @@ size_t stype_elemsize(SType stype) {
     case SType::FLOAT64: return sizeof(element_t<SType::FLOAT64>);
     case SType::STR32  : return sizeof(element_t<SType::STR32>);
     case SType::STR64  : return sizeof(element_t<SType::STR64>);
+    case SType::ARR32  : return sizeof(element_t<SType::ARR32>);
+    case SType::ARR64  : return sizeof(element_t<SType::ARR64>);
     case SType::TIME64 : return sizeof(element_t<SType::TIME64>);
     case SType::DATE32 : return sizeof(element_t<SType::DATE32>);
     case SType::OBJ    : return sizeof(element_t<SType::OBJ>);
+    case SType::CAT8   : return sizeof(element_t<SType::CAT8>);
+    case SType::CAT16  : return sizeof(element_t<SType::CAT16>);
+    case SType::CAT32  : return sizeof(element_t<SType::CAT32>);
     default            : return 0;
   }
 }
@@ -147,9 +157,14 @@ void init_py_stype_objs(PyObject* stype_enum) {
   _init_py_stype(SType::FLOAT64);
   _init_py_stype(SType::STR32);
   _init_py_stype(SType::STR64);
+  _init_py_stype(SType::ARR32);
+  _init_py_stype(SType::ARR64);
   _init_py_stype(SType::TIME64);
   _init_py_stype(SType::DATE32);
   _init_py_stype(SType::OBJ);
+  _init_py_stype(SType::CAT8);
+  _init_py_stype(SType::CAT16);
+  _init_py_stype(SType::CAT32);
 }
 
 

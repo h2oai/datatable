@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -28,6 +28,7 @@
 #include "datatablemodule.h"
 #include "python/_all.h"
 #include "python/args.h"
+#include "python/xargs.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
 #ifdef DTTEST
@@ -148,18 +149,7 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 namespace py {
 
 
-static const char* doc_get_test_suites =
-R"(get_test_suites()
---
-
-Returns the list of all test suites, i.e. the list of "categories"
-of tests.
-)";
-
-static PKArgs arg_get_test_suites(
-    0, 0, 0, false, false, {}, "get_test_suites", doc_get_test_suites);
-
-static oobj get_test_suites(const PKArgs&) {
+static oobj get_test_suites(const XArgs&) {
   auto suites = dt::tests::get_suites_list();
   olist result(suites.size());
   for (size_t i = 0; i < suites.size(); ++i) {
@@ -168,20 +158,12 @@ static oobj get_test_suites(const PKArgs&) {
   return std::move(result);
 }
 
+DECLARE_PYFN(&get_test_suites)
+    ->name("get_test_suites");
 
-static const char* doc_get_tests_in_suite =
-R"(get_tests_in_suite(suite)
---
 
-Returns the list of tests within a particular suite. An error will
-be raised if the requested test suite does not exist.
-)";
 
-static PKArgs arg_get_tests_in_suite(
-    1, 0, 0, false, false, {"suite"}, "get_tests_in_suite",
-    doc_get_tests_in_suite);
-
-static oobj get_tests_in_suite(const PKArgs& args) {
+static oobj get_tests_in_suite(const XArgs& args) {
   std::string suite = args[0].to_string();
   auto tests = dt::tests::get_tests_list(suite);
   olist result(tests.size());
@@ -191,30 +173,26 @@ static oobj get_tests_in_suite(const PKArgs& args) {
   return std::move(result);
 }
 
+DECLARE_PYFN(&get_tests_in_suite)
+    ->name("get_tests_in_suite")
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"suite"});
 
-static const char* doc_run_test =
-R"(run_test(suite, test)
---
 
-Run a test within the test suite. The test does not return anything,
-but an error will be thrown if something goes wrong.
-)";
 
-static PKArgs arg_run_test(
-    2, 0, 0, false, false, {"suite", "test"}, "run_test", doc_run_test);
-
-static void run_test(const PKArgs& args) {
+static py::oobj run_test(const XArgs& args) {
   std::string suite = args[0].to_string();
   std::string test  = args[1].to_string();
   dt::tests::run_test(suite, test);
+  return py::None();
 }
 
+DECLARE_PYFN(&run_test)
+    ->name("run_test")
+    ->n_positional_args(2)
+    ->arg_names({"suite", "test"});
 
-void DatatableModule::init_tests() {
-  ADD_FN(&get_test_suites, arg_get_test_suites);
-  ADD_FN(&get_tests_in_suite, arg_get_tests_in_suite);
-  ADD_FN(&run_test, arg_run_test);
-}
 
 
 

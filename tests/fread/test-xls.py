@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,18 +115,19 @@ def test_large_ids_xlsx():
 
 
 def test_set_xls_new_xlsx():
+    from datetime import datetime
     filename = find_file("h2o-3", "fread", "test_set_xls_new.xlsx")
     DT = dt.fread(filename)
     assert DT.source == filename
     assert DT.shape == (7, 1)
     assert DT.names == ("Data",)
-    assert DT.to_list()[0] == ['2019-05-06 00:00:00',
-                               '2019-05-07 00:00:00',
-                               '2019-05-08 00:00:00',
-                               '2019-05-09 00:00:00',
-                               '2019-05-10 00:00:00',
-                               '2019-05-11 00:00:00',
-                               '2019-05-12 00:00:00']
+    assert DT.to_list()[0] == [datetime(2019, 5, 6),
+                               datetime(2019, 5, 7),
+                               datetime(2019, 5, 8),
+                               datetime(2019, 5, 9),
+                               datetime(2019, 5, 10),
+                               datetime(2019, 5, 11),
+                               datetime(2019, 5, 12)]
 
 
 def test_diabetes_tiny_two_sheets_xlsx():
@@ -173,14 +174,15 @@ def test_excel_testbook_xlsx_2():
 
 
 def test_excel_testbook_xlsx_3():
+    from datetime import datetime
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     DT3 = dt.fread(filename + "/big sheet")
     assert DT3.source == os.path.abspath(filename) + "/big sheet"
     assert DT3.shape == (20, 2)
     assert DT3.names == ("date1", "time1")
-    assert DT3['date1'].to_list()[0] == ["2020-01-%02d 00:00:00" % i
+    assert DT3['date1'].to_list()[0] == [datetime(2020, 1, i)
                                          for i in range(1, 21)]
-    assert DT3['time1'].to_list()[0] == ["2020-01-01 %02d:24:30" % i
+    assert DT3['time1'].to_list()[0] == [datetime(2020, 1, 1, i, 24, 30)
                                          for i in range(1, 10)] + \
                                         [None] * 11
 

@@ -36,6 +36,12 @@ namespace dt {
 CString::CString()
   : ptr_(nullptr), size_(0) {}
 
+
+CString::CString(const CString& other)
+  : ptr_(other.ptr_),
+    size_(other.size_),
+    buffer_(other.buffer_) {}
+
 CString::CString(CString&& other) noexcept
   : ptr_(other.ptr_),
     size_(other.size_),

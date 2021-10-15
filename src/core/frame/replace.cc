@@ -259,17 +259,17 @@ void ReplaceAgent::split_x_y_bool() {
     py::robj yelem = vy[i];
     if (xelem.is_none()) {
       if (yelem.is_none()) continue;
-      if (!yelem.is_bool()) continue;
+      if (!yelem.is_bool() && !yelem.is_numpy_bool()) continue;
       x_bool.push_back(dt::GETNA<int8_t>());
-      y_bool.push_back(yelem.to_bool());
+      y_bool.push_back(yelem.to_bool_force());
     }
-    else if (xelem.is_bool()) {
-      if (!(yelem.is_none() || yelem.is_bool())) {
+    else if (xelem.is_bool() || xelem.is_numpy_bool()) {
+      if (!(yelem.is_none() || yelem.is_bool() || yelem.is_numpy_bool())) {
         throw TypeError() << "Cannot replace boolean value `" << xelem
           << "` with a value of type " << yelem.typeobj();
       }
-      x_bool.push_back(xelem.to_bool());
-      y_bool.push_back(yelem.to_bool());
+      x_bool.push_back(xelem.to_bool_force());
+      y_bool.push_back(yelem.to_bool_force());
     }
   }
   check_uniqueness<int8_t>(x_bool);
@@ -285,11 +285,12 @@ void ReplaceAgent::split_x_y_int() {
     py::robj xelem = vx[i];
     py::robj yelem = vy[i];
     if (xelem.is_none()) {
-      if (yelem.is_none() || !yelem.is_int()) continue;
+      if (yelem.is_none()) continue;
+      if (!yelem.is_int() && !yelem.is_numpy_int()) continue;
       na_repl = yelem.to_int64();
     }
-    else if (xelem.is_int()) {
-      if (!(yelem.is_none() || yelem.is_int())) {
+    else if (xelem.is_int() || xelem.is_numpy_int()) {
+      if (!(yelem.is_none() || yelem.is_int() || yelem.is_numpy_int())) {
         throw TypeError() << "Cannot replace integer value `" << xelem
           << "` with a value of type " << yelem.typeobj();
       }
@@ -318,11 +319,12 @@ void ReplaceAgent::split_x_y_real() {
     py::robj xelem = vx[i];
     py::robj yelem = vy[i];
     if (xelem.is_none()) {
-      if (yelem.is_none() || !yelem.is_float()) continue;
+      if (yelem.is_none()) continue;
+      if (!yelem.is_float() && !yelem.is_numpy_float()) continue;
       na_repl = yelem.to_double();
     }
-    else if (xelem.is_float()) {
-      if (!(yelem.is_none() || yelem.is_float())) {
+    else if (xelem.is_float() || xelem.is_numpy_float()) {
+      if (!(yelem.is_none() || yelem.is_float() || yelem.is_numpy_float())) {
         throw TypeError() << "Cannot replace float value `" << xelem
           << "` with a value of type " << yelem.typeobj();
       }

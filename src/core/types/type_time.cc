@@ -60,9 +60,7 @@ const char* Type_Time64::struct_format() const {
 }
 
 TypeImpl* Type_Time64::common_type(TypeImpl* other) {
-  if (other->stype() == SType::TIME64 ||
-      other->stype() == SType::DATE32 ||
-      other->is_void()) {
+  if (other->is_temporal() || other->is_void()) {
     return this;
   }
   if (other->is_object() || other->is_invalid()) {

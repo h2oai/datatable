@@ -49,6 +49,7 @@ class Const_ColumnImpl : public Virtual_ColumnImpl {
   */
 class ConstNa_ColumnImpl : public Const_ColumnImpl {
   public:
+    ConstNa_ColumnImpl(size_t nrows, Type type);
     ConstNa_ColumnImpl(size_t nrows, SType stype = SType::VOID);
 
     bool get_element(size_t, int8_t*)   const override;
@@ -59,12 +60,16 @@ class ConstNa_ColumnImpl : public Const_ColumnImpl {
     bool get_element(size_t, double*)   const override;
     bool get_element(size_t, CString*)  const override;
     bool get_element(size_t, py::oobj*) const override;
+    bool get_element(size_t, Column*)   const override;
 
     ColumnImpl* clone() const override;
     void materialize(Column&, bool) override;
+    bool allow_parallel_access() const override;
+    bool is_virtual() const noexcept override;
     void na_pad(size_t nrows, Column&) override;
     void rbind_impl(
         colvec& columns, size_t new_nrows, bool col_empty, dt::SType&) override;
+    void save_to_jay(ColumnJayData&) override;
 };
 
 

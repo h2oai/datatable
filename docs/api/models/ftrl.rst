@@ -1,8 +1,54 @@
 
 .. xclass:: datatable.models.Ftrl
     :src: src/core/models/py_ftrl.h Ftrl
-    :doc: src/core/models/py_ftrl.cc doc_Ftrl
+    :cvar: doc_models_Ftrl
     :tests: tests/models/test-ftrl.py
+
+
+    This class implements the Follow the Regularized Leader (FTRL) model,
+    that is based on the
+    `FTRL-Proximal <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_
+    online learning algorithm for binomial logistic regression. Multinomial
+    classification and regression for continuous targets are also implemented,
+    though these implementations are experimental. This model is fully parallel
+    and is based on the
+    `Hogwild approach <https://people.eecs.berkeley.edu/~brecht/papers/hogwildTR.pdf>`_
+    for parallelization.
+
+    The model supports numerical (boolean, integer and float types),
+    temporal (date and time types) and string features. To vectorize features a hashing trick
+    is employed, such that all the values are hashed with the 64-bit hashing function.
+    This function is implemented as follows:
+
+    - for booleans and integers the hashing function is essentially an identity
+      function;
+
+    - for floats the hashing function trims mantissa, taking into account
+      :attr:`mantissa_nbits <datatable.models.Ftrl.mantissa_nbits>`,
+      and interprets the resulting bit representation as a 64-bit unsigned integer;
+
+    - for date and time types the hashing function is essentially an identity
+      function that is based on their internal integer representations;
+
+    - for strings the 64-bit `Murmur2 <https://github.com/aappleby/smhasher>`_
+      hashing function is used.
+
+    To compute the final hash `x` the Murmur2 hashed feature name is added
+    to the hashed feature and the result is modulo divided by the number of
+    requested bins, i.e. by :attr:`nbins <datatable.models.Ftrl.nbins>`.
+
+    For each hashed row of data, according to
+    `Ad Click Prediction: a View from the Trenches <https://www.eecs.tufts.edu/~dsculley/papers/ad-click-prediction.pdf>`_,
+    the following FTRL-Proximal algorithm is employed:
+
+    .. raw:: html
+
+          <img src="../../_static/ftrl_algorithm.png" width="400"
+           alt="Per-coordinate FTRL-Proximal online learning algorithm" />
+
+    When trained, the model can be used to make predictions, or it can be
+    re-trained on new datasets as many times as needed improving
+    model weights from run to run.
 
 
     Construction

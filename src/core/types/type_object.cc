@@ -96,6 +96,10 @@ Column Type_Object::cast_column(Column&& col) const {
     case SType::OBJ:
       return std::move(col);
 
+    case SType::ARR32:
+    case SType::ARR64:
+      return Column(new CastArrayToObject_ColumnImpl(std::move(col)));
+
     default:
       throw NotImplError() << "Unable to cast column of type `" << col.type()
                         << "` into `obj64`";

@@ -41,13 +41,15 @@ void emit_stylesheet();
 /**
   * This class is responsible for rendering a Frame into HTML.
   */
-class HtmlWidget : public dt::Widget {
+class HtmlWidget : public Widget {
   private:
     std::ostringstream html;
+    int max_width_;
+    size_t : 32;
 
   public:
-    explicit HtmlWidget(DataTable* dt)
-      : dt::Widget(dt, split_view_tag) {}
+    explicit HtmlWidget(DataTable* dt, int max_width)
+      : dt::Widget(dt, split_view_tag), max_width_(max_width) {}
 
     py::oobj to_python() {
       render_all();
@@ -207,7 +209,7 @@ class HtmlWidget : public dt::Widget {
 
 
     void _render_escaped_string(const char* ch, size_t len) {
-      size_t maxi = std::min(len, size_t(50));
+      size_t maxi = std::min(len, static_cast<size_t>(max_width_));
       uint8_t uc;
       for (size_t i = 0; i < maxi; ++i) {
         char c = ch[i];

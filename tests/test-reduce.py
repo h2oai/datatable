@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,9 +26,9 @@ import pytest
 import random
 from datatable import (
     dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
-
 
 #-------------------------------------------------------------------------------
 # Count
@@ -397,7 +397,7 @@ def test_median_float(st):
 
 
 def test_median_all_nas():
-    DT = dt.Frame(N=[math.nan] * 8)
+    DT = dt.Frame(N=[math.nan] * 8, type=float)
     RES = DT[:, median(f.N)]
     assert RES.shape == (1, 1)
     assert RES.stypes == (dt.float64,)
@@ -525,7 +525,7 @@ def test_corr_small_frame():
 def test_corr_with_constant():
     DT = dt.Frame(A=range(23), B=[2.5] * 23)
     D1 = DT[:, corr(f.A, f.B)]
-    assert_equals(D1, dt.Frame([math.nan]))
+    assert_equals(D1, dt.Frame([None], type=float))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -551,3 +551,4 @@ def test_corr_multiple():
     assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
+

@@ -1,7 +1,7 @@
 
 .. xattr:: datatable.models.LinearModel.params
     :src: src/core/models/py_linearmodel.cc LinearModel::get_params_namedtuple LinearModel::set_params_namedtuple
-    :cvar: doc_models_LM_params
+    :cvar: doc_models_LinearModel_params
     :settable: new_params
 
     `LinearModel` model parameters as a named tuple `LinearModelParams`,

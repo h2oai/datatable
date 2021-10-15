@@ -19,42 +19,39 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_TYPES_TYPE_LIST_h
-#define dt_TYPES_TYPE_LIST_h
-#include "types/typeimpl.h"
+#ifndef dt_COLUMN_ARROW_ARRAY_h
+#define dt_COLUMN_ARROW_ARRAY_h
+#include "column/arrow.h"
 namespace dt {
 
 
-
-class Type_List32 : public TypeImpl {
+template <typename T>
+class ArrowArray_ColumnImpl : public Arrow_ColumnImpl {
   private:
-    Type elementType_;
+    Buffer validity_;
+    Buffer offsets_;
+    Column child_;
+    size_t null_count_;
 
   public:
-    Type_List32(Type t);
-    bool is_compound() const override;
-    bool is_list() const override;
-    std::string to_string() const override;
-    bool equals(const TypeImpl* other) const override;
-    size_t hash() const noexcept override;
-    TypeImpl* common_type(TypeImpl* other) override;
+    ArrowArray_ColumnImpl(
+        size_t nrows, size_t nullcount,
+        Buffer&& valid, Buffer&& offsets, Column&& child);
+
+    ColumnImpl* clone() const override;
+    size_t n_children() const noexcept override;
+    const Column& child(size_t i) const override;
+    size_t get_num_data_buffers() const noexcept override;
+    Buffer get_data_buffer(size_t i) const override;
+
+    bool get_element(size_t i, Column* out) const override;
+
+    size_t null_count() const override;
 };
 
 
-
-class Type_List64 : public TypeImpl {
-  private:
-    Type elementType_;
-
-  public:
-    Type_List64(Type t);
-    bool is_compound() const override;
-    bool is_list() const override;
-    std::string to_string() const override;
-    bool equals(const TypeImpl* other) const override;
-    size_t hash() const noexcept override;
-    TypeImpl* common_type(TypeImpl* other) override;
-};
+extern template class ArrowArray_ColumnImpl<uint32_t>;
+extern template class ArrowArray_ColumnImpl<uint64_t>;
 
 
 

@@ -36,6 +36,7 @@ typedef struct bufferinfo  Py_buffer;
 
 class Buffer;
 class Column;
+class ColumnJayData;
 class DataTable;
 class Groupby;
 class MemoryWritableBuffer;

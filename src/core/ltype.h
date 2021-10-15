@@ -92,7 +92,7 @@ enum class LType : uint8_t {
   INVALID  = 8
 };
 
-constexpr size_t LTYPES_COUNT = static_cast<size_t>(LType::INVALID);
+constexpr size_t LTYPES_COUNT = static_cast<size_t>(LType::INVALID) + 1;
 
 
 

@@ -55,7 +55,12 @@ class Type {
     Type& operator=(Type&& other);
     ~Type();
 
+    static Type arr32(Type);
+    static Type arr64(Type);
     static Type bool8();
+    static Type cat8(Type);
+    static Type cat16(Type);
+    static Type cat32(Type);
     static Type date32();
     static Type float32();
     static Type float64();
@@ -63,8 +68,6 @@ class Type {
     static Type int32();
     static Type int64();
     static Type int8();
-    static Type list32(Type);
-    static Type list64(Type);
     static Type obj64();
     static Type str32();
     static Type str64();
@@ -83,12 +86,16 @@ class Type {
     const char* struct_format() const;
 
     SType stype() const;
+    bool is_array() const;
     bool is_boolean() const;
+    bool is_categorical() const;
     bool is_compound() const;
     bool is_float() const;
     bool is_integer() const;
+    bool is_integer_or_void() const;
     bool is_invalid() const;
     bool is_numeric() const;
+    bool is_numeric_or_void() const;
     bool is_object() const;
     bool is_string() const;
     bool is_temporal() const;
@@ -100,6 +107,8 @@ class Type {
     bool operator==(const Type& other) const;
     operator bool() const;
     std::string to_string() const;
+
+    Type child() const;
 
     // (Optionally) change the current type so that it becomes
     // compatible with the type `other`. This can be used, for
@@ -117,6 +126,7 @@ class Type {
     Column cast_column(Column&& column) const;
 
   private:
+    friend class TypeImpl;
     Type(TypeImpl*&&) noexcept;
 };
 
@@ -129,6 +139,7 @@ template<> bool Type::can_be_read_as<float>() const;
 template<> bool Type::can_be_read_as<double>() const;
 template<> bool Type::can_be_read_as<CString>() const;
 template<> bool Type::can_be_read_as<py::oobj>() const;
+template<> bool Type::can_be_read_as<Column>() const;
 
 
 

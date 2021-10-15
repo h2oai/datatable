@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -83,6 +83,7 @@ bool Latent_ColumnImpl::get_element(size_t i, float* out)    const { return vivi
 bool Latent_ColumnImpl::get_element(size_t i, double* out)   const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, CString* out)  const { return vivify()->get_element(i, out); }
 bool Latent_ColumnImpl::get_element(size_t i, py::oobj* out) const { return vivify()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, Column* out)   const { return vivify()->get_element(i, out); }
 
 
 // This method is not thread-safe!
@@ -111,6 +112,13 @@ ColumnImpl* Latent_ColumnImpl::vivify(bool to_memory) const {
   ColumnImpl* new_pcol = std::move(column_).release();
   SType stype = new_pcol->stype();
 
+  // After the placement-materialization we will need to set up
+  // the correct reference count for the new `Sentinel*_ColumnImpl`.
+  // For that, we save value and reference to the `refcount` member
+  // of the current object.
+  size_t refcount_value = this->refcount_;
+  size_t& refcount_reference = this->refcount_;
+
   switch (stype) {
     case SType::BOOL:    new (ptr) SentinelBool_ColumnImpl(std::move(new_pcol)); break;
     case SType::INT8:    new (ptr) SentinelFw_ColumnImpl<int8_t>(std::move(new_pcol)); break;
@@ -124,6 +132,10 @@ ColumnImpl* Latent_ColumnImpl::vivify(bool to_memory) const {
     default:
       throw NotImplError() << "Cannot vivify column of type " << stype;
   }
+
+  // Set up the correct `refcount` for the newly created `Sentinel*_ColumnImpl` object.
+  refcount_reference = refcount_value;
+
   return static_cast<ColumnImpl*>(ptr);
 }
 

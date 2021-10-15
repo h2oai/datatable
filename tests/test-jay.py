@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -37,6 +37,14 @@ from tests import assert_equals, noop, isview
 #-------------------------------------------------------------------------------
 # Jay format
 #-------------------------------------------------------------------------------
+
+def test_jay_simplest():
+    DT = dt.Frame(A=range(5))
+    out = DT.to_jay()
+    assert isinstance(out, bytes)
+    RES = dt.fread(out)
+    assert_equals(RES, DT)
+
 
 def test_jay_simple(tempfile_jay):
     dt0 = dt.Frame({"A": [-1, 7, 10000, 12],
@@ -125,10 +133,9 @@ def test_jay_object_columns(tempfile_jay):
     src2 = [(2, 3), (5, 6, 7), 9, {"A": 3}] / dt.obj64
     d0 = dt.Frame(A=src1, B=src2)
     assert d0.stypes == (dt.int32, dt.obj64)
-    with pytest.warns(DatatableWarning) as ws:
+    msg = "Column B of type obj64 cannot be saved to Jay"
+    with pytest.warns(DatatableWarning, match=msg) as ws:
         d0.to_jay(tempfile_jay)
-    assert len(ws) == 1
-    assert "Column `B` of type obj64 was not saved" in ws[0].message.args[0]
     d1 = dt.fread(tempfile_jay)
     frame_integrity_check(d1)
     assert d1.names == ("A",)
@@ -144,6 +151,24 @@ def test_jay_empty_frame(tempfile_jay):
     assert d1.shape == (0, 0)
     assert d1.names == tuple()
     assert d1.source == tempfile_jay
+
+
+def test_jay_void_column():
+    DT = dt.Frame([None] * 5)
+    jay = DT.to_jay()
+    RES = dt.fread(jay)
+    assert_equals(DT, RES)
+
+
+def test_jay_void_column_typecast():
+    DT = dt.Frame([None] * 10)
+    assert DT.type == dt.Type.void
+    DT[0] = dt.Type.int32
+    assert DT.type == dt.Type.int32
+    jay = DT.to_jay()
+    RES = dt.fread(jay)
+    assert RES.type == dt.Type.int32
+    assert_equals(RES, dt.Frame([None]*10, type='int32'))
 
 
 def test_jay_all_types(tempfile_jay):
