@@ -40,12 +40,6 @@ static PKArgs args___init__(
   0, 0, 2, true, false, {"reverse", "na_position"}, "__init__", nullptr
 );
 
-void osort::osort_pyobject::fill_rev_flag_vec(size_t len, bool flag) {
-  for (size_t i = 0; i < len; ++i) {
-      (*reverse_)[i] = flag;
-  }
-}
-
 size_t osort::osort_pyobject::get_num_cols(const PKArgs& args) {
   for (robj arg : args.varargs()) {
     if (arg.is_list_or_tuple()) return arg.to_pylist().size();
@@ -59,14 +53,13 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
   const Arg& arg_reverse = args[0];
   const Arg& arg_na_position = args[1];
   size_t ncols = get_num_cols(args);
-  reverse_ = new std::vector<bool>(ncols);
 
   if (arg_reverse.is_none_or_undefined()) {
-    fill_rev_flag_vec(ncols, false);
+    reverse_ = new std::vector<bool>(ncols, false);
   }
   else if (arg_reverse.is_bool()) {
     bool rev = arg_reverse.to<bool>(false);
-    fill_rev_flag_vec(ncols, rev);
+    reverse_ = new std::vector<bool>(ncols, rev);
   }
   else if (arg_reverse.is_list_or_tuple()) {
     auto revlist = arg_reverse.to_pylist();
@@ -75,6 +68,7 @@ void osort::osort_pyobject::m__init__(const PKArgs& args)
         throw ValueError() << "Mismatch between the number of columns (ncols=" << ncols << ") to be sorted and "
           "number of elements (nflags=" << nflags << ") in the reverse flag list";
     }
+    reverse_ = new std::vector<bool>(ncols);
     for (size_t i = 0; i < nflags; ++i) {
       (*reverse_)[i] = revlist[i].to_bool_strict();
     }
@@ -193,5 +187,5 @@ const std::vector<NaPosition>& osort::get_na_position() const {
   return reinterpret_cast<const osort::osort_pyobject*>(v)->get_na_position();
 }
 
-}// namespace py
+} // namespace py
 
