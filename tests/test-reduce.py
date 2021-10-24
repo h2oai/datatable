@@ -25,7 +25,7 @@ import math
 import pytest
 import random
 from datatable import (
-    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr, prod)
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
@@ -552,3 +552,29 @@ def test_corr_multiple():
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
 
+
+
+#-------------------------------------------------------------------------------
+# prod
+#-------------------------------------------------------------------------------
+
+def test_prod_simple():
+    A = range(1, 5)
+    DT = dt.Frame(A=A)
+    R = DT[:, prod(f.A)]
+    frame_integrity_check(R)
+    assert R.to_list() == [[math.prod(A)]]
+    assert str(R)
+
+
+def test_prod_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RZ = DT[:, prod(f[:])]
+    frame_integrity_check(RZ)
+    assert RZ.shape == (1, 4)
+    assert RZ.names == ("A", "B", "C", "D")
+    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
+    assert RZ.to_list() == [[1], [1], [1], [1]]
+    assert str(RZ)
