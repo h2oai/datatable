@@ -228,7 +228,7 @@ def build_extension(cmd, verbosity=3):
 
     if ext.compiler.is_msvc():
         # General compiler flags
-        ext.compiler.add_compiler_flag("/std:c++14")
+        ext.compiler.add_compiler_flag("/std:c++17")
         ext.compiler.add_compiler_flag("/EHsc")
         ext.compiler.add_compiler_flag("/nologo")
         ext.compiler.add_include_dir(ext.compiler.path + "\\include")
@@ -282,7 +282,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
-        ext.compiler.add_compiler_flag("-std=c++14")
+        ext.compiler.add_compiler_flag("-std=c++17")
         # "-stdlib=libc++"  (clang ???)
         ext.compiler.add_compiler_flag("-fPIC")
         # -pthread is recommended for compiling/linking multithreaded apps
