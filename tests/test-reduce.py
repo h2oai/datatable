@@ -578,3 +578,4 @@ def test_prod_empty_frame():
     assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
     assert RZ.to_list() == [[1], [1], [1], [1]]
     assert str(RZ)
+
