@@ -69,6 +69,8 @@ extern const char* doc_dt_symdiff;
 extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
 extern const char* doc_dt_update;
+extern const char* doc_dt_prod;
+extern const char* doc_FExpr_prod;
 
 extern const char* doc_internal_frame_column_data_r;
 extern const char* doc_internal_frame_columns_virtual;
