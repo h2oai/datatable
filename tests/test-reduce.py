@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import math
+import numpy as np
 import pytest
 import random
 from datatable import (
@@ -563,7 +564,7 @@ def test_prod_simple():
     DT = dt.Frame(A=A)
     R = DT[:, prod(f.A)]
     frame_integrity_check(R)
-    assert R.to_list() == [[math.prod(A)]]
+    assert R.to_list() == [[np.prod(A)]]
     assert str(R)
 
 
