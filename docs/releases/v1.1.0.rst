@@ -57,7 +57,7 @@
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`  [#2999]
 
     -[new] Added reducer function :func:`dt.prod()`, as well as :meth:`.prod()` method,
-      which behaves exactly as :func:`dt.prod()`.  [#3140]
+      which behaves exactly as :func:`dt.prod()`  [#3140]
 
     -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
 
