@@ -573,8 +573,6 @@ def test_prod_empty_frame():
     assert DT.shape == (0, 4)
     RES = DT[:, prod(f[:])]
     frame_integrity_check(RES)
-    assert RES.shape == (1, 4)
-    assert RES.names == ("A", "B", "C", "D")
     assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
     assert str(RES)
 
