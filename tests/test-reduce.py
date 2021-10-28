@@ -560,23 +560,21 @@ def test_corr_multiple():
 #-------------------------------------------------------------------------------
 
 def test_prod_simple():
-    A = range(1, 5)
-    DT = dt.Frame(A=A)
-    R = DT[:, prod(f.A)]
-    frame_integrity_check(R)
-    assert R.to_list() == [[np.prod(A)]]
-    assert str(R)
+    DT = dt.Frame(A=range(1, 5))
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[np.prod(np.arange(1,5))]]
+    assert str(RES)
 
 
 def test_prod_empty_frame():
     DT = dt.Frame([[]] * 4, names=list("ABCD"),
                   stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
     assert DT.shape == (0, 4)
-    RZ = DT[:, prod(f[:])]
-    frame_integrity_check(RZ)
-    assert RZ.shape == (1, 4)
-    assert RZ.names == ("A", "B", "C", "D")
-    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
-    assert RZ.to_list() == [[1], [1], [1], [1]]
-    assert str(RZ)
+    RES = DT[:, prod(f[:])]
+    frame_integrity_check(RES)
+    assert RES.shape == (1, 4)
+    assert RES.names == ("A", "B", "C", "D")
+    assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
+    assert str(RES)
 

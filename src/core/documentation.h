@@ -25,7 +25,6 @@ namespace dt {
 
 
 extern const char* doc_dt_as_type;
-extern const char* doc_FExpr_as_type;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
@@ -70,7 +69,6 @@ extern const char* doc_dt_union;
 extern const char* doc_dt_unique;
 extern const char* doc_dt_update;
 extern const char* doc_dt_prod;
-extern const char* doc_FExpr_prod;
 
 extern const char* doc_internal_frame_column_data_r;
 extern const char* doc_internal_frame_columns_virtual;
@@ -298,6 +296,9 @@ extern const char* doc_FExpr_rowsum;
 extern const char* doc_FExpr_sd;
 extern const char* doc_FExpr_shift;
 extern const char* doc_FExpr_sum;
+extern const char* doc_FExpr_as_type;
+extern const char* doc_FExpr_prod;
+
 
 extern const char* doc_Namespace;
 
