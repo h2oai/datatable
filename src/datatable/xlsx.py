@@ -90,7 +90,7 @@ def read_xlsx_worksheet(ws, subrange=None):
                     cell_type = type(cell.value)
 
                 outdata[icol][irow] = cell_value
-                prev_type = coltypes[icol] if icol else None
+                prev_type = coltypes[icol]
                 if prev_type is None and cell_type is not None:
                     coltypes[icol] = cell_type
                 elif cell_type is None or cell_type == prev_type:
