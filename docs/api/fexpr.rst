@@ -295,6 +295,6 @@
     .sd()           <fexpr/sd>
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
-    .prod()          <fexpr/prod>
+    .prod()         <fexpr/prod>
     .as_type()      <fexpr/as_type>
 
