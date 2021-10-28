@@ -1016,7 +1016,7 @@ def test_sort_double_negation():
     assert_equals(DT[:, :, sort(f.A)], RES4)
 
 
-def test_sort_with_reverse_list(numpy):
+def test_sort_with_reverse_list_false_true(numpy):
     DT = dt.Frame(
     {
     'A': ['o1','o2','o3','o4','o5']*25,
@@ -1027,6 +1027,22 @@ def test_sort_with_reverse_list(numpy):
     RES1 = DT[:, :, dt.sort("A", "B", reverse=[False,True])]
     RES2 = DT[:, :, dt.sort(0, 1, reverse=[False,True])]
     RES3 = DT[:, :, dt.sort(["A", "B"], reverse=[False,True])]
+    assert_equals(EXPECTED, RES1)
+    assert_equals(EXPECTED, RES2)
+    assert_equals(EXPECTED, RES3)
+
+
+def test_sort_with_reverse_list_true_true(numpy):
+    DT = dt.Frame(
+    {
+    'A': ['o1','o2','o3','o4','o5']*25,
+    'B': ['c1','c1','c2','c2','c3']*25,
+    'C': [5,1,3, numpy.NaN,numpy.NaN]*25
+    })
+    EXPECTED = DT[:, :, dt.sort(-f.A, -f.B)]
+    RES1 = DT[:, :, dt.sort("A", "B", reverse=[True,True])]
+    RES2 = DT[:, :, dt.sort(0, 1, reverse=[True,True])]
+    RES3 = DT[:, :, dt.sort(["A", "B"], reverse=[True,True])]
     assert_equals(EXPECTED, RES1)
     assert_equals(EXPECTED, RES2)
     assert_equals(EXPECTED, RES3)
