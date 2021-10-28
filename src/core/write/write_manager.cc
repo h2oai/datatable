@@ -232,7 +232,7 @@ void write_manager::determine_chunking_strategy()
 
   int attempts = 5;
   while (attempts--) {
-    double rows_per_chunk = static_cast<double>(nrows + 1) / static_cast<double>(nchunks);
+    double rows_per_chunk = static_cast<double>(nrows) / static_cast<double>(nchunks);
     auto bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
     if (rows_per_chunk < 1.0) {
       // If each row's size is too large, then parse 1 row at a time.
