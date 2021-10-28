@@ -41,9 +41,14 @@ static PKArgs args___init__(
 );
 
 size_t osort::osort_pyobject::get_num_cols(const PKArgs& args) {
-  auto arg = *(args.varargs().begin());
-  if (arg.is_list_or_tuple()) return arg.to_oiter().size();
-  else return args.num_vararg_args();
+  size_t nvarargs = args.num_vararg_args();
+  if (nvarargs == 1) {
+    auto vararg = *(args.varargs().begin());
+    if (vararg.is_list_or_tuple()) {
+      return vararg.to_oiter().size();
+    }
+  }
+  return nvarargs;
 }
 
 void osort::osort_pyobject::m__init__(const PKArgs& args)
