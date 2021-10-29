@@ -10,7 +10,7 @@
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
 
-    -[enh] :meth:`.replace` now supports numpy scalars. [#3164]
+    -[enh] :meth:`.replace()` now supports numpy scalars. [#3164]
 
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
@@ -22,13 +22,16 @@
     -[fix] Joining with void columns now works correctly. [#3094]
 
     -[fix] :func:`dt.sum()` now works correctly when applied to the same
-        column as :func:`dt.by()` [#3110]
+        column as :func:`dt.by()`. [#3110]
 
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
 
     -[fix] Fixed support for :attr:`.max_column_width <datatable.options.display.max_column_width>`
         option when rendering frames in Jupyter notebooks. [#3160]
+
+    -[fix] Fixed a crash which in rare situations happened in :meth:`.to_csv()` due to
+        multithreading. [#3176]
 
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
