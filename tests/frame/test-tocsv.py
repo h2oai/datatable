@@ -438,9 +438,10 @@ def test_issue2382():
 
 
 def test_issue3176():
-    nrows = 15
+    import multiprocessing as mp
+    dt.options.nthreads = min(8, mp.cpu_count())
+    nrows = dt.options.nthreads * 2 - 1
     ncols = 41
-    dt.options.nthreads = 8
     src = [0.0] * nrows
     DT0 = dt.Frame([src] * ncols)
     DT1 = dt.Frame(DT0.to_csv())
