@@ -103,6 +103,17 @@ def test_xlsx_simple(tempfile_xlsx):
     assert_equals(dt0, dt1)
 
 
+def test_xlsx_subpath(tempfile_xlsx):
+    dt0 = dt.Frame({"A": [-1, 7, 10000, 12],
+                    "B": [True, None, False, None],
+                    "C": ["alpha", "beta", None, "delta"]})
+    frame_to_xlsx(dt0, tempfile_xlsx)
+    sub_worksheet = tempfile_xlsx + "/Sheet/A1:B3"
+    dt1 = dt.Frame(sub_worksheet)
+    assert dt1.source == sub_worksheet
+    assert_equals(dt0[:2, :2], dt1)
+
+
 def test_xlsx_all_types(tempfile_xlsx):
     from datetime import datetime
     dt0 = dt.Frame([[True, False, None, True, True],

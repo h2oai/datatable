@@ -35,7 +35,7 @@ def read_xlsx_workbook(filename, subpath):
             if "/" in subpath:
                 sheetname, xlsrange = subpath.rsplit('/', 1)
                 range2d = xlsrange
-            if not(sheetname in wb.sheet_names() and range2d is not None):
+            if not(sheetname in wb.sheetnames and range2d is not None):
                 raise ValueError("Sheet `%s` is not found in the XLS file"
                                  % subpath)
         ws = wb.get_sheet_by_name(sheetname)
