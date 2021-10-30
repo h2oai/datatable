@@ -563,7 +563,7 @@ def test_prod_simple():
     DT = dt.Frame(A=range(1, 5))
     RES = DT[:, prod(f.A)]
     frame_integrity_check(RES)
-    assert RES.to_list() == [[np.prod(np.arange(1,5))]]
+    assert RES.to_numpy().item() == np.prod(np.arange(1,5))
     assert str(RES)
 
 
@@ -576,3 +576,17 @@ def test_prod_empty_frame():
     assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
     assert str(RES)
 
+def test_prod_bool():
+    DT = dt.Frame(A= [True, False, True])
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod([True, False, True])
+    assert str(RES)
+
+def test_prod_floats():
+    random_numbers = np.random.randn(3)
+    DT = dt.Frame(A= random_numbers)
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod(random_numbers)
+    assert str(RES)
