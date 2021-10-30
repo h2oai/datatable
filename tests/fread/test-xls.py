@@ -18,7 +18,7 @@ import os
 import pytest
 import random
 import datatable as dt
-from tests import find_file, assert_equals
+from tests import find_file, assert_equals, frame_to_xlsx
 from datatable.xls import (
     _parse_row, _combine_ranges, _process_merged_cells,
     _range2d_to_excel_coords, _excel_coords_to_range2d)
@@ -91,6 +91,41 @@ def test__excel_coords_to_range2d(seed):
         range2d = (row0, row1, col0, col1)
         excel_coords = _range2d_to_excel_coords(range2d)
         assert _excel_coords_to_range2d(excel_coords) == range2d
+
+
+def test_xlsx_simple(tempfile_xlsx):
+    dt0 = dt.Frame({"A": [-1, 7, 10000, 12],
+                    "B": [True, None, False, None],
+                    "C": ["alpha", "beta", None, "delta"]})
+    frame_to_xlsx(dt0, tempfile_xlsx)
+    dt1 = dt.Frame(tempfile_xlsx)
+    assert dt1.source == tempfile_xlsx
+    assert_equals(dt0, dt1)
+
+
+def test_xlsx_all_types(tempfile_xlsx):
+    from datetime import datetime
+    dt0 = dt.Frame([[True, False, None, True, True],
+                   [None, 1, -9, 12, 3],
+                   [4, 1346, 999, None, None],
+                   [591, 0, None, -395734, 19384709],
+                   [None, 777, 1093487019384, -384, None],
+                   [2.987, 3.45e-24, -0.189134e+12, 45982.1, None],
+                   [39408.301, 9.459027045e-125, 4.4508e+222, None, 3.14159],
+                   [datetime(2021, 5, 6), datetime(2019, 9, 6),
+                    datetime(2019, 5, 6), None, datetime(2000, 12, 6)],
+                   ["Life", "Liberty", "and", "Pursuit of Happiness", None],
+                   ["кохайтеся", "чорнобриві", ",", "та", "не з москалями"]
+                   ],
+                  stypes=[dt.bool8, dt.int32, dt.int32, dt.int32, dt.int64,
+                          dt.float64, dt.float64, dt.Type.time64, dt.str32,
+                          dt.str32],
+                  names=["b8", "i32", "i32", "i32", "i32", "f64", "f64",
+                         "time64", "s32", "s32"])
+    frame_to_xlsx(dt0, tempfile_xlsx)
+    dt1 = dt.Frame(tempfile_xlsx)
+    assert dt1.source == tempfile_xlsx
+    assert_equals(dt0, dt1)
 
 
 def test_10k_diabetes_xlsx():
