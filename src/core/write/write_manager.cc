@@ -139,7 +139,7 @@ void write_manager::write_rows()
     public:
       OTask(size_t nrows, size_t nch, size_t rowsize,
             write_manager* wm, WritableBuffer* wbuf, bool compress)
-        : ctx_(rowsize, nrows / nch, compress),
+        : ctx_(rowsize, std::max<size_t>(nrows / nch, 1), compress),
           wb_(wbuf),
           wmanager_(wm),
           nrows_(nrows),
@@ -232,7 +232,7 @@ void write_manager::determine_chunking_strategy()
 
   int attempts = 5;
   while (attempts--) {
-    double rows_per_chunk = static_cast<double>(nrows) / static_cast<double>(nchunks);
+    double rows_per_chunk = static_cast<double>(nrows + 1) / static_cast<double>(nchunks);
     auto bytes_per_chunk = static_cast<size_t>(bytes_per_row * rows_per_chunk);
     if (rows_per_chunk < 1.0) {
       // If each row's size is too large, then parse 1 row at a time.
