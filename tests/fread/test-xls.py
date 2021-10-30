@@ -131,8 +131,8 @@ def test_xlsx_all_types(tempfile_xlsx):
                   stypes=[dt.bool8, dt.int32, dt.int32, dt.int32, dt.int64,
                           dt.float64, dt.float64, dt.Type.time64, dt.str32,
                           dt.str32],
-                  names=["b8", "i32", "i32", "i32", "i32", "f64", "f64",
-                         "time64", "s32", "s32"])
+                  names=["b8", "i32", "2i32", "3i32", "4i32", "f64", "2f64",
+                         "time64", "s32", "2s32"])
     frame_to_xlsx(dt0, tempfile_xlsx)
     dt1 = dt.Frame(tempfile_xlsx)
     assert dt1.source == tempfile_xlsx
