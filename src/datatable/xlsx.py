@@ -95,7 +95,8 @@ def read_xlsx_worksheet(ws, subrange=None):
                     coltypes[icol] = cell_type
                 elif cell_type is None or cell_type == prev_type:
                     pass
-                else:
+                elif cell_type is str:
+                    # str always win
                     coltypes[icol] = str
 
         # let the frame decide on the types of non-str cols
