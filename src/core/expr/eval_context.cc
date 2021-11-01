@@ -68,9 +68,7 @@ void EvalContext::add_sortby(py::osort obj) {
     throw TypeError() << "Multiple sort()'s are not allowed";
   }
   sortexpr_ = as_fexpr(obj.get_arguments());
-  for (auto r : obj.get_reverse()) {
-    reverse_.push_back(r);
-  }
+  reverse_ = std::move(obj.get_reverse());
   na_position_ = obj.get_na_position().at(0);
 }
 
@@ -234,6 +232,7 @@ void EvalContext::create_placeholder_columns() {
 //
 
 bool EvalContext::get_reverse_flag(size_t id) {
+  xassert(id < reverse_.size());
   return reverse_.at(id);
 }
 
