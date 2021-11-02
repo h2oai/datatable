@@ -145,7 +145,8 @@
          5 | A          1      1      2
         [6 rows x 4 columns]
 
-    The same code above can be replicated by passing a list of booleans to ``reverse``::
+    The same code above can be replicated by passing a list of booleans to ``reverse``. 
+    The length of the reverse flag list should match the number of columns to be sorted::
 
         >>> DT[:, :, dt.sort("col2", "col3", reverse=[True, False])]
            | col1    col2   col3   col4

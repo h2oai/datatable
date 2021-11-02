@@ -334,26 +334,30 @@ void FExpr_List::prepare_by(
   if (args_.empty()) return;
 
   auto kind = _resolve_list_kind(args_);
-  bool reverse = ctx.reverse_sort();
   if (kind == Kind::Str || kind == Kind::Int) {
+    size_t colid = 0;
     for (const auto& arg : args_) {
+      bool reverse = (ctx.get_mod_type() == ModType::BY)? false
+                                                        : ctx.get_reverse_flag(colid);
       outwf.cbind( arg->evaluate_f(ctx, 0) );
       set_outflags(ctx, outflags, reverse);
+      ++colid;
     }
   }
   else if (kind == Kind::Func) {
+    size_t colid = 0;
     for (const auto& arg : args_) {
+      bool reverse = (ctx.get_mod_type() == ModType::BY)? false
+                                                        : ctx.get_reverse_flag(colid);
       auto negcol = arg->unnegate_column();
       if (negcol) {
         outwf.cbind( negcol->evaluate_n(ctx) );
-        if (ctx.get_mod_type() == ModType::BY) {
-          reverse = false;
-        }
-        outflags.push_back(reverse ? SortFlag::NONE : SortFlag::DESCENDING);
+        outflags.push_back(reverse? SortFlag::NONE : SortFlag::DESCENDING);
       } else {
         outwf.cbind( arg->evaluate_n(ctx) );
         set_outflags(ctx, outflags, reverse);
       }
+      ++colid;
     }
   }
   else {
