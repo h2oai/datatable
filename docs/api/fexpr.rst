@@ -217,6 +217,8 @@
         * - :meth:`.as_type()`
           - Same as :func:`dt.as_type()`.
 
+        * - :meth:`.prod()`
+          - Same as :func:`dt.prod()`.
 
     Miscellaneous
     -------------
@@ -293,5 +295,6 @@
     .sd()           <fexpr/sd>
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
+    .prod()         <fexpr/prod>
     .as_type()      <fexpr/as_type>
 

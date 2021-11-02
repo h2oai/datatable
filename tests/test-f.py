@@ -400,3 +400,11 @@ def test_as_type():
 
     assert_equals(DT[:, f.A.as_type(int)], DT[:, dt.as_type(f.A, int)])
     assert_equals(DT[:, f[:].as_type(float)], DT[:, dt.as_type(f[:], float)])
+
+
+def test_prod():
+    assert str(dt.prod(f.A)) == str(f.A.prod())
+    assert str(dt.prod(f[:])) == str(f[:].prod())
+    DT = dt.Frame(A=range(1, 10))
+    assert_equals(DT[:, f.A.prod()], DT[:, dt.prod(f.A)])
+

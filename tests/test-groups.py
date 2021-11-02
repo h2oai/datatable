@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum, count, by, sort
+from datatable import f, mean, min, max, sum, count, by, sort, prod
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, isview
 
@@ -292,6 +292,14 @@ def test_reduce_sum_same_column():
     frame_integrity_check(f1)
     assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "sum" : [0, 2, 2]/dt.int64}))
 
+def test_reduce_prod():
+    f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
+                   "size": [5, 2, 7, 13, -1]})
+    f1 = f0[:, prod(f.size), f.color]
+    frame_integrity_check(f1)
+    assert f1.to_list() == [["blue", "green", "red"],
+                            [2, -7, 65]]
+
 
 #-------------------------------------------------------------------------------
 # Groupby on large datasets
@@ -362,6 +370,13 @@ def test_groupby_multi():
     assert res.to_list() == [[1, 1, 2, 2, 3, 3],
                              [1, 2, 1, 2, 1, 2],
                              [6, 3, 4, 8, 10, 5]]
+
+def test_groupby_multi_prod():
+    DT = dt.Frame(A=[1, 2, 3] * 3, B=[1, 2] * 4 + [1], C=range(1, 10))
+    res = DT[:, prod(f.C), by("A", "B")]
+    assert res.to_list() == [[1, 1, 2, 2, 3, 3],
+                             [1, 2, 1, 2, 1, 2],
+                             [7, 4, 5, 16, 27, 6]]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
