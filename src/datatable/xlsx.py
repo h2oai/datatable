@@ -71,37 +71,22 @@ def read_xlsx_worksheet(ws, subrange=None):
         subview = ws[range2d]
         # the subview is a tuple of rows, which are tuples of columns
         ncols = len(subview[0])
-        nrows = len(subview) - 1
         colnames = [str(n.value) for n in subview[0]]
-        coltypes = [None] * ncols
-        outdata = [[None] * nrows for _ in range(ncols)]
-        for irow, row in enumerate(subview[1:]):
-            for icol, cell in enumerate(row):
-                cell_value = cell.value
-                cell_type = cell.data_type
-                if not cell_type or cell_type == "e" or cell_value is None:
-                    cell_value = None
-                    cell_type = None
-                elif cell_type == "b":
-                    cell_value = bool(cell_value)
-                    cell_type = bool
-                else:
-                    # float, int, date, etc
-                    cell_type = type(cell.value)
 
-                outdata[icol][irow] = cell_value
-                prev_type = coltypes[icol]
-                if prev_type is None and cell_type is not None:
-                    coltypes[icol] = cell_type
-                elif cell_type is None or cell_type == prev_type:
-                    pass
-                elif cell_type is str:
-                    # str always win
-                    coltypes[icol] = str
+        outdata = [
+            [
+                row[i]._value if row[i].data_type != "e" else None
+                for row in subview[1:]
+            ]
+            for i in range(ncols)
+        ]
+        coltypes = [
+            str if any(isinstance(cell, str) for cell in col) else None
+            for col in outdata
+        ]
 
         # let the frame decide on the types of non-str cols
-        types = [str if coltype == str else None
-                 for coltype in coltypes]
+        types = [str if coltype == str else None for coltype in coltypes]
         frame = dt.Frame(outdata, names=colnames, types=types)
         results[range2d] = frame
     return results
