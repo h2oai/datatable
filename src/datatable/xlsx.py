@@ -38,7 +38,7 @@ def read_xlsx_workbook(filename, subpath):
             if not(sheetname in wb.sheetnames and range2d is not None):
                 raise ValueError("Sheet `%s` is not found in the XLS file"
                                  % subpath)
-        ws = wb.get_sheet_by_name(sheetname)
+        ws = wb[sheetname]
         result = read_xlsx_worksheet(ws, range2d)
     else:
         wb = openpyxl.load_workbook(filename, data_only=True)
