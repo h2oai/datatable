@@ -29,7 +29,7 @@ def read_xlsx_workbook(filename, subpath):
     if subpath:
         wb = openpyxl.load_workbook(filename, data_only=True)
         range2d = None
-        if subpath in wb.get_sheet_names():
+        if subpath in wb.sheetnames:
             sheetname = subpath
         else:
             if "/" in subpath:
