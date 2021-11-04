@@ -1,4 +1,7 @@
 
 .. xmethod:: datatable.FExpr.rowfirst
     :src: src/core/expr/fexpr.cc PyFExpr::rowfirst
-    :doc: src/core/expr/fexpr.cc doc_rowfirst
+    :cvar: doc_FExpr_rowfirst
+    :signature: rowfirst()
+
+    Equivalent to :func:`dt.rowfirst(self)`.

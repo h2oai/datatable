@@ -29,7 +29,8 @@
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "stype.h"
-#include <iostream>
+#include <type_traits>
+#include <set>
 namespace dt {
 namespace expr {
 
@@ -110,212 +111,6 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 //------------------------------------------------------------------------------
 // first(A), last(A)
 //------------------------------------------------------------------------------
-#if 0
-static const char* doc_first =
-R"(first(cols)
---
-
-Return the first row for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names, stypes and
-    number of columns as in `cols`.
-
-
-Examples
---------
-:func:`first()` returns the first column in a frame::
-
-    >>> from datatable import dt, f, by, sort, first
-    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
-    ...                "B": [None, 2, 3, 4, 5]})
-    >>> df
-       |  A   B
-    -- + --  --
-     0 |  1  NA
-     1 |  1   2
-     2 |  2   3
-     3 |  1   4
-     4 |  2   5
-
-    [5 rows x 2 columns]
-    >>> dt.first(df)
-       |  A
-    -- + --
-     0 |  1
-     1 |  1
-     2 |  2
-     3 |  1
-     4 |  2
-
-    [5 rows x 1 column]
-
-Within a frame, it returns the first row::
-
-    >>> df[:, first(f[:])]
-       |  A   B
-    -- + --  --
-     0 |  1  NA
-
-    [1 row x 2 columns]
-
-Of course, you can replicate this by passing 0 to the ``i`` section instead::
-
-    >>> df[0, :]
-       |  A   B
-    -- + --  --
-     0 |  1  NA
-
-    [1 row x 2 columns]
-
-:func:`first()` comes in handy if you wish to get the first non null value in a
-column::
-
-    >>> df[f.B != None, first(f.B)]
-       |  B
-    -- + --
-     0 |  2
-
-    [1 row x 1 column]
-
-:func:`first()` returns the first row per group in a :func:`by()` operation::
-
-    >>> df[:, first(f[:]), by("A")]
-       |  A   B
-    -- + --  --
-     0 |  1  NA
-     1 |  2   3
-
-    [2 rows x 2 columns]
-
-To get the first non-null value per row in a :func:`by()` operation, you can
-use the :func:`sort()` function, and set the ``na_position`` argument as
-``last``::
-
-    >>> df[:, first(f[:]), by("A"), sort("B", na_position="last")]
-       |  A   B
-    -- + --  --
-     0 |  1   2
-     1 |  2   3
-
-    [2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`last()` -- function that returns the last row.
-)";
-
-
-static const char* doc_last =
-R"(last(cols)
---
-
-Return the last row for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names, stypes and
-    number of columns as in `cols`.
-
-
-Examples
---------
-
-``last()`` returns the last column in a frame::
-
-    >>> from datatable import dt, f, by, sort, last
-    >>>
-    >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
-    ...                "B": [None, 2, 3, 4, None]})
-    >>>
-    >>> df
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1     NA
-     1 |     1      2
-     2 |     2      3
-     3 |     1      4
-     4 |     2     NA
-    [5 rows x 2 columns]
-
-    >>> dt.last(df)
-       |     B
-       | int32
-    -- + -----
-     0 |    NA
-     1 |     2
-     2 |     3
-     3 |     4
-     4 |    NA
-    [5 rows x 1 column]
-
-Within a frame, it returns the last row::
-
-    >>> df[:, last(f[:])]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     2     NA
-    [1 row x 2 columns]
-
-The above code can be replicated by passing -1 to the ``i`` section instead::
-
-    >>> df[-1, :]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     2     NA
-    [1 row x 2 columns]
-
-Like ``first()``, ``last()`` can be handy if you wish to get the last
-non null value in a column::
-
-    >>> df[f.B != None, dt.last(f.B)]
-       |     B
-       | int32
-    -- + -----
-     0 |     4
-    [1 row x 1 column]
-
-``last()`` returns the last row per group in a :func:`by()` operation::
-
-    >>> df[:, last(f[:]), by("A")]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      4
-     1 |     2     NA
-    [2 rows x 2 columns]
-
-To get the last non-null value per row in a :func:`by()` operation, you can
-use the :func:`sort()` function, and set the ``na_position`` argument as
-``first`` (this will move the ``NAs`` to the top of the column)::
-
-    >>> df[:, last(f[:]), by("A"), sort("B", na_position="first")]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      4
-     1 |     2      3
-    [2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`first()` -- function that returns the first row.
-)";
-#endif
 
 template <bool FIRST>
 class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
@@ -387,97 +182,128 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 
 
 
+//------------------------------------------------------------------------------
+// product(A)
+//------------------------------------------------------------------------------
+
+template <typename T, typename U>
+bool prod_reducer(const Column& col, size_t i0, size_t i1, U* out) {
+  U prod = 1;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
+      prod *= static_cast<U>(value);
+    }
+  }
+  *out = prod;
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T, typename U>
+static Column _prod(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, U>(
+                 stype_from<U>, std::move(arg), gby, prod_reducer<T, U>
+            )));
+}
+
+static Column compute_prod(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _prod<int8_t, int64_t>(std::move(arg), gby);
+    case SType::INT16:   return _prod<int16_t, int64_t>(std::move(arg), gby);
+    case SType::INT32:   return _prod<int32_t, int64_t>(std::move(arg), gby);
+    case SType::INT64:   return _prod<int64_t, int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _prod<float, float>(std::move(arg), gby);
+    case SType::FLOAT64: return _prod<double, double>(std::move(arg), gby);
+    default: throw _error("prod", arg.stype());
+  }
+}
+
+
+//------------------------------------------------------------------------------
+// product(A:grouped)
+//------------------------------------------------------------------------------
+
+// T - type of input elements in the `arg` column
+// U - type of output elements
+template <typename T, typename U>
+class ProdGrouped_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    ProdGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
+        arg(std::move(col)),
+        groupby(grpby)
+        {}
+
+    ColumnImpl* clone() const override {
+      return new ProdGrouped_ColumnImpl<T, U>(Column(arg), groupby);
+    }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+    bool get_element(size_t i, U* out) const override {
+      T value;
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      bool isvalid = arg.get_element(i, &value);
+      *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
+                    : U(0);
+      return true; // *out is never an NA
+    }
+
+};
+
+
+static Column compute_gprod(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return Column(new ProdGrouped_ColumnImpl<int8_t,  int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT16:   return Column(new ProdGrouped_ColumnImpl<int16_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT32:   return Column(new ProdGrouped_ColumnImpl<int32_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT64:   return Column(new ProdGrouped_ColumnImpl<int64_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT32: return Column(new ProdGrouped_ColumnImpl<float,   float>  (
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT64: return Column(new ProdGrouped_ColumnImpl<double,  double> (
+                                    std::move(arg), gby
+                                ));
+    default: throw _error("prod", arg.stype());
+  }
+}
+
+
+
+
+
+
 
 //------------------------------------------------------------------------------
 // sum(A)
 //------------------------------------------------------------------------------
-#if 0
-static const char* doc_sum =
-R"(sum(cols)
---
-
-Calculate the sum of values for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names and number of columns
-    as in `cols`. The column stypes are `int64` for
-    boolean and integer columns, `float32` for `float32` columns
-    and `float64` for `float64` columns.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-
-Examples
---------
-
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Get the sum of column A::
-
-    >>> df[:, dt.sum(f.A)]
-       |     A
-       | int64
-    -- + -----
-     0 |     7
-    [1 row x 1 column]
-
-Get the sum of multiple columns::
-
-    >>> df[:, [dt.sum(f.A), dt.sum(f.B)]]
-       |     A      B
-       | int64  int64
-    -- + -----  -----
-     0 |     7     14
-    [1 row x 2 columns]
-
-Same as above, but more convenient::
-
-    >>> df[:, dt.sum(f[:2])]
-       |     A      B
-       | int64  int64
-    -- + -----  -----
-     0 |     7     14
-    [1 row x 2 columns]
-
-In the presence of :func:`by()`, it returns the sum of the specified columns per group::
-
-    >>> df[:, [dt.sum(f.A), dt.sum(f.B)], by(f.C)]
-       |     C      A      B
-       | int32  int64  int64
-    -- + -----  -----  -----
-     0 |     1      4      7
-     1 |     2      3      7
-    [2 rows x 3 columns]
-
-
-See Also
---------
-- :func:`count()` -- function to calculate a number of non-missing values.
-)";
-#endif
 
 template <typename T, typename U>
 bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -524,34 +350,68 @@ static Column compute_sum(Column&& arg, const Groupby& gby) {
 // sum(A:grouped)
 //------------------------------------------------------------------------------
 
+// T - type of input elements in the `arg` column
+// U - type of output elements
 template <typename T, typename U>
-bool sum_greducer(const Column& col, size_t i0, size_t i1, U* out) {
-  T value;
-  bool isvalid = col.get_element(i0, &value);
-  *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
-                : U(0);
-  return true;  // *out is not NA
-}
+class SumGrouped_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
 
+  public:
+    SumGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
+        arg(std::move(col)),
+        groupby(grpby)
+        {}
 
+    ColumnImpl* clone() const override {
+      return new SumGrouped_ColumnImpl<T, U>(Column(arg), groupby);
+    }
 
-template <typename T, typename U>
-static Column _gsum(Column&& arg, const Groupby& gby) {
-  return Column(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, sum_greducer<T, U>
-            ));
-}
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+    bool get_element(size_t i, U* out) const override {
+      T value;
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      bool isvalid = arg.get_element(i, &value);
+      *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
+                    : U(0);
+      return true; // *out is never an NA
+    }
+
+};
+
 
 static Column compute_gsum(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _gsum<int8_t,  int64_t>(std::move(arg), gby);
-    case SType::INT16:   return _gsum<int16_t, int64_t>(std::move(arg), gby);
-    case SType::INT32:   return _gsum<int32_t, int64_t>(std::move(arg), gby);
-    case SType::INT64:   return _gsum<int64_t, int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _gsum<float,   float>  (std::move(arg), gby);
-    case SType::FLOAT64: return _gsum<double,  double> (std::move(arg), gby);
+    case SType::INT8:    return Column(new SumGrouped_ColumnImpl<int8_t,  int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT16:   return Column(new SumGrouped_ColumnImpl<int16_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT32:   return Column(new SumGrouped_ColumnImpl<int32_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::INT64:   return Column(new SumGrouped_ColumnImpl<int64_t, int64_t>(
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT32: return Column(new SumGrouped_ColumnImpl<float,   float>  (
+                                    std::move(arg), gby
+                                ));
+    case SType::FLOAT64: return Column(new SumGrouped_ColumnImpl<double,  double> (
+                                    std::move(arg), gby
+                                ));
     default: throw _error("sum", arg.stype());
   }
 }
@@ -562,104 +422,6 @@ static Column compute_gsum(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // mean(A)
 //------------------------------------------------------------------------------
-
-#if 0
-static const char* doc_mean =
-R"(mean(cols)
---
-
-Calculate the mean value for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names and number of columns
-    as in `cols`. The column stypes are `float32` for
-    `float32` columns, and `float64` for all the other numeric types.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-See Also
---------
-
-- :func:`median()` -- function to calculate median values.
-- :func:`sd()` -- function to calculate standard deviation.
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>>
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-
-Get the mean from column A::
-
-    >>> df[:, dt.mean(f.A)]
-       |       A
-       | float64
-    -- + -------
-     0 |     1.4
-    [1 row x 1 column]
-
-Get the mean of multiple columns::
-
-    >>> df[:, dt.mean([f.A, f.B])]
-       |       A        B
-       | float64  float64
-    -- + -------  -------
-     0 |     1.4      3.5
-    [1 row x 2 columns]
-
-Same as above, but applying to a column slice::
-
-    >>> df[:, dt.mean(f[:2])]
-       |       A        B
-       | float64  float64
-    -- + -------  -------
-     0 |     1.4      3.5
-    [1 row x 2 columns]
-
-You can pass in a dictionary with new column names::
-
-    >>> df[:, dt.mean({"A_mean": f.A, "C_avg": f.C})]
-       |  A_mean    C_avg
-       | float64  float64
-    -- + -------  -------
-     0 |     1.4      1.4
-    [1 row x 2 columns]
-
-In the presence of :func:`by()`, it returns the average of each column per group::
-
-    >>> df[:, dt.mean({"A_mean": f.A, "B_mean": f.B}), by("C")]
-       |     C   A_mean   B_mean
-       | int32  float64  float64
-    -- + -----  -------  -------
-     0 |     1  1.33333      3.5
-     1 |     2  1.5          3.5
-    [2 rows x 3 columns]
-)";
-#endif
-
 
 template <typename T, typename U>
 bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -729,76 +491,6 @@ static Column compute_gmean(Column&& arg, const Groupby&) {
 //------------------------------------------------------------------------------
 // sd(A)
 //------------------------------------------------------------------------------
-
-#if 0
-static const char* doc_sd =
-R"(sd(cols)
---
-
-Calculate the standard deviation for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names and number of columns
-    as in `cols`. The column stypes are `float32` for
-    `float32` columns, and `float64` for all the other numeric types.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-
-Examples
---------
-
-.. code-block:: python
-
-    >>> from datatable import dt, f
-    >>>
-    >>> DT = dt.Frame(A = [0, 1, 2, 3], B = [0, 2, 4, 6])
-    >>> DT
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     0      0
-     1 |     1      2
-     2 |     2      4
-     3 |     3      6
-    [4 rows x 2 columns]
-
-
-Get the standard deviation of column A::
-
-    >>> DT[:, dt.sd(f.A)]
-       |       A
-       | float64
-    -- + -------
-     0 | 1.29099
-    [1 row x 1 column]
-
-
-Get the standard deviation of columns A and B::
-
-    >>> DT[:, dt.sd([f.A, f.B])]
-       |       A        B
-       | float64  float64
-    -- + -------  -------
-     0 | 1.29099  2.58199
-    [1 row x 2 columns]
-
-
-See Also
---------
-
-- :func:`mean()` -- function to calculate mean values.
-- :func:`median()` -- function to calculate median values.
-
-)";
-#endif
 
 template <typename T, typename U>
 bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
@@ -918,73 +610,6 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
 // count(A)
 //------------------------------------------------------------------------------
 
-#if 0
-static const char* doc_count =
-R"(count(cols)
---
-
-Calculate the number of non-missing values for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names and number of columns
-    as in `cols`. All the returned column stypes are `int64`.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric and non-string type.
-
-See Also
---------
-
-- :func:`sum()` -- function to calculate the sum of values.
-
-Examples
---------
-
-.. code-block:: python
-
-    >>> from datatable import dt, f
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Get the count of all rows::
-
-    >>> df[:, dt.count()]
-       | count
-       | int32
-    -- + -----
-     0 |     5
-    [1 row x 1 column]
-
-Get the count of column `B` (note how the null row is excluded from the
-count result)::
-
-    >>> df[:, dt.count(f.B)]
-       |     B
-       | int64
-    -- + -----
-     0 |     4
-    [1 row x 1 column]
-)";
-#endif
-
 template <typename T>
 bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
   int64_t count = 0;
@@ -1026,14 +651,59 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
 }
 
 
+//------------------------------------------------------------------------------
+// countna
+//------------------------------------------------------------------------------
+
+
+template <typename T>
+bool op_countna(const Column& col, size_t i0, size_t i1, int64_t* out) {
+  int64_t count = 0;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    count += !isvalid;
+  }
+  *out = count;
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _countna(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, int64_t>(
+                 SType::INT64, std::move(arg), gby, op_countna<T>
+            )));
+}
+
+static Column compute_countna(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::VOID:
+    case SType::BOOL:
+    case SType::INT8:    return _countna<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _countna<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _countna<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _countna<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _countna<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _countna<double>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _countna<CString>(std::move(arg), gby);
+    default: throw _error("countna", arg.stype());
+  }
+}
 
 
 //------------------------------------------------------------------------------
-// count(A:grouped)
+// count/countna(A:grouped)
 //------------------------------------------------------------------------------
 
 // T is the type of the input column
-template <typename T>
+template <typename T, bool NA>
 class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
 {
   private:
@@ -1047,13 +717,13 @@ class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
         groupby(grpby) {}
 
     ColumnImpl* clone() const override {
-      return new CountGrouped_ColumnImpl<T>(Column(arg), groupby);
+      return new CountGrouped_ColumnImpl<T,NA>(Column(arg), groupby);
     }
 
     bool get_element(size_t i, int64_t* out) const override {
       T value;
       bool isvalid = arg.get_element(i, &value);
-      if (isvalid) {
+      if (isvalid ^ NA) {
         size_t i0, i1;
         groupby.get_group(i, &i0, &i1);
         *out = static_cast<int64_t>(i1 - i0);
@@ -1075,24 +745,25 @@ class CountGrouped_ColumnImpl : public Virtual_ColumnImpl
 };
 
 
-template <typename T>
+template <typename T, bool NA>
 static Column _gcount(Column&& arg, const Groupby& gby) {
-  return Column(new CountGrouped_ColumnImpl<T>(std::move(arg), gby));
+  return Column(new CountGrouped_ColumnImpl<T,NA>(std::move(arg), gby));
 }
 
+template<bool NA=false>
 static Column compute_gcount(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _gcount<int8_t>(std::move(arg), gby);
-    case SType::INT16:   return _gcount<int16_t>(std::move(arg), gby);
+    case SType::INT8:    return _gcount<int8_t,NA>(std::move(arg), gby);
+    case SType::INT16:   return _gcount<int16_t,NA>(std::move(arg), gby);
     case SType::DATE32:
-    case SType::INT32:   return _gcount<int32_t>(std::move(arg), gby);
+    case SType::INT32:   return _gcount<int32_t,NA>(std::move(arg), gby);
     case SType::TIME64:
-    case SType::INT64:   return _gcount<int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _gcount<float>(std::move(arg), gby);
-    case SType::FLOAT64: return _gcount<double>(std::move(arg), gby);
+    case SType::INT64:   return _gcount<int64_t,NA>(std::move(arg), gby);
+    case SType::FLOAT32: return _gcount<float,NA>(std::move(arg), gby);
+    case SType::FLOAT64: return _gcount<double,NA>(std::move(arg), gby);
     case SType::STR32:
-    case SType::STR64:   return _gcount<CString>(std::move(arg), gby);
+    case SType::STR64:   return _gcount<CString,NA>(std::move(arg), gby);
     default: throw _error("count", arg.stype());
   }
 }
@@ -1103,338 +774,215 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // min(A), max(A)
 //------------------------------------------------------------------------------
-#if 0
-static const char* doc_min =
-R"(min(cols)
---
 
-Calculate the minimum value for each column from `cols`. It is recommended
-to use it as `dt.min()` to prevent conflict with the Python built-in
-`min()` function.
+template <typename T>
+bool min_reducer(const Column& col, size_t i0, size_t i1, T* out) {
+  T min = std::numeric_limits<T>::max();
+  bool min_isna = true;
 
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row and the same names, stypes and number
-    of columns as in `cols`.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
-    >>>
-    >>> df
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      3
-     1 |     1      2
-     2 |     1     20
-     3 |     2      1
-     4 |     2      6
-     5 |     2      2
-     6 |     3      3
-     7 |     3     22
-     8 |     3      1
-    [9 rows x 2 columns]
-
-Get the minimum from column B::
-
-    >>> df[:, dt.min(f.B)]
-       |     B
-       | int32
-    -- + -----
-     0 |     1
-    [1 row x 1 column]
-
-Get the minimum of all columns::
-
-    >>> df[:, [dt.min(f.A), dt.min(f.B)]]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      1
-    [1 row x 2 columns]
-
-Same as above, but using the slice notation::
-
-    >>> df[:, dt.min(f[:])]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      1
-    [1 row x 2 columns]
-
-In the presence of :func:`by()`, it returns the row with the minimum value
-per group::
-
-    >>> df[:, dt.min(f.B), by("A")]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      2
-     1 |     2      1
-     2 |     3      1
-    [3 rows x 2 columns]
-
-
-See Also
---------
-- :func:`max()` -- function to calculate maxium values.
-)";
-
-
-static const char* doc_max =
-R"(max(cols)
---
-
-Calculate the maximum value for each column from `cols`. It is recommended
-to use it as `dt.max()` to prevent conflict with the Python built-in
-`max()` function.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row and the same names, stypes and number
-    of columns as in `cols`.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 1, 2, 2, 2, 3, 3, 3],
-    ...                'B': [3, 2, 20, 1, 6, 2, 3, 22, 1]})
-    >>> df
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1      3
-     1 |     1      2
-     2 |     1     20
-     3 |     2      1
-     4 |     2      6
-     5 |     2      2
-     6 |     3      3
-     7 |     3     22
-     8 |     3      1
-    [9 rows x 2 columns]
-
-Get the maximum from column B::
-
-    >>> df[:, dt.max(f.B)]
-       |     B
-       | int32
-    -- + -----
-     0 |    22
-    [1 row x 1 column]
-
-Get the maximum of all columns::
-
-    >>> df[:, [dt.max(f.A), dt.max(f.B)]]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     3     22
-    [1 row x 2 columns]
-
-Same as above, but more convenient::
-
-    >>> df[:, dt.max(f[:])]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     3     22
-    [1 row x 2 columns]
-
-In the presence of :func:`by()`, it returns the row with the maximum
-value per group::
-
-    >>> df[:, dt.max(f.B), by("A")]
-       |     A      B
-       | int32  int32
-    -- + -----  -----
-     0 |     1     20
-     1 |     2      6
-     2 |     3     22
-    [3 rows x 2 columns]
-
-
-See Also
---------
-- :func:`min()` -- function to calculate minimum values.
-)";
-#endif
-
-template <typename T, bool MIN>
-bool minmax_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T minmax = 0;
-  bool minmax_isna = true;
   for (size_t i = i0; i < i1; ++i) {
     T value;
     bool isvalid = col.get_element(i, &value);
-    if (!isvalid) continue;
-    if ((MIN? (value < minmax) : (value > minmax)) || minmax_isna) {
-      minmax = value;
-      minmax_isna = false;
+    if (isvalid) {
+      if (value < min || min_isna){
+        min = value;
+        min_isna = false;
+      }
     }
   }
-  *out = minmax;
-  return !minmax_isna;
+  *out = static_cast<T>(min);
+  return !min_isna;
 }
 
 
 
-template <typename T, bool MM>
-static Column _minmax(SType stype, Column&& arg, const Groupby& gby) {
+template <typename T>
+static Column _min(SType stype, Column&& arg, const Groupby& gby) {
   return Column(
           new Latent_ColumnImpl(
             new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, minmax_reducer<T, MM>
+                 stype, std::move(arg), gby, min_reducer<T>
             )));
 }
 
-template <bool MIN>
-static Column compute_minmax(Column&& arg, const Groupby& gby) {
+static Column compute_min(Column&& arg, const Groupby& gby) {
   auto st = arg.stype();
   switch (st) {
     case SType::BOOL:
-    case SType::INT8:    return _minmax<int8_t, MIN>(st, std::move(arg), gby);
-    case SType::INT16:   return _minmax<int16_t, MIN>(st, std::move(arg), gby);
+    case SType::INT8:    return _min<int8_t>(st, std::move(arg), gby);
+    case SType::INT16:   return _min<int16_t>(st, std::move(arg), gby);
     case SType::DATE32:
-    case SType::INT32:   return _minmax<int32_t, MIN>(st, std::move(arg), gby);
+    case SType::INT32:   return _min<int32_t>(st, std::move(arg), gby);
     case SType::TIME64:
-    case SType::INT64:   return _minmax<int64_t, MIN>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _minmax<float, MIN>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _minmax<double, MIN>(st, std::move(arg), gby);
-    default: throw _error(MIN? "min" : "max", arg.stype());
+    case SType::INT64:   return _min<int64_t>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _min<float>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _min<double>(st, std::move(arg), gby);
+    default: throw _error("min", arg.stype());
   }
 }
 
+
+template <typename T>
+bool max_reducer(const Column& col, size_t i0, size_t i1, T* out) {
+  T max = std::numeric_limits<T>::min();
+  bool max_isna = true;
+
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) {
+      if (value > max || max_isna){
+        max = value;
+        max_isna = false;
+      }
+    }
+  }
+  *out = static_cast<T>(max);
+  return !max_isna;
+}
+
+
+
+template <typename T>
+static Column _max(SType stype, Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, T>(
+                 stype, std::move(arg), gby, max_reducer<T>
+            )));
+}
+
+static Column compute_max(Column&& arg, const Groupby& gby) {
+  auto st = arg.stype();
+  switch (st) {
+    case SType::BOOL:
+    case SType::INT8:    return _max<int8_t>(st, std::move(arg), gby);
+    case SType::INT16:   return _max<int16_t>(st, std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _max<int32_t>(st, std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _max<int64_t>(st, std::move(arg), gby);
+    case SType::FLOAT32: return _max<float>(st, std::move(arg), gby);
+    case SType::FLOAT64: return _max<double>(st, std::move(arg), gby);
+    default: throw _error("max", arg.stype());
+  }
+}
+
+
+//------------------------------------------------------------------------------
+// nunique(A:grouped)
+//------------------------------------------------------------------------------
+
+// T is the type of the input column
+template <typename T>
+class NuniqueGrouped_ColumnImpl : public Virtual_ColumnImpl
+{
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    NuniqueGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), SType::INT64),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* clone() const override {
+      return new NuniqueGrouped_ColumnImpl<T>(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int64_t* out) const override {
+      T value;
+      *out = arg.get_element(i, &value);
+      return true;
+    }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+};
+
+template <typename T>
+static Column _gnunique(Column&& arg, const Groupby& gby) {
+  return Column(new NuniqueGrouped_ColumnImpl<T>(std::move(arg), gby));
+}
+
+static Column compute_gnunique(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::BOOL:
+    case SType::INT8:    return _gnunique<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _gnunique<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _gnunique<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _gnunique<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _gnunique<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _gnunique<double>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _gnunique<CString>(std::move(arg), gby);
+    default: throw _error("nunique", arg.stype());
+  }
+}
+
+
+
+//------------------------------------------------------------------------------
+// nunique
+//------------------------------------------------------------------------------
+
+template <typename T>
+bool op_nunique(const Column& col, size_t i0, size_t i1, int64_t* out) {
+  std::set<T> ss;
+  for (size_t i = i0; i < i1; ++i) {
+    T value;
+    bool isvalid = col.get_element(i, &value);
+    if (isvalid) ss.insert(value);
+  }
+  *out = static_cast<int64_t>(ss.size());
+  return true;  // *out is not NA
+}
+
+
+
+template <typename T>
+static Column _nunique(Column&& arg, const Groupby& gby) {
+  return Column(
+          new Latent_ColumnImpl(
+            new Reduced_ColumnImpl<T, int64_t>(
+                 SType::INT64, std::move(arg), gby, op_nunique<T>
+            )));
+}
+
+
+static Column compute_nunique(Column&& arg, const Groupby& gby) {
+  switch (arg.stype()) {
+    case SType::VOID:
+    case SType::BOOL:
+    case SType::INT8:    return _nunique<int8_t>(std::move(arg), gby);
+    case SType::INT16:   return _nunique<int16_t>(std::move(arg), gby);
+    case SType::DATE32:
+    case SType::INT32:   return _nunique<int32_t>(std::move(arg), gby);
+    case SType::TIME64:
+    case SType::INT64:   return _nunique<int64_t>(std::move(arg), gby);
+    case SType::FLOAT32: return _nunique<float>(std::move(arg), gby);
+    case SType::FLOAT64: return _nunique<double>(std::move(arg), gby);
+    case SType::STR32:
+    case SType::STR64:   return _nunique<CString>(std::move(arg), gby);
+    default: throw _error("nunique", arg.stype());
+  }
+}
 
 
 
 //------------------------------------------------------------------------------
 // Median
 //------------------------------------------------------------------------------
-
-#if 0
-static const char* doc_median =
-R"(median(cols)
---
-
-Calculate the median value for each column from `cols`.
-
-Parameters
-----------
-cols: Expr
-    Input columns.
-
-return: Expr
-    f-expression having one row, and the same names, stypes and
-    number of columns as in `cols`.
-
-except: TypeError
-    The exception is raised when one of the columns from `cols`
-    has a non-numeric type.
-
-See Also
---------
-
-- :func:`mean()` -- function to calculate mean values.
-- :func:`sd()` -- function to calculate standard deviation.
-
-Examples
---------
-.. code-block:: python
-
-    >>> from datatable import dt, f, by
-    >>>
-    >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-    ...                'B': [None, 2, 3,4, 5],
-    ...                'C': [1, 2, 1, 1, 2]})
-    >>>
-    >>> df
-       |     A      B      C
-       | int32  int32  int32
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      2
-     2 |     2      3      1
-     3 |     1      4      1
-     4 |     2      5      2
-    [5 rows x 3 columns]
-
-Get the median from column A::
-
-    >>> df[:, dt.median(f.A)]
-       |       A
-       | float64
-    -- + -------
-     0 |       1
-    [1 row x 1 column]
-
-Get the median of multiple columns::
-
-    >>> df[:, dt.median([f.A, f.B])]
-       |       A        B
-       | float64  float64
-    -- + -------  -------
-     0 |       1      3.5
-    [1 row x 2 columns]
-
-Same as above, but more convenient::
-
-    >>> df[:, dt.median(f[:2])]
-       |       A        B
-       | float64  float64
-    -- + -------  -------
-     0 |       1      3.5
-    [1 row x 2 columns]
-
-You can pass in a dictionary with new column names::
-
-    >>> df[:, dt.median({"A_median": f.A, "C_mid": f.C})]
-       | A_median    C_mid
-       |  float64  float64
-    -- + --------  -------
-     0 |        1        1
-    [1 row x 2 columns]
-
-In the presence of :func:`by()`, it returns the median of each column
-per group::
-
-    >>> df[:, dt.median({"A_median": f.A, "B_median": f.B}), by("C")]
-       |     C  A_median  B_median
-       | int32   float64   float64
-    -- + -----  --------  --------
-     0 |     1       1         3.5
-     1 |     2       1.5       3.5
-    [2 rows x 3 columns]
-)";
-#endif
-
 
 template <typename T, typename U>
 class Median_ColumnImpl : public Virtual_ColumnImpl {
@@ -1537,8 +1085,6 @@ static Column compute_gmedian(Column&& arg, const Groupby&) {
 
 
 
-
-
 //------------------------------------------------------------------------------
 // Head_Reduce_Unary
 //------------------------------------------------------------------------------
@@ -1555,14 +1101,17 @@ Workframe Head_Reduce_Unary::evaluate_n(
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
       case Op::MEAN:   fn = compute_mean; break;
-      case Op::MIN:    fn = compute_minmax<true>; break;
-      case Op::MAX:    fn = compute_minmax<false>; break;
+      case Op::MIN:    fn = compute_min; break;
+      case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;
       case Op::SUM:    fn = compute_sum; break;
       case Op::COUNT:  fn = compute_count; break;
+      case Op::COUNTNA:fn = compute_countna; break;
       case Op::MEDIAN: fn = compute_median; break;
+      case Op::NUNIQUE:fn = compute_nunique; break;
+      case Op::PROD:   fn = compute_prod; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
@@ -1575,8 +1124,11 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::FIRST:
       case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::SUM:    fn = compute_gsum; break;
-      case Op::COUNT:  fn = compute_gcount; break;
+      case Op::COUNT:  fn = compute_gcount<false>; break;
+      case Op::COUNTNA:fn = compute_gcount<true>; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
+      case Op::NUNIQUE:fn = compute_gnunique; break;
+      case Op::PROD:   fn = compute_gprod; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }

@@ -27,7 +27,7 @@ import os
 import random
 import re
 import pytest
-from datatable import stype
+from datatable import stype, f
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, list_equals
 
@@ -236,7 +236,7 @@ def test_save_hexdouble_special():
 def test_save_hexdouble_random(seed):
     random.seed(seed)
     src = [(1.5 * random.random() - 0.5) * 10**random.randint(-325, 308)
-           for _ in range(1000)]
+           for _ in range(random.randint(1, 1000))]
     d = dt.Frame(src)
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == [pyhex(v) for v in src]
@@ -381,6 +381,18 @@ def test_save_empty_frame_to_file(tempfile):
     assert os.stat(tempfile).st_size == 0
 
 
+def test_save_void_column():
+    DT = dt.Frame([None]*4)
+    out = DT.to_csv()
+    assert out == 'C0\n\n\n\n\n'
+
+
+def test_save_object_column():
+    DT = dt.Frame([f.A, f[0], f[::-1]], type=object)
+    out = DT.to_csv()
+    assert out == 'C0\nFExpr<f.A>\nFExpr<f[0]>\nFExpr<f[::-1]>\n'
+
+
 def test_issue1615():
     """
     Check that to_csv() works correctly with a Frame that has different
@@ -425,6 +437,15 @@ def test_issue2382():
                    '\n'.join(','.join(['"1"'] * 200) for j in range(20)) + "\n")
 
 
+def test_issue3176():
+    import multiprocessing as mp
+    dt.options.nthreads = min(8, mp.cpu_count())
+    nrows = dt.options.nthreads * 2 - 1
+    ncols = 41
+    src = [0.0] * nrows
+    DT0 = dt.Frame([src] * ncols)
+    DT1 = dt.Frame(DT0.to_csv())
+    assert_equals(DT0, DT1)
 
 
 #-------------------------------------------------------------------------------

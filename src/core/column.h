@@ -1,4 +1,3 @@
-
 //------------------------------------------------------------------------------
 // Copyright 2018-2021 H2O.ai
 //
@@ -95,6 +94,7 @@ class Column
     ~Column();
 
     static Column new_data_column(size_t nrows, dt::SType);
+    static Column new_na_column(size_t nrows, dt::Type type);
     static Column new_na_column(size_t nrows, dt::SType stype);
     static Column new_mbuf_column(size_t nrows, dt::SType, Buffer&&);
     static Column new_string_column(size_t n, Buffer&& data, Buffer&& str);
@@ -158,6 +158,7 @@ class Column
     bool get_element(size_t i, double* out) const;
     bool get_element(size_t i, dt::CString* out) const;
     bool get_element(size_t i, py::oobj* out) const;
+    bool get_element(size_t i, Column* out) const;
 
     // `get_element_as_pyobject(i)` returns the i-th element of the
     // column wrapped into a pyobject of the appropriate type.
@@ -199,6 +200,8 @@ class Column
     void*       get_data_editable(size_t k = 0);
     Buffer      get_data_buffer(size_t k = 0) const;
 
+    size_t n_children() const noexcept;
+    const Column& child(size_t i) const;
 
   //------------------------------------
   // Stats
@@ -234,11 +237,12 @@ class Column
   //------------------------------------
   public:
     void materialize(bool to_memory = false);
-    void rbind(colvec& columns);
+    void rbind(colvec& columns, bool force);
     void cast_inplace(dt::SType stype);
     void cast_inplace(dt::Type type);
     Column cast(dt::SType stype) const;
     Column cast(dt::Type type) const;
+    Column reduce_type(bool strict) const;
     void sort_grouped(const Groupby&);
 
     void replace_values(const RowIndex& replace_at, const Column& replace_with);
@@ -272,17 +276,17 @@ class Column
     // erroneous state.
     void verify_integrity() const;
 
-    // Serialize the column into a Jay format.
-    // See jay/save_jay.cc
-    flatbuffers::Offset<jay::Column> write_to_jay(
-        const std::string& name,
-        flatbuffers::FlatBufferBuilder&,
-        WritableBuffer*);
-    void write_data_to_jay(jay::ColumnBuilder&, WritableBuffer*);
+    // Save the column's data into the provided data structure `cj`.
+    // However, do not call `cj.write()`.
+    void save_to_jay(ColumnJayData& cj);
 
     // See frame/to_arrow.cc
     std::unique_ptr<dt::OArrowArray> to_arrow() const;
     std::unique_ptr<dt::OArrowSchema> to_arrow_schema() const;
+
+    // "Materialize" the column into arrow format
+    bool is_arrow() const;
+    Column as_arrow() const;
 
     // A shortcut for `.type().can_be_read_as<T>()`. The latter call
     // is not compatible with some compilers, for instance Clang 11.

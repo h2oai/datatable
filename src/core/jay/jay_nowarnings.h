@@ -24,6 +24,7 @@
 DISABLE_CLANG_WARNING("-Wzero-as-null-pointer-constant")
 DISABLE_CLANG_WARNING("-Wcovered-switch-default")
 DISABLE_CLANG_WARNING("-Wpadded")
+#define FLATBUFFERS_ASSERT xassert
 
 #include "jay/jay_generated.h"
 

@@ -43,19 +43,29 @@ void TypeImpl::release() noexcept {
   if (refcount_ == 0) delete this;
 }
 
+Type TypeImpl::make_type() const {
+  TypeImpl* copy = const_cast<TypeImpl*>(this);
+  copy->acquire();
+  return Type(std::move(copy));
+}
+
+
 size_t TypeImpl::hash() const noexcept {
   return static_cast<size_t>(stype_);
 }
 
-bool TypeImpl::is_void()     const { return stype_ == dt::SType::VOID; }
-bool TypeImpl::is_invalid()  const { return false; }
-bool TypeImpl::is_boolean()  const { return false; }
-bool TypeImpl::is_integer()  const { return false; }
-bool TypeImpl::is_float()    const { return false; }
-bool TypeImpl::is_numeric()  const { return false; }
-bool TypeImpl::is_string()   const { return false; }
-bool TypeImpl::is_temporal() const { return false; }
-bool TypeImpl::is_object()   const { return false; }
+bool TypeImpl::is_array()       const { return false; }
+bool TypeImpl::is_boolean()     const { return false; }
+bool TypeImpl::is_categorical() const { return false; }
+bool TypeImpl::is_compound()    const { return false; }
+bool TypeImpl::is_float()       const { return false; }
+bool TypeImpl::is_integer()     const { return false; }
+bool TypeImpl::is_invalid()     const { return false; }
+bool TypeImpl::is_numeric()     const { return false; }
+bool TypeImpl::is_object()      const { return false; }
+bool TypeImpl::is_string()      const { return false; }
+bool TypeImpl::is_temporal()    const { return false; }
+bool TypeImpl::is_void()        const { return false; }
 
 
 bool TypeImpl::can_be_read_as_int8()     const { return false; }
@@ -64,9 +74,9 @@ bool TypeImpl::can_be_read_as_int32()    const { return false; }
 bool TypeImpl::can_be_read_as_int64()    const { return false; }
 bool TypeImpl::can_be_read_as_float32()  const { return false; }
 bool TypeImpl::can_be_read_as_float64()  const { return false; }
-bool TypeImpl::can_be_read_as_date()     const { return false; }
 bool TypeImpl::can_be_read_as_cstring()  const { return false; }
 bool TypeImpl::can_be_read_as_pyobject() const { return false; }
+bool TypeImpl::can_be_read_as_column()   const { return false; }
 
 bool TypeImpl::equals(const TypeImpl* other) const {
   return stype_ == other->stype_;
@@ -77,9 +87,12 @@ py::oobj TypeImpl::min() const { return py::None(); }
 py::oobj TypeImpl::max() const { return py::None(); }
 const char* TypeImpl::struct_format() const { return ""; }
 
+Type TypeImpl::child_type() const { return Type(); }
 
 Column TypeImpl::cast_column(Column&&) const {
-  throw NotImplError() << "Unable to cast into type `" << to_string() << "`";
+  throw NotImplError()
+      << "Type casts for type `" << to_string()
+      << "` are not implemented";
 }
 
 

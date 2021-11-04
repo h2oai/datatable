@@ -152,6 +152,8 @@ def repr_type(t):
         return "float"
     if t is str:
         return "str"
+    if t is None:
+        return "'void'"
     raise ValueError("Unknown type %r" % t)
 
 def repr_types(types):
@@ -190,8 +192,11 @@ def random_array(n, positive=False):
     return [random.randint(lb, ub) for i in range(newn)]
 
 
-def random_type():
-    return random.choice([bool, int, float, str])
+def random_type(allow_void = True):
+    possible_types = [bool, int, float, str]*2
+    if allow_void:
+        possible_types += [None]
+    return random.choice(possible_types)
 
 
 def random_names(ncols):
@@ -225,7 +230,6 @@ def random_string(alphabet="abcdefghijklmnopqrstuvwxyz"):
             return name
 
 
-
 def random_column(nrows, ttype, missing_fraction, missing_nones=True):
     missing_mask = [False] * nrows
     if ttype == bool:
@@ -234,8 +238,12 @@ def random_column(nrows, ttype, missing_fraction, missing_nones=True):
         data = random_int_column(nrows)
     elif ttype == float:
         data = random_float_column(nrows)
-    else:
+    elif ttype == str:
         data = random_str_column(nrows)
+    elif ttype is None:
+        data = [None] * nrows
+    else:
+        assert False, "Invalid ttype = %s" % ttype
     if missing_fraction:
         for i in range(nrows):
             if random.random() < missing_fraction:

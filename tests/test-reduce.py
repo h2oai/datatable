@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -22,13 +22,14 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import math
+import numpy as np
 import pytest
 import random
 from datatable import (
-    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr, prod)
+from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
-
 
 #-------------------------------------------------------------------------------
 # Count
@@ -397,7 +398,7 @@ def test_median_float(st):
 
 
 def test_median_all_nas():
-    DT = dt.Frame(N=[math.nan] * 8)
+    DT = dt.Frame(N=[math.nan] * 8, type=float)
     RES = DT[:, median(f.N)]
     assert RES.shape == (1, 1)
     assert RES.stypes == (dt.float64,)
@@ -525,7 +526,7 @@ def test_corr_small_frame():
 def test_corr_with_constant():
     DT = dt.Frame(A=range(23), B=[2.5] * 23)
     D1 = DT[:, corr(f.A, f.B)]
-    assert_equals(D1, dt.Frame([math.nan]))
+    assert_equals(D1, dt.Frame([None], type=float))
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32)])
@@ -551,3 +552,42 @@ def test_corr_multiple():
     assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
+
+
+
+#-------------------------------------------------------------------------------
+# prod
+#-------------------------------------------------------------------------------
+
+def test_prod_simple():
+    DT = dt.Frame(A=range(1, 5))
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod(np.arange(1,5))
+    assert str(RES)
+
+
+def test_prod_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RES = DT[:, prod(f[:])]
+    frame_integrity_check(RES)
+    assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
+    assert str(RES)
+
+def test_prod_bool():
+    DT = dt.Frame(A= [True, False, True])
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod([True, False, True])
+    assert str(RES)
+
+def test_prod_floats():
+    random_numbers = np.random.randn(3)
+    DT = dt.Frame(A= random_numbers)
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod(random_numbers)
+    assert str(RES)
+

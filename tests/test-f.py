@@ -199,6 +199,8 @@ def test_f_columnset_stypes(DT):
 
 def test_f_columnset_ltypes(DT):
     for lt in dt.ltype:
+        if lt == dt.ltype.invalid:
+            return
         assert_equals(DT[:, f[lt]],
                       DT[:, [i for i in range(DT.ncols)
                              if DT.ltypes[i] == lt]])
@@ -377,6 +379,7 @@ def test_count():
                    'C': [1, 2, 1, 1, 2]})
 
     assert_equals(DT[:, f.A.count()], DT[:, dt.count(f.A)])
+    assert_equals(DT[:, f[:].count()], DT[:, dt.count(f[:])])
 
 def test_first():
     assert str(dt.first(f.A)) == str(f.A.first())
@@ -386,4 +389,22 @@ def test_first():
                    'C': [1, 2, 1, 1, 2]})
 
     assert_equals(DT[:, f.A.first()], DT[:, dt.first(f.A)])
+    assert_equals(DT[:, f[:].first()], DT[:, dt.first(f[:])])
+
+def test_as_type():
+    assert str(dt.as_type(f.A, int)) == str(f.A.as_type(int))
+    assert str(dt.as_type(f[:], int)) == str(f[:].as_type(int))
+    DT = dt.Frame({'A': ['1.0', '1.0', '2.0', '1.0', '2'],
+                   'B': [None, '2', '3', '4', '5'],
+                   'C': [1, 2, 1, 1, 2]})
+
+    assert_equals(DT[:, f.A.as_type(int)], DT[:, dt.as_type(f.A, int)])
+    assert_equals(DT[:, f[:].as_type(float)], DT[:, dt.as_type(f[:], float)])
+
+
+def test_prod():
+    assert str(dt.prod(f.A)) == str(f.A.prod())
+    assert str(dt.prod(f[:])) == str(f[:].prod())
+    DT = dt.Frame(A=range(1, 10))
+    assert_equals(DT[:, f.A.prod()], DT[:, dt.prod(f.A)])
 

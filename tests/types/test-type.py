@@ -220,6 +220,27 @@ def test_type_minmax():
     assert dt.Type.obj64.max is None
 
 
+def test_type_isxxx_properties():
+    T = dt.Type
+    all_types = [T.void, T.bool8, T.int8, T.int16, T.int32, T.int64, T.float32,
+                 T.float64, T.str32, T.str64, T.date32, T.time64, T.obj64,
+                 T.arr32(T.void), T.arr64(T.str32)]
+    all_properties = ["is_array", "is_boolean", "is_compound", "is_float",
+                      "is_integer", "is_numeric", "is_object", "is_string",
+                      "is_temporal", "is_void"]
+    for ttype in all_types:
+        for prop in all_properties:
+            assert hasattr(ttype, prop)
+            assert isinstance(getattr(ttype, prop), bool)
+            msg = ("attribute '%s' of 'datatable.Type' objects is not writable"
+                   % prop)
+            with pytest.raises(AttributeError, match=msg):
+                setattr(ttype, prop, False)
+            with pytest.raises(AttributeError, match=msg):
+                delattr(ttype, prop)
+
+
+
 
 #-------------------------------------------------------------------------------
 # Test stype enum
@@ -237,11 +258,13 @@ def test_stype():
     assert stype.float64
     assert stype.str32
     assert stype.str64
+    assert stype.arr32
+    assert stype.arr64
     assert stype.date32
     assert stype.time64
     assert stype.obj64
     # When new stypes are added, don't forget to update this test suite
-    assert len(stype) == 13
+    assert len(stype) == 18
 
 
 def test_stype_names():
@@ -256,6 +279,8 @@ def test_stype_names():
     assert stype.float64.name == "float64"
     assert stype.str32.name == "str32"
     assert stype.str64.name == "str64"
+    assert stype.arr32.name == "arr32"
+    assert stype.arr64.name == "arr64"
     assert stype.date32.name == "date32"
     assert stype.time64.name == "time64"
     assert stype.obj64.name == "obj64"
@@ -376,7 +401,8 @@ def test_stype_instantiate_bad():
 def test_stype_minmax(st):
     from datatable import stype, ltype
     if st in (stype.void, stype.str32, stype.str64, stype.obj64, stype.time64,
-              stype.date32):
+              stype.date32, stype.arr32, stype.arr64, stype.cat8, stype.cat16,
+              stype.cat32):
         assert st.min is None
         assert st.max is None
     else:
@@ -419,8 +445,9 @@ def test_ltype():
     assert ltype.time
     assert ltype.str
     assert ltype.obj
+    assert ltype.invalid
     # When new stypes are added, don't forget to update this test suite
-    assert len(ltype) == 7
+    assert len(ltype) == 8
 
 
 def test_ltype_names():

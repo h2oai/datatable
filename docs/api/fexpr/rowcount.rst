@@ -1,4 +1,7 @@
 
 .. xmethod:: datatable.FExpr.rowcount
     :src: src/core/expr/fexpr.cc PyFExpr::rowcount
-    :doc: src/core/expr/fexpr.cc doc_rowcount
+    :cvar: doc_FExpr_rowcount
+    :signature: rowcount()
+
+    Equivalent to :func:`dt.rowcount(self)`.

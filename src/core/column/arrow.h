@@ -39,10 +39,10 @@ class Arrow_ColumnImpl : public Virtual_ColumnImpl {
       return Column(std::move(self));
     }
 
-    virtual size_t num_buffers() const noexcept = 0;
-    virtual const void* get_buffer(size_t i) const = 0;
+    // virtual size_t get_num_data_buffers() const noexcept = 0;
+    // virtual Buffer get_data_buffer(size_t i) const = 0;
 
-    virtual size_t num_children() const noexcept { return 0; }
+    void save_to_jay(ColumnJayData&) override;
 };
 
 

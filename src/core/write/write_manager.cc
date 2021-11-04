@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -29,7 +29,7 @@
 
 namespace dt {
 namespace write {
-  
+
 
 //------------------------------------------------------------------------------
 // Construction
@@ -139,7 +139,7 @@ void write_manager::write_rows()
     public:
       OTask(size_t nrows, size_t nch, size_t rowsize,
             write_manager* wm, WritableBuffer* wbuf, bool compress)
-        : ctx_(rowsize, nrows / nch, compress),
+        : ctx_(rowsize, std::max<size_t>(nrows / nch, 1), compress),
           wb_(wbuf),
           wmanager_(wm),
           nrows_(nrows),

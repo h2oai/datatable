@@ -2,7 +2,42 @@
 
 .. xclass:: datatable.FExpr
     :src: src/core/expr/fexpr.h FExpr
-    :doc: src/core/expr/fexpr.cc doc_fexpr
+    :cvar: doc_FExpr
+
+    FExpr is an object that encapsulates computations to be done on a frame.
+
+    FExpr objects are rarely constructed directly (though it is possible too),
+    instead they are more commonly created as inputs/outputs from various
+    functions in :mod:`datatable`.
+
+    Consider the following example::
+
+        math.sin(2 * f.Angle)
+
+    Here accessing column "Angle" in namespace ``f`` creates an ``FExpr``.
+    Multiplying this ``FExpr`` by a python scalar ``2`` creates a new ``FExpr``.
+    And finally, applying the sine function creates yet another ``FExpr``. The
+    resulting expression can be applied to a frame via the
+    :meth:`DT[i,j] <dt.Frame.__getitem__>` method, which will compute that expression
+    using the data of that particular frame.
+
+    Thus, an ``FExpr`` is a stored computation, which can later be applied to a
+    Frame, or to multiple frames.
+
+    Because of its delayed nature, an ``FExpr`` checks its correctness at the time
+    when it is applied to a frame, not sooner. In particular, it is possible for
+    the same expression to work with one frame, but fail with another. In the
+    example above, the expression may raise an error if there is no column named
+    "Angle" in the frame, or if the column exists but has non-numeric type.
+
+    Most functions in datatable that accept an ``FExpr`` as an input, return
+    a new ``FExpr`` as an output, thus creating a tree of ``FExpr``s as the
+    resulting evaluation graph.
+
+    Also, all functions that accept ``FExpr``s as arguments, will also accept
+    certain other python types as an input, essentially converting them into
+    ``FExpr``s. Thus, we will sometimes say that a function accepts **FExpr-like**
+    objects as arguments.
 
     All binary operators ``op(x, y)`` listed below work when either ``x``
     or ``y``, or both are ``FExpr``s.
@@ -139,6 +174,7 @@
 
         * - :meth:`.min()`
           - Same as :func:`dt.min()`.
+
         * - :meth:`.rowall()`
           - Same as :func:`dt.rowall()`.
 
@@ -178,6 +214,11 @@
         * - :meth:`.sum()`
           - Same as :func:`dt.sum()`.
 
+        * - :meth:`.as_type()`
+          - Same as :func:`dt.as_type()`.
+
+        * - :meth:`.prod()`
+          - Same as :func:`dt.prod()`.
 
     Miscellaneous
     -------------
@@ -254,3 +295,6 @@
     .sd()           <fexpr/sd>
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
+    .prod()         <fexpr/prod>
+    .as_type()      <fexpr/as_type>
+

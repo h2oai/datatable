@@ -256,39 +256,6 @@ void swap(rmem& left, rmem& right) noexcept {
 // Options
 //------------------------------------------------------------------------------
 
-static const char* doc_sort_insert_method_threshold =
-R"(
-Largest n at which sorting will be performed using insert sort
-method. This setting also governs the recursive parts of the
-radix sort algorithm, when we need to sort smaller sub-parts of
-the input.
-)";
-
-static const char* doc_sort_thread_multiplier =
-R"(
-Internal
-)";
-
-static const char* doc_sort_max_chunk_length =
-R"(
-Internal
-)";
-
-static const char* doc_sort_max_radix_bits =
-R"(
-Internal
-)";
-
-static const char* doc_sort_over_radix_bits =
-R"(
-Internal
-)";
-
-static const char* doc_sort_nthreads =
-R"(
-Internal
-)";
-
 static size_t sort_insert_method_threshold = 64;
 static size_t sort_thread_multiplier = 2;
 static size_t sort_max_chunk_length = 1 << 8;
@@ -306,7 +273,12 @@ void sort_init_options() {
       if (n < 0) n = 0;
       sort_insert_method_threshold = static_cast<size_t>(n);
     },
-    doc_sort_insert_method_threshold
+    R"(
+    Largest n at which sorting will be performed using insert sort
+    method. This setting also governs the recursive parts of the
+    radix sort algorithm, when we need to sort smaller sub-parts of
+    the input.
+    )"
   );
 
   dt::register_option(
@@ -317,7 +289,7 @@ void sort_init_options() {
       if (n < 1) n = 1;
       sort_thread_multiplier = static_cast<size_t>(n);
     },
-    doc_sort_thread_multiplier
+    nullptr
   );
 
   dt::register_option(
@@ -328,7 +300,7 @@ void sort_init_options() {
       if (n < 1) n = 1;
       sort_max_chunk_length = static_cast<size_t>(n);
     },
-    doc_sort_max_chunk_length
+    nullptr
   );
 
   dt::register_option(
@@ -340,7 +312,7 @@ void sort_init_options() {
         throw ValueError() << "Invalid sort.max_radix_bits parameter: " << n;
       sort_max_radix_bits = static_cast<uint8_t>(n);
     },
-    doc_sort_max_radix_bits
+    nullptr
   );
 
   dt::register_option(
@@ -352,7 +324,7 @@ void sort_init_options() {
         throw ValueError() << "Invalid sort.over_radix_bits parameter: " << n;
       sort_over_radix_bits = static_cast<uint8_t>(n);
     },
-    doc_sort_over_radix_bits
+    nullptr
   );
 
   dt::register_option(
@@ -364,7 +336,7 @@ void sort_init_options() {
       if (nth <= 0) nth = 1;
       sort_nthreads = static_cast<uint8_t>(nth);
     },
-    doc_sort_nthreads
+    nullptr
   );
 
   dt::register_option(
@@ -372,7 +344,8 @@ void sort_init_options() {
     []{ return py::obool(sort_new); },
     [](const py::Arg& value) {
       sort_new = value.to_bool_strict();
-    }, "");
+    },
+    nullptr);
 }
 
 
@@ -1155,6 +1128,9 @@ class SortContext {
   template <bool make_groups>
   void radix_psort() {
     int32_t* ores = o;
+    size_t strstart0 = strstart;
+
+    start:
     determine_sorting_parameters();
     build_histogram();
     reorder_data();
@@ -1167,7 +1143,8 @@ class SortContext {
       auto rrmap = std::unique_ptr<radix_range[]>(new radix_range[nradixes]);
       radix_range* rrmap_ptr = rrmap.get();
       _fill_rrmap_from_histogram(rrmap_ptr);
-      _radix_recurse<make_groups>(rrmap_ptr);
+      bool retry = _radix_recurse<make_groups>(rrmap_ptr, true);
+      if (retry) goto start;
       nsigbits = _nsigbits;
     }
     else if (make_groups) {
@@ -1181,6 +1158,7 @@ class SortContext {
       next_o = o;
       o = ores;
     }
+    strstart = strstart0;
   }
 
   void _fill_rrmap_from_histogram(radix_range* rrmap) {
@@ -1226,7 +1204,7 @@ class SortContext {
    * radix range, our job will be complete.
    */
   template <bool make_groups>
-  void _radix_recurse(radix_range* rrmap) {
+  bool _radix_recurse(radix_range* rrmap, bool allow_retry = false) {
     xassert(x && xx && o && next_o);
     // Save some of the variables in SortContext that we will be modifying
     // in order to perform the recursion.
@@ -1271,6 +1249,19 @@ class SortContext {
       size_t sz = rrmap[rri].size;
       if (sz > rrlarge) {
         size_t off = rrmap[rri].offset;
+        // If `strstart` characters in all strings were the same, then instead
+        // of recursing into `radix_psort` below, we will exit the method with
+        // the special "retry" status. The caller will then try to sort again.
+        // This works because we have already incremented `strstart` above,
+        // thus the caller will be retrying with the next character.
+        // We're doing this trick instead of a normal recursive call, because
+        // if we are sorting very long identical strings, there is a danger to
+        // create a very deep chain of recursion which will result in a stack
+        // overflow and a crash. With this return status we're effectively
+        // doing a manual tail-call elimination. See issue #3134.
+        if (sz == n && off == 0 && is_string && allow_retry) {
+          return true;
+        }
         elemsize = _elemsize;
         n = sz;
         x = rmem(_x, off * elemsize, n * elemsize);
@@ -1306,54 +1297,49 @@ class SortContext {
     int32_t* tmp = nullptr;
     bool own_tmp = false;
     if (size0) {
-      // size_t size_all = size0 * nthreads * sizeof(int32_t);
-      // if ((size_t)_next_elemsize * _n <= size_all) {
-      //   tmp = (int32_t*)_x;
-      // } else {
       own_tmp = true;
       tmp = new int32_t[size0 * nth];
-      // }
-    }
 
-    dt::parallel_region(dt::NThreads(nth),
-      [&] {
-        size_t tnum = dt::this_thread_index();
-        int32_t* oo = tmp + tnum * size0;
-        GroupGatherer tgg;
+      dt::parallel_region(dt::NThreads(nth),
+        [&] {
+          size_t tnum = dt::this_thread_index();
+          int32_t* oo = tmp + tnum * size0;
+          GroupGatherer tgg;
 
-        dt::nested_for_static(
-          /* n_iterations */ _nradixes,
-          [&](size_t i) {
-            size_t zn  = rrmap[i].size;
-            size_t off = rrmap[i].offset;
-            if (zn > rrlarge) {
-              rrmap[i].size = zn & ~GROUPED;
-            } else if (zn > 1) {
-              int32_t  tn = static_cast<int32_t>(zn);
-              rmem     tx { _x, off * elemsize, zn * elemsize };
-              int32_t* to = _o + off;
-              if (make_groups) {
-                tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
-              }
-              if (is_string) {
-                insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
-              } else {
-                switch (elemsize) {
-                  case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
-                  case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
-                  case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
-                  case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+          dt::nested_for_static(
+            /* n_iterations */ _nradixes,
+            [&](size_t i) {
+              size_t zn  = rrmap[i].size;
+              size_t off = rrmap[i].offset;
+              if (zn > rrlarge) {
+                rrmap[i].size = zn & ~GROUPED;
+              } else if (zn > 1) {
+                int32_t  tn = static_cast<int32_t>(zn);
+                rmem     tx { _x, off * elemsize, zn * elemsize };
+                int32_t* to = _o + off;
+                if (make_groups) {
+                  tgg.init(ggdata0 + off, static_cast<int32_t>(off) + ggoff0);
                 }
+                if (is_string) {
+                  insert_sort_keys_str(column, _strstart + 1, to, oo, tn, tgg, descending, na_pos);
+                } else {
+                  switch (elemsize) {
+                    case 1: insert_sort_keys<>(tx.data<uint8_t>(), to, oo, tn, tgg); break;
+                    case 2: insert_sort_keys<>(tx.data<uint16_t>(), to, oo, tn, tgg); break;
+                    case 4: insert_sort_keys<>(tx.data<uint32_t>(), to, oo, tn, tgg); break;
+                    case 8: insert_sort_keys<>(tx.data<uint64_t>(), to, oo, tn, tgg); break;
+                  }
+                }
+                if (make_groups) {
+                  rrmap[i].size = static_cast<size_t>(tgg.size());
+                }
+              } else if (zn == 1 && make_groups) {
+                ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
+                rrmap[i].size = 1;
               }
-              if (make_groups) {
-                rrmap[i].size = static_cast<size_t>(tgg.size());
-              }
-            } else if (zn == 1 && make_groups) {
-              ggdata0[off] = static_cast<int32_t>(off) + ggoff0 + 1;
-              rrmap[i].size = 1;
-            }
-          });  // dt::nested_for_static
-      });  // dt::parallel_region
+            });  // dt::nested_for_static
+        });  // dt::parallel_region
+    }
 
     // Consolidate groups into a single contiguous chunk
     if (make_groups) {
@@ -1363,6 +1349,7 @@ class SortContext {
     if (own_tmp) {
       delete[] tmp;
     }
+    return false;
   }
 
 
@@ -1433,9 +1420,11 @@ RiGb group(const std::vector<Column>& columns,
   const Column& col0 = columns[0];
 
   size_t nrows = col0.nrows();
-  #if DT_DEBUG
-    for (const Column& col : columns) xassert(col.nrows() == nrows);
-  #endif
+  size_t n_const_cols = 0;
+  for (const Column& col : columns) {
+    xassert(col.nrows() == nrows);
+    n_const_cols += col.is_constant();
+  }
 
   // For a 0-row Frame we return a rowindex of size 0, and the
   // Groupby containing zero groups.
@@ -1443,12 +1432,22 @@ RiGb group(const std::vector<Column>& columns,
     result.second = Groupby::zero_groups();
     return result;
   }
-  if (nrows == 1) {
-    Buffer buf = Buffer::mem(sizeof(int32_t));
-    buf.set_element<int32_t>(0, 0);
-    result.first = RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+  if (nrows == 1 || n_const_cols == n) {
+    result.first = RowIndex(0, nrows, 1);
     result.second = Groupby::single_group(nrows);
     return result;
+  }
+  if (n_const_cols > 0) {
+    std::vector<Column> new_columns;
+    std::vector<SortFlag> new_flags;
+    for (size_t i = 0; i < columns.size(); i++) {
+      const Column& col = columns[i];
+      if (!col.is_constant()) {
+        new_columns.push_back(col);
+        new_flags.push_back(flags[i]);
+      }
+    }
+    return group(new_columns, new_flags, na_pos);
   }
 
   if (sort_new) {

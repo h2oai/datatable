@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #include <type_traits>
 #include "_dt.h"
+#include "documentation.h"
 #include "expr/eval_context.h"
 #include "expr/fexpr_func_unary.h"
 #include "python/xargs.h"
@@ -127,159 +128,6 @@ class FExpr_HourMinSec : public FExpr_FuncUnary {
 // Python-facing `hour()`, `minute()`, `second()`, and `nanosecond()` functions
 //------------------------------------------------------------------------------
 
-static const char* doc_hour =
-R"(hour(time)
---
-.. x-version-added:: 1.0.0
-
-Retrieve the "hour" component of a time64 column. The returned value
-will always be in the range [0; 23].
-
-
-Parameters
-----------
-time: FExpr[time64]
-    A column for which you want to compute the hour part.
-
-return: FExpr[int32]
-    The hour part of the source column.
-
-
-Examples
---------
->>> from datetime import datetime as d
->>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
->>> DT[:, {'time': f[0], 'hour': dt.time.hour(f[0])}]
-   | time                         hour
-   | time64                      int32
--- + --------------------------  -----
- 0 | 2020-05-11T12:00:00            12
- 1 | 2021-06-14T16:10:59.394873     16
-[2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`minute()` -- retrieve the "minute" component of a timestamp
-- :func:`second()` -- retrieve the "second" component of a timestamp
-- :func:`nanosecond()` -- retrieve the "nanosecond" component of a timestamp
-)";
-
-static const char* doc_minute =
-R"(minute(time)
---
-.. x-version-added:: 1.0.0
-
-Retrieve the "minute" component of a time64 column. The produced column
-will have values in the range [0; 59].
-
-
-Parameters
-----------
-time: FExpr[time64]
-    A column for which you want to compute the minute part.
-
-return: FExpr[int32]
-    The minute part of the source column.
-
-
-Examples
---------
->>> from datetime import datetime as d
->>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
->>> DT[:, {'time': f[0], 'minute': dt.time.minute(f[0])}]
-   | time                        minute
-   | time64                       int32
--- + --------------------------  ------
- 0 | 2020-05-11T12:00:00              0
- 1 | 2021-06-14T16:10:59.394873      10
-[2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`hour()` -- retrieve the "hour" component of a timestamp
-- :func:`second()` -- retrieve the "second" component of a timestamp
-- :func:`nanosecond()` -- retrieve the "nanosecond" component of a timestamp
-)";
-
-static const char* doc_second =
-R"(second(time)
---
-.. x-version-added:: 1.0.0
-
-Retrieve the "second" component of a time64 column. The produced
-column will have values in the range [0; 59].
-
-
-Parameters
-----------
-time: FExpr[time64]
-    A column for which you want to compute the second part.
-
-return: FExpr[int32]
-    The "second" part of the source column.
-
-
-Examples
---------
->>> from datetime import datetime as d
->>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
->>> DT[:, {'time': f[0], 'second': dt.time.second(f[0])}]
-   | time                        second
-   | time64                       int32
--- + --------------------------  ------
- 0 | 2020-05-11T12:00:00              0
- 1 | 2021-06-14T16:10:59.394873      59
-[2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`hour()` -- retrieve the "hour" component of a timestamp
-- :func:`minute()` -- retrieve the "minute" component of a timestamp
-- :func:`nanosecond()` -- retrieve the "nanosecond" component of a timestamp
-)";
-
-static const char* doc_nanosecond =
-R"(nanosecond(time)
---
-.. x-version-added:: 1.0.0
-
-Retrieve the "nanosecond" component of a time64 column. The produced
-column will have values in the range [0; 999999999].
-
-
-Parameters
-----------
-time: FExpr[time64]
-    A column for which you want to compute the nanosecond part.
-
-return: FExpr[int32]
-    The "nanosecond" part of the source column.
-
-
-Examples
---------
->>> from datetime import datetime as d
->>> DT = dt.Frame([d(2020, 5, 11, 12, 0, 0), d(2021, 6, 14, 16, 10, 59, 394873)])
->>> DT[:, {'time': f[0], 'ns': dt.time.nanosecond(f[0])}]
-   | time                               ns
-   | time64                          int32
--- + --------------------------  ---------
- 0 | 2020-05-11T12:00:00                 0
- 1 | 2021-06-14T16:10:59.394873  394873000
-[2 rows x 2 columns]
-
-
-See Also
---------
-- :func:`hour()` -- retrieve the "hour" component of a timestamp
-- :func:`minute()` -- retrieve the "minute" component of a timestamp
-- :func:`second()` -- retrieve the "second" component of a timestamp
-)";
-
-
 static py::oobj pyfn_hour_min_sec(const py::XArgs& args) {
   auto time_expr = as_fexpr(args[0].to_oobj());
   const int kind = args.get_info();
@@ -292,7 +140,7 @@ static py::oobj pyfn_hour_min_sec(const py::XArgs& args) {
 
 DECLARE_PYFN(&pyfn_hour_min_sec)
     ->name("hour")
-    ->docs(doc_hour)
+    ->docs(doc_time_hour)
     ->arg_names({"time"})
     ->n_positional_args(1)
     ->n_required_args(1)
@@ -300,7 +148,7 @@ DECLARE_PYFN(&pyfn_hour_min_sec)
 
 DECLARE_PYFN(&pyfn_hour_min_sec)
     ->name("minute")
-    ->docs(doc_minute)
+    ->docs(doc_time_minute)
     ->arg_names({"time"})
     ->n_positional_args(1)
     ->n_required_args(1)
@@ -308,7 +156,7 @@ DECLARE_PYFN(&pyfn_hour_min_sec)
 
 DECLARE_PYFN(&pyfn_hour_min_sec)
     ->name("second")
-    ->docs(doc_second)
+    ->docs(doc_time_second)
     ->arg_names({"time"})
     ->n_positional_args(1)
     ->n_required_args(1)
@@ -316,7 +164,7 @@ DECLARE_PYFN(&pyfn_hour_min_sec)
 
 DECLARE_PYFN(&pyfn_hour_min_sec)
     ->name("nanosecond")
-    ->docs(doc_nanosecond)
+    ->docs(doc_time_nanosecond)
     ->arg_names({"time"})
     ->n_positional_args(1)
     ->n_required_args(1)

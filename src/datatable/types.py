@@ -46,9 +46,14 @@ class stype(enum.Enum):
     float64 = 7
     str32 = 11
     str64 = 12
+    arr32 = 13
+    arr64 = 14
     date32 = 17
     time64 = 18
     obj64 = 21
+    cat8 = 22
+    cat16 = 23
+    cat32 = 24
 
     def __repr__(self):
         return str(self)
@@ -140,6 +145,7 @@ class ltype(enum.Enum):
     str = 4
     time = 5
     obj = 7
+    invalid = 8
 
     def __repr__(self):
         return str(self)
@@ -194,9 +200,14 @@ _stype_2_short = {
     stype.float64: "r8",
     stype.str32: "s4",
     stype.str64: "s8",
+    stype.arr32: "a4",
+    stype.arr64: "a8",
     stype.time64: "t8",
     stype.date32: "d4",
     stype.obj64: "o8",
+    stype.cat8: "c1",
+    stype.cat16: "c2",
+    stype.cat32: "c4",
 }
 
 _stype_2_ltype = {
@@ -210,9 +221,14 @@ _stype_2_ltype = {
     stype.float64: ltype.real,
     stype.str32: ltype.str,
     stype.str64: ltype.str,
+    stype.arr32: ltype.invalid,
+    stype.arr64: ltype.invalid,
     stype.date32: ltype.time,
     stype.time64: ltype.time,
     stype.obj64: ltype.obj,
+    stype.cat8: ltype.invalid,
+    stype.cat16: ltype.invalid,
+    stype.cat32: ltype.invalid,
 }
 
 _stype_2_ctype = {
@@ -299,6 +315,7 @@ def _additional_stype_members():
         yield (v.name, v)
     for st, code in _stype_2_short.items():
         yield (code, st)
+    yield (None, stype.void)
     yield (bool, stype.bool8)
     yield ("bool", stype.bool8)
     yield ("boolean", stype.bool8)

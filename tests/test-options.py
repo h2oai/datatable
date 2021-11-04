@@ -316,13 +316,13 @@ def test_debug_logger_object():
         assert dt.options.debug.enabled is True
 
         DT = dt.rbind([])
-        assert "dt.rbind([]) {" in logger.msg
+        assert "datatable.rbind([]) {" in logger.msg
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s", logger.msg)
         logger.msg = ""
 
         with pytest.raises(TypeError):
             dt.rbind(4)
-        assert "dt.rbind(4) {" in logger.msg
+        assert "datatable.rbind(4) {" in logger.msg
         assert re.search(r"} # \d+(?:\.\d+)?(?:[eE][+-]?\d+)? s \(failed\)", logger.msg)
 
 

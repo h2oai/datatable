@@ -22,6 +22,7 @@
 #include <algorithm>
 #include "column/const.h"
 #include "column/func_nary.h"
+#include "documentation.h"
 #include "expr/fnary/fnary.h"
 #include "python/xargs.h"
 namespace dt {
@@ -128,136 +129,15 @@ template class FExpr_RowMinMax<true,false>;
 template class FExpr_RowMinMax<false,false>;
 
 
-
-static const char* doc_rowmin =
-R"(rowmin(*cols)
---
-
-For each row, find the smallest value among the columns from `cols`,
-excluding missing values.
-
-
-Parameters
-----------
-cols: FExpr
-    Input columns.
-
-return: FExpr
-    f-expression consisting of one column that has the same number of rows
-    as in `cols`. The column stype is the smallest common stype
-    for `cols`, but not less than `int32`.
-
-except: TypeError
-    The exception is raised when `cols` has non-numeric columns.
-
-
-Examples
---------
-::
-
-    >>> from datatable import dt, f
-    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
-    ...                "B": [None, 2, 3, 4, None],
-    ...                "C":[True, False, False, True, True]})
-    >>> DT
-       |     A      B      C
-       | int32  int32  bool8
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      0
-     2 |     2      3      0
-     3 |     1      4      1
-     4 |     2     NA      1
-    [5 rows x 3 columns]
-
-::
-
-    >>> DT[:, dt.rowmin(f[:])]
-       |    C0
-       | int32
-    -- + -----
-     0 |     1
-     1 |     0
-     2 |     0
-     3 |     1
-     4 |     1
-    [5 rows x 1 column]
-
-
-See Also
---------
-- :func:`rowmax()` -- find the largest element row-wise.
-)";
-
-
-static const char* doc_rowmax =
-R"(rowmax(*cols)
---
-
-For each row, find the largest value among the columns from `cols`.
-
-
-Parameters
-----------
-cols: FExpr
-    Input columns.
-
-return: FExpr
-    f-expression consisting of one column that has the same number of rows
-    as in `cols`. The column stype is the smallest common stype
-    for `cols`, but not less than `int32`.
-
-except: TypeError
-    The exception is raised when `cols` has non-numeric columns.
-
-
-Examples
---------
-::
-
-    >>> from datatable import dt, f
-    >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
-    ...                "B": [None, 2, 3, 4, None],
-    ...                "C":[True, False, False, True, True]})
-    >>> DT
-       |     A      B      C
-       | int32  int32  bool8
-    -- + -----  -----  -----
-     0 |     1     NA      1
-     1 |     1      2      0
-     2 |     2      3      0
-     3 |     1      4      1
-     4 |     2     NA      1
-    [5 rows x 3 columns]
-
-::
-
-    >>> DT[:, dt.rowmax(f[:])]
-       |    C0
-       | int32
-    -- + -----
-     0 |     1
-     1 |     2
-     2 |     3
-     3 |     4
-     4 |     2
-    [5 rows x 1 column]
-
-
-See Also
---------
-- :func:`rowmin()` -- find the smallest element row-wise.
-)";
-
 DECLARE_PYFN(&py_rowfn)
     ->name("rowmin")
-    ->docs(doc_rowmin)
+    ->docs(doc_dt_rowmin)
     ->allow_varargs()
     ->add_info(FN_ROWMIN);
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowmax")
-    ->docs(doc_rowmax)
+    ->docs(doc_dt_rowmax)
     ->allow_varargs()
     ->add_info(FN_ROWMAX);
 

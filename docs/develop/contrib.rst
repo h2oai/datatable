@@ -57,7 +57,7 @@ You will need to return there when issuing any subsequent ``git`` commands
 detailed futher.
 
 
-Creating a contribution
+Creating a Pull Request
 -----------------------
 
 Start by fetching any changes that might have occurred since the last time
@@ -66,7 +66,8 @@ you were working with the repository:
 .. code-block:: console
 
    $ git checkout main
-   $ git pull
+   $ git fetch upstream
+   $ git merge upstream/main
 
 
 Then create a new local branch where you will be working on your changes.

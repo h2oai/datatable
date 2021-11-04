@@ -63,6 +63,9 @@ class OpCodes(enum.Enum):
     MEDIAN = 410
     COV = 411
     CORR = 412
+    COUNTNA = 413
+    NUNIQUE = 414
+    PROD = 415
 
     # Math: trigonometric
     SIN = 501

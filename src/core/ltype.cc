@@ -72,6 +72,7 @@ void init_py_ltype_objs(PyObject* ltype_enum) {
   _init_py_ltype(LType::STRING);
   _init_py_ltype(LType::DATETIME);
   _init_py_ltype(LType::OBJECT);
+  _init_py_ltype(LType::INVALID);
 }
 
 

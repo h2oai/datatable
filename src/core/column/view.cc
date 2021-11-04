@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,23 +30,34 @@ namespace dt {
 
 SliceView_ColumnImpl::SliceView_ColumnImpl(
     Column&& col, const RowIndex& ri)
-  : Virtual_ColumnImpl(ri.size(), col.stype()),
-    arg(std::move(col)),
-    start(ri.slice_start()),
-    step(ri.slice_step())
+  : Virtual_ColumnImpl(ri.size(), col.type()),
+    arg_(std::move(col)),
+    start_(ri.slice_start()),
+    step_(ri.slice_step())
 {
   xassert(ri.isslice());
-  xassert(ri.max() < arg.nrows());
+  xassert(ri.max() < arg_.nrows());
+}
+
+SliceView_ColumnImpl::SliceView_ColumnImpl(
+    Column&& col, size_t start, size_t count, size_t step)
+  : Virtual_ColumnImpl(count, col.type()),
+    arg_(std::move(col)),
+    start_(start),
+    step_(step)
+{
+  xassert((start < arg_.nrows()) || (count == 0 && start == arg_.nrows()));
+  xassert(start + count*step <= arg_.nrows());
 }
 
 
 ColumnImpl* SliceView_ColumnImpl::clone() const {
   return new SliceView_ColumnImpl(
-                Column(arg), RowIndex(start, nrows_, step));
+                Column(arg_), RowIndex(start_, nrows_, step_));
 }
 
 bool SliceView_ColumnImpl::allow_parallel_access() const {
-  return arg.allow_parallel_access();
+  return arg_.allow_parallel_access();
 }
 
 size_t SliceView_ColumnImpl::n_children() const noexcept {
@@ -55,18 +66,19 @@ size_t SliceView_ColumnImpl::n_children() const noexcept {
 
 const Column& SliceView_ColumnImpl::child(size_t i) const {
   xassert(i == 0);  (void)i;
-  return arg;
+  return arg_;
 }
 
 
-bool SliceView_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int32_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, int64_t* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, float* out)    const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(start + i*step, out); }
-bool SliceView_ColumnImpl::get_element(size_t i, py::oobj* out) const { return arg.get_element(start + i*step, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int8_t* out)   const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int16_t* out)  const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int32_t* out)  const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, int64_t* out)  const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, float* out)    const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, double* out)   const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, CString* out)  const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, py::oobj* out) const { return arg_.get_element(start_ + i*step_, out); }
+bool SliceView_ColumnImpl::get_element(size_t i, Column* out)   const { return arg_.get_element(start_ + i*step_, out); }
 
 
 
@@ -123,70 +135,24 @@ const Column& ArrayView_ColumnImpl<T>::child(size_t i) const {
 }
 
 
-
 template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out) const {
+template <typename S>
+bool ArrayView_ColumnImpl<T>::_get_element(size_t i, S* out) const {
   xassert(i < nrows_);
   T j = indices[i];
   if (j < 0) return false;
   return arg.get_element(static_cast<size_t>(j), out);
 }
 
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
-
-template <typename T>
-bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const {
-  xassert(i < nrows_);
-  T j = indices[i];
-  if (j < 0) return false;
-  return arg.get_element(static_cast<size_t>(j), out);
-}
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, int8_t* out)   const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, int16_t* out)  const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, int32_t* out)  const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, int64_t* out)  const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, float* out)    const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, double* out)   const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, CString* out)  const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, py::oobj* out) const { return _get_element(i, out); }
+template <typename T> bool ArrayView_ColumnImpl<T>::get_element(size_t i, Column* out)   const { return _get_element(i, out); }
 
 
 template class ArrayView_ColumnImpl<int32_t>;

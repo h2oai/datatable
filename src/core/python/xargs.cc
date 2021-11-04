@@ -43,7 +43,8 @@ XArgs::XArgs()
     nargs_all_(0),
     has_varargs_(false),
     has_varkwds_(false),
-    has_renamed_args_(false)
+    has_renamed_args_(false),
+    is_static_method_(false)
 {
   store().push_back(this);
 }
@@ -75,7 +76,7 @@ PyMethodDef XArgs::get_method_def() {
   return PyMethodDef {
     function_name_.data(),
     reinterpret_cast<PyCFunction>(pyfn_),
-    METH_VARARGS | METH_KEYWORDS,
+    METH_VARARGS | METH_KEYWORDS | (is_static_method_? METH_STATIC : 0),
     docstring_
   };
 }
@@ -187,6 +188,17 @@ XArgs* XArgs::add_synonym_arg(const char* new_name, const char* old_name) {
 
 XArgs* XArgs::set_class_name(const char* className) {
   class_name_ = className;
+  return this;
+}
+
+XArgs* XArgs::save_as(XArgs** target) {
+  *target = this;
+  return this;
+}
+
+XArgs* XArgs::staticmethod() {
+  xassert(classId_);
+  is_static_method_ = true;
   return this;
 }
 

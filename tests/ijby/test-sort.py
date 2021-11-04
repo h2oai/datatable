@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1016,6 +1016,52 @@ def test_sort_double_negation():
     assert_equals(DT[:, :, sort(f.A)], RES4)
 
 
+def test_sort_with_reverse_list_false_true(numpy):
+    DT = dt.Frame(
+    {
+    'A': ['o1','o2','o3','o4','o5'],
+    'B': ['c1','c1','c2','c2','c3'],
+    'C': [5, 1, 3, numpy.NaN, numpy.NaN]
+    })
+    EXP = DT[:, :, dt.sort(f.B, -f.A)]
+    RES1 = DT[:, :, dt.sort("B", "A", reverse=[False, True])]
+    RES2 = DT[:, :, dt.sort(1, 0, reverse=[False, True])]
+    RES3 = DT[:, :, dt.sort(["B", "A"], reverse=[False, True])]
+    assert_equals(EXP, RES1)
+    assert_equals(EXP, RES2)
+    assert_equals(EXP, RES3)
+
+
+def test_sort_with_reverse_list_true_true(numpy):
+    DT = dt.Frame(
+    {
+    'A': ['o1', 'o2', 'o3', 'o4', 'o5'],
+    'B': ['c1', 'c1', 'c2', 'c2', 'c3'],
+    'C': [5,1,3, numpy.NaN,numpy.NaN]
+    })
+    EXP = DT[:, :, dt.sort(-f.A, -f.B)]
+    RES1 = DT[:, :, dt.sort("B", "A", reverse=[True, True])]
+    RES2 = DT[:, :, dt.sort(1, 0, reverse=[True, True])]
+    RES3 = DT[:, :, dt.sort(["B", "A"], reverse=[True, True])]
+    assert_equals(EXP, RES1)
+    assert_equals(EXP, RES2)
+    assert_equals(EXP, RES3)
+
+
+def test_reverse_list_error(numpy):
+    msg = (r"Mismatch between the number of columns \(ncols=%s\) to be sorted and number of "
+          r"elements \(nflags=%s\) in the reverse flag list" %(2,1))
+    DT = dt.Frame(
+    {
+    'A': ['o1', 'o2', 'o3', 'o4', 'o5']*25,
+    'B': ['c1', 'c1', 'c2', 'c2', 'c3']*25,
+    'C': [5, 1, 3, numpy.NaN, numpy.NaN]*25
+    })
+    with pytest.raises(ValueError, match=msg):
+        DT[:, :, dt.sort(0, 1, reverse=[True])]
+
+
+
 #-------------------------------------------------------------------------------
 # Sort with positional value for NAs
 #-------------------------------------------------------------------------------
@@ -1051,6 +1097,7 @@ def test_na_position_value_error(na_pos):
     DT = dt.Frame(A=[3,9,0])
     with pytest.raises(ValueError, match=msg):
         DT[:, :, dt.sort(0, reverse=True, na_position=na_pos)]
+
 
 
 #-------------------------------------------------------------------------------
@@ -1131,3 +1178,55 @@ def test_issue2348():
                   dt.Frame([[11], [6]],
                            names=["D", "count"],
                            stypes=[dt.int32, dt.int64]))
+
+
+def test_sort_consts():
+    DT = dt.Frame(A=[5], B=[7.9], C=["Hello"], D=[None])
+    DT = dt.repeat(DT, 1000)
+    assert_equals(DT[:, :, sort(f.A)], DT)
+    assert_equals(DT[:, :, sort(f.B)], DT)
+    assert_equals(DT[:, :, sort(f.C)], DT)
+    assert_equals(DT[:, :, sort(f.D)], DT)
+
+
+def test_sort_consts2():
+    # see issue #3088
+    DT = dt.Frame([dt.math.nan, dt.math.nan])[:, dt.count(), dt.by(0)]
+    assert_equals(DT, dt.Frame(C0=[None], count=[2]/dt.int64))
+
+
+def test_sort_long_identical_strings():
+    # see issue #3134
+    src = ["o" * 20000] * 1000
+    DT = dt.Frame(src).sort(0)
+    assert_equals(DT, dt.Frame(src))
+
+
+def test_sort_long_nnearly_identical_strings():
+    # see issue #3134
+    src = ["o" * 20000 + str(i % 10) for i in range(1000)]
+    DT = dt.Frame(src).sort(0)
+    assert_equals(DT, dt.Frame(sorted(src)))
+
+
+def test_sort_multicolumn1():
+    # See issue #3141
+    DT = dt.Frame(A=[111] * 100,
+                  B=['a', 'b'] * 50,
+                  C=['ads', 'adfv', 'adfv', 'adsfv'] * 25)
+    RES1 = DT[:, dt.count(), dt.by(f.A, f.B, f.C)]
+    assert_equals(RES1,
+        dt.Frame(A=[111, 111, 111, 111],
+                 B=['a', 'a', 'b', 'b'],
+                 C=['adfv', 'ads', 'adfv', 'adsfv'],
+                 count=[25, 25, 25, 25]/dt.int64))
+    RES2 = DT[:, dt.count(), dt.by(f.B, f.C)]
+    assert_equals(RES2,
+        dt.Frame(B=['a', 'a', 'b', 'b'],
+                 C=['adfv', 'ads', 'adfv', 'adsfv'],
+                 count=[25, 25, 25, 25]/dt.int64))
+    RES3 = DT[:, dt.count(), dt.by(f.A, f.B)]
+    assert_equals(RES3,
+        dt.Frame(A=[111, 111],
+                 B=['a', 'b'],
+                 count=[50, 50]/dt.int64))

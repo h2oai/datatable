@@ -309,15 +309,13 @@ FtrlFitOutput Ftrl<T>::fit(T(*linkfn)(T),
   init_helper_params();
 
   // Define features, weight pointers, feature importances storage,
-  // as well as column hashers.
+  // column hashers, etc.
   define_features();
   init_weights();
   if (dt_fi == nullptr) create_fi();
-  auto hashers = create_hashers(dt_X_train);
-
-  // Obtain rowindex and data pointers for the target column(s).
-  const Column& target_col0_train = dt_y_train->get_column(0);
   auto data_fi = static_cast<T*>(dt_fi->get_column(1).get_data_editable());
+  auto hashers = create_hashers(dt_X_train);
+  const Column& target_col0_train = dt_y_train->get_column(0);
 
   // Since `nepochs` can be a float value
   // - the model is trained `niterations - 1` times on

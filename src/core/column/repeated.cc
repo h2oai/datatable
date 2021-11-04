@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -68,6 +68,7 @@ bool Repeated_ColumnImpl::get_element(size_t i, float* out)    const { return ar
 bool Repeated_ColumnImpl::get_element(size_t i, double* out)   const { return arg.get_element(i % mod, out); }
 bool Repeated_ColumnImpl::get_element(size_t i, CString* out)  const { return arg.get_element(i % mod, out); }
 bool Repeated_ColumnImpl::get_element(size_t i, py::oobj* out) const { return arg.get_element(i % mod, out); }
+bool Repeated_ColumnImpl::get_element(size_t i, Column* out)   const { return arg.get_element(i % mod, out); }
 
 
 

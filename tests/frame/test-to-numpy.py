@@ -78,8 +78,9 @@ def test_tonumpy_void(np):
     assert DT.shape == (10, 3)
     a = DT.to_numpy()
     assert a.shape == DT.shape
-    assert a.dtype == np.dtype('void')
-    assert a.tolist() == [[b''] * 3] * 10
+    assert a.dtype == np.dtype('float64')
+    assert all(len(row) == 3 and all(math.isnan(x) for x in row)
+               for row in a.tolist())
 
 
 @numpy_test
@@ -161,7 +162,7 @@ def test_tonumpy_strings_with_NAs(np):
     src = ["faa", None, "", "hooray", None]
     d0 = dt.Frame(src)
     a0 = d0.to_numpy()
-    assert isinstance(a0, np.ma.core.MaskedArray)
+    assert isinstance(a0, np.ndarray)
     assert a0.dtype == np.dtype('object')
     assert a0.T.tolist() == [src]
 
