@@ -25,7 +25,6 @@
 #include "documentation.h"
 #include "expr/fnary/fnary.h"
 #include "python/xargs.h"
-#include <utility>
 namespace dt {
 namespace expr {
 
@@ -35,36 +34,59 @@ std::string FExpr_RowMinMax<MIN,RETARGS>::name() const {
   return MIN? "rowmin" : "rowmax";
 }
 
+
+//template <typename T, bool MIN>
+//static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
+//  bool minmax_valid = false;
+//  T minmax = 0;
+//  for (const auto& col : columns) {
+//    T x;
+//    bool xvalid = col.get_element(i, &x);
+//    if (!xvalid) continue;
+//    if (minmax_valid) {
+//      if (MIN)  { if (x < minmax) minmax = x; }
+//      else      { if (x > minmax) minmax = x; }
+//    } else {
+//      minmax = x;
+//      minmax_valid = true;
+//    }
+//  }
+//  *out = minmax;
+//  return minmax_valid;
+//}
+
+
 template <typename T1, typename T2, bool MIN, bool RETARGS>
 static bool op_rowminmax(size_t i, T2* out, const colvec& columns) {
   bool minmax_valid = false;
-  std::pair<T1,int64_t> minmax(0, 0);
-  int64_t count = -1;
+  T1 minmax = 0;
+  int64_t minmaxargcount = -1;
+  int64_t minmaxarg = 0;
   for (const auto& col : columns) {
     T1 x;
     bool xvalid = col.get_element(i, &x);
-    ++count;
+    ++minmaxargcount;
     if (!xvalid) continue;
     if (minmax_valid) {
       if (MIN) {
-        if (x < minmax.first) {
-          minmax.first = x;
-          minmax.second = count;
+        if (x < minmax) {
+          minmax = x;
+          minmaxarg = minmaxargcount;
         }
       } else {
-        if (x > minmax.first) {
-          minmax.first = x;
-          minmax.second = count;
+        if (x > minmax) {
+          minmax = x;
+          minmaxarg = minmaxargcount;
         }
       }
     } else {
-      minmax.first = x;
-      minmax.second = count;
+      minmax = x;
+      minmaxarg = minmaxargcount;
       minmax_valid = true;
     }
   }
-  if (RETARGS) *out = minmax.second;
-  else *out = minmax.first;
+  if (RETARGS) *out = minmaxarg;
+  else *out = minmax;
   return minmax_valid;
 }
 
