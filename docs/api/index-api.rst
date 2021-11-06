@@ -175,6 +175,8 @@ Functions
       - Calculate the standard deviation per column
     * - :func:`sum()`
       - Calculate the sum of all values per column
+    * - :func:`prod()`
+      - Calculate the product of all values per column
 
 
 Other
@@ -262,6 +264,7 @@ Other
     sort()            <dt/sort>
     split_into_nhot() <dt/split_into_nhot>
     sum()             <dt/sum>
+    prod()          <dt/prod>
     symdiff()         <dt/symdiff>
     union()           <dt/union>
     unique()          <dt/unique>

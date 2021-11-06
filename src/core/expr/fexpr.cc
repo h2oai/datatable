@@ -305,6 +305,15 @@ DECLARE_METHOD(&PyFExpr::sum)
     ->docs(dt::doc_FExpr_sum);
 
 
+oobj PyFExpr::prod(const XArgs&) {
+  auto prodFn = oobj::import("datatable", "prod");
+  return prodFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::prod)
+    ->name("prod")
+    ->docs(dt::doc_FExpr_prod);
+
 
 oobj PyFExpr::max(const XArgs&) {
   auto maxFn = oobj::import("datatable", "max");

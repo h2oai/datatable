@@ -236,7 +236,7 @@ def test_save_hexdouble_special():
 def test_save_hexdouble_random(seed):
     random.seed(seed)
     src = [(1.5 * random.random() - 0.5) * 10**random.randint(-325, 308)
-           for _ in range(1000)]
+           for _ in range(random.randint(1, 1000))]
     d = dt.Frame(src)
     hexxed = d.to_csv(hex=True).split("\n")[1:-1]
     assert hexxed == [pyhex(v) for v in src]
@@ -437,6 +437,15 @@ def test_issue2382():
                    '\n'.join(','.join(['"1"'] * 200) for j in range(20)) + "\n")
 
 
+def test_issue3176():
+    import multiprocessing as mp
+    dt.options.nthreads = min(8, mp.cpu_count())
+    nrows = dt.options.nthreads * 2 - 1
+    ncols = 41
+    src = [0.0] * nrows
+    DT0 = dt.Frame([src] * ncols)
+    DT1 = dt.Frame(DT0.to_csv())
+    assert_equals(DT0, DT1)
 
 
 #-------------------------------------------------------------------------------

@@ -22,10 +22,11 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import math
+import numpy as np
 import pytest
 import random
 from datatable import (
-    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr)
+    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr, prod)
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
@@ -551,4 +552,42 @@ def test_corr_multiple():
     assert_equals(D1, dt.Frame([[1.0], [a], [b], [-b]]))
     assert_equals(D2, dt.Frame([[-b], [-c], [-1.0], [1.0]]))
     assert_equals(D3, dt.Frame([[1.0], [1.0], [1.0], [1.0]]))
+
+
+
+#-------------------------------------------------------------------------------
+# prod
+#-------------------------------------------------------------------------------
+
+def test_prod_simple():
+    DT = dt.Frame(A=range(1, 5))
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod(np.arange(1,5))
+    assert str(RES)
+
+
+def test_prod_empty_frame():
+    DT = dt.Frame([[]] * 4, names=list("ABCD"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
+    assert DT.shape == (0, 4)
+    RES = DT[:, prod(f[:])]
+    frame_integrity_check(RES)
+    assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
+    assert str(RES)
+
+def test_prod_bool():
+    DT = dt.Frame(A= [True, False, True])
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod([True, False, True])
+    assert str(RES)
+
+def test_prod_floats():
+    random_numbers = np.random.randn(3)
+    DT = dt.Frame(A= random_numbers)
+    RES = DT[:, prod(f.A)]
+    frame_integrity_check(RES)
+    assert RES.to_numpy().item() == np.prod(random_numbers)
+    assert str(RES)
 
