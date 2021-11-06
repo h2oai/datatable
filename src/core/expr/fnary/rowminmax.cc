@@ -25,6 +25,7 @@
 #include "documentation.h"
 #include "expr/fnary/fnary.h"
 #include "python/xargs.h"
+#include <utility>
 namespace dt {
 namespace expr {
 
@@ -34,62 +35,40 @@ std::string FExpr_RowMinMax<MIN,RETARGS>::name() const {
   return MIN? "rowmin" : "rowmax";
 }
 
-
-template <typename T, bool MIN, bool RETARGS=false>
-static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
-  bool minmax_valid = false;
-  T minmax = 0;
-  for (const auto& col : columns) {
-    T x;
-    bool xvalid = col.get_element(i, &x);
-    if (!xvalid) continue;
-    if (minmax_valid) {
-      if (MIN)  { if (x < minmax) minmax = x; }
-      else      { if (x > minmax) minmax = x; }
-    } else {
-      minmax = x;
-      minmax_valid = true;
-    }
-  }
-  *out = minmax;
-  return minmax_valid;
-}
-
-
-template <typename T1, typename T2, bool MIN, bool RETARGS=false>
+template <typename T1, typename T2, bool MIN, bool RETARGS>
 static bool op_rowminmax(size_t i, T2* out, const colvec& columns) {
   bool minmax_valid = false;
-  T1 minmax = 0;
-  int64_t minmaxargcount = -1;
-  int64_t minmaxarg = 0;
+  std::pair<T1,int64_t> minmax(0, 0);
+  int64_t count = -1;
   for (const auto& col : columns) {
     T1 x;
     bool xvalid = col.get_element(i, &x);
-    ++minmaxargcount;
+    ++count;
     if (!xvalid) continue;
     if (minmax_valid) {
       if (MIN) {
-        if (x < minmax) {
-          minmax = x;
-          minmaxarg = minmaxargcount;
+        if (x < minmax.first) {
+          minmax.first = x;
+          minmax.second = count;
         }
       } else {
-        if (x > minmax) {
-          minmax = x;
-          minmaxarg = minmaxargcount;
+        if (x > minmax.first) {
+          minmax.first = x;
+          minmax.second = count;
         }
       }
     } else {
-      minmax = x;
-      minmaxarg = minmaxargcount;
+      minmax.first = x;
+      minmax.second = count;
       minmax_valid = true;
     }
   }
-  *out = minmaxarg;
+  if (RETARGS) *out = minmax.second;
+  else *out = minmax.first;
   return minmax_valid;
 }
 
-template <typename T, bool MIN, bool RETARGS=false>
+template <typename T, bool MIN, bool RETARGS>
 static inline Column _rowminmax(colvec&& columns) {
   size_t nrows = columns[0].nrows();
   if (RETARGS) {
@@ -97,7 +76,7 @@ static inline Column _rowminmax(colvec&& columns) {
     return Column(new FuncNary_ColumnImpl<int64_t>(
           std::move(columns), fn, nrows, stype_from<int64_t>));
   } else {
-    auto fn = op_rowminmax<T, MIN>;
+    auto fn = op_rowminmax<T, T, MIN, RETARGS>;
     return Column(new FuncNary_ColumnImpl<T>(
           std::move(columns), fn, nrows, stype_from<T>));
   }
@@ -143,13 +122,13 @@ DECLARE_PYFN(&py_rowfn)
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowargmax")
-    ->docs(doc_rowmax)
+    ->docs(doc_dt_rowmax)
     ->allow_varargs()
     ->add_info(FN_ROWARGMAX);
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowargmin")
-    ->docs(doc_rowmin)
+    ->docs(doc_dt_rowmin)
     ->allow_varargs()
     ->add_info(FN_ROWARGMIN);
 
