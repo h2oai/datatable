@@ -278,6 +278,8 @@ def _init_numpy_transforms():
             stype.str32: np.dtype("object"),
             stype.str64: np.dtype("object"),
             stype.obj64: np.dtype("object"),
+            stype.date32: np.dtype("datetime64"),
+            stype.time64: np.dtype("datetime64")
         }
         _init_value2members_from([
             (np.dtype("void"), stype.void),
@@ -290,6 +292,8 @@ def _init_numpy_transforms():
             (np.dtype("float64"), stype.float64),
             (np.dtype("str"), stype.str64),
             (np.dtype("object"), stype.obj64),
+            (np.dtype("datetime64"), stype.date32),
+            (np.dtype("datetime64"), stype.time64),
         ])
     except ImportError:
         pass
