@@ -35,7 +35,7 @@ std::string FExpr_RowMinMax<MIN,RETARGS>::name() const {
   return MIN? "rowmin" : "rowmax";
 }
 
-template <typename T1, typename T2, bool MIN, bool RETARGS>
+template <typename T1, typename T2, bool MIN, bool RETARGS=false>
 static bool op_rowminmax(size_t i, T2* out, const colvec& columns) {
   bool minmax_valid = false;
   std::pair<T1,int64_t> minmax(0, 0);
@@ -76,7 +76,7 @@ static inline Column _rowminmax(colvec&& columns) {
     return Column(new FuncNary_ColumnImpl<int64_t>(
           std::move(columns), fn, nrows, stype_from<int64_t>));
   } else {
-    auto fn = op_rowminmax<T, T, MIN, RETARGS>;
+    auto fn = op_rowminmax<T, T, MIN>;
     return Column(new FuncNary_ColumnImpl<T>(
           std::move(columns), fn, nrows, stype_from<T>));
   }
