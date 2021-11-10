@@ -122,7 +122,7 @@ DECLARE_PYFN(&py_rowfn)
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowargmax")
-    ->docs(doc_dt_rowmax)
+    ->docs(doc_dt_rowargmax)
     ->allow_varargs()
     ->add_info(FN_ROWARGMAX);
 
