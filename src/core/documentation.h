@@ -50,6 +50,8 @@ extern const char* doc_dt_rbind;
 extern const char* doc_dt_repeat;
 extern const char* doc_dt_rowall;
 extern const char* doc_dt_rowany;
+extern const char* doc_dt_rowargmax;
+extern const char* doc_dt_rowargmin;
 extern const char* doc_dt_rowcount;
 extern const char* doc_dt_rowfirst;
 extern const char* doc_dt_rowlast;
