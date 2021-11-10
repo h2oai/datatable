@@ -128,7 +128,7 @@ DECLARE_PYFN(&py_rowfn)
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowargmin")
-    ->docs(doc_dt_rowmin)
+    ->docs(doc_dt_rowargmin)
     ->allow_varargs()
     ->add_info(FN_ROWARGMIN);
 
