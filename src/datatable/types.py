@@ -277,6 +277,11 @@ def _init_numpy_transforms():
             stype.float64: np.dtype("float64"),
             stype.str32: np.dtype("object"),
             stype.str64: np.dtype("object"),
+            stype.arr32: np.dtype("object"),
+            stype.arr64: np.dtype("object"),
+            stype.cat8:  np.dtype("object"),
+            stype.cat16: np.dtype("object"),
+            stype.cat32: np.dtype("object"),
             stype.obj64: np.dtype("object"),
         }
         _init_value2members_from([
