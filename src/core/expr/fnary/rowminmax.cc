@@ -31,8 +31,12 @@ namespace expr {
 
 
 template <bool MIN, bool RETARGS>
-std::string FExpr_RowMinMax<MIN,RETARGS>::name() const {
-  return MIN? "rowmin" : "rowmax";
+std::string FExpr_RowMinMax<MIN, RETARGS>::name() const {
+  if (RETARGS) {
+    return MIN? "rowargmin" : "rowargmax";
+  } else {
+    return MIN? "rowmin" : "rowmax";
+  }
 }
 
 template <typename T1, typename T2, bool MIN, bool RETARGS=false>
