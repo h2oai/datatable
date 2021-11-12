@@ -66,7 +66,7 @@ from sphinx.util.docutils import SphinxDirective
 from sphinx.util.nodes import make_refnode
 from . import xnodes
 
-rx_cc_id = re.compile(r"(?:\w+(?:<\w+>)?::)*\w+")
+rx_cc_id = re.compile(r"(?:\w+(?:<\w+(,\w+)*>)?::)*\w+")
 rx_py_id = re.compile(r"(?:\w+\.)*\w+")
 rx_param = re.compile(r"""
     (?:(\w+)                                        # parameter name

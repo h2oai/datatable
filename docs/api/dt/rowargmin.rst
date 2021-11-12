@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.rowargmin
-    :src: src/core/expr/fnary/rowminmin.cc FExpr_RowMinMax<MIN,RETARGS>::apply_function
+    :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,RETARGS>::apply_function
     :tests: tests/ijby/test-rowwise.py
     :cvar: doc_dt_rowiargmin
     :signature: rowargmin(*cols)
@@ -56,4 +56,4 @@
 
     See Also
     --------
-    - :func:`rowmin()` -- find the smallest element row-wise.
+    - :func:`rowargmax()` -- find the index of the largest element row-wise.

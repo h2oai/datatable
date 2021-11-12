@@ -56,4 +56,4 @@
 
     See Also
     --------
-    - :func:`rowmax()` -- find the largest element row-wise.
+    - :func:`rowargmin()` -- find the index of the smallest element row-wise.
