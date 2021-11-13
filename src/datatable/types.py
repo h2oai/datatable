@@ -278,8 +278,8 @@ def _init_numpy_transforms():
             stype.str32: np.dtype("object"),
             stype.str64: np.dtype("object"),
             stype.obj64: np.dtype("object"),
-            stype.date32: np.dtype("datetime64"),
-            stype.time64: np.dtype("datetime64")
+            stype.date32: np.dtype("datetime64[D]"),
+            stype.time64: np.dtype("datetime64[ns]")
         }
         _init_value2members_from([
             (np.dtype("void"), stype.void),
