@@ -292,8 +292,8 @@ def _init_numpy_transforms():
             (np.dtype("float64"), stype.float64),
             (np.dtype("str"), stype.str64),
             (np.dtype("object"), stype.obj64),
-            (np.dtype("datetime64"), stype.date32),
-            (np.dtype("datetime64"), stype.time64),
+            (np.dtype("datetime64[D]"), stype.date32),
+            (np.dtype("datetime64[ns]"), stype.time64),
         ])
     except ImportError:
         pass
