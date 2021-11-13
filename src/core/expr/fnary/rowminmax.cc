@@ -39,13 +39,33 @@ std::string FExpr_RowMinMax<MIN, RETARGS>::name() const {
   }
 }
 
-template <typename T1, typename T2, bool MIN, bool RETARGS=false>
-static bool op_rowminmax(size_t i, T2* out, const colvec& columns) {
+template <typename T, bool MIN>
+static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
   bool minmax_valid = false;
-  std::pair<T1,int64_t> minmax(0, 0);
+  T minmax = 0;
+  for (const auto& col : columns) {
+    T x;
+    bool xvalid = col.get_element(i, &x);
+    if (!xvalid) continue;
+    if (minmax_valid) {
+      if (MIN) { if (x < minmax) minmax = x; }
+      else     { if (x > minmax) minmax = x; }
+    } else {
+      minmax = x;
+      minmax_valid = true;
+    }
+  }
+  *out = minmax;
+  return minmax_valid;
+}
+
+template <typename T, bool MIN>
+static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
+  bool minmax_valid = false;
+  std::pair<T,int64_t> minmax(0, 0);
   int64_t count = -1;
   for (const auto& col : columns) {
-    T1 x;
+    T x;
     bool xvalid = col.get_element(i, &x);
     ++count;
     if (!xvalid) continue;
@@ -67,8 +87,7 @@ static bool op_rowminmax(size_t i, T2* out, const colvec& columns) {
       minmax_valid = true;
     }
   }
-  if (RETARGS) *out = minmax.second;
-  else *out = minmax.first;
+  *out = minmax.second;
   return minmax_valid;
 }
 
@@ -76,11 +95,11 @@ template <typename T, bool MIN, bool RETARGS>
 static inline Column _rowminmax(colvec&& columns) {
   size_t nrows = columns[0].nrows();
   if (RETARGS) {
-    auto fn = op_rowminmax<T, int64_t, MIN, RETARGS>;
+    auto fn = op_rowargminmax<T, MIN>;
     return Column(new FuncNary_ColumnImpl<int64_t>(
           std::move(columns), fn, nrows, stype_from<int64_t>));
   } else {
-    auto fn = op_rowminmax<T, T, MIN>;
+    auto fn = op_rowminmax<T, MIN>;
     return Column(new FuncNary_ColumnImpl<T>(
           std::move(columns), fn, nrows, stype_from<T>));
   }

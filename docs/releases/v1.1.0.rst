@@ -67,6 +67,9 @@
 
     -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
 
+    -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
+      index of the largest and smallest value among columns of each row  [#2998]
+
 
     fread
     -----
