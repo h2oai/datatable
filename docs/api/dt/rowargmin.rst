@@ -2,7 +2,7 @@
 .. xfunction:: datatable.rowargmin
     :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,RETARGS>::apply_function
     :tests: tests/ijby/test-rowwise.py
-    :cvar: doc_dt_rowiargmin
+    :cvar: doc_dt_rowargmin
     :signature: rowargmin(*cols)
 
     For each row, find the smallest value among the columns from `cols`.
