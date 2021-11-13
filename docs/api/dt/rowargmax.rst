@@ -2,7 +2,7 @@
 .. xfunction:: datatable.rowargmax
     :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,RETARGS>::apply_function
     :tests: tests/ijby/test-rowwise.py
-    :cvar: doc_dt_rowiargmax
+    :cvar: doc_dt_rowargmax
     :signature: rowargmax(*cols)
 
     For each row, find the index of the largest value among the columns from `cols`.
