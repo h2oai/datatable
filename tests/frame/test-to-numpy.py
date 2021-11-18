@@ -116,6 +116,20 @@ def test_tonumpy_date32(np):
 
 
 @numpy_test
+def test_tonumpy_time64(np):
+    from datetime import datetime as d
+    DT = dt.Frame([d(2001, 1, 1, 10, 10, 10), d(2002, 3, 5, 0, 0, 0),
+                   d(2012, 2, 7, 15, 5, 5), d(2020, 3, 9, 6, 3, 2)])
+    assert DT.types[0] == dt.Type.time64
+    a = DT.to_numpy()
+    assert a.dtype == np.dtype('datetime64[ns]')
+    assert a.shape == DT.shape
+    # Convert to datetime.datetime
+    a = [(ts - np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s') for ts in a.T[0]]
+    assert [[d.utcfromtimestamp(ts) for ts in a]] == DT.to_list()
+
+
+@numpy_test
 def test_tonumpy_with_upcast():
     from math import nan
     DT = dt.Frame(A=[3, 7, 8], B=[True, False, False], C=[2.1, 7.7, 9.1],
