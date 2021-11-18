@@ -124,7 +124,6 @@ def test_tonumpy_time64(np, pd):
     a = DT.to_numpy()
     assert a.dtype == np.dtype('datetime64[ns]')
     assert a.shape == DT.shape
-    print(a)
     # use pandas to convert to datetime
     assert [[pd.Timestamp(ts).to_pydatetime() for ts in a.T[0]]] == DT.to_list()
 
