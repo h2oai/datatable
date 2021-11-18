@@ -124,7 +124,7 @@ def test_tonumpy_time64(np):
     a = DT.to_numpy()
     assert a.dtype == np.dtype('datetime64[ns]')
     assert a.shape == DT.shape
-    # Convert to datetime.datetime
+    # Convert to datetime
     a = [(ts - np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s') for ts in a.T[0]]
     assert [[d.utcfromtimestamp(ts) for ts in a]] == DT.to_list()
 
