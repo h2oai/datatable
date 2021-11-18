@@ -116,7 +116,7 @@ def test_tonumpy_date32(np):
 
 
 @numpy_test
-def test_tonumpy_time64(np):
+def test_tonumpy_time64(np, pd):
     from datetime import datetime as d
     DT = dt.Frame([d(2001, 1, 1, 10, 10, 10), d(2002, 3, 5, 0, 0, 0),
                    d(2012, 2, 7, 15, 5, 5), d(2020, 3, 9, 6, 3, 2)])
@@ -124,9 +124,8 @@ def test_tonumpy_time64(np):
     a = DT.to_numpy()
     assert a.dtype == np.dtype('datetime64[ns]')
     assert a.shape == DT.shape
-    # Convert to datetime
-    a = [(ts - np.datetime64('1970-01-01T00:00:00'))/np.timedelta64(1,'s') for ts in a.T[0]]
-    assert [[d.utcfromtimestamp(ts) for ts in a]] == DT.to_list()
+    # use pandas to convert to datetime
+    assert [[pd.Timestamp(ts).to_pydatetime() for ts in a.T[0]]] == DT.to_list()
 
 
 @numpy_test
