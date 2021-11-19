@@ -37,6 +37,7 @@ from datatable.utils.misc import plural_form as plural
 from datatable.utils.misc import backticks_escape as escape
 from datatable.types import stype, ltype
 from datatable.xls import read_xls_workbook
+from datatable.xlsx import read_xlsx_workbook
 
 
 _url_regex = re.compile(r"(?:https?|ftp|file)://")
@@ -318,7 +319,13 @@ def _resolve_archive(filename, subpath, tempfiles):
             if logger:
                 logger.debug("Extracted: size = %d" % len(out_text))
 
-    elif ext == ".xlsx" or ext == ".xls":
+    elif ext == ".xlsx":
+        out_result = read_xlsx_workbook(filename, subpath)
+        if subpath:
+            filename = os.path.join(filename, subpath)
+
+
+    elif ext == ".xls":
         out_result = read_xls_workbook(filename, subpath)
         if subpath:
             filename = os.path.join(filename, subpath)

@@ -198,3 +198,15 @@ def get_core_tests(suite):
         return [param(n) for n in core.get_tests_in_suite(suite)]
     else:
         return [pytest.param(lambda: pytest.skip("C++ tests not compiled"))]
+
+
+def frame_to_xlsx(dt, filename):
+    openpyxl = pytest.importorskip("openpyxl")
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    for j, name in enumerate(dt.names):
+        _ = ws.cell(row=1, column=j + 1, value=name)
+    for i in range(dt.nrows):
+        for j in range(dt.ncols):
+            _ = ws.cell(row=i + 2, column=j + 1,  value=dt[i, j])
+    wb.save(filename=filename)

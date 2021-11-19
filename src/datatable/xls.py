@@ -23,11 +23,6 @@ import re
 def read_xls_workbook(filename, subpath):
     try:
         import xlrd
-        # Fixes the warning
-        # "PendingDeprecationWarning: This method will be removed in future
-        #  versions.  Use 'tree.iter()' or 'list(tree.iter())' instead."
-        xlrd.xlsx.ensure_elementtree_imported(False, None)
-        xlrd.xlsx.Element_has_iter = True
     except ImportError:
         raise dt.exceptions.ImportError(
             "Module `xlrd` is required in order to read Excel file '%s'"
