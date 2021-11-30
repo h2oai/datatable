@@ -68,7 +68,11 @@ PyObject* FExpr_Type = nullptr;
 // a designated initializer, that is not supported by the C++14 standard.
 // Redefine `_Py_static_string_init` here to use a regular initializer.
 #undef _Py_static_string_init
-#define _Py_static_string_init(value) { NULL, value, NULL }
+#if PY_VERSION_HEX >= 0x030a0000
+  #define _Py_static_string_init(value) { value, NULL }
+#else
+  #define _Py_static_string_init(value) { NULL, value, NULL }
+#endif
 _Py_IDENTIFIER(stdin);
 _Py_IDENTIFIER(stdout);
 _Py_IDENTIFIER(stderr);
