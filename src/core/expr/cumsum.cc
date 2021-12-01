@@ -39,13 +39,20 @@ class Column_cumsum : public Virtual_ColumnImpl{
 
 
     bool get_element(size_t i, T* out) const override {
-      T a;
-      bool isvalid = acol_.get_element(i, &a);
-      if (isvalid) {
-        *out = static_cast<T>(acol_.nrows()); // testing a dummy output here to return no of rows
+      T tmp = 0;
+      for (size_t i = 0; i < acol_.nrows(); ++i){
+        T a;
+        bool isvalid = acol_.get_element(i, &a);
+        if (isvalid){
+          tmp = a + tmp;
+          a = tmp;
+          *out = a;
+        }
+        return true;
       }
-      return isvalid;
-    }
+
+      return false;
+     }
 
 };
 
@@ -86,10 +93,10 @@ class FExpr_cumsum : public FExpr_Func {
     case SType::BOOL:
     case SType::INT8:
     case SType::INT16:
-    case SType::INT32: return a;
-    case SType::INT64: return a;
-    case SType::FLOAT32: return a;
-    case SType::FLOAT64: return a;
+    case SType::INT32: return make<int32_t>(std::move(a));
+    case SType::INT64: return make<int64_t>(std::move(a));
+    case SType::FLOAT32: return make<float>(std::move(a));
+    case SType::FLOAT64: return make<double>(std::move(a));
     default:
         throw TypeError() 
         << "Function datatable.cumsum() cannot be applied to a column "
