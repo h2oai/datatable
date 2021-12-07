@@ -166,31 +166,6 @@ build_script:
 
     if ($env:DT_RELEASE -eq "True") {
 
-      # =======================================================================
-      #   Build and test wheel for Python 3.6
-      # =======================================================================
-
-      $env:PATH = "C:/Python36-x64;C:/Python36-x64/Scripts;$DEFAULT_PATH"
-
-      python -V
-
-      python ci/ext.py wheel
-
-      $DT_WHEEL = ls dist/*-cp36-*.whl
-
-      echo "----- _build_info.py for Python 3.6 ------------------------------"
-
-      cat src/datatable/_build_info.py
-
-      echo "------------------------------------------------------------------"
-
-      python -m pip install --upgrade pip
-
-      python -m pip install $DT_WHEEL pytest docutils pandas
-
-      python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-
 
       # =======================================================================
       #   Build and test wheel for Python 3.7
@@ -259,6 +234,32 @@ build_script:
     $DT_WHEEL = ls dist/*-cp39-*.whl
 
     echo "----- _build_info.py for Python 3.9 ------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    python -m pip install --upgrade pip
+
+    python -m pip install $DT_WHEEL pytest docutils pandas
+
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+
+
+    # =======================================================================
+    #   Build and test wheel for Python 3.10
+    # =======================================================================
+
+    $env:PATH = "C:/Python310-x64;C:/Python310-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
+
+    python ci/ext.py wheel
+
+    $DT_WHEEL = ls dist/*-cp310-*.whl
+
+    echo "----- _build_info.py for Python 3.10 ------------------------------"
 
     cat src/datatable/_build_info.py
 
