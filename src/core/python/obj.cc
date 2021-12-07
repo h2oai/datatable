@@ -69,7 +69,7 @@ PyObject* FExpr_Type = nullptr;
 // Redefine `_Py_static_string_init` here to use a regular initializer.
 #undef _Py_static_string_init
 #if PY_VERSION_HEX >= 0x030a0000
-  #define _Py_static_string_init(value) { value, NULL }
+  #define _Py_static_string_init(value) { value, -1 }
 #else
   #define _Py_static_string_init(value) { NULL, value, NULL }
 #endif
