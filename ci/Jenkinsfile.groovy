@@ -251,11 +251,12 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
+                                            /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                             /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
-                                            echo '===== Py Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                             mv dist/*debug*.whl . && \
                                             echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                             echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
@@ -334,11 +335,12 @@ ansiColor('xterm') {
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                                 /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
-                                                echo '===== Py Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                                 mv dist/*debug*.whl . && \
                                                 echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
