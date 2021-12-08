@@ -799,7 +799,6 @@ def get_python_for_docker(String pyver, String image) {
 
 def test_macos(String pyver) {
     try {
-        def pyenv = get_env_for_macos(pyver)
         sh """
             mkdir -p /tmp/cores
             rm -f /tmp/cores/*
