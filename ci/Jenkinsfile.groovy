@@ -284,18 +284,22 @@ ansiColor('xterm') {
                                          "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        source /Users/jenkins/datatable_envs/py37/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py38/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py38
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py39/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py39
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py310/bin/activate
                                         python ci/ext.py wheel
-                                        echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py
+                                        deactivate
                                         echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
                                         echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
                                         echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
+                                        echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -501,6 +505,19 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test x86_64-macos-py310', { stageName, stageDir ->
+                        node(NODE_MACOS) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('310')
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test x86_64-macos-py39', doPy38Tests, { stageName, stageDir ->
                         node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -539,19 +556,6 @@ ansiColor('xterm') {
                                 }
                             }
                         }
-                    }) <<
-                    namedStage('Test x86_64-macos-py36', { stageName, stageDir ->
-                        node(NODE_MACOS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-macos-wheels'
-                                    test_macos('36')
-                                }
-                            }
-                        }
                     })
                 // Execute defined stages in parallel
                 parallel(testStages)
@@ -587,7 +591,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        /Users/jenkins/datatable_envs/py310/bin/activate
                                         make coverage
                                     """
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
@@ -800,7 +804,7 @@ def test_macos(String pyver) {
             mkdir -p /tmp/cores
             rm -f /tmp/cores/*
             env
-            . /Users/jenkins/anaconda/bin/activate ${pyenv}
+            source /Users/jenkins/datatable_envs/py${pyver}/bin/activate
             pip install --upgrade pip
             pip install dist/datatable-*-cp${pyver}-*.whl
             pip install -r requirements_tests.txt
@@ -818,15 +822,6 @@ def test_macos(String pyver) {
         archiveArtifacts artifacts: "/tmp/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
-}
-
-
-def get_env_for_macos(String pyver) {
-    if (pyver == "39") return "datatable-py39"
-    if (pyver == "38") return "datatable-py38"
-    if (pyver == "37") return "datatable-py37-with-pandas"
-    if (pyver == "36") return "datatable-py36-with-pandas"
-    throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
 
