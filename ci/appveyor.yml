@@ -1,7 +1,7 @@
 image:
+  - macos-bigsur
   - Visual Studio 2019
   - Ubuntu
-  - macos-bigsur
 
 init:
   # Uncomment the line below to enable RDP access
