@@ -26,13 +26,16 @@
 #include "expr/fnary/fnary.h"
 #include "python/xargs.h"
 #include <utility>
+
+
+
 namespace dt {
 namespace expr {
 
 
-template <bool MIN, bool RETARGS>
-std::string FExpr_RowMinMax<MIN, RETARGS>::name() const {
-  if (RETARGS) {
+template <bool MIN, bool ARG>
+std::string FExpr_RowMinMax<MIN, ARG>::name() const {
+  if (ARG) {
     return MIN? "rowargmin" : "rowargmax";
   } else {
     return MIN? "rowmin" : "rowmax";
@@ -90,10 +93,10 @@ static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
   return minmax_valid;
 }
 
-template <typename T, bool MIN, bool RETARGS>
+template <typename T, bool MIN, bool ARG>
 static inline Column _rowminmax(colvec&& columns) {
   size_t nrows = columns[0].nrows();
-  if (RETARGS) {
+  if (ARG) {
     auto fn = op_rowargminmax<T, MIN>;
     return Column(new FuncNary_ColumnImpl<int64_t>(
           std::move(columns), fn, nrows, stype_from<int64_t>));
@@ -105,8 +108,8 @@ static inline Column _rowminmax(colvec&& columns) {
 }
 
 
-template <bool MIN, bool RETARGS>
-Column FExpr_RowMinMax<MIN,RETARGS>::apply_function(colvec&& columns) const {
+template <bool MIN, bool ARG>
+Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(1);
   }
@@ -114,10 +117,10 @@ Column FExpr_RowMinMax<MIN,RETARGS>::apply_function(colvec&& columns) const {
   promote_columns(columns, res_stype);
 
   switch (res_stype) {
-    case SType::INT32:   return _rowminmax<int32_t, MIN, RETARGS>(std::move(columns));
-    case SType::INT64:   return _rowminmax<int64_t, MIN, RETARGS>(std::move(columns));
-    case SType::FLOAT32: return _rowminmax<float, MIN, RETARGS>(std::move(columns));
-    case SType::FLOAT64: return _rowminmax<double, MIN, RETARGS>(std::move(columns));
+    case SType::INT32:   return _rowminmax<int32_t, MIN, ARG>(std::move(columns));
+    case SType::INT64:   return _rowminmax<int64_t, MIN, ARG>(std::move(columns));
+    case SType::FLOAT32: return _rowminmax<float, MIN, ARG>(std::move(columns));
+    case SType::FLOAT64: return _rowminmax<double, MIN, ARG>(std::move(columns));
     default: throw RuntimeError()
                << "Wrong `res_stype` in `naryop_rowminmax()`: "
                << res_stype;  // LCOV_EXCL_LINE
