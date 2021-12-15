@@ -89,6 +89,8 @@
     General
     -------
 
+    -[enh] Added support for Python `3.10`. [#3210]
+
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]

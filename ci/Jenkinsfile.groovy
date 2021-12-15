@@ -213,7 +213,7 @@ ansiColor('xterm') {
                                 -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
-                                -c "env && /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py sdist"
+                                -c "env && /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py sdist"
                         """
                         sh """
                             echo "--------- _build_info.py --------------------"
@@ -251,17 +251,17 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
-                                            /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                            /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                            /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                            echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
+                                            echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                             mv dist/*debug*.whl . && \
-                                            echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
                                             echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                             echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
                                             echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py && \
                                             mv *debug*.whl dist/ && \
                                             ls -la dist"
                                 """
@@ -284,18 +284,22 @@ ansiColor('xterm') {
                                          "DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX}",
                                          "DT_BUILD_NUMBER=${DT_BUILD_NUMBER}"]) {
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        source /Users/jenkins/datatable_envs/py37/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py37-with-pandas
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py38/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py38
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py39/bin/activate
                                         python ci/ext.py wheel
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py39
+                                        deactivate
+                                        source /Users/jenkins/datatable_envs/py310/bin/activate
                                         python ci/ext.py wheel
-                                        echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py
+                                        deactivate
                                         echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
                                         echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
                                         echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
+                                        echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -331,17 +335,17 @@ ansiColor('xterm') {
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp36-cp36m/bin/python3.6 ci/ext.py wheel --audit && \
+                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                                echo '===== Py3.6 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
+                                                echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                                 mv dist/*debug*.whl . && \
-                                                echo '===== Py3.6 =====' && unzip -p dist/*cp36*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py && \
                                                 mv *debug*.whl dist/ && \
                                                 ls -la dist"
                                     """
@@ -361,6 +365,20 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
+                    namedStage('Test x86_64-manylinux-py37-debug', { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-debugwheels'
+                                    test_in_docker("x86_64-manylinux-py37-debug", "37",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test x86_64-manylinux-py37', { stageName, stageDir ->
                         node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -370,20 +388,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py37", "37",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-manylinux-py36', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-wheels'
-                                    test_in_docker("x86_64-manylinux-py36", "36",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -417,16 +421,30 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-manylinux-py36-debug', { stageName, stageDir ->
+                    namedStage('Test x86_64-manylinux-py310', doPy38Tests, { stageName, stageDir ->
                         node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-debugwheels'
-                                    test_in_docker("x86_64-manylinux-py36-debug", "36",
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-manylinux-py310", "310",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test ppc64le-manylinux-py37-debug', doPpcTests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-debugwheels'
+                                    test_in_docker("ppc64le-manylinux-py37-debug", "37",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -440,20 +458,6 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py37", "37",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py36', doPpcTests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py36", "36",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
@@ -487,42 +491,16 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-manylinux-py36-debug', doPpcTests, { stageName, stageDir ->
+                    namedStage('Test ppc64le-manylinux-py310', doPpcTests && doPy38Tests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
                                 dumpInfo()
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-debugwheels'
-                                    test_in_docker("ppc64le-manylinux-py36-debug", "36",
+                                    unstash 'ppc64le-manylinux-wheels'
+                                    test_in_docker("ppc64le-manylinux-py310", "310",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-macos-py39', doPy38Tests, { stageName, stageDir ->
-                        node(NODE_MACOS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-macos-wheels'
-                                    test_macos('39')
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test x86_64-macos-py38', doPy38Tests, { stageName, stageDir ->
-                        node(NODE_MACOS) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-macos-wheels'
-                                    test_macos('38')
                                 }
                             }
                         }
@@ -540,7 +518,7 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test x86_64-macos-py36', { stageName, stageDir ->
+                    namedStage('Test x86_64-macos-py38', doPy38Tests, { stageName, stageDir ->
                         node(NODE_MACOS) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
                                 cleanWs()
@@ -548,7 +526,33 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-macos-wheels'
-                                    test_macos('36')
+                                    test_macos('38')
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-macos-py39', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_MACOS) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('39')
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-macos-py310', { stageName, stageDir ->
+                        node(NODE_MACOS) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-macos-wheels'
+                                    test_macos('310')
                                 }
                             }
                         }
@@ -587,7 +591,7 @@ ansiColor('xterm') {
                                 dir(stageDir) {
                                     unstash 'datatable-sources'
                                     sh """
-                                        . /Users/jenkins/anaconda/bin/activate datatable-py36-with-pandas
+                                        source /Users/jenkins/datatable_envs/py310/bin/activate
                                         make coverage
                                     """
                                     testReport "build/coverage-c", "x86_64_osx coverage report for C"
@@ -716,7 +720,7 @@ ansiColor('xterm') {
 //     used as a prefix for the test-report file name.
 //
 // pyver
-//     2-character python version string, such as "36" or "37"
+//     python version string, such as "37" or "310"
 //
 // docker_image
 //     Name of the docker container where the tests will be run
@@ -784,10 +788,10 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
 
 def get_python_for_docker(String pyver, String image) {
     if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
-        if (pyver == "36") return "/opt/python/cp36-cp36m/bin/python3.6"
         if (pyver == "37") return "/opt/python/cp37-cp37m/bin/python3.7"
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
         if (pyver == "39") return "/opt/python/cp39-cp39/bin/python3.9"
+        if (pyver == "310") return "/opt/python/cp310-cp310/bin/python3.10"
     }
     throw new Exception("Unknown python ${pyver} for docker ${image}")
 }
@@ -795,12 +799,11 @@ def get_python_for_docker(String pyver, String image) {
 
 def test_macos(String pyver) {
     try {
-        def pyenv = get_env_for_macos(pyver)
         sh """
             mkdir -p /tmp/cores
             rm -f /tmp/cores/*
             env
-            . /Users/jenkins/anaconda/bin/activate ${pyenv}
+            source /Users/jenkins/datatable_envs/py${pyver}/bin/activate
             pip install --upgrade pip
             pip install dist/datatable-*-cp${pyver}-*.whl
             pip install -r requirements_tests.txt
@@ -818,15 +821,6 @@ def test_macos(String pyver) {
         archiveArtifacts artifacts: "/tmp/cores/*", allowEmptyArchive: true
     }
     junit testResults: "build/test-reports/TEST-datatable.xml", keepLongStdio: true, allowEmptyResults: false
-}
-
-
-def get_env_for_macos(String pyver) {
-    if (pyver == "39") return "datatable-py39"
-    if (pyver == "38") return "datatable-py38"
-    if (pyver == "37") return "datatable-py37-with-pandas"
-    if (pyver == "36") return "datatable-py36-with-pandas"
-    throw new Exception("Unknown python ${pyver} for MacOS")
 }
 
 
