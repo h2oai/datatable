@@ -62,32 +62,31 @@ static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
 template <typename T, bool MIN>
 static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
   bool minmax_valid = false;
-  std::pair<T,int64_t> minmax(0, 0);
-  int64_t count = -1;
-  for (const auto& col : columns) {
+  std::pair<T, size_t> minmax(0, 0);
+
+  for (size_t j = 0; j < columns.size(); ++j) {
     T x;
-    bool xvalid = col.get_element(i, &x);
-    ++count;
+    bool xvalid = columns[j].get_element(i, &x);
     if (!xvalid) continue;
     if (minmax_valid) {
       if (MIN) {
         if (x < minmax.first) {
           minmax.first = x;
-          minmax.second = count;
+          minmax.second = j;
         }
       } else {
         if (x > minmax.first) {
           minmax.first = x;
-          minmax.second = count;
+          minmax.second = j;
         }
       }
     } else {
       minmax.first = x;
-      minmax.second = count;
+      minmax.second = j;
       minmax_valid = true;
     }
   }
-  *out = minmax.second;
+  *out = static_cast<int64_t>(minmax.second);
   return minmax_valid;
 }
 

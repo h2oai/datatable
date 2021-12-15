@@ -6,6 +6,8 @@
     :signature: rowargmax(*cols)
 
     For each row, find the index of the largest value among the columns from `cols`.
+    When the largest value occurs more than once, the smallest column index
+    is returned.
 
 
     Parameters
@@ -15,7 +17,7 @@
 
     return: FExpr
         f-expression consisting of one column that has the same number of rows
-        as in `cols`. The column stype is `int64`.
+        as in `cols`. The column type is `int64`.
 
     except: TypeError
         The exception is raised when `cols` has non-numeric columns.
