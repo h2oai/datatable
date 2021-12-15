@@ -74,18 +74,15 @@ static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
     if (minmax_valid) {
       if (MIN) {
         if (x < minmax.first) {
-          minmax.first = x;
-          minmax.second = j;
+          minmax = std::make_pair(x, j);
         }
       } else {
         if (x > minmax.first) {
-          minmax.first = x;
-          minmax.second = j;
+          minmax = std::make_pair(x, j);
         }
       }
     } else {
-      minmax.first = x;
-      minmax.second = j;
+      minmax = std::make_pair(x, j);
       minmax_valid = true;
     }
   }
