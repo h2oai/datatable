@@ -110,7 +110,7 @@ extern template class FExpr_RowFirstLast<false>;
 
 
 
-template <bool MIN, bool RETARGS=false>
+template <bool MIN, bool ARG=false>
 class FExpr_RowMinMax : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;

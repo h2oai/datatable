@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.rowargmin
-    :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,RETARGS>::apply_function
+    :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,ARG>::apply_function
     :tests: tests/ijby/test-rowwise.py
     :cvar: doc_dt_rowargmin
     :signature: rowargmin(*cols)
