@@ -60,12 +60,15 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
       which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
 
-    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`  [#2999]
+    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Added reducer function :func:`dt.prod()`, as well as :meth:`.prod()` method,
-      which behaves exactly as :func:`dt.prod()`  [#3140]
+      which behaves exactly as :func:`dt.prod()`. [#3140]
 
-    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
+    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter. [#3061]
+
+    -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
+      index of the largest and smallest values among columns of each row. [#2998]
 
 
     fread

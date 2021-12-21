@@ -1,12 +1,11 @@
 
-.. xfunction:: datatable.rowmin
+.. xfunction:: datatable.rowargmin
     :src: src/core/expr/fnary/rowminmax.cc FExpr_RowMinMax<MIN,ARG>::apply_function
     :tests: tests/ijby/test-rowwise.py
-    :cvar: doc_dt_rowmin
-    :signature: rowmin(*cols)
+    :cvar: doc_dt_rowargmin
+    :signature: rowargmin(*cols)
 
-    For each row, find the smallest value among the columns from `cols`,
-    excluding missing values.
+    For each row, find the smallest value among the columns from `cols`.
 
 
     Parameters
@@ -16,8 +15,7 @@
 
     return: FExpr
         f-expression consisting of one column that has the same number of rows
-        as in `cols`. The column stype is the smallest common stype
-        for `cols`, but not less than `int32`.
+        as in `cols`. The column stype `int64`.
 
     except: TypeError
         The exception is raised when `cols` has non-numeric columns.
@@ -44,18 +42,18 @@
 
     ::
 
-        >>> DT[:, dt.rowmin(f[:])]
+        >>> DT[:, dt.rowargmin(f[:])]
            |    C0
-           | int32
+           | int64
         -- + -----
-         0 |     1
-         1 |     0
-         2 |     0
-         3 |     1
-         4 |     1
+         0 |     0
+         1 |     2
+         2 |     2
+         3 |     0
+         4 |     2
         [5 rows x 1 column]
 
 
     See Also
     --------
-    - :func:`rowmax()` -- find the largest element row-wise.
+    - :func:`rowargmax()` -- find the index of the largest element row-wise.
