@@ -42,28 +42,10 @@ std::string FExpr_RowMinMax<MIN, ARG>::name() const {
   }
 }
 
-template <typename T, bool MIN>
-static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
-  bool minmax_valid = false;
-  T minmax = 0;
-  for (const auto& col : columns) {
-    T x;
-    bool xvalid = col.get_element(i, &x);
-    if (!xvalid) continue;
-    if (minmax_valid) {
-      if (MIN) { if (x < minmax) minmax = x; }
-      else     { if (x > minmax) minmax = x; }
-    } else {
-      minmax = x;
-      minmax_valid = true;
-    }
-  }
-  *out = minmax;
-  return minmax_valid;
-}
 
-template <typename T, bool MIN>
-static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
+
+template <typename T, typename U, bool MIN, bool ARG>
+static bool op_rowargminmax(size_t i, U* out, const colvec& columns) {
   bool minmax_valid = false;
   std::pair<T, size_t> minmax(0, 0);
 
@@ -72,35 +54,37 @@ static bool op_rowargminmax(size_t i, int64_t* out, const colvec& columns) {
     bool xvalid = columns[j].get_element(i, &x);
     if (!xvalid) continue;
     if (minmax_valid) {
-      if (MIN) {
-        if (x < minmax.first) {
-          minmax = std::make_pair(x, j);
-        }
-      } else {
-        if (x > minmax.first) {
-          minmax = std::make_pair(x, j);
-        }
-      }
+      if (MIN) { if (x < minmax.first) minmax = std::make_pair(x, j); }
+      else     { if (x > minmax.first) minmax = std::make_pair(x, j); }
     } else {
       minmax = std::make_pair(x, j);
       minmax_valid = true;
     }
   }
-  *out = static_cast<int64_t>(minmax.second);
+
+  *out = ARG? static_cast<U>(minmax.second)
+            : static_cast<U>(minmax.first);
+
   return minmax_valid;
 }
+
+
 
 template <typename T, bool MIN, bool ARG>
 static inline Column _rowminmax(colvec&& columns) {
   size_t nrows = columns[0].nrows();
+
   if (ARG) {
-    auto fn = op_rowargminmax<T, MIN>;
+    auto fn = op_rowargminmax<T, int64_t, MIN, ARG>;
     return Column(new FuncNary_ColumnImpl<int64_t>(
-          std::move(columns), fn, nrows, stype_from<int64_t>));
+             std::move(columns), fn, nrows, stype_from<int64_t>
+           ));
+
   } else {
-    auto fn = op_rowminmax<T, MIN>;
+    auto fn = op_rowargminmax<T, T, MIN, ARG>;
     return Column(new FuncNary_ColumnImpl<T>(
-          std::move(columns), fn, nrows, stype_from<T>));
+            std::move(columns), fn, nrows, stype_from<T>
+           ));
   }
 }
 
