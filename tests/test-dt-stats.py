@@ -44,7 +44,7 @@ srcs_int = [[5, -3, 6, 3, 0],
             [-1, 1], [100], [0]]
 srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
              [1.1, 2.3e12, -.5, None, inf, 0.0],
-             [3.5, 2.36, nan, 696.9, 4097],
+             [3.5, 2.36, -inf, nan, 696.9, 4097],
              [3.1415926535897932], [nan]]
 
 srcs_str = [["foo", None, "bar", "baaz", None],
@@ -196,6 +196,8 @@ def test_dt_mean_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_sd(t):
+    if inf in t or -inf in t:
+        return None
     t = [i for i in t
          if i is not None and not isnan(i)]
     if len(t) == 0:
