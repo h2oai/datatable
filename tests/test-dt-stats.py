@@ -26,7 +26,7 @@ import random
 import statistics
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
-from math import inf, nan, isnan, isclose
+from math import inf, nan, isnan, isclose, isinf
 from tests import list_equals
 
 
@@ -196,17 +196,21 @@ def test_dt_mean_special_cases(src, res):
 #-------------------------------------------------------------------------------
 
 def t_sd(t):
-    if inf in t or -inf in t:
+    tt = []
+    for i in t:
+        if i is not None and not isnan(i):
+            if isinf(i):
+                return None
+            tt.append(i)
+
+    if len(tt) == 0:
         return None
-    t = [i for i in t
-         if i is not None and not isnan(i)]
-    if len(t) == 0:
-        return None
-    elif len(t) == 1:
+    elif len(tt) == 1:
         return 0
     else:
-        res = statistics.stdev(t)
+        res = statistics.stdev(tt)
         return res if not isnan(res) else None
+
 
 @pytest.mark.parametrize("src", srcs_numeric)
 def test_dt_sd(src):
