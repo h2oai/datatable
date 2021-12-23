@@ -201,10 +201,13 @@ def test_excel_testbook_xlsx_4():
         [3, 7, 2.5, 11]]
 
 
-def test_excel_testbook_xlsx_5():
+@pytest.mark.parametrize("sep", [["\\", "\\"], ["\\", "/"],
+                                 ["/", "\\"],  ["/", "/"]])
+def test_excel_testbook_xlsx_5(sep):
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
-    DT3 = dt.fread(filename + "/ragged/B2:E8")
-    assert DT3.source == os.path.abspath(filename) + "/ragged/B2:E8"
+    subpath = sep[0] + "ragged" + sep[1] + "B2:E8"
+    DT3 = dt.fread(filename + subpath)
+    assert DT3.source == os.path.abspath(filename) + subpath
     assert DT3.names == ("a", "C0", "b", "c")
     assert DT3.stype == dt.int32
     assert DT3.to_list() == [[None, 7, None, None, 0, None],
