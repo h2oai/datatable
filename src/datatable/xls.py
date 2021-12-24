@@ -18,8 +18,6 @@ import datatable as dt
 import re
 
 
-
-
 def read_xls_workbook(filename, subpath):
     try:
         import xlrd

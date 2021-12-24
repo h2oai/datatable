@@ -201,13 +201,18 @@ def test_excel_testbook_xlsx_4():
         [3, 7, 2.5, 11]]
 
 
-@pytest.mark.parametrize("sep", [["\\", "\\"], ["\\", "/"],
-                                 ["/", "\\"],  ["/", "/"]])
+# Also test we support forward slash, backslash, and their mix
+@pytest.mark.parametrize("sep", [["\\", "\\"],
+                                 ["\\", "/"],
+                                 ["/", "\\"],
+                                 ["/", "/"]
+                                 ])
 def test_excel_testbook_xlsx_5(sep):
     filename = find_file("h2o-3", "fread", "excelTestbook.xlsx")
     subpath = sep[0] + "ragged" + sep[1] + "B2:E8"
     DT3 = dt.fread(filename + subpath)
-    assert DT3.source == os.path.abspath(filename) + subpath
+    normsep = "/" if os.sep == "\\" else "\\"
+    assert DT3.source == os.path.abspath(filename) + subpath.replace(normsep, os.sep)
     assert DT3.names == ("a", "C0", "b", "c")
     assert DT3.stype == dt.int32
     assert DT3.to_list() == [[None, 7, None, None, 0, None],

@@ -189,7 +189,8 @@ def _resolve_source_file(file, tempfiles):
         # user; also if the first path component that exists is a file (not
         # a folder), then the user probably tries to specify a file within
         # an archive -- and this is not an error at all!
-        xpath = os.path.abspath(file)
+        normsep = "/" if os.sep == "\\" else "\\"
+        xpath = os.path.abspath(file).replace(normsep, os.sep)
         ypath = xpath
         while not os.path.exists(xpath):
             xpath = os.path.abspath(os.path.join(xpath, ".."))
