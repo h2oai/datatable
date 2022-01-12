@@ -283,8 +283,8 @@ oobj PyFExpr::re_match(const XArgs& args) {
 
 DECLARE_METHOD(&PyFExpr::re_match)
     ->name("re_match")
-    ->n_positional_or_keyword_args(2)
-    ->arg_names({"pattern", "icase"});
+    ->n_positional_or_keyword_args(1)
+    ->arg_names({"pattern"});
 
 
 
