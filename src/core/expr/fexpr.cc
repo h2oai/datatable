@@ -278,13 +278,13 @@ oobj PyFExpr::re_match(const XArgs& args) {
        "and will be removed in version 1.1.\n"
        "Please use function dt.re.match() instead";
   w.emit_warning();
-  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern));
+  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern, py::False()));
 }
 
 DECLARE_METHOD(&PyFExpr::re_match)
     ->name("re_match")
-    ->n_positional_or_keyword_args(1)
-    ->arg_names({"pattern"});
+    ->n_positional_or_keyword_args(2)
+    ->arg_names({"pattern", "icase"});
 
 
 
