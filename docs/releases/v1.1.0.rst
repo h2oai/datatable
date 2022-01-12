@@ -70,6 +70,8 @@
     -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
       index of the largest and smallest values among columns of each row. [#2998]
 
+    -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
+
 
     fread
     -----
