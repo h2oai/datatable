@@ -45,9 +45,11 @@ static Error translate_exception(const std::regex_error& e) {
 // FExpr_Re_Match
 //------------------------------------------------------------------------------
 
-FExpr_Re_Match::FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern)
+FExpr_Re_Match::FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern, py::oobj icase)
   : FExpr_FuncUnary(std::move(arg))
 {
+  std::regex_constants::syntax_option_type traits = std::regex::nosubs;
+
   if (pattern.is_string()) {
     pattern_ = pattern.to_string();
   }
@@ -59,8 +61,18 @@ FExpr_Re_Match::FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern)
         "a string, instead got " << pattern.typeobj();
   }
 
+  if (icase.is_bool()) {
+    icase_ = icase.to_bool_strict();
+    if (icase_) traits |= std::regex::icase;
+  }
+  else {
+    throw TypeError() << "Parameter `icase` in re.match() should be "
+        "a boolean, instead got " << icase.typeobj();
+  }
+
+
   try {
-    regex_ = std::regex(pattern_, std::regex::nosubs);
+    regex_ = std::regex(pattern_, traits);
   } catch (const std::regex_error& e) {
     throw translate_exception(e);
   }
@@ -76,7 +88,9 @@ std::string FExpr_Re_Match::repr() const {
   out += arg_->repr();
   out += ", r'";
   out += pattern_;
-  out += "')";
+  out += "', icase=";
+  out += icase_? "True" : "False";
+  out += ")";
   return out;
 }
 
@@ -95,7 +109,8 @@ Column FExpr_Re_Match::evaluate1(Column&& col) const {
 static py::oobj fn_match(const py::XArgs& args) {
   auto arg_col = args[0].to_oobj();
   auto arg_pattern = args[1].to_oobj();
-  return PyFExpr::make(new FExpr_Re_Match(as_fexpr(arg_col), arg_pattern));
+  auto arg_icase = args[2].to<py::oobj>(py::False());
+  return PyFExpr::make(new FExpr_Re_Match(as_fexpr(arg_col), arg_pattern, arg_icase));
 }
 
 DECLARE_PYFN(&fn_match)
@@ -104,7 +119,8 @@ DECLARE_PYFN(&fn_match)
     ->n_required_args(2)
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(1)
-    ->arg_names({"column", "pattern"});
+    ->n_keyword_args(1)
+    ->arg_names({"column", "pattern", "icase"});
 
 
 
