@@ -30,28 +30,36 @@ from tests import random_string, assert_equals
 
 
 def test_match_repr():
-    assert str(match(f.A, "abc")) == r"FExpr<re.match(f.A, r'abc')>"
-    assert str(match(f.A, r"\d+")) == r"FExpr<re.match(f.A, r'\d+')>"
+    assert str(match(f.A, "abc")) == r"FExpr<re.match(f.A, r'abc', icase=False)>"
+    assert str(match(f.A, r"\d+", icase=True)) == r"FExpr<re.match(f.A, r'\d+', icase=True)>"
 
 
-def test_match_simpl():
-    f0 = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
-    f1 = f0[:, match(f.A, "ab.")]
-    assert_equals(f1, dt.Frame(A=[True, True, False, False, None, False]))
+def test_match_simple():
+    DT = dt.Frame(A=["abc", "abd", "cab", "acc", None, "aaa"])
+    DT1 = DT[:, match(f.A, "ab.")]
+    assert_equals(DT1, dt.Frame(A=[True, True, False, False, None, False]))
 
 
 def test_match_entire_string():
-    # match() matches the entire string, not just the beginning...
-    f0 = dt.Frame(A=["a", "ab", "abc", "aaaa"])
-    f1 = f0[:, match(f.A, "a.?")]
-    assert_equals(f1, dt.Frame(A=[True, True, False, False]))
+    # match() matches the entire string, not just the beginning
+    DT = dt.Frame(A=["a", "ab", "abc", "aaaa"])
+    DT1 = DT[:, match(f.A, "a.?")]
+    assert_equals(DT1, dt.Frame(A=[True, True, False, False]))
 
 
 def test_match_ignore_groups():
     # Groups within the regular expression ought to be ignored
-    f0 = dt.Frame(list("abcdibaldfn"))
-    f1 = f0[match(f[0], "([a-c]+)"), :]
-    assert_equals(f1, dt.Frame(["a", "b", "c", "b", "a"]))
+    DT = dt.Frame(list("abcdibaldfn"))
+    DT1 = DT[match(f[0], "([a-c]+)"), :]
+    assert_equals(DT1, dt.Frame(["a", "b", "c", "b", "a"]))
+
+
+def test_match_case_insensitive():
+    DT = dt.Frame(A=["This is an Apple", "banana", "apPle", "Which apple?"])
+    DT1 = DT[:, match(f.A, ".*apPle.*")]
+    DT2 = DT[:, match(f.A, ".*apPle.*", icase=True)]
+    assert_equals(DT1, dt.Frame(A=[False, False, True, False]))
+    assert_equals(DT2, dt.Frame(A=[True, False, True, True]))
 
 
 def test_match_bad_regex1():
@@ -70,6 +78,12 @@ def test_match_bad_regex3():
     DT = dt.Frame(A=["abc"])
     with pytest.raises(ValueError):
         assert DT[match(f.A, "???"), :]
+
+
+def test_match_bad_icase():
+    DT = dt.Frame(A=["abc"])
+    with pytest.raises(TypeError):
+        assert DT[match(f.A, "a", icase=1), :]
 
 
 @pytest.mark.parametrize("seed", [random.getrandbits(32) for _ in range(5)])
@@ -94,9 +108,9 @@ def test_match_random(seed):
     random_rx = re.compile(random_re)
 
     src = [random_string(k) for _ in range(n)]
-    frame = dt.Frame(A=src)
-    result = frame[:, match(f.A, random_rx)]
-    assert_equals(result,
+    DT = dt.Frame(A=src)
+    res = DT[:, match(f.A, random_rx)]
+    assert_equals(res,
                   dt.Frame(A=[bool(re.fullmatch(random_rx, s)) for s in src]))
 
 

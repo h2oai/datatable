@@ -43,7 +43,7 @@ oobj Frame::to_pandas(const XArgs&) {
     olist indices(nkeys);
     for (size_t i = 0; i < nkeys; i++) {
       auto column = robj(this).invoke("to_numpy", {None(), oint(i)});
-      auto index_item = pd_Index.call({column, None(), None(), names[i]});
+      auto index_item = pd_Index.call({column, None(), False(), names[i]});
       indices.set(i, std::move(index_item));
     }
     if (nkeys == 1) {
