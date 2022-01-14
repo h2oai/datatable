@@ -36,6 +36,8 @@
     -[fix] Fixed a crash which in rare situations happened in :meth:`.to_csv()` due to
         multithreading. [#3176]
 
+    -[fix] Fixed a crash in :meth:`.to_pandas()` when called on keyed frames. [#3224]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
