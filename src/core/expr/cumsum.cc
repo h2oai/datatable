@@ -41,15 +41,15 @@ class Column_cumsum : public Virtual_ColumnImpl{
     bool get_element(size_t i, T* out) const override {
       bool out_valid = false;
       T tmp = 0;
-      for (size_t i = 0; i < acol_.nrows(); ++i){
+      for (size_t j = 0; j <= i; ++j){
         T a;
-        bool isvalid = acol_.get_element(i, &a);
+        bool isvalid = acol_.get_element(j, &a);
         if (isvalid){
           out_valid = true;
-          tmp = a + tmp;
-          *out = tmp;
+          tmp += a;
         }
       }
+      *out = tmp;
       
       return out_valid;
      }
