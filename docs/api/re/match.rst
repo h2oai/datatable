@@ -18,9 +18,14 @@
         The regular expression that will be tested against each value
         in the `column`.
 
+
     icase: bool
+
+        .. x-version-added:: 1.1.0
+
         If `True`, character matching will be performed without regard to case.
 
     return: FExpr[bool8]
         A boolean column that tells whether the value in each row of
         `column` matches the `pattern` or not.
+

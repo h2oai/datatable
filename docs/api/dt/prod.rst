@@ -5,6 +5,7 @@
     :cvar: doc_dt_prod
     :signature: prod(cols)
 
+    .. x-version-added:: 1.1.0
 
     Calculate the product of values for each column from `cols`.
 
