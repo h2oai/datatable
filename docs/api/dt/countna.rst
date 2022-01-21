@@ -5,6 +5,7 @@
     :cvar: doc_dt_countna
     :signature: countna(cols)
 
+    .. x-version-added:: 1.1.0
 
     Count the number of NA values for each column from `cols`.
 

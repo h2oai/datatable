@@ -5,6 +5,7 @@
     :cvar: doc_dt_nunique
     :signature: nunique(cols)
 
+    .. x-version-added:: 1.1.0
 
     Count the number of unique values for each column from `cols`.
 

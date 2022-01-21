@@ -5,6 +5,8 @@
     :cvar: doc_dt_rowargmax
     :signature: rowargmax(*cols)
 
+    .. x-version-added:: 1.1.0
+
     For each row, find the index of the largest value among the columns from `cols`.
     When the largest value occurs more than once, the smallest column index
     is returned.

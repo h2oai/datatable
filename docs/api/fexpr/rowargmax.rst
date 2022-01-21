@@ -4,4 +4,6 @@
     :cvar: doc_FExpr_rowargmax
     :signature: rowargmax()
 
+    .. x-version-added:: 1.1.0
+
     Equivalent to :func:`dt.rowargmax(self)`.

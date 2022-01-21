@@ -5,6 +5,8 @@
     :cvar: doc_dt_rowargmin
     :signature: rowargmin(*cols)
 
+    .. x-version-added:: 1.1.0
+
     For each row, find the smallest value among the columns from `cols`.
 
 
