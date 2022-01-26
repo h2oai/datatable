@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "pythoncapi_compat.h"    // Py_SET_REFCNT()
 #include "column/const.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
@@ -84,7 +85,7 @@ static Column _fw_col(size_t nrows, SType stype) {
     });
 
   if (std::is_same<T, PyObject*>::value) {
-    Py_None->ob_refcnt += nrows;
+    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + nrows);
     buf.set_pyobjects(/* clear_data= */ false);
   }
   return Column(new ColClass(nrows, stype, std::move(buf)));
@@ -101,7 +102,7 @@ static Column _special_col(size_t nrows) {
     });
 
   if (std::is_same<T, PyObject*>::value) {
-    Py_None->ob_refcnt += nrows;
+    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + nrows);
     buf.set_pyobjects(/* clear_data= */ false);
   }
   return Column(new ColClass(nrows, std::move(buf)));

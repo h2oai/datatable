@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "pythoncapi_compat.h"    // Py_SET_TYPE()
 #include "python/namedtuple.h"
 #include "python/list.h"
 #include "python/python.h"
@@ -128,7 +129,7 @@ onamedtuple::onamedtuple(const onamedtupletype& type) {
   // with `type.v`, that is a named tuple type. Note, that
   // there is no need to call `Py_DECREF` on `Py_TYPE(v)`,
   // because tuple is a built-in type.
-  Py_TYPE(v) = type.v;
+  Py_SET_TYPE(v, type.v);
   Py_INCREF(type.v);
 }
 
