@@ -24,7 +24,7 @@
 #include <cstring>             // std::strerror, std::memcpy
 #include <mutex>               // std::mutex, std::lock_guard
 #include "buffer.h"
-#include "pythoncapi_compat.h"    // Py_SET_REFCNT()
+#include "lib/pythoncapi_compat.h" // Py_SET_REFCNT()
 #include "mmm.h"                  // MemoryMapWorker, MemoryMapManager
 #include "python/pybuffer.h"      // py::buffer
 #include "utils/alloc.h"          // dt::malloc, dt::realloc

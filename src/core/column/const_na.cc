@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "pythoncapi_compat.h"    // Py_SET_REFCNT()
+#include "lib/pythoncapi_compat.h" // Py_SET_REFCNT()
 #include "column/const.h"
 #include "column/sentinel_fw.h"
 #include "column/sentinel_str.h"
