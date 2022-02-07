@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "lib/pythoncapi_compat.h" // Py_SET_TYPE()
 #include "python/python.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
@@ -143,7 +144,7 @@ void otuple::make_editable() {
     // When `v` is a namedtuple, we need to adjust python type for `v_new`.
     // This is because `PyTuple_GetSlice()` always returns a regular tuple.
     PyTypeObject* v_type = Py_TYPE(v);
-    Py_TYPE(v_new) = v_type;
+    Py_SET_TYPE(v_new, v_type);
     Py_INCREF(v_type);
   }
   Py_SETREF(v, v_new);

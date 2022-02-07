@@ -24,6 +24,7 @@
 #include <cstring>             // std::strerror, std::memcpy
 #include <mutex>               // std::mutex, std::lock_guard
 #include "buffer.h"
+#include "lib/pythoncapi_compat.h" // Py_SET_REFCNT()
 #include "mmm.h"                  // MemoryMapWorker, MemoryMapManager
 #include "python/pybuffer.h"      // py::buffer
 #include "utils/alloc.h"          // dt::malloc, dt::realloc
@@ -235,7 +236,7 @@ class BufferImpl
         PyObject** elements = static_cast<PyObject**>(data_);
         for (size_t i = 0; i < n; ++i) {
           XAssert(elements[i] != nullptr);
-          XAssert(elements[i]->ob_refcnt > 0);
+          XAssert(Py_REFCNT(elements[i]) > 0);
         }
       }
     }
@@ -929,7 +930,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
-      Py_None->ob_refcnt += n;
+      Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n);
     }
     impl_->contains_pyobjects_ = true;
     return *this;
@@ -954,7 +955,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
           if (n_new > n_old) {
             PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
-            Py_None->ob_refcnt += n_new - n_old;
+            Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n_new - n_old);
           }
         } else {
           impl_->resize(newsize);
@@ -1018,7 +1019,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
         size_t i = 0;
         for (; i < n_copy; ++i) Py_INCREF(newdata[i]);
         for (; i < n_new; ++i) newdata[i] = Py_None;
-        Py_None->ob_refcnt += n_new - n_copy;
+        Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n_new - n_copy);
       }
       impl_->release();  // noexcept
     }
