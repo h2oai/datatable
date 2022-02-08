@@ -189,14 +189,14 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
             for (size_t k = 0; k < label_ids_fit_.size(); ++k) {
               T p = activation_fn(predict_row(x, betas, k));
               T y = target_fn(target, label_ids_fit_[k]);
-
-              // If we use sigmoid activation, gradients for linear and logistic
-              // regressions are the same. For other activations the gradient
-              // should be adjusted accordingly.
-              T gradient = (p - y);
+              T delta = p - y;
 
               // Update local betas with SGD, j = 0 corresponds to the bias term
               for (size_t j = 0; j < nfeatures_ + 1; ++j) {
+                // If we use sigmoid activation, gradients for linear and logistic
+                // regressions are the same. For other activations the gradient
+                // should be adjusted accordingly.
+                T gradient = delta;
                 if (j) gradient *= x[j - 1];
                 gradient += copysign(lambda1_, betas[k][j]); // L1 regularization
                 gradient += 2 * lambda2_ * betas[k][j];      // L2 regularization

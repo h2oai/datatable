@@ -93,6 +93,13 @@
         files. [#3055]
 
 
+    Models
+    ------
+
+    -[fix] Fixed a bug in the :class:`LinearModel <dt.models.LinearModel>` that in some cases resulted
+         in the gradient and model coefficients blow up. [#3234]
+
+
     General
     -------
 
