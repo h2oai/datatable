@@ -1109,6 +1109,17 @@ def test_linearmodel_regression_fit_simple_one(eta_schedule):
     assert_equals(lm.model, dt.Frame([lm.eta0, lm.eta0]), rel_tol = 1e-3)
 
 
+@pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "exponential"])
+def test_linearmodel_regression_fit_simple_one_multicolumn(eta_schedule):
+    lm = LinearModel(nepochs = 1000, double_precision = True, eta_schedule=eta_schedule)
+    df_train = dt.Frame([[1], [2], [3], [4], [5]])
+    df_target = dt.Frame([1]/dt.float64)
+    lm.fit(df_train, df_target)
+    p = lm.predict(df_train)
+    assert lm.model_type == "regression"
+    assert_equals(p, dt.Frame(df_target))
+
+
 @pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
 def test_linearmodel_regression_fit_predict_simple_linear(eta_schedule):
     lm = LinearModel(nepochs = 10000, double_precision = True, eta_decay = 1e-8,
