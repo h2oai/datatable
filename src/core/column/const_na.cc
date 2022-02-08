@@ -85,7 +85,7 @@ static Column _fw_col(size_t nrows, SType stype) {
     });
 
   if (std::is_same<T, PyObject*>::value) {
-    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + nrows);
+    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + static_cast<Py_ssize_t>(nrows));
     buf.set_pyobjects(/* clear_data= */ false);
   }
   return Column(new ColClass(nrows, stype, std::move(buf)));
@@ -102,7 +102,7 @@ static Column _special_col(size_t nrows) {
     });
 
   if (std::is_same<T, PyObject*>::value) {
-    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + nrows);
+    Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + static_cast<Py_ssize_t>(nrows));
     buf.set_pyobjects(/* clear_data= */ false);
   }
   return Column(new ColClass(nrows, std::move(buf)));

@@ -930,7 +930,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
       for (size_t i = 0; i < n; ++i) {
         data[i] = Py_None;
       }
-      Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n);
+      Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + static_cast<Py_ssize_t>(n));
     }
     impl_->contains_pyobjects_ = true;
     return *this;
@@ -955,7 +955,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
           if (n_new > n_old) {
             PyObject** data = static_cast<PyObject**>(xptr());
             for (size_t i = n_old; i < n_new; ++i) data[i] = Py_None;
-            Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n_new - n_old);
+            Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + static_cast<Py_ssize_t>(n_new - n_old));
           }
         } else {
           impl_->resize(newsize);
@@ -1019,7 +1019,7 @@ class Mmap_BufferImpl : public BufferImpl, MemoryMapWorker {
         size_t i = 0;
         for (; i < n_copy; ++i) Py_INCREF(newdata[i]);
         for (; i < n_new; ++i) newdata[i] = Py_None;
-        Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + n_new - n_copy);
+        Py_SET_REFCNT(Py_None, Py_REFCNT(Py_None) + static_cast<Py_ssize_t>(n_new - n_copy));
       }
       impl_->release();  // noexcept
     }
