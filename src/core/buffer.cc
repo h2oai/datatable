@@ -19,18 +19,18 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <algorithm>           // std::min
-#include <cerrno>              // errno
-#include <cstring>             // std::strerror, std::memcpy
-#include <mutex>               // std::mutex, std::lock_guard
+#include <algorithm>                          // std::min
+#include <cerrno>                             // errno
+#include <cstring>                            // std::strerror, std::memcpy
+#include <mutex>                              // std::mutex, std::lock_guard
 #include "buffer.h"
-#include "lib/pythoncapi_compat.h" // Py_SET_REFCNT()
-#include "mmm.h"                  // MemoryMapWorker, MemoryMapManager
-#include "python/pybuffer.h"      // py::buffer
-#include "utils/alloc.h"          // dt::malloc, dt::realloc
-#include "utils/arrow_structs.h"  // dt::OArrowArray
+#include "lib/pythoncapi/pythoncapi_compat.h" // Py_SET_REFCNT()
+#include "mmm.h"                              // MemoryMapWorker, MemoryMapManager
+#include "python/pybuffer.h"                  // py::buffer
+#include "utils/alloc.h"                      // dt::malloc, dt::realloc
+#include "utils/arrow_structs.h"              // dt::OArrowArray
 #include "utils/macros.h"
-#include "utils/misc.h"           // malloc_size
+#include "utils/misc.h"                       // malloc_size
 #include "utils/temporary_file.h"
 #include "writebuf.h"
 

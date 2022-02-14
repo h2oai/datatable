@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "lib/pythoncapi_compat.h" // Py_SET_TYPE()
+#include "lib/pythoncapi/pythoncapi_compat.h" // Py_SET_TYPE()
 #include "python/namedtuple.h"
 #include "python/list.h"
 #include "python/python.h"
