@@ -195,8 +195,18 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   col.apply_rowindex(ri_cat);
   col.materialize();
 
+  size_t val_size = (nrows + 7) / 8;
+  Buffer val = Buffer::mem(val_size);
+  int8_t* val_data = static_cast<int8_t*>(val.xptr());
+  std::memset(val_data, 255, val_size);
+
   // Replace `col` with the corresponding categorical column
-  col = Column(new Categorical_ColumnImpl<T>(nrows, std::move(buf), std::move(col)));
+  col = Column(new Categorical_ColumnImpl<T>(
+          nrows,
+          std::move(val),
+          std::move(buf),
+          std::move(col)
+        ));
 }
 
 
