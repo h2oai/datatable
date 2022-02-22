@@ -139,6 +139,7 @@ def test_create_from_void(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -152,6 +153,7 @@ def test_create_from_bools(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -165,6 +167,7 @@ def test_create_from_ints(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 def test_create_from_ints_large():
@@ -174,6 +177,7 @@ def test_create_from_ints_large():
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -187,6 +191,7 @@ def test_create_from_floats(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -200,6 +205,7 @@ def test_create_from_strings(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -214,6 +220,7 @@ def test_create_from_dates(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
@@ -230,6 +237,23 @@ def test_create_from_times(t):
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
+
+
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
+def test_create_multicolumn(t):
+    src = [[6, 8, 8, None, 20],
+           ["six", "eight", "eight", None, "twenty"]]
+    DT1 = dt.Frame(src)
+    DT2 = dt.Frame(src, types = [t(dt.Type.int32), t(dt.Type.str32)])
+    assert DT2[:, 0].type == t(dt.Type.int32)
+    assert DT2[:, 1].type == t(dt.Type.str32)
+    assert DT1.shape == DT2.shape
+    assert DT1.names == DT2.names
+    assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
 
 
 #-------------------------------------------------------------------------------
