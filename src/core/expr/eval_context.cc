@@ -498,7 +498,9 @@ static void _vivify_workframe(const Workframe& wf) {
   if (wf.nrows() == 0) return;
   for (size_t i = 0; i < wf.ncols(); ++i) {
     const Column& col = wf.get_column(i);
-    switch (col.stype()) {
+    dt::SType st = col.type().is_categorical()? col.child(0).stype()
+                                              : col.stype();
+    switch (st) {
       case SType::VOID:
       case SType::BOOL:
       case SType::INT8:    _vivify_column<int8_t>(col); break;
