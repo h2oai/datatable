@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,11 +39,13 @@ Type _type_from_cattype(const Type& tcat) {
 
 template <typename T>
 Categorical_ColumnImpl<T>::Categorical_ColumnImpl(
-    size_t nrows, Buffer&& codes, Column&& categories
+    size_t nrows, Buffer&& validity, Buffer&& codes, Column&& categories
 ) : Virtual_ColumnImpl(nrows, _type_from_cattype<T>(categories.type())),
+    validity_(std::move(validity)),
     codes_(std::move(codes)),
     categories_(std::move(categories))
 {
+  xassert(!validity_ || validity_.size() >= (nrows + 7) / 8);
   xassert(codes_.size() >= sizeof(T) * nrows);
 }
 
@@ -56,8 +58,12 @@ void Categorical_ColumnImpl<T>::materialize(Column&, bool) {
 
 template <typename T>
 ColumnImpl* Categorical_ColumnImpl<T>::clone() const {
-  return
-    new Categorical_ColumnImpl(nrows_, Buffer(codes_), Column(categories_));
+  return new Categorical_ColumnImpl(
+               nrows_,
+               Buffer(validity_),
+               Buffer(codes_),
+               Column(categories_)
+             );
 }
 
 
@@ -75,14 +81,14 @@ const Column& Categorical_ColumnImpl<T>::child(size_t i) const {
 
 
 template <typename T>
-size_t Categorical_ColumnImpl<T>::num_buffers() const noexcept {
-  return 1;
+size_t Categorical_ColumnImpl<T>::get_num_data_buffers() const noexcept {
+  return 2;
 }
 
 
 template <typename T>
-Buffer Categorical_ColumnImpl<T>::get_buffer() const noexcept {
-  return codes_;
+Buffer Categorical_ColumnImpl<T>::get_data_buffer(size_t i) const noexcept {
+  return (i == 0)? validity_ : codes_;
 }
 
 
@@ -90,8 +96,15 @@ template <typename T>
 template <typename U>
 bool Categorical_ColumnImpl<T>::get_element_(size_t i, U* out) const {
   xassert(i < nrows_);
-  size_t ii = static_cast<size_t>(codes_.get_element<T>(i));
-  bool valid = categories_.get_element(ii, out);
+
+  auto validity_data = static_cast<const uint8_t*>(validity_.rptr());
+  bool valid = !validity_data || (validity_data[i / 8] & (1 << (i & 7)));
+
+  if (valid) {
+    size_t ii = static_cast<size_t>(codes_.get_element<T>(i));
+    valid = categories_.get_element(ii, out);
+  }
+
   return valid;
 }
 

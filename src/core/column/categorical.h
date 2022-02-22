@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -30,17 +30,23 @@ namespace dt {
 template <typename T>
 class Categorical_ColumnImpl : public Virtual_ColumnImpl {
   private:
+    Buffer validity_;
     Buffer codes_;
     Column categories_;
 
   public:
-    Categorical_ColumnImpl(size_t nrows, Buffer&& codes, Column&& categories);
+    Categorical_ColumnImpl(
+      size_t nrows,
+      Buffer&& validity,
+      Buffer&& codes,
+      Column&& categories
+    );
 
     ColumnImpl* clone() const override;
     size_t n_children() const noexcept override;
     const Column& child(size_t i) const override;
-    size_t num_buffers() const noexcept;
-    Buffer get_buffer() const noexcept;
+    size_t get_num_data_buffers() const noexcept override;
+    Buffer get_data_buffer(size_t i) const noexcept override;
 
     template <class U>
     bool get_element_(size_t, U*) const;
