@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2021 H2O.ai
+# Copyright 2021-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -114,6 +114,7 @@ def test_create_from_arrow(pa):
     assert DT.type == dt.Type.arr32(dt.Type.int32)
     assert DT.names == ("A",)
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python1():
@@ -125,6 +126,7 @@ def test_create_from_python1():
     assert DT.ltypes == (dt.ltype.invalid,) # These properties are deprecated, also
     assert DT.stypes == (dt.stype.arr32,)   # see issue #3142
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python2():
@@ -134,6 +136,7 @@ def test_create_from_python2():
     assert DT.type == dt.Type.arr32(dt.Type.float64)
     assert DT.names == ("B",)
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python3():
@@ -152,6 +155,7 @@ def test_create_from_python4():
     assert DT.type == dt.Type.arr32(dt.Type.void)
     assert DT.names == ("E",)
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python5():
@@ -161,6 +165,7 @@ def test_create_from_python5():
     assert DT.type == dt.Type.arr32(dt.Type.str32)
     assert DT.names == ("F",)
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python_array_of_arrays():
@@ -175,6 +180,7 @@ def test_create_from_python_array_of_arrays():
     assert DT.type == dt.Type.arr32(dt.Type.arr32(dt.Type.int32))
     assert DT.names == ("N",)
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python_nested():
@@ -184,6 +190,7 @@ def test_create_from_python_nested():
     assert DT.shape == (1, 1)
     assert DT.type == a(a(a(a(a(dt.Type.void)))))
     assert DT.to_list() == [src]
+    assert_equals(DT, DT[:, :])
 
 
 def test_create_from_python_array_incompatible_child_types():
