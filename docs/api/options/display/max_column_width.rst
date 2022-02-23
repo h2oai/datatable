@@ -10,7 +10,8 @@
     to `max_column_width` characters when printed.
 
     This option applies to both the rendering of a frame in a terminal,
-    and the rendering in a Jupyter notebook.
+    and the rendering in a Jupyter notebook. However, it will have no effect
+    for data in fixed-width columns, such as boolean, numeric, date or time.
 
     Parameters
     ----------
