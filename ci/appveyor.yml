@@ -1,7 +1,7 @@
 image:
   - Visual Studio 2019
-  - Ubuntu
   - macos-bigsur
+  - Ubuntu
 
 init:
   # Uncomment the line below to enable RDP access
@@ -21,8 +21,8 @@ artifacts:
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
 
-build_script:
 
+build_script:
 
 # Linux and macOS builds
 - sh: >-
@@ -80,18 +80,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.9
+    #   Build and test wheel for Python 3.10
     # =======================================================================
 
-    source $HOME/venv3.9/bin/activate
+    source $HOME/venv3.10/bin/activate
 
     python -V
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp39-*.whl`
+    DT_WHEEL=`ls dist/*-cp310-*.whl`
 
-    echo "----- _build_info.py for Python 3.9 ------------------------------"
+    echo "----- _build_info.py for Python 3.10 ------------------------------"
 
     cat src/datatable/_build_info.py
 
@@ -102,6 +102,7 @@ build_script:
     python -m pip install $DT_WHEEL pytest docutils pandas
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
 
 
 # Windows builds
