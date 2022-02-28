@@ -278,7 +278,7 @@ oobj PyFExpr::re_match(const XArgs& args) {
        "and will be removed in version 1.1.\n"
        "Please use function dt.re.match() instead";
   w.emit_warning();
-  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern));
+  return PyFExpr::make(new FExpr_Re_Match(ptrExpr(expr_), arg_pattern, py::False()));
 }
 
 DECLARE_METHOD(&PyFExpr::re_match)
@@ -413,6 +413,15 @@ DECLARE_METHOD(&PyFExpr::rowlast)
     ->docs(dt::doc_FExpr_rowlast);
 
 
+oobj PyFExpr::rowargmax(const XArgs&) {
+  auto rowargmaxFn = oobj::import("datatable", "rowargmax");
+  return rowargmaxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::rowargmax)
+    ->name("rowargmax")
+    ->docs(dt::doc_FExpr_rowargmax);
+
 
 oobj PyFExpr::rowmax(const XArgs&) {
   auto rowmaxFn = oobj::import("datatable", "rowmax");
@@ -434,6 +443,15 @@ DECLARE_METHOD(&PyFExpr::rowmean)
     ->name("rowmean")
     ->docs(dt::doc_FExpr_rowmean);
 
+
+oobj PyFExpr::rowargmin(const XArgs&) {
+  auto rowargminFn = oobj::import("datatable", "rowargmin");
+  return rowargminFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::rowargmin)
+    ->name("rowargmin")
+    ->docs(dt::doc_FExpr_rowargmin);
 
 
 oobj PyFExpr::rowmin(const XArgs&) {

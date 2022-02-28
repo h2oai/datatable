@@ -33,9 +33,11 @@ class FExpr_Re_Match : public FExpr_FuncUnary {
   private:
     std::string pattern_;
     std::regex regex_;
+    bool icase_;
+    size_t : 56;
 
   public:
-    FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern);
+    FExpr_Re_Match(ptrExpr&& arg, py::oobj pattern, py::oobj icase);
     std::string name() const override;
     std::string repr() const override;
     Column evaluate1(Column&& col) const override;

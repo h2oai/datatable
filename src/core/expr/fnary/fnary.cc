@@ -136,14 +136,16 @@ py::oobj py_rowfn(const py::XArgs& args) {
   switch (args.get_info()) {
     case FN_ROWALL:   return PyFExpr::make(new FExpr_RowAll(std::move(a)));
     case FN_ROWANY:   return PyFExpr::make(new FExpr_RowAny(std::move(a)));
+    case FN_ROWARGMAX:return PyFExpr::make(new FExpr_RowMinMax<false,true>(std::move(a)));
+    case FN_ROWARGMIN:return PyFExpr::make(new FExpr_RowMinMax<true,true>(std::move(a)));
     case FN_ROWCOUNT: return PyFExpr::make(new FExpr_RowCount(std::move(a)));
     case FN_ROWFIRST: return PyFExpr::make(new FExpr_RowFirstLast<true>(std::move(a)));
     case FN_ROWLAST:  return PyFExpr::make(new FExpr_RowFirstLast<false>(std::move(a)));
-    case FN_ROWSUM:   return PyFExpr::make(new FExpr_RowSum(std::move(a)));
     case FN_ROWMAX:   return PyFExpr::make(new FExpr_RowMinMax<false>(std::move(a)));
     case FN_ROWMEAN:  return PyFExpr::make(new FExpr_RowMean(std::move(a)));
     case FN_ROWMIN:   return PyFExpr::make(new FExpr_RowMinMax<true>(std::move(a)));
     case FN_ROWSD:    return PyFExpr::make(new FExpr_RowSd(std::move(a)));
+    case FN_ROWSUM:   return PyFExpr::make(new FExpr_RowSum(std::move(a)));
     default: throw RuntimeError();
   }
 }

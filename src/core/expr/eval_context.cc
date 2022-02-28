@@ -498,7 +498,9 @@ static void _vivify_workframe(const Workframe& wf) {
   if (wf.nrows() == 0) return;
   for (size_t i = 0; i < wf.ncols(); ++i) {
     const Column& col = wf.get_column(i);
-    switch (col.stype()) {
+    dt::SType st = col.type().is_categorical()? col.child(0).stype()
+                                              : col.stype();
+    switch (st) {
       case SType::VOID:
       case SType::BOOL:
       case SType::INT8:    _vivify_column<int8_t>(col); break;
@@ -512,6 +514,8 @@ static void _vivify_workframe(const Workframe& wf) {
       case SType::STR32:
       case SType::STR64:   _vivify_column<CString>(col); break;
       case SType::OBJ:     _vivify_column<py::oobj>(col); break;
+      case SType::ARR32:
+      case SType::ARR64:   _vivify_column<Column>(col); break;
       default:
         throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
     }

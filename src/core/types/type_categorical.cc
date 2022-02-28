@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <cstring>  // std::memset
 #include "column/categorical.h"
 #include "parallel/api.h"
 #include "sort.h"
@@ -195,8 +196,18 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   col.apply_rowindex(ri_cat);
   col.materialize();
 
+  size_t val_size = (nrows + 7) / 8;
+  Buffer val = Buffer::mem(val_size);
+  int8_t* val_data = static_cast<int8_t*>(val.xptr());
+  std::memset(val_data, 255, val_size);
+
   // Replace `col` with the corresponding categorical column
-  col = Column(new Categorical_ColumnImpl<T>(nrows, std::move(buf), std::move(col)));
+  col = Column(new Categorical_ColumnImpl<T>(
+          nrows,
+          std::move(val),
+          std::move(buf),
+          std::move(col)
+        ));
 }
 
 

@@ -25,49 +25,72 @@
 #include "documentation.h"
 #include "expr/fnary/fnary.h"
 #include "python/xargs.h"
+#include <utility>
+
+
+
 namespace dt {
 namespace expr {
 
 
-template <bool MIN>
-std::string FExpr_RowMinMax<MIN>::name() const {
-  return MIN? "rowmin" : "rowmax";
+template <bool MIN, bool ARG>
+std::string FExpr_RowMinMax<MIN, ARG>::name() const {
+  if (ARG) {
+    return MIN? "rowargmin" : "rowargmax";
+  } else {
+    return MIN? "rowmin" : "rowmax";
+  }
 }
 
 
 
-template <typename T, bool MIN>
-static bool op_rowminmax(size_t i, T* out, const colvec& columns) {
+template <typename T, typename U, bool MIN, bool ARG>
+static bool op_rowargminmax(size_t i, U* out, const colvec& columns) {
   bool minmax_valid = false;
-  T minmax = 0;
-  for (const auto& col : columns) {
+  std::pair<T, size_t> minmax(0, 0);
+
+  for (size_t j = 0; j < columns.size(); ++j) {
     T x;
-    bool xvalid = col.get_element(i, &x);
+    bool xvalid = columns[j].get_element(i, &x);
     if (!xvalid) continue;
     if (minmax_valid) {
-      if (MIN) { if (x < minmax) minmax = x; }
-      else     { if (x > minmax) minmax = x; }
+      if (MIN) { if (x < minmax.first) minmax = std::make_pair(x, j); }
+      else     { if (x > minmax.first) minmax = std::make_pair(x, j); }
     } else {
-      minmax = x;
+      minmax = std::make_pair(x, j);
       minmax_valid = true;
     }
   }
-  *out = minmax;
+
+  *out = ARG? static_cast<U>(minmax.second)
+            : static_cast<U>(minmax.first);
+
   return minmax_valid;
 }
 
 
-template <typename T, bool MIN>
+
+template <typename T, bool MIN, bool ARG>
 static inline Column _rowminmax(colvec&& columns) {
-  auto fn = op_rowminmax<T, MIN>;
   size_t nrows = columns[0].nrows();
-  return Column(new FuncNary_ColumnImpl<T>(
-                    std::move(columns), fn, nrows, stype_from<T>));
+
+  if (ARG) {
+    auto fn = op_rowargminmax<T, int64_t, MIN, ARG>;
+    return Column(new FuncNary_ColumnImpl<int64_t>(
+             std::move(columns), fn, nrows, stype_from<int64_t>
+           ));
+
+  } else {
+    auto fn = op_rowargminmax<T, T, MIN, ARG>;
+    return Column(new FuncNary_ColumnImpl<T>(
+            std::move(columns), fn, nrows, stype_from<T>
+           ));
+  }
 }
 
 
-template <bool MIN>
-Column FExpr_RowMinMax<MIN>::apply_function(colvec&& columns) const {
+template <bool MIN, bool ARG>
+Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns) const {
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(1);
   }
@@ -75,18 +98,20 @@ Column FExpr_RowMinMax<MIN>::apply_function(colvec&& columns) const {
   promote_columns(columns, res_stype);
 
   switch (res_stype) {
-    case SType::INT32:   return _rowminmax<int32_t, MIN>(std::move(columns));
-    case SType::INT64:   return _rowminmax<int64_t, MIN>(std::move(columns));
-    case SType::FLOAT32: return _rowminmax<float, MIN>(std::move(columns));
-    case SType::FLOAT64: return _rowminmax<double, MIN>(std::move(columns));
+    case SType::INT32:   return _rowminmax<int32_t, MIN, ARG>(std::move(columns));
+    case SType::INT64:   return _rowminmax<int64_t, MIN, ARG>(std::move(columns));
+    case SType::FLOAT32: return _rowminmax<float, MIN, ARG>(std::move(columns));
+    case SType::FLOAT64: return _rowminmax<double, MIN, ARG>(std::move(columns));
     default: throw RuntimeError()
                << "Wrong `res_stype` in `naryop_rowminmax()`: "
                << res_stype;  // LCOV_EXCL_LINE
   }
 }
 
-template class FExpr_RowMinMax<true>;
-template class FExpr_RowMinMax<false>;
+template class FExpr_RowMinMax<true,true>;
+template class FExpr_RowMinMax<false,true>;
+template class FExpr_RowMinMax<true,false>;
+template class FExpr_RowMinMax<false,false>;
 
 
 DECLARE_PYFN(&py_rowfn)
@@ -101,7 +126,17 @@ DECLARE_PYFN(&py_rowfn)
     ->allow_varargs()
     ->add_info(FN_ROWMAX);
 
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowargmax")
+    ->docs(doc_dt_rowargmax)
+    ->allow_varargs()
+    ->add_info(FN_ROWARGMAX);
 
+DECLARE_PYFN(&py_rowfn)
+    ->name("rowargmin")
+    ->docs(doc_dt_rowargmin)
+    ->allow_varargs()
+    ->add_info(FN_ROWARGMIN);
 
 
 }}  // namespace dt::expr

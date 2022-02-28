@@ -4,5 +4,7 @@
     :cvar: doc_FExpr_prod
     :signature: prod(new_type)
 
+    .. x-version-added:: 1.1.0
+
     Equivalent to :func:`dt.prod(cols)`.
 

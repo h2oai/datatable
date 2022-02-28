@@ -129,10 +129,14 @@ Functions
       - Find the first non-missing value row-wise
     * - :func:`rowlast()`
       - Find the last non-missing value row-wise
+    * - :func:`rowargmax()`
+      - Find the index of the largest element row-wise
     * - :func:`rowmax()`
       - Find the largest element row-wise
     * - :func:`rowmean()`
       - Calculate the mean value row-wise
+    * - :func:`rowargmin()`
+      - Find the index of the smallest element row-wise
     * - :func:`rowmin()`
       - Find the smallest element row-wise
     * - :func:`rowsd()`
@@ -254,7 +258,9 @@ Other
     rowfirst()        <dt/rowfirst>
     rowlast()         <dt/rowlast>
     rowmax()          <dt/rowmax>
+    rowargmax()       <dt/rowargmax>
     rowmean()         <dt/rowmean>
+    rowargmin()       <dt/rowargmin>
     rowmin()          <dt/rowmin>
     rowsd()           <dt/rowsd>
     rowsum()          <dt/rowsum>

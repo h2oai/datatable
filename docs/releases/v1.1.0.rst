@@ -36,6 +36,8 @@
     -[fix] Fixed a crash which in rare situations happened in :meth:`.to_csv()` due to
         multithreading. [#3176]
 
+    -[fix] Fixed a crash in :meth:`.to_pandas()` when called on keyed frames. [#3224]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
@@ -60,12 +62,17 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
       which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
 
-    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`  [#2999]
+    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Added reducer function :func:`dt.prod()`, as well as :meth:`.prod()` method,
-      which behaves exactly as :func:`dt.prod()`  [#3140]
+      which behaves exactly as :func:`dt.prod()`. [#3140]
 
-    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter [#3061]
+    -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter. [#3061]
+
+    -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
+      index of the largest and smallest values among columns of each row. [#2998]
+
+    -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
 
     fread
@@ -75,12 +82,22 @@
     -[enh] When reading Excel files, datetime fields will now be converted into
         ``time64`` columns in the resulting frame.
 
+    -[enh] When reading Excel files, forward slash, backslash,
+        and their mix are supported as separators for specifying subpath. [#3221]
+
     -[api] Parameter ``sep=`` in :func:`fread()` will no longer accept values
         ``'-'``, ``'+'``, or ``'.'``. Previously, these values were allowed but
         they produced errors during parsing. [#3065]
 
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
+
+
+    Models
+    ------
+
+    -[fix] Fixed a bug in the :class:`LinearModel <dt.models.LinearModel>` that in some cases resulted
+         in the gradient and model coefficients blow up. [#3234]
 
 
     General

@@ -15,9 +15,8 @@
 # limitations under the License.
 #-------------------------------------------------------------------------------
 import datatable as dt
+import os
 import re
-
-
 
 
 def read_xls_workbook(filename, subpath):
@@ -39,8 +38,8 @@ def read_xls_workbook(filename, subpath):
         if subpath in wb.sheet_names():
             sheetname = subpath
         else:
-            if "/" in subpath:
-                sheetname, xlsrange = subpath.rsplit('/', 1)
+            if os.sep in subpath:
+                sheetname, xlsrange = subpath.rsplit(os.sep, 1)
                 range2d = _excel_coords_to_range2d(xlsrange)
             if not(sheetname in wb.sheet_names() and range2d is not None):
                 raise ValueError("Sheet `%s` is not found in the XLS file"

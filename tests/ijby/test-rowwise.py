@@ -27,7 +27,7 @@ import random
 import datatable as dt
 from datatable import f, g, stype, ltype, join
 from datatable import rowall, rowany, rowsum, rowcount, rowmin, rowmax, \
-                      rowfirst, rowlast, rowmean, rowsd
+                      rowfirst, rowlast, rowmean, rowsd, rowargmax, rowargmin
 from tests import assert_equals
 
 stypes_int = ltype.int.stypes
@@ -219,6 +219,47 @@ def test_rowminmax_floats():
     assert_equals(RES, dt.Frame([[7.5, math.inf, +math.inf, math.inf],
                                  [4.1, math.inf, -math.inf, -maxflt]]))
 
+
+
+
+#-------------------------------------------------------------------------------
+# rowargmax(), rowargmin()
+#-------------------------------------------------------------------------------
+
+def test_rowargminmax_simple():
+    DT = dt.Frame([[3], [-6], [17], [0], [5.4]])
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[2], [1]], stype=dt.int64))
+
+
+def test_rowargminmax_int8():
+    DT = dt.Frame([[4], [None], [1], [3]], stype=dt.int8)
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[0], [2]], stype=dt.int64))
+
+
+def test_rowargminmax_nas():
+    DT = dt.Frame([[None]] * 3, stype=dt.int64)
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]], stype=dt.int64))
+
+
+def test_rowargminmax_almost_nas():
+    DT = dt.Frame([[None], [None], [1], [None]], stype=dt.float64)
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[2], [2]], stype=dt.int64))
+
+
+def test_rowargminmax_floats():
+    import sys
+    maxflt = sys.float_info.max
+    DT = dt.Frame([(7.5, math.nan, 4.1),
+                   (math.nan, math.inf, None),
+                   (math.inf, -math.inf, None),
+                   (maxflt, math.inf, -maxflt)])
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[0, 1, 0, 1],
+                                 [2, 1, 1, 2]], stype=dt.int64))
 
 
 

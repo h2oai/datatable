@@ -190,11 +190,17 @@
         * - :meth:`.rowlast()`
           - Same as :func:`dt.rowlast()`.
 
+        * - :meth:`.rowargmax()`
+          - Same as :func:`dt.rowargmax()`.
+
         * - :meth:`.rowmax()`
           - Same as :func:`dt.rowmax()`.
 
         * - :meth:`.rowmean()`
           - Same as :func:`dt.rowmean()`.
+
+        * - :meth:`.rowargmin()`
+          - Same as :func:`dt.rowargmin()`.
 
         * - :meth:`.rowmin()`
           - Same as :func:`dt.rowmin()`.
@@ -287,8 +293,10 @@
     .rowcount()     <fexpr/rowcount>
     .rowfirst()     <fexpr/rowfirst>
     .rowlast()      <fexpr/rowlast>
+    .rowargmax()    <fexpr/rowargmax>
     .rowmax()       <fexpr/rowmax>
     .rowmean()      <fexpr/rowmean>
+    .rowargmin()    <fexpr/rowargmin>
     .rowmin()       <fexpr/rowmin>
     .rowsd()        <fexpr/rowsd>
     .rowsum()       <fexpr/rowsum>
