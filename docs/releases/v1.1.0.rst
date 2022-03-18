@@ -17,7 +17,7 @@
         constant values. [#3088] [#3104] [#3108] [#3109]
 
     -[fix] Saving a frame with a :attr:`void <dt.Type.void>` column into Jay
-        no longer leads to a crash. [#3074] [#3099]
+        no longer leads to a crash. [#3074] [#3099] [#3246]
 
     -[fix] Joining with void columns now works correctly. [#3094]
 
