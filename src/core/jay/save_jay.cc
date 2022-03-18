@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -301,12 +301,13 @@ void dt::ConstNa_ColumnImpl::save_to_jay(ColumnJayData& cj) {
 
 
 void dt::Rbound_ColumnImpl::save_to_jay(ColumnJayData& cj) {
+  cj.store_stype(stype());
+  if (stype() == dt::SType::VOID) return;
+
   for (Column& col : chunks_) {
     col.materialize();
   }
-  cj.store_stype(stype());
   cj.store_stats();
-
   if (stype() == dt::SType::STR32 || stype() == dt::SType::STR64) {
     _write_str_offsets_to_jay(cj);
     _write_str_data_to_jay(cj);
