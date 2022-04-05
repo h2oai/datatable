@@ -207,7 +207,8 @@ void PreFrame::archive_column_chunks(size_t expected_nrows) {
 
 
 void PreFrame::init_tempfile() {
-  tempfile_ = std::shared_ptr<TemporaryFile>(new TemporaryFile());
+  auto tempdir = g_->get_tempdir();
+  tempfile_ = std::shared_ptr<TemporaryFile>(new TemporaryFile(tempdir));
   if (g_->get_verbose()) {
     auto name = tempfile_->name();
     g_->d() << "Created temporary file " << name;

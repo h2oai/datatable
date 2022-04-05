@@ -83,13 +83,14 @@ static std::string get_temp_file(const std::string& tempdir) {
 // TemporaryFile
 //------------------------------------------------------------------------------
 
-TemporaryFile::TemporaryFile()
-  : TemporaryFile(get_temp_dir()) {}
-
-TemporaryFile::TemporaryFile(const std::string& tempdir)
-  : filename_(get_temp_file(tempdir)),
-    bufferptr_(nullptr),
-    writebufptr_(nullptr) {}
+TemporaryFile::TemporaryFile(const std::string& tempdir_in /* = "" */)
+  : bufferptr_(nullptr),
+    writebufptr_(nullptr)
+{
+  auto tempdir = (tempdir_in == "")? get_temp_dir()
+                                   : tempdir_in;
+  filename_ = get_temp_file(tempdir);
+}
 
 
 TemporaryFile::~TemporaryFile() {
