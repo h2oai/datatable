@@ -96,6 +96,9 @@
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 
+    -[fix] Parameter ``tempdir`` is now honored for memory limited :func:`fread()`
+        operation. [#3244]
+
 
     Models
     ------

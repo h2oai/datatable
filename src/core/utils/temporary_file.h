@@ -45,8 +45,7 @@ class TemporaryFile
     WritableBuffer* writebufptr_;
 
   public:
-    TemporaryFile();
-    TemporaryFile(const std::string& temp_directory);
+    TemporaryFile(const std::string& tempdir_in = "");
     ~TemporaryFile();
 
     const std::string& name() const;

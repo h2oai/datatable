@@ -165,7 +165,8 @@ GenericReader::GenericReader(const GenericReader& g)
   line    = g.line;
   logger_ = g.logger_;
   source_name = g.source_name;
-  tempfiles = g.tempfiles;
+  tempdir_ = g.tempdir_;
+  tempfiles_ = g.tempfiles_;
 }
 
 GenericReader::~GenericReader() {}
@@ -206,6 +207,7 @@ void GenericReader::init_fill(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_maxnrows(const py::Arg& arg) {
   int64_t n = arg.to<int64_t>(-1);
   if (n < 0) {
@@ -216,6 +218,7 @@ void GenericReader::init_maxnrows(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_skiptoline(const py::Arg& arg) {
   int64_t n = arg.to<int64_t>(-1);
   skip_to_line = (n < 0)? 0 : static_cast<size_t>(n);
@@ -223,6 +226,7 @@ void GenericReader::init_skiptoline(const py::Arg& arg) {
     D() << "skip_to_line = " << skip_to_line;
   }
 }
+
 
 void GenericReader::init_sep(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
@@ -249,6 +253,7 @@ void GenericReader::init_sep(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_dec(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
     // TODO: switch to auto-detect mode
@@ -269,6 +274,7 @@ void GenericReader::init_dec(const py::Arg& arg) {
     throw ValueError() << "Only dec='.' or ',' are allowed";
   }
 }
+
 
 void GenericReader::init_quote(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
@@ -291,6 +297,7 @@ void GenericReader::init_quote(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_header(const py::Arg& arg) {
   if (arg.is_none_or_undefined()) {
     header = dt::GETNA<int8_t>();
@@ -299,6 +306,7 @@ void GenericReader::init_header(const py::Arg& arg) {
     D() << "header = " << (header? "True" : "False");
   }
 }
+
 
 void GenericReader::init_multisource(const py::Arg& arg) {
   auto str = arg.to<std::string>("");
@@ -311,6 +319,7 @@ void GenericReader::init_multisource(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_errors(const py::Arg& arg) {
   auto str = arg.to<std::string>("");
   if (str == "")            errors_strategy = IreadErrorHandlingStrategy::Warn;
@@ -322,6 +331,7 @@ void GenericReader::init_errors(const py::Arg& arg) {
     throw ValueError() << arg.name() << " got invalid value " << str;
   }
 }
+
 
 void GenericReader::init_nastrings(const py::Arg& arg) {
   na_strings_container = arg.to<strvec>({"NA"});
@@ -382,6 +392,7 @@ void GenericReader::init_nastrings(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_skipstring(const py::Arg& arg) {
   skip_to_string = arg.to<std::string>("");
   if (!skip_to_string.empty()) {
@@ -393,27 +404,33 @@ void GenericReader::init_skipstring(const py::Arg& arg) {
   }
 }
 
+
 void GenericReader::init_stripwhite(const py::Arg& arg) {
   strip_whitespace = arg.to<bool>(true);
   D() << "strip_whitespace = " << (strip_whitespace? "True" : "False");
 }
+
 
 void GenericReader::init_skipblanks(const py::Arg& arg) {
   skip_blank_lines = arg.to<bool>(false);
   D() << "skip_blank_lines = " << (skip_blank_lines? "True" : "False");
 }
 
+
 void GenericReader::init_tempdir(const py::Arg& arg_tempdir) {
   auto clsTempFiles = py::oobj::import("datatable.utils.fread", "TempFiles");
+  tempdir_ = arg_tempdir.to_string();
   auto tempdir = arg_tempdir.to_oobj_or_none();
-  tempfiles = clsTempFiles.call({tempdir, logger_.get_pylogger()});
+  tempfiles_ = clsTempFiles.call({tempdir, logger_.get_pylogger()});
 }
+
 
 void GenericReader::init_columns(const py::Arg& arg) {
   if (arg.is_defined()) {
     columns_arg = arg.to_oobj();
   }
 }
+
 
 void GenericReader::init_logger(
         const py::Arg& arg_logger, const py::Arg& arg_verbose)
@@ -437,7 +454,6 @@ void GenericReader::init_memorylimit(const py::Arg& arg) {
     D() << "memory_limit = " << memory_limit << " bytes";
   }
 }
-
 
 
 
@@ -510,8 +526,15 @@ void GenericReader::log_file_sample() {
 //------------------------------------------------------------------------------
 
 py::oobj GenericReader::get_tempfiles() const {
-  return tempfiles;
+  return tempfiles_;
 }
+
+
+std::string GenericReader::get_tempdir() const {
+  return tempdir_;
+}
+
+
 
 log::Message GenericReader::d() const {
   xassert(verbose);

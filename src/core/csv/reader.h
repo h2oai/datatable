@@ -147,7 +147,12 @@ class GenericReader
     py::oobj text_arg;
     py::oobj tempstr;
     py::oobj columns_arg;
-    py::oobj tempfiles;
+    // Temporary directory path to construct C++ `TemporaryFile` objects,
+    // when `memory_limit` is set in `dt.fread()`
+    std::string tempdir_;
+    // Python `TempFiles` object used in `fread.py` for storing temporary
+    // files, for instance, when reading archives
+    py::oobj tempfiles_;
 
     // If `trace()` cannot display a message immediately (because it was not
     // sent from the main thread), it will be temporarily stored in this
@@ -164,6 +169,7 @@ class GenericReader
     GenericReader& operator=(const GenericReader&) = delete;
     virtual ~GenericReader();
 
+    std::string get_tempdir() const;
     py::oobj get_tempfiles() const;
     py::oobj read_buffer(const Buffer&, size_t extra_byte);
 
