@@ -69,6 +69,10 @@
 
     -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter. [#3061]
 
+    -[fix] Fixed selection of ``time64`` columns by ``ltype``. [#3251]
+
+    -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
+
     -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
       index of the largest and smallest values among columns of each row. [#2998]
 

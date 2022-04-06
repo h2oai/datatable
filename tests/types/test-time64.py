@@ -787,3 +787,17 @@ def test_groupby():
                  last = [None, d(2004, 4, 18, 12, 3, 31)]
                  )
     )
+
+
+def test_select_times():
+    DT = dt.Frame(A=[12],
+                  B=[d(2000, 12, 20, 0, 1, 0)],
+                  C=[d(2000, 12, 20, 0, 1, 0)] / dt.stype.date32,
+                  D=[True])
+    assert DT.types == [dt.Type.int32, dt.Type.time64, dt.Type.date32, dt.Type.bool8]
+    RES1 = DT[:, f[d]]
+    RES2 = DT[:, d]
+    RES3 = DT[:, dt.ltype.time]
+    assert_equals(RES1, DT['B'])
+    assert_equals(RES2, DT['B'])
+    assert_equals(RES3, DT[:, ['B', 'C']])

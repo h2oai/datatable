@@ -565,11 +565,14 @@ def test_date32_in_groupby():
 
 
 def test_select_dates():
-    DT = dt.Frame(A=[12], B=[d(2000, 12, 20)], C=[True])
-    assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.bool8]
+    DT = dt.Frame(A=[12],
+                  B=[d(2000, 12, 20)],
+                  C=[d(2000, 12, 20)] / dt.stype.time64,
+                  D=[True])
+    assert DT.types == [dt.Type.int32, dt.Type.date32, dt.Type.time64, dt.Type.bool8]
     RES1 = DT[:, f[d]]
     RES2 = DT[:, d]
     RES3 = DT[:, dt.ltype.time]
     assert_equals(RES1, DT['B'])
     assert_equals(RES2, DT['B'])
-    assert_equals(RES3, DT['B'])
+    assert_equals(RES3, DT[:, ['B', 'C']])
