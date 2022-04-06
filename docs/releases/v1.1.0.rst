@@ -38,6 +38,8 @@
 
     -[fix] Fixed a crash in :meth:`.to_pandas()` when called on keyed frames. [#3224]
 
+    -[fix] Fixed column selection for ``time64`` columns. [#3168]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]

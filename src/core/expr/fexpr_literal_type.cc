@@ -34,13 +34,15 @@ namespace expr {
 
 using stypevec = std::vector<SType>;
 
-static stypevec stVOID  = {SType::VOID};
-static stypevec stBOOL  = {SType::BOOL};
-static stypevec stINT   = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
-static stypevec stFLOAT = {SType::FLOAT32, SType::FLOAT64};
-static stypevec stSTR   = {SType::STR32, SType::STR64};
-static stypevec stDATE  = {SType::DATE32};
-static stypevec stOBJ   = {SType::OBJ};
+static stypevec stVOID      = {SType::VOID};
+static stypevec stBOOL      = {SType::BOOL};
+static stypevec stINT       = {SType::INT8, SType::INT16, SType::INT32, SType::INT64};
+static stypevec stFLOAT     = {SType::FLOAT32, SType::FLOAT64};
+static stypevec stSTR       = {SType::STR32, SType::STR64};
+static stypevec stDATE      = {SType::DATE32};
+static stypevec stTIME      = {SType::TIME64};
+static stypevec stDATETIME  = {SType::DATE32, SType::TIME64};
+static stypevec stOBJ       = {SType::OBJ};
 
 
 static Workframe _select_types(
@@ -103,14 +105,13 @@ Workframe FExpr_Literal_Type::evaluate_n(EvalContext&) const {
 Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
   if (value_.is_pytype()) {
     auto et = reinterpret_cast<PyTypeObject*>(value_.to_borrowed_ref());
-    if (et == &PyLong_Type)       return _select_types(ctx, fid, stINT);
-    if (et == &PyFloat_Type)      return _select_types(ctx, fid, stFLOAT);
-    if (et == &PyUnicode_Type)    return _select_types(ctx, fid, stSTR);
-    if (et == &PyBool_Type)       return _select_types(ctx, fid, stBOOL);
-    if (et == &PyBaseObject_Type) return _select_types(ctx, fid, stOBJ);
-    if (et == py::odate::type()) {
-      return _select_types(ctx, fid, stDATE);
-    }
+    if (et == &PyLong_Type)          return _select_types(ctx, fid, stINT);
+    if (et == &PyFloat_Type)         return _select_types(ctx, fid, stFLOAT);
+    if (et == &PyUnicode_Type)       return _select_types(ctx, fid, stSTR);
+    if (et == &PyBool_Type)          return _select_types(ctx, fid, stBOOL);
+    if (et == &PyBaseObject_Type)    return _select_types(ctx, fid, stOBJ);
+    if (et == py::odate::type())     return _select_types(ctx, fid, stDATE);
+    if (et == py::odatetime::type()) return _select_types(ctx, fid, stTIME);
   }
   if (value_.is_ltype()) {
     auto lt = static_cast<LType>(value_.get_attr("value").to_size_t());
@@ -119,7 +120,7 @@ Workframe FExpr_Literal_Type::evaluate_f(EvalContext& ctx, size_t fid) const {
     if (lt == LType::INT)      return _select_types(ctx, fid, stINT);
     if (lt == LType::REAL)     return _select_types(ctx, fid, stFLOAT);
     if (lt == LType::STRING)   return _select_types(ctx, fid, stSTR);
-    if (lt == LType::DATETIME) return _select_types(ctx, fid, stDATE);
+    if (lt == LType::DATETIME) return _select_types(ctx, fid, stDATETIME);
     if (lt == LType::OBJECT)   return _select_types(ctx, fid, stOBJ);
   }
   if (value_.is_type()) {
