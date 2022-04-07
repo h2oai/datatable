@@ -23,7 +23,7 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
-
+extern const char* doc_dt_cumsum;
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
