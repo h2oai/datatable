@@ -8,39 +8,43 @@
 namespace dt {
 namespace expr {
 
-static auto sum {0};
 
 template <typename T>
 class Column_cumsum : public Virtual_ColumnImpl {
   private:
-    Column cumsum_col_;
-    
+    Column col_;
 
   public:
-    Column_cumsum(Column&& cumsum)
-      : Virtual_ColumnImpl(cumsum.nrows(), cumsum.stype()),
-        cumsum_col_(std::move(cumsum))
+    Column_cumsum(Column&& col)
+      : Virtual_ColumnImpl(col.nrows(), col.stype()),
+        col_(std::move(col))
     {
-      xassert(cumsum_col_.can_be_read_as<T>());
+      xassert(col_.can_be_read_as<T>());
     }
 
     ColumnImpl* clone() const override {
-      return new Column_cumsum(Column(cumsum_col_));
+      return new Column_cumsum(Column(col_));
     }
 
     size_t n_children() const noexcept override { return 1; }
     const Column& child(size_t i) const override { xassert(i == 0);  (void)i;
-      return cumsum_col_; }
+      return col_; }
 
     bool get_element(size_t i, T* out) const override {
-      T cumsum;
-      bool cumsum_valid = cumsum_col_.get_element(i, &cumsum);
-      if (cumsum_valid) {
-        sum += static_cast<T>(cumsum);
-        *out = sum;
-        return true;
+      xassert(i < col_.nrows());
+      T cumsum = 0;
+      bool cumsum_valid = false;
+
+      for (size_t j = 0; j <= i; ++j) {
+        T val;
+        bool val_valid = col_.get_element(j, &val);
+        if (val_valid) {
+          cumsum_valid = true;
+          cumsum += val;
+        }
       }
-      return false;
+      *out = cumsum;
+      return cumsum_valid;
     }
 };
 
@@ -60,16 +64,16 @@ class FExpr_cumsum : public FExpr_Func {
   return out;
     }
 
-Workframe evaluate_n(EvalContext& ctx) const override{
-  Workframe cumsum_wf = cumsum_->evaluate_n(ctx);
+    Workframe evaluate_n(EvalContext& ctx) const override{
+      Workframe cumsum_wf = cumsum_->evaluate_n(ctx);
 
-  auto gmode = cumsum_wf.get_grouping_mode();
-  Workframe outputs(ctx);
-  for (size_t i = 0; i < cumsum_wf.ncols(); ++i) {
-    Column rescol = evaluate1(cumsum_wf.retrieve_column(i));
-    outputs.add_column(std::move(rescol), std::string(), gmode);
-  }
-  return outputs;
+      auto gmode = cumsum_wf.get_grouping_mode();
+      Workframe outputs(ctx);
+      for (size_t i = 0; i < cumsum_wf.ncols(); ++i) {
+        Column rescol = evaluate1(cumsum_wf.retrieve_column(i));
+        outputs.add_column(std::move(rescol), std::string(), gmode);
+      }
+      return outputs;
     }
 
     Column evaluate1(Column&& cumsum) const {
@@ -107,4 +111,4 @@ DECLARE_PYFN(&py_cumsum)
     ->n_positional_args(1)
     ->n_required_args(1);
 
-}}  // namespace dt::expr::
+}}  // dt::expr
