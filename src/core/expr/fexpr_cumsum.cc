@@ -1,3 +1,4 @@
+#include "column/latent.h"
 #include "column/virtual.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -46,6 +47,7 @@ class Column_cumsum : public Virtual_ColumnImpl {
       *out = cumsum;
       return cumsum_valid;
     }
+
 };
 
 
@@ -94,7 +96,7 @@ class FExpr_cumsum : public FExpr_Func {
     template <typename T>
     Column make(Column&& cumsum, SType stype0) const {
       cumsum.cast_inplace(stype0);
-      return Column(new Column_cumsum<T>(std::move(cumsum)));
+      return Column(new Latent_ColumnImpl(new Column_cumsum<T>(std::move(cumsum))));
     }
 };
 
