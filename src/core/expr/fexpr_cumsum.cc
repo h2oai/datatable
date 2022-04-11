@@ -99,14 +99,14 @@ class FExpr_cumsum : public FExpr_Func {
 };
 
 
-static py::oobj py_cumsum(const py::XArgs& args) {
+static py::oobj pyfn_cumsum(const py::XArgs& args) {
   auto cumsum = args[0].to_oobj();
   return PyFExpr::make(new FExpr_cumsum(as_fexpr(cumsum)));
 }
 
 DECLARE_PYFN(&py_cumsum)
     ->name("cumsum")
-    ->docs(dt::doc_dt_cumsum)
+    ->docs(doc_dt_cumsum)
     ->arg_names({"cumsum"})
     ->n_positional_args(1)
     ->n_required_args(1);
