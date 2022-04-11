@@ -104,7 +104,7 @@ static py::oobj pyfn_cumsum(const py::XArgs& args) {
   return PyFExpr::make(new FExpr_cumsum(as_fexpr(cumsum)));
 }
 
-DECLARE_PYFN(&py_cumsum)
+DECLARE_PYFN(&pyfn_cumsum)
     ->name("cumsum")
     ->docs(doc_dt_cumsum)
     ->arg_names({"cumsum"})
