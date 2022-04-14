@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -68,7 +68,9 @@ LinearModelFitOutput LinearModel<T>::fit(
   negative_class_ = params->negative_class;
   seed_ = params->seed;
 
-  dt_X_fit_ = dt_X_fit; dt_y_fit_ = dt_y_fit; dt_X_val_ = dt_X_val;
+  dt_X_fit_ = dt_X_fit;
+  dt_y_fit_ = dt_y_fit;
+  dt_X_val_ = dt_X_val;
   dt_y_val_ = dt_y_val;
   nepochs_val_ = static_cast<T>(nepochs_val);
   val_error_ = static_cast<T>(val_error);
@@ -410,6 +412,10 @@ dtptr LinearModel<T>::predict(const DataTable* dt_X) {
           // with the positive class
           size_t label_id = get_label_id(k, data_label_ids);
           data_p[k][i] = activation_fn(predict_row(x, betas_, label_id));
+        }
+      } else {
+        for (size_t k = 0; k < get_nclasses(); ++k) {
+          data_p[k][i] = T_NAN;
         }
       }
 
