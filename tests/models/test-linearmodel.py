@@ -558,10 +558,10 @@ def test_linearmodel_binomial_fit_none():
 def test_linearmodel_binomial_fit_predict_ignore_none():
     nrows = 10
     lm = LinearModel()
-    df_train = dt.Frame(range(2 * nrows))
+    df_train = dt.Frame([list(range(2 * nrows)), list(range(2 * nrows))])
     df_target = dt.Frame([True] * nrows + [None] * nrows)
     lm.fit(df_train, df_target)
-    df_predict = dt.Frame([None])
+    df_predict = dt.Frame([[1], [None]])
     p = lm.predict(df_predict)
     assert_equals(
         lm.labels,
@@ -899,10 +899,10 @@ def test_linearmodel_multinomial_fit_ignore_none():
 
 def test_linearmodel_multinomial_fit_predict_none():
     lm = LinearModel()
-    df_train = dt.Frame([1, 2, 3])
+    df_train = dt.Frame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
     df_target = dt.Frame(["cat", "dog", "mouse"])
     res = lm.fit(df_train, df_target)
-    p = lm.predict(dt.Frame([None]))
+    p = lm.predict(dt.Frame([[1], [None], [2]]))
     assert lm.model_type == "multinomial"
     assert_equals(
         lm.labels,
