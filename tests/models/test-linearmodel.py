@@ -1186,16 +1186,13 @@ def test_linearmodel_regression_fit_predict_large():
     N = 40000
     lm = LinearModel(eta0 = 1e-4, nepochs = 100, double_precision = True)
 
-    df_train0 = dt.Frame([range(N), range(0, 2*N - 1, 2)])
-    df_target0 = df_train0[:, dt.float64(1 - f[0] + 2 * f[1])]
+    df_train = dt.Frame([range(N), range(0, 2*N - 1, 2)])
+    df_train_standard = df_train[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
+    df_target = df_train[:, dt.float64(1 - f[0] + 2 * f[1])]
 
-    df_train1 = df_train0[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
-    df_target1 = df_target0[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
-
-    lm.fit(df_train1, df_target1)
-    p = lm.predict(df_train1)
-    p = p[:, f[0] * df_target0.sd1() + df_target0.mean1()]
-    assert_equals(df_target0, p, rel_tol = 1e-6)
+    lm.fit(df_train_standard, df_target)
+    p = lm.predict(df_train_standard)
+    assert_equals(df_target, p, rel_tol = 1e-6)
 
 
 #-------------------------------------------------------------------------------
