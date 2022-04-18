@@ -23,6 +23,30 @@ class Column_cumsum : public Virtual_ColumnImpl {
       xassert(col_.can_be_read_as<T>());
     }
 
+    void _materialize(Column& out, bool) const {
+      Column newcol = Column::new_data_column(nrows_, stype());
+      T* data = static_cast<T*>(newcol.get_data_editable(0));
+      parallel_for_static(nrows_,
+          [&](size_t i) {
+            data[i] = (i == 0) ? data[i] : data[i] + data[i - 1];
+          });
+        out = newcol;
+      }
+
+      void Column_cumsum::materialize(Column& out, bool) {
+        switch (stype()) {
+          case SType::INT8:    return _materialize<int8_t>(out);
+          case SType::INT16:   return _materialize<int16_t>(out);
+          case SType::INT32:   return _materialize<int32_t>(out);
+          case SType::INT64:   return _materialize<int64_t>(out);
+          case SType::FLOAT32: return _materialize<float>(out);
+          case SType::FLOAT64: return _materialize<double>(out);
+          default:
+            throw RuntimeError() << "Invalid stype for cumsum";
+        }
+      }
+    }
+
     ColumnImpl* clone() const override {
       return new Column_cumsum(Column(col_));
     }
@@ -31,22 +55,22 @@ class Column_cumsum : public Virtual_ColumnImpl {
     const Column& child(size_t i) const override { xassert(i == 0);  (void)i;
       return col_; }
 
-    bool get_element(size_t i, T* out) const override {
-      xassert(i < col_.nrows());
-      T cumsum = 0;
-      bool cumsum_valid = false;
+    // bool get_element(size_t i, T* out) const override {
+    //   xassert(i < col_.nrows());
+    //   T cumsum = 0;
+    //   bool cumsum_valid = false;
 
-      for (size_t j = 0; j <= i; ++j) {
-        T val;
-        bool val_valid = col_.get_element(j, &val);
-        if (val_valid) {
-          cumsum_valid = true;
-          cumsum += val;
-        }
-      }
-      *out = cumsum;
-      return cumsum_valid;
-    }
+    //   for (size_t j = 0; j <= i; ++j) {
+    //     T val;
+    //     bool val_valid = col_.get_element(j, &val);
+    //     if (val_valid) {
+    //       cumsum_valid = true;
+    //       cumsum += val;
+    //     }
+    //   }
+    //   *out = cumsum;
+    //   return cumsum_valid;
+    // }
 
 };
 
@@ -96,7 +120,7 @@ class FExpr_cumsum : public FExpr_Func {
     template <typename T>
     Column make(Column&& cumsum, SType stype0) const {
       cumsum.cast_inplace(stype0);
-      return Column(new Latent_ColumnImpl(new Column_cumsum<T>(std::move(cumsum))));
+      return Column(new Column_cumsum<T>(std::move(cumsum)));
     }
 };
 
