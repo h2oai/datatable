@@ -209,10 +209,6 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj countna(const py::XArgs&);
 
 
-
-
-
-
     static void impl_init_type(py::XTypeMaker& xt);
 };
 

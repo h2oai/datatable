@@ -415,7 +415,6 @@ def test_nunique():
     DT = dt.Frame(A=range(1, 5))
     assert_equals(DT[:, f.A.nunique()], DT[:, dt.nunique(f.A)])
 
-
 def test_countna():
     assert str(dt.countna(f.A)) == str(f.A.countna())
     assert str(dt.countna(f[:])) == str(f[:].countna())
