@@ -226,6 +226,12 @@
         * - :meth:`.prod()`
           - Same as :func:`dt.prod()`.
 
+        * - :meth:`.nunique()`
+          - Same as :func:`dt.nunique()`.
+
+        * - :meth:`.countna()`
+          - Same as :func:`dt.countna()`.
+
     Miscellaneous
     -------------
 
@@ -305,4 +311,7 @@
     .sum()          <fexpr/sum>
     .prod()         <fexpr/prod>
     .as_type()      <fexpr/as_type>
+    .nunique()      <fexpr/nunique>
+    .countna()      <fexpr/countna>
+
 

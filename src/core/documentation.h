@@ -302,7 +302,8 @@ extern const char* doc_FExpr_shift;
 extern const char* doc_FExpr_sum;
 extern const char* doc_FExpr_as_type;
 extern const char* doc_FExpr_prod;
-
+extern const char* doc_FExpr_nunique;
+extern const char* doc_FExpr_countna;
 
 extern const char* doc_Namespace;
 

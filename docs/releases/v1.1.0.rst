@@ -70,6 +70,12 @@
 
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,
+      which behaves exactly as the equivalent base level function :func:`dt.nunique()`.
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.countna()`,
+      which behaves exactly as the equivalent base level function :func:`dt.countna()`.
+
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
     -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter. [#3061]
