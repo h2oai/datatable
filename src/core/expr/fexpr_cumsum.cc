@@ -5,6 +5,7 @@
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
+#include "parallel/api.h"
 #include "stype.h"
 namespace dt {
 namespace expr {
@@ -23,29 +24,44 @@ class Column_cumsum : public Virtual_ColumnImpl {
       xassert(col_.can_be_read_as<T>());
     }
 
-    void _materialize(Column& out, bool) const {
-      Column newcol = Column::new_data_column(nrows_, stype());
-      T* data = static_cast<T*>(newcol.get_data_editable(0));
-      parallel_for_static(nrows_,
-          [&](size_t i) {
-            data[i] = (i == 0) ? data[i] : data[i] + data[i - 1];
-          });
-        out = newcol;
-      }
+    void materialize(Column& out, bool) override {
+        Column tmp = Column::new_data_column(col_.nrows(), stype());
+        auto data = static_cast<T*>(tmp.get_data_editable());
+         parallel_for_static(col_.nrows(),
+         [&](size_t i) {
+        for (size_t i, i < col_.nrows(), i++) {
+          T val;
+          bool val_valid = col_.get_element(i, &val);
+          xassert(val_valid); (void) val_valid;
+          data[i] = (i == 0) ? val : data[i] + val;
+        }});
 
-      void Column_cumsum::materialize(Column& out, bool) {
-        switch (stype()) {
-          case SType::INT8:    return _materialize<int8_t>(out);
-          case SType::INT16:   return _materialize<int16_t>(out);
-          case SType::INT32:   return _materialize<int32_t>(out);
-          case SType::INT64:   return _materialize<int64_t>(out);
-          case SType::FLOAT32: return _materialize<float>(out);
-          case SType::FLOAT64: return _materialize<double>(out);
-          default:
-            throw RuntimeError() << "Invalid stype for cumsum";
-        }
-      }
+    out = tmp;
     }
+
+    // void _materialize(Column& out, bool) const {
+    //   Column col_tmp = Column::new_data_column(col_.nrows(), stype());
+    //   auto data = static_cast<T*>(col_tmp.get_data_editable());
+    //   parallel_for_static(nrows_,
+    //       [&](size_t i) {
+    //         data[i] = (i == 0) ? data[i] : data[i] + data[i - 1];
+    //       });
+    //     out = col_tmp;
+    //   }
+
+    //   void Column_cumsum::materialize(Column& out, bool) {
+    //     switch (stype()) {
+    //       case SType::INT8:    return _materialize<int8_t>(out);
+    //       case SType::INT16:   return _materialize<int16_t>(out);
+    //       case SType::INT32:   return _materialize<int32_t>(out);
+    //       case SType::INT64:   return _materialize<int64_t>(out);
+    //       case SType::FLOAT32: return _materialize<float>(out);
+    //       case SType::FLOAT64: return _materialize<double>(out);
+    //       default:
+    //         throw RuntimeError() << "Invalid stype for cumsum";
+    //     }
+    //   }
+    // }
 
     ColumnImpl* clone() const override {
       return new Column_cumsum(Column(col_));
@@ -120,7 +136,7 @@ class FExpr_cumsum : public FExpr_Func {
     template <typename T>
     Column make(Column&& cumsum, SType stype0) const {
       cumsum.cast_inplace(stype0);
-      return Column(new Column_cumsum<T>(std::move(cumsum)));
+      return Column(new Latent_ColumnImpl(new Column_cumsum<T>(std::move(cumsum))));
     }
 };
 
