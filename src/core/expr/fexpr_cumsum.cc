@@ -1,94 +1,32 @@
-#include "column/latent.h"
-#include "column/virtual.h"
+// Copyright 2022 H2O.ai
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+//------------------------------------------------------------------------------
+#include "column/cut.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
-#include "parallel/api.h"
 #include "stype.h"
 namespace dt {
 namespace expr {
-
-
-template <typename T>
-class Column_cumsum : public Virtual_ColumnImpl {
-  private:
-    Column col_;
-
-  public:
-    Column_cumsum(Column&& col)
-      : Virtual_ColumnImpl(col.nrows(), col.stype()),
-        col_(std::move(col))
-    {
-      xassert(col_.can_be_read_as<T>());
-    }
-
-    void materialize(Column& out, bool) override {
-        Column tmp = Column::new_data_column(col_.nrows(), stype());
-        auto data = static_cast<T*>(tmp.get_data_editable());
-         parallel_for_static(col_.nrows(),
-         [&](size_t i) {
-        for (size_t i, i < col_.nrows(), i++) {
-          T val;
-          bool val_valid = col_.get_element(i, &val);
-          xassert(val_valid); (void) val_valid;
-          data[i] = (i == 0) ? val : data[i] + val;
-        }});
-
-    out = tmp;
-    }
-
-    // void _materialize(Column& out, bool) const {
-    //   Column col_tmp = Column::new_data_column(col_.nrows(), stype());
-    //   auto data = static_cast<T*>(col_tmp.get_data_editable());
-    //   parallel_for_static(nrows_,
-    //       [&](size_t i) {
-    //         data[i] = (i == 0) ? data[i] : data[i] + data[i - 1];
-    //       });
-    //     out = col_tmp;
-    //   }
-
-    //   void Column_cumsum::materialize(Column& out, bool) {
-    //     switch (stype()) {
-    //       case SType::INT8:    return _materialize<int8_t>(out);
-    //       case SType::INT16:   return _materialize<int16_t>(out);
-    //       case SType::INT32:   return _materialize<int32_t>(out);
-    //       case SType::INT64:   return _materialize<int64_t>(out);
-    //       case SType::FLOAT32: return _materialize<float>(out);
-    //       case SType::FLOAT64: return _materialize<double>(out);
-    //       default:
-    //         throw RuntimeError() << "Invalid stype for cumsum";
-    //     }
-    //   }
-    // }
-
-    ColumnImpl* clone() const override {
-      return new Column_cumsum(Column(col_));
-    }
-
-    size_t n_children() const noexcept override { return 1; }
-    const Column& child(size_t i) const override { xassert(i == 0);  (void)i;
-      return col_; }
-
-    // bool get_element(size_t i, T* out) const override {
-    //   xassert(i < col_.nrows());
-    //   T cumsum = 0;
-    //   bool cumsum_valid = false;
-
-    //   for (size_t j = 0; j <= i; ++j) {
-    //     T val;
-    //     bool val_valid = col_.get_element(j, &val);
-    //     if (val_valid) {
-    //       cumsum_valid = true;
-    //       cumsum += val;
-    //     }
-    //   }
-    //   *out = cumsum;
-    //   return cumsum_valid;
-    // }
-
-};
 
 
 class FExpr_cumsum : public FExpr_Func {
@@ -100,10 +38,10 @@ class FExpr_cumsum : public FExpr_Func {
       : cumsum_(std::move(cumsum)) {}
 
     std::string repr() const override{
-  std::string out = "cumsum(";
-  out += cumsum_->repr();
-  out += ')';
-  return out;
+      std::string out = "cumsum(";
+      out += cumsum_->repr();
+      out += ')';
+      return out;
     }
 
     Workframe evaluate_n(EvalContext& ctx) const override{
@@ -124,7 +62,7 @@ class FExpr_cumsum : public FExpr_Func {
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
-        case SType::INT32: return make<int32_t>(std::move(cumsum), SType::INT32);
+        case SType::INT32:
         case SType::INT64: return make<int64_t>(std::move(cumsum), SType::INT64);
         case SType::FLOAT32: return make<float>(std::move(cumsum), SType::FLOAT32);
         case SType::FLOAT64: return make<double>(std::move(cumsum), SType::FLOAT64);
