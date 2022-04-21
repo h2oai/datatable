@@ -176,16 +176,22 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj nb__neg__();
     py::oobj nb__pos__();
 
-    py::oobj extend(const py::XArgs&);
-    py::oobj remove(const py::XArgs&);
-    py::oobj len();                         // [DEPRECATED]
+    py::oobj len();                        // [DEPRECATED]
     py::oobj re_match(const py::XArgs&);   // [DEPRECATED]
 
-    py::oobj sum(const py::XArgs&);
+    py::oobj as_type(const py::XArgs&);
+    py::oobj count(const py::XArgs&);
+    py::oobj countna(const py::XArgs&);
+    py::oobj extend(const py::XArgs&);
+    py::oobj first(const py::XArgs&);
+    py::oobj last(const py::XArgs&);
     py::oobj max(const py::XArgs&);
     py::oobj mean(const py::XArgs&);
     py::oobj median(const py::XArgs&);
     py::oobj min(const py::XArgs&);
+    py::oobj nunique(const py::XArgs&);
+    py::oobj prod(const py::XArgs&);
+    py::oobj remove(const py::XArgs&);
     py::oobj rowsum(const py::XArgs&);
     py::oobj rowall(const py::XArgs&);
     py::oobj rowany(const py::XArgs&);
@@ -200,14 +206,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj rowsd(const py::XArgs&);
     py::oobj sd(const py::XArgs&);
     py::oobj shift(const py::XArgs&);
-    py::oobj last(const py::XArgs&);
-    py::oobj count(const py::XArgs&);
-    py::oobj first(const py::XArgs&);
-    py::oobj as_type(const py::XArgs&);
-    py::oobj prod(const py::XArgs&);
-    py::oobj nunique(const py::XArgs&);
-    py::oobj countna(const py::XArgs&);
-
+    py::oobj sum(const py::XArgs&);
 
     static void impl_init_type(py::XTypeMaker& xt);
 };
