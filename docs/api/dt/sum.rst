@@ -32,7 +32,7 @@
         >>> from datatable import dt, f, by
         >>>
         >>> df = dt.Frame({'A': [1, 1, 2, 1, 2],
-        ...                'B': [None, 2, 3,4, 5],
+        ...                'B': [None, 2, 3, 4, 5],
         ...                'C': [1, 2, 1, 1, 2]})
         >>> df
            |     A      B      C
