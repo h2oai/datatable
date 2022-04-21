@@ -590,3 +590,4 @@ def test_prod_floats():
     frame_integrity_check(RES)
     assert RES.to_numpy().item() == np.prod(random_numbers)
     assert str(RES)
+
