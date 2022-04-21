@@ -142,11 +142,11 @@ acceptable for our function:
     Column make(Column&& a, Column&& b, SType stype0) const {
       a.cast_inplace(stype0);
       b.cast_inplace(stype0);
-      return Column(new Column_Gcd<T>(std::move(a), std::move(b)));
+      return Column(new Gcd_ColumnImpl<T>(std::move(a), std::move(b)));
     }
 
 As you can see, the job of the ``FExpr_Gcd`` class is to produce a workframe
-containing one or more ``Column_Gcd`` virtual columns. This is where the actual
+containing one or more ``Gcd_ColumnImpl`` virtual columns. This is where the actual
 calculation of GCD values will take place, and we shall declare this class too.
 It can be done either in a separate file in the `core/column/` folder, or
 inside the current file `expr/fexpr_gcd.cc`.
@@ -156,13 +156,13 @@ inside the current file `expr/fexpr_gcd.cc`.
     #include "column/virtual.h"
 
     template <typename T>
-    class Column_Gcd : public Virtual_ColumnImpl {
+    class Gcd_ColumnImpl : public Virtual_ColumnImpl {
       private:
         Column acol_;
         Column bcol_;
 
       public:
-        Column_Gcd(Column&& a, Column&& b)
+        Gcd_ColumnImpl(Column&& a, Column&& b)
           : Virtual_ColumnImpl(a.nrows(), a.stype()),
             acol_(std::move(a)), bcol_(std::move(b))
         {
@@ -172,7 +172,7 @@ inside the current file `expr/fexpr_gcd.cc`.
         }
 
         ColumnImpl* clone() const override {
-          return new Column_Gcd(Column(acol_), Column(bcol_));
+          return new Gcd_ColumnImpl(Column(acol_), Column(bcol_));
         }
 
         size_t n_children() const noexcept override { return 2; }
@@ -288,13 +288,13 @@ In this section we did the following:
 
 
     template <typename T>
-    class Column_Gcd : public Virtual_ColumnImpl {
+    class Gcd_ColumnImpl : public Virtual_ColumnImpl {
       private:
         Column acol_;
         Column bcol_;
 
       public:
-        Column_Gcd(Column&& a, Column&& b)
+        Gcd_ColumnImpl(Column&& a, Column&& b)
           : Virtual_ColumnImpl(a.nrows(), a.stype()),
             acol_(std::move(a)), bcol_(std::move(b))
         {
@@ -304,7 +304,7 @@ In this section we did the following:
         }
 
         ColumnImpl* clone() const override {
-          return new Column_Gcd(Column(acol_), Column(bcol_));
+          return new Gcd_ColumnImpl(Column(acol_), Column(bcol_));
         }
 
         size_t n_children() const noexcept override { return 2; }
@@ -389,7 +389,7 @@ In this section we did the following:
         Column make(Column&& a, Column&& b, SType stype0) const {
           a.cast_inplace(stype0);
           b.cast_inplace(stype0);
-          return Column(new Column_Gcd<T>(std::move(a), std::move(b)));
+          return Column(new Gcd_ColumnImpl<T>(std::move(a), std::move(b)));
         }
     };
 
@@ -579,7 +579,7 @@ even at a specific line in a file:
     (lldb) b Error
     Breakpoint 1: no locations (pending).
     WARNING:  Unable to resolve breakpoint to any actual locations.
-    (lldb) b Column_Gcd<int>::get_element
+    (lldb) b Gcd_ColumnImpl<int>::get_element
     (lldb) b py_gcd
     (lldb) b fexpr_gcd.cc:44
 
@@ -619,7 +619,7 @@ and then proceed manually.
     >>> DT[:, gcd(f.A, f.B)]
     Process 76557 stopped
     * thread #1, queue = 'com.apple.main-thread', stop reason = breakpoint 1.1
-        frame #0: 0x0000000104323388 _datatable.cpython-36m-darwin.so`dt::expr::Column_Gcd<int>::get_element(this=0x0000000101814730, i=0, out=0x00007ffeefbfe454) const at fexpr_gcd.cc:38:21
+        frame #0: 0x0000000104323388 _datatable.cpython-36m-darwin.so`dt::expr::Gcd_ColumnImpl<int>::get_element(this=0x0000000101814730, i=0, out=0x00007ffeefbfe454) const at fexpr_gcd.cc:38:21
        35
        36       bool get_element(size_t i, T* out) const override {
        37         T a, b;
