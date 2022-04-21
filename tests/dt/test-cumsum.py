@@ -39,14 +39,14 @@ def test_cumsum_empty_frame():
     assert_equals(DT[:, f[:]], DT)
 
 
-def test_cumsum_none():
-    DT = dt.Frame([None]/dt.int32)
+def test_cumsum_void():
+    DT = dt.Frame([None, None, None])
     DT_cumsum = DT[:, cumsum(f[:])]
-    assert_equals(DT, DT_cumsum)
+    assert_equals(DT_cumsum, dt.Frame([0, 0, 0]/dt.int64))
 
 
 def test_cumsum_trivial():
-    DT = dt.Frame([0]/dt.int32)
+    DT = dt.Frame([0]/dt.int64)
     cumsum_fexpr = cumsum(f[:])
     DT_cumsum = DT[:, cumsum_fexpr]
     assert isinstance(cumsum_fexpr, FExpr)
@@ -56,7 +56,7 @@ def test_cumsum_trivial():
 def test_cumsum_small():
     DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
     DT_cumsum = DT[:, cumsum(f[:])]
-    DT_ref = dt.Frame([[0, 1, 3, 6, 10], [-1, 0, 0, 2, 7.5]])
+    DT_ref = dt.Frame([[0, 1, 3, 6, 10]/dt.int64, [-1, 0, 0, 2, 7.5]])
     assert_equals(DT_cumsum, DT_ref)
 
 

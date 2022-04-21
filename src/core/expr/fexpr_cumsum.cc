@@ -18,7 +18,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/cut.h"
+#include "column/const.h"
+#include "column/cumsum.h"
+#include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
@@ -44,9 +46,9 @@ class FExpr_cumsum : public FExpr_Func {
       return out;
     }
 
+
     Workframe evaluate_n(EvalContext& ctx) const override{
       Workframe cumsum_wf = cumsum_->evaluate_n(ctx);
-
       auto gmode = cumsum_wf.get_grouping_mode();
       Workframe outputs(ctx);
       for (size_t i = 0; i < cumsum_wf.ncols(); ++i) {
@@ -56,25 +58,32 @@ class FExpr_cumsum : public FExpr_Func {
       return outputs;
     }
 
-    Column evaluate1(Column&& cumsum) const {
-      SType stype0 = cumsum.stype();
-      switch (stype0) {
+
+    Column evaluate1(Column&& col) const {
+      SType stype = col.stype();
+      switch (stype) {
+        case SType::VOID:
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
         case SType::INT32:
-        case SType::INT64: return make<int64_t>(std::move(cumsum), SType::INT64);
-        case SType::FLOAT32: return make<float>(std::move(cumsum), SType::FLOAT32);
-        case SType::FLOAT64: return make<double>(std::move(cumsum), SType::FLOAT64);
-        default:
-            throw TypeError() << "Invalid column of type " << stype0 << " in " << repr();
+        case SType::INT64: return make<int64_t>(std::move(col), SType::INT64);
+        case SType::FLOAT32: return make<float>(std::move(col), SType::FLOAT32);
+        case SType::FLOAT64: return make<double>(std::move(col), SType::FLOAT64);
+        default: throw TypeError()
+          << "Invalid column of type " << stype << " in " << repr();
       }
     }
 
+
     template <typename T>
-    Column make(Column&& cumsum, SType stype0) const {
-      cumsum.cast_inplace(stype0);
-      return Column(new Latent_ColumnImpl(new Column_cumsum<T>(std::move(cumsum))));
+    Column make(Column&& col, SType stype) const {
+      if (col.stype() == SType::VOID) {
+        return Column(new ConstInt_ColumnImpl(col.nrows(), 0, stype));
+      } else {
+        col.cast_inplace(stype);
+        return Column(new Latent_ColumnImpl(new Cumsum_ColumnImpl<T>(std::move(col))));
+      }
     }
 };
 
@@ -83,6 +92,7 @@ static py::oobj pyfn_cumsum(const py::XArgs& args) {
   auto cumsum = args[0].to_oobj();
   return PyFExpr::make(new FExpr_cumsum(as_fexpr(cumsum)));
 }
+
 
 DECLARE_PYFN(&pyfn_cumsum)
     ->name("cumsum")

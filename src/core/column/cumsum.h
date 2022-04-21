@@ -22,9 +22,9 @@
 #ifndef dt_COLUMN_CUMSUM_h
 #define dt_COLUMN_CUMSUM_h
 #include "column/virtual.h"
-#include "models/utils.h"
-#include "parallel/api.h"
 #include "stype.h"
+
+namespace dt {
 
 
 template <typename T>
@@ -40,40 +40,17 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
       xassert(col_.can_be_read_as<T>());
     }
 
-    template <typename T, U>
-    void _materialize(Column& out, bool) override {
-      Column tmp = Column::new_data_column(col_.nrows(), stype());
-      auto data = static_cast<T*>(tmp.get_data_editable());
+    void materialize(Column& col_out, bool) override {
+      col_.materialize();
+      auto data = static_cast<T*>(col_.get_data_editable());
 
-      parallel_for_static(col_.nrows(), [&](size_t i) {
-
-        for (size_t i=0; i < col_.nrows(); i++) {
-          T val;
-          bool val_valid = col_.get_element(i, &val);
-          xassert(val_valid); (void) val_valid;
-          data[i] = (i == 0) ? val : data[i] + val;
-        }
-
+      if (ISNA<T>(data[0])) data[0] = 0;
+      for (size_t i = 1; i < col_.nrows(); ++i) {
+        data[i] = ISNA<T>(data[i])? data[i - 1]
+                                  : data[i] + data[i - 1];
       }
 
-      );
-
-      out = tmp;
-    }
-
-
-    void Cumsum_ColumnImpl::materialize(Column& out, bool) {
-      switch (stype()) {
-        case SType::BOOL:
-        case SType::INT8:    return _materialize<int8_t, SType::INT64>(out);
-        case SType::INT16:   return _materialize<int16_t, SType::INT64>(out);
-        case SType::INT32:   return _materialize<int32_t, SType::INT64>(out);
-        case SType::INT64:   return _materialize<int64_t, SType::INT64>(out);
-        case SType::FLOAT32: return _materialize<float, SType::FLOAT32>(out);
-        case SType::FLOAT64: return _materialize<double, SType::FLOAT64>(out);
-        default:
-          throw RuntimeError() << "Invalid stype for a cumsum column: " << stype();
-      }
+      col_out = std::move(col_);
     }
 
 
@@ -91,3 +68,9 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
     }
 
 };
+
+
+}  // namespace dt
+
+
+#endif
