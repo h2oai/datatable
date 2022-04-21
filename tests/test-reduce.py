@@ -591,3 +591,4 @@ def test_prod_floats():
     assert RES.to_numpy().item() == np.prod(random_numbers)
     assert str(RES)
 
+
