@@ -276,7 +276,9 @@ extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
 extern const char* doc_FExpr;
+extern const char* doc_FExpr_as_type;
 extern const char* doc_FExpr_count;
+extern const char* doc_FExpr_countna;
 extern const char* doc_FExpr_extend;
 extern const char* doc_FExpr_first;
 extern const char* doc_FExpr_last;
@@ -284,6 +286,8 @@ extern const char* doc_FExpr_max;
 extern const char* doc_FExpr_mean;
 extern const char* doc_FExpr_median;
 extern const char* doc_FExpr_min;
+extern const char* doc_FExpr_nunique;
+extern const char* doc_FExpr_prod;
 extern const char* doc_FExpr_remove;
 extern const char* doc_FExpr_rowall;
 extern const char* doc_FExpr_rowany;
@@ -300,8 +304,6 @@ extern const char* doc_FExpr_rowsum;
 extern const char* doc_FExpr_sd;
 extern const char* doc_FExpr_shift;
 extern const char* doc_FExpr_sum;
-extern const char* doc_FExpr_as_type;
-extern const char* doc_FExpr_prod;
 
 
 extern const char* doc_Namespace;

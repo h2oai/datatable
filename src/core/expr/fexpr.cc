@@ -544,8 +544,6 @@ DECLARE_METHOD(&PyFExpr::first)
     ->docs(dt::doc_FExpr_first);
 
 
-
-
 oobj PyFExpr::as_type(const XArgs& args) {
   auto as_typeFn = oobj::import("datatable", "as_type");
   oobj new_type = args[0].to_oobj();
@@ -560,6 +558,25 @@ DECLARE_METHOD(&PyFExpr::as_type)
     ->n_positional_args(1)
     ->n_required_args(1);
 
+
+oobj PyFExpr::nunique(const XArgs&) {
+  auto nuniqueFn = oobj::import("datatable", "nunique");
+  return nuniqueFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::nunique)
+    ->name("nunique")
+    ->docs(dt::doc_FExpr_nunique);
+    
+
+oobj PyFExpr::countna(const XArgs&) {
+  auto countnaFn = oobj::import("datatable", "countna");
+  return countnaFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::countna)
+    ->name("countna")
+    ->docs(dt::doc_FExpr_countna);
 
 //------------------------------------------------------------------------------
 // Class decoration

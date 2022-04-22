@@ -408,3 +408,16 @@ def test_prod():
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.prod()], DT[:, dt.prod(f.A)])
 
+
+def test_nunique():
+    assert str(dt.nunique(f.A)) == str(f.A.nunique())
+    assert str(dt.nunique(f[:])) == str(f[:].nunique())
+    DT = dt.Frame(A=range(1, 5))
+    assert_equals(DT[:, f.A.nunique()], DT[:, dt.nunique(f.A)])
+
+def test_countna():
+    assert str(dt.countna(f.A)) == str(f.A.countna())
+    assert str(dt.countna(f[:])) == str(f[:].countna())
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.countna()], DT[:, dt.countna(f.A)])
+
