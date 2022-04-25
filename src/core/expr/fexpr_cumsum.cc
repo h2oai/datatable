@@ -33,22 +33,22 @@ namespace expr {
 
 class FExpr_cumsum : public FExpr_Func {
   private:
-    ptrExpr cumsum_;
+    ptrExpr arg_;
 
   public:
-    FExpr_cumsum(ptrExpr&& cumsum)
-      : cumsum_(std::move(cumsum)) {}
+    FExpr_cumsum(ptrExpr&& arg)
+      : arg_(std::move(arg)) {}
 
     std::string repr() const override{
       std::string out = "cumsum(";
-      out += cumsum_->repr();
+      out += arg_->repr();
       out += ')';
       return out;
     }
 
 
     Workframe evaluate_n(EvalContext& ctx) const override{
-      Workframe cumsum_wf = cumsum_->evaluate_n(ctx);
+      Workframe cumsum_wf = arg_->evaluate_n(ctx);
       auto gmode = cumsum_wf.get_grouping_mode();
       Workframe outputs(ctx);
       for (size_t i = 0; i < cumsum_wf.ncols(); ++i) {

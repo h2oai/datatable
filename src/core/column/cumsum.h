@@ -40,17 +40,20 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
       xassert(col_.can_be_read_as<T>());
     }
 
+
     void materialize(Column& col_out, bool) override {
-      col_.materialize();
-      auto data = static_cast<T*>(col_.get_data_editable());
+      Column col = Column::new_data_column(col_.nrows(), col_.stype());
+      auto data = static_cast<T*>(col.get_data_editable());
 
-      if (ISNA<T>(data[0])) data[0] = 0;
-      for (size_t i = 1; i < col_.nrows(); ++i) {
-        data[i] = ISNA<T>(data[i])? data[i - 1]
-                                  : data[i] + data[i - 1];
+      T val;
+      bool is_valid = col_.get_element(0, &val);
+      data[0] = is_valid? val : 0;
+
+      for (size_t i = 0; i < col_.nrows(); ++i) {
+        is_valid = col_.get_element(i, &val);
+        data[i] = data[i - 1] + (is_valid? val : 0);
       }
-
-      col_out = std::move(col_);
+      col_out = std::move(col);
     }
 
 
