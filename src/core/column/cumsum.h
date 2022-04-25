@@ -49,7 +49,7 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
       bool is_valid = col_.get_element(0, &val);
       data[0] = is_valid? val : 0;
 
-      for (size_t i = 0; i < col_.nrows(); ++i) {
+      for (size_t i = 1; i < col_.nrows(); ++i) {
         is_valid = col_.get_element(i, &val);
         data[i] = data[i - 1] + (is_valid? val : 0);
       }
