@@ -66,7 +66,7 @@
 
     -[new] Class :class:`dt.FExpr` now has methods :meth:`.max() <dt.FExpr.max>`,
       :meth:`.min() <dt.FExpr.min>`, :meth:`.mean() <dt.FExpr.mean>`,
-      and :meth:`.median() <dt.FExpr.median>`, which behaves exactly as the
+      and :meth:`.median() <dt.FExpr.median>`, which behave exactly as the
       equivalent base level functions :func:`dt.max()`, :func:`dt.min()`,
       :func:`dt.mean()`,  and :func:`dt.median()` respectively.
 
@@ -75,9 +75,9 @@
 
     -[new] Class :class:`dt.FExpr` now has methods :meth:`.sd() <dt.FExpr.sd>`,
       :meth:`.count() <dt.FExpr.count>`, :meth:`.first() <dt.FExpr.first>`,
-      and :meth:`.last() <dt.FExpr.last>`, :meth:`.shift() <dt.FExpr.last>`,
-      which behaves exactly as the equivalent base level functions :func:`dt.sd()`,
-      :func:`dt.count()`, :func:`dt.first()`, :func:`dt.last()`
+      :meth:`.last() <dt.FExpr.last>`, and :meth:`.shift() <dt.FExpr.shift>`,
+      which behave exactly as the equivalent base level functions :func:`dt.sd()`,
+      :func:`dt.count()`, :func:`dt.first()`, :func:`dt.last()`,
       and :func:`dt.shift()` respectively.
 
     -[new] Added stats functions :meth:`.skew()` and :meth:`.kurt()`. [#1084]
