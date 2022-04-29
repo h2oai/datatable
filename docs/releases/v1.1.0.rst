@@ -84,6 +84,8 @@
 
     -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
 
+    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269]
+
 
     fread
     -----
