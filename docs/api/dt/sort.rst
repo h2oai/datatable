@@ -24,6 +24,20 @@
     will select the first 10 records from the frame ``DT`` ordered by
     the Highscore column.
 
+
+    Parameters
+    ----------
+    cols: FExpr
+        Columns to sort the frame by.
+
+    reverse: bool
+        If ``False``, sorting is performed in the ascending order. If ``True``,
+        sorting is descending.
+
+    return: object
+        ``datatable.sort`` object for use in square-bracket selector.
+
+
     Examples
     --------
     .. code-block:: python
