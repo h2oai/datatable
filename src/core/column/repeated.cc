@@ -83,7 +83,7 @@ bool Repeated_ColumnImpl::get_element(size_t i, Column* out)   const { return ar
 void ColumnImpl::repeat(size_t ntimes, Column& out) {
   if (nrows() == 1) {
     // Note: Const_ColumnImpl overrides the `repeat()` method. If it
-    // didn't, we would have had an infinite recursion here...
+    // didn't, we would have had an infinite recursion here.
     out = dt::Const_ColumnImpl::from_1row_column(out);
     out.repeat(ntimes);
   }
