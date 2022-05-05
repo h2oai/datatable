@@ -128,9 +128,9 @@ class FExpr_Qcut : public FExpr_Func {
             RowIndex ri(static_cast<size_t>(offsets[j]), group_size, 1);
             coli_group.apply_rowindex(ri);
             // qcut j's group
-            colv[j] = Column(new Qcut_ColumnImpl(
+            colv[j] = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
               std::move(coli_group), nquantiles[i], is_grouped
-            ));
+            )));
           }
           // rbind all the results
           coli = Column::new_na_column(0, SType::VOID);
