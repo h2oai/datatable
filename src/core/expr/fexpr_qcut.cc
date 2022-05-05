@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include "_dt.h"
 #include "column/latent.h"
 #include "column/sentinel_fw.h"
