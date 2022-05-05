@@ -152,9 +152,11 @@ static Column _make(const Column& col) {
                 : Column(new ConstNa_ColumnImpl(1, stype));
 }
 
+
 Column Const_ColumnImpl::from_1row_column(const Column& col) {
   xassert(col.nrows() == 1);
   switch (col.stype()) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(1));
     case SType::BOOL:    return _make<ConstInt_ColumnImpl, SType::BOOL>(col);
     case SType::INT8:    return _make<ConstInt_ColumnImpl, SType::INT8>(col);
     case SType::INT16:   return _make<ConstInt_ColumnImpl, SType::INT16>(col);
@@ -167,8 +169,8 @@ Column Const_ColumnImpl::from_1row_column(const Column& col) {
     case SType::DATE32:  return _make<ConstInt_ColumnImpl, SType::DATE32>(col);
     case SType::TIME64:  return _make<ConstInt_ColumnImpl, SType::TIME64>(col);
     default:
-      throw NotImplError() << "Cannot convert 1-row column of stype "
-                           << col.stype();
+      throw NotImplError() << "Cannot convert one-row column of stype `"
+                           << col.stype() << "` to a constant column";
   }
 }
 

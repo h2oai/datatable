@@ -123,6 +123,19 @@ def test_shift_group_column():
                                  "A.0": [None, 1, 1, None, 2]}))
 
 
+def test_shift_group_const_column():
+    DT = dt.Frame(A=[2, 2, 2, 2])
+    RES = DT[:, shift(f.A), by(f.A)]
+    assert_equals(RES, dt.Frame({"A": [2, 2, 2, 2],
+                                 "A.0": [None, 2, 2, 2]}))
+
+def test_shift_group_void_column():
+    DT = dt.Frame(A=[None, None, None])
+    RES = DT[:, shift(f.A), by(f.A)]
+    assert_equals(RES, dt.Frame({"A": [None, None, None],
+                                 "A.0": [None, None, None]}))
+
+
 def test_shift_noop_group_column():
     DT = dt.Frame(A=[1, 2, 1, 1, 2])
     RES = DT[:, shift(f.A, n=0), by(f.A)]
