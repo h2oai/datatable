@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include "_dt.h"
 #include "column/latent.h"
 #include "column/sentinel_fw.h"
@@ -62,13 +63,8 @@ class FExpr_Qcut : public FExpr_Func {
 
 
     Workframe evaluate_n(EvalContext& ctx) const override {
-      if (ctx.has_groupby()) {
-        throw NotImplError() << "qcut() cannot be used in a groupby context";
-      }
-
       Workframe wf = arg_->evaluate_n(ctx);
       const size_t ncols = wf.ncols();
-
       int32vec nquantiles(ncols);
       bool defined_nquantiles = !py_nquantiles_.is_none();
       bool nquantiles_list_or_tuple = py_nquantiles_.is_list_or_tuple();
@@ -106,24 +102,51 @@ class FExpr_Qcut : public FExpr_Func {
 
         for (size_t i = 0; i < ncols; ++i) {
           nquantiles[i] = nquantiles_default;
+          const Column& coli = wf.get_column(i);
+          if (coli.ltype() == dt::LType::OBJECT) {
+            throw TypeError() << "`qcut()` cannot be applied to "
+              << "object columns, instead column `" << i
+              << "` has an stype: `" << coli.stype() << "`";
+          }
         }
       }
 
-      // Qcut workframe in-place
-      for (size_t i = 0; i < ncols; ++i) {
-        Column coli = wf.retrieve_column(i);
+      // qcut a grouped workframe
+      if (ctx.has_groupby()) {
+        wf.increase_grouping_mode(Grouping::GtoALL);
+        const Groupby& gb = ctx.get_groupby();
+        const int32_t* offsets = gb.offsets_r();
 
-        if (coli.ltype() == dt::LType::STRING || coli.ltype() == dt::LType::OBJECT)
-        {
-          throw TypeError() << "`qcut()` cannot be applied to "
-            << "string or object columns, instead column `" << i
-            << "` has an stype: `" << coli.stype() << "`";
+        for (size_t i = 0; i < ncols; ++i) {
+          colvec colv(gb.size());
+          Column coli = wf.retrieve_column(i);
+          bool is_grouped = ctx.has_group_column(wf.get_frame_id(i), wf.get_column_id(i));
+
+          for (size_t j = 0; j < gb.size(); ++j) {
+            // extact j's group as a column
+            Column coli_group = coli;
+            size_t group_size = static_cast<size_t>(offsets[j + 1] - offsets[j]);
+            RowIndex ri(static_cast<size_t>(offsets[j]), group_size, 1);
+            coli_group.apply_rowindex(ri);
+            // qcut j's group
+            colv[j] = Column(new Qcut_ColumnImpl(
+              std::move(coli_group), nquantiles[i], is_grouped
+            ));
+          }
+          // rbind all the results
+          coli = Column::new_na_column(0, SType::VOID);
+          coli.rbind(colv, false);
+          wf.replace_column(i, std::move(coli));
         }
-
-        coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
-                 std::move(coli), nquantiles[i]
-               )));
-        wf.replace_column(i, std::move(coli));
+      } else {
+        // qcut ungrouped workframe
+        for (size_t i = 0; i < ncols; ++i) {
+          Column coli = wf.retrieve_column(i);
+          coli = Column(new Latent_ColumnImpl(new Qcut_ColumnImpl(
+                   std::move(coli), nquantiles[i]
+                 )));
+          wf.replace_column(i, std::move(coli));
+        }
       }
 
       return wf;
