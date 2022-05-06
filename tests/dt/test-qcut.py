@@ -42,16 +42,14 @@ def test_qcut_error_noargs():
 
 def test_qcut_error_wrong_column_types():
     DT = dt.Frame([[0], [dt]/dt.obj64])
-    msg = r"qcut\(\) cannot be applied to object columns, instead " \
-           "column 1 has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to columns of type: obj64"
     with pytest.raises(TypeError, match=msg):
         DT[:, qcut(f[:])]
 
 
 def test_qcut_error_wrong_column_type_zero_rows():
     DT = dt.Frame(obj = [] / dt.obj64)
-    msg = r"qcut\(\) cannot be applied to object columns, instead " \
-           "column 0 has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to columns of type: obj64"
     with pytest.raises(TypeError, match=msg):
         DT[:, qcut(f[:])]
 
@@ -143,10 +141,10 @@ def test_qcut_one_row():
 
 
 def test_qcut_small():
-    nquantiles = [4, 5, 4, 2, 5, 4, 10, 3, 2, 5]
+    nquantiles = [4, 5, 4, 2, 5, 4, 10, 3, 2, 5, 4]
     colnames = ["bool", "one_group_odd", "one_group_even",
                 "int_pos", "int_neg", "int", "float",
-                "inf_max", "inf_min", "inf"]
+                "inf_max", "inf_min", "inf", "str"]
 
     DT = dt.Frame(
            [[True, None, False, False, True, None],
@@ -158,7 +156,8 @@ def test_qcut_small():
            [None, 1.4, 4.1, 1.5, 5.9, 1.4],
            [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
            [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
-           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
+           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4],
+           ["cat", "dog", "mouse", "moose", "dog", "cat2"]],
            names = colnames
          )
 
@@ -172,7 +171,8 @@ def test_qcut_small():
                [None, 0, 6, 3, 9, 0],
                [2, 0, 1, 0, 2, 0],
                [0, 0, 1, 0, 1, 0],
-               [0, 1, 2, 4, 3, 1]],
+               [0, 1, 2, 4, 3, 1],
+               [0, 1, 3, 2, 1, 0]],
                names = colnames,
                stypes = [stype.int32] * DT.ncols
              )

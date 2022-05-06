@@ -102,10 +102,14 @@ class FExpr_Qcut : public FExpr_Func {
         for (size_t i = 0; i < ncols; ++i) {
           nquantiles[i] = nquantiles_default;
           const Column& coli = wf.get_column(i);
-          if (coli.ltype() == dt::LType::OBJECT) {
+          const dt::Type& typei = coli.type();
+          if (!typei.is_numeric_or_void() &&
+              !typei.is_boolean() &&
+              !typei.is_temporal() &&
+              !typei.is_string())
+          {
             throw TypeError() << "`qcut()` cannot be applied to "
-              << "object columns, instead column `" << i
-              << "` has an stype: `" << coli.stype() << "`";
+              << "columns of type: `" << typei << "`";
           }
         }
       }
