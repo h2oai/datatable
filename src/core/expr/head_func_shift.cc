@@ -105,7 +105,6 @@ Workframe Head_Func_Shift::evaluate_n(
     for (size_t i = 0; i < inputs.ncols(); ++i) {
       Column coli = inputs.retrieve_column(i);
       size_t nrows = coli.nrows();
-      // coli.apply_rowindex(ri);
       if (shift_ > 0) {
         coli = Column(new Shift_ColumnImpl<true>(
                         std::move(coli), static_cast<size_t>(shift_), nrows));

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -49,6 +49,7 @@ namespace dt {
   *  efficient to generate all the quantiles at once in parallel.
   *
   *  In the case, when all the values are missing or constant,
+  *  e.g. the input column is already grouped,
   *  `materialize()` will fallback to the corresponding virtual
   *  column implementation: `ConstNa_ColumnImpl` or `ConstInt_ColumnImpl`,
   *  that gets materialized upon return. The last step is a temporary
@@ -60,27 +61,33 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     int32_t nquantiles_;
-    size_t : 32;
+    bool is_grouped_;
+    size_t : 24;
 
   public:
-    Qcut_ColumnImpl(Column&& col, int32_t nquantiles)
+    Qcut_ColumnImpl(Column&& col, int32_t nquantiles, bool is_grouped = false)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
-        nquantiles_(nquantiles)
+        nquantiles_(nquantiles),
+        is_grouped_(is_grouped)
     {
       xassert(nquantiles > 0);
-      xassert(col.ltype() != dt::LType::STRING &&
-              col.ltype() != dt::LType::OBJECT);
+      xassert(col.ltype() != dt::LType::OBJECT);
       col_ = std::move(col);
     }
 
     void materialize(Column& col_out, bool) override {
-      auto res = group({col_}, {SortFlag::NONE});
-      RowIndex ri = std::move(res.first);
-      Groupby gb = std::move(res.second);
       Column col_tmp;
+      RiGb res;
+      RowIndex ri;
+      Groupby gb;
+      if (!is_grouped_) {
+        res = group({col_}, {SortFlag::NONE});
+        ri = std::move(res.first);
+        gb = std::move(res.second);
+      }
 
       // If there is one group only, fill it with constants or NA's.
-      if (gb.size() == 1) {
+      if (is_grouped_ || gb.size() == 1) {
         if (col_.get_element_isvalid(0)) {
           col_tmp = Column(new ConstInt_ColumnImpl(
                       col_.nrows(),
@@ -166,8 +173,6 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 };
 
 
-
 }  // namespace dt
-
 
 #endif

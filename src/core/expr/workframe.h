@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -116,6 +116,8 @@ class Workframe {
 
     void reshape_for_update(size_t target_nrows, size_t target_ncols);
     const Column& get_column(size_t i) const;
+    uint32_t get_column_id(size_t i) const;
+    uint32_t get_frame_id(size_t i) const;
     std::string retrieve_name(size_t i);
     Column      retrieve_column(size_t i);
     void        replace_column(size_t i, Column&& col);
