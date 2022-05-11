@@ -22,6 +22,7 @@
 #ifndef dt_COLUMN_CUMSUM_h
 #define dt_COLUMN_CUMSUM_h
 #include "column/virtual.h"
+#include "parallel/api.h"
 #include "stype.h"
 
 namespace dt {
@@ -31,11 +32,13 @@ template <typename T>
 class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
+    Groupby gby_;
 
   public:
-    Cumsum_ColumnImpl(Column&& col)
+    Cumsum_ColumnImpl(Column&& col, const Groupby& gby)
       : Virtual_ColumnImpl(col.nrows(), col.stype()),
-        col_(std::move(col))
+        col_(std::move(col)),
+        gby_(gby)
     {
       xassert(col_.can_be_read_as<T>());
     }
@@ -45,20 +48,30 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
 
-      T val;
-      bool is_valid = col_.get_element(0, &val);
-      data[0] = is_valid? val : 0;
+      auto offsets = gby_.offsets_r();
+      dt::parallel_for_dynamic(
+        gby_.size(),
+        [&](size_t gi) {
+          size_t i1 = size_t(offsets[gi]);
+          size_t i2 = size_t(offsets[gi + 1]);
 
-      for (size_t i = 1; i < col_.nrows(); ++i) {
-        is_valid = col_.get_element(i, &val);
-        data[i] = data[i - 1] + (is_valid? val : 0);
-      }
+          T val;
+          bool is_valid = col_.get_element(i1, &val);
+          data[i1] = is_valid? val : 0;
+
+          for (size_t i = i1 + 1; i < i2; ++i) {
+            is_valid = col_.get_element(i, &val);
+            data[i] = data[i - 1] + (is_valid? val : 0);
+          }
+
+        });
+
       col_out = std::move(col);
     }
 
 
     ColumnImpl* clone() const override {
-      return new Cumsum_ColumnImpl(Column(col_));
+      return new Cumsum_ColumnImpl(Column(col_), gby_);
     }
 
     size_t n_children() const noexcept override {

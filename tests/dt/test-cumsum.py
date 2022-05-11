@@ -24,7 +24,7 @@
 import math
 import pytest
 import random
-from datatable import dt, stype, f, cumsum, FExpr
+from datatable import dt, stype, f, cumsum, FExpr, by
 from tests import assert_equals
 
 
@@ -59,4 +59,17 @@ def test_cumsum_small():
     DT_ref = dt.Frame([[0, 1, 3, 6, 10]/dt.int64, [-1, 0, 0, 2, 7.5]])
     assert_equals(DT_cumsum, DT_ref)
 
+
+def test_cumsum_groupby():
+    DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
+    DT_cumsum = DT[:, cumsum(f[:]), by(f[0])]
+    DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, math.inf, math.inf, 1.5, 4.5]/dt.float64])
+    assert_equals(DT_cumsum, DT_ref)
+
+
+def test_cumsum_grouped_column():
+    DT = dt.Frame([2, 1, None, 1, 2])
+    DT_cumsum = DT[:, cumsum(f[0]), by(f[0])]
+    DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 2, 2, 4]/dt.int64])
+    assert_equals(DT_cumsum, DT_ref)
 
