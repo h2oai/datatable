@@ -154,8 +154,14 @@
         :widths: auto
         :class: api-table
 
+        * - :meth:`.as_type()`
+          - Same as :func:`dt.as_type()`.
+
         * - :meth:`.count()`
           - Same as :func:`dt.count()`.
+
+        * - :meth:`.countna()`
+          - Same as :func:`dt.countna()`.
 
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
@@ -174,6 +180,12 @@
 
         * - :meth:`.min()`
           - Same as :func:`dt.min()`.
+
+        * - :meth:`.nunique()`
+          - Same as :func:`dt.nunique()`.
+
+        * - :meth:`.prod()`
+          - Same as :func:`dt.prod()`.
 
         * - :meth:`.rowall()`
           - Same as :func:`dt.rowall()`.
@@ -219,12 +231,6 @@
 
         * - :meth:`.sum()`
           - Same as :func:`dt.sum()`.
-
-        * - :meth:`.as_type()`
-          - Same as :func:`dt.as_type()`.
-
-        * - :meth:`.prod()`
-          - Same as :func:`dt.prod()`.
 
     Miscellaneous
     -------------
@@ -277,7 +283,9 @@
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
+    .as_type()      <fexpr/as_type>
     .count()        <fexpr/count>
+    .countna()      <fexpr/countna>
     .extend()       <fexpr/extend>
     .first()        <fexpr/first>
     .last()         <fexpr/last>
@@ -286,6 +294,8 @@
     .mean()         <fexpr/mean>
     .median()       <fexpr/median>
     .min()          <fexpr/min>
+    .nunique()      <fexpr/nunique>
+    .prod()         <fexpr/prod>
     .re_match()     <fexpr/re_match>
     .remove()       <fexpr/remove>
     .rowall()       <fexpr/rowall>
@@ -303,6 +313,5 @@
     .sd()           <fexpr/sd>
     .shift()        <fexpr/shift>
     .sum()          <fexpr/sum>
-    .prod()         <fexpr/prod>
-    .as_type()      <fexpr/as_type>
+
 

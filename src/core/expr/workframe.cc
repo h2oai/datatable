@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -247,7 +247,20 @@ void Workframe::reshape_for_update(size_t target_nrows, size_t target_ncols) {
 
 
 const Column& Workframe::get_column(size_t i) const {
+  xassert(i < entries_.size());
   return entries_[i].column;
+}
+
+
+uint32_t Workframe::get_column_id(size_t i) const {
+  xassert(i < entries_.size());
+  return entries_[i].column_id;
+}
+
+
+uint32_t Workframe::get_frame_id(size_t i) const {
+  xassert(i < entries_.size());
+  return entries_[i].frame_id;
 }
 
 
@@ -274,7 +287,6 @@ void Workframe::replace_column(size_t i, Column&& col) {
 Grouping Workframe::get_grouping_mode() const {
   return grouping_mode_;
 }
-
 
 
 std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {

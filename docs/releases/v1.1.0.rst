@@ -65,10 +65,16 @@
     -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
       index of the largest and smallest values among columns of each row. [#2998]
 
-    -[new] Added reducer function :func:`dt.prod()`, as well as :meth:`.prod()` method,
-      which behaves exactly as :func:`dt.prod()`. [#3140]
+    -[new] Added reducer function :func:`dt.prod()` and the corresponding :meth:`.prod()`
+      method to calculate product of values in columns. [#3140]
 
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,
+      which behaves exactly as the equivalent base level function :func:`dt.nunique()`.
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.countna()`,
+      which behaves exactly as the equivalent base level function :func:`dt.countna()`.
 
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
@@ -77,6 +83,8 @@
     -[fix] Fixed selection of ``time64`` columns by ``ltype``. [#3251]
 
     -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
+
+    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269]
 
 
     fread

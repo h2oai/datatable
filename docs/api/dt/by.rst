@@ -27,7 +27,7 @@
       each group (there could be multiple such rows within each group).
 
     - Before ``j`` is evaluated, the ``by()`` clause adds all its columns
-      at the start of ``j`` (unless ``add_columns`` argument is False). If
+      at the start of ``j`` (unless ``add_columns`` argument is ``False``). If
       ``j`` is a "select-all" slice (i.e. ``:``), then those columns will
       also be excluded from the list of all columns so that they will be
       present in the output only once.
@@ -65,6 +65,22 @@
     treated as if you requested to group by the column "A" sorting it in
     the descending order. This will work even with column types that are
     not arithmetic, for example "A" could be a string column here.
+
+
+    Parameters
+    ----------
+    cols: FExpr
+        Columns to group the frame by.
+
+    add_columns: bool
+        If ``True``, columns, by which the frame is grouped,
+        are added to the beginning of the resulting frame.
+        If ``False``, the resulting frame will only contain
+        columns listed in ``j``.
+
+    return: object
+        ``datatable.by`` object for use in square-bracket selector.
+
 
     Examples
     --------

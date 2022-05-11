@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2021 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -35,8 +35,6 @@
 #include "rowindex.h"
 namespace dt {
 namespace expr {
-
-
 
 
 template <bool LAG>
@@ -84,32 +82,29 @@ ptrHead Head_Func_Shift::make(Op, const py::otuple& params) {
 }
 
 
-
 Workframe Head_Func_Shift::evaluate_n(
     const vecExpr& args, EvalContext& ctx) const
 {
   xassert(args.size() == 1);
   Workframe inputs = args[0]->evaluate_n(ctx);
-  if (shift_ == 0) {
-    // do nothing
-  }
-  else if (ctx.has_groupby()) {
+  if (ctx.has_groupby()) {
     inputs.increase_grouping_mode(Grouping::GtoALL);
-    const Groupby& groupby = ctx.get_groupby();
-    // TODO: memoize this object within ctx
-    RowIndex ri = shift_ > 0 ? compute_lag_rowindex<true>(groupby, shift_)
-                             : compute_lag_rowindex<false>(groupby, -shift_);
-    for (size_t i = 0; i < inputs.ncols(); ++i) {
-      Column coli = inputs.retrieve_column(i);
-      coli.apply_rowindex(ri);
-      inputs.replace_column(i, std::move(coli));
+    if (shift_) {
+      const Groupby& groupby = ctx.get_groupby();
+      // TODO: memoize this object within ctx
+      RowIndex ri = shift_ > 0 ? compute_lag_rowindex<true>(groupby, shift_)
+                               : compute_lag_rowindex<false>(groupby, -shift_);
+      for (size_t i = 0; i < inputs.ncols(); ++i) {
+        Column coli = inputs.retrieve_column(i);
+        coli.apply_rowindex(ri);
+        inputs.replace_column(i, std::move(coli));
+      }
     }
   }
-  else {
+  else if (shift_) {
     for (size_t i = 0; i < inputs.ncols(); ++i) {
       Column coli = inputs.retrieve_column(i);
       size_t nrows = coli.nrows();
-      // coli.apply_rowindex(ri);
       if (shift_ > 0) {
         coli = Column(new Shift_ColumnImpl<true>(
                         std::move(coli), static_cast<size_t>(shift_), nrows));

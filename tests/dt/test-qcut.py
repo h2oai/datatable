@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2020-2021 H2O.ai
+# Copyright 2020-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -24,7 +24,7 @@
 import math
 import pytest
 import random
-from datatable import dt, stype, f, qcut, FExpr
+from datatable import dt, stype, f, qcut, FExpr, by
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -42,16 +42,14 @@ def test_qcut_error_noargs():
 
 def test_qcut_error_wrong_column_types():
     DT = dt.Frame([[0], [dt]/dt.obj64])
-    msg = r"qcut\(\) cannot be applied to string or object columns, instead " \
-           "column 1 has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to columns of type: obj64"
     with pytest.raises(TypeError, match=msg):
         DT[:, qcut(f[:])]
 
 
 def test_qcut_error_wrong_column_type_zero_rows():
     DT = dt.Frame(obj = [] / dt.obj64)
-    msg = r"qcut\(\) cannot be applied to string or object columns, instead " \
-           "column 0 has an stype: obj64"
+    msg = r"qcut\(\) cannot be applied to columns of type: obj64"
     with pytest.raises(TypeError, match=msg):
         DT[:, qcut(f[:])]
 
@@ -91,15 +89,6 @@ def test_qcut_error_inconsistent_nquantiles():
     DT = dt.Frame([[3, 1, 4], [1, 5, 9]])
     with pytest.raises(ValueError, match=msg):
         DT[:, qcut(f[:], nquantiles = [10])]
-
-
-def test_qcut_error_groupby():
-    msg = r"qcut\(\) cannot be used in a groupby context"
-    DT = dt.Frame(range(10))
-    with pytest.raises(NotImplementedError, match=msg):
-        DT[:, qcut(f[0]), f[0]]
-
-
 
 
 #-------------------------------------------------------------------------------
@@ -152,10 +141,10 @@ def test_qcut_one_row():
 
 
 def test_qcut_small():
-    nquantiles = [4, 5, 4, 2, 5, 4, 10, 3, 2, 5]
+    nquantiles = [4, 5, 4, 2, 5, 4, 10, 3, 2, 5, 4]
     colnames = ["bool", "one_group_odd", "one_group_even",
                 "int_pos", "int_neg", "int", "float",
-                "inf_max", "inf_min", "inf"]
+                "inf_max", "inf_min", "inf", "str"]
 
     DT = dt.Frame(
            [[True, None, False, False, True, None],
@@ -167,7 +156,8 @@ def test_qcut_small():
            [None, 1.4, 4.1, 1.5, 5.9, 1.4],
            [math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
            [-math.inf, 1.4, 4.1, 1.5, 5.9, 1.4],
-           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4]],
+           [-math.inf, 1.4, 4.1, math.inf, 5.9, 1.4],
+           ["cat", "dog", "mouse", "moose", "dog", "cat2"]],
            names = colnames
          )
 
@@ -181,7 +171,8 @@ def test_qcut_small():
                [None, 0, 6, 3, 9, 0],
                [2, 0, 1, 0, 2, 0],
                [0, 0, 1, 0, 1, 0],
-               [0, 1, 2, 4, 3, 1]],
+               [0, 1, 2, 4, 3, 1],
+               [0, 1, 3, 2, 1, 0]],
                names = colnames,
                stypes = [stype.int32] * DT.ncols
              )
@@ -267,3 +258,47 @@ def test_qcut_i_filter_issue_3061():
     DT["q"] = dt.qcut(dt.f.C0)
     DT_filtered = DT[dt.f.q == 1, :]
     assert_equals(DT_filtered, dt.Frame({"C0" : [1]/dt.int32, "q" : [1]/dt.int32}))
+
+
+def test_qcut_groupby_empty():
+    src = []
+    DT = dt.Frame(C0=src)
+    DT_qcut = DT[:, qcut(f.C0), by(f.C0)]
+    assert_equals(DT_qcut, dt.Frame([src, src]))
+
+
+def test_qcut_groupby_one_row():
+    src = [3.1415]
+    DT = dt.Frame(C0=src)
+    DT_qcut = DT[:, qcut(f.C0), by(f.C0)]
+    assert_equals(DT_qcut, dt.Frame([src, [4]]))
+
+
+def test_qcut_groupby_void():
+    src = [None, None, None]
+    DT = dt.Frame(C0=src)
+    DT_qcut = DT[:, qcut(f.C0), by(f.C0)]
+    assert_equals(DT_qcut, dt.Frame([src, src/dt.int32]))
+
+
+def test_qcut_groupby_one_grouped_column():
+    src = [None, 1, 2, 1, 3, 1]
+    DT = dt.Frame(src)
+    DT_qcut = DT[:, qcut(f.C0), by(f.C0)]
+    DT_ref = dt.Frame([[None] + sorted(src[1:]), [None] + [4]*len(src[1:])])
+    assert_equals(DT_qcut, DT_ref)
+
+
+def test_qcut_groupby_two_grouped_columns():
+    src = [[1, 2, None, 1, 3, 1], [3.14, -1.5, 2.2, -2.5, 4.1, -1.5]]
+    DT = dt.Frame(src)
+    DT_qcut = DT[:, [qcut(f.C0), qcut(f.C1)], by(f.C0, f.C1, add_columns = False)]
+    assert_equals(DT_qcut, dt.Frame([[None] + [4]*len(src[0][1:]), [4]*len(src[0])]))
+
+
+def test_qcut_groupby_ungrouped_column():
+    src = [[None, 1, 2, 1, 3, 1, 2, 2], [-1.5, None, 2.2, -2.5, 4.1, -1.5, 1.1, 3.3]]
+    DT = dt.Frame(src)
+    DT_qcut = DT[:, qcut(f.C1), by(f.C0)]
+    assert_equals(DT_qcut, dt.Frame([[None] + sorted(src[0][1:]), [4, None, 0, 9, 4, 0, 9, 4]]))
+

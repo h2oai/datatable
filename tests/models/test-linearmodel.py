@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2021 H2O.ai
+# Copyright 2021-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -540,7 +540,7 @@ def test_linearmodel_reset_trained():
 # Test `fit()` and `predict()` methods for binomial classification
 #-------------------------------------------------------------------------------
 
-def test_linearmodel_fit_none():
+def test_linearmodel_binomial_fit_none():
     nrows = 10
     lm = LinearModel(model_type = "binomial")
     df_train = dt.Frame(range(nrows))
@@ -555,34 +555,27 @@ def test_linearmodel_fit_none():
     assert res.loss is None
 
 
-def test_linearmodel_fit_unique():
+def test_linearmodel_binomial_fit_predict_ignore_none():
     nrows = 10
     lm = LinearModel()
-    df_train = dt.Frame(range(nrows))
-    df_target = dt.Frame([True] * nrows)
+    df_train = dt.Frame([list(range(2 * nrows)), list(range(2 * nrows))])
+    df_target = dt.Frame([True] * nrows + [None] * nrows)
     lm.fit(df_train, df_target)
+    df_predict = dt.Frame([[1], [None]])
+    p = lm.predict(df_predict)
     assert_equals(
         lm.labels,
         dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
+    )
+    assert_equals(
+        p,
+        dt.Frame({"False":[None]/stype.float32, "True":[None]/stype.float32})
     )
     assert lm.is_fitted() == True
     assert lm.model_type == "binomial"
 
 
-def test_linearmodel_fit_unique_ignore_none():
-    nrows = 10
-    lm = LinearModel()
-    df_train = dt.Frame(range(2 * nrows))
-    df_target = dt.Frame([True] * nrows + [None] * nrows)
-    lm.fit(df_train, df_target)
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=[False, True], id=[0, 1], stypes={"id" : stype.int32})
-    )
-    assert lm.model_type == "binomial"
-
-
-def test_linearmodel_fit_predict_bool():
+def test_linearmodel_binomial_fit_predict_bool():
     lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[True, False]])
     df_target = dt.Frame([[True, False]])
@@ -599,10 +592,10 @@ def test_linearmodel_fit_predict_bool():
     assert df_target[1, 1] < epsilon
 
 
-def test_linearmodel_fit_predict_int():
+def test_linearmodel_binomial_fit_predict_int():
     lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0, 1]])
-    df_target = dt.Frame([[True, False]])
+    df_target = dt.Frame([True, False])
     lm.fit(df_train, df_target)
     df_target = lm.predict(df_train[:,0])
     assert lm.model_type == "binomial"
@@ -612,7 +605,7 @@ def test_linearmodel_fit_predict_int():
     assert df_target[1, 1] < epsilon
 
 
-def test_linearmodel_fit_predict_float():
+def test_linearmodel_binomial_fit_predict_float():
     lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([[0.0, 1.0, math.inf]])
     df_target = dt.Frame([[True, False, False]])
@@ -626,7 +619,7 @@ def test_linearmodel_fit_predict_float():
 
 
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-def test_linearmodel_fit_predict_string():
+def test_linearmodel_binomial_fit_predict_string():
     lm = LinearModel(eta0 = 0.1, nepochs = 10000)
     df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
     df_target = dt.Frame([[True, False, False, True]])
@@ -644,7 +637,7 @@ def test_linearmodel_fit_predict_string():
                          ["yes", "no"],
                          [20, 10],
                          [0.5, -0.5]])
-def test_linearmodel_fit_predict_bool_binomial(target):
+def test_linearmodel_binomial_fit_predict_various(target):
     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
     df_train = dt.Frame([True, False])
     df_target = dt.Frame(target)
@@ -672,7 +665,7 @@ def test_linearmodel_fit_predict_bool_binomial(target):
     assert df_res[1, 0] >= 1 - epsilon
 
 
-def test_linearmodel_fit_predict_view():
+def test_linearmodel_binomial_fit_predict_view():
     nrows = 100
     lm = LinearModel()
     df_train = dt.Frame(random.sample(range(nrows), nrows))
@@ -704,7 +697,7 @@ def test_linearmodel_fit_predict_view():
 
 @pytest.mark.parametrize('parameter, value',
                          [("negative_class", True)])
-def test_linearmodel_disable_setters_after_fit(parameter, value):
+def test_linearmodel_binomial_disable_setters_after_fit(parameter, value):
     nrows = 10
     lm = LinearModel()
     df_train = dt.Frame(range(nrows))
@@ -721,7 +714,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
     setattr(lm, parameter, value)
 
 
-# def test_linearmodel_fit_predict_binomial_online_1_1():
+# def test_linearmodel_binomial_fit_predict_online_1_1():
 #     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
 #     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
@@ -765,7 +758,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     assert max(delta_even) < epsilon
 
 
-# def test_linearmodel_fit_predict_binomial_online_1_2():
+# def test_linearmodel_binomial_fit_predict_online_1_2():
 #     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_odd = dt.Frame([[1, 3, 7, 5, 9]])
 #     df_target_odd = dt.Frame([["odd", "odd", "odd", "odd", "odd"]])
@@ -808,7 +801,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     assert max(delta_even) < epsilon
 
 
-# def test_linearmodel_fit_predict_binomial_online_2_1():
+# def test_linearmodel_binomial_fit_predict_online_2_1():
 #     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
 #     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
@@ -852,7 +845,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 #     assert max(delta_even) < epsilon
 
 
-# def test_linearmodel_fit_predict_binomial_online_2_2():
+# def test_linearmodel_binomial_fit_predict_online_2_2():
 #     lm = LinearModel(eta0 = 0.1, nepochs = 10000, model_type = "binomial")
 #     df_train_even_odd = dt.Frame([[2, 1, 8, 3]])
 #     df_target_even_odd = dt.Frame([["even", "odd", "even", "odd"]])
@@ -891,7 +884,7 @@ def test_linearmodel_disable_setters_after_fit(parameter, value):
 # Test multinomial regression
 #-------------------------------------------------------------------------------
 
-def test_linearmodel_fit_multinomial_none():
+def test_linearmodel_multinomial_fit_ignore_none():
     nrows = 10
     lm = LinearModel(model_type = "multinomial")
     df_train = dt.Frame(range(nrows))
@@ -904,7 +897,29 @@ def test_linearmodel_fit_multinomial_none():
     assert res.loss is None
 
 
-def test_linearmodel_fit_predict_multinomial_vs_binomial():
+def test_linearmodel_multinomial_fit_predict_none():
+    lm = LinearModel()
+    df_train = dt.Frame([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+    df_target = dt.Frame(["cat", "dog", "mouse"])
+    res = lm.fit(df_train, df_target)
+    p = lm.predict(dt.Frame([[1], [None], [2]]))
+    assert lm.model_type == "multinomial"
+    assert_equals(
+        lm.labels,
+        dt.Frame(label=["cat", "dog", "mouse"], id=[0, 1, 2]/dt.int32)
+    )
+    assert_equals(
+        p,
+        dt.Frame(
+            cat=[None]/dt.float32,
+            dog=[None]/dt.float32,
+            mouse=[None]/dt.float32
+        )
+    )
+    assert lm.is_fitted() == True
+
+
+def test_linearmodel_multinomial_vs_binomial_fit_predict():
     target_names = ["cat", "dog"]
     lm_binomial = LinearModel(nepochs = 1, seed = 123)
     df_train_binomial = dt.Frame(range(10))
@@ -938,7 +953,7 @@ def test_linearmodel_fit_predict_multinomial_vs_binomial():
 
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 @pytest.mark.parametrize('negative_class', [False, True])
-def test_linearmodel_fit_predict_multinomial(negative_class):
+def test_linearmodel_multinomial_fit_predict(negative_class):
     negative_class_label = ["_negative_class"] if negative_class else []
     nepochs = 1000
     lm = LinearModel(eta0 = 0.2, nepochs = nepochs, double_precision = True)
@@ -979,7 +994,7 @@ def test_linearmodel_fit_predict_multinomial(negative_class):
 
 @pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
 @pytest.mark.parametrize('negative_class', [False, True])
-def test_linearmodel_fit_predict_multinomial_online(negative_class):
+def test_linearmodel_multinomial_fit_predict_online(negative_class):
     lm = LinearModel(eta0 = 0.2, nepochs = 1000, double_precision = True)
     lm.negative_class = negative_class
     negative_class_label = ["_negative_class"] if negative_class else []
@@ -1115,9 +1130,10 @@ def test_linearmodel_regression_fit_simple_one_multicolumn(eta_schedule):
     df_train = dt.Frame([[1], [2], [3], [4], [5]])
     df_target = dt.Frame([1]/dt.float64)
     lm.fit(df_train, df_target)
-    p = lm.predict(df_train)
+    df_predict = dt.Frame([[1, 2], [2, None], [3, 4], [4, 5], [5, 6]])
+    p = lm.predict(df_predict)
     assert lm.model_type == "regression"
-    assert_equals(p, dt.Frame(df_target))
+    assert_equals(p, dt.Frame([1, None]/dt.float64))
 
 
 @pytest.mark.parametrize('eta_schedule', ["constant", "time-based", "step-based", "exponential"])
@@ -1170,23 +1186,20 @@ def test_linearmodel_regression_fit_predict_large():
     N = 40000
     lm = LinearModel(eta0 = 1e-4, nepochs = 100, double_precision = True)
 
-    df_train0 = dt.Frame([range(N), range(0, 2*N - 1, 2)])
-    df_target0 = df_train0[:, dt.float64(1 - f[0] + 2 * f[1])]
+    df_train = dt.Frame([range(N), range(0, 2*N - 1, 2)])
+    df_train_standard = df_train[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
+    df_target = df_train[:, dt.float64(1 - f[0] + 2 * f[1])]
 
-    df_train1 = df_train0[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
-    df_target1 = df_target0[:, (f[:] - dt.mean(f[:])) / dt.sd(f[:])]
-
-    lm.fit(df_train1, df_target1)
-    p = lm.predict(df_train1)
-    p = p[:, f[0] * df_target0.sd1() + df_target0.mean1()]
-    assert_equals(df_target0, p, rel_tol = 1e-6)
+    lm.fit(df_train_standard, df_target)
+    p = lm.predict(df_train_standard)
+    assert_equals(df_target, p, rel_tol = 1e-6)
 
 
 #-------------------------------------------------------------------------------
 # Test early stopping
 #-------------------------------------------------------------------------------
 
-def test_linearmodel_wrong_validation_target_type():
+def test_linearmodel_early_stopping_wrong_validation_target_type():
     nepochs = 1234
     nepochs_validation = 56
     nrows = 78
@@ -1204,7 +1217,7 @@ def test_linearmodel_wrong_validation_target_type():
             "got: int and str" == str(e.value))
 
 
-def test_linearmodel_wrong_validation_parameters():
+def test_linearmodel_early_stopping_wrong_validation_parameters():
     nepochs = 1234
     nepochs_validation = 56
     nrows = 78
@@ -1227,7 +1240,7 @@ def test_linearmodel_wrong_validation_parameters():
 
 
 @pytest.mark.parametrize('double_precision_value', [False, True])
-def test_linearmodel_no_validation_set(double_precision_value):
+def test_linearmodel_early_stopping_no_validation_set(double_precision_value):
     nepochs = 1234
     nrows = 56
     lm = LinearModel(eta0 = 0.5, nepochs = nepochs,
@@ -1240,7 +1253,7 @@ def test_linearmodel_no_validation_set(double_precision_value):
     assert res.loss is None
 
 
-def test_linearmodel_no_early_stopping():
+def test_linearmodel_early_stopping_no_early_stopping():
     nepochs = 100
     nepochs_validation = 10
     lm = LinearModel(nepochs = nepochs)
@@ -1253,7 +1266,7 @@ def test_linearmodel_no_early_stopping():
     assert math.isnan(res.loss) == False
 
 
-def test_linearmodel_wrong_validation_stypes():
+def test_linearmodel_early_stopping_wrong_validation_stypes():
     lm = LinearModel(eta0 = 0.5)
     r = range(10)
     df_X = dt.Frame(r)
@@ -1404,7 +1417,7 @@ def test_linearmodel_pickling_empty_model():
     assert lm_unpickled.params == LinearModel().params
 
 
-def test_linearmodel_reuse_pickled_empty_model():
+def test_linearmodel_pickling_empty_model_reuse():
     lm = LinearModel()
     lm_pickled = pickle.dumps(lm)
     lm_unpickled = pickle.loads(lm_pickled)

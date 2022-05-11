@@ -95,13 +95,6 @@ platform. This wheel can be installed with ``pip`` as usual:
 
     $ pip install YOUR_WHEEL_URL
 
-Alternatively, you can instruct ``pip`` to go to that repository directly
-and find the latest version automatically:
-
-.. code-block:: console
-
-    $ pip install --trusted-host h2o-release.s3-website-us-east-1.amazonaws.com \
-          -i http://h2o-release.s3-website-us-east-1.amazonaws.com/  datatable
 
 
 Build from source

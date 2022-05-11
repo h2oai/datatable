@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -123,13 +123,32 @@ def test_shift_group_column():
                                  "A.0": [None, 1, 1, None, 2]}))
 
 
+def test_shift_group_const_column():
+    DT = dt.Frame(A=[2, 2, 2, 2])
+    RES = DT[:, shift(f.A), by(f.A)]
+    assert_equals(RES, dt.Frame({"A": [2, 2, 2, 2],
+                                 "A.0": [None, 2, 2, 2]}))
+
+def test_shift_group_void_column():
+    DT = dt.Frame(A=[None, None, None])
+    RES = DT[:, shift(f.A), by(f.A)]
+    assert_equals(RES, dt.Frame({"A": [None, None, None],
+                                 "A.0": [None, None, None]}))
+
+
+def test_shift_noop_group_column():
+    DT = dt.Frame(A=[1, 2, 1, 1, 2])
+    RES = DT[:, shift(f.A, n=0), by(f.A)]
+    assert_equals(RES, dt.Frame({"A": [1, 1, 1, 2, 2],
+                                 "A.0": [1, 1, 1, 2, 2]}))
+
+
 def test_shift_reduced_column():
     DT = dt.Frame(A=[1, 2, 1, 1, 2, 1], B=range(6))
     RES = DT[:, shift(dt.sum(f.B)), by(f.A)]
     assert_equals(RES, dt.Frame(A=[1, 1, 1, 1, 2, 2],
                                 B=[None, 10, 10, 10, None, 5],
                                 stypes={"A": dt.int32, "B": dt.int64}))
-
 
 
 def test_shift_by_with_i():
