@@ -3,7 +3,7 @@
     :src: src/core/frame/to_numpy.cc Frame::to_numpy
     :tests: tests/frame/test-to-numpy.py
     :cvar: doc_Frame_to_numpy
-    :signature: to_numpy(self, type=None, column=None)
+    :signature: to_numpy(self, type=None, column=None, c_contiguous=False)
 
     Convert frame into a 2D numpy array, optionally forcing it into the
     specified type.
@@ -12,7 +12,7 @@
     created as a data view, avoiding copying the data. This happens if
     all of these conditions are met:
 
-      - the frame has only 1 column, which is not virtual;
+      - the frame has only one column, which is not virtual;
       - the column's type is not string;
       - the `type` argument was not used.
 
@@ -34,6 +34,11 @@
     column: int
         Convert a single column instead of the whole frame. This column index
         can be negative, indicating columns counted from the end of the frame.
+
+    c_contiguous: bool
+        If `False`, the resulting numpy array will have the same memory
+        layout as the datatable frame, i.e. column-major or `C_CONTIGUOUS`.
+        If `True`, the numpy array will be row-major or `F_CONTIGUOUS`.
 
     return: numpy.ndarray | numpy.ma.core.MaskedArray
         The returned array will be 2-dimensional with the same :attr:`.shape`
