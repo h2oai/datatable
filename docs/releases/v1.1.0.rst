@@ -78,13 +78,15 @@
 
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
+    -[enh] Function :func:`dt.qcut()` can now be used in a groupby context. [#3165]
+
     -[fix] :func:`dt.qcut()` won't segfault anymore when used as an i-filter. [#3061]
 
     -[fix] Fixed selection of ``time64`` columns by ``ltype``. [#3251]
 
     -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
 
-    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269]
+    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269] [#3272]
 
 
     fread
@@ -99,6 +101,9 @@
 
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
+
+    -[fix] :func:`fread()` will no longer fail when reading excel files on
+        Windows. [#3178]
 
     -[fix] Parameter ``tempdir`` is now honored for memory limited :func:`fread()`
         operation. [#3244]
@@ -115,6 +120,9 @@
         that in some cases resulted in the gradient and model coefficients
         blow up. [#3234]
 
+    -[fix] Fixed undefined behaviour when :class:`LinearModel <dt.models.LinearModel>`
+        predicted on frames with missing values. [#3260]
+
 
     General
     -------
@@ -130,7 +138,10 @@
         :attr:`.is_temporal <dt.Type.is_temporal>`,
         :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101]
 
+    -[enh] Added support for macOS Big Sur. [#3175]
+
     -[enh] Added support for Python `3.10`. [#3210]
+
 
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
