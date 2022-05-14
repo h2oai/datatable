@@ -421,3 +421,8 @@ def test_countna():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.countna()], DT[:, dt.countna(f.A)])
 
+def test_cumsum():
+    assert str(dt.cumsum(f.A)) == str(f.A.cumsum())
+    assert str(dt.cumsum(f[:])) == str(f[:].cumsum())
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.cumsum()], DT[:, dt.cumsum(f.A)])
