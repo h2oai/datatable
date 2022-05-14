@@ -12,6 +12,9 @@
 
     -[enh] :meth:`.replace()` now supports numpy scalars. [#3164]
 
+    -[enh] :meth:`.to_numpy()` now has an option to control memory layout
+        of the resulting numpy array. [#3275]
+
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
         constant values. [#3088] [#3104] [#3108] [#3109]

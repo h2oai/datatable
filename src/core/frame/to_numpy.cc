@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -33,7 +33,7 @@ namespace py {
 //------------------------------------------------------------------------------
 // Helpers
 //------------------------------------------------------------------------------
-static oobj to_numpy_impl(oobj frame);
+static oobj to_numpy_impl(oobj frame, bool c_contiguous);
 
 static bool datatable_has_nas(DataTable* dt) {
   for (size_t i = 0; i < dt->ncols(); ++i) {
@@ -51,13 +51,16 @@ static bool datatable_has_nas(DataTable* dt) {
 //------------------------------------------------------------------------------
 
 static PKArgs args_to_numpy(
-    0, 2, 0, false, false,
-    {"type", "column"}, "to_numpy", dt::doc_Frame_to_numpy);
+    0, 3, 0, false, false,
+    {"type", "column", "c_contiguous"}, "to_numpy", dt::doc_Frame_to_numpy);
 
 
 oobj Frame::to_numpy(const PKArgs& args) {
   const Arg& arg_type = args[0];
   const Arg& arg_column = args[1];
+  const Arg& arg_c_contiguous = args[2];
+  const bool c_contiguous = arg_c_contiguous.is_defined()? arg_c_contiguous.to_bool_strict()
+                                                         : false;
 
   dt::Type target_type = arg_type.to_type_force();
   if (arg_column.is_defined()) {
@@ -68,7 +71,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
       col.cast_inplace(target_type);
     }
     auto res = to_numpy_impl(
-        Frame::oframe(new DataTable({col}, DataTable::default_names))
+        Frame::oframe(new DataTable({col}, DataTable::default_names)),
+        c_contiguous
     );
     return res.invoke("reshape", {oint(col.nrows())});
   }
@@ -78,18 +82,23 @@ oobj Frame::to_numpy(const PKArgs& args) {
     for (size_t i = 0; i < dt->ncols(); i++) {
       columns.push_back(dt->get_column(i).cast(target_type));
     }
-    return to_numpy_impl(Frame::oframe(new DataTable(std::move(columns), *dt)));
+    return to_numpy_impl(Frame::oframe(
+             new DataTable(std::move(columns), *dt)),
+             c_contiguous
+           );
   }
   else {
-    return to_numpy_impl(oobj(this));
+    return to_numpy_impl(oobj(this), c_contiguous);
   }
 }
 
 
-static oobj to_numpy_impl(oobj frame) {
+static oobj to_numpy_impl(oobj frame, bool c_contiguous) {
   DataTable* dt = frame.to_datatable();
   oobj numpy = oobj::import("numpy");
-  oobj nparray = numpy.get_attr("asfortranarray");
+
+  std::string layout = c_contiguous? "ascontiguousarray" : "asfortranarray";
+  oobj nparray = numpy.get_attr(layout.c_str());
 
   size_t ncols = dt->ncols();
   if (ncols == 0) {

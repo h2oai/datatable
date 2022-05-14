@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -55,6 +55,8 @@ def test_tonumpy0(np):
     assert a0.tolist() == [[1], [3], [5], [7], [9]]
     a1 = np.array(d0)
     assert (a0 == a1).all()
+    a2 = d0.to_numpy(c_contiguous = True)
+    assert (a0 == a2).all()
 
 
 @numpy_test
@@ -204,8 +206,13 @@ def test_tonumpy_with_NAs_random(seed, numpy):
                 vec[i] = None
         data[j] = vec
     DT = dt.Frame(data, stype=dt.float64)
-    ar = DT.to_numpy()
-    assert list_equals(ar.T.tolist(), data)
+    NP0 = DT.to_numpy()
+    assert list_equals(NP0.T.tolist(), data)
+    assert NP0.flags["F_CONTIGUOUS"] == True
+    NP1 = DT.to_numpy(c_contiguous = True)
+    assert list_equals(NP1.T.tolist(), data)
+    assert NP1.flags["C_CONTIGUOUS"] == True
+
 
 
 @numpy_test
