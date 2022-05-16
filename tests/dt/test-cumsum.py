@@ -23,14 +23,20 @@
 #-------------------------------------------------------------------------------
 import math
 import pytest
-import random
-from datatable import dt, stype, f, cumsum, FExpr, by
+from datatable import dt, f, cumsum, FExpr, by
 from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
 # Normal
 #-------------------------------------------------------------------------------
+
+def test_cumsum_str():
+  assert str(cumsum(f.A)) == "FExpr<cumsum(f.A)>"
+  assert str(cumsum(f.A) + 1) == "FExpr<cumsum(f.A) + 1>"
+  assert str(cumsum(f.A + f.B)) == "FExpr<cumsum(f.A + f.B)>"
+  assert str(cumsum(f.B)) == "FExpr<cumsum(f.B)>"
+  assert str(cumsum(f[:2])) == "FExpr<cumsum(f[:2])>"
 
 def test_cumsum_empty_frame():
     DT = dt.Frame()
@@ -73,3 +79,18 @@ def test_cumsum_grouped_column():
     DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 2, 2, 4]/dt.int64])
     assert_equals(DT_cumsum, DT_ref)
 
+
+def test_cumsum_non_numeric():
+    DT = dt.Frame(list('abcde'))
+    with pytest.raises(TypeError, match = 'Invalid column of type.+'):
+        DT[:, cumsum(f[0])]
+
+def test_cumsum_non_numeric_by():
+    DT = dt.Frame(list('abcde'))
+    with pytest.raises(TypeError, match = 'Invalid column of type.+'):
+        DT[:, cumsum(f[0]), by(f[0])]
+
+def test_cumsum_no_argument():
+    DT = dt.Frame([2, 1, None, 1, 2])
+    with pytest.raises(TypeError, match = r'Function datatable\.cumsum.+'):
+        DT[:, cumsum()]
