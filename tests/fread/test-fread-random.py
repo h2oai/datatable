@@ -49,10 +49,13 @@ def make_seeds():
     # If you want to test a specific seed, uncomment the following line:
     # return [398276719]
     n = 25
+    seeds = []
+    seeds += [2094287248] # issue 3278
     if (os.environ.get(root_env_name, "") != "" and
             os.environ.get(env_coverage, "") == ""):
         n = 100
-    return [random.randint(0, 2**31) for _ in range(n)]
+    seeds += [random.randint(0, 2**31) for _ in range(n)]
+    return seeds
 
 
 @pytest.mark.parametrize("seed", make_seeds())
@@ -158,7 +161,7 @@ def test_fread_omnibus(seed):
 #-------------------------------------------------------------------------------
 
 def all_voidlike(coldata):
-    return all(x in ['', '""', "''"] for x in coldata)
+    return all(x in ['', '""', "''", 'NA'] for x in coldata)
 
 
 def all_boollike(coldata):
