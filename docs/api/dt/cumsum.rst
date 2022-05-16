@@ -7,7 +7,7 @@
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` calculate cumulative sum.
+    For each column from `cols` calculate cumulative sum. In the presence of :func:`by()`, the cumulative sum is computed per group.
 
     Parameters
     ----------

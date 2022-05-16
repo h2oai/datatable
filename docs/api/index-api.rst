@@ -108,8 +108,6 @@ Functions
       - Ternary if operator
     * - :func:`shift()`
       - Shift column by a given number of rows
-    * - :func:`cumsum()`
-      - Calculate cumulative sum
     * - :func:`cut()`
       - Bin a column into equal-width intervals
     * - :func:`qcut()`
