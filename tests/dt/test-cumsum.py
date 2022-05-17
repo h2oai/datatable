@@ -28,6 +28,27 @@ from tests import assert_equals
 
 
 #-------------------------------------------------------------------------------
+# Errors
+#-------------------------------------------------------------------------------
+
+def test_cumsum_non_numeric():
+    DT = dt.Frame(list('abcde'))
+    with pytest.raises(TypeError, match = r'Invalid column of type str32 in cumsum'):
+        DT[:, cumsum(f[0])]
+
+def test_cumsum_non_numeric_by():
+    DT = dt.Frame(list('abcde'))
+    with pytest.raises(TypeError,  match = r'Invalid column of type str32 in cumsum'):
+        DT[:, cumsum(f[0]), by(f[0])]
+
+def test_cumsum_no_argument():
+    match = r'Function datatable.cumsum\(\) requires exactly 1 positional argument, ' \
+             'but none were given'
+    with pytest.raises(TypeError, match = match):
+        dt.cumsum()
+
+
+#-------------------------------------------------------------------------------
 # Normal
 #-------------------------------------------------------------------------------
 
@@ -37,6 +58,7 @@ def test_cumsum_str():
   assert str(cumsum(f.A + f.B)) == "FExpr<cumsum(f.A + f.B)>"
   assert str(cumsum(f.B)) == "FExpr<cumsum(f.B)>"
   assert str(cumsum(f[:2])) == "FExpr<cumsum(f[:2])>"
+
 
 def test_cumsum_empty_frame():
     DT = dt.Frame()
@@ -78,22 +100,3 @@ def test_cumsum_grouped_column():
     DT_cumsum = DT[:, cumsum(f[0]), by(f[0])]
     DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 2, 2, 4]/dt.int64])
     assert_equals(DT_cumsum, DT_ref)
-
-
-def test_cumsum_non_numeric():
-    DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError, match = r'Invalid column of type str32 in cumsum.+'):
-        DT[:, cumsum(f[0])]
-
-def test_cumsum_non_numeric_by():
-    DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError,  match = r'Invalid column of type str32 in cumsum.+'):
-        DT[:, cumsum(f[0]), by(f[0])]
-
-def test_cumsum_no_argument():
-    DT = dt.Frame([2, 1, None, 1, 2])
-    match = r'Function datatable.cumsum\(\) requires exactly 1 positional argument, '
-    match = match + 'but none were given'
-    with pytest.raises(TypeError, match = match):
-        DT[:, cumsum()]
-
