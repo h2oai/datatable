@@ -25,14 +25,14 @@
 
     Examples
     --------
-    ::
+
+    Create a sample datatable frame::
 
         >>> from datatable import dt, f
         >>> DT = dt.Frame({"A": [2, None, 5, -1, 0],
         ...                "B": [None, None, None, None, None],
         ...                "C": [5.4, 3, 2.2, 4.323, 3], 
         ...                "D": ['a', 'a', 'b', 'b', 'b']})
-        >>> DT
            |     A     B        C  D    
            | int32  void  float64  str32
         -- + -----  ----  -------  -----
@@ -43,7 +43,8 @@
          4 |     0    NA    3      b    
         [5 rows x 4 columns]
 
-    Cumulative sum - single column::
+
+    Calculate cumulative sum in a single column::
 
         >>> DT[:, dt.cumsum(f.A)]
            |     A
@@ -56,7 +57,8 @@
          4 |     6
         [5 rows x 1 column]
 
-    Cumulative sum - multiple columns::
+
+    Calculate cumulative sums in multiple columns::
 
         >>> DT[:, dt.cumsum(f[:-1])]
            |     A      B        C
@@ -69,7 +71,8 @@
          4 |     6      0   17.923
         [5 rows x 3 columns]
 
-    Cumulative sum - groupby::
+
+    Calculate cumulative sums per group in the presence of :func:`by()`::
 
         >>> DT[:, dt.cumsum(f[:]), by('D')]
            | D          A      B        C
