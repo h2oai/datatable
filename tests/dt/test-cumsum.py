@@ -82,15 +82,18 @@ def test_cumsum_grouped_column():
 
 def test_cumsum_non_numeric():
     DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError, match = 'Invalid column of type.+'):
+    with pytest.raises(TypeError, match = r'Invalid column of type str32 in cumsum.+'):
         DT[:, cumsum(f[0])]
 
 def test_cumsum_non_numeric_by():
     DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError, match = 'Invalid column of type.+'):
+    with pytest.raises(TypeError,  match = r'Invalid column of type str32 in cumsum.+'):
         DT[:, cumsum(f[0]), by(f[0])]
 
 def test_cumsum_no_argument():
     DT = dt.Frame([2, 1, None, 1, 2])
-    with pytest.raises(TypeError, match = r'Function datatable\.cumsum.+'):
+    match = r'Function datatable.cumsum\(\) requires exactly 1 positional argument, '
+    match = match + 'but none were given'
+    with pytest.raises(TypeError, match = match):
         DT[:, cumsum()]
+
