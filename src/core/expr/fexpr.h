@@ -182,6 +182,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj as_type(const py::XArgs&);
     py::oobj count(const py::XArgs&);
     py::oobj countna(const py::XArgs&);
+    py::oobj cumsum(const py::XArgs&);
     py::oobj extend(const py::XArgs&);
     py::oobj first(const py::XArgs&);
     py::oobj last(const py::XArgs&);

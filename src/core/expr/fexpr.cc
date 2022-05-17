@@ -578,6 +578,16 @@ DECLARE_METHOD(&PyFExpr::countna)
     ->name("countna")
     ->docs(dt::doc_FExpr_countna);
 
+
+oobj PyFExpr::cumsum(const XArgs&) {
+  auto cumsumFn = oobj::import("datatable", "cumsum");
+  return cumsumFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cumsum)
+    ->name("cumsum")
+    ->docs(dt::doc_FExpr_cumsum);
+
 //------------------------------------------------------------------------------
 // Class decoration
 //------------------------------------------------------------------------------
