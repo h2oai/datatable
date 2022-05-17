@@ -28,9 +28,10 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
+
+
 namespace dt {
 namespace expr {
-
 
 class FExpr_cumsum : public FExpr_Func {
   private:

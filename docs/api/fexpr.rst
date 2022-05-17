@@ -289,7 +289,7 @@
     .as_type()      <fexpr/as_type>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
-    .cumsum()      <fexpr/cumsum>
+    .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
     .first()        <fexpr/first>
     .last()         <fexpr/last>
