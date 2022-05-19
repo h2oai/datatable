@@ -7,7 +7,8 @@
 
     .. x-version-added:: 1.1.0
 
-    Calculate the product of values for each column from `cols`.
+    Calculate the product of values for each column from `cols`. The product
+    of missing values is defined to be one.
 
     Parameters
     ----------

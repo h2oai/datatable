@@ -31,6 +31,7 @@ from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
 
+
 #-------------------------------------------------------------------------------
 # Count
 #-------------------------------------------------------------------------------
@@ -137,7 +138,6 @@ def test_count_with_i():
     assert DT[:5, count()][0, 0] == 5
     assert DT[-12:, count()][0, 0] == 12
     assert DT[::3, count()][0, 0] == 34
-
 
 
 
@@ -284,17 +284,25 @@ def test_sum_simple():
 
 
 def test_sum_empty_frame():
-    DT = dt.Frame([[]] * 4, names=list("ABCD"),
-                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
-    assert DT.shape == (0, 4)
+    DT = dt.Frame([[]] * 5, names=list("ABCDE"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64, dt.void))
+    assert DT.shape == (0, 5)
     RZ = DT[:, sum(f[:])]
     frame_integrity_check(RZ)
-    assert RZ.shape == (1, 4)
-    assert RZ.names == ("A", "B", "C", "D")
-    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64)
-    assert RZ.to_list() == [[0], [0], [0], [0]]
+    assert RZ.shape == (1, 5)
+    assert RZ.names == ("A", "B", "C", "D", "E")
+    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64, dt.int64)
+    assert RZ.to_list() == [[0], [0], [0], [0], [0]]
     assert str(RZ)
 
+
+def test_sum_grouped():
+    DT = dt.Frame(A=[True, False, True, True], B=[None, None, None, 10], C=[2,3,5,-5])
+    RES = DT[:, sum(f[:]), by(f.A)]
+    REF = dt.Frame(A=[False, True], B=[0, 10]/dt.int64, C=[3,2]/dt.int64)
+    frame_integrity_check(RES)
+    assert_equals(RES, REF)
+    assert str(RES)
 
 
 
@@ -320,8 +328,6 @@ def test_mean_empty_frame():
     assert RZ.names == ("A", "B", "C", "D")
     assert RZ.stypes == (dt.float64, dt.float64, dt.float32, dt.float64)
     assert RZ.to_list() == [[None]] * 4
-
-
 
 
 
@@ -568,20 +574,26 @@ def test_prod_simple():
 
 
 def test_prod_empty_frame():
-    DT = dt.Frame([[]] * 4, names=list("ABCD"),
-                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
-    assert DT.shape == (0, 4)
+    DT = dt.Frame([[]] * 5, names=list("ABCDE"),
+                  stypes=(dt.bool8, dt.int32, dt.float32, dt.float64, dt.void))
+    assert DT.shape == (0, 5)
     RES = DT[:, prod(f[:])]
     frame_integrity_check(RES)
-    assert_equals(RES, dt.Frame(A=[1]/dt.int64, B=[1]/dt.int64, C=[1]/dt.float32, D=[1]/dt.float64))
+    assert_equals(RES, dt.Frame(A=[1]/dt.int64,
+                                B=[1]/dt.int64,
+                                C=[1]/dt.float32,
+                                D=[1]/dt.float64,
+                                E=[1]/dt.int64))
     assert str(RES)
 
+
 def test_prod_bool():
-    DT = dt.Frame(A= [True, False, True])
+    DT = dt.Frame(A=[True, False, True])
     RES = DT[:, prod(f.A)]
     frame_integrity_check(RES)
     assert RES.to_numpy().item() == np.prod([True, False, True])
     assert str(RES)
+
 
 def test_prod_floats():
     random_numbers = np.random.randn(3)
@@ -589,4 +601,13 @@ def test_prod_floats():
     RES = DT[:, prod(f.A)]
     frame_integrity_check(RES)
     assert RES.to_numpy().item() == np.prod(random_numbers)
+    assert str(RES)
+
+
+def test_prod_grouped():
+    DT = dt.Frame(A=[True, False, True, True], B=[None, None, None, 10], C=[2,3,5,0.1])
+    RES = DT[:, prod(f[:]), by(f.A)]
+    REF = dt.Frame(A=[False, True], B=[1, 10]/dt.int64, C=[3,1.0]/dt.float64)
+    frame_integrity_check(RES)
+    assert_equals(RES, REF)
     assert str(RES)

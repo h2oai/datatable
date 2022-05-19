@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <unordered_map>
+#include "column/const.h"
 #include "column/latent.h"
 #include "column/virtual.h"
 #include "expr/eval_context.h"
@@ -213,6 +214,7 @@ static Column _prod(Column&& arg, const Groupby& gby) {
 
 static Column compute_prod(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Const_ColumnImpl::make_int_column(gby.size(), 1, SType::INT64);
     case SType::BOOL:
     case SType::INT8:    return _prod<int8_t, int64_t>(std::move(arg), gby);
     case SType::INT16:   return _prod<int16_t, int64_t>(std::move(arg), gby);
@@ -332,6 +334,7 @@ static Column _sum(Column&& arg, const Groupby& gby) {
 
 static Column compute_sum(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
     case SType::BOOL:
     case SType::INT8:    return _sum<int8_t, int64_t>(std::move(arg), gby);
     case SType::INT16:   return _sum<int16_t, int64_t>(std::move(arg), gby);
