@@ -8,7 +8,7 @@
     .. x-version-added:: 1.1.0
 
     For each column from `cols` calculate cumulative sum. The sum of
-    the missing values is defined to be zero. In the presence of :func:`by()`,
+    the missing values is calculated as zero. In the presence of :func:`by()`,
     the cumulative sum is computed per group.
 
     Parameters
