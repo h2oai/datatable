@@ -65,7 +65,7 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.as_type()`,
       which behaves exactly as the equivalent base level function :func:`dt.as_type()`.
 
-    -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()`to find the
+    -[new] Added functions :func:`dt.rowargmin()` and :func:`dt.rowargmin()` to find the
       index of the largest and smallest values among columns of each row. [#2998]
 
     -[new] Added reducer function :func:`dt.prod()` and the corresponding :meth:`.prod()`

@@ -77,7 +77,7 @@ div.x-version.deprecated > div:first-child a {
  * x-version-changed
  *-----------------------------------------------------------------------------*/
 
-.x-version.changed {
+.x-version.changed:not(.admonition) {
     border: 1px solid #82dbef;
     padding: 4px 8px 4px 30px;
     background: #f3f9ff;
@@ -85,15 +85,13 @@ div.x-version.deprecated > div:first-child a {
 
 .x-version.changed > div:first-child {
     color: #1c6c79;
-    margin-bottom: .5rem;
     padding: 0;
     position: relative;
 }
 
-.x-version.changed > div:first-child:before {
+.x-version.changed:not(.admonition) > div:first-child:before {
     content: "\f0aa";
     position: absolute;
-    left: -18px;
 }
 
 .x-version.changed > div:first-child a {
