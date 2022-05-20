@@ -144,6 +144,7 @@ __all__ = (
     "unique",
 )
 
+void = stype.void
 bool8 = stype.bool8
 int8 = stype.int8
 int16 = stype.int16

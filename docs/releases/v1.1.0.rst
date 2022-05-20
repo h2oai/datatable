@@ -94,6 +94,9 @@
 
     -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269] [#3272]
 
+    -[fix] Reducer functions :func:`dt.prod()` and :func:`dt.sum()` can now be
+       applied to :attr:`void <dt.Type.void>` columns. [#3281] [#3282]
+
 
     fread
     -----

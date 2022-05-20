@@ -42,7 +42,6 @@ def DT():
             dt.float64, dt.str32])
 
 
-
 #-------------------------------------------------------------------------------
 # Plain `f`
 #-------------------------------------------------------------------------------
@@ -93,6 +92,7 @@ def test_f_col_selector_invalid():
     # Note: at some point we may start supporting all the expressions below:
     with pytest.raises(TypeError):
         noop(f[lambda: 1])
+
 
 def test_f_col_selector_list_tuple():
     assert str(f[[7, 4]]) == "FExpr<f[[7, 4]]>"
@@ -205,6 +205,7 @@ def test_f_columnset_ltypes(DT):
                       DT[:, [i for i in range(DT.ncols)
                              if DT.ltypes[i] == lt]])
 
+
 def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
@@ -233,11 +234,13 @@ def test_sum():
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.sum()], DT[:, dt.sum(f.A)])
 
+
 def test_max():
     assert str(dt.max(f.A)) == str(f.A.max())
     assert str(dt.max(f[:])) == str(f[:].max())
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.max()], DT[:, dt.max(f.A)])
+
 
 def test_mean():
     assert str(dt.mean(f.A)) == str(f.A.mean())
@@ -245,28 +248,34 @@ def test_mean():
     DT = dt.Frame(A=range(1, 10))
     assert_equals(DT[:, f.A.mean()], DT[:, dt.mean(f.A)])
 
+
 def test_median():
     assert str(dt.median(f.A)) == str(f.A.median())
     assert str(dt.median(f[:])) == str(f[:].median())
     DT = dt.Frame(A=[2, 3, 5, 5, 9, -1, 2.2])
     assert_equals(DT[:, f.A.median()], DT[:, dt.median(f.A)])
 
+
 def test_min():
     assert str(dt.min(f.A)) == str(f.A.min())
     assert str(dt.min(f[:])) == str(f[:].min())
     DT = dt.Frame(A=[2, 3, 5, 5, 9, -1, 2.2])
     assert_equals(DT[:, f.A.min()], DT[:, dt.min(f.A)])
+
+
 def test_rowall():
     assert str(dt.rowall(f.A)) == str(f.A.rowall())
     assert str(dt.rowall(f[:])) == str(f[:].rowall())
     DT = dt.Frame({'A': [True, True], 'B': [True, False]})
     assert_equals(DT[:, f[:].rowall()], DT[:, dt.rowall(f[:])])
 
+
 def test_rowany():
     assert str(dt.rowany(f.A)) == str(f.A.rowany())
     assert str(dt.rowany(f[:])) == str(f[:].rowany())
     DT = dt.Frame({'A': [True, True], 'B': [True, False]})
     assert_equals(DT[:, f[:].rowany()], DT[:, dt.rowany(f[:])])
+
 
 def test_rowfirst():
     assert str(dt.rowfirst(f.A)) == str(f.A.rowfirst())
@@ -277,6 +286,7 @@ def test_rowfirst():
 
     assert_equals(DT[:, f[:].rowfirst()], DT[:, dt.rowfirst(f[:])])
 
+
 def test_rowlast():
     assert str(dt.rowlast(f.A)) == str(f.A.rowlast())
     assert str(dt.rowlast(f[:])) == str(f[:].rowlast())
@@ -285,6 +295,7 @@ def test_rowlast():
                    'C':[2, None, 5, None]})
 
     assert_equals(DT[:, f[:].rowlast()], DT[:, dt.rowlast(f[:])])
+
 
 def test_rowmax():
     assert str(dt.rowmax(f.A)) == str(f.A.rowmax())
@@ -321,6 +332,7 @@ def test_rowmean():
 
     assert_equals(DT[:, f[:].rowmean()], DT[:, dt.rowmean(f[:])])
 
+
 def test_rowcount():
     assert str(dt.rowcount(f.A)) == str(f.A.rowcount())
     assert str(dt.rowcount(f[:])) == str(f[:].rowcount())
@@ -328,6 +340,7 @@ def test_rowcount():
                    "D": [10, 8, 20, 20, 1]})
 
     assert_equals(DT[:, f[:].rowcount()], DT[:, dt.rowcount(f[:])])
+
 
 def test_rowsd():
     assert str(dt.rowsd(f.A)) == str(f.A.rowsd())
@@ -381,6 +394,7 @@ def test_count():
     assert_equals(DT[:, f.A.count()], DT[:, dt.count(f.A)])
     assert_equals(DT[:, f[:].count()], DT[:, dt.count(f[:])])
 
+
 def test_first():
     assert str(dt.first(f.A)) == str(f.A.first())
     assert str(dt.first(f[:])) == str(f[:].first())
@@ -390,6 +404,7 @@ def test_first():
 
     assert_equals(DT[:, f.A.first()], DT[:, dt.first(f.A)])
     assert_equals(DT[:, f[:].first()], DT[:, dt.first(f[:])])
+
 
 def test_as_type():
     assert str(dt.as_type(f.A, int)) == str(f.A.as_type(int))
@@ -415,11 +430,13 @@ def test_nunique():
     DT = dt.Frame(A=range(1, 5))
     assert_equals(DT[:, f.A.nunique()], DT[:, dt.nunique(f.A)])
 
+
 def test_countna():
     assert str(dt.countna(f.A)) == str(f.A.countna())
     assert str(dt.countna(f[:])) == str(f[:].countna())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.countna()], DT[:, dt.countna(f.A)])
+
 
 def test_cumsum():
     assert str(dt.cumsum(f.A)) == str(f.A.cumsum())

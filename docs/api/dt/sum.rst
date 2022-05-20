@@ -5,7 +5,8 @@
     :cvar: doc_dt_sum
     :signature: sum(cols)
 
-    Calculate the sum of values for each column from `cols`.
+    Calculate the sum of values for each column from `cols`. The sum of
+    the missing values is calculated as zero.
 
 
     Parameters
