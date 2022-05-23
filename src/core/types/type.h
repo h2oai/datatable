@@ -88,6 +88,7 @@ class Type {
     SType stype() const;
     bool is_array() const;
     bool is_boolean() const;
+    bool is_boolean_or_void() const;
     bool is_categorical() const;
     bool is_compound() const;
     bool is_float() const;

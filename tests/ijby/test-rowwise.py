@@ -51,18 +51,27 @@ def test_reprs(rowfn):
 # rowall()
 #-------------------------------------------------------------------------------
 
+def test_rowall_single_column():
+    DT = dt.Frame([[True, False, None, True]])
+    RES = DT[:, rowall(f[:])]
+    assert_equals(RES, dt.Frame([True, False, False, True]))
+
+
+def test_rowall_void_column():
+    DT = dt.Frame([[True, False, None, True], [None] * 4])
+    RES1 = DT[:, rowall(f[:])]
+    assert_equals(RES1, dt.Frame([False] * 4))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, rowall(f[:])]
+    assert_equals(RES1, RES2)
+
+
 def test_rowall_simple():
     DT = dt.Frame([[True, True, False, True, None, True],
                    [True, False, True, True, True, True],
                    [True, True,  True, True, True, True]])
     RES = DT[:, rowall(f[:])]
     assert_equals(RES, dt.Frame([True, False, False, True, False, True]))
-
-
-def test_rowall_single_column():
-    DT = dt.Frame([[True, False, None, True]])
-    RES = DT[:, rowall(f[:])]
-    assert_equals(RES, dt.Frame([True, False, False, True]))
 
 
 def test_rowall_sequence_of_columns():

@@ -56,7 +56,10 @@ Column FExpr_RowAll::apply_function(colvec&& columns) const {
   size_t nrows = columns[0].nrows();
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    if (columns[i].stype() != SType::BOOL) {
+    if (columns[i].type().is_void()) {
+      return Const_ColumnImpl::make_bool_column(nrows, false);
+    }
+    if (!columns[i].type().is_boolean()) {
       throw TypeError() << "Function `rowall` requires a sequence of boolean "
                            "columns, however column " << i << " has type `"
                         << columns[i].stype() << "`";
