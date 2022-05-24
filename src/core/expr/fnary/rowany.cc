@@ -54,7 +54,7 @@ Column FExpr_RowAny::apply_function(colvec&& columns) const {
   size_t ncols = columns.size();
   size_t nrows = ncols? columns[0].nrows() : 1;
   colvec columns_;
-  columns.reserve(ncols);
+  columns_.reserve(ncols);
 
   for (size_t i = 0; i < ncols; ++i) {
     xassert(columns[i].nrows() == nrows);
