@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2021 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -56,7 +56,11 @@ Column FExpr_RowAll::apply_function(colvec&& columns) const {
   size_t nrows = columns[0].nrows();
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    if (columns[i].stype() != SType::BOOL) {
+    // If there is even one void column, the result of `rowall()` is `false`
+    if (columns[i].type().is_void()) {
+      return Const_ColumnImpl::make_bool_column(nrows, false);
+    }
+    if (!columns[i].type().is_boolean()) {
       throw TypeError() << "Function `rowall` requires a sequence of boolean "
                            "columns, however column " << i << " has type `"
                         << columns[i].stype() << "`";

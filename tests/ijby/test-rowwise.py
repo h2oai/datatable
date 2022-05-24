@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019-2021 H2O.ai
+# Copyright 2019-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -51,18 +51,36 @@ def test_reprs(rowfn):
 # rowall()
 #-------------------------------------------------------------------------------
 
+def test_rowall_single_column():
+    DT = dt.Frame([[True, False, None, True]])
+    RES = DT[:, rowall(f[:])]
+    assert_equals(RES, dt.Frame([True, False, False, True]))
+
+
+def test_rowall_void_column1():
+    DT = dt.Frame([None] * 5)
+    RES1 = DT[:, rowall(f[:])]
+    assert_equals(RES1, dt.Frame([False] * 5))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, rowall(f[:])]
+    assert_equals(RES1, RES2)
+
+
+def test_rowall_void_column2():
+    DT = dt.Frame([[True, False, False, True, False], [None] * 5])
+    RES1 = DT[:, rowall(f[:])]
+    assert_equals(RES1, dt.Frame([False] * 5))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, rowall(f[:])]
+    assert_equals(RES1, RES2)
+
+
 def test_rowall_simple():
     DT = dt.Frame([[True, True, False, True, None, True],
                    [True, False, True, True, True, True],
                    [True, True,  True, True, True, True]])
     RES = DT[:, rowall(f[:])]
     assert_equals(RES, dt.Frame([True, False, False, True, False, True]))
-
-
-def test_rowall_single_column():
-    DT = dt.Frame([[True, False, None, True]])
-    RES = DT[:, rowall(f[:])]
-    assert_equals(RES, dt.Frame([True, False, False, True]))
 
 
 def test_rowall_sequence_of_columns():
@@ -96,6 +114,32 @@ def test_rowall_wrong_type(st):
 #-------------------------------------------------------------------------------
 # rowany()
 #-------------------------------------------------------------------------------
+
+def test_rowany_no_columns():
+    DT = dt.Frame(A=[True, False, True, True, None])
+    R1 = DT[:, rowany()]
+    R2 = DT[:, rowany(f[str])]
+    assert_equals(R1, dt.Frame([True]))
+    assert_equals(R2, dt.Frame([True]))
+
+
+def test_rowany_void_column1():
+    DT = dt.Frame([None] * 5)
+    RES1 = DT[:, rowany(f[:])]
+    assert_equals(RES1, dt.Frame([False] * 5))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, rowany(f[:])]
+    assert_equals(RES1, RES2)
+
+
+def test_rowany_void_column2():
+    DT = dt.Frame([[True, False, False, True, False], [None] * 5])
+    RES1 = DT[:, rowany(f[:])]
+    assert_equals(RES1, dt.Frame([True, False, False, True, False]))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, rowany(f[:])]
+    assert_equals(RES1, RES2)
+
 
 def test_rowany_simple():
     DT = dt.Frame([[True, True, False, False, None,  False],

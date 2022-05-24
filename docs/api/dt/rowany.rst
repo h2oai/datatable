@@ -6,9 +6,9 @@
     :signature: rowany(*cols)
 
     For each row in `cols` return `True` if any of the values in that row
-    are `True`, or otherwise return `False`. The function uses shortcut
-    evaluation: if the `True` value is found in one of the columns,
-    then the subsequent columns are skipped.
+    are `True`, or otherwise return `False`. The function uses shortcut evaluation:
+    if the `True` value is found in one of the columns, then the subsequent columns
+    are skipped. Missing values are counted as `False`.
 
 
     Parameters

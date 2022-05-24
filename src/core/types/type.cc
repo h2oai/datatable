@@ -153,6 +153,7 @@ Type Type::child() const {
 
 bool Type::is_array()           const { return impl_ && impl_->is_array(); }
 bool Type::is_boolean()         const { return impl_ && impl_->is_boolean(); }
+bool Type::is_boolean_or_void() const { return impl_ && (impl_->is_boolean() || impl_->is_void()); }
 bool Type::is_categorical()     const { return impl_ && impl_->is_categorical(); }
 bool Type::is_compound()        const { return impl_ && impl_->is_compound(); }
 bool Type::is_float()           const { return impl_ && impl_->is_float(); }
