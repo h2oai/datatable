@@ -178,6 +178,33 @@ def test_rowcount_different_types():
 # rowfirst(), rowlast()
 #-------------------------------------------------------------------------------
 
+def test_rowfirstlast_empty():
+    DT = dt.Frame()
+    RES = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]]))
+
+
+def test_rowfirstlast_nocols():
+    DT = dt.Frame([3, 14, None, 15, 92])
+    RES = DT[:, [rowfirst(), rowlast()]]
+    assert_equals(RES, dt.Frame([[None], [None]]))
+
+
+def test_rowfirstlast_void_column1():
+    DT = dt.Frame([None] * 5)
+    RES1 = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES1, dt.Frame([[None] * 5, [None] * 5]))
+
+
+def test_rowfirstlast_void_column2():
+    DT = dt.Frame([[None] * 5, [3, 14, None, 15, 92], [None] * 5])
+    RES1 = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES1, dt.Frame([[3, 14, None, 15, 92], [3, 14, None, 15, 92]]))
+    DT[dt.void] = dt.bool8
+    RES2 = DT[:, [rowfirst(f[:]), rowlast(f[:])]]
+    assert_equals(RES1, RES2)
+
+
 def test_rowfirstlast_bools():
     DT = dt.Frame([(None, True, False),
                    (False, None, None),
