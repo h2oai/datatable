@@ -164,7 +164,7 @@ Functions
     * - :func:`countna()`
       - Count the number of NA values per column
     * - :func:`cummax()`
-      - Calculate the cumulative max of values per column
+      - Calculate the cumulative maximum of values per column
     * - :func:`cumsum()`
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`

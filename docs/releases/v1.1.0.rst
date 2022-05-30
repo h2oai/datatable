@@ -75,7 +75,7 @@
       to calculate the cumulative sum of values per column. [#3279]
 
     -[new] Added function :func:`dt.cummax()`, as well as :meth:`.cummax()` method,
-      to calculate the cumulative max of values per column. [#3279]
+      to calculate the cumulative maximum of values per column. [#3279]
 
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 

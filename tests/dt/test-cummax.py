@@ -100,3 +100,5 @@ def test_cummax_grouped_column():
     DT_cummax = DT[:, cummax(f[0]), by(f[0])]
     DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 1, 2, 2]/dt.int64])
     assert_equals(DT_cummax, DT_ref)
+
+
