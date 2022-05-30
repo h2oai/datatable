@@ -7,7 +7,7 @@
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` calculate cumulative max. The maximum of
+    For each column from `cols` calculate cumulative maximum. The maximum of
     the missing values is calculated as zero. In the presence of :func:`by()`,
     the cumulative maximum is computed per group.
 
