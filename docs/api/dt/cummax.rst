@@ -14,11 +14,11 @@
     Parameters
     ----------
     cols: FExpr
-        Input data for cumulative max calculation.
+        Input data for cumulative maximum calculation.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with the respective cumulative max.
+        with the respective cumulative maximum.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
