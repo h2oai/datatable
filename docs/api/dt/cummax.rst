@@ -46,7 +46,7 @@
         [5 rows x 4 columns]
 
 
-    Calculate cumulative maximum in a single column::
+    Calculate the cumulative maximum in a single column::
 
         >>> DT[:, dt.cummax(f.A)]
            |     A
@@ -60,7 +60,7 @@
         [5 rows x 1 column]
 
 
-    Calculate cumulative maximum in multiple columns::
+    Calculate the cumulative maximum in multiple columns::
 
         >>> DT[:, dt.cummax(f[:-1])]
            |     A      B        C
@@ -74,7 +74,7 @@
         [5 rows x 3 columns]
 
 
-    Calculate cumulative maximum per group in the presence of :func:`by()`::
+    Calculate the cumulative maximum per group in the presence of :func:`by()`::
 
         >>> DT[:, dt.cummax(f[:]), by('D')]
            | D          A      B        C
