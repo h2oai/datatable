@@ -163,6 +163,8 @@ Functions
       - Count non-missing values per column
     * - :func:`countna()`
       - Count the number of NA values per column
+    * - :func:`cummax()`
+      - Calculate the cumulative max of values per column
     * - :func:`cumsum()`
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
@@ -234,6 +236,7 @@ Other
     count()           <dt/count>
     countna()         <dt/countna>
     cov()             <dt/cov>
+    cummax()          <dt/cummax>
     cumsum()          <dt/cumsum>
     cut()             <dt/cut>
     dt                <dt/dt>

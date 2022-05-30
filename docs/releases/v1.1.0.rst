@@ -71,6 +71,9 @@
     -[new] Added reducer function :func:`dt.prod()` and the corresponding :meth:`.prod()`
       method to calculate product of values in columns. [#3140]
 
+    -[new] Added function :func:`dt.cummax()`, as well as :meth:`.cummax()` method,
+      to calculate the cumulative max of values per column. [#3279]
+
     -[new] Added function :func:`dt.cumsum()`, as well as :meth:`.cumsum()` method,
       to calculate the cumulative sum of values per column. [#3279]
 

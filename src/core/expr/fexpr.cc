@@ -588,6 +588,16 @@ DECLARE_METHOD(&PyFExpr::cumsum)
     ->name("cumsum")
     ->docs(dt::doc_FExpr_cumsum);
 
+
+oobj PyFExpr::cummax(const XArgs&) {
+  auto cummaxFn = oobj::import("datatable", "cummax");
+  return cummaxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cummax)
+    ->name("cummax")
+    ->docs(dt::doc_FExpr_cummax);
+
 //------------------------------------------------------------------------------
 // Class decoration
 //------------------------------------------------------------------------------
