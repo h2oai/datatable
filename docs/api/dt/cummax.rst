@@ -46,7 +46,7 @@
         [5 rows x 4 columns]
 
 
-    Calculate cumulative sum in a single column::
+    Calculate cumulative maximum in a single column::
 
         >>> DT[:, dt.cummax(f.A)]
            |     A
@@ -54,35 +54,35 @@
         -- + -----
          0 |     2
          1 |     2
-         2 |     7
-         3 |     6
-         4 |     6
+         2 |     5
+         3 |     5
+         4 |     5
         [5 rows x 1 column]
 
 
-    Calculate cumulative sums in multiple columns::
+    Calculate cumulative maximum in multiple columns::
 
         >>> DT[:, dt.cummax(f[:-1])]
            |     A      B        C
            | int64  int64  float64
         -- + -----  -----  -------
-         0 |     2      0    5.4  
-         1 |     2      0    8.4  
-         2 |     7      0   10.6  
-         3 |     6      0   14.923
-         4 |     6      0   17.923
+         0 |     2      0      5.4
+         1 |     2      0      5.4
+         2 |     5      0      5.4
+         3 |     5      0      5.4
+         4 |     5      0      5.4
         [5 rows x 3 columns]
 
 
-    Calculate cumulative sums per group in the presence of :func:`by()`::
+    Calculate cumulative maximum per group in the presence of :func:`by()`::
 
         >>> DT[:, dt.cummax(f[:]), by('D')]
            | D          A      B        C
            | str32  int64  int64  float64
         -- + -----  -----  -----  -------
          0 | a          2      0    5.4  
-         1 | a          2      0    8.4  
+         1 | a          2      0    5.4  
          2 | b          5      0    2.2  
-         3 | b          4      0    6.523
-         4 | b          4      0    9.523
+         3 | b          5      0    4.323
+         4 | b          5      0    4.323
         [5 rows x 4 columns]
