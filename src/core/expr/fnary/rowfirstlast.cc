@@ -59,7 +59,8 @@ static inline Column _rowfirstlast(colvec&& columns, SType outtype) {
 template <bool FIRST>
 Column FExpr_RowFirstLast<FIRST>::apply_function(colvec&& columns,
                                                  const size_t nrows,
-                                                 const size_t) const {
+                                                 const size_t) const
+{
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(nrows);
   }

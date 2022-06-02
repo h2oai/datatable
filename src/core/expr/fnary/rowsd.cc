@@ -88,12 +88,12 @@ Column FExpr_RowSd::apply_function(colvec&& columns,
   }
 }
 
+
 DECLARE_PYFN(&py_rowfn)
     ->name("rowsd")
     ->docs(doc_dt_rowsd)
     ->allow_varargs()
     ->add_info(FN_ROWSD);
-
 
 
 

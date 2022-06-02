@@ -52,7 +52,8 @@ static bool op_rowany(size_t i, int8_t* out, const colvec& columns) {
 
 Column FExpr_RowAny::apply_function(colvec&& columns,
                                     const size_t nrows,
-                                    const size_t ncols) const {
+                                    const size_t ncols) const
+{
   // No non-void columns
   if (columns.empty()) {
     // `ncols == 0` tests that there is no void columns

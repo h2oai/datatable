@@ -51,7 +51,8 @@ static bool op_rowall(size_t i, int8_t* out, const colvec& columns) {
 
 Column FExpr_RowAll::apply_function(colvec&& columns,
                                     const size_t nrows,
-                                    const size_t ncols) const {
+                                    const size_t ncols) const
+{
   // No columns
   if (ncols == 0) {
     return Const_ColumnImpl::make_bool_column(1, true);

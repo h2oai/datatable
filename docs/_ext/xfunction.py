@@ -1173,6 +1173,7 @@ def locate_cxx_function(name, kind, lines):
                               r"\s*\(.*\)\s*" +
                               r"(?:const\s*|noexcept\s*|override\s*)*" +
                               r"\{\s*")
+    n_signature_lines = 5 # number of lines allowed for the function's signature
     expect_closing = None
     istart = None
     ifinish = None
@@ -1183,13 +1184,9 @@ def locate_cxx_function(name, kind, lines):
                 break
         elif name in line:
             istart = i
-            mm = re.match(rx_start, line)
+            mm = re.match(rx_start, "".join(lines[i:i+n_signature_lines]))
             if mm:
                 expect_closing = mm.group(1) + "}"
-            else:
-                mm = re.match(rx_start, line + lines[i+1])
-                if mm:
-                    expect_closing = mm.group(1) + "}"
     if not istart:
         raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
     if not expect_closing:

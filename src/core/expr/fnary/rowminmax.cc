@@ -98,7 +98,8 @@ static inline Column _rowminmax(colvec&& columns) {
 template <bool MIN, bool ARG>
 Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns,
                                                 const size_t nrows,
-                                                const size_t) const {
+                                                const size_t) const
+{
   if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(nrows);
   }
@@ -115,6 +116,7 @@ Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns,
                << res_stype;  // LCOV_EXCL_LINE
   }
 }
+
 
 template class FExpr_RowMinMax<true,true>;
 template class FExpr_RowMinMax<false,true>;

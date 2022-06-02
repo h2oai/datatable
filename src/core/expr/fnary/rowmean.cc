@@ -84,12 +84,12 @@ Column FExpr_RowMean::apply_function(colvec&& columns,
   }
 }
 
+
 DECLARE_PYFN(&py_rowfn)
     ->name("rowmean")
     ->docs(doc_dt_rowmean)
     ->allow_varargs()
     ->add_info(FN_ROWMEAN);
-
 
 
 
