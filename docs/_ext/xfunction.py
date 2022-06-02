@@ -1184,7 +1184,7 @@ def locate_cxx_function(name, kind, lines):
                 break
         elif name in line:
             istart = i
-            txt = line.join(lines[i+1:i+n_signature_lines]
+            txt = "".join(lines[i:i+n_signature_lines])
             mm = re.match(rx_start, txt)
             if mm:
                 expect_closing = mm.group(1) + "}"
