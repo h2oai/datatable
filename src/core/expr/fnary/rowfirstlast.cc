@@ -57,43 +57,33 @@ static inline Column _rowfirstlast(colvec&& columns, SType outtype) {
 
 
 template <bool FIRST>
-Column FExpr_RowFirstLast<FIRST>::apply_function(colvec&& columns) const {
-  size_t ncols = columns.size();
-  size_t nrows = ncols? columns[0].nrows() : 1;
-  colvec columns_;
-  columns_.reserve(ncols);
-
-  for (size_t i = 0; i < ncols; ++i) {
-    // Filter out void columns, since they don't affect the result
-    if (!columns[i].type().is_void()) {
-      columns_.push_back(std::move(columns[i]));
-    }
-  }
-
-  if (columns_.empty()) {
+Column FExpr_RowFirstLast<FIRST>::apply_function(colvec&& columns,
+                                                 const size_t nrows,
+                                                 const size_t) const {
+  if (columns.empty()) {
     return Const_ColumnImpl::make_na_column(nrows);
   }
 
   // Detect common stype
   SType stype0 = SType::VOID;
-  for (const auto& col : columns_) {
+  for (const auto& col : columns) {
     stype0 = common_stype(stype0, col.stype());
   }
   if (stype0 == SType::INVALID) {
     throw TypeError() << "Incompatible column types in function `" << name() << "`";
   }
-  promote_columns(columns_, stype0);
+  promote_columns(columns, stype0);
 
   switch (stype0) {
-    case SType::BOOL:    return _rowfirstlast<int8_t, FIRST>(std::move(columns_), stype0);
-    case SType::INT8:    return _rowfirstlast<int8_t, FIRST>(std::move(columns_), stype0);
-    case SType::INT16:   return _rowfirstlast<int16_t, FIRST>(std::move(columns_), stype0);
-    case SType::INT32:   return _rowfirstlast<int32_t, FIRST>(std::move(columns_), stype0);
-    case SType::INT64:   return _rowfirstlast<int64_t, FIRST>(std::move(columns_), stype0);
-    case SType::FLOAT32: return _rowfirstlast<float, FIRST>(std::move(columns_), stype0);
-    case SType::FLOAT64: return _rowfirstlast<double, FIRST>(std::move(columns_), stype0);
+    case SType::BOOL:    return _rowfirstlast<int8_t, FIRST>(std::move(columns), stype0);
+    case SType::INT8:    return _rowfirstlast<int8_t, FIRST>(std::move(columns), stype0);
+    case SType::INT16:   return _rowfirstlast<int16_t, FIRST>(std::move(columns), stype0);
+    case SType::INT32:   return _rowfirstlast<int32_t, FIRST>(std::move(columns), stype0);
+    case SType::INT64:   return _rowfirstlast<int64_t, FIRST>(std::move(columns), stype0);
+    case SType::FLOAT32: return _rowfirstlast<float, FIRST>(std::move(columns), stype0);
+    case SType::FLOAT64: return _rowfirstlast<double, FIRST>(std::move(columns), stype0);
     case SType::STR32:
-    case SType::STR64:   return _rowfirstlast<CString, FIRST>(std::move(columns_), stype0);
+    case SType::STR64:   return _rowfirstlast<CString, FIRST>(std::move(columns), stype0);
     default: {
       throw TypeError() << "Function `" << name() << "` doesn't support type `" << stype0 << "`";
     }

@@ -49,17 +49,20 @@ static bool op_rowall(size_t i, int8_t* out, const colvec& columns) {
 }
 
 
-Column FExpr_RowAll::apply_function(colvec&& columns) const {
-  if (columns.empty()) {
+Column FExpr_RowAll::apply_function(colvec&& columns,
+                                    const size_t nrows,
+                                    const size_t ncols) const {
+  // No columns
+  if (ncols == 0) {
     return Const_ColumnImpl::make_bool_column(1, true);
   }
-  size_t nrows = columns[0].nrows();
+  // Some void columns
+  if (columns.size() != ncols) {
+    return Const_ColumnImpl::make_bool_column(nrows, false);
+  }
+  // No void columns
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    // If there is even one void column, the result of `rowall()` is `false`
-    if (columns[i].type().is_void()) {
-      return Const_ColumnImpl::make_bool_column(nrows, false);
-    }
     if (!columns[i].type().is_boolean()) {
       throw TypeError() << "Function `rowall` requires a sequence of boolean "
                            "columns, however column " << i << " has type `"
@@ -69,6 +72,7 @@ Column FExpr_RowAll::apply_function(colvec&& columns) const {
   return Column(new FuncNary_ColumnImpl<int8_t>(
                       std::move(columns), op_rowall, nrows, SType::BOOL));
 }
+
 
 DECLARE_PYFN(&py_rowfn)
     ->name("rowall")

@@ -66,9 +66,12 @@ static inline Column _rowsd(colvec&& columns) {
 }
 
 
-Column FExpr_RowSd::apply_function(colvec&& columns) const {
+Column FExpr_RowSd::apply_function(colvec&& columns,
+                                   const size_t nrows,
+                                   const size_t) const
+{
   if (columns.empty()) {
-    return Const_ColumnImpl::make_na_column(1);
+    return Column(new ConstNa_ColumnImpl(nrows, SType::FLOAT64));
   }
   SType res_stype = common_numeric_stype(columns);
   if (res_stype == SType::INT32 || res_stype == SType::INT64) {

@@ -50,29 +50,24 @@ static bool op_rowany(size_t i, int8_t* out, const colvec& columns) {
 
 
 
-Column FExpr_RowAny::apply_function(colvec&& columns) const {
-  size_t ncols = columns.size();
-  size_t nrows = ncols? columns[0].nrows() : 1;
-  colvec columns_;
-  columns_.reserve(ncols);
-
-  for (size_t i = 0; i < ncols; ++i) {
+Column FExpr_RowAny::apply_function(colvec&& columns,
+                                    const size_t nrows,
+                                    const size_t ncols) const {
+  // No non-void columns
+  if (columns.empty()) {
+    // `ncols == 0` tests that there is no void columns
+    return Const_ColumnImpl::make_bool_column(nrows, ncols == 0);
+  }
+  for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    if (!columns[i].type().is_boolean_or_void()) {
+    if (!columns[i].type().is_boolean()) {
       throw TypeError() << "Function `rowany` requires a sequence of boolean "
                            "columns, however column " << i << " has type `"
                         << columns[i].stype() << "`";
     }
-    // Filter out void columns, since they don't affect result of `rowany()`
-    if (columns[i].type().is_boolean()) {
-      columns_.push_back(std::move(columns[i]));
-    }
-  }
-  if (columns_.empty()) {
-    return Const_ColumnImpl::make_bool_column(nrows, columns.empty());
   }
   return Column(new FuncNary_ColumnImpl<int8_t>(
-                      std::move(columns_), op_rowany, nrows, SType::BOOL));
+                    std::move(columns), op_rowany, nrows, SType::BOOL));
 }
 
 

@@ -50,11 +50,13 @@ static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
 }
 
 
-Column FExpr_RowCount::apply_function(colvec&& columns) const {
+Column FExpr_RowCount::apply_function(colvec&& columns,
+                                      const size_t nrows,
+                                      const size_t) const
+{
   if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+    return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT32);
   }
-  size_t nrows = columns[0].nrows();
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
     columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
