@@ -86,7 +86,7 @@ class FExpr_cummax : public FExpr_Func {
     template <typename T>
     Column make(Column&& col, SType stype, const Groupby& gby) const {
       if (col.stype() == SType::VOID) {
-        return Column(new ConstInt_ColumnImpl(col.nrows(), 0, stype));
+        return Column(new ConstNa_ColumnImpl(col.nrows()));
       } else {
         col.cast_inplace(stype);
         return Column(new Latent_ColumnImpl(
