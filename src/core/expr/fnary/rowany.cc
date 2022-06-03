@@ -54,9 +54,9 @@ Column FExpr_RowAny::apply_function(colvec&& columns,
                                     const size_t nrows,
                                     const size_t ncols) const
 {
-  // No non-void columns
+  // No columns or all the columns are void
   if (columns.empty()) {
-    // `ncols == 0` tests that there is no void columns
+    // `ncols == 0` tests that the original input frame had no columns
     return Const_ColumnImpl::make_bool_column(nrows, ncols == 0);
   }
   for (size_t i = 0; i < columns.size(); ++i) {

@@ -51,8 +51,9 @@ Workframe FExpr_RowFn::evaluate_n(EvalContext& ctx) const {
   size_t ncols = inputs.ncols();
   size_t nrows = 1;
   columns.reserve(ncols);
-  for (size_t i = 0; i < inputs.ncols(); ++i) {
+  for (size_t i = 0; i < ncols; ++i) {
     Column col = inputs.retrieve_column(i);
+    xassert(i == 0 || nrows == col.nrows());
     nrows = col.nrows();
     if (process_void_cols_ || !col.type().is_void()) {
       columns.emplace_back(col);
