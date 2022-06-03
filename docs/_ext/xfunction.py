@@ -1173,6 +1173,7 @@ def locate_cxx_function(name, kind, lines):
                               r"\s*\(.*\)\s*" +
                               r"(?:const\s*|noexcept\s*|override\s*)*" +
                               r"\{\s*")
+    n_signature_lines = 5 # number of lines allowed for the function signature
     expect_closing = None
     istart = None
     ifinish = None
@@ -1187,9 +1188,11 @@ def locate_cxx_function(name, kind, lines):
             if mm:
                 expect_closing = mm.group(1) + "}"
             else:
-                mm = re.match(rx_start, line + lines[i+1])
+                src = "".join(lines[i:i+n_signature_lines])
+                mm = re.match(rx_start, src)
                 if mm:
                     expect_closing = mm.group(1) + "}"
+
     if not istart:
         raise ValueError("Could not find %s `%s` in <FILE>" % (kind, name))
     if not expect_closing:

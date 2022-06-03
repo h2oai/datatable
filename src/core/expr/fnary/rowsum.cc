@@ -29,7 +29,6 @@ namespace dt {
 namespace expr {
 
 
-
 std::string FExpr_RowSum::name() const {
   return "rowsum";
 }
@@ -58,9 +57,12 @@ static inline Column _rowsum(colvec&& columns) {
 }
 
 
-Column FExpr_RowSum::apply_function(colvec&& columns) const {
+Column FExpr_RowSum::apply_function(colvec&& columns,
+                                    const size_t nrows,
+                                    const size_t) const
+{
   if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(1, 0, SType::INT32);
+    return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT32);
   }
   SType res_stype = common_numeric_stype(columns);
   promote_columns(columns, res_stype);
@@ -76,12 +78,12 @@ Column FExpr_RowSum::apply_function(colvec&& columns) const {
   }
 }
 
+
 DECLARE_PYFN(&py_rowfn)
     ->name("rowsum")
     ->docs(doc_dt_rowsum)
     ->allow_varargs()
     ->add_info(FN_ROWSUM);
-
 
 
 

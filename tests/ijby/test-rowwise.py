@@ -249,8 +249,6 @@ def test_rowfirstlast_incompatible_types():
 
 
 
-
-
 #-------------------------------------------------------------------------------
 # rowmax(), rowmin()
 #-------------------------------------------------------------------------------
@@ -265,6 +263,18 @@ def test_rowminmax_int8():
     DT = dt.Frame([[4], [None], [1], [3]], stype=dt.int8)
     RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
     assert_equals(RES, dt.Frame([[4], [1]], stype=dt.int32))
+
+
+def test_rowminmax_void_column1():
+    DT = dt.Frame([[None]] * 3)
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]]))
+
+
+def test_rowminmax_void_column2():
+    DT = dt.Frame([[None], [None], [1.0], [None]])
+    RES = DT[:, [rowmax(f[:]), rowmin(f[:])]]
+    assert_equals(RES, dt.Frame([[1.0], [1.0]]))
 
 
 def test_rowminmax_nas():
@@ -309,6 +319,18 @@ def test_rowargminmax_int8():
     assert_equals(RES, dt.Frame([[0], [2]], stype=dt.int64))
 
 
+def test_rowargminmax_void_column1():
+    DT = dt.Frame([[None]] * 3)
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[None], [None]], stype=dt.int64))
+
+
+def test_rowargminmax_void_column2():
+    DT = dt.Frame([[None], [None], [-100], [None], [1.0], [None]])
+    RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
+    assert_equals(RES, dt.Frame([[4], [2]], stype=dt.int64))
+
+
 def test_rowargminmax_nas():
     DT = dt.Frame([[None]] * 3, stype=dt.int64)
     RES = DT[:, [rowargmax(f[:]), rowargmin(f[:])]]
@@ -343,6 +365,18 @@ def test_rowmean_simple():
     assert_equals(DT[:, rowmean(f[:])], dt.Frame(range(5), stype=dt.float64))
 
 
+def test_rowmean_void_column1():
+    DT = dt.Frame([[None]] * 3)
+    RES = DT[:, rowmean(f[:])]
+    assert_equals(RES, dt.Frame([None], stype=dt.float64))
+
+
+def test_rowmean_void_column2():
+    DT = dt.Frame([[None], [None], [4], [None], [6], [None]])
+    RES = DT[:, rowmean(f[:])]
+    assert_equals(RES, dt.Frame([5], stype=dt.float64))
+
+
 def test_rowmean_floats():
     DT = dt.Frame([(1.5, 6.4, 0.0, None, 7.22),
                    (2.0, -1.1, math.inf, 4.0, 3.2),
@@ -361,7 +395,6 @@ def test_rowmean_wrong_types():
 
 
 
-
 #-------------------------------------------------------------------------------
 # rowsd()
 #-------------------------------------------------------------------------------
@@ -370,6 +403,18 @@ def test_rowsd_single_column():
     DT = dt.Frame(A=range(5))
     RES = DT[:, rowsd(f[:])]
     assert_equals(RES, dt.Frame([None]*5, type=float))
+
+
+def test_rowsd_void_column1():
+    DT = dt.Frame([[None]] * 3)
+    RES = DT[:, rowsd(f[:])]
+    assert_equals(RES, dt.Frame([None], stype=dt.float64))
+
+
+def test_rowsd_void_column2():
+    DT = dt.Frame([[None], [None], [6], [None], [6], [None]])
+    RES = DT[:, rowsd(f[:])]
+    assert_equals(RES, dt.Frame([0], stype=dt.float64))
 
 
 def test_rowsd_same_columns():
@@ -397,10 +442,21 @@ def test_rowsd_wrong_types():
 
 
 
-
 #-------------------------------------------------------------------------------
 # rowsum()
 #-------------------------------------------------------------------------------
+
+def test_rowsum_void_column1():
+    DT = dt.Frame([[None]] * 3)
+    RES = DT[:, rowsum(f[:])]
+    assert_equals(RES, dt.Frame([0], stype=dt.int32))
+
+
+def test_rowsum_void_column2():
+    DT = dt.Frame([[None], [4], [6], [None], [5], [None]])
+    RES = DT[:, rowsum(f[:])]
+    assert_equals(RES, dt.Frame([15], stype=dt.int32))
+
 
 def test_rowsum_bools():
     DT = dt.Frame([[True, True, False, False, None,  None],

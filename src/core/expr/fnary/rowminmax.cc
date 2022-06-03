@@ -34,6 +34,12 @@ namespace expr {
 
 
 template <bool MIN, bool ARG>
+FExpr_RowMinMax<MIN, ARG>::FExpr_RowMinMax(ptrExpr&& args)
+  : FExpr_RowFn(std::move(args), ARG)
+{}
+
+
+template <bool MIN, bool ARG>
 std::string FExpr_RowMinMax<MIN, ARG>::name() const {
   if (ARG) {
     return MIN? "rowargmin" : "rowargmax";
@@ -90,9 +96,12 @@ static inline Column _rowminmax(colvec&& columns) {
 
 
 template <bool MIN, bool ARG>
-Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns) const {
+Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns,
+                                                const size_t nrows,
+                                                const size_t) const
+{
   if (columns.empty()) {
-    return Const_ColumnImpl::make_na_column(1);
+    return Const_ColumnImpl::make_na_column(nrows);
   }
   SType res_stype = common_numeric_stype(columns);
   promote_columns(columns, res_stype);
@@ -107,6 +116,7 @@ Column FExpr_RowMinMax<MIN,ARG>::apply_function(colvec&& columns) const {
                << res_stype;  // LCOV_EXCL_LINE
   }
 }
+
 
 template class FExpr_RowMinMax<true,true>;
 template class FExpr_RowMinMax<false,true>;

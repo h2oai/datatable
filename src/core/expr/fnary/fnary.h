@@ -51,14 +51,23 @@ py::oobj py_rowfn(const py::XArgs& args);
 class FExpr_RowFn : public FExpr_Func {
   private:
     ptrExpr args_;
+    bool process_void_cols_;
+    size_t : 56;
 
   public:
-    FExpr_RowFn(ptrExpr&& args);
+    FExpr_RowFn(ptrExpr&& args, bool process_void_cols = false);
     std::string repr() const override;
     Workframe evaluate_n(EvalContext& ctx) const override;
 
     virtual std::string name() const = 0;
-    virtual Column apply_function(std::vector<Column>&& columns) const = 0;
+    virtual Column apply_function(
+      colvec&& columns,   // columns to process; if `process_void_cols_` is `False`
+                          // void columns are filtered out
+      const size_t nrows, // number of rows in the original input frame; needed in the case
+                          // when all the columns are void and filtered out
+      const size_t ncols  // number of columns in the original input frame,
+                          // including the void columns
+    ) const = 0;
 
     SType common_numeric_stype(const colvec&) const;
     void promote_columns(colvec& columns, SType target_stype) const;
@@ -71,7 +80,9 @@ class FExpr_RowAll : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
@@ -81,7 +92,9 @@ class FExpr_RowAny : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
@@ -91,7 +104,9 @@ class FExpr_RowCount : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
@@ -102,7 +117,9 @@ class FExpr_RowFirstLast : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 extern template class FExpr_RowFirstLast<true>;
@@ -115,8 +132,11 @@ class FExpr_RowMinMax : public FExpr_RowFn {
   public:
     using FExpr_RowFn::FExpr_RowFn;
 
+    FExpr_RowMinMax(ptrExpr&& args);
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 extern template class FExpr_RowMinMax<true,true>;
@@ -131,7 +151,9 @@ class FExpr_RowMean : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
@@ -141,7 +163,9 @@ class FExpr_RowSd : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
@@ -151,7 +175,9 @@ class FExpr_RowSum : public FExpr_RowFn {
     using FExpr_RowFn::FExpr_RowFn;
 
     std::string name() const override;
-    Column apply_function(std::vector<Column>&& columns) const override;
+    Column apply_function(colvec&& columns,
+                          const size_t nrows,
+                          const size_t ncols) const override;
 };
 
 
