@@ -30,8 +30,8 @@ namespace dt {
 namespace expr {
 
 
-FExpr_RowFn::FExpr_RowFn(ptrExpr&& args)
-  : args_(std::move(args))
+FExpr_RowFn::FExpr_RowFn(ptrExpr&& args, bool process_void_cols /* =false */)
+  : args_(std::move(args)), process_void_cols_(process_void_cols)
 {}
 
 
@@ -47,15 +47,22 @@ std::string FExpr_RowFn::repr() const {
 Workframe FExpr_RowFn::evaluate_n(EvalContext& ctx) const {
   Workframe inputs = args_->evaluate_n(ctx);
   Grouping gmode = inputs.get_grouping_mode();
-  std::vector<Column> columns;
-  columns.reserve(inputs.ncols());
-  for (size_t i = 0; i < inputs.ncols(); ++i) {
-    columns.emplace_back(inputs.retrieve_column(i));
+  colvec columns;
+  size_t ncols = inputs.ncols();
+  size_t nrows = 1;
+  columns.reserve(ncols);
+  for (size_t i = 0; i < ncols; ++i) {
+    Column col = inputs.retrieve_column(i);
+    xassert(i == 0 || nrows == col.nrows());
+    nrows = col.nrows();
+    if (process_void_cols_ || !col.type().is_void()) {
+      columns.emplace_back(col);
+    }
   }
 
   Workframe out(ctx);
   out.add_column(
-      apply_function(std::move(columns)),
+      apply_function(std::move(columns), nrows, ncols),
       "", gmode
   );
   return out;
@@ -66,6 +73,7 @@ SType FExpr_RowFn::common_numeric_stype(const colvec& columns) const {
   SType common_stype = SType::INT32;
   for (size_t i = 0; i < columns.size(); ++i) {
     switch (columns[i].stype()) {
+      case SType::VOID:
       case SType::BOOL:
       case SType::INT8:
       case SType::INT16:
