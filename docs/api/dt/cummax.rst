@@ -7,8 +7,7 @@
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` calculate cumulative maximum. The maximum of
-    the missing values is calculated as zero. In the presence of :func:`by()`,
+    For each column from `cols` calculate cumulative maximum. In the presence of :func:`by()`,
     the cumulative maximum is computed per group.
 
     Parameters
@@ -18,7 +17,7 @@
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with the respective cumulative maximum.
+        with the respective cumulative maximums.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
