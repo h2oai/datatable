@@ -70,7 +70,7 @@ def test_cummax_empty_frame():
 def test_cummax_void():
     DT = dt.Frame([None, None, None])
     DT_cummax = DT[:, cummax(f[:])]
-    assert_equals(DT_cummax, dt.Frame([0, 0, 0]/dt.int64))
+    assert_equals(DT_cummax, DT)
 
 
 def test_cummax_trivial():
@@ -98,7 +98,7 @@ def test_cummax_groupby():
 def test_cummax_grouped_column():
     DT = dt.Frame([2, 1, None, 1, 2])
     DT_cummax = DT[:, cummax(f[0]), by(f[0])]
-    DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 1, 2, 2]/dt.int64])
+    DT_ref = dt.Frame([[None, 1, 1, 2, 2], [None, 1, 1, 2, 2]/dt.int64])
     assert_equals(DT_cummax, DT_ref)
 
 

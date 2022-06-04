@@ -57,12 +57,16 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
 
           T val;
           bool is_valid = col_.get_element(i1, &val);
-          data[i1] = is_valid? val : 0;
+          data[i1] = is_valid? val : GETNA<T>();
 
           for (size_t i = i1 + 1; i < i2; ++i) {
             is_valid = col_.get_element(i, &val);
-            val = is_valid? val : 0;
-            data[i] = data[i - 1] > val ? data[i - 1] : val;
+            //val = is_valid? val : GETNA<T>();
+            if (is_valid) {
+              data[i] = data[i - 1] > val ? data[i - 1] : val;
+            } else{
+              data[i] = data[i - 1];
+            }
           }
 
         });
