@@ -177,12 +177,12 @@ Functions
       - Find the smallest element per column
     * - :func:`nunique()`
       - Count the number of unique values per column
+    * - :func:`prod()`
+      - Calculate the product of all values per column
     * - :func:`sd()`
       - Calculate the standard deviation per column
     * - :func:`sum()`
       - Calculate the sum of all values per column
-    * - :func:`prod()`
-      - Calculate the product of all values per column
 
 
 Other
@@ -252,6 +252,7 @@ Other
     median()          <dt/median>
     min()             <dt/min>
     nunique()         <dt/nunique>
+    prod()            <dt/prod>
     qcut()            <dt/qcut>
     rbind()           <dt/rbind>
     repeat()          <dt/repeat>
@@ -273,7 +274,6 @@ Other
     sort()            <dt/sort>
     split_into_nhot() <dt/split_into_nhot>
     sum()             <dt/sum>
-    prod()          <dt/prod>
     symdiff()         <dt/symdiff>
     union()           <dt/union>
     unique()          <dt/unique>
