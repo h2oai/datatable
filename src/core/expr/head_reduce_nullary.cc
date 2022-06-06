@@ -51,7 +51,7 @@ static Column _count0(EvalContext& ctx)
   }
   else {
     auto value = static_cast<int64_t>(ctx.nrows());
-    return Const_ColumnImpl::make_int_column(1, value);
+    return Const_ColumnImpl::make_int_column(1, value, SType::INT64);
   }
 }
 

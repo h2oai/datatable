@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -26,7 +26,7 @@ import numpy as np
 import pytest
 import random
 from datatable import (
-    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr, prod)
+    dt, f, by, ltype, first, last, count, median, sum, mean, cov, corr, prod, sd)
 from datatable import stype, ltype
 from datatable.internal import frame_integrity_check
 from tests import assert_equals, noop
@@ -35,6 +35,36 @@ from tests import assert_equals, noop
 #-------------------------------------------------------------------------------
 # Count
 #-------------------------------------------------------------------------------
+
+def test_count_array_void():
+    A = [None] * 10
+    A_cnt = count(A)
+    assert A_cnt == 0
+
+
+def test_count_dt_void():
+    DT = dt.Frame([None] * 10)
+    DT_cnt = DT[:, [count(f.C0), count()]]
+    assert_equals(DT_cnt, dt.Frame(C0=[0]/dt.int64, count=[10]/dt.int64))
+
+
+def test_count_dt_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_cnt = DT[:, [count(f.C0), count()], by(f.C1)]
+    assert_equals(
+        DT_cnt,
+        dt.Frame(C1=[1, 2]/dt.int32, C0=[0, 0]/dt.int64, count=[2, 3]/dt.int64)
+    )
+
+
+def test_count_dt_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_cnt = DT[:, [count(f.C0), count()], by(f.C0)]
+    assert_equals(
+        DT_cnt,
+        dt.Frame(C0=[None], C1=[0]/dt.int64, count=[5]/dt.int64)
+    )
+
 
 def test_count_array_integer():
     a_in = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1]
@@ -233,6 +263,27 @@ def test_last_empty_frame():
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("mm", [dt.min, dt.max])
+def test_minmax_void(mm):
+    DT = dt.Frame([None] * 10)
+    DT_mm = DT[:, mm(f.C0)]
+    assert_equals(DT_mm, dt.Frame(C0=[None]))
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+def test_minmax_void_per_group(mm):
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_mm = DT[:, mm(f.C0), by(f.C1)]
+    assert_equals(DT_mm, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+def test_minmax_void_grouped(mm):
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_mm = DT[:, mm(f.C0), by(f.C0)]
+    assert_equals(DT_mm, dt.Frame([[None], [None]]))
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
 @pytest.mark.parametrize("st", dt.ltype.int.stypes)
 def test_minmax_integer(mm, st):
     src = [0, 23, 100, 99, -11, 24, -1]
@@ -270,10 +321,27 @@ def test_minmax_nas(mm, st):
 
 
 
-
 #-------------------------------------------------------------------------------
 # sum
 #-------------------------------------------------------------------------------
+
+def test_sum_void():
+    DT = dt.Frame([None] * 10)
+    DT_sum = DT[:, sum(f.C0)]
+    assert_equals(DT_sum, dt.Frame([0]/dt.int64))
+
+
+def test_sum_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_sum = DT[:, sum(f.C0), by(f.C1)]
+    assert_equals(DT_sum, dt.Frame(C1=[1, 2]/dt.int32, C0=[0, 0]/dt.int64))
+
+
+def test_sum_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_sum = DT[:, sum(f.C0), by(f.C0)]
+    assert_equals(DT_sum, dt.Frame([[None], [0]/dt.int64]))
+
 
 def test_sum_simple():
     DT = dt.Frame(A=range(5))
@@ -310,6 +378,24 @@ def test_sum_grouped():
 # Mean
 #-------------------------------------------------------------------------------
 
+def test_mean_void():
+    DT = dt.Frame([None] * 10)
+    DT_mean = DT[:, mean(f.C0)]
+    assert_equals(DT_mean, dt.Frame([None]))
+
+
+def test_mean_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_mean = DT[:, mean(f.C0), by(f.C1)]
+    assert_equals(DT_mean, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+
+
+def test_mean_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_mean = DT[:, mean(f.C0), by(f.C0)]
+    assert_equals(DT_mean, dt.Frame([[None], [None]/dt.float64]))
+
+
 def test_mean_simple():
     DT = dt.Frame(A=range(5))
     RZ = DT[:, mean(f.A)]
@@ -334,6 +420,24 @@ def test_mean_empty_frame():
 #-------------------------------------------------------------------------------
 # Median
 #-------------------------------------------------------------------------------
+
+def test_median_void():
+    DT = dt.Frame([None] * 10)
+    DT_median = DT[:, mean(f.C0)]
+    assert_equals(DT_median, dt.Frame([None]))
+
+
+def test_median_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_median = DT[:, mean(f.C0), by(f.C1)]
+    assert_equals(DT_median, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+
+
+def test_median_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_median = DT[:, mean(f.C0), by(f.C0)]
+    assert_equals(DT_median, dt.Frame([[None], [None]/dt.float64]))
+
 
 def test_median_empty_frame():
     DT = dt.Frame(A=[])
@@ -565,6 +669,24 @@ def test_corr_multiple():
 # prod
 #-------------------------------------------------------------------------------
 
+def test_prod_void():
+    DT = dt.Frame([None] * 10)
+    DT_prod = DT[:, prod(f.C0)]
+    assert_equals(DT_prod, dt.Frame([1]/dt.int64))
+
+
+def test_prod_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_prod = DT[:, prod(f.C0), by(f.C1)]
+    assert_equals(DT_prod, dt.Frame(C1=[1, 2]/dt.int32, C0=[1, 1]/dt.int64))
+
+
+def test_prod_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_prod = DT[:, prod(f.C0), by(f.C0)]
+    assert_equals(DT_prod, dt.Frame([[None], [1]/dt.int64]))
+
+
 def test_prod_simple():
     DT = dt.Frame(A=range(1, 5))
     RES = DT[:, prod(f.A)]
@@ -611,3 +733,57 @@ def test_prod_grouped():
     frame_integrity_check(RES)
     assert_equals(RES, REF)
     assert str(RES)
+
+
+#-------------------------------------------------------------------------------
+# Standard deviation
+#-------------------------------------------------------------------------------
+
+def test_sd_void():
+    DT = dt.Frame([None] * 10)
+    DT_sd = DT[:, sd(f.C0)]
+    assert_equals(DT_sd, dt.Frame([None]/dt.float64))
+
+
+def test_sd_void_per_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_sd = DT[:, sd(f.C0), by(f.C1)]
+    assert_equals(DT_sd,
+                  dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
+
+
+def test_sd_void_grouped():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_sd = DT[:, sd(f.C0), by(f.C0)]
+    assert_equals(DT_sd, dt.Frame([[None], [None]/dt.float64]))
+
+
+def test_sd_single_row():
+    DT = dt.Frame([[3], [None], [1], [5], [None]])
+    RES = DT[:, sd(f[:])]
+    assert_equals(RES, dt.Frame([[None]]*5, type=float))
+
+
+def test_sd_const_columns():
+    DT = dt.Frame([[1]*10, [-1.1]*10, [0]*10, [4.3]*10, [300]*10])
+    RES = DT[:, sd(f[:])]
+    assert_equals(RES, dt.Frame([[0.0]]*5))
+
+
+def test_sd_float_columns():
+    DT = dt.Frame([[1.5, 6.4, 0.0, None, 7.22],
+                   [2.0, -1.1, math.inf, 4.0, 3.2],
+                   [1.5, 9.9, None, None, math.nan],
+                   [math.inf, -math.inf, None, 0.0, math.nan]])
+    RES = DT[:, sd(f[:])]
+    std1 = 3.5676696409094086
+    std3 = 5.939696961966999
+    assert_equals(RES,
+                  dt.Frame([[std1], [None]/dt.float64, [std3], [None]/dt.float64]))
+
+
+def test_sd_wrong_types():
+    DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
+    with pytest.raises(TypeError, match=r"Unable to apply reduce function sd\(\) "
+                       "to a column of type str32"):
+        assert DT[:, sd(f[:])]

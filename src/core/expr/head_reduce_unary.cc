@@ -214,7 +214,9 @@ static Column _prod(Column&& arg, const Groupby& gby) {
 
 static Column compute_prod(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_int_column(gby.size(), 1, SType::INT64);
+    case SType::VOID:    return Const_ColumnImpl::make_int_column(
+                           gby.size(), 1, SType::INT64
+                         );
     case SType::BOOL:
     case SType::INT8:    return _prod<int8_t, int64_t>(std::move(arg), gby);
     case SType::INT16:   return _prod<int16_t, int64_t>(std::move(arg), gby);
@@ -274,6 +276,9 @@ class ProdGrouped_ColumnImpl : public Virtual_ColumnImpl {
 
 static Column compute_gprod(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Const_ColumnImpl::make_int_column(
+                           1, 1, SType::INT64
+                         );
     case SType::BOOL:
     case SType::INT8:    return Column(new ProdGrouped_ColumnImpl<int8_t,  int64_t>(
                                     std::move(arg), gby
@@ -296,10 +301,6 @@ static Column compute_gprod(Column&& arg, const Groupby& gby) {
     default: throw _error("prod", arg.stype());
   }
 }
-
-
-
-
 
 
 
@@ -396,24 +397,27 @@ class SumGrouped_ColumnImpl : public Virtual_ColumnImpl {
 
 static Column compute_gsum(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Const_ColumnImpl::make_int_column(
+                                  1, 0, SType::INT64
+                                );
     case SType::BOOL:
     case SType::INT8:    return Column(new SumGrouped_ColumnImpl<int8_t,  int64_t>(
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     case SType::INT16:   return Column(new SumGrouped_ColumnImpl<int16_t, int64_t>(
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     case SType::INT32:   return Column(new SumGrouped_ColumnImpl<int32_t, int64_t>(
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     case SType::INT64:   return Column(new SumGrouped_ColumnImpl<int64_t, int64_t>(
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     case SType::FLOAT32: return Column(new SumGrouped_ColumnImpl<float,   float>  (
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     case SType::FLOAT64: return Column(new SumGrouped_ColumnImpl<double,  double> (
-                                    std::move(arg), gby
+                                  std::move(arg), gby
                                 ));
     default: throw _error("sum", arg.stype());
   }
@@ -458,6 +462,7 @@ static Column _mean(Column&& arg, const Groupby& gby) {
 
 static Column compute_mean(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
     case SType::BOOL:
     case SType::INT8:    return _mean<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _mean<int16_t>(std::move(arg), gby);
@@ -511,7 +516,7 @@ bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
       m2 += tmp1 * tmp2;
     }
   }
-  if (count <= 1) return false;
+  if (count <= 1 || std::isnan(m2)) return false;
   // In theory, m2 should always be positive, but perhaps it could
   // occasionally become negative due to round-off errors?
   *out = static_cast<U>(m2 >= 0? std::sqrt(m2/static_cast<double>(count - 1))
@@ -534,6 +539,9 @@ static Column _sd(Column&& arg, const Groupby& gby) {
 
 static Column compute_sd(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(
+                                  gby.size(), SType::FLOAT64
+                                ));
     case SType::BOOL:
     case SType::INT8:    return _sd<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _sd<int16_t>(std::move(arg), gby);
@@ -600,7 +608,7 @@ static Column compute_gsd(Column&& arg, const Groupby& gby) {
   }
   SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
                                                  : SType::FLOAT64;
-  if (arg.nrows() == 0) {
+  if (arg.nrows() == 0 || arg_stype == SType::VOID) {
     return Column::new_na_column(1, res_stype);
   }
   return Column(new SdGrouped_ColumnImpl(res_stype, std::move(arg), gby));
@@ -626,7 +634,6 @@ bool count_reducer(const Column& col, size_t i0, size_t i1, int64_t* out) {
 }
 
 
-
 template <typename T>
 static Column _count(Column&& arg, const Groupby& gby) {
   return Column(
@@ -636,8 +643,12 @@ static Column _count(Column&& arg, const Groupby& gby) {
             )));
 }
 
+
 static Column compute_count(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstInt_ColumnImpl(
+                                  gby.size(), 0, SType::INT64
+                                ));
     case SType::BOOL:
     case SType::INT8:    return _count<int8_t>(std::move(arg), gby);
     case SType::INT16:   return _count<int16_t>(std::move(arg), gby);
@@ -657,7 +668,6 @@ static Column compute_count(Column&& arg, const Groupby& gby) {
 //------------------------------------------------------------------------------
 // countna
 //------------------------------------------------------------------------------
-
 
 template <typename T>
 bool op_countna(const Column& col, size_t i0, size_t i1, int64_t* out) {
@@ -756,6 +766,7 @@ static Column _gcount(Column&& arg, const Groupby& gby) {
 template<bool NA=false>
 static Column compute_gcount(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstInt_ColumnImpl(1, 0, SType::INT64));
     case SType::BOOL:
     case SType::INT8:    return _gcount<int8_t,NA>(std::move(arg), gby);
     case SType::INT16:   return _gcount<int16_t,NA>(std::move(arg), gby);
@@ -811,6 +822,7 @@ static Column _min(SType stype, Column&& arg, const Groupby& gby) {
 static Column compute_min(Column&& arg, const Groupby& gby) {
   auto st = arg.stype();
   switch (st) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
     case SType::BOOL:
     case SType::INT8:    return _min<int8_t>(st, std::move(arg), gby);
     case SType::INT16:   return _min<int16_t>(st, std::move(arg), gby);
@@ -858,6 +870,7 @@ static Column _max(SType stype, Column&& arg, const Groupby& gby) {
 static Column compute_max(Column&& arg, const Groupby& gby) {
   auto st = arg.stype();
   switch (st) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
     case SType::BOOL:
     case SType::INT8:    return _max<int8_t>(st, std::move(arg), gby);
     case SType::INT16:   return _max<int16_t>(st, std::move(arg), gby);
@@ -1060,6 +1073,7 @@ static Column compute_median(Column&& arg, const Groupby& gby) {
     return Column::new_na_column(1, arg.stype());
   }
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(1));
     case SType::BOOL:
     case SType::INT8:    return _median<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _median<int16_t>(std::move(arg), gby);
