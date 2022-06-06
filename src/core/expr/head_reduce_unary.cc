@@ -516,7 +516,7 @@ bool sd_reducer(const Column& col, size_t i0, size_t i1, U* out) {
       m2 += tmp1 * tmp2;
     }
   }
-  if (count <= 1) return false;
+  if (count <= 1 || std::isnan(m2)) return false;
   // In theory, m2 should always be positive, but perhaps it could
   // occasionally become negative due to round-off errors?
   *out = static_cast<U>(m2 >= 0? std::sqrt(m2/static_cast<double>(count - 1))
@@ -539,7 +539,9 @@ static Column _sd(Column&& arg, const Groupby& gby) {
 
 static Column compute_sd(Column&& arg, const Groupby& gby) {
   switch (arg.stype()) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(
+                                  gby.size(), SType::FLOAT64
+                                ));
     case SType::BOOL:
     case SType::INT8:    return _sd<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _sd<int16_t>(std::move(arg), gby);

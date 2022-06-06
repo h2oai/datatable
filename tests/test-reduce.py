@@ -742,16 +742,48 @@ def test_prod_grouped():
 def test_sd_void():
     DT = dt.Frame([None] * 10)
     DT_sd = DT[:, sd(f.C0)]
-    assert_equals(DT_sd, dt.Frame([None]))
+    assert_equals(DT_sd, dt.Frame([None]/dt.float64))
 
 
 def test_sd_void_per_group():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
     DT_sd = DT[:, sd(f.C0), by(f.C1)]
-    assert_equals(DT_sd, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+    assert_equals(DT_sd,
+                  dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
 
 
 def test_sd_void_grouped():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
     DT_sd = DT[:, sd(f.C0), by(f.C0)]
     assert_equals(DT_sd, dt.Frame([[None], [None]/dt.float64]))
+
+
+def test_sd_single_row():
+    DT = dt.Frame([[3], [None], [1], [5], [None]])
+    RES = DT[:, sd(f[:])]
+    assert_equals(RES, dt.Frame([[None]]*5, type=float))
+
+
+def test_sd_const_columns():
+    DT = dt.Frame([[1]*10, [-1.1]*10, [0]*10, [4.3]*10, [300]*10])
+    RES = DT[:, sd(f[:])]
+    assert_equals(RES, dt.Frame([[0.0]]*5))
+
+
+def test_sd_float_columns():
+    DT = dt.Frame([[1.5, 6.4, 0.0, None, 7.22],
+                   [2.0, -1.1, math.inf, 4.0, 3.2],
+                   [1.5, 9.9, None, None, math.nan],
+                   [math.inf, -math.inf, None, 0.0, math.nan]])
+    RES = DT[:, sd(f[:])]
+    std1 = 3.5676696409094086
+    std3 = 5.939696961966999
+    assert_equals(RES,
+                  dt.Frame([[std1], [None]/dt.float64, [std3], [None]/dt.float64]))
+
+
+def test_sd_wrong_types():
+    DT = dt.Frame(A=[3, 5, 6], B=["a", "d", "e"])
+    with pytest.raises(TypeError, match=r"Unable to apply reduce function sd\(\) "
+                       "to a column of type str32"):
+        assert DT[:, sd(f[:])]
