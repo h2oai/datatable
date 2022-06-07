@@ -58,18 +58,25 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
           T val;
           bool is_valid = col_.get_element(i1, &val);
           data[i1] = is_valid? val : GETNA<T>();
+          
 
           for (size_t i = i1 + 1; i < i2; ++i) {
-            if (col_.get_element(i, &val)) {
-              // store previous, present
-              // if previous is valid, and present is not valid then previous
-              // if previous is invalid, then present
-              // else compare previous and present to get max
-              data[i] = data[i - 1] > val ? data[i - 1] : val;
-            } else{
-              data[i] = data[i - 1];
+            bool next_is_valid = col_.get_element(i, &val);
+            if (!is_valid & next_is_valid){
+              data[i] = val;
+              is_valid = next_is_valid;
             }
-          }
+            else if (!is_valid & !next_is_valid){
+              data[i] = GETNA<T>();
+            }
+            else if (is_valid & !next_is_valid){
+              data[i] = data[i-1];
+            }
+            else {
+              data[i] = std::max(data[i - 1], val);
+            }
+            }
+          
 
         });
 
