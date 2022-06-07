@@ -69,14 +69,14 @@ class FExpr_cummax : public FExpr_Func {
     Column evaluate1(Column&& col, const Groupby& gby) const {
       SType stype = col.stype();
       switch (stype) {
-        case SType::VOID:
+        case SType::VOID: return Column(new ConstNa_ColumnImpl(col.nrows()));
         case SType::BOOL:
-        case SType::INT8:
-        case SType::INT16:
-        case SType::INT32:
-        case SType::INT64: return make<int64_t>(std::move(col), SType::INT64, gby);
-        case SType::FLOAT32: return make<float>(std::move(col), SType::FLOAT32, gby);
-        case SType::FLOAT64: return make<double>(std::move(col), SType::FLOAT64, gby);
+        case SType::INT8: return make<int8_t>(std::move(col), gby);
+        case SType::INT16: return make<int16_t>(std::move(col), gby);
+        case SType::INT32: return make<int32_t>(std::move(col), gby);
+        case SType::INT64: return make<int64_t>(std::move(col), gby);
+        case SType::FLOAT32: return make<float>(std::move(col), gby);
+        case SType::FLOAT64: return make<double>(std::move(col), gby);
         default: throw TypeError()
           << "Invalid column of type " << stype << " in " << repr();
       }
@@ -84,15 +84,11 @@ class FExpr_cummax : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column&& col, SType stype, const Groupby& gby) const {
-      if (col.stype() == SType::VOID) {
-        return Column(new ConstNa_ColumnImpl(col.nrows()));
-      } else {
-        col.cast_inplace(stype);
+    Column make(Column&& col, const Groupby& gby) const {
         return Column(new Latent_ColumnImpl(
           new Cummax_ColumnImpl<T>(std::move(col), gby)
         ));
-      }
+      
     }
 };
 

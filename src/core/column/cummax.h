@@ -61,6 +61,10 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
 
           for (size_t i = i1 + 1; i < i2; ++i) {
             if (col_.get_element(i, &val)) {
+              // store previous, present
+              // if previous is valid, and present is not valid then previous
+              // if previous is invalid, then present
+              // else compare previous and present to get max
               data[i] = data[i - 1] > val ? data[i - 1] : val;
             } else{
               data[i] = data[i - 1];
