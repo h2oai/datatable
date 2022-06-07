@@ -68,9 +68,9 @@ def test_cumsum_empty_frame():
 
 
 def test_cumsum_void():
-    DT = dt.Frame([None, None, None])
+    DT = dt.Frame([None]*10)
     DT_cumsum = DT[:, cumsum(f[:])]
-    assert_equals(DT_cumsum, dt.Frame([0, 0, 0]/dt.int64))
+    assert_equals(DT_cumsum, dt.Frame([0]*10/dt.int64))
 
 
 def test_cumsum_trivial():
@@ -93,6 +93,12 @@ def test_cumsum_groupby():
     DT_cumsum = DT[:, cumsum(f[:]), by(f[0])]
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, math.inf, math.inf, 1.5, 4.5]/dt.float64])
     assert_equals(DT_cumsum, DT_ref)
+
+
+def test_cumsum_void_grouped_column():
+    DT = dt.Frame([None]*10)
+    DT_cumsum = DT[:, cumsum(f.C0), by(f.C0)]
+    assert_equals(DT_cumsum, dt.Frame([[None]*10, [0]*10/dt.int64]))
 
 
 def test_cumsum_grouped_column():
