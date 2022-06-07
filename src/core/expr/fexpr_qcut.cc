@@ -123,7 +123,10 @@ class FExpr_Qcut : public FExpr_Func {
         for (size_t i = 0; i < ncols; ++i) {
           colvec colv(gb.size());
           Column coli = wf.retrieve_column(i);
-          bool is_grouped = ctx.has_group_column(wf.get_frame_id(i), wf.get_column_id(i));
+          bool is_grouped = ctx.has_group_column(
+                              wf.get_frame_id(i),
+                              wf.get_column_id(i)
+                            );
 
           for (size_t j = 0; j < gb.size(); ++j) {
             // extact j's group as a column
