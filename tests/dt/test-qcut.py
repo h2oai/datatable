@@ -119,6 +119,13 @@ def test_qcut_zerorow_frame():
     assert_equals(DT_qcut, dt.Frame([[] / dt.int32, [] / dt.int32]))
 
 
+def test_qcut_void():
+    src = [None] * 10
+    DT = dt.Frame(src)
+    DT_qcut = DT[:, qcut(f.C0)]
+    assert_equals(DT_qcut, dt.Frame(src/dt.int32))
+
+
 def test_qcut_trivial():
     DT = dt.Frame({"trivial": range(10)})
     DT_qcut = DT[:, qcut(f[:])]

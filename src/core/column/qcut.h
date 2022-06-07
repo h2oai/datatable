@@ -61,14 +61,14 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     int32_t nquantiles_;
-    bool is_grouped_;
+    bool is_const_;
     size_t : 24;
 
   public:
-    Qcut_ColumnImpl(Column&& col, int32_t nquantiles, bool is_grouped = false)
+    Qcut_ColumnImpl(Column&& col, int32_t nquantiles, bool is_const = false)
       : Virtual_ColumnImpl(col.nrows(), dt::SType::INT32),
         nquantiles_(nquantiles),
-        is_grouped_(is_grouped)
+        is_const_(is_const)
     {
       xassert(nquantiles > 0);
       xassert(col.ltype() != dt::LType::OBJECT);
@@ -80,14 +80,14 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
       RiGb res;
       RowIndex ri;
       Groupby gb;
-      if (!is_grouped_) {
+      if (!is_const_) {
         res = group({col_}, {SortFlag::NONE});
         ri = std::move(res.first);
         gb = std::move(res.second);
       }
 
       // If there is one group only, fill it with constants or NA's.
-      if (is_grouped_ || gb.size() == 1) {
+      if (is_const_ || gb.size() == 1) {
         if (col_.get_element_isvalid(0)) {
           col_tmp = Column(new ConstInt_ColumnImpl(
                       col_.nrows(),
