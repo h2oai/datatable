@@ -81,6 +81,13 @@ def test_cummax_trivial():
     assert_equals(DT, DT_cummax)
 
 
+def test_cummax_bool():
+    DT = dt.Frame([False, None, True, False, True])
+    DT_cummax = DT[:, cummax(f[:])]
+    print(DT_cummax)
+    # assert_equals(DT_cummax, DT)
+
+
 def test_cummax_small():
     DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
     DT_cummax = DT[:, cummax(f[:])]

@@ -75,7 +75,7 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
             else {
               data[i] = std::max(data[i - 1], val);
             }
-            }
+          }
           
 
         });
