@@ -56,24 +56,16 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
           size_t i2 = size_t(offsets[gi + 1]);
 
           T val;
-          bool is_valid = col_.get_element(i1, &val);
-          data[i1] = is_valid? val : GETNA<T>();
-          
+          bool res_valid = col_.get_element(i1, &val);
+          data[i1] = res_valid? val : GETNA<T>();
 
           for (size_t i = i1 + 1; i < i2; ++i) {
-            bool next_is_valid = col_.get_element(i, &val);
-            if (!is_valid & next_is_valid){
-              data[i] = val;
-              is_valid = next_is_valid;
-            }
-            else if (!is_valid & !next_is_valid){
-              data[i] = GETNA<T>();
-            }
-            else if (is_valid & !next_is_valid){
-              data[i] = data[i-1];
-            }
-            else {
-              data[i] = std::max(data[i - 1], val);
+            bool is_valid = col_.get_element(i, &val);
+            if (is_valid) {
+              data[i] = (res_valid && data[i - 1] > val)? data[i - 1] : val;
+              res_valid = true;
+            } else {
+              data[i] = data[i - 1];
             }
           }
           

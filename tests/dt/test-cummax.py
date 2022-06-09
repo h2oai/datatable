@@ -82,21 +82,20 @@ def test_cummax_trivial():
 
 
 def test_cummax_bool():
-    DT = dt.Frame([False, None, True, False, True])
+    DT = dt.Frame([None, False, None, True, False, True])
     DT_cummax = DT[:, cummax(f[:])]
-    print(DT_cummax)
-    # assert_equals(DT_cummax, DT)
+    assert_equals(DT_cummax, dt.Frame([None, False, False, True, True, True]))
 
 
 def test_cummax_small():
-    DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
+    DT = dt.Frame([range(5), [None, -1, None, 5.5, 3]])
     DT_cummax = DT[:, cummax(f[:])]
-    DT_ref = dt.Frame([[0, 1, 2, 3, 4], [-1, 1, 1, 2, 5.5]])
+    DT_ref = dt.Frame([[0, 1, 2, 3, 4], [None, -1, -1, 5.5, 5.5]])
     assert_equals(DT_cummax, DT_ref)
 
 
 def test_cummax_groupby():
-    DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
+    DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, None, 3]])
     DT_cummax = DT[:, cummax(f[:]), by(f[0])]
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, math.inf, math.inf, 1.5, 3]/dt.float64])
     assert_equals(DT_cummax, DT_ref)
