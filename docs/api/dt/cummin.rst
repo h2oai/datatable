@@ -45,43 +45,43 @@
         [5 rows x 4 columns]
 
 
-    Calculate the cumulative maximum in a single column::
+    Calculate the cumulative minimum in a single column::
 
-        >>> DT[:, dt.cummax(f.A)]
+        >>> DT[:, dt.cummin(f.A)]
            |     A
-           | int64
+           | int32
         -- + -----
          0 |     2
          1 |     2
-         2 |     5
-         3 |     5
-         4 |     5
+         2 |     2
+         3 |    -1
+         4 |    -1
         [5 rows x 1 column]
 
 
-    Calculate the cumulative maximum in multiple columns::
+    Calculate the cumulative minimum in multiple columns::
 
-        >>> DT[:, dt.cummax(f[:-1])]
+        >>> DT[:, dt.cummin(f[:-1])]
            |     A     B        C
-           | int64  void  float64
+           | int32  void  float64
         -- + -----  ----  -------
          0 |     2    NA      5.4
-         1 |     2    NA      5.4
-         2 |     5    NA      5.4
-         3 |     5    NA      5.4
-         4 |     5    NA      5.4
+         1 |     2    NA      3  
+         2 |     2    NA      2.2
+         3 |    -1    NA      2.2
+         4 |    -1    NA      2.2
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate the cumulative maximum within each group::
+    In the presence of :func:`by()` calculate the cumulative minimum within each group::
 
-        >>> DT[:, dt.cummax(f[:]), by('D')]
+        >>> DT[:, dt.cummin(f[:]), by('D')]
            | D          A     B        C
-           | str32  int64  void  float64
+           | str32  int32  void  float64
         -- + -----  -----  ----  -------
-         0 | a          2    NA    5.4  
-         1 | a          2    NA    5.4  
-         2 | b          5    NA    2.2  
-         3 | b          5    NA    4.323
-         4 | b          5    NA    4.323
+         0 | a          2    NA      5.4
+         1 | a          2    NA      3  
+         2 | b          5    NA      2.2
+         3 | b         -1    NA      2.2
+         4 | b         -1    NA      2.2
         [5 rows x 4 columns]

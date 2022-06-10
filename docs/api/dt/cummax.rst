@@ -49,7 +49,7 @@
 
         >>> DT[:, dt.cummax(f.A)]
            |     A
-           | int64
+           | int32
         -- + -----
          0 |     2
          1 |     2
@@ -63,7 +63,7 @@
 
         >>> DT[:, dt.cummax(f[:-1])]
            |     A     B        C
-           | int64  void  float64
+           | int32  void  float64
         -- + -----  ----  -------
          0 |     2    NA      5.4
          1 |     2    NA      5.4
@@ -77,7 +77,7 @@
 
         >>> DT[:, dt.cummax(f[:]), by('D')]
            | D          A     B        C
-           | str32  int64  void  float64
+           | str32  int32  void  float64
         -- + -----  -----  ----  -------
          0 | a          2    NA    5.4  
          1 | a          2    NA    5.4  
