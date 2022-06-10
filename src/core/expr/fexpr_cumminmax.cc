@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/cummax.h"
+#include "column/cumminmax.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -33,23 +33,25 @@
 namespace dt {
 namespace expr {
 
-class FExpr_cummax : public FExpr_Func {
+template <bool MIN>
+class FExpr_CumMinMax : public FExpr_Func {
   private:
     ptrExpr arg_;
 
   public:
-    FExpr_cummax(ptrExpr&& arg)
+    FExpr_CumMinMax(ptrExpr&& arg)
       : arg_(std::move(arg)) {}
 
-    std::string repr() const override{
-      std::string out = "cummax(";
+    std::string repr() const override {
+      std::string out = MIN? "cummin" : "cummax";
+      out += '(';
       out += arg_->repr();
       out += ')';
       return out;
     }
 
 
-    Workframe evaluate_n(EvalContext& ctx) const override{
+    Workframe evaluate_n(EvalContext& ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = Groupby::single_group(wf.nrows());
 
@@ -86,7 +88,7 @@ class FExpr_cummax : public FExpr_Func {
     template <typename T>
     Column make(Column&& col, const Groupby& gby) const {
       return Column(new Latent_ColumnImpl(
-        new Cummax_ColumnImpl<T>(std::move(col), gby)
+        new CumMinMax_ColumnImpl<T, MIN>(std::move(col), gby)
       ));
     }
 };
@@ -94,7 +96,13 @@ class FExpr_cummax : public FExpr_Func {
 
 static py::oobj pyfn_cummax(const py::XArgs& args) {
   auto cummax = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_cummax(as_fexpr(cummax)));
+  return PyFExpr::make(new FExpr_CumMinMax<false>(as_fexpr(cummax)));
+}
+
+
+static py::oobj pyfn_cummin(const py::XArgs& args) {
+  auto cummin = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_CumMinMax<true>(as_fexpr(cummin)));
 }
 
 
@@ -104,5 +112,14 @@ DECLARE_PYFN(&pyfn_cummax)
     ->arg_names({"cummax"})
     ->n_positional_args(1)
     ->n_required_args(1);
+
+
+DECLARE_PYFN(&pyfn_cummin)
+    ->name("cummin")
+    ->docs(doc_dt_cummin)
+    ->arg_names({"cummin"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
+
 
 }}  // dt::expr

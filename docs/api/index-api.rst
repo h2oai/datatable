@@ -236,6 +236,7 @@ Other
     count()           <dt/count>
     countna()         <dt/countna>
     cov()             <dt/cov>
+    cummin()          <dt/cummin>
     cummax()          <dt/cummax>
     cumsum()          <dt/cumsum>
     cut()             <dt/cut>

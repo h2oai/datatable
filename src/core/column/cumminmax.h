@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_CUMMAX_h
-#define dt_COLUMN_CUMMAX_h
+#ifndef dt_COLUMN_CUMMINMAX_h
+#define dt_COLUMN_CUMMINMAX_h
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -28,14 +28,14 @@
 namespace dt {
 
 
-template <typename T>
-class Cummax_ColumnImpl : public Virtual_ColumnImpl {
+template <typename T, bool MIN>
+class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     Groupby gby_;
 
   public:
-    Cummax_ColumnImpl(Column&& col, const Groupby& gby)
+    CumMinMax_ColumnImpl(Column&& col, const Groupby& gby)
       : Virtual_ColumnImpl(col.nrows(), col.stype()),
         col_(std::move(col)),
         gby_(gby)
@@ -62,7 +62,11 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
           for (size_t i = i1 + 1; i < i2; ++i) {
             bool is_valid = col_.get_element(i, &val);
             if (is_valid) {
-              data[i] = (res_valid && data[i - 1] > val)? data[i - 1] : val;
+              if (MIN) {
+                data[i] = (res_valid && data[i - 1] < val)? data[i - 1] : val;
+              } else {
+                data[i] = (res_valid && data[i - 1] > val)? data[i - 1] : val;
+              }
               res_valid = true;
             } else {
               data[i] = data[i - 1];
@@ -77,7 +81,7 @@ class Cummax_ColumnImpl : public Virtual_ColumnImpl {
 
 
     ColumnImpl* clone() const override {
-      return new Cummax_ColumnImpl(Column(col_), gby_);
+      return new CumMinMax_ColumnImpl(Column(col_), gby_);
     }
 
     size_t n_children() const noexcept override {

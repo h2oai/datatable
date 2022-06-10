@@ -108,7 +108,7 @@ def test_qcut_empty_frame():
     DT = dt.Frame()
     expr_qcut = qcut(DT)
     assert isinstance(expr_qcut, FExpr)
-    assert_equals(DT[:, f[:]], DT)
+    assert_equals(DT[:, qcut(f[:])], DT)
 
 
 def test_qcut_zerorow_frame():
