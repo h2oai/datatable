@@ -8,7 +8,7 @@
     .. x-version-added:: 1.1.0
 
     For each column from `cols` calculate cumulative minimum. In the presence of :func:`by()`,
-    the cumulative minimum is computed per group.
+    the cumulative minimum is computed within each group.
 
     Parameters
     ----------
@@ -73,7 +73,7 @@
         [5 rows x 3 columns]
 
 
-    Calculate the cumulative maximum per group in the presence of :func:`by()`::
+    In the presence of :func:`by()` calculate the cumulative maximum within each group::
 
         >>> DT[:, dt.cummax(f[:]), by('D')]
            | D          A     B        C
