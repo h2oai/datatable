@@ -451,3 +451,8 @@ def test_cummax():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummax()], DT[:, dt.cummax(f.A)])
 
+def test_cummin():
+    assert str(dt.cummin(f.A)) == str(f.A.cummin())
+    assert str(dt.cummin(f[:])) == str(f[:].cummin())
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.cummin()], DT[:, dt.cummin(f.A)])
