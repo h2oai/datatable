@@ -1,7 +1,7 @@
 
 .. xfunction:: datatable.cummax
-    :src: src/core/expr/fexpr_cummax.cc pyfn_cummax
-    :tests: tests/dt/test-cummax.py
+    :src: src/core/expr/fexpr_cumminmax.cc pyfn_cummax
+    :tests: tests/dt/test-cumminmax.py
     :cvar: doc_dt_cummax
     :signature: cummax(cols)
 
