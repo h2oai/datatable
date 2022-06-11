@@ -9,7 +9,7 @@
 
     For each column from `cols` calculate cumulative sum. The sum of
     the missing values is calculated as zero. In the presence of :func:`by()`,
-    the cumulative sum is computed per group.
+    the cumulative sum is computed within each group.
 
     Parameters
     ----------
@@ -74,7 +74,7 @@
         [5 rows x 3 columns]
 
 
-    Calculate cumulative sums per group in the presence of :func:`by()`::
+    In the presence of :func:`by()` calculate cumulative sums within each group::
 
         >>> DT[:, dt.cumsum(f[:]), by('D')]
            | D          A      B        C

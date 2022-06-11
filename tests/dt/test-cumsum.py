@@ -64,7 +64,7 @@ def test_cumsum_empty_frame():
     DT = dt.Frame()
     expr_cumsum = cumsum(DT)
     assert isinstance(expr_cumsum, FExpr)
-    assert_equals(DT[:, f[:]], DT)
+    assert_equals(DT[:, cumsum(f[:])], DT)
 
 
 def test_cumsum_void():

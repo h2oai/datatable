@@ -295,25 +295,87 @@ DECLARE_METHOD(&PyFExpr::re_match)
 // Miscellaneous
 //------------------------------------------------------------------------------
 
-oobj PyFExpr::sum(const XArgs&) {
-  auto sumFn = oobj::import("datatable", "sum");
-  return sumFn.call({this});
+
+oobj PyFExpr::as_type(const XArgs& args) {
+  auto as_typeFn = oobj::import("datatable", "as_type");
+  oobj new_type = args[0].to_oobj();
+  return as_typeFn.call({this, new_type});
 }
 
-DECLARE_METHOD(&PyFExpr::sum)
-    ->name("sum")
-    ->docs(dt::doc_FExpr_sum);
+DECLARE_METHOD(&PyFExpr::as_type)
+    ->name("as_type")
+    ->docs(dt::doc_FExpr_as_type)
+    ->arg_names({"new_type"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
 
-oobj PyFExpr::prod(const XArgs&) {
-  auto prodFn = oobj::import("datatable", "prod");
-  return prodFn.call({this});
+oobj PyFExpr::count(const XArgs&) {
+  auto countFn = oobj::import("datatable", "count");
+  return countFn.call({this});
 }
 
-DECLARE_METHOD(&PyFExpr::prod)
-    ->name("prod")
-    ->docs(dt::doc_FExpr_prod);
+DECLARE_METHOD(&PyFExpr::count)
+    ->name("count")
+    ->docs(dt::doc_FExpr_count);
 
+
+oobj PyFExpr::countna(const XArgs&) {
+  auto countnaFn = oobj::import("datatable", "countna");
+  return countnaFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::countna)
+    ->name("countna")
+    ->docs(dt::doc_FExpr_countna);
+
+oobj PyFExpr::cummax(const XArgs&) {
+  auto cummaxFn = oobj::import("datatable", "cummax");
+  return cummaxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cummax)
+    ->name("cummax")
+    ->docs(dt::doc_FExpr_cummax);
+
+oobj PyFExpr::cummin(const XArgs&) {
+  auto cumminFn = oobj::import("datatable", "cummin");
+  return cumminFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cummin)
+    ->name("cummin")
+    ->docs(dt::doc_FExpr_cummin);
+
+
+oobj PyFExpr::cumsum(const XArgs&) {
+  auto cumsumFn = oobj::import("datatable", "cumsum");
+  return cumsumFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cumsum)
+    ->name("cumsum")
+    ->docs(dt::doc_FExpr_cumsum);
+
+
+oobj PyFExpr::first(const XArgs&) {
+  auto firstFn = oobj::import("datatable", "first");
+  return firstFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::first)
+    ->name("first")
+    ->docs(dt::doc_FExpr_first);
+
+
+oobj PyFExpr::last(const XArgs&) {
+  auto lastFn = oobj::import("datatable", "last");
+  return lastFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::last)
+    ->name("last")
+    ->docs(dt::doc_FExpr_last);
 
 oobj PyFExpr::max(const XArgs&) {
   auto maxFn = oobj::import("datatable", "max");
@@ -358,6 +420,25 @@ DECLARE_METHOD(&PyFExpr::min)
     ->docs(dt::doc_FExpr_min);
 
 
+oobj PyFExpr::nunique(const XArgs&) {
+  auto nuniqueFn = oobj::import("datatable", "nunique");
+  return nuniqueFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::nunique)
+    ->name("nunique")
+    ->docs(dt::doc_FExpr_nunique);
+
+oobj PyFExpr::prod(const XArgs&) {
+  auto prodFn = oobj::import("datatable", "prod");
+  return prodFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::prod)
+    ->name("prod")
+    ->docs(dt::doc_FExpr_prod);
+
+
 
 oobj PyFExpr::rowall(const XArgs&) {
   auto rowallFn = oobj::import("datatable", "rowall");
@@ -379,6 +460,23 @@ DECLARE_METHOD(&PyFExpr::rowany)
     ->name("rowany")
     ->docs(dt::doc_FExpr_rowany);
 
+oobj PyFExpr::rowargmax(const XArgs&) {
+  auto rowargmaxFn = oobj::import("datatable", "rowargmax");
+  return rowargmaxFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::rowargmax)
+    ->name("rowargmax")
+    ->docs(dt::doc_FExpr_rowargmax);
+
+oobj PyFExpr::rowargmin(const XArgs&) {
+  auto rowargminFn = oobj::import("datatable", "rowargmin");
+  return rowargminFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::rowargmin)
+    ->name("rowargmin")
+    ->docs(dt::doc_FExpr_rowargmin);
 
 
 oobj PyFExpr::rowcount(const XArgs&) {
@@ -413,14 +511,6 @@ DECLARE_METHOD(&PyFExpr::rowlast)
     ->docs(dt::doc_FExpr_rowlast);
 
 
-oobj PyFExpr::rowargmax(const XArgs&) {
-  auto rowargmaxFn = oobj::import("datatable", "rowargmax");
-  return rowargmaxFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::rowargmax)
-    ->name("rowargmax")
-    ->docs(dt::doc_FExpr_rowargmax);
 
 
 oobj PyFExpr::rowmax(const XArgs&) {
@@ -444,15 +534,6 @@ DECLARE_METHOD(&PyFExpr::rowmean)
     ->docs(dt::doc_FExpr_rowmean);
 
 
-oobj PyFExpr::rowargmin(const XArgs&) {
-  auto rowargminFn = oobj::import("datatable", "rowargmin");
-  return rowargminFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::rowargmin)
-    ->name("rowargmin")
-    ->docs(dt::doc_FExpr_rowargmin);
-
 
 oobj PyFExpr::rowmin(const XArgs&) {
   auto rowminFn = oobj::import("datatable", "rowmin");
@@ -462,7 +543,6 @@ oobj PyFExpr::rowmin(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::rowmin)
     ->name("rowmin")
     ->docs(dt::doc_FExpr_rowmin);
-
 
 
 oobj PyFExpr::rowsd(const XArgs&) {
@@ -486,7 +566,6 @@ DECLARE_METHOD(&PyFExpr::rowsum)
     ->docs(dt::doc_FExpr_rowsum);
 
 
-
 oobj PyFExpr::sd(const XArgs&) {
   auto sdFn = oobj::import("datatable", "sd");
   return sdFn.call({this});
@@ -495,7 +574,6 @@ oobj PyFExpr::sd(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::sd)
     ->name("sd")
     ->docs(dt::doc_FExpr_sd);
-
 
 
 oobj PyFExpr::shift(const XArgs& args) {
@@ -510,83 +588,16 @@ DECLARE_METHOD(&PyFExpr::shift)
     ->arg_names({"n"})
     ->n_positional_or_keyword_args(1);
 
-
-
-oobj PyFExpr::last(const XArgs&) {
-  auto lastFn = oobj::import("datatable", "last");
-  return lastFn.call({this});
+oobj PyFExpr::sum(const XArgs&) {
+  auto sumFn = oobj::import("datatable", "sum");
+  return sumFn.call({this});
 }
 
-DECLARE_METHOD(&PyFExpr::last)
-    ->name("last")
-    ->docs(dt::doc_FExpr_last);
+DECLARE_METHOD(&PyFExpr::sum)
+    ->name("sum")
+    ->docs(dt::doc_FExpr_sum);
 
 
-
-oobj PyFExpr::count(const XArgs&) {
-  auto countFn = oobj::import("datatable", "count");
-  return countFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::count)
-    ->name("count")
-    ->docs(dt::doc_FExpr_count);
-
-
-
-oobj PyFExpr::first(const XArgs&) {
-  auto firstFn = oobj::import("datatable", "first");
-  return firstFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::first)
-    ->name("first")
-    ->docs(dt::doc_FExpr_first);
-
-
-oobj PyFExpr::as_type(const XArgs& args) {
-  auto as_typeFn = oobj::import("datatable", "as_type");
-  oobj new_type = args[0].to_oobj();
-  return as_typeFn.call({this, new_type});
-}
-
-
-DECLARE_METHOD(&PyFExpr::as_type)
-    ->name("as_type")
-    ->docs(dt::doc_FExpr_as_type)
-    ->arg_names({"new_type"})
-    ->n_positional_args(1)
-    ->n_required_args(1);
-
-
-oobj PyFExpr::nunique(const XArgs&) {
-  auto nuniqueFn = oobj::import("datatable", "nunique");
-  return nuniqueFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::nunique)
-    ->name("nunique")
-    ->docs(dt::doc_FExpr_nunique);
-    
-
-oobj PyFExpr::countna(const XArgs&) {
-  auto countnaFn = oobj::import("datatable", "countna");
-  return countnaFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::countna)
-    ->name("countna")
-    ->docs(dt::doc_FExpr_countna);
-
-
-oobj PyFExpr::cumsum(const XArgs&) {
-  auto cumsumFn = oobj::import("datatable", "cumsum");
-  return cumsumFn.call({this});
-}
-
-DECLARE_METHOD(&PyFExpr::cumsum)
-    ->name("cumsum")
-    ->docs(dt::doc_FExpr_cumsum);
 
 //------------------------------------------------------------------------------
 // Class decoration
