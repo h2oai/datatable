@@ -165,6 +165,8 @@ Functions
       - Count the number of NA values per column
     * - :func:`cummax()`
       - Calculate the cumulative maximum of values per column
+    * - :func:`cummin()`
+      - Calculate the cumulative minimum of values per column
     * - :func:`cumsum()`
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
@@ -236,8 +238,8 @@ Other
     count()           <dt/count>
     countna()         <dt/countna>
     cov()             <dt/cov>
-    cummin()          <dt/cummin>
     cummax()          <dt/cummax>
+    cummin()          <dt/cummin>
     cumsum()          <dt/cumsum>
     cut()             <dt/cut>
     dt                <dt/dt>

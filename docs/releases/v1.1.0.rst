@@ -101,9 +101,6 @@
     -[fix] Reducers and row-wise functions now support :attr:`void <dt.Type.void>`
        columns. [#3284]
 
-    -[fix] All the row-wise functions now support :attr:`void <dt.Type.void>`
-       columns. [#3284]
-
 
     fread
     -----
