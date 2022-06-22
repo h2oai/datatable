@@ -631,9 +631,9 @@ ansiColor('xterm') {
                                 findFiles(glob: "*").each {
                                     def sha256 = sh(script: """python -c "import hashlib;print(hashlib.sha256(open('${it.name}', 'rb').read()).hexdigest())" """,
                                                     returnStdout: true).trim()
-                                    def s3path = "dev/datatable-${versionText}/${it.name}"
-                                    s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}/${s3path}\n"
-                                    pyindex_links += """  <li><a href="${S3_URL}/${s3path}#sha256=${sha256}">${it.name}</a></li>\n"""
+                                    def s3path = "/dev/datatable-${versionText}/"
+                                    s3cmd += "s3cmd put -P dist/${it.name} ${S3_BASE}${s3path}${it.name}\n"
+                                    pyindex_links += """  <li><a href="${S3_URL}${s3path}${encodeURL(it.name)}#sha256=${sha256}">${it.name}</a></li>\n"""
                                 }
                             }
                             println("Adding links to index.html:\n${pyindex_links}")
