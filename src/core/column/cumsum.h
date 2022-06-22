@@ -28,7 +28,7 @@
 namespace dt {
 
 
-template <typename T>
+template <typename T, bool MIN>
 class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -61,7 +61,12 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
 
           for (size_t i = i1 + 1; i < i2; ++i) {
             is_valid = col_.get_element(i, &val);
+            if (MIN) {
             data[i] = data[i - 1] + (is_valid? val : 0);
+            }
+            else {
+              data[i] = data[i - 1] * (is_valid? val : 0);
+            }
           }
 
         });
