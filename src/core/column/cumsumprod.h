@@ -29,13 +29,14 @@ namespace dt {
 
 
 template <typename T, bool MIN>
-class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
+// change to Cumsumprod
+class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     Groupby gby_;
 
   public:
-    Cumsum_ColumnImpl(Column&& col, const Groupby& gby)
+    CumSumProd_ColumnImpl(Column&& col, const Groupby& gby)
       : Virtual_ColumnImpl(col.nrows(), col.stype()),
         col_(std::move(col)),
         gby_(gby)
@@ -76,7 +77,7 @@ class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
 
 
     ColumnImpl* clone() const override {
-      return new Cumsum_ColumnImpl(Column(col_), gby_);
+      return new CumSumProd_ColumnImpl(Column(col_), gby_);
     }
 
     size_t n_children() const noexcept override {

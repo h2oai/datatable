@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/cumsum.h"
+#include "column/cumsumprod.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -33,16 +33,18 @@
 namespace dt {
 namespace expr {
 
-class FExpr_cumsum : public FExpr_Func {
+template <bool MIN>
+class FExpr_CumSumProd : public FExpr_Func {
   private:
     ptrExpr arg_;
 
   public:
-    FExpr_cumsum(ptrExpr&& arg)
+    FExpr_CumSumProd(ptrExpr&& arg)
       : arg_(std::move(arg)) {}
 
     std::string repr() const override{
-      std::string out = "cumsum(";
+      std::string out = MIN ? "cumsum" : "cumprod";
+      out += '(';
       out += arg_->repr();
       out += ')';
       return out;
@@ -89,7 +91,7 @@ class FExpr_cumsum : public FExpr_Func {
     Column make(Column&& col, SType stype, const Groupby& gby) const {
       col.cast_inplace(stype);
       return Column(new Latent_ColumnImpl(
-        new Cumsum_ColumnImpl<T>(std::move(col), gby)
+        new CumSumProd_ColumnImpl<T, MIN>(std::move(col), gby)
       ));
     }
 };
@@ -97,7 +99,12 @@ class FExpr_cumsum : public FExpr_Func {
 
 static py::oobj pyfn_cumsum(const py::XArgs& args) {
   auto cumsum = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_cumsum(as_fexpr(cumsum)));
+  return PyFExpr::make(new FExpr_CumSumProd<true>(as_fexpr(cumsum)));
+}
+
+static py::oobj pyfn_cumprod(const py::XArgs& args) {
+  auto cumprod = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_CumSumProd<false>(as_fexpr(cumprod)));
 }
 
 
@@ -105,6 +112,14 @@ DECLARE_PYFN(&pyfn_cumsum)
     ->name("cumsum")
     ->docs(doc_dt_cumsum)
     ->arg_names({"cumsum"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
+
+
+DECLARE_PYFN(&pyfn_cumprod)
+    ->name("cumprod")
+    ->docs(doc_dt_cumprod)
+    ->arg_names({"cumprod"})
     ->n_positional_args(1)
     ->n_required_args(1);
 

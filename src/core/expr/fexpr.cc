@@ -347,6 +347,15 @@ DECLARE_METHOD(&PyFExpr::cummin)
     ->name("cummin")
     ->docs(dt::doc_FExpr_cummin);
 
+oobj PyFExpr::cumprod(const XArgs&) {
+  auto cumprodFn = oobj::import("datatable", "cumprod");
+  return cumprodFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cumprod)
+    ->name("cumprod")
+    ->docs(dt::doc_FExpr_cumprod);
+
 
 oobj PyFExpr::cumsum(const XArgs&) {
   auto cumsumFn = oobj::import("datatable", "cumsum");
