@@ -30,7 +30,7 @@
 
     Create a sample datatable frame::
 
-        >>> from datatable import dt, f
+        >>> from datatable import dt, f, by
         >>> DT = dt.Frame({"A": [2, None, 5, -1, 0],
         ...                "B": [None, None, None, None, None],
         ...                "C": [5.4, 3, 2.2, 4.323, 3], 
