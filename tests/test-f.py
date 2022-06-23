@@ -462,3 +462,4 @@ def test_cumprod():
     assert str(dt.cumprod(f[:])) == str(f[:].cumprod())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cumprod()], DT[:, dt.cumprod(f.A)])
+

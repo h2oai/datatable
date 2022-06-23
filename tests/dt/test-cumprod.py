@@ -106,3 +106,4 @@ def test_cumprod_grouped_column():
     DT_cumprod = DT[:, cumprod(f[0]), by(f[0])]
     DT_ref = dt.Frame([[None, 1, 1, 2, 2], [1, 1, 1, 2, 4]/dt.int64])
     assert_equals(DT_cumprod, DT_ref)
+

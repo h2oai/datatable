@@ -5,3 +5,4 @@
     :signature: cumprod()
 
     Equivalent to :func:`dt.cumprod(self)`.
+
