@@ -43,7 +43,7 @@ class FExpr_CumSumProd : public FExpr_Func {
       : arg_(std::move(arg)) {}
 
     std::string repr() const override{
-      std::string out = MIN ? "cumsum" : "cumprod";
+      std::string out = SUM? "cumsum" : "cumprod";
       out += '(';
       out += arg_->repr();
       out += ')';
