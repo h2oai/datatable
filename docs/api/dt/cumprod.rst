@@ -8,7 +8,7 @@
     .. x-version-added:: 1.1.0
 
     For each column from `cols` calculate cumulative product. The product of
-    the missing values is calculated as zero. In the presence of :func:`by()`,
+    the missing values is calculated as one. In the presence of :func:`by()`,
     the cumulative product is computed within each group.
 
     Parameters
