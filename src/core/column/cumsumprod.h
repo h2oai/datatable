@@ -28,7 +28,7 @@
 namespace dt
 {
 
-  template <typename T, bool MIN>
+  template <typename T, bool SUM>
   // change to Cumsumprod
   class CumSumProd_ColumnImpl : public Virtual_ColumnImpl
   {
@@ -60,7 +60,7 @@ namespace dt
 
             T val;
             bool is_valid = col_.get_element(i1, &val);
-            if (MIN)
+            if (SUM)
             {
               data[i1] = is_valid ? val : 0;
             }
@@ -71,7 +71,7 @@ namespace dt
             for (size_t i = i1 + 1; i < i2; ++i)
             {
               is_valid = col_.get_element(i, &val);
-              if (MIN)
+              if (SUM)
               {
                 data[i] = data[i - 1] + (is_valid ? val : 0);
               }

@@ -33,7 +33,7 @@
 namespace dt {
 namespace expr {
 
-template <bool MIN>
+template <bool SUM>
 class FExpr_CumSumProd : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -71,7 +71,7 @@ class FExpr_CumSumProd : public FExpr_Func {
     Column evaluate1(Column&& col, const Groupby& gby) const {
       SType stype = col.stype();
       switch (stype) {
-        case SType::VOID:    if (MIN) {return Column(new ConstInt_ColumnImpl(
+        case SType::VOID:    if (SUM) {return Column(new ConstInt_ColumnImpl(
                                       col.nrows(), 0, SType::INT64
                                     ));}
                              else {return Column(new ConstInt_ColumnImpl(
@@ -94,7 +94,7 @@ class FExpr_CumSumProd : public FExpr_Func {
     Column make(Column&& col, SType stype, const Groupby& gby) const {
       col.cast_inplace(stype);
       return Column(new Latent_ColumnImpl(
-        new CumSumProd_ColumnImpl<T, MIN>(std::move(col), gby)
+        new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)
       ));
     }
 };
