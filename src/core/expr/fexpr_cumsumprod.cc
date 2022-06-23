@@ -71,9 +71,12 @@ class FExpr_CumSumProd : public FExpr_Func {
     Column evaluate1(Column&& col, const Groupby& gby) const {
       SType stype = col.stype();
       switch (stype) {
-        case SType::VOID:    return Column(new ConstInt_ColumnImpl(
+        case SType::VOID:    if (MIN) {return Column(new ConstInt_ColumnImpl(
                                       col.nrows(), 0, SType::INT64
-                                    ));
+                                    ));}
+                             else {return Column(new ConstInt_ColumnImpl(
+                                      col.nrows(), 1, SType::INT64
+                                    ));}
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:

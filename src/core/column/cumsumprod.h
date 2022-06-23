@@ -58,15 +58,19 @@ class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
 
           T val;
           bool is_valid = col_.get_element(i1, &val);
+          if (MIN){
           data[i1] = is_valid? val : 0;
-
+          }
+          else {
+            data[i1] = is_valid? val : 1;
+          }
           for (size_t i = i1 + 1; i < i2; ++i) {
             is_valid = col_.get_element(i, &val);
             if (MIN) {
             data[i] = data[i - 1] + (is_valid? val : 0);
             }
             else {
-              data[i] = data[i - 1] * (is_valid? val : 0);
+              data[i] = data[i - 1] * (is_valid? val : 1);
             }
           }
 
