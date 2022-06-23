@@ -70,7 +70,7 @@ def test_cumprod_empty_frame():
 def test_cumprod_void():
     DT = dt.Frame([None]*10)
     DT_cumprod = DT[:, cumprod(f[:])]
-    assert_equals(DT_cumprod, dt.Frame([0]*10/dt.int64))
+    assert_equals(DT_cumprod, dt.Frame([1]*10/dt.int64))
 
 
 def test_cumprod_trivial():
@@ -84,7 +84,7 @@ def test_cumprod_trivial():
 def test_cumprod_small():
     DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
     DT_cumprod = DT[:, cumprod(f[:])]
-    DT_ref = dt.Frame([[0, 0, 0, 0, 0]/dt.int64, [-1, -1, -0, -0, -0]/dt.float64])
+    DT_ref = dt.Frame([[0, 0, 0, 0, 0]/dt.int64, [-1, -1, -1, -2, -11]/dt.float64])
     assert_equals(DT_cumprod, DT_ref)
 
 
@@ -98,11 +98,11 @@ def test_cumprod_groupby():
 def test_cumprod_void_grouped_column():
     DT = dt.Frame([None]*10)
     DT_cumprod = DT[:, cumprod(f.C0), by(f.C0)]
-    assert_equals(DT_cumprod, dt.Frame([[None]*10, [0]*10/dt.int64]))
+    assert_equals(DT_cumprod, dt.Frame([[None]*10, [1]*10/dt.int64]))
 
 
 def test_cumprod_grouped_column():
     DT = dt.Frame([2, 1, None, 1, 2])
     DT_cumprod = DT[:, cumprod(f[0]), by(f[0])]
-    DT_ref = dt.Frame([[None, 1, 1, 2, 2], [0, 1, 1, 2, 4]/dt.int64])
+    DT_ref = dt.Frame([[None, 1, 1, 2, 2], [1, 1, 1, 2, 4]/dt.int64])
     assert_equals(DT_cumprod, DT_ref)
