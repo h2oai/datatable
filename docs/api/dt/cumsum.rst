@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.cumsum
-    :src: src/core/expr/fexpr_cumsum.cc pyfn_cumsum
+    :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumsum
     :tests: tests/dt/test-cumsum.py
     :cvar: doc_dt_cumsum
     :signature: cumsum(cols)
