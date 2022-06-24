@@ -29,18 +29,16 @@ namespace dt
 {
 
   template <typename T, bool SUM>
-  // change to Cumsumprod
-  class CumSumProd_ColumnImpl : public Virtual_ColumnImpl
-  {
+  class CumSumProd_ColumnImpl : public Virtual_ColumnImpl{
   private:
     Column col_;
     Groupby gby_;
 
   public:
     CumSumProd_ColumnImpl(Column &&col, const Groupby &gby)
-        : Virtual_ColumnImpl(col.nrows(), col.stype()),
-          col_(std::move(col)),
-          gby_(gby)
+      :Virtual_ColumnImpl(col.nrows(), col.stype()),
+       col_(std::move(col)),
+       gby_(gby)
     {
       xassert(col_.can_be_read_as<T>());
     }
@@ -60,24 +58,20 @@ namespace dt
 
             T val;
             bool is_valid = col_.get_element(i1, &val);
-            if (SUM)
-            {
-              data[i1] = is_valid ? val : 0;
+            if (SUM){
+              data[i1] = is_valid?val:0;
             }
-            else
-            {
-              data[i1] = is_valid ? val : 1;
+            else{
+              data[i1] = is_valid?val:1;
             }
             for (size_t i = i1 + 1; i < i2; ++i)
             {
               is_valid = col_.get_element(i, &val);
-              if (SUM)
-              {
-                data[i] = data[i - 1] + (is_valid ? val : 0);
+              if (SUM){
+                data[i] = data[i - 1] + (is_valid?val:0);
               }
-              else
-              {
-                data[i] = data[i - 1] * (is_valid ? val : 1);
+              else{
+                data[i] = data[i - 1] * (is_valid?val:1);
               }
             }
           });

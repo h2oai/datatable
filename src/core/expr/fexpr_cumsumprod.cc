@@ -46,7 +46,7 @@ namespace dt
 
       std::string repr() const override
       {
-        std::string out = SUM ? "cumsum" : "cumprod";
+        std::string out = SUM?"cumsum":"cumprod";
         out += '(';
         out += arg_->repr();
         out += ')';
@@ -58,8 +58,7 @@ namespace dt
         Workframe wf = arg_->evaluate_n(ctx);
         Groupby gby = Groupby::single_group(wf.nrows());
 
-        if (ctx.has_groupby())
-        {
+        if (ctx.has_groupby()){
           wf.increase_grouping_mode(Grouping::GtoALL);
           gby = ctx.get_groupby();
         }
