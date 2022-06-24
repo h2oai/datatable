@@ -48,7 +48,7 @@ namespace dt
     void materialize(Column &col_out, bool) override
     {
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
-      auto data = static_cast<T *>(col.get_data_editable());
+      auto data = static_cast<T*>(col.get_data_editable());
 
       auto offsets = gby_.offsets_r();
       dt::parallel_for_dynamic(
