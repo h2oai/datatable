@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.cumprod
-    :src: src/core/expr/fexpr_cumprod.cc pyfn_cumprod
+    :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumprod
     :tests: tests/dt/test-cumprod.py
     :cvar: doc_dt_cumprod
     :signature: cumprod(cols)
