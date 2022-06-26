@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -105,7 +105,9 @@ class ThreadPool
     bool in_parallel_region() const noexcept;
     size_t n_threads_in_team() const noexcept;
 
-    static void init_options();
+    #ifndef NO_DT
+      static void init_options();
+    #endif
 
     std::mutex& global_mutex();
 

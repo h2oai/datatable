@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,8 +20,8 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/sentinel_str.h"
-#include "parallel/string_utils.h"  // dt::map_str2str
 #include "python/string.h"
+#include "str/utils.h"            // dt::map_str2str
 #include "utils/assert.h"
 #include "utils/misc.h"
 namespace dt {

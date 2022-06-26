@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,12 @@
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
 #include "utils/macros.h"
-#include "utils/exceptions.h"
+#ifdef NO_DT
+  #include <stdexcept>
+  #include <iostream>
+#else
+  #include "utils/exceptions.h"
+#endif
 
 #if DT_OS_MACOS
   #include <unistd.h>
@@ -51,17 +56,34 @@
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
 #if DT_DEBUG
-  #define wassert(EXPRESSION) \
-    if (!(EXPRESSION)) { \
-      (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+  #ifdef NO_DT
+    #define wassert(EXPRESSION) \
+      if (!(EXPRESSION)) { \
+        std::cerr << "Assertion '" #EXPRESSION "' failed in " __FILE__ ", line " \
+                  << __LINE__ << "\n"; \
+      } ((void)(0))
+  #else
+    #define wassert(EXPRESSION) \
+      if (!(EXPRESSION)) { \
+        (AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
           << __FILE__ << ", line " << __LINE__).to_stderr(); \
-    } ((void)(0))
+      } ((void)(0))
+  #endif
 
-  #define xassert(EXPRESSION) \
-    if (!(EXPRESSION)) { \
-      throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
-          << __FILE__ << ", line " << __LINE__; \
-    } ((void)(0))
+  #ifdef NO_DT
+    #define xassert(EXPRESSION) \
+      if (!(EXPRESSION)) { \
+        throw std::runtime_error("Assertion '" #EXPRESSION "' failed in " __FILE__ \
+                                 ", line " + std::to_string(__LINE__)); \
+      } ((void)(0))
+  #else
+    #define xassert(EXPRESSION) \
+      if (!(EXPRESSION)) { \
+        throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+            << __FILE__ << ", line " << __LINE__; \
+      } ((void)(0))
+  #endif
+
 #else
   #define wassert(EXPRESSION) ((void)0)
   #define xassert(EXPRESSION) ((void)0)
@@ -70,13 +92,19 @@
 
 // XAssert() macro is similar to xassert(), except it works both in
 // debug and in production.
-#define XAssert(EXPRESSION) \
-  if (!(EXPRESSION)) { \
-    throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
-        << __FILE__ << ", line " << __LINE__; \
-  } ((void)(0))
-
-
+#ifdef NO_DT
+  #define XAssert(EXPRESSION) \
+    if (!(EXPRESSION)) { \
+      throw std::runtime_error("Assertion '" #EXPRESSION "' failed in " __FILE__ \
+                               ", line " + std::to_string(__LINE__)); \
+    } ((void)(0))
+#else
+  #define XAssert(EXPRESSION) \
+    if (!(EXPRESSION)) { \
+      throw AssertionError() << "Assertion '" #EXPRESSION "' failed in " \
+          << __FILE__ << ", line " << __LINE__; \
+    } ((void)(0))
+#endif
 
 
 #endif

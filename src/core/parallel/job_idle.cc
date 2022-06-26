@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,14 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "parallel/job_idle.h"
 #include "utils/assert.h"
-#include "utils/exceptions.h"
+#ifndef NO_DT
+  #include "utils/exceptions.h"
+#endif
 #include "parallel/api.h"
+#include "parallel/job_idle.h"
 #include "parallel/thread_pool.h"
 namespace dt {
-
-
 
 
 //------------------------------------------------------------------------------
@@ -91,11 +91,15 @@ void Job_Idle::join() {
   previous_sleep_task_->fall_asleep();
 
   if (saved_exception_) {
-    progress::manager->reset_interrupt_status();
+    #ifndef NO_DT
+      progress::manager->reset_interrupt_status();
+    #endif
     std::rethrow_exception(saved_exception_);
   }
 
-  progress::manager->handle_interrupt();
+  #ifndef NO_DT
+    progress::manager->handle_interrupt();
+  #endif
 }
 
 
@@ -118,7 +122,9 @@ void Job_Idle::add_running_thread() {
 void Job_Idle::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(thpool->global_mutex());
-    progress::manager->set_interrupt();
+    #ifndef NO_DT
+      progress::manager->set_interrupt();
+    #endif
     if (!saved_exception_) {
       saved_exception_ = std::current_exception();
     }
