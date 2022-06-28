@@ -29,93 +29,87 @@
 #include "python/xargs.h"
 #include "stype.h"
 
-namespace dt
-{
-  namespace expr
-  {
+
+namespace dt {
+  namespace expr {
 
     template <bool SUM>
-    class FExpr_CumSumProd : public FExpr_Func
-    {
-    private:
-      ptrExpr arg_;
+    class FExpr_CumSumProd : public FExpr_Func {
+      private:
+        ptrExpr arg_;
 
-    public:
-      FExpr_CumSumProd(ptrExpr &&arg)
-          : arg_(std::move(arg)) {}
+      public:
+        FExpr_CumSumProd(ptrExpr &&arg)
+            : arg_(std::move(arg)) {}
 
-      std::string repr() const override
-      {
-        std::string out = SUM?"cumsum":"cumprod";
-        out += '(';
-        out += arg_->repr();
-        out += ')';
-        return out;
-      }
-
-      Workframe evaluate_n(EvalContext &ctx) const override
-      {
-        Workframe wf = arg_->evaluate_n(ctx);
-        Groupby gby = Groupby::single_group(wf.nrows());
-
-        if (ctx.has_groupby()){
-          wf.increase_grouping_mode(Grouping::GtoALL);
-          gby = ctx.get_groupby();
+        std::string repr() const override {
+          std::string out = SUM? "cumsum" : "cumprod";
+          out += '(';
+          out += arg_->repr();
+          out += ')';
+          return out;
         }
 
-        for (size_t i = 0; i < wf.ncols(); ++i)
-        {
-          Column coli = evaluate1(wf.retrieve_column(i), gby);
-          wf.replace_column(i, std::move(coli));
-        }
-        return wf;
-      }
 
-      Column evaluate1(Column &&col, const Groupby &gby) const
-      {
-        SType stype = col.stype();
-        switch (stype)
-        {
-        case SType::VOID:
-          if (SUM)
-            return Column(new ConstInt_ColumnImpl(
-                col.nrows(), 0, SType::INT64));
-          else
-            return Column(new ConstInt_ColumnImpl(
-                col.nrows(), 1, SType::INT64));
-        case SType::BOOL:
-        case SType::INT8:
-        case SType::INT16:
-        case SType::INT32:
-        case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, gby);
-        case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, gby);
-        case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, gby);
-        default:
-          throw TypeError()
-              << "Invalid column of type `" << stype << "` in " << repr();
-        }
-      }
+        Workframe evaluate_n(EvalContext &ctx) const override {
+          Workframe wf = arg_->evaluate_n(ctx);
+          Groupby gby = Groupby::single_group(wf.nrows());
 
-      template <typename T>
-      Column make(Column &&col, SType stype, const Groupby &gby) const
-      {
-        col.cast_inplace(stype);
-        return Column(new Latent_ColumnImpl(
-            new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)));
-      }
+          if (ctx.has_groupby()) {
+            wf.increase_grouping_mode(Grouping::GtoALL);
+            gby = ctx.get_groupby();
+          }
+
+          for (size_t i = 0; i < wf.ncols(); ++i) {
+            Column coli = evaluate1(wf.retrieve_column(i), gby);
+            wf.replace_column(i, std::move(coli));
+          }
+          return wf;
+        }
+
+
+        Column evaluate1(Column &&col, const Groupby &gby) const {
+          SType stype = col.stype();
+          switch (stype) {
+            case SType::VOID:
+              if (SUM) {
+                return Column(new ConstInt_ColumnImpl(col.nrows(), 0, SType::INT64));
+              } else {
+                return Column(new ConstInt_ColumnImpl(col.nrows(), 1, SType::INT64));
+              }
+            case SType::BOOL:
+            case SType::INT8:
+            case SType::INT16:
+            case SType::INT32:
+            case SType::INT64:
+              return make<int64_t>(std::move(col), SType::INT64, gby);
+            case SType::FLOAT32:
+              return make<float>(std::move(col), SType::FLOAT32, gby);
+            case SType::FLOAT64:
+              return make<double>(std::move(col), SType::FLOAT64, gby);
+            default:
+              throw TypeError()
+                << "Invalid column of type `" << stype << "` in " << repr();
+          }
+        }
+
+
+        template <typename T>
+        Column make(Column &&col, SType stype, const Groupby &gby) const {
+           col.cast_inplace(stype);
+           return Column(new Latent_ColumnImpl(
+             new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)
+           ));
+        }
     };
 
-    static py::oobj pyfn_cumsum(const py::XArgs &args)
-    {
+
+    static py::oobj pyfn_cumsum(const py::XArgs &args) {
       auto cumsum = args[0].to_oobj();
       return PyFExpr::make(new FExpr_CumSumProd<true>(as_fexpr(cumsum)));
     }
 
-    static py::oobj pyfn_cumprod(const py::XArgs &args)
-    {
+    static py::oobj pyfn_cumprod(const py::XArgs &args) {
       auto cumprod = args[0].to_oobj();
       return PyFExpr::make(new FExpr_CumSumProd<false>(as_fexpr(cumprod)));
     }
@@ -134,5 +128,5 @@ namespace dt
         ->n_positional_args(1)
         ->n_required_args(1);
 
-  }
-} // dt::expr
+  } // namespace dt::expr
+}   // namespace dt

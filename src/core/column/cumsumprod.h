@@ -25,11 +25,11 @@
 #include "parallel/api.h"
 #include "stype.h"
 
-namespace dt
-{
+
+namespace dt {
 
   template <typename T, bool SUM>
-  class CumSumProd_ColumnImpl : public Virtual_ColumnImpl{
+  class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     Groupby gby_;
@@ -50,27 +50,23 @@ namespace dt
       auto offsets = gby_.offsets_r();
       dt::parallel_for_dynamic(
           gby_.size(),
-          [&](size_t gi)
-          {
+          [&](size_t gi) {
             size_t i1 = size_t(offsets[gi]);
             size_t i2 = size_t(offsets[gi + 1]);
 
             T val;
             bool is_valid = col_.get_element(i1, &val);
-            if (SUM){
+            if (SUM) {
               data[i1] = is_valid?val:0;
-            }
-            else{
+            } else {
               data[i1] = is_valid?val:1;
             }
-            for (size_t i = i1 + 1; i < i2; ++i)
-            {
+            for (size_t i = i1 + 1; i < i2; ++i) {
               is_valid = col_.get_element(i, &val);
-              if (SUM){
-                data[i] = data[i - 1] + (is_valid?val:0);
-              }
-              else{
-                data[i] = data[i - 1] * (is_valid?val:1);
+              if (SUM) {
+                data[i] = data[i - 1] + (is_valid? val : 0);
+              } else {
+                data[i] = data[i - 1] * (is_valid? val : 1);
               }
             }
           });
@@ -94,5 +90,6 @@ namespace dt
   };
 
 } // namespace dt
+
 
 #endif

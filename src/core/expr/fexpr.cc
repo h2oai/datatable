@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -285,8 +285,6 @@ DECLARE_METHOD(&PyFExpr::re_match)
     ->name("re_match")
     ->n_positional_or_keyword_args(1)
     ->arg_names({"pattern"});
-
-
 
 
 
