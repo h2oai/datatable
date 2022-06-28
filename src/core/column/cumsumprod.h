@@ -43,8 +43,7 @@ namespace dt
       xassert(col_.can_be_read_as<T>());
     }
 
-    void materialize(Column &col_out, bool) override
-    {
+    void materialize(Column &col_out, bool) override {
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
 
