@@ -128,5 +128,5 @@ namespace dt {
         ->n_positional_args(1)
         ->n_required_args(1);
 
-  } // namespace dt::expr
-}   // namespace dt
+  }  // namespace dt::expr
+}    // namespace dt
