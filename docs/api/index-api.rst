@@ -167,6 +167,8 @@ Functions
       - Calculate the cumulative maximum of values per column
     * - :func:`cummin()`
       - Calculate the cumulative minimum of values per column
+    * - :func:`cumprod()`
+      - Calculate the cumulative product of values per column
     * - :func:`cumsum()`
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
@@ -240,6 +242,7 @@ Other
     cov()             <dt/cov>
     cummax()          <dt/cummax>
     cummin()          <dt/cummin>
+    cumprod()         <dt/cumprod>
     cumsum()          <dt/cumsum>
     cut()             <dt/cut>
     dt                <dt/dt>

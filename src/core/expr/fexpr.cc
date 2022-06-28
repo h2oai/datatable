@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -289,8 +289,6 @@ DECLARE_METHOD(&PyFExpr::re_match)
 
 
 
-
-
 //------------------------------------------------------------------------------
 // Miscellaneous
 //------------------------------------------------------------------------------
@@ -346,6 +344,15 @@ oobj PyFExpr::cummin(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::cummin)
     ->name("cummin")
     ->docs(dt::doc_FExpr_cummin);
+
+oobj PyFExpr::cumprod(const XArgs&) {
+  auto cumprodFn = oobj::import("datatable", "cumprod");
+  return cumprodFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::cumprod)
+    ->name("cumprod")
+    ->docs(dt::doc_FExpr_cumprod);
 
 
 oobj PyFExpr::cumsum(const XArgs&) {

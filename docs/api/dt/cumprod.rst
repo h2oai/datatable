@@ -1,24 +1,24 @@
 
-.. xfunction:: datatable.cumsum
-    :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumsum
-    :tests: tests/dt/test-cumsum.py
-    :cvar: doc_dt_cumsum
-    :signature: cumsum(cols)
+.. xfunction:: datatable.cumprod
+    :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumprod
+    :tests: tests/dt/test-cumprod.py
+    :cvar: doc_dt_cumprod
+    :signature: cumprod(cols)
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` calculate cumulative sum. The sum of
-    the missing values is calculated as zero. In the presence of :func:`by()`,
-    the cumulative sum is computed within each group.
+    For each column from `cols` calculate cumulative product. The product of
+    the missing values is calculated as one. In the presence of :func:`by()`,
+    the cumulative product is computed within each group.
 
     Parameters
     ----------
     cols: FExpr
-        Input data for cumulative sum calculation.
+        Input data for cumulative product calculation.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with the respective cumulative sums.
+        with the respective cumulative products.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
@@ -46,43 +46,44 @@
         [5 rows x 4 columns]
 
 
-    Calculate cumulative sum in a single column::
+    Calculate cumulative product in a single column::
 
-        >>> DT[:, dt.cumsum(f.A)]
+        >>> DT[:, dt.cumprod(f.A)]
            |     A
            | int64
         -- + -----
          0 |     2
          1 |     2
-         2 |     7
-         3 |     6
-         4 |     6
+         2 |    10
+         3 |   -10
+         4 |     0
         [5 rows x 1 column]
 
 
-    Calculate cumulative sums in multiple columns::
+    Calculate cumulative products in multiple columns::
 
-        >>> DT[:, dt.cumsum(f[:-1])]
+        >>> DT[:, dt.cumprod(f[:-1])]
            |     A      B        C
            | int64  int64  float64
         -- + -----  -----  -------
-         0 |     2      0    5.4  
-         1 |     2      0    8.4  
-         2 |     7      0   10.6  
-         3 |     6      0   14.923
-         4 |     6      0   17.923
+         0 |     2      1    5.4  
+         1 |     2      1   16.2  
+         2 |    10      1   35.64 
+         3 |   -10      1  154.072
+         4 |     0      1  462.215
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate cumulative sums within each group::
+    In the presence of :func:`by()` calculate cumulative products within each group::
 
-        >>> DT[:, dt.cumsum(f[:]), by('D')]
+        >>> DT[:, dt.cumprod(f[:]), by('D')]
            | D          A      B        C
            | str32  int64  int64  float64
         -- + -----  -----  -----  -------
-         0 | a          2      0    5.4  
-         1 | a          2      0    8.4  
-         2 | b          5      0    2.2  
-         3 | b          4      0    6.523
-         4 | b          4      0    9.523
+         0 | a          2      1   5.4   
+         1 | a          2      1  16.2   
+         2 | b          5      1   2.2   
+         3 | b         -5      1   9.5106
+         4 | b          0      1  28.5318
         [5 rows x 4 columns]
+

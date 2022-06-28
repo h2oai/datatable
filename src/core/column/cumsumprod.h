@@ -25,66 +25,69 @@
 #include "parallel/api.h"
 #include "stype.h"
 
+
 namespace dt {
 
-
-template <typename T>
-class Cumsum_ColumnImpl : public Virtual_ColumnImpl {
+  template <typename T, bool SUM>
+  class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     Groupby gby_;
 
   public:
-    Cumsum_ColumnImpl(Column&& col, const Groupby& gby)
-      : Virtual_ColumnImpl(col.nrows(), col.stype()),
-        col_(std::move(col)),
-        gby_(gby)
+    CumSumProd_ColumnImpl(Column &&col, const Groupby &gby)
+      :Virtual_ColumnImpl(col.nrows(), col.stype()),
+       col_(std::move(col)),
+       gby_(gby)
     {
       xassert(col_.can_be_read_as<T>());
     }
 
-
-    void materialize(Column& col_out, bool) override {
+    void materialize(Column &col_out, bool) override {
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
 
       auto offsets = gby_.offsets_r();
       dt::parallel_for_dynamic(
-        gby_.size(),
-        [&](size_t gi) {
-          size_t i1 = size_t(offsets[gi]);
-          size_t i2 = size_t(offsets[gi + 1]);
+          gby_.size(),
+          [&](size_t gi) {
+            size_t i1 = size_t(offsets[gi]);
+            size_t i2 = size_t(offsets[gi + 1]);
 
-          T val;
-          bool is_valid = col_.get_element(i1, &val);
-          data[i1] = is_valid? val : 0;
-
-          for (size_t i = i1 + 1; i < i2; ++i) {
-            is_valid = col_.get_element(i, &val);
-            data[i] = data[i - 1] + (is_valid? val : 0);
-          }
-
-        });
+            T val;
+            bool is_valid = col_.get_element(i1, &val);
+            if (SUM) {
+              data[i1] = is_valid? val : 0;
+            } else {
+              data[i1] = is_valid? val : 1;
+            }
+            for (size_t i = i1 + 1; i < i2; ++i) {
+              is_valid = col_.get_element(i, &val);
+              if (SUM) {
+                data[i] = data[i - 1] + (is_valid? val : 0);
+              } else {
+                data[i] = data[i - 1] * (is_valid? val : 1);
+              }
+            }
+          });
 
       col_out = std::move(col);
     }
 
-
-    ColumnImpl* clone() const override {
-      return new Cumsum_ColumnImpl(Column(col_), gby_);
+    ColumnImpl *clone() const override {
+      return new CumSumProd_ColumnImpl(Column(col_), gby_);
     }
 
     size_t n_children() const noexcept override {
       return 1;
     }
 
-    const Column& child(size_t i) const override {
-      xassert(i == 0);  (void)i;
+    const Column &child(size_t i) const override {
+      xassert(i == 0);
+      (void)i;
       return col_;
     }
-
-};
-
+  };
 
 }  // namespace dt
 

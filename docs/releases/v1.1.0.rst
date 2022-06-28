@@ -78,6 +78,9 @@
       the corresponding :meth:`.cummin()` and :meth:`.cummax()` methods,
       to calculate the cumulative minimum and maximum of values per column. [#3279]
 
+    -[new] Added function :func:`dt.cumprod()`, as well as :meth:`.cumprod()` method,
+      to calculate the cumulative product of values per column. [#3279]
+
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,

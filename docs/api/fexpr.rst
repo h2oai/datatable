@@ -168,7 +168,10 @@
 
         * - :meth:`.cummax()`
           - Same as :func:`dt.cummax()`.
-          
+
+        * - :meth:`.cumprod()`
+          - Same as :func:`dt.cumprod()`.
+
         * - :meth:`.cumsum()`
           - Same as :func:`dt.cumsum()`.
 
@@ -297,6 +300,7 @@
     .countna()      <fexpr/countna>
     .cummin()       <fexpr/cummin>
     .cummax()       <fexpr/cummax>
+    .cumprod()      <fexpr/cumprod>
     .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
     .first()        <fexpr/first>
