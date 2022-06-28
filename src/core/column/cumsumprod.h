@@ -83,11 +83,11 @@ namespace dt
       return new CumSumProd_ColumnImpl(Column(col_), gby_);
     }
 
-    size_t n_children() const noexcept override    {
+    size_t n_children() const noexcept override {
       return 1;
     }
 
-    const Column &child(size_t i) const override    {
+    const Column &child(size_t i) const override {
       xassert(i == 0);
       (void)i;
       return col_;
