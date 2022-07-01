@@ -144,7 +144,7 @@ void parallel_for_static(size_t n_iterations,
     NThreads(num_threads),
     [=] {
       #ifndef NO_DT
-      const bool is_main_thread = (this_thread_index() == 0);
+        const bool is_main_thread = (this_thread_index() == 0);
       #endif
       size_t i0 = chunk_size_ * this_thread_index();
       size_t di = chunk_size_ * num_threads;
@@ -231,7 +231,9 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
   size_t chsize = chunk_size.get();
   size_t i0 = chsize * this_thread_index();
   size_t di = chsize * num_threads_in_team();
-  const bool is_main_thread = (this_thread_index() == 0);
+  #ifndef NO_DT
+    const bool is_main_thread = (this_thread_index() == 0);
+  #endif
 
   while (i0 < n_iterations) {
     size_t i1 = std::min(i0 + chsize, n_iterations);
