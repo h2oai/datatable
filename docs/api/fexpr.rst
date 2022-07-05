@@ -178,6 +178,9 @@
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
 
+        * - :meth:`.ffill()`
+          - Same as :func:`dt.ffill()`.
+
         * - :meth:`.last()`
           - Same as :func:`dt.last()`.
 
@@ -304,6 +307,7 @@
     .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
     .first()        <fexpr/first>
+    .ffill()        </fexpr/ffill>
     .last()         <fexpr/last>
     .len()          <fexpr/len>
     .max()          <fexpr/max>

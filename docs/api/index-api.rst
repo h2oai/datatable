@@ -173,6 +173,8 @@ Functions
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
       - Calculate covariance between two columns
+    * - :func:`ffill()`
+      - Fill null values with previous non-null value.
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`
@@ -248,6 +250,7 @@ Other
     dt                <dt/dt>
     f                 <dt/f>
     first()           <dt/first>
+    ffill()           <dt/ffill>
     fread()           <dt/fread>
     g                 <dt/g>
     ifelse()          <dt/ifelse>
