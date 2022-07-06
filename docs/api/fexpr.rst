@@ -302,7 +302,7 @@
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
     .as_type()      <fexpr/as_type>
-    .bfill()        </fexpr/bfill>
+    .bfill()        <fexpr/bfill>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
     .cummin()       <fexpr/cummin>
@@ -311,7 +311,7 @@
     .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
     .first()        <fexpr/first>
-    .ffill()        </fexpr/ffill>
+    .ffill()        <fexpr/ffill>
     .last()         <fexpr/last>
     .len()          <fexpr/len>
     .max()          <fexpr/max>

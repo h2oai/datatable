@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_FFILLBFILL_h
-#define dt_COLUMN_FFILLBFILL_h
+#ifndef dt_COLUMN_FFILL_BFILL_h
+#define dt_COLUMN_FFILL_BFILL_h
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"

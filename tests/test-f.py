@@ -463,3 +463,16 @@ def test_cumprod():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cumprod()], DT[:, dt.cumprod(f.A)])
 
+def test_ffill():
+    assert str(dt.ffill(f.A)) == str(f.A.ffill())
+    assert str(dt.ffill(f[:])) == str(f[:].ffill())
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.ffill()], DT[:, dt.ffill(f.A)])
+
+def test_bfill():
+    assert str(dt.bfill(f.A)) == str(f.A.bfill())
+    assert str(dt.bfill(f[:])) == str(f[:].bfill())
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.bfill()], DT[:, dt.bfill(f.A)])
+
+

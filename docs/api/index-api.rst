@@ -158,7 +158,7 @@ Functions
     * -
       -
     * - :func:`bfill()`
-      - Fill null values with next non-null value.
+      - Fill null values with the next non-null value.
     * - :func:`corr()`
       - Calculate correlation between two columns
     * - :func:`count()`
@@ -176,7 +176,7 @@ Functions
     * - :func:`cov()`
       - Calculate covariance between two columns
     * - :func:`ffill()`
-      - Fill null values with previous non-null value.
+      - Fill null values with the previous non-null value.
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`
@@ -237,7 +237,7 @@ Other
     stype             <stype>
     Type              <type>
     as_type()         <dt/as_type>
-    bfill()           </fexpr/bfill>
+    bfill()           <dt/bfill>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>
