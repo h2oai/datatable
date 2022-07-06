@@ -58,11 +58,6 @@ class Ffill_ColumnImpl : public Virtual_ColumnImpl {
           T val, last_val;
           last_val = GETNA<T>();
           if (MIN) {
-          //bool is_valid = col_.get_element(i1, &val);
-          //last_val = is_valid? val : GETNA<T>();
-          
-          //data[i1] = last_val;
-
           for (size_t i = i1; i < i2; ++i) {
             bool is_valid = col_.get_element(i, &val);
             if (is_valid) {
@@ -74,19 +69,15 @@ class Ffill_ColumnImpl : public Virtual_ColumnImpl {
           }
           } else {
             {
-          // bool is_valid = col_.get_element(i2, &val);
-          // last_val = is_valid? val : GETNA<T>();
-          // data[i2] = last_val;
-
-          for (size_t i = i2; i -->i1;) {
-            bool is_valid = col_.get_element(i, &val);
-            if (is_valid) {
-              last_val = val;
-              data[i] = val;             
-            } else {
-              data[i] = last_val;
-            }
-          }
+              for (size_t i = i2; i -->i1;) {
+                bool is_valid = col_.get_element(i, &val);
+                if (is_valid) {
+                  last_val = val;
+                  data[i] = val;             
+                } else {
+                  data[i] = last_val;
+                }
+              }
           }
           }
 
