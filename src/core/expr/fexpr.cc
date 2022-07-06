@@ -308,6 +308,16 @@ DECLARE_METHOD(&PyFExpr::as_type)
     ->n_required_args(1);
 
 
+oobj PyFExpr::bfill(const XArgs&) {
+  auto bfillFn = oobj::import("datatable", "bfill");
+  return bfillFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::bfill)
+    ->name("bfill")
+    ->docs(dt::doc_FExpr_bfill);
+
+
 oobj PyFExpr::count(const XArgs&) {
   auto countFn = oobj::import("datatable", "count");
   return countFn.call({this});
@@ -373,6 +383,16 @@ oobj PyFExpr::first(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::first)
     ->name("first")
     ->docs(dt::doc_FExpr_first);
+
+
+oobj PyFExpr::ffill(const XArgs&) {
+  auto ffillFn = oobj::import("datatable", "ffill");
+  return ffillFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::ffill)
+    ->name("ffill")
+    ->docs(dt::doc_FExpr_ffill);
 
 
 oobj PyFExpr::last(const XArgs&) {

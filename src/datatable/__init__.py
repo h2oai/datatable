@@ -25,6 +25,7 @@ from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr, countna, nunique, prod)
 from .lib._datatable import (
     as_type,
+    bfill,
     by,
     cbind,
     cummax,
@@ -32,6 +33,7 @@ from .lib._datatable import (
     cumprod,
     cumsum,
     cut,
+    ffill,
     fread,
     FExpr,
     ifelse,
@@ -82,6 +84,7 @@ except ImportError:
 
 __all__ = (
     "as_type",
+    "bfill",
     "bool8",
     "by",
     "cbind",
@@ -98,6 +101,7 @@ __all__ = (
     "f",
     "FExpr",
     "first",
+    "ffill",
     "float32",
     "float64",
     "Frame",

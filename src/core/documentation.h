@@ -24,6 +24,7 @@
 namespace dt {
 
 extern const char* doc_dt_as_type;
+extern const char* doc_dt_bfill;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
 extern const char* doc_dt_corr;
@@ -36,6 +37,7 @@ extern const char* doc_dt_cumprod;
 extern const char* doc_dt_cumsum;
 extern const char* doc_dt_cut;
 extern const char* doc_dt_first;
+extern const char* doc_dt_ffill;
 extern const char* doc_dt_fread;
 extern const char* doc_dt_ifelse;
 extern const char* doc_dt_init_styles;
@@ -280,6 +282,7 @@ extern const char* doc_Frame_view;
 
 extern const char* doc_FExpr;
 extern const char* doc_FExpr_as_type;
+extern const char* doc_FExpr_bfill;
 extern const char* doc_FExpr_count;
 extern const char* doc_FExpr_countna;
 extern const char* doc_FExpr_cummax;
@@ -288,6 +291,7 @@ extern const char* doc_FExpr_cumprod;
 extern const char* doc_FExpr_cumsum;
 extern const char* doc_FExpr_extend;
 extern const char* doc_FExpr_first;
+extern const char* doc_FExpr_ffill;
 extern const char* doc_FExpr_last;
 extern const char* doc_FExpr_max;
 extern const char* doc_FExpr_mean;

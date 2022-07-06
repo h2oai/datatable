@@ -157,6 +157,9 @@
         * - :meth:`.as_type()`
           - Same as :func:`dt.as_type()`.
 
+        * - :meth:`.bfill()`
+          - Same as :func:`dt.bfill()`.
+
         * - :meth:`.count()`
           - Same as :func:`dt.count()`.
 
@@ -299,6 +302,7 @@
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
     .as_type()      <fexpr/as_type>
+    .bfill()        </fexpr/bfill>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
     .cummin()       <fexpr/cummin>

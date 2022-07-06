@@ -1,23 +1,23 @@
 
-.. xfunction:: datatable.ffill
-    :src: src/core/expr/fexpr_ffill.cc pyfn_ffill
-    :tests: tests/dt/test-ffill.py
-    :cvar: doc_dt_ffill
-    :signature: ffill(cols)
+.. xfunction:: datatable.bfill
+    :src: src/core/expr/fexpr_bfill.cc pyfn_bfill
+    :tests: tests/dt/test-bfill.py
+    :cvar: doc_dt_bfill
+    :signature: bfill(cols)
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` fill the null values forward with the last non-null value. 
-    In the presence of :func:`by()`, the last non-null value is propagated forward within each group.
+    For each column from `cols` fill the null values backward with the last non-null value. 
+    In the presence of :func:`by()`, the last non-null value is propagated backward within each group.
 
     Parameters
     ----------
     cols: FExpr
-        Input data for filling the nulls values forward.
+        Input data for filling the nulls values backward.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with the previous non-null values.
+        with the next non-null values.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`

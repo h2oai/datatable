@@ -157,6 +157,8 @@ Functions
       - Find unique values in a frame
     * -
       -
+    * - :func:`bfill()`
+      - Fill null values with next non-null value.
     * - :func:`corr()`
       - Calculate correlation between two columns
     * - :func:`count()`
@@ -235,6 +237,7 @@ Other
     stype             <stype>
     Type              <type>
     as_type()         <dt/as_type>
+    bfill()           </fexpr/bfill>
     build_info        <dt/build_info>
     by()              <dt/by>
     cbind()           <dt/cbind>

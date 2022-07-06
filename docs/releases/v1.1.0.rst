@@ -84,6 +84,9 @@
     -[new] Added function :func:`dt.ffill()`, as well as :meth:`.ffill()` method,
       to fill null values with previous non-null value. [#3279]
 
+    -[new] Added function :func:`dt.bfill()`, as well as :meth:`.bfill()` method,
+      to fill null values with next non-null value. [#3279]
+
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,

@@ -19,8 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_FFILL_h
-#define dt_COLUMN_FFILL_h
+#ifndef dt_COLUMN_FFILLBFILL_h
+#define dt_COLUMN_FFILLBFILL_h
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -28,7 +28,7 @@
 namespace dt {
 
 
-template <typename T>
+template <typename T, bool MIN>
 class Ffill_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -55,29 +55,40 @@ class Ffill_ColumnImpl : public Virtual_ColumnImpl {
           size_t i1 = size_t(offsets[gi]);
           size_t i2 = size_t(offsets[gi + 1]);
 
-          T val;
-          T last_val;
-          bool res_valid = col_.get_element(i1, &val);
-          last_val = res_valid? val : GETNA<T>();
-          data[i1] = last_val;
+          T val, last_val;
+          last_val = GETNA<T>();
+          if (MIN) {
+          //bool is_valid = col_.get_element(i1, &val);
+          //last_val = is_valid? val : GETNA<T>();
+          
+          //data[i1] = last_val;
 
-          for (size_t i = i1 + 1; i < i2; ++i) {
+          for (size_t i = i1; i < i2; ++i) {
             bool is_valid = col_.get_element(i, &val);
             if (is_valid) {
               last_val = val;
-              data[i] = val;
-              res_valid = true;
-              
+              data[i] = val;             
             } else {
-              if (res_valid){
-                data[i] = last_val;
-              }
-              else {
-                data[i1] = GETNA<T>;
-              }
+              data[i] = last_val;
             }
           }
-          
+          } else {
+            {
+          // bool is_valid = col_.get_element(i2, &val);
+          // last_val = is_valid? val : GETNA<T>();
+          // data[i2] = last_val;
+
+          for (size_t i = i2; i -->i1;) {
+            bool is_valid = col_.get_element(i, &val);
+            if (is_valid) {
+              last_val = val;
+              data[i] = val;             
+            } else {
+              data[i] = last_val;
+            }
+          }
+          }
+          }
 
         });
 
