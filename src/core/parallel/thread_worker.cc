@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
-#ifndef NO_DT
+#ifndef DT_DISABLE
   #include "progress/progress_manager.h"  // dt::progress::progress_manager
   #include "utils/exceptions.h"
 #endif
@@ -101,7 +101,7 @@ void ThreadWorker::run_in_main_thread(ThreadJob* job) noexcept {
       ThreadTask* task = job->get_next_task(0);
       if (!task) break;
       task->execute();
-      #ifndef NO_DT
+      #ifndef DT_DISABLE
         progress::manager->check_interrupts_main();
       #endif
     }

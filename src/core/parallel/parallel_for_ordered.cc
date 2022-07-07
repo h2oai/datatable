@@ -28,7 +28,7 @@
 #include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
 #include "utils/assert.h"
-#ifdef NO_DT
+#ifdef DT_DISABLE
   #include <stdexcept>
 #else
   #include "progress/work.h"
@@ -109,7 +109,7 @@ void OrderedTask::execute() {
     case State::ORDERING:  order(iter_); break;
     case State::FINISHING: finish(iter_); break;
     default:
-      #ifdef NO_DT
+      #ifdef DT_DISABLE
         throw std::runtime_error("Invalid state " + std::to_string(state_)); // LCOV_EXCL_LINE
       #else
         throw RuntimeError() << "Invalid state " << static_cast<int>(state_) // LCOV_EXCL_LINE
@@ -182,19 +182,19 @@ class SingleThreaded_OrderedJob : public OrderedJob {
   private:
     uqOrderedTask task_;
     size_t n_iterations_;
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       progress::work* progress_;
     #endif
 
   public:
     SingleThreaded_OrderedJob(size_t niters,
-                              #ifndef NO_DT
+                              #ifndef DT_DISABLE
                                 progress::work* progress,
                               #endif
                               uqOrderedTask&& task)
       : task_(std::move(task)),
         n_iterations_(niters)
-        #ifndef NO_DT
+        #ifndef DT_DISABLE
           , progress_(progress)
         #endif
     {
@@ -207,7 +207,7 @@ class SingleThreaded_OrderedJob : public OrderedJob {
         task_->state_ = OrderedTask::State::STARTING;   task_->start(i);
         task_->state_ = OrderedTask::State::ORDERING;   task_->order(i);
         task_->state_ = OrderedTask::State::FINISHING;  task_->finish(i);
-        #ifndef NO_DT
+        #ifndef DT_DISABLE
           progress_->add_done_amount(1);
           progress::manager->check_interrupts_main();
         #endif
@@ -221,7 +221,7 @@ class SingleThreaded_OrderedJob : public OrderedJob {
     }
 
     void set_num_iterations(size_t n) override {
-      #ifndef NO_DT
+      #ifndef DT_DISABLE
         progress_->add_work_amount(n - n_iterations_);
       #endif
       n_iterations_ = n;
@@ -236,7 +236,7 @@ class SingleThreaded_OrderedJob : public OrderedJob {
 
 
     ThreadTask* get_next_task(size_t) override {  // unused
-      #ifdef NO_DT
+      #ifdef DT_DISABLE
         throw std::runtime_error(__FILE__ + std::string(":") + std::to_string(__LINE__)); // LCOV_EXCL_LINE
       #else
         throw RuntimeError() << __FILE__ << ":" << __LINE__;   // LCOV_EXCL_LINE
@@ -261,7 +261,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
 
     static constexpr size_t NO_THREAD = size_t(-1);
     static constexpr size_t INVALID_THREAD = size_t(-2);
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       progress::work* progress_;
     #endif
     NoopTask noop_task_;
@@ -277,7 +277,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
 
   public:
     MultiThreaded_OrderedJob(size_t niters,
-                             #ifndef NO_DT
+                             #ifndef DT_DISABLE
                                progress::work* progress,
                              #endif
                              std::vector<uqOrderedTask>&& tasks)
@@ -286,7 +286,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
         n_tasks_(tasks.size()),
         tasks_(std::move(tasks)),
         assigned_tasks_(n_tasks_, &noop_task_),
-        #ifndef NO_DT
+        #ifndef DT_DISABLE
           progress_(progress),
         #endif
         next_to_start_(0),
@@ -314,7 +314,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
 
       if (ith == ordering_thread_index_) {
         ordering_thread_index_ = NO_THREAD;
-        #ifndef NO_DT
+        #ifndef DT_DISABLE
           progress_->set_done_amount(next_to_order_);
         #endif
       }
@@ -378,7 +378,7 @@ class MultiThreaded_OrderedJob : public OrderedJob {
     void set_num_iterations(size_t n) override {
       std::lock_guard<dt::spin_mutex> lock(mutex_);
       xassert(n >= next_to_order_);
-      #ifndef NO_DT
+      #ifndef DT_DISABLE
         progress_->add_work_amount(n - n_iterations_);
       #endif
       n_iterations_ = n;
@@ -463,7 +463,7 @@ void parallel_for_ordered(size_t niters, NThreads nthreads0,
                           function<uqOrderedTask()> task_factory)
 {
   if (!niters) return;
-  #ifndef NO_DT
+  #ifndef DT_DISABLE
     progress::work progress(niters);
   #endif
   size_t nthreads = nthreads0.get();
@@ -473,7 +473,7 @@ void parallel_for_ordered(size_t niters, NThreads nthreads0,
 
   if (nthreads == 1) {
     SingleThreaded_OrderedJob job(niters,
-                                  #ifndef NO_DT
+                                  #ifndef DT_DISABLE
                                     &progress,
                                   #endif
                                   task_factory());
@@ -487,13 +487,13 @@ void parallel_for_ordered(size_t niters, NThreads nthreads0,
       tasks.push_back(task_factory());
     }
     MultiThreaded_OrderedJob job(niters,
-                                 #ifndef NO_DT
+                                 #ifndef DT_DISABLE
                                    &progress,
                                  #endif
                                  std::move(tasks));
     thpool->execute_job(&job);
   }
-  #ifndef NO_DT
+  #ifndef DT_DISABLE
     progress.done();
   #endif
 }

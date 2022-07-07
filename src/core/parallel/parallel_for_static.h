@@ -16,7 +16,7 @@
 #ifndef dt_PARALLEL_FOR_STATIC_h
 #define dt_PARALLEL_FOR_STATIC_h
 #include <algorithm>
-#ifndef NO_DT
+#ifndef DT_DISABLE
   #include "progress/progress_manager.h"  // dt::progress::progress_manager
 #endif
 #include "utils/assert.h"
@@ -129,7 +129,7 @@ void parallel_for_static(size_t n_iterations,
         func(i);
       }
       i0 += chunk_size_;
-      #ifndef NO_DT
+      #ifndef DT_DISABLE
         progress::manager->check_interrupts_main();
         if (progress::manager->is_interrupt_occurred()) {
           i0 = n_iterations;
@@ -143,7 +143,7 @@ void parallel_for_static(size_t n_iterations,
   parallel_region(
     NThreads(num_threads),
     [=] {
-      #ifndef NO_DT
+      #ifndef DT_DISABLE
         const bool is_main_thread = (this_thread_index() == 0);
       #endif
       size_t i0 = chunk_size_ * this_thread_index();
@@ -154,7 +154,7 @@ void parallel_for_static(size_t n_iterations,
           func(i);
         }
         i0 += di;
-        #ifndef NO_DT
+        #ifndef DT_DISABLE
           if (is_main_thread) {
             progress::manager->check_interrupts_main();
           }
@@ -231,7 +231,7 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
   size_t chsize = chunk_size.get();
   size_t i0 = chsize * this_thread_index();
   size_t di = chsize * num_threads_in_team();
-  #ifndef NO_DT
+  #ifndef DT_DISABLE
     const bool is_main_thread = (this_thread_index() == 0);
   #endif
 
@@ -241,7 +241,7 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
       func(i);
     }
     i0 += di;
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       if (is_main_thread) {
         progress::manager->check_interrupts_main();
       }

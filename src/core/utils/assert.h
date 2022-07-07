@@ -23,7 +23,7 @@
 #define dt_UTILS_ASSERT_h
 #include <cstdio>
 #include "utils/macros.h"
-#ifdef NO_DT
+#ifdef DT_DISABLE
   #include <stdexcept>
   #include <iostream>
 #else
@@ -56,7 +56,7 @@
 // Here we also define the `xassert` macro, which behaves similarly to `assert`,
 // however it throws exceptions instead of terminating the program
 #if DT_DEBUG
-  #ifdef NO_DT
+  #ifdef DT_DISABLE
     #define wassert(EXPRESSION) \
       if (!(EXPRESSION)) { \
         std::cerr << "Assertion '" #EXPRESSION "' failed in " __FILE__ ", line " \
@@ -70,7 +70,7 @@
       } ((void)(0))
   #endif
 
-  #ifdef NO_DT
+  #ifdef DT_DISABLE
     #define xassert(EXPRESSION) \
       if (!(EXPRESSION)) { \
         throw std::runtime_error("Assertion '" #EXPRESSION "' failed in " __FILE__ \
@@ -92,7 +92,7 @@
 
 // XAssert() macro is similar to xassert(), except it works both in
 // debug and in production.
-#ifdef NO_DT
+#ifdef DT_DISABLE
   #define XAssert(EXPRESSION) \
     if (!(EXPRESSION)) { \
       throw std::runtime_error("Assertion '" #EXPRESSION "' failed in " __FILE__ \

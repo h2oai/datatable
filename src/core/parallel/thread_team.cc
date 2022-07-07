@@ -34,7 +34,7 @@ ThreadTeam::ThreadTeam(size_t nth, ThreadPool* pool)
     barrier_counter {0}
 {
   if (thpool->current_team) {
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       throw RuntimeError() << "Unable to create a nested thread team";
     #endif
   }
@@ -58,7 +58,7 @@ void ThreadTeam::wait_at_barrier() {
   size_t n = barrier_counter.fetch_add(1);
   size_t n_target = n - (n % nthreads) + nthreads;
   while (barrier_counter.load() < n_target) {
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       if (progress::manager->is_interrupt_occurred()) throw std::exception();
     #endif
   }

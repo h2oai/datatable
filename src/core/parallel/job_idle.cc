@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
-#ifndef NO_DT
+#ifndef DT_DISABLE
   #include "utils/exceptions.h"
 #endif
 #include "parallel/api.h"
@@ -91,13 +91,13 @@ void Job_Idle::join() {
   previous_sleep_task_->fall_asleep();
 
   if (saved_exception_) {
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       progress::manager->reset_interrupt_status();
     #endif
     std::rethrow_exception(saved_exception_);
   }
 
-  #ifndef NO_DT
+  #ifndef DT_DISABLE
     progress::manager->handle_interrupt();
   #endif
 }
@@ -122,7 +122,7 @@ void Job_Idle::add_running_thread() {
 void Job_Idle::catch_exception() noexcept {
   try {
     std::lock_guard<std::mutex> lock(thpool->global_mutex());
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       progress::manager->set_interrupt();
     #endif
     if (!saved_exception_) {

@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
-#ifndef NO_DT
+#ifndef DT_DISABLE
   #include "documentation.h"
   #include "progress/progress_manager.h"
   #include "python/_all.h"
@@ -63,7 +63,7 @@ ThreadPool* thpool = new ThreadPool;
     // memory is owned by the parent process.
     size_t n = thpool->size();
     thpool = new ThreadPool;
-    #ifndef NO_DT
+    #ifndef DT_DISABLE
       progress::manager = new progress::progress_manager;
     #endif
     thpool->resize(n);
@@ -210,7 +210,7 @@ size_t get_hardware_concurrency() noexcept {
 
 
 
-#ifndef NO_DT
+#ifndef DT_DISABLE
   static py::oobj get_nthreads() {
     return py::oint(num_threads_in_pool());
   }
