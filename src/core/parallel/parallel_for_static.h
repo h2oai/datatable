@@ -143,9 +143,6 @@ void parallel_for_static(size_t n_iterations,
   parallel_region(
     NThreads(num_threads),
     [=] {
-      #ifndef DT_DISABLE
-        const bool is_main_thread = (this_thread_index() == 0);
-      #endif
       size_t i0 = chunk_size_ * this_thread_index();
       size_t di = chunk_size_ * num_threads;
       while (i0 < n_iterations) {
@@ -155,7 +152,7 @@ void parallel_for_static(size_t n_iterations,
         }
         i0 += di;
         #ifndef DT_DISABLE
-          if (is_main_thread) {
+          if (this_thread_index() == 0) {
             progress::manager->check_interrupts_main();
           }
           if (progress::manager->is_interrupt_occurred()) {
@@ -231,9 +228,6 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
   size_t chsize = chunk_size.get();
   size_t i0 = chsize * this_thread_index();
   size_t di = chsize * num_threads_in_team();
-  #ifndef DT_DISABLE
-    const bool is_main_thread = (this_thread_index() == 0);
-  #endif
 
   while (i0 < n_iterations) {
     size_t i1 = std::min(i0 + chsize, n_iterations);
@@ -242,7 +236,7 @@ void nested_for_static(size_t n_iterations, ChunkSize chunk_size, F func)
     }
     i0 += di;
     #ifndef DT_DISABLE
-      if (is_main_thread) {
+      if (this_thread_index() == 0) {
         progress::manager->check_interrupts_main();
       }
       if (progress::manager->is_interrupt_occurred()) {
