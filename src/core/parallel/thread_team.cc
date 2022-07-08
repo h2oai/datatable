@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -34,7 +34,9 @@ ThreadTeam::ThreadTeam(size_t nth, ThreadPool* pool)
     barrier_counter {0}
 {
   if (thpool->current_team) {
-    throw RuntimeError() << "Unable to create a nested thread team";
+    #ifndef DT_DISABLE
+      throw RuntimeError() << "Unable to create a nested thread team";
+    #endif
   }
   thpool->current_team = this;
 }
@@ -56,7 +58,9 @@ void ThreadTeam::wait_at_barrier() {
   size_t n = barrier_counter.fetch_add(1);
   size_t n_target = n - (n % nthreads) + nthreads;
   while (barrier_counter.load() < n_target) {
-    if (progress::manager->is_interrupt_occurred()) throw std::exception();
+    #ifndef DT_DISABLE
+      if (progress::manager->is_interrupt_occurred()) throw std::exception();
+    #endif
   }
 }
 
