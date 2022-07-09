@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-//#include "column/cumsumprod.h"
+#include "column/cumcount.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -60,47 +60,20 @@ namespace dt {
           }
 
           size_t nrows = ctx.nrows();
-          Column col = evaluate1(arg_, nrows, gby);
+          Column col = evaluate1(nrows, gby);
           wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
           return wf;
         }
 
 
-        Column evaluate1(bool arg_, size_t nrows, const Groupby &gby) const {
-          
-           return Column(new ConstInt_ColumnImpl(nrows, 0, SType::INT64));
-        //   SType stype = col.stype();
-        //   switch (stype) {
-        //     case SType::VOID:
-        //       if (SUM) {
-        //         return Column(new ConstInt_ColumnImpl(col.nrows(), 0, SType::INT64));
-        //       } else {
-        //         return Column(new ConstInt_ColumnImpl(col.nrows(), 1, SType::INT64));
-        //       }
-        //     case SType::BOOL:
-        //     case SType::INT8:
-        //     case SType::INT16:
-        //     case SType::INT32:
-        //     case SType::INT64:
-        //       return make<int64_t>(std::move(col), SType::INT64, gby);
-        //     case SType::FLOAT32:
-        //       return make<float>(std::move(col), SType::FLOAT32, gby);
-        //     case SType::FLOAT64:
-        //       return make<double>(std::move(col), SType::FLOAT64, gby);
-        //     default:
-        //       throw TypeError()
-        //         << "Invalid column of type `" << stype << "` in " << repr();
-        //   }
+        Column evaluate1(size_t nrows, const Groupby &gby) const {
+            return Column(new Latent_ColumnImpl(
+              new CUMCOUNT_ColumnImpl(nrows, gby)
+              ));
         }
 
 
-        // template <typename T>
-        // Column make(Column &&col, SType stype, const Groupby &gby) const {
-        //    col.cast_inplace(stype);
-        //    return Column(new Latent_ColumnImpl(
-        //      new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)
-        //    ));
-        // }
+
     };
 
 
