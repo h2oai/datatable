@@ -29,7 +29,6 @@
 #include "python/xargs.h"
 #include "stype.h"
 
-
 namespace dt {
   namespace expr {
 
@@ -60,13 +59,16 @@ namespace dt {
             gby = ctx.get_groupby();
           }
 
-          // Column col = wf.retrieve_column(0);//evaluate1(wf.retrieve_column(0), gby);
-          //    wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
+          size_t nrows = ctx.nrows();
+          Column col = evaluate1(arg_, nrows, gby);
+          wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
           return wf;
         }
 
 
-        // Column evaluate1(Column &&col, const Groupby &gby) const {
+        Column evaluate1(bool arg_, size_t nrows, const Groupby &gby) const {
+          
+           return Column(new ConstInt_ColumnImpl(nrows, 0, SType::INT64));
         //   SType stype = col.stype();
         //   switch (stype) {
         //     case SType::VOID:
@@ -89,7 +91,7 @@ namespace dt {
         //       throw TypeError()
         //         << "Invalid column of type `" << stype << "` in " << repr();
         //   }
-        // }
+        }
 
 
         // template <typename T>
