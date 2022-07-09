@@ -38,7 +38,7 @@ namespace dt {
         bool arg_;
 
       public:
-        FExpr_CumCount(ptrExpr &&arg)
+        FExpr_CumCount(bool arg)
             : arg_(arg) {}
 
         std::string repr() const override {
@@ -60,8 +60,8 @@ namespace dt {
             gby = ctx.get_groupby();
           }
 
-          Column col = wf.retrieve_column(0);//evaluate1(wf.retrieve_column(0), gby);
-             wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
+          // Column col = wf.retrieve_column(0);//evaluate1(wf.retrieve_column(0), gby);
+          //    wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
           return wf;
         }
 
