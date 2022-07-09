@@ -44,7 +44,7 @@ namespace dt {
         std::string repr() const override {
           std::string out = "cumcount";
           out += '(';
-          out += "arg_=";
+          out += "arg=";
           out += arg_? "True" : "False";
           out += ')';
           return out;
@@ -52,7 +52,7 @@ namespace dt {
 
 
         Workframe evaluate_n(EvalContext &ctx) const override {
-          Workframe wf = evaluate_n(ctx);
+          Workframe wf(ctx);
           Groupby gby = Groupby::single_group(wf.nrows());
 
           if (ctx.has_groupby()) {
