@@ -41,7 +41,7 @@ class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
 
     void materialize(Column& col_out, bool) override {
       Column col = Column::new_data_column(nrows_, STYPE::INT64);
-      auto data = static_cast<int64_t*>(col.get_data_editable());
+      auto data = static_cast<int64_t*>(col.get_data_editable(0));
 
       auto offsets = gby_.offsets_r();
       dt::parallel_for_dynamic(
@@ -67,7 +67,7 @@ class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     size_t n_children() const noexcept override {
-      return 1;
+      return 0;
     }
 
     // const Column& child(size_t i) const override {
