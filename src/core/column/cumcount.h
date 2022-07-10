@@ -31,49 +31,45 @@ namespace dt {
 class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
   private:
     size_t nrows_;
+    bool ascending_;
     Groupby gby_;
 
   public:
-    CUMCOUNT_ColumnImpl(size_t nrows, const Groupby& gby)
-      : Virtual_ColumnImpl(nrows, STYPE::INT64),
+    CUMCOUNT_ColumnImpl(size_t nrows, bool ascending, const Groupby& gby)
+      : Virtual_ColumnImpl(nrows, SType::INT64),
         nrows_(nrows),
+        ascending_(ascending),
         gby_(gby)
-
-    void materialize(Column& col_out, bool) override {
-      Column col = Column::new_data_column(nrows_, STYPE::INT64);
-      auto data = static_cast<int64_t*>(col.get_data_editable(0));
-
-      auto offsets = gby_.offsets_r();
-      dt::parallel_for_dynamic(
-        gby_.size(),
-        [&](size_t gi) {
-          size_t i1 = size_t(offsets[gi]);
-          size_t i2 = size_t(offsets[gi + 1]);
-
-            while (i < i2) {
-              data[i] = i;
-              i++;
-            }
-          
-
-        });
-
-      col_out = std::move(col);
-    }
-
+      {}
 
     ColumnImpl* clone() const override {
-      return new CUMCOUNT_ColumnImpl(nrows_, gby_);
+      return new CUMCOUNT_ColumnImpl(nrows_, ascending_, gby_);
     }
 
     size_t n_children() const noexcept override {
       return 0;
     }
 
-    // const Column& child(size_t i) const override {
-    //   xassert(i == 0);  (void)i;
-    //   return col;
-    // }
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+    }
+
+    bool get_element(size_t i, int64_t* out) const override{
+      size_t i0, i1;
+      for (size_t j = 0; j < gby_.size(); ++j){
+         gby_.get_group(j, &i0, &i1);
+        if (i>=i0 & i<i1) {
+          *out = ascending_?i1-1-i:i-i0;
+          break;
+         }
+         else {
+          continue;
+         }
+
+      }
+      return true;
+
+    }
 
 };
 

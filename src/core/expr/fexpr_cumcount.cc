@@ -44,7 +44,7 @@ namespace dt {
           std::string out = "cumcount";
           out += '(';
           out += "arg=";
-          out += arg_? "True" : "False";
+          out += arg_? "False" : "True";
           out += ')';
           return out;
         }
@@ -52,24 +52,23 @@ namespace dt {
 
         Workframe evaluate_n(EvalContext &ctx) const override {
           Workframe wf(ctx);
-          Groupby gby = Groupby::single_group(wf.nrows());
 
           if (ctx.has_groupby()) {
             wf.increase_grouping_mode(Grouping::GtoALL);
-            gby = ctx.get_groupby();
           }
 
+          Groupby gby = ctx.get_groupby();
+        
+          
           size_t nrows = ctx.nrows();
-          Column col = evaluate1(nrows, gby);
+          Column col = evaluate1(nrows, arg_, gby);
           wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
           return wf;
         }
 
 
-        Column evaluate1(size_t nrows, const Groupby &gby) const {
-            return Column(new Latent_ColumnImpl(
-              new CUMCOUNT_ColumnImpl(nrows, gby)
-              ));
+        Column evaluate1(size_t n_rows, bool ascending, const Groupby &gby) const {
+            return Column(new CUMCOUNT_ColumnImpl(n_rows, ascending, gby));
         }
 
 
@@ -85,7 +84,7 @@ namespace dt {
     DECLARE_PYFN(&pyfn_cumcount)
         ->name("cumcount")
         //->docs(doc_dt_cumcount)
-        ->arg_names({"ascending"})
+        ->arg_names({"reverse"})
         ->n_positional_args(1)
         ->n_required_args(1);
 
