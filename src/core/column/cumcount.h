@@ -31,19 +31,19 @@ namespace dt {
 class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
   private:
     size_t nrows_;
-    bool ascending_;
+    bool reverse_;
     Groupby gby_;
 
   public:
-    CUMCOUNT_ColumnImpl(size_t nrows, bool ascending, const Groupby& gby)
+    CUMCOUNT_ColumnImpl(size_t nrows, bool reverse, const Groupby& gby)
       : Virtual_ColumnImpl(nrows, SType::INT64),
         nrows_(nrows),
-        ascending_(ascending),
+        reverse_(reverse),
         gby_(gby)
       {}
 
     ColumnImpl* clone() const override {
-      return new CUMCOUNT_ColumnImpl(nrows_, ascending_, gby_);
+      return new CUMCOUNT_ColumnImpl(nrows_, reverse_, gby_);
     }
 
     size_t n_children() const noexcept override {
@@ -59,7 +59,7 @@ class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
       for (size_t j = 0; j < gby_.size(); ++j){
          gby_.get_group(j, &i0, &i1);
         if (i>=i0 & i<i1) {
-          *out = ascending_?i1-1-i:i-i0;
+          *out = reverse_?i1-1-i:i-i0;
           break;
          }
          else {

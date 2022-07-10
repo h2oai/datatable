@@ -67,8 +67,8 @@ namespace dt {
         }
 
 
-        Column evaluate1(size_t n_rows, bool ascending, const Groupby &gby) const {
-            return Column(new CUMCOUNT_ColumnImpl(n_rows, ascending, gby));
+        Column evaluate1(size_t n_rows, bool reverse, const Groupby &gby) const {
+            return Column(new CUMCOUNT_ColumnImpl(n_rows, reverse, gby));
         }
 
 
