@@ -73,7 +73,7 @@ namespace dt {
 
 
     static py::oobj pyfn_cumcount(const py::XArgs &args) {
-      auto cumcount = args[0].to<bool>(true);
+      auto cumcount = args[0].to<bool>(false);
       return PyFExpr::make(new FExpr_CumCount<true>(cumcount));
     }
 
