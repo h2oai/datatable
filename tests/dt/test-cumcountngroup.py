@@ -86,6 +86,3 @@ def test_cumcount_ngroup_groupby():
     DT_ref = dt.Frame([['a', 'a','a','a', 'b','b'],[0,1,2,3,0,1]/dt.int64, [1,1,1,1,0,0]/dt.int64])
     assert_equals(DT_cnt_ngrp, DT_ref)
 
-
-
-
