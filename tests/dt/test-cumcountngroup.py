@@ -21,7 +21,6 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import math
 import pytest
 from datatable import dt, f, cumcount, ngroup, FExpr, by
 from tests import assert_equals
