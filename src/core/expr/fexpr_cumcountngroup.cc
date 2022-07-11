@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/cumcount.h"
+#include "column/cumcountngroup.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -31,7 +31,7 @@
 
 namespace dt {
   namespace expr {
-
+    template<bool CUMCOUNT>
     class FExpr_CumCount : public FExpr_Func {
       private:
         bool arg_;
@@ -41,10 +41,10 @@ namespace dt {
             : arg_(arg) {}
 
         std::string repr() const override {
-          std::string out = "cumcount";
+          std::string out = CUMCOUNT?"cumcount":"ngroup";
           out += '(';
           out += "arg=";
-          out += arg_? "False" : "True";
+          out += arg_? "True" : "False";
           out += ')';
           return out;
         }
@@ -52,41 +52,47 @@ namespace dt {
 
         Workframe evaluate_n(EvalContext &ctx) const override {
           Workframe wf(ctx);
+          size_t nrows = ctx.nrows();
+          Groupby gby = Groupby::single_group(nrows);
 
           if (ctx.has_groupby()) {
             wf.increase_grouping_mode(Grouping::GtoALL);
-          }
-
-          Groupby gby = ctx.get_groupby();
-        
-          
-          size_t nrows = ctx.nrows();
+            gby = ctx.get_groupby();
+          }     
+                    
           Column col = evaluate1(nrows, arg_, gby);
           wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
           return wf;
         }
 
-
         Column evaluate1(size_t n_rows, bool reverse, const Groupby &gby) const {
-            return Column(new CUMCOUNT_ColumnImpl(n_rows, reverse, gby));
+            return Column(new CUMCOUNTNGROUP_ColumnImpl<CUMCOUNT>(n_rows, reverse, gby));
         }
-
-
 
     };
 
 
     static py::oobj pyfn_cumcount(const py::XArgs &args) {
       auto cumcount = args[0].to<bool>(true);
-      return PyFExpr::make(new FExpr_CumCount(cumcount));
+      return PyFExpr::make(new FExpr_CumCount<true>(cumcount));
+    }
+
+    static py::oobj pyfn_ngroup(const py::XArgs &args) {
+      auto ngroup = args[0].to<bool>(false);
+      return PyFExpr::make(new FExpr_CumCount<false>(ngroup));
     }
 
     DECLARE_PYFN(&pyfn_cumcount)
         ->name("cumcount")
-        //->docs(doc_dt_cumcount)
-        ->arg_names({"reverse"})
-        ->n_positional_args(1)
-        ->n_required_args(1);
+        ->docs(doc_dt_cumcount)
+        ->n_positional_or_keyword_args(1)
+        ->arg_names({"reverse"});
+
+    DECLARE_PYFN(&pyfn_ngroup)
+        ->name("ngroup")
+        ->docs(doc_dt_ngroup)
+        ->n_positional_or_keyword_args(1)
+        ->arg_names({"reverse"});
 
   }  // namespace dt::expr
 }    // namespace dt

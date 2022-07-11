@@ -19,23 +19,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_CUMCOUNT_h
-#define dt_COLUMN_CUMCOUNT_h
+#ifndef dt_COLUMN_CUMCOUNTNGROUP_h
+#define dt_COLUMN_CUMCOUNTNGROUP_h
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
 
 namespace dt {
 
-
-class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
+template<bool CUMCOUNT>
+class CUMCOUNTNGROUP_ColumnImpl : public Virtual_ColumnImpl {
   private:
     size_t nrows_;
     bool reverse_;
     Groupby gby_;
 
   public:
-    CUMCOUNT_ColumnImpl(size_t nrows, bool reverse, const Groupby& gby)
+    CUMCOUNTNGROUP_ColumnImpl(size_t nrows, bool reverse, const Groupby& gby)
       : Virtual_ColumnImpl(nrows, SType::INT64),
         nrows_(nrows),
         reverse_(reverse),
@@ -43,7 +43,7 @@ class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
       {}
 
     ColumnImpl* clone() const override {
-      return new CUMCOUNT_ColumnImpl(nrows_, reverse_, gby_);
+      return new CUMCOUNTNGROUP_ColumnImpl(nrows_, reverse_, gby_);
     }
 
     size_t n_children() const noexcept override {
@@ -56,16 +56,17 @@ class CUMCOUNT_ColumnImpl : public Virtual_ColumnImpl {
 
     bool get_element(size_t i, int64_t* out) const override{
       size_t i0, i1;
-      for (size_t j = 0; j < gby_.size(); ++j){
+      auto grp_size = gby_.size();
+      for (size_t j = 0; j < grp_size; ++j){
          gby_.get_group(j, &i0, &i1);
         if (i>=i0 & i<i1) {
+          if (CUMCOUNT){
           *out = reverse_?i1-1-i:i-i0;
+          } else {
+            *out = reverse_?grp_size-1-j:j;
+          }
           break;
          }
-         else {
-          continue;
-         }
-
       }
       return true;
 
