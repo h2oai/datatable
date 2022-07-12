@@ -54,20 +54,30 @@ class CUMCOUNTNGROUP_ColumnImpl : public Virtual_ColumnImpl {
       xassert(i == 0);  (void)i;
     }
 
-    bool get_element(size_t i, int64_t* out) const override{
-      size_t i0, i1;
-      auto grp_size = gby_.size();
-      for (size_t j = 0; j < grp_size; ++j){
-         gby_.get_group(j, &i0, &i1);
-        if (i>=i0 & i<i1) {
-          if (CUMCOUNT){
-          *out = reverse_?i1-1-i:i-i0;
-          } else {
-            *out = reverse_?grp_size-1-j:j;
+    bool get_element(size_t i, int64_t* out) const override{           
+      if (gby_.size() == 1){
+        *out = reverse_?n_rows_-1-i:i;
+      } else {
+          size_t low = 0;
+          size_t high = gby_.size();
+          auto offsets = gby_.offsets_r();
+          while (low < high) {
+            size_t mid = (low + high) / 2 ;
+            if (i < offsets[mid]) {
+              high = mid;
+            } else {
+              low = mid + 1;
+            }
           }
-          break;
-         }
+          if (CUMCOUNT) {
+            size_t i0, i1;
+            gby_.get_group(low - 1, &i0, &i1);
+            *out = reverse_?i1-1-i:i-i0;        
+          } else {
+            *out = reverse_?gby_.size()-low:low-1;        
+          }
       }
+
       return true;
 
     }

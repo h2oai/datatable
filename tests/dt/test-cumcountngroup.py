@@ -38,8 +38,12 @@ def test_cumcount_non_bool():
 def test_ngroup_non_bool():
     DT = dt.Frame(list('abcde'))
     with pytest.raises(TypeError, match = r'Argument reverse in function datatable.ngroup\(\) should be a boolean.+'):
-        DT[:, ngroup('True')]
+        DT[:, ngroup('True'), by(f[0])]
 
+def test_ngroup_non_grouped():
+    DT = dt.Frame(list('abcde'))
+    with pytest.raises(ValueError, match = r'The ngroup\(\) function is applicable only in a groupby operation.'):
+        DT[:, ngroup(True)]
 #-------------------------------------------------------------------------------
 # Normal
 #-------------------------------------------------------------------------------
@@ -54,30 +58,29 @@ def test_cumcount_ngroup_str():
 
 
 
-def test_cumcount_ngroup_empty_frame():
+def test_cumcount_empty_frame():
     DT = dt.Frame()
     assert isinstance(cumcount(False), FExpr)
-    assert isinstance(ngroup(False), FExpr)
-    assert_equals(DT[:, cumcount(False)], dt.Frame({'C0': []/dt.int64}))
-    assert_equals(DT[:, ngroup(False)], dt.Frame({'C0': []/dt.int64}))
+    assert_equals(DT[:, cumcount(False)], dt.Frame({'C0': []/dt.int8}))
+    assert_equals(DT[:, cumcount(True)], dt.Frame({'C0': []/dt.int8}))
 
 
-def test_cumcount_ngroup_void():
+def test_cumcount_void():
     DT = dt.Frame([None]*10)
-    DT_cnt_ngrp = DT[:, [cumcount(True), ngroup(False)]]
-    assert_equals(DT_cnt_ngrp, dt.Frame([list(range(9,-1,-1))/dt.int64, [0]*10/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(True), cumcount(False)]]
+    assert_equals(DT_cumcount, dt.Frame([list(range(9,-1,-1))/dt.int64, list(range(10))/dt.int64]))
 
 
-def test_cumcount_ngroup_trivial():
+def test_cumcount_trivial():
     DT = dt.Frame([0]/dt.int64)
-    DT_cnt_ngrp = DT[:, [cumcount(True), ngroup(False)]]
-    assert_equals(DT_cnt_ngrp, dt.Frame([[0]/dt.int64, [0]/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(True), cumcount(False)]]
+    assert_equals(DT_cumcount, dt.Frame([[0]/dt.int64, [0]/dt.int64]))
 
 
-def test_cumcount_ngroup_small():
+def test_cumcount_small():
     DT = dt.Frame(['a', 'a','a','b','b','a'])
-    DT_cnt_ngrp = DT[:, [cumcount(False), ngroup(True)]]
-    assert_equals(DT_cnt_ngrp, dt.Frame([list(range(6))/dt.int64, [0]*6/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(False), cumcount(True)]]
+    assert_equals(DT_cumcount, dt.Frame([list(range(6))/dt.int64, list(range(5,-1,-1))/dt.int64]))
 
 
 def test_cumcount_ngroup_groupby():

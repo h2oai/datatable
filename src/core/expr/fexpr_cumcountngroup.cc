@@ -28,6 +28,7 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
+#include<iostream>
 
 namespace dt {
   namespace expr {
@@ -58,16 +59,21 @@ namespace dt {
           if (ctx.has_groupby()) {
             wf.increase_grouping_mode(Grouping::GtoALL);
             gby = ctx.get_groupby();
-          }     
-                    
-          Column col = evaluate1(nrows, arg_, gby);
-          wf.add_column(std::move(col), std::string(), wf.get_grouping_mode());
+          }  
+          auto gmode = wf.get_grouping_mode();        
+          Column col = evaluate1(nrows, arg_, gby, gmode);
+          wf.add_column(std::move(col), std::string(), gmode);
           return wf;
         }
 
-        Column evaluate1(size_t n_rows, bool reverse, const Groupby &gby) const {
+        Column evaluate1(size_t n_rows, bool reverse, const Groupby &gby, const Grouping &gmode) const {
+         if (gmode != Grouping::GtoALL & !CUMCOUNT) {
+            throw ValueError() << "The ngroup() function is applicable only in a groupby operation.";
+          } else if (n_rows == 0) {
+            return Column(new ConstInt_ColumnImpl(n_rows, 0, SType::INT8));
+          } else {
             return Column(new CUMCOUNTNGROUP_ColumnImpl<CUMCOUNT>(n_rows, reverse, gby));
-        }
+        }}
 
     };
 

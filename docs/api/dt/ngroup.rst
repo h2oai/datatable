@@ -7,20 +7,23 @@
 
     .. x-version-added:: 1.1.0
 
-    Returns the group number for each row.
-    In the absence of :func:`by()`, it simply returns 0.
+    Returns the group number for each row. 
+    
+    It is applicable only in the presence of :func:`by`.
 
     If `reverse = True`, the numbering is done in descending order.
 
     Parameters
     ----------
     reverse: bool
-        If ``False``, numbering is performed in the ascending order. 
-        If ``True``, the numbering is in descending order.
+        If ``False``, the group number is returned in ascending order. 
+        If ``True``, the group number is returned in descending order.
 
     return: FExpr
         f-expression that returns the number for each group.
 
+    except: ValueError
+        The exception is raised if there is no groupby operation with :func:`by()`.
 
     Examples
     --------
@@ -43,7 +46,7 @@
          7 | c
         [8 rows x 1 column]
 
-    Compute the ngroup per group in ascending order::
+    Return the group number in ascending order::
 
         >>> DT[:, dt.ngroup(reverse = False), f.C0]
            | C0        C1
@@ -59,7 +62,7 @@
          7 | c          2
         [8 rows x 2 columns]
 
-    Compute the ngroup per group in descending order::
+    Return the group number in descending order::
 
         >>> DT[:, dt.ngroup(reverse = True), f.C0]
            | C0        C1
@@ -75,21 +78,5 @@
          7 | c          0
         [8 rows x 2 columns]
 
-
-    Compute in the absence of :func:`by()`::
-
-        >>> DT[:, dt.ngroup(reverse = False)]
-           |    C0
-           | int64
-        -- + -----
-         0 |     0
-         1 |     0
-         2 |     0
-         3 |     0
-         4 |     0
-         5 |     0
-         6 |     0
-         7 |     0
-        [8 rows x 1 column]
 
 
