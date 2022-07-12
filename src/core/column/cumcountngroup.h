@@ -30,20 +30,20 @@ namespace dt {
 template<bool CUMCOUNT>
 class CUMCOUNTNGROUP_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    size_t nrows_;
+    size_t n_rows_;
     bool reverse_;
     Groupby gby_;
 
   public:
-    CUMCOUNTNGROUP_ColumnImpl(size_t nrows, bool reverse, const Groupby& gby)
-      : Virtual_ColumnImpl(nrows, SType::INT64),
-        nrows_(nrows),
+    CUMCOUNTNGROUP_ColumnImpl(size_t n_rows, bool reverse, const Groupby& gby)
+      : Virtual_ColumnImpl(n_rows, SType::INT64),
+        n_rows_(n_rows),
         reverse_(reverse),
         gby_(gby)
       {}
 
     ColumnImpl* clone() const override {
-      return new CUMCOUNTNGROUP_ColumnImpl(nrows_, reverse_, gby_);
+      return new CUMCOUNTNGROUP_ColumnImpl(n_rows_, reverse_, gby_);
     }
 
     size_t n_children() const noexcept override {
