@@ -20,7 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-//#include "column/cumsumprod.h"
+#include "column/fillna.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -33,7 +33,6 @@
 namespace dt {
   namespace expr {
 
-    //template <bool SUM>
     class FExpr_FillNA : public FExpr_Func {
       private:
         ptrExpr arg_;
@@ -48,6 +47,11 @@ namespace dt {
              else {
                 throw TypeError() << "Parameter `direction` in fillna() should be "
                     "a string, instead got " << direction.typeobj();
+             }
+             bool bool_direction = (direction_=="down") || (direction_=="up");
+             if (!bool_direction) {
+              throw ValueError() << "The value for the parameter `direction` in fillna() "
+                  "should be either `up` or `down`.";
              }
              }
 
@@ -71,47 +75,40 @@ namespace dt {
             gby = ctx.get_groupby();
           }
 
-          // for (size_t i = 0; i < wf.ncols(); ++i) {
-          //   Column coli = evaluate1(wf.retrieve_column(i), gby);
-          //   wf.replace_column(i, std::move(coli));
-          // }
+          bool bool_direction = direction_=="down";
+          for (size_t i = 0; i < wf.ncols(); ++i) {
+            Column coli = evaluate1(wf.retrieve_column(i), bool_direction, gby);
+            wf.replace_column(i, std::move(coli));
+          }
           return wf;
         }
 
 
-        // Column evaluate1(Column &&col, const Groupby &gby) const {
-        //   SType stype = col.stype();
-        //   switch (stype) {
-        //     case SType::VOID:
-        //       if (SUM) {
-        //         return Column(new ConstInt_ColumnImpl(col.nrows(), 0, SType::INT64));
-        //       } else {
-        //         return Column(new ConstInt_ColumnImpl(col.nrows(), 1, SType::INT64));
-        //       }
-        //     case SType::BOOL:
-        //     case SType::INT8:
-        //     case SType::INT16:
-        //     case SType::INT32:
-        //     case SType::INT64:
-        //       return make<int64_t>(std::move(col), SType::INT64, gby);
-        //     case SType::FLOAT32:
-        //       return make<float>(std::move(col), SType::FLOAT32, gby);
-        //     case SType::FLOAT64:
-        //       return make<double>(std::move(col), SType::FLOAT64, gby);
-        //     default:
-        //       throw TypeError()
-        //         << "Invalid column of type `" << stype << "` in " << repr();
-        //   }
-        // }
+      Column evaluate1(Column &&col, bool direction_is_down, const Groupby &gby) const {
+        SType stype = col.stype();
+        switch (stype) {
+          case SType::VOID:    return Column(new ConstNa_ColumnImpl(col.nrows()));
+          case SType::BOOL:
+          case SType::INT8:    return make<int8_t>(std::move(col), direction_is_down, gby);
+          case SType::INT16:   return make<int16_t>(std::move(col), direction_is_down, gby);
+          case SType::INT32:   return make<int32_t>(std::move(col), direction_is_down, gby);
+          case SType::INT64:   return make<int64_t>(std::move(col), direction_is_down, gby);
+          case SType::FLOAT32: return make<float>(std::move(col), direction_is_down, gby);
+          case SType::FLOAT64: return make<double>(std::move(col), direction_is_down, gby);
+          //case SType::STR32:   
+          //case SType::STR64: return make<CString>(std::move(col), direction_is_down, gby);  
+          default: throw TypeError()
+            << "Invalid column of type `" << stype << "` in " << repr();
+        }
+      }
 
 
-        // template <typename T>
-        // Column make(Column &&col, SType stype, const Groupby &gby) const {
-        //    col.cast_inplace(stype);
-        //    return Column(new Latent_ColumnImpl(
-        //      new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)
-        //    ));
-        // }
+        template <typename T>
+        Column make(Column &&col, bool direction_is_down, const Groupby &gby) const {
+           return Column(new Latent_ColumnImpl(
+             new FillNA_ColumnImpl<T>(std::move(col), direction_is_down, gby)
+           ));
+        }
     };
 
 
