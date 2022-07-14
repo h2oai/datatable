@@ -467,7 +467,7 @@ def test_cumprod():
 def test_fillna():
     assert str(dt.fillna(f.A, direction='down')) == str(f.A.fillna(direction='down'))
     assert str(dt.fillna(f.A, direction='up')) == str(f.A.fillna(direction='up'))
-    assert str(dt.fillna(f[:], direction='up')) == str(f[:].fillna(direction='up'))
+    assert str(dt.fillna(f[:], 'up')) == str(f[:].fillna('up'))
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
-    assert_equals(DT[:, f.A.fillna(direction='up')], DT[:, dt.fillna(f.A, direction='up')])
-    assert_equals(DT[:, f.A.fillna(direction='down')], DT[:, dt.fillna(f.A, direction='down')])
+    assert_equals(DT[:, f.A.fillna(direction='up')], DT[:, dt.fillna(f.A, 'up')])
+    assert_equals(DT[:, f.A.fillna(direction='down')], DT[:, dt.fillna(f.A, 'down')])
