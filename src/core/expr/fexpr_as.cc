@@ -48,10 +48,10 @@ class FExpr_Rename : public FExpr_Func {
       out += arg_->repr();
       out += ", names=";
       out += "[";
-        for (auto name : names_) {
-          out += name;
-          out += ",";
-        }
+      for (auto name : names_) {
+        out += name;
+        out += ",";
+      }
         out += "]";
       out += ')';
       return out;
@@ -60,16 +60,18 @@ class FExpr_Rename : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext& ctx)  const override{
       Workframe wf = arg_->evaluate_n(ctx);
+      auto gmode = wf.get_grouping_mode();
       Workframe outputs(ctx);
 
-      // for (size_t i = 0; i < wf.ncols(); ++i) {
-      //   Column coli = evaluate1(wf.retrieve_column(i), gby);
-      //   wf.replace_column(i, std::move(coli));
-      // }
-      // outputs.add_column(wf.retrieve_column(0), 
-      //                    std::string(), 
-      //                    wf.get_grouping_mode());
-      // outputs.rename(name_);
+      for (size_t i = 0; i < wf.ncols(); ++i) {
+        Workframe base_frame(ctx);
+        base_frame.add_column(wf.retrieve_column(i),
+                              std::string(),
+                              gmode);
+        base_frame.rename(names_[i]);
+        outputs.cbind(std::forward<Workframe>(base_frame));
+      }
+
       return outputs;
     }
 
