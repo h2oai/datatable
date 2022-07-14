@@ -99,7 +99,7 @@ Workframe FExpr_Frame::evaluate_n(EvalContext& ctx) const
 // the following: DT[:, X], and it means the same as simply X. This is
 // done for consistency with "normal" evaluation cases.
 //
-// In addition, standalone X in j can be used to with an i-filter:
+// In addition, standalone X in j can be used with an i-filter:
 // DT[<i>, X] is thus equivalent to X[DT[:, <i>], :].
 //
 Workframe FExpr_Frame::evaluate_j(EvalContext& ctx) const {

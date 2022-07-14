@@ -5,100 +5,111 @@
     :tests: tests/test-reduce.py
     :signature: last(cols)
 
-    Return the last row for each column from `cols`.
+    Return the last row for an ``Expr``. If `cols` is an iterable,
+    simply return the last element.
 
 
     Parameters
     ----------
-    cols: Expr
-        Input columns.
+    cols: Expr | iterable
+        Input columns or an iterable.
 
-    return: Expr
-        f-expression having one row, and the same names, stypes and
-        number of columns as in `cols`.
+    return: Expr | ...
+        One-row f-expression that has the same names, stypes and
+        number of columns as `cols`. For an iterable the last
+        element is returned.
 
 
     Examples
     --------
+    Function :func:`last()` called on a frame, that is an iterable of columns,
+    returns the last column::
 
-    ``last()`` returns the last column in a frame::
-
-        >>> from datatable import dt, f, by, sort, last
-        >>>
-        >>> df = dt.Frame({"A": [1, 1, 2, 1, 2],
-        ...                "B": [None, 2, 3, 4, None]})
-        >>>
-        >>> df
+        >>> from datatable import dt, last, f, by
+        >>> DT = dt.Frame({"A": [1, 1, 2, 1, 2],
+        ...                "B": [None, 5, 3, 4, None]})
            |     A      B
            | int32  int32
         -- + -----  -----
          0 |     1     NA
-         1 |     1      2
+         1 |     1      5
          2 |     2      3
          3 |     1      4
          4 |     2     NA
-        [5 rows x 2 columns]
 
-        >>> dt.last(df)
+        [5 rows x 2 columns]
+        >>> last(DT)
            |     B
            | int32
         -- + -----
          0 |    NA
-         1 |     2
+         1 |     5
          2 |     3
          3 |     4
          4 |    NA
+
         [5 rows x 1 column]
 
-    Within a frame, it returns the last row::
+    Called on a set of columns, :func:`last()` returns the last row::
 
-        >>> df[:, last(f[:])]
+        >>> DT[:, last(f[:])]
            |     A      B
            | int32  int32
         -- + -----  -----
          0 |     2     NA
+
         [1 row x 2 columns]
 
-    The above code can be replicated by passing -1 to the ``i`` section instead::
+    The same could also be achieved by passing ``-1`` to the row selector::
 
-        >>> df[-1, :]
+        >>> DT[-1, :]
            |     A      B
            | int32  int32
         -- + -----  -----
          0 |     2     NA
+
         [1 row x 2 columns]
 
-    Like ``first()``, ``last()`` can be handy if you wish to get the last
-    non null value in a column::
+    To get the last non-missing value in a column, one should additionally employ
+    a corresponding i-filter::
 
-        >>> df[f.B != None, dt.last(f.B)]
+        >>> DT[f.B != None, last(f.B)]
            |     B
            | int32
         -- + -----
          0 |     4
+
         [1 row x 1 column]
 
-    ``last()`` returns the last row per group in a :func:`by()` operation::
+    Function :func:`last()` is group-aware, meaning that it returns the last row
+    per group in a :func:`by()` context::
 
-        >>> df[:, last(f[:]), by("A")]
+        >>> DT[:, last(f.B), by("A")]
            |     A      B
            | int32  int32
         -- + -----  -----
          0 |     1      4
          1 |     2     NA
+
         [2 rows x 2 columns]
 
-    To get the last non-null value per row in a :func:`by()` operation, you can
-    use the :func:`sort()` function, and set the ``na_position`` argument as
-    ``first`` (this will move the ``NAs`` to the top of the column)::
+    To get the last non-missing value per group,
+    one should first filter out all the missing values from the column in question::
 
-        >>> df[:, last(f[:]), by("A"), sort("B", na_position="first")]
+        >>> DT[f.B != None, :][:, last(f.B), by("A")]
            |     A      B
            | int32  int32
         -- + -----  -----
          0 |     1      4
          1 |     2      3
+
         [2 rows x 2 columns]
+
+    .. note::
+
+        Filtering missing values in the row selector will not work in
+        a general case, e.g. when one needs to find the last non-missing values
+        in several columns.
 
 
     See Also
