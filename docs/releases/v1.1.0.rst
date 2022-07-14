@@ -89,6 +89,9 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.countna()`,
       which behaves exactly as the equivalent base level function :func:`dt.countna()`.
 
+    -[new] Added function :func:`dt.fillna()`, as well as :meth:`.fillna()` method,
+      to fill null values down or up. [#3279]
+
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
     -[enh] Function :func:`dt.qcut()` can now be used in a groupby context. [#3165]

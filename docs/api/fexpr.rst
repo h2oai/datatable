@@ -175,6 +175,8 @@
         * - :meth:`.cumsum()`
           - Same as :func:`dt.cumsum()`.
 
+        * - :meth:`.fillna()`
+          - Same as :func:`dt.fillna()`.
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
 
@@ -303,6 +305,7 @@
     .cumprod()      <fexpr/cumprod>
     .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
+    .fillna()       <fexpr/fillna>
     .first()        <fexpr/first>
     .last()         <fexpr/last>
     .len()          <fexpr/len>
