@@ -366,7 +366,7 @@ DECLARE_METHOD(&PyFExpr::cumsum)
 
 
 oobj PyFExpr::fillna(const XArgs& args) {
-  auto fillnaFn = oobj::import("datatable", "direction");
+  auto fillnaFn = oobj::import("datatable", "fillna");
   oobj direction = args[0].to_oobj();
   return fillnaFn.call({this, direction});
 }
@@ -374,7 +374,7 @@ oobj PyFExpr::fillna(const XArgs& args) {
 DECLARE_METHOD(&PyFExpr::fillna)
     ->name("fillna")
     ->docs(dt::doc_FExpr_fillna)
-    ->arg_names({"fillna"})
+    ->arg_names({"direction"})
     ->n_required_args(1)
     ->n_positional_or_keyword_args(1);
 
