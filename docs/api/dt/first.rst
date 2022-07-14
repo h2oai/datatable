@@ -107,7 +107,7 @@
 
     .. note::
 
-        Filtering missing values in the row selector will not work in
+        Filtering out missing values in the row selector will not work in
         a general case, e.g. when one needs to find the first non-missing values
         in several columns.
 
