@@ -2,7 +2,7 @@
 // Copyright 2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the "Software"),
+// copy of this software and Renamesociated documentation files (the "Software"),
 // to deal in the Software without restriction, including without limitation
 // the rights to use, copy, modify, merge, publish, distribute, sublicense,
 // and/or sell copies of the Software, and to permit persons to whom the
@@ -11,7 +11,7 @@
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
 //
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// THE SOFTWARE IS PROVIDED "Rename IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
 // AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -31,92 +31,87 @@
 namespace dt {
 namespace expr {
 
-class FExpr_AS : public FExpr_Func {
+class FExpr_Rename : public FExpr_Func {
   private:
     ptrExpr arg_;
+    strvec names_;
 
   public:
-    FExpr_AS(ptrExpr&& arg)
-      : arg_(std::move(arg)) {}
+    FExpr_Rename(ptrExpr&& arg, strvec&& names)
+      : arg_(std::move(arg)), 
+        names_(std::move(names))
+        {}
 
     std::string repr() const override {
-      std::string out = MIN? "cummin" : "cummax";
+      std::string out = "rename";
       out += '(';
       out += arg_->repr();
+      out += ", names=";
+      out += "[";
+        for (auto name : names_) {
+          out += name;
+          out += ",";
+        }
+        out += "]";
       out += ')';
       return out;
     }
 
 
-    Workframe evaluate_n(EvalContext& ctx) const override {
+    Workframe evaluate_n(EvalContext& ctx)  const override{
       Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = Groupby::single_group(wf.nrows());
+      Workframe outputs(ctx);
 
-      if (ctx.has_groupby()) {
-        wf.increase_grouping_mode(Grouping::GtoALL);
-        gby = ctx.get_groupby();
-      }
-
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-        Column coli = evaluate1(wf.retrieve_column(i), gby);
-        wf.replace_column(i, std::move(coli));
-      }
-      return wf;
+      // for (size_t i = 0; i < wf.ncols(); ++i) {
+      //   Column coli = evaluate1(wf.retrieve_column(i), gby);
+      //   wf.replace_column(i, std::move(coli));
+      // }
+      // outputs.add_column(wf.retrieve_column(0), 
+      //                    std::string(), 
+      //                    wf.get_grouping_mode());
+      // outputs.rename(name_);
+      return outputs;
     }
 
 
-    Column evaluate1(Column&& col, const Groupby& gby) const {
-      SType stype = col.stype();
-      switch (stype) {
-        case SType::VOID:    return Column(new ConstNa_ColumnImpl(col.nrows()));
-        case SType::BOOL:
-        case SType::INT8:    return make<int8_t>(std::move(col), gby);
-        case SType::INT16:   return make<int16_t>(std::move(col), gby);
-        case SType::INT32:   return make<int32_t>(std::move(col), gby);
-        case SType::INT64:   return make<int64_t>(std::move(col), gby);
-        case SType::FLOAT32: return make<float>(std::move(col), gby);
-        case SType::FLOAT64: return make<double>(std::move(col), gby);
-        default: throw TypeError()
-          << "Invalid column of type `" << stype << "` in " << repr();
-      }
-    }
-
-
-    template <typename T>
-    Column make(Column&& col, const Groupby& gby) const {
-      return Column(new Latent_ColumnImpl(
-        new CumMinMax_ColumnImpl<T, MIN>(std::move(col), gby)
-      ));
-    }
 };
 
 
-static py::oobj pyfn_cummax(const py::XArgs& args) {
-  auto cummax = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_AS<false>(as_fexpr(cummax)));
-}
+
+    static py::oobj pyfn_rename(const py::XArgs &args) {
+       auto column = args[0].to_oobj();
+       auto names = args[1].to_oobj();
+       strvec names_sequence;
+       if (names.is_list_or_tuple()) {
+        py::oiter names_iter = names.to_oiter();
+        names_sequence.reserve(names_iter.size());
+        size_t i = 0;
+        for (auto n_iter : names_iter) {
+          if (!n_iter.is_string()) {
+            throw TypeError() << "Argument " <<i<<" in the `names` parameter should be a string;"
+                " instead, got "<< n_iter.typeobj();
+          }
+          names_sequence.push_back(n_iter.to_string());
+          i++;
+        }
+       }
+       else if (names.is_string()){
+        names_sequence.push_back(names.to_string());
+       }
+       else {
+        throw TypeError() << "The `names` parameter in `as()` should either be a string/list/tuple; "
+            "instead, got " << names.typeobj();
+       }
+       return PyFExpr::make(new FExpr_Rename(as_fexpr(column), std::move(names_sequence)));
+     }
 
 
-static py::oobj pyfn_cummin(const py::XArgs& args) {
-  auto cummin = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_AS<true>(as_fexpr(cummin)));
-}
-
-
-DECLARE_PYFN(&pyfn_cummax)
-    ->name("cummax")
-    ->docs(doc_dt_cummax)
-    ->arg_names({"cummax"})
-    ->n_positional_args(1)
-    ->n_required_args(1);
-
-
-DECLARE_PYFN(&pyfn_cummin)
-    ->name("cummin")
-    ->docs(doc_dt_cummin)
-    ->arg_names({"cummin"})
-    ->n_positional_args(1)
-    ->n_required_args(1);
+     DECLARE_PYFN(&pyfn_rename)
+         ->name("rename")
+         //->docs(doc_dt_rename)
+         ->arg_names({"column", "names"})
+         ->n_required_args(2)
+         ->n_positional_args(2);
 
 
 }}  // dt::expr
