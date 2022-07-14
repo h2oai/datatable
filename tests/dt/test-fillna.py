@@ -138,6 +138,3 @@ def test_fillna_grouped_column():
               ])
      assert_equals(DT_bfill, DT_ref)
 
-
-
-
