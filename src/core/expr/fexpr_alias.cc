@@ -60,6 +60,11 @@ class FExpr_Alias : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext& ctx)  const override{
       Workframe wf = arg_->evaluate_n(ctx);
+      if (wf.ncols() != names_.size()) {
+        throw ValueError() << "The number of arguments("<<names_.size()<<") "
+            "passed to `names` does not match the number of specified columns"
+            "("<<wf.ncols()<<").";
+      }
       auto gmode = wf.get_grouping_mode();
       Workframe outputs(ctx);
 
@@ -82,6 +87,9 @@ class FExpr_Alias : public FExpr_Func {
        strvec names_sequence;
        if (names.is_list_or_tuple()) {
         py::oiter names_iter = names.to_oiter();
+        if (names_iter.size() < 1) {
+          throw TypeError() <<"Kindly provide at least one string value in the `names` argument.";
+        }
         names_sequence.reserve(names_iter.size());
         size_t i = 0;
         for (auto n_iter : names_iter) {
@@ -98,7 +106,7 @@ class FExpr_Alias : public FExpr_Func {
        }
        else {
         throw TypeError() << "The `names` parameter in `alias()` should "
-            "either be a string/list/tuple; instead, got " << names.typeobj();
+            "be a string/list/tuple; instead, got " << names.typeobj();
        }
        return PyFExpr::make(new FExpr_Alias(as_fexpr(column), std::move(names_sequence)));
      }
