@@ -113,3 +113,4 @@ def test_alias_groupby():
                  [-1.5, math.inf, math.inf, 1.5, 3]
              ], names = ('group','C0', 'C1', 'C2','C3'))
     assert_equals(DT_cummax, DT_ref)
+
