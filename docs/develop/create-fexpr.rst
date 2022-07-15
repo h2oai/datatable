@@ -644,7 +644,7 @@ and to step through the program:
   - ``t 5``: switch to thread number 5
   - ``q`` or :kbd:`Ctrl+D` to exit lldb.
 
-Obviously, there are `many more <lldb-commands>`_ commands available, but
+Obviously, there are `many more <lldb-commands_>`_ commands available, but
 these are the most basic.
 
 
