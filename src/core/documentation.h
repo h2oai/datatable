@@ -23,6 +23,7 @@
 #define dt_DOCUMENTATION_h
 namespace dt {
 
+extern const char* doc_dt_alias;
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
 extern const char* doc_dt_cbind;
@@ -279,6 +280,7 @@ extern const char* doc_Frame_types;
 extern const char* doc_Frame_view;
 
 extern const char* doc_FExpr;
+extern const char* doc_FExpr_alias;
 extern const char* doc_FExpr_as_type;
 extern const char* doc_FExpr_count;
 extern const char* doc_FExpr_countna;
