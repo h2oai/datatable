@@ -114,6 +114,38 @@ def test_cumminmax_small():
     assert_equals(DT_cummax, DT_ref)
 
 
+def test_cumminmax_dates():
+    from datetime import date as d
+    src = [None, d(1997, 9, 1), d(2002, 7, 31), None, d(2000, 2, 20)]
+    DT = dt.Frame(src)
+    DT_cummax = DT[:, [cummin(f.C0), cummax(f.C0)]]
+    DT_ref = dt.Frame([
+                 [None, d(1997, 9, 1), d(1997, 9, 1), d(1997, 9, 1), d(1997, 9, 1)],
+                 [None, d(1997, 9, 1), d(2002, 7, 31), d(2002, 7, 31), d(2002, 7, 31)],
+             ])
+    assert_equals(DT_cummax, DT_ref)
+
+
+def test_cumminmax_times():
+    from datetime import datetime as d
+    src = [None, d(1997, 9, 1, 10, 11, 5), d(1997, 9, 1, 10, 10, 5), None, None]
+    DT = dt.Frame(src)
+    DT_cummax = DT[:, [cummin(f.C0), cummax(f.C0)]]
+    DT_ref = dt.Frame([
+                 [None,
+                  d(1997, 9, 1, 10, 11, 5),
+                  d(1997, 9, 1, 10, 10, 5),
+                  d(1997, 9, 1, 10, 10, 5),
+                  d(1997, 9, 1, 10, 10, 5)],
+                 [None,
+                  d(1997, 9, 1, 10, 11, 5),
+                  d(1997, 9, 1, 10, 11, 5),
+                  d(1997, 9, 1, 10, 11, 5),
+                  d(1997, 9, 1, 10, 11, 5)],
+             ])
+    assert_equals(DT_cummax, DT_ref)
+
+
 def test_cumminmax_groupby():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, None, 3]])
     DT_cummax = DT[:, [cummin(f[:]), cummax(f[:])], by(f[0])]
