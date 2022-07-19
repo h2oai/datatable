@@ -75,7 +75,9 @@ class FExpr_CumMinMax : public FExpr_Func {
         case SType::BOOL:
         case SType::INT8:    return make<int8_t>(std::move(col), gby);
         case SType::INT16:   return make<int16_t>(std::move(col), gby);
+        case SType::DATE32:
         case SType::INT32:   return make<int32_t>(std::move(col), gby);
+        case SType::TIME64:
         case SType::INT64:   return make<int64_t>(std::move(col), gby);
         case SType::FLOAT32: return make<float>(std::move(col), gby);
         case SType::FLOAT64: return make<double>(std::move(col), gby);
