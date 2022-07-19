@@ -25,7 +25,6 @@
 namespace dt {
 
 
-
 void Job_Shutdown::ShutdownTask::execute() {
   thpool->assign_job_to_current_thread(nullptr);
 }

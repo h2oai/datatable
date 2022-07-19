@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2021 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,17 +20,19 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <thread>      // std::thread::hardware_concurrency
-#include "documentation.h"
+#ifndef DT_DISABLE
+  #include "documentation.h"
+  #include "progress/progress_manager.h"
+  #include "python/_all.h"
+  #include "python/arg.h"
+  #include "options.h"
+#endif
 #include "parallel/api.h"
 #include "parallel/job_shutdown.h"
 #include "parallel/thread_pool.h"
 #include "parallel/thread_team.h"
 #include "parallel/thread_worker.h"
-#include "progress/progress_manager.h"
-#include "python/_all.h"
-#include "python/arg.h"
 #include "utils/assert.h"
-#include "options.h"
 #include "utils/macros.h"
 #if !DT_OS_WINDOWS
   #include <pthread.h>   // pthread_atfork
@@ -61,7 +63,9 @@ ThreadPool* thpool = new ThreadPool;
     // memory is owned by the parent process.
     size_t n = thpool->size();
     thpool = new ThreadPool;
-    progress::manager = new progress::progress_manager;
+    #ifndef DT_DISABLE
+      progress::manager = new progress::progress_manager;
+    #endif
     thpool->resize(n);
   }
 
@@ -89,8 +93,6 @@ ThreadPool::ThreadPool()
 }
 
 
-
-
 size_t ThreadPool::size() const noexcept {
   return num_threads_requested_;
 }
@@ -103,6 +105,7 @@ void ThreadPool::resize(size_t n) {
     instantiate_threads();
   }
 }
+
 
 void ThreadPool::instantiate_threads() {
   size_t n = num_threads_requested_;
@@ -150,6 +153,7 @@ bool ThreadPool::in_parallel_region() const noexcept {
   return (current_team != nullptr);
 }
 
+
 size_t ThreadPool::n_threads_in_team() const noexcept {
   return current_team? current_team->size() : 0;
 }
@@ -192,6 +196,7 @@ static thread_local size_t thread_index = 0;
 size_t this_thread_index() {
   return thread_index;
 }
+
 void _set_thread_num(size_t i) {
   thread_index = i;
 }
@@ -205,28 +210,31 @@ size_t get_hardware_concurrency() noexcept {
 
 
 
-static py::oobj get_nthreads() {
-  return py::oint(num_threads_in_pool());
-}
+#ifndef DT_DISABLE
+  static py::oobj get_nthreads() {
+    return py::oint(num_threads_in_pool());
+  }
 
-static void set_nthreads(const py::Arg& arg) {
-  int32_t nth = arg.to_int32_strict();
-  if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
-  if (nth <= 0) nth = 1;
-  thpool->resize(static_cast<size_t>(nth));
-}
+  static void set_nthreads(const py::Arg& arg) {
+    int32_t nth = arg.to_int32_strict();
+    if (nth <= 0) nth += static_cast<int32_t>(get_hardware_concurrency());
+    if (nth <= 0) nth = 1;
+    thpool->resize(static_cast<size_t>(nth));
+  }
 
-void ThreadPool::init_options() {
-  // By default, set the number of threads to `hardware_concurrency`
-  thpool->resize(get_hardware_concurrency());
 
-  dt::register_option(
-    "nthreads",
-    get_nthreads,
-    set_nthreads,
-    dt::doc_options_nthreads
-  );
-}
+  void ThreadPool::init_options() {
+    // By default, set the number of threads to `hardware_concurrency`
+    thpool->resize(get_hardware_concurrency());
+
+    dt::register_option(
+      "nthreads",
+      get_nthreads,
+      set_nthreads,
+      dt::doc_options_nthreads
+    );
+  }
+#endif
 
 
 }  // namespace dt

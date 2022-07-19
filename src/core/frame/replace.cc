@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,10 +23,10 @@
 #include <unordered_set>
 #include "documentation.h"
 #include "frame/py_frame.h"
-#include "parallel/api.h"           // dt::parallel_for_static
-#include "parallel/string_utils.h"  // dt::map_str2str
+#include "parallel/api.h"      // dt::parallel_for_static
 #include "python/dict.h"
 #include "python/list.h"
+#include "str/utils.h"         // dt::map_str2str
 #include "utils/assert.h"
 #include "utils/macros.h"
 #include "stype.h"

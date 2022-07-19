@@ -161,8 +161,11 @@
 
     -[enh] Added support for Python `3.10`. [#3210]
 
-
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
+
+    -[enh] datatable's thread pool can now be used to parallelize external C++ applications
+        and will have no specific datatable dependencies, when the code is built with
+        ``DT_DISABLE`` variable being defined. [#3306]
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,7 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/sentinel_str.h"
 #include "parallel/api.h"
-#include "parallel/string_utils.h"
+#include "str/utils.h"
 #include "utils/assert.h"
 #include "utils/exceptions.h"
 #include "options.h"

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,9 +20,11 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "parallel/thread_worker.h"
-#include "progress/progress_manager.h"  // dt::progress::progress_manager
+#ifndef DT_DISABLE
+  #include "progress/progress_manager.h"  // dt::progress::progress_manager
+  #include "utils/exceptions.h"
+#endif
 #include "utils/assert.h"
-#include "utils/exceptions.h"
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 namespace dt {
@@ -99,7 +101,9 @@ void ThreadWorker::run_in_main_thread(ThreadJob* job) noexcept {
       ThreadTask* task = job->get_next_task(0);
       if (!task) break;
       task->execute();
-      progress::manager->check_interrupts_main();
+      #ifndef DT_DISABLE
+        progress::manager->check_interrupts_main();
+      #endif
     }
     catch (...) {
       idle_job_->catch_exception();
