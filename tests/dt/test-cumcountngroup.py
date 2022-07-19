@@ -32,37 +32,36 @@ from tests import assert_equals
 
 def test_cumcount_non_bool():
     DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError, match = r'Argument reverse in function datatable.cumcount\(\) should be a boolean.+'):
+    msg = r'Argument reverse in function datatable.cumcount\(\) should be a boolean.+'
+    with pytest.raises(TypeError, match = msg):
         DT[:, cumcount('False')]
 
 def test_ngroup_non_bool():
     DT = dt.Frame(list('abcde'))
-    with pytest.raises(TypeError, match = r'Argument reverse in function datatable.ngroup\(\) should be a boolean.+'):
+    msg = r'Argument reverse in function datatable.ngroup\(\) should be a boolean.+'
+    with pytest.raises(TypeError, match = msg):
         DT[:, ngroup('True'), by(f[0])]
 
-def test_ngroup_non_grouped():
-    DT = dt.Frame(list('abcde'))
-    with pytest.raises(ValueError, match = r'The ngroup\(\) function is applicable only in a groupby operation.'):
-        DT[:, ngroup(True)]
+
 #-------------------------------------------------------------------------------
 # Normal
 #-------------------------------------------------------------------------------
 
 def test_cumcount_ngroup_str():
-  assert str(cumcount(False)) == "FExpr<cumcount(arg=False)>"
-  assert str(cumcount(True)) == "FExpr<cumcount(arg=True)>"
-  assert str(ngroup(False)) == "FExpr<ngroup(arg=False)>"
-  assert str(ngroup(True)) == "FExpr<ngroup(arg=True)>"
-  assert str(cumcount(False) + 1) == "FExpr<cumcount(arg=False) + 1>"
-  assert str(ngroup(False) + 1) == "FExpr<ngroup(arg=False) + 1>"
+  assert str(cumcount(False)) == "FExpr<cumcount(reverse=False)>"
+  assert str(cumcount(True)) == "FExpr<cumcount(reverse=True)>"
+  assert str(ngroup(False)) == "FExpr<ngroup(reverse=False)>"
+  assert str(ngroup(True)) == "FExpr<ngroup(reverse=True)>"
+  assert str(cumcount(False) + 1) == "FExpr<cumcount(reverse=False) + 1>"
+  assert str(ngroup(False) + 1) == "FExpr<ngroup(reverse=False) + 1>"
 
 
 
 def test_cumcount_empty_frame():
     DT = dt.Frame()
     assert isinstance(cumcount(False), FExpr)
-    assert_equals(DT[:, cumcount(False)], dt.Frame({'C0': []/dt.int8}))
-    assert_equals(DT[:, cumcount(True)], dt.Frame({'C0': []/dt.int8}))
+    assert_equals(DT[:, cumcount(False)], dt.Frame({'C0': []/dt.int64}))
+    assert_equals(DT[:, cumcount(True)], dt.Frame({'C0': []/dt.int64}))
 
 
 def test_cumcount_void():

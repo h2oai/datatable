@@ -24,62 +24,50 @@
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
-
 namespace dt {
 
-template<bool CUMCOUNT>
-class CUMCOUNTNGROUP_ColumnImpl : public Virtual_ColumnImpl {
+
+template<bool CUMCOUNT, bool REVERSE>
+class CumcountNgroup_ColumnImpl : public Virtual_ColumnImpl {
   private:
-    size_t n_rows_;
-    bool reverse_;
     Groupby gby_;
 
   public:
-    CUMCOUNTNGROUP_ColumnImpl(size_t n_rows, bool reverse, const Groupby& gby)
-      : Virtual_ColumnImpl(n_rows, SType::INT64),
-        n_rows_(n_rows),
-        reverse_(reverse),
+    CumcountNgroup_ColumnImpl(const Groupby& gby)
+      : Virtual_ColumnImpl(gby.last_offset(), SType::INT64),
         gby_(gby)
-      {}
+    {}
+
 
     ColumnImpl* clone() const override {
-      return new CUMCOUNTNGROUP_ColumnImpl(n_rows_, reverse_, gby_);
+      return new CumcountNgroup_ColumnImpl(gby_);
     }
+
 
     size_t n_children() const noexcept override {
       return 0;
     }
 
-    const Column& child(size_t i) const override {
-      xassert(i == 0);  (void)i;
-    }
 
-    bool get_element(size_t i, int64_t* out) const override{           
-      if (gby_.size() == 1){
-        *out = reverse_?n_rows_-1-i:i;
-      } else {
-          size_t low = 0;
-          size_t high = gby_.size();
-          auto offsets = gby_.offsets_r();
-          while (low < high) {
-            size_t mid = (low + high) / 2 ;
-            if (i < offsets[mid]) {
-              high = mid;
+    void materialize(Column &col_out, bool) override {
+      Column col = Column::new_data_column(nrows_, SType::INT64);
+      auto data = static_cast<int64_t*>(col.get_data_editable());
+      dt::parallel_for_dynamic(gby_.size(),
+        [&](size_t gi) {
+          size_t i1, i2;
+          gby_.get_group(gi, &i1, &i2);
+          for (size_t i = i1; i < i2; ++i) {
+            if (REVERSE) {
+              data[i] = CUMCOUNT? static_cast<int64_t>(i2 - i - 1)
+                                : static_cast<int64_t>(gby_.size() - gi - 1);
             } else {
-              low = mid + 1;
+              data[i] = CUMCOUNT? static_cast<int64_t>(i - i1)
+                                : static_cast<int64_t>(gi);
             }
           }
-          if (CUMCOUNT) {
-            size_t i0, i1;
-            gby_.get_group(low - 1, &i0, &i1);
-            *out = reverse_?i1-1-i:i-i0;        
-          } else {
-            *out = reverse_?gby_.size()-low:low-1;        
-          }
-      }
+        });
 
-      return true;
-
+      col_out = std::move(col);
     }
 
 };
