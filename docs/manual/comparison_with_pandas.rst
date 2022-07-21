@@ -1583,8 +1583,6 @@ Listed below are some functions in pandas that do not have an equivalent in data
 
 - Aggregation functions, such as
 
-  - `cumsum <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cumsum.html>`__
-  - `cummax <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.cummax.html>`__
   - `expanding <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.expanding.html>`__
   - `rolling <https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.DataFrame.rolling.html>`__
 
