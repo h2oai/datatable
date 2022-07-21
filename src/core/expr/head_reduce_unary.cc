@@ -895,16 +895,14 @@ class NuniqueGrouped_ColumnImpl : public Virtual_ColumnImpl
 {
   private:
     Column arg;
-    Groupby groupby;
 
   public:
-    NuniqueGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
-      : Virtual_ColumnImpl(grpby.size(), SType::INT64),
-        arg(std::move(col)),
-        groupby(grpby) {}
+    NuniqueGrouped_ColumnImpl(Column&& col)
+      : Virtual_ColumnImpl(col.nrows(), SType::INT64),
+        arg(std::move(col)) {}
 
     ColumnImpl* clone() const override {
-      return new NuniqueGrouped_ColumnImpl<T>(Column(arg), groupby);
+      return new NuniqueGrouped_ColumnImpl<T>(Column(arg));
     }
 
     bool get_element(size_t i, int64_t* out) const override {
@@ -925,23 +923,23 @@ class NuniqueGrouped_ColumnImpl : public Virtual_ColumnImpl
 };
 
 template <typename T>
-static Column _gnunique(Column&& arg, const Groupby& gby) {
-  return Column(new NuniqueGrouped_ColumnImpl<T>(std::move(arg), gby));
+static Column _gnunique(Column&& arg) {
+  return Column(new NuniqueGrouped_ColumnImpl<T>(std::move(arg)));
 }
 
-static Column compute_gnunique(Column&& arg, const Groupby& gby) {
+static Column compute_gnunique(Column&& arg, const Groupby &) {
   switch (arg.stype()) {
     case SType::BOOL:
-    case SType::INT8:    return _gnunique<int8_t>(std::move(arg), gby);
-    case SType::INT16:   return _gnunique<int16_t>(std::move(arg), gby);
+    case SType::INT8:    return _gnunique<int8_t>(std::move(arg));
+    case SType::INT16:   return _gnunique<int16_t>(std::move(arg));
     case SType::DATE32:
-    case SType::INT32:   return _gnunique<int32_t>(std::move(arg), gby);
+    case SType::INT32:   return _gnunique<int32_t>(std::move(arg));
     case SType::TIME64:
-    case SType::INT64:   return _gnunique<int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _gnunique<float>(std::move(arg), gby);
-    case SType::FLOAT64: return _gnunique<double>(std::move(arg), gby);
+    case SType::INT64:   return _gnunique<int64_t>(std::move(arg));
+    case SType::FLOAT32: return _gnunique<float>(std::move(arg));
+    case SType::FLOAT64: return _gnunique<double>(std::move(arg));
     case SType::STR32:
-    case SType::STR64:   return _gnunique<CString>(std::move(arg), gby);
+    case SType::STR64:   return _gnunique<CString>(std::move(arg));
     default: throw _error("nunique", arg.stype());
   }
 }
