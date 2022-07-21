@@ -927,7 +927,7 @@ static Column _gnunique(Column&& arg) {
   return Column(new NuniqueGrouped_ColumnImpl<T>(std::move(arg)));
 }
 
-static Column compute_gnunique(Column&& arg, const Groupby &) {
+static Column compute_gnunique(Column&& arg, const Groupby&) {
   switch (arg.stype()) {
     case SType::BOOL:
     case SType::INT8:    return _gnunique<int8_t>(std::move(arg));
