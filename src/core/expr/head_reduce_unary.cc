@@ -929,6 +929,7 @@ static Column _gnunique(Column&& arg) {
 
 static Column compute_gnunique(Column&& arg, const Groupby&) {
   switch (arg.stype()) {
+    case SType::VOID:    return Column(new ConstInt_ColumnImpl(1, 0, SType::INT64));
     case SType::BOOL:
     case SType::INT8:    return _gnunique<int8_t>(std::move(arg));
     case SType::INT16:   return _gnunique<int16_t>(std::move(arg));
