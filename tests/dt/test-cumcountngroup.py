@@ -57,29 +57,30 @@ def test_cumcount_ngroup_str():
 
 
 
-def test_cumcount_empty_frame():
+def test_cumcount_ngroup_empty_frame():
     DT = dt.Frame()
     assert isinstance(cumcount(False), FExpr)
+    assert isinstance(ngroup(True), FExpr)
     assert_equals(DT[:, cumcount(False)], dt.Frame({'C0': []/dt.int64}))
-    assert_equals(DT[:, cumcount(True)], dt.Frame({'C0': []/dt.int64}))
+    assert_equals(DT[:, ngroup(True)], dt.Frame({'C0': []/dt.int64}))
 
 
-def test_cumcount_void():
+def test_cumcount_ngroup_void():
     DT = dt.Frame([None]*10)
-    DT_cumcount = DT[:, [cumcount(True), cumcount(False)]]
-    assert_equals(DT_cumcount, dt.Frame([list(range(9,-1,-1))/dt.int64, list(range(10))/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(True), cumcount(False), ngroup(True)]]
+    assert_equals(DT_cumcount, dt.Frame([list(range(9,-1,-1))/dt.int64, list(range(10))/dt.int64, [0]*10/dt.int64]))
 
 
-def test_cumcount_trivial():
+def test_cumcount_ngroup_trivial():
     DT = dt.Frame([0]/dt.int64)
-    DT_cumcount = DT[:, [cumcount(True), cumcount(False)]]
-    assert_equals(DT_cumcount, dt.Frame([[0]/dt.int64, [0]/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(True), cumcount(False), ngroup(True), ngroup(False)]]
+    assert_equals(DT_cumcount, dt.Frame([[0]/dt.int64, [0]/dt.int64, [0]/dt.int64, [0]/dt.int64]))
 
 
-def test_cumcount_small():
+def test_cumcount_ngroup_small():
     DT = dt.Frame(['a', 'a','a','b','b','a'])
-    DT_cumcount = DT[:, [cumcount(False), cumcount(True)]]
-    assert_equals(DT_cumcount, dt.Frame([list(range(6))/dt.int64, list(range(5,-1,-1))/dt.int64]))
+    DT_cumcount = DT[:, [cumcount(False), cumcount(True), ngroup(True), ngroup(False)]]
+    assert_equals(DT_cumcount, dt.Frame([list(range(6))/dt.int64, list(range(5,-1,-1))/dt.int64, [0]*6/dt.int64, [0]*6/dt.int64]))
 
 
 def test_cumcount_ngroup_groupby():
