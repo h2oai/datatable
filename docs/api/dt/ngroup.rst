@@ -9,7 +9,7 @@
 
     Returns the group number for each row. 
     
-    It is applicable only in the presence of :func:`by`.
+    In the absence of :func:`by()`, it simply repeats 0 for the length of the frame.
 
     If `reverse = True`, the numbering is done in descending order.
 
@@ -21,9 +21,6 @@
 
     return: FExpr
         f-expression that returns the number for each group.
-
-    except: ValueError
-        The exception is raised if there is no groupby operation with :func:`by()`.
 
     Examples
     --------
@@ -78,5 +75,19 @@
          7 | c          0
         [8 rows x 2 columns]
 
+    Compute in the absence of :func:`by()`::
 
+        >>> DT[:, dt.ngroup(reverse = False)]
+           |    C0
+           | int64
+        -- + -----
+         0 |     0
+         1 |     0
+         2 |     0
+         3 |     0
+         4 |     0
+         5 |     0
+         6 |     0
+         7 |     0
+        [8 rows x 1 column]
 
