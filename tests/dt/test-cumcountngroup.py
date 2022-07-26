@@ -56,7 +56,6 @@ def test_cumcount_ngroup_str():
   assert str(ngroup(False) + 1) == "FExpr<ngroup(reverse=False) + 1>"
 
 
-
 def test_cumcount_ngroup_empty_frame():
     DT = dt.Frame()
     assert isinstance(cumcount(False), FExpr)
@@ -67,25 +66,34 @@ def test_cumcount_ngroup_empty_frame():
 
 def test_cumcount_ngroup_void():
     DT = dt.Frame([None]*10)
-    DT_cumcount = DT[:, [cumcount(True), cumcount(False), ngroup(True)]]
-    assert_equals(DT_cumcount, dt.Frame([list(range(9,-1,-1))/dt.int64, list(range(10))/dt.int64, [0]*10/dt.int64]))
+    DT = DT[:, [cumcount(True), cumcount(False), ngroup(True)]]
+    DT_ref = dt.Frame([list(range(9, -1, -1))/dt.int64,
+                       list(range(10))/dt.int64,
+                       [0]*10/dt.int64])
+    assert_equals(DT, DT_ref)
 
 
 def test_cumcount_ngroup_trivial():
     DT = dt.Frame([0]/dt.int64)
-    DT_cumcount = DT[:, [cumcount(True), cumcount(False), ngroup(True), ngroup(False)]]
-    assert_equals(DT_cumcount, dt.Frame([[0]/dt.int64, [0]/dt.int64, [0]/dt.int64, [0]/dt.int64]))
+    DT = DT[:, [cumcount(True), cumcount(False), ngroup(True), ngroup(False)]]
+    DT_ref = dt.Frame([[0]/dt.int64, [0]/dt.int64, [0]/dt.int64, [0]/dt.int64])
+    assert_equals(DT, DT_ref)
 
 
 def test_cumcount_ngroup_small():
     DT = dt.Frame(['a', 'a','a','b','b','a'])
-    DT_cumcount = DT[:, [cumcount(False), cumcount(True), ngroup(True), ngroup(False)]]
-    assert_equals(DT_cumcount, dt.Frame([list(range(6))/dt.int64, list(range(5,-1,-1))/dt.int64, [0]*6/dt.int64, [0]*6/dt.int64]))
+    DT = DT[:, [cumcount(False), cumcount(True), ngroup(True), ngroup(False)]]
+    DT_ref = dt.Frame([list(range(6))/dt.int64,
+                      list(range(5, -1, -1))/dt.int64,
+                      [0]*6/dt.int64,
+                      [0]*6/dt.int64])
+    assert_equals(DT, DT_ref)
 
 
 def test_cumcount_ngroup_groupby():
-    DT = dt.Frame(['a', 'a','a','b','b','a'])
-    DT_cnt_ngrp = DT[:, [cumcount(False), ngroup(True)], by(f[0])]
-    DT_ref = dt.Frame([['a', 'a','a','a', 'b','b'],[0,1,2,3,0,1]/dt.int64, [1,1,1,1,0,0]/dt.int64])
-    assert_equals(DT_cnt_ngrp, DT_ref)
-
+    DT = dt.Frame(['a', 'a', 'a', 'b', 'b', 'a'])
+    DT = DT[:, [cumcount(False), ngroup(True)], by(f[0])]
+    DT_ref = dt.Frame([['a', 'a', 'a', 'a', 'b', 'b'],
+                      [0, 1, 2, 3, 0, 1]/dt.int64,
+                      [1, 1, 1, 1, 0, 0]/dt.int64])
+    assert_equals(DT, DT_ref)

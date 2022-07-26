@@ -7,11 +7,8 @@
 
     .. x-version-added:: 1.1.0
 
-    Returns the group number for each row. 
-    
-    In the absence of :func:`by()`, it simply repeats 0 for the length of the frame.
-
-    If `reverse = True`, the numbering is done in descending order.
+    Returns the group number for each row. If `reverse = True`, the numbering
+    is done in descending order.
 
     Parameters
     ----------
@@ -21,6 +18,8 @@
 
     return: FExpr
         f-expression that returns the number for each group.
+        In the absence of :func:`by()`, this f-expression returns
+        `0` for each row.
 
     Examples
     --------
