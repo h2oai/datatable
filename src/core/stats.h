@@ -253,7 +253,7 @@ class Stats
  * Base class for all numerical STypes. The class is parametrized by T - the
  * type of element in the Column's API. Thus, T can be only
  * int8_t|int16_t|int32_t|int64_t|float|double. The corresponding
- * "sum/min"/"max"/"mode" statistics are stored
+ * "sum"/"min"/"max"/"mode" statistics are stored
  * in upcasted type V, which is either int64_t or double.
  */
 template <typename T>
