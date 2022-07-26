@@ -91,7 +91,7 @@
     - :meth:`.sum() <dt.Frame.sum>` -- the corresponding Frame's method
       for multi-column frames.
 
-    - :meth:`.sum1() <dt.Frame.sum1()>` -- the corresponding Frame's method
+    - :meth:`.sum1() <dt.Frame.sum1>` -- the corresponding Frame's method
       for single-column frames that returns a scalar value.
 
     - :func:`count()` -- function to calculate a number of non-missing values.
