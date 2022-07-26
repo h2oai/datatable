@@ -136,7 +136,9 @@ def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
     frame_integrity_check(dtr)
-    assert dtr.stypes == (stype.float64, ) * dt0.ncols
+    stypes = [stype.float64 if ltype == dt.ltype.real else stype.int64
+              for ltype in dt0.ltypes]
+    assert list(dtr.stypes) == stypes
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sum(src)]])

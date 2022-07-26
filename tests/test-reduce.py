@@ -329,6 +329,7 @@ def test_sum_void():
     DT = dt.Frame([None] * 10)
     DT_sum = DT[:, sum(f.C0)]
     assert_equals(DT_sum, dt.Frame([0]/dt.int64))
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_void_per_group():
@@ -345,32 +346,34 @@ def test_sum_void_grouped():
 
 def test_sum_simple():
     DT = dt.Frame(A=range(5))
-    R = DT[:, sum(f.A)]
-    frame_integrity_check(R)
-    assert R.to_list() == [[10]]
-    assert str(R)
+    DT_sum = DT[:, sum(f.A)]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.to_list() == [[10]]
+    assert str(DT_sum)
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_empty_frame():
     DT = dt.Frame([[]] * 5, names=list("ABCDE"),
                   stypes=(dt.bool8, dt.int32, dt.float32, dt.float64, dt.void))
     assert DT.shape == (0, 5)
-    RZ = DT[:, sum(f[:])]
-    frame_integrity_check(RZ)
-    assert RZ.shape == (1, 5)
-    assert RZ.names == ("A", "B", "C", "D", "E")
-    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64, dt.int64)
-    assert RZ.to_list() == [[0], [0], [0], [0], [0]]
-    assert str(RZ)
+    DT_sum = DT[:, sum(f[:])]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.shape == (1, 5)
+    assert DT_sum.names == ("A", "B", "C", "D", "E")
+    assert DT_sum.stypes == (dt.int64, dt.int64, dt.float32, dt.float64, dt.int64)
+    assert DT_sum.to_list() == [[0], [0], [0], [0], [0]]
+    assert str(DT_sum)
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_grouped():
     DT = dt.Frame(A=[True, False, True, True], B=[None, None, None, 10], C=[2,3,5,-5])
-    RES = DT[:, sum(f[:]), by(f.A)]
-    REF = dt.Frame(A=[False, True], B=[0, 10]/dt.int64, C=[3,2]/dt.int64)
-    frame_integrity_check(RES)
-    assert_equals(RES, REF)
-    assert str(RES)
+    DT_sum = DT[:, sum(f[:]), by(f.A)]
+    DT_ref = dt.Frame(A=[False, True], B=[0, 10]/dt.int64, C=[3,2]/dt.int64)
+    frame_integrity_check(DT_sum)
+    assert_equals(DT_sum, DT_ref)
+    assert str(DT_sum)
 
 
 

@@ -1142,7 +1142,7 @@ def test_issue1857(numpy):
     assert agg1.shape == (100, 3)
     assert agg1.names == ("g1", "g2", "M")
     assert agg1.stypes == (dt.int64, dt.int64, dt.float32)
-    assert agg1.sum().to_tuples()[0] == (450, 450, 51.63409462571144)
+    assert agg1.sum().to_tuples()[0] == (450, 450, 51.63409423828125)
 
 
 def test_sort_expr():
