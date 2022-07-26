@@ -130,6 +130,7 @@ static T _invalid(bool* isvalid) {
 
 int64_t Stats::get_stat_int(Stat stat, bool* isvalid) {
   switch (stat) {
+    case Stat::Sum:  return sum_int(isvalid);
     case Stat::Min:  return min_int(isvalid);
     case Stat::Max:  return max_int(isvalid);
     case Stat::Mode: return mode_int(isvalid);
@@ -150,7 +151,7 @@ size_t Stats::get_stat_uint(Stat stat, bool* isvalid) {
 
 double Stats::get_stat_double(Stat stat, bool* isvalid) {
   switch (stat) {
-    case Stat::Sum:   return sum(isvalid);
+    case Stat::Sum:   return sum_double(isvalid);
     case Stat::Mean:  return mean(isvalid);
     case Stat::StDev: return stdev(isvalid);
     case Stat::Skew:  return skew(isvalid);
@@ -225,18 +226,11 @@ size_t Stats::nmodal(bool* isvalid) {
 }
 
 
-double Stats::sum  (bool* isvalid) { return _invalid<double>(isvalid); }
 double Stats::mean (bool* isvalid) { return _invalid<double>(isvalid); }
 double Stats::stdev(bool* isvalid) { return _invalid<double>(isvalid); }
 double Stats::skew (bool* isvalid) { return _invalid<double>(isvalid); }
 double Stats::kurt (bool* isvalid) { return _invalid<double>(isvalid); }
 
-template <typename T>
-double NumericStats<T>::sum(bool* isvalid) {
-  if (!is_computed(Stat::Sum)) compute_moments12();
-  _fill_validity_flag(Stat::Sum, isvalid);
-  return _sum;
-}
 
 template <typename T>
 double NumericStats<T>::mean(bool* isvalid) {
@@ -269,9 +263,11 @@ double NumericStats<T>::kurt(bool* isvalid) {
 int64_t Stats::min_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
 int64_t Stats::max_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
 int64_t Stats::mode_int   (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+int64_t Stats::sum_int    (bool* isvalid) { return _invalid<int64_t>(isvalid); }
 double  Stats::min_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::max_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double  Stats::mode_double(bool* isvalid) { return _invalid<double>(isvalid); }
+double  Stats::sum_double (bool* isvalid) { return _invalid<double>(isvalid); }
 dt::CString Stats::mode_string(bool* isvalid) { return _invalid<dt::CString>(isvalid); }
 
 template <typename T>
@@ -328,6 +324,23 @@ double NumericStats<T>::mode_double(bool* isvalid) {
   return static_cast<double>(_mode);
 }
 
+
+template <typename T>
+int64_t NumericStats<T>::sum_int(bool* isvalid) {
+  if (!is_computed(Stat::Sum)) compute_moments12();
+  _fill_validity_flag(Stat::Sum, isvalid);
+  return static_cast<int64_t>(_sum);
+}
+
+
+template <typename T>
+double NumericStats<T>::sum_double(bool* isvalid) {
+  if (!is_computed(Stat::Sum)) compute_moments12();
+  _fill_validity_flag(Stat::Sum, isvalid);
+  return static_cast<double>(_sum);
+}
+
+
 dt::CString StringStats::mode_string(bool* isvalid) {
   if (!is_computed(Stat::Mode)) compute_sorted_stats();
   _fill_validity_flag(Stat::Mode, isvalid);
@@ -346,6 +359,7 @@ void Stats::set_stat(Stat stat, int64_t value, bool isvalid) {
     case Stat::Min:  return set_min(value, isvalid);
     case Stat::Max:  return set_max(value, isvalid);
     case Stat::Mode: return set_mode(value, isvalid);
+    case Stat::Sum:  return set_sum(value, isvalid);
     default: throw RuntimeError() << "Incorrect stat " << stat_name(stat);
   }
 }
@@ -404,6 +418,7 @@ void Stats::set_nmodal(size_t value, bool isvalid) {
 }
 
 void Stats::set_sum(double, bool)   { throw RuntimeError(); }
+void Stats::set_sum(int64_t, bool)  { throw RuntimeError(); }
 void Stats::set_mean(double, bool)  { throw RuntimeError(); }
 void Stats::set_stdev(double, bool) { throw RuntimeError(); }
 void Stats::set_skew(double, bool)  { throw RuntimeError(); }
@@ -418,8 +433,16 @@ void Stats::set_mode(const dt::CString&, bool) { throw RuntimeError(); }
 
 
 template <typename T>
+void NumericStats<T>::set_sum(int64_t value, bool isvalid) {
+  xassert((std::is_same<V, int64_t>::value));
+  _sum = static_cast<V>(value);
+  set_valid(Stat::Sum, isvalid);
+}
+
+template <typename T>
 void NumericStats<T>::set_sum(double value, bool isvalid) {
-  _sum = value;
+  xassert((std::is_same<V, double>::value));
+  _sum = static_cast<V>(value);
   set_valid(Stat::Sum, isvalid);
 }
 
@@ -722,7 +745,7 @@ void NumericStats<T>::compute_moments12() {
   size_t count = 0;
   bool has_pos_inf = false;
   bool has_neg_inf = false;
-  double sum = 0;
+  V sum = 0;
   double mean = 0;
   double M2 = 0;
 
@@ -733,7 +756,7 @@ void NumericStats<T>::compute_moments12() {
       size_t t_count = 0;
       bool t_has_pos_inf = false;
       bool t_has_neg_inf = false;
-      double t_sum = 0.0;
+      V t_sum = 0;
       double t_mean = 0.0;
       double t_M2 = 0.0;
 
@@ -744,7 +767,7 @@ void NumericStats<T>::compute_moments12() {
           if (!isvalid) return;
           double x = static_cast<double>(value);
           t_count++;
-          t_sum += x;
+          t_sum += static_cast<V>(value);
           double delta1 = x - t_mean;
           t_mean += delta1 / static_cast<double>(t_count);
           double delta2 = x - t_mean;
@@ -778,7 +801,7 @@ void NumericStats<T>::compute_moments12() {
   bool stdev_valid = (n > 0);
   double s = n > 1 ? std::sqrt(M2 / static_cast<double>(n - 1)) : 0.0;
 
-  // Adjustment for the case when some of the `x[i]`s where infinite.
+  // Adjustment for the case when some of the `x[i]`s were infinite.
   if (std::is_floating_point<T>::value && (has_pos_inf || has_neg_inf)) {
     constexpr double nan = std::numeric_limits<double>::quiet_NaN();
     constexpr double inf = std::numeric_limits<double>::infinity();
@@ -834,7 +857,7 @@ template <typename T>
 void NumericStats<T>::compute_moments34() {
   size_t nrows = column->nrows();
   size_t count = 0;
-  double sum = 0.0;   // x[1] + ... + x[n]
+  V sum = 0;          // x[1] + ... + x[n]
   double mean = 0.0;  // sum / n
   double M2 = 0.0;    // (x[1] - mean)^2 + ... (x[n] - mean)^2
   double M3 = 0.0;    // (x[1] - mean)^3 + ... (x[n] - mean)^3
@@ -845,7 +868,7 @@ void NumericStats<T>::compute_moments34() {
     dt::NThreads(column->allow_parallel_access()),
     [&] {
       size_t t_count = 0;
-      double t_sum = 0.0;
+      V t_sum = 0;
       double t_mean = 0.0;
       double t_M2 = 0.0;
       double t_M3 = 0.0;
@@ -863,7 +886,7 @@ void NumericStats<T>::compute_moments34() {
           double gamma = delta / n;                 // δ/n
           double beta = gamma * gamma;              // δ²/n²
           double alpha = delta * gamma * (n - 1);   // δ²(n-1)/n
-          t_sum += x;
+          t_sum += static_cast<V>(value);
           t_mean += gamma;
           t_M4 += (alpha * (n*n - 3*n + 3) + 6*t_M2) * beta - 4*gamma * t_M3;
           t_M3 += (alpha * (n - 2) - 3*t_M2) * gamma;
@@ -1093,7 +1116,7 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 
   set_nunique((n0 > 0) + (n1 > 0), true);
   set_nmodal(std::max(n0, n1), true);
-  set_sum(n1d, true);
+  set_sum(static_cast<int64_t>(n1), true);
   set_mean(mu, valid);
   set_stdev(s, valid);
   set_skew(G, valid);
@@ -1109,9 +1132,14 @@ void BooleanStats::set_all_stats(size_t n0, size_t n1) {
 // VoidStats: compute all
 //------------------------------------------------------------------------------
 
-double VoidStats::sum(bool* isvalid) {
+int64_t VoidStats::sum_int (bool* isvalid) {
   if (isvalid) *isvalid = true;
   return 0;
+}
+
+double VoidStats::sum_double (bool* isvalid) {
+  if (isvalid) *isvalid = true;
+  return 0.0;
 }
 
 size_t VoidStats::nacount(bool* isvalid) {
@@ -1128,7 +1156,6 @@ size_t VoidStats::nmodal(bool* isvalid) {
   if (isvalid) *isvalid = true;
   return 0;
 }
-
 
 
 
@@ -1350,11 +1377,19 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
         return pywrap_stat<double>(stat);
       }
     }
-    case Stat::Sum:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
       return pywrap_stat<double>(stat);
+    }
+    case Stat::Sum: {
+      switch (dt::stype_to_ltype(column->stype())) {
+        case dt::LType::MU:
+        case dt::LType::BOOL:
+        case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
+        case dt::LType::REAL: return pywrap_stat<double>(stat);
+        default: return py::None();
+      }
     }
     case Stat::Min:
     case Stat::Max:
@@ -1450,11 +1485,23 @@ Column Stats::get_stat_as_column(Stat stat) {
         return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
       }
     }
-    case Stat::Sum:
     case Stat::StDev:
     case Stat::Skew:
     case Stat::Kurt: {
       return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+    }
+    case Stat::Sum: {
+      switch (column->stype()) {
+        case dt::SType::VOID:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::BOOL:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::INT8:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::INT16:   return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::INT32:   return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::INT64:   return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
+        case dt::SType::FLOAT32: return colwrap_stat<double, float>(stat, dt::SType::FLOAT32);
+        case dt::SType::FLOAT64: return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
+        default:                 return _make_nacol(dt::SType::FLOAT64);
+      }
     }
     case Stat::Min:
     case Stat::Max:
@@ -1484,9 +1531,12 @@ Column Stats::get_stat_as_column(Stat stat) {
 // Date and Time stats
 //------------------------------------------------------------------------------
 
-double TimeStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
-double TimeStats::stdev (bool* isvalid) { return _invalid<double>(isvalid);}
-double DateStats::sum (bool* isvalid) { return _invalid<double>(isvalid); }
+int64_t TimeStats::sum_int (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+double TimeStats::sum_double (bool* isvalid) { return _invalid<double>(isvalid); }
+double TimeStats::stdev (bool* isvalid) { return _invalid<double>(isvalid); }
+
+int64_t DateStats::sum_int (bool* isvalid) { return _invalid<int64_t>(isvalid); }
+double DateStats::sum_double (bool* isvalid) { return _invalid<double>(isvalid); }
 double DateStats::stdev (bool* isvalid) { return _invalid<double>(isvalid); }
 
 
