@@ -280,24 +280,24 @@ static Column compute_gprod(Column&& arg, const Groupby& gby) {
                            1, 1, SType::INT64
                          );
     case SType::BOOL:
-    case SType::INT8:    return Column(new ProdGrouped_ColumnImpl<int8_t,  int64_t>(
-                                    std::move(arg), gby
-                                ));
+    case SType::INT8:    return Column(new ProdGrouped_ColumnImpl<int8_t, int64_t>(
+                           std::move(arg), gby
+                         ));
     case SType::INT16:   return Column(new ProdGrouped_ColumnImpl<int16_t, int64_t>(
-                                    std::move(arg), gby
-                                ));
+                           std::move(arg), gby
+                         ));
     case SType::INT32:   return Column(new ProdGrouped_ColumnImpl<int32_t, int64_t>(
-                                    std::move(arg), gby
-                                ));
+                           std::move(arg), gby
+                         ));
     case SType::INT64:   return Column(new ProdGrouped_ColumnImpl<int64_t, int64_t>(
-                                    std::move(arg), gby
-                                ));
-    case SType::FLOAT32: return Column(new ProdGrouped_ColumnImpl<float,   float>  (
-                                    std::move(arg), gby
-                                ));
-    case SType::FLOAT64: return Column(new ProdGrouped_ColumnImpl<double,  double> (
-                                    std::move(arg), gby
-                                ));
+                           std::move(arg), gby
+                         ));
+    case SType::FLOAT32: return Column(new ProdGrouped_ColumnImpl<float, float>(
+                           std::move(arg), gby
+                         ));
+    case SType::FLOAT64: return Column(new ProdGrouped_ColumnImpl<double, double>(
+                           std::move(arg), gby
+                         ));
     default: throw _error("prod", arg.stype());
   }
 }

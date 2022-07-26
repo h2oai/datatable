@@ -131,7 +131,7 @@ void ArrayRowIndexImpl::init_from_boolean_column(const Column& col) {
   xassert(col.stype() == dt::SType::BOOL);
   // total # of 1s in the column
   // Note: this may cause parallel computation over the entire column
-  length = static_cast<size_t>(col.stats()->sum());
+  length = static_cast<size_t>(col.stats()->sum_int());
 
   if (length == 0) {
     // no need to do anything: the data arrays already have 0 length

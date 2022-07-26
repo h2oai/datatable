@@ -60,16 +60,16 @@ constexpr uint8_t NSTATS = 14;
  * Base class in the hierarchy of Statistics Containers:
  *
  *                           +---------+
- *                  _________|  Stats  |____________
- *                 /         +---------+            \
- *                /               |                  \
- *  +---------------+    +--------------------+    +-------------+
- *  | PyObjectStats |    |    NumericStats    |_   | StringStats |
- *  +---------------+    +--------------------+ \  +-------------+
- *                      /          |           \ \--------------\
- *       +--------------+   +--------------+   +-----------+   +-----------+
- *       | BooleanStats |   | IntegerStats |   | RealStats |   | VoidStats |
- *       +--------------+   +--------------+   +-----------+   +-----------+
+ *                  _________|  Stats  |___________________________
+ *                 /         +---------+            \              \
+ *                /               |                  \              \
+ *  +---------------+    +--------------------+   +-------------+  +-----------+
+ *  | PyObjectStats |    |    NumericStats    |   | StringStats |  | VoidStats |
+ *  +---------------+    +--------------------+   +-------------+  +-----------+
+ *                      /          |           \
+ *       +--------------+   +--------------+   +-----------+
+ *       | BooleanStats |   | IntegerStats |   | RealStats |
+ *       +--------------+   +--------------+   +-----------+
  *
  *
  * `NumericStats` acts as a base class for all numeric STypes.
@@ -97,11 +97,11 @@ constexpr uint8_t NSTATS = 14;
  *     |       |     | MIN |     | MEAN| SKEW| QT* |     | NUNQ|
  *     | SType |NACNT| MAX | SUM |  SD | KURT| MED | MODE| NMOD|
  *     +-------+-----+-----+-----+-----+-----+-----+-----+-----+
- *     | BOOL  | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
- *     | INT8  | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
- *     | INT16 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
- *     | INT32 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
- *     | INT64 | u64 | i64 | f64 | f64 | f64 | f64 | i64 | u64 |
+ *     | BOOL  | u64 | i64 | i64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT8  | u64 | i64 | i64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT16 | u64 | i64 | i64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT32 | u64 | i64 | i64 | f64 | f64 | f64 | i64 | u64 |
+ *     | INT64 | u64 | i64 | i64 | f64 | f64 | f64 | i64 | u64 |
  *     | FLT32 | u64 | f64 | f64 | f64 | f64 | f64 | f64 | u64 |
  *     | FLT64 | u64 | f64 | f64 | f64 | f64 | f64 | f64 | u64 |
  *     | STR32 | u64 |  -- |  -- |  -- |  -- |  -- | str | u64 |
@@ -125,7 +125,8 @@ constexpr uint8_t NSTATS = 14;
  *   nullptr, in which case the validity flag is not returned).
  *
  * size_t nacount()
- * double sum()
+ * int64_t sum_int()
+ * double sum_double()
  * double mean(bool* isvalid)
  * ...
  * int64_t min_int(bool* isvalid)
@@ -180,7 +181,8 @@ class Stats
     virtual size_t  nacount    (bool* isvalid = nullptr);
     virtual size_t  nunique    (bool* isvalid = nullptr);
     virtual size_t  nmodal     (bool* isvalid = nullptr);
-    virtual double  sum        (bool* isvalid = nullptr);
+    virtual int64_t sum_int    (bool* isvalid = nullptr);
+    virtual double  sum_double (bool* isvalid = nullptr);
     virtual double  mean       (bool* isvalid = nullptr);
     virtual double  stdev      (bool* isvalid = nullptr);
     virtual double  skew       (bool* isvalid = nullptr);
@@ -207,6 +209,7 @@ class Stats
     virtual void set_nacount(size_t value, bool isvalid = true);
     virtual void set_nunique(size_t value, bool isvalid = true);
     virtual void set_nmodal (size_t value, bool isvalid = true);
+    virtual void set_sum    (int64_t value, bool isvalid = true);
     virtual void set_sum    (double value, bool isvalid = true);
     virtual void set_mean   (double value, bool isvalid = true);
     virtual void set_stdev  (double value, bool isvalid = true);
@@ -248,8 +251,9 @@ class Stats
 
 /**
  * Base class for all numerical STypes. The class is parametrized by T - the
- * type of element in the Column's API. Thus, T can be only int32_t|int64_t|
- * float|double. The corresponding "min"/"max"/"mode" statistics are stored
+ * type of element in the Column's API. Thus, T can be only
+ * int8_t|int16_t|int32_t|int64_t|float|double. The corresponding
+ * "sum/min"/"max"/"mode" statistics are stored
  * in upcasted type V, which is either int64_t or double.
  */
 template <typename T>
@@ -265,7 +269,6 @@ class NumericStats : public Stats {
                 std::is_same<T, float>::value ||
                 std::is_same<T, double>::value, "Wrong type in NumericStats");
   protected:
-    double _sum;
     double _mean;
     double _stdev;
     double _skew;
@@ -273,12 +276,14 @@ class NumericStats : public Stats {
     V _min;
     V _max;
     V _mode;
+    V _sum;
 
   public:
     using Stats::Stats;
     size_t memory_footprint() const noexcept override;
 
-    double  sum        (bool* isvalid) override;
+    int64_t sum_int    (bool* isvalid) override;
+    double  sum_double (bool* isvalid) override;
     double  mean       (bool* isvalid) override;
     double  stdev      (bool* isvalid) override;
     double  skew       (bool* isvalid) override;
@@ -290,6 +295,7 @@ class NumericStats : public Stats {
     int64_t mode_int   (bool* isvalid) override;
     double  mode_double(bool* isvalid) override;
 
+    void set_sum  (int64_t value, bool isvalid) override;
     void set_sum  (double value, bool isvalid) override;
     void set_mean (double value, bool isvalid) override;
     void set_stdev(double value, bool isvalid) override;
@@ -324,10 +330,11 @@ class VoidStats : public Stats {
     size_t memory_footprint() const noexcept override;
     std::unique_ptr<Stats> clone() const override;
 
+    int64_t sum_int (bool* isvalid) override;
+    double sum_double (bool* isvalid) override;
     size_t nacount(bool* isvalid = nullptr) override;
     size_t nunique(bool* isvalid = nullptr) override;
     size_t nmodal(bool* isvalid = nullptr) override;
-    double sum(bool* isvalid) override;
 };
 
 
@@ -382,7 +389,8 @@ extern template class IntegerStats<int64_t>;
 class TimeStats : public IntegerStats<int64_t> {
   public:
     using IntegerStats<int64_t>::IntegerStats;
-    double sum  (bool* isvalid) override;
+    int64_t sum_int (bool* isvalid) override;
+    double sum_double (bool* isvalid) override;
     double stdev (bool* isvalid) override;
     std::unique_ptr<Stats> clone() const override;
 };
@@ -398,7 +406,8 @@ class TimeStats : public IntegerStats<int64_t> {
 class DateStats : public IntegerStats<int32_t> {
   public:
     using IntegerStats<int32_t>::IntegerStats;
-    double sum (bool* isvalid) override;
+    int64_t sum_int (bool* isvalid) override;
+    double sum_double (bool* isvalid) override;
     double stdev (bool* isvalid) override;
     double mean (bool* isvalid) override;
     std::unique_ptr<Stats> clone() const override;
