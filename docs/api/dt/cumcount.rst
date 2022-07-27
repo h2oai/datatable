@@ -7,19 +7,20 @@
 
     .. x-version-added:: 1.1.0
 
-    Returns the number of the current row within the group, counting from 0.
-    In the absence of :func:`by()`, it simply returns 0 to len(frame)-1.
+    Number rows within each group. In the absence of :func:`by()`
+    the frame is assumed to consist of one group only.
 
-    If `reverse = True`, the numbering is done in descending order.
 
     Parameters
     ----------
     reverse: bool
-        If ``False``, numbering is performed in the ascending order. 
-        If ``True``, the numbering is in descending order.
+        By default, when this parameter is ``False``, the numbering
+        is performed in the ascending order. Otherwise, when
+        this parameter is ``True``, the numbering is done
+        in the descending order.
 
     return: FExpr
-        f-expression that returns the number of the current row per group.
+        f-expression that returns row numbers within each group.
 
 
     Examples
@@ -28,7 +29,7 @@
     Create a sample datatable frame::
 
         >>> from datatable import dt, f, by
-        >>> DT = dt.Frame(['a','a','a','b','b','c','c','c'])
+        >>> DT = dt.Frame(['a', 'a', 'a', 'b', 'b', 'c', 'c', 'c'])
         >>> DT
            | C0
            | str32
@@ -43,9 +44,9 @@
          7 | c
         [8 rows x 1 column]
 
-    Compute the cumcount per group in ascending order::
+    Number rows within each group in the ascending order::
 
-        >>> DT[:, dt.cumcount(reverse = False), f.C0]
+        >>> DT[:, dt.cumcount(), f.C0]
            | C0        C1
            | str32  int64
         -- + -----  -----
@@ -59,7 +60,7 @@
          7 | c          2
         [8 rows x 2 columns]
 
-    Compute the cumcount per group in descending order::
+    Number rows within each group in the descending order::
 
         >>> DT[:, dt.cumcount(reverse = True), f.C0]
            | C0        C1
@@ -75,21 +76,20 @@
          7 | c          0
         [8 rows x 2 columns]
 
+    Number rows in the absence of :func:`by()`::
 
-    Compute in the absence of :func:`by()`::
-
-        >>> DT[:, dt.cumcount(reverse = False)]
-           |    C0
-           | int64
-        -- + -----
-         0 |     0
-         1 |     1
-         2 |     2
-         3 |     3
-         4 |     4
-         5 |     5
-         6 |     6
-         7 |     7
-        [8 rows x 1 column]
+        >>> DT[:, [f.C0, dt.cumcount()]]
+           | C0        C1
+           | str32  int64
+        -- + -----  -----
+         0 | a          0
+         1 | a          1
+         2 | a          2
+         3 | b          3
+         4 | b          4
+         5 | c          5
+         6 | c          6
+         7 | c          7
+        [8 rows x 2 columns]
 
 
