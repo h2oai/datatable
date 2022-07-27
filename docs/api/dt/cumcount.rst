@@ -16,7 +16,7 @@
     reverse: bool
         By default, when this parameter is ``False``, the numbering
         is performed in the ascending order. Otherwise, when
-        this paarmeter is ``True``, the numbering is done
+        this parameter is ``True``, the numbering is done
         in the descending order.
 
     return: FExpr
