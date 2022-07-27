@@ -16,7 +16,7 @@
     reverse: bool
         By default, when this parameter is ``False``, groups
         are numbered in the ascending order. Otherwise, when
-        this paarmeter is ``True``, groups are numbered
+        this parameter is ``True``, groups are numbered
         in the descending order.
 
     return: FExpr
