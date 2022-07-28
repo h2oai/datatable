@@ -29,6 +29,8 @@
 #include "python/xargs.h"
 #include "stype.h"
 #include <iostream>
+#include "column/isna.h"
+#include "sort.h"
 
 
 namespace dt {
@@ -58,56 +60,17 @@ namespace dt {
 
         Workframe evaluate_n(EvalContext &ctx) const override {
           Workframe wf = arg_->evaluate_n(ctx);
-          // Groupby gby = Groupby::single_group(wf.nrows());
-
-          // if (ctx.has_groupby()) {
-          //   wf.increase_grouping_mode(Grouping::GtoALL);
-          //   gby = ctx.get_groupby();
-          // }
-
-          // bool bool_direction = direction_=="down";
-          // bool is_valid;
-          // int64_t res;
-          // for (size_t i = 0; i < wf.ncols(); ++i) {
-          //   Column coli = wf.retrieve_column(i);
-          //   is_valid = coli.get_element(4, &res);
-          //   std::cout<<is_valid<<std::endl;
-          //   std::cout<<res<<std::endl;
-          //   //Column coli = evaluate1(wf.retrieve_column(i), bool_direction, gby);
-          //   //wf.replace_column(i, std::move(coli));
-          // }
-          return wf;
+          Workframe out(ctx);
+          for (size_t i = 0; i < wf.ncols(); ++i) {
+            Column coli = wf.retrieve_column(i);
+            coli = Column(new Isna_ColumnImpl<int8_t>(std::move(coli)));
+            RowIndex ri = RowIndex(std::move(coli));
+            coli.apply_rowindex(ri.negate(coli.nrows())); // i get bools here
+            out.add_column(std::move(coli), std::string(), out.get_grouping_mode());
+          }
+          return out;
         }
 
-
-      // Column evaluate1(Column &&col, bool bool_direction, const Groupby &gby) const {
-      //   SType stype = col.stype();
-      //   switch (stype) {
-      //     case SType::VOID:    return Column(new ConstNa_ColumnImpl(col.nrows()));
-      //     case SType::BOOL:
-      //     case SType::INT8:    return make<int8_t>(std::move(col), bool_direction, gby);
-      //     case SType::INT16:   return make<int16_t>(std::move(col), bool_direction, gby);
-      //     case SType::INT32:   return make<int32_t>(std::move(col), bool_direction, gby);
-      //     case SType::INT64:   return make<int64_t>(std::move(col), bool_direction, gby);
-      //     case SType::FLOAT32: return make<float>(std::move(col), bool_direction, gby);
-      //     case SType::FLOAT64: return make<double>(std::move(col), bool_direction, gby);
-      //     //case SType::STR32:   
-      //     //case SType::STR64: return make<CString>(std::move(col), bool_direction, gby);  
-      //     //case SType::DATE32:
-      //     //case SType::DATE64:
-      //     //case SType::TIME64:
-      //     default: throw TypeError()
-      //       << "Invalid column of type `" << stype << "` in " << repr();
-      //   }
-      // }
-
-
-      //   template <typename T>
-      //   Column make(Column &&col, bool bool_direction, const Groupby &gby) const {
-      //      return Column(new Latent_ColumnImpl(
-      //        new FillNA_ColumnImpl<T>(std::move(col), bool_direction, gby)
-      //      ));
-      //   }
     };
 
 
