@@ -36,7 +36,6 @@
 #
 #-------------------------------------------------------------------------------
 import base64
-import distutils.util
 import hashlib
 import io
 import os
@@ -449,9 +448,8 @@ class Wheel:
         if self._tag is None:
             impl_tag = self._get_python_tag()
             abi_tag = self._get_abi_tag()
-            # TODO: remove `distutils` dependency as it has been deprecated
-            platform = distutils.util.get_platform()
-            # Meanwhile, a workaround for macOS Big Sur and Monterey, see #3175 and #3322
+            platform = sysconfig.get_platform()
+            # A workaround for macOS Big Sur and Monterey, see #3175 and #3322
             if platform.startswith("macosx-11") or platform.startswith("macosx-12"):
                 osx_version = platform[7:9]
                 plat_tag = re.sub("-"+osx_version+"(.*)-", "_"+osx_version+"_0_", platform)
