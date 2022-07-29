@@ -11,7 +11,7 @@ Create a Frame
 --------------
 
 :class:`Frame <dt.Frame>` can be :meth:`created <dt.Frame.__init__>`
-from a variety of sources. For instance, from ``numpy`` arrays::
+from a variety of sources. For instance, from a ``numpy`` array::
 
     >>> import datatable as dt
     >>> import numpy as np
@@ -45,7 +45,7 @@ from a variety of sources. For instance, from ``numpy`` arrays::
 
     [1000000 rows x 1 column]
 
-From ``pandas`` DataFrames::
+From ``pandas`` DataFrame::
 
     >>> import pandas as pd
     >>> PD = pd.DataFrame({"A": range(1000)})
@@ -77,7 +77,7 @@ From ``pandas`` DataFrames::
 
     [1000 rows x 1 column]
 
-Or from raw Python objects::
+Or from a raw Python object::
 
     >>> dt.Frame({"n": [1, 3], "s": ["foo", "bar"]})
        |     n s
@@ -106,7 +106,8 @@ and CSV files::
 Parse CSV Files
 ---------------
 
-``datatable`` provides fast and convenient way to parse CSV files::
+``datatable`` provides fast and convenient way to parse CSV files
+via :func:`dt.fread()` function::
 
     >>> DT = dt.fread("in.csv")
 
@@ -143,7 +144,8 @@ Basic Frame properties include::
 Compute Frame Statistics
 ------------------------
 
-Compute per-column summary statistics::
+Compute per-column summary statistics using the following
+Frame's methods::
 
     >>> DT.sum()
     >>> DT.max()
@@ -158,7 +160,8 @@ Compute per-column summary statistics::
 Select Subsets of Rows or Columns
 ---------------------------------
 
-Select subsets of rows or columns::
+Select subsets of rows or columns by using
+:meth:`DT[i,j,...] <dt.Frame.__getitem__>` selector::
 
     >>> DT[:, "A"]         # select 1 column
     >>> DT[:10, :]         # first 10 rows
