@@ -70,7 +70,7 @@ class RowIndex {
      * Construct a RowIndex object from a buffer of int32/int64 indices.
      * The `flags` argument should contain either RowIndex::ARR32 or
      * RowIndex::ARR64, optionally combined with RowIndex::SORTED to tell
-     * the constructor whether that the array is sorted.
+     * the constructor whether the indices are sorted.
      */
     RowIndex(Buffer&& buf, int flags);
 
