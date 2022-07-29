@@ -449,13 +449,19 @@ class Wheel:
             impl_tag = self._get_python_tag()
             abi_tag = self._get_abi_tag()
             platform = sysconfig.get_platform()
-            # A workaround for macOS Big Sur and Monterey, see #3175 and #3322
-            if platform.startswith("macosx-11") or platform.startswith("macosx-12"):
-                osx_version = platform[7:9]
-                plat_tag = re.sub("-"+osx_version+"(.*)-", "_"+osx_version+"_0_", platform)
+
+            # For macOS with major versions >= 11 the minor version
+            # in the platform tag must be 0, see #3175 and #3322.
+            osx_major = int(re.match("macosx-(\d*)", platform)[1])
+            if osx_major >= 11:
+                plat_tag = re.sub("-"+osx_major+"(.*)-",
+                                  "_"+osx_major+"_0_",
+                                  platform)
             else:
                 plat_tag = platform.replace('.', '_').replace('-', '_')
+
             self._tag = "%s-%s-%s" % (impl_tag, abi_tag, plat_tag)
+
         return self._tag
 
 
