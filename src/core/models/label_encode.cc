@@ -297,8 +297,8 @@ size_t create_y_multinomial(const DataTable* dt,
 
     // Then we go through the list of new labels and relate existing models
     // to the incoming label indicators.
-    Buffer new_label_indices = Buffer::mem(nlabels_in * sizeof(int64_t));
-    int64_t* data = static_cast<int64_t*>(new_label_indices.xptr());
+    Buffer new_label_indices = Buffer::mem(nlabels_in * sizeof(int32_t));
+    auto data = static_cast<int32_t*>(new_label_indices.xptr());
     size_t n_new_labels = 0;
     for (size_t i = 0; i < nlabels_in; ++i) {
       size_t rii;
@@ -310,7 +310,7 @@ size_t create_y_multinomial(const DataTable* dt,
       } else {
         // If there is no corresponding label already set,
         // we will need to create a new one and its model.
-        data[n_new_labels] = static_cast<int64_t>(i);
+        data[n_new_labels] = static_cast<int32_t>(i);
         label_ids.push_back(label_id_in);
         n_new_labels++;
       }
@@ -319,17 +319,19 @@ size_t create_y_multinomial(const DataTable* dt,
     if (n_new_labels) {
       // In the case of validation we don't allow unseen labels.
       if (validation) {
-        throw ValueError() << "Validation target column cannot contain labels, "
+        throw ValueError() << "Validation target column cannot contain labels "
                            << "the model was not trained on";
       }
 
-      // Extract new labels from `dt_labels_in`, and rbind them to `dt_labels`.
-      new_label_indices.resize(n_new_labels * sizeof(int64_t),
-                               true);  // keep data
-      RowIndex ri_labels(std::move(new_label_indices), RowIndex::ARR64);
+      // Extract new labels from `dt_labels_in` and rbind them to `dt_labels`.
+      new_label_indices.resize(
+        n_new_labels * sizeof(int32_t),
+        true // keep data
+      );
+      RowIndex ri_labels(std::move(new_label_indices), RowIndex::ARR32);
       dt_labels_in->apply_rowindex(ri_labels);
 
-      // Set new ids for the incoming labels, so that they can be rbinded
+      // Set new ids for the incoming new labels, so that we can rbind them
       // to the existing ones. NB: this operation won't affect the relation
       // between the models and label indicators, because at this point
       // it has been already set in `label_ids`.
