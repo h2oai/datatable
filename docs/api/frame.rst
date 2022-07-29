@@ -130,6 +130,8 @@
           - Sort the frame by the specified columns.
 
 
+    .. _convert-into-other-formats:
+
     Convert into other formats
     --------------------------
 
@@ -164,7 +166,6 @@
 
     Statistical methods
     -------------------
-
 
     .. list-table::
         :widths: auto
