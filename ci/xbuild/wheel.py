@@ -454,7 +454,7 @@ class Wheel:
             # "all hyphens - and periods . replaced with
             # underscore _". In addition, it was found that for OSX
             # major versions >= 11 the minor version in the platform tag
-            # must be 0, see #3175 and #3322.
+            # must be set to 0, see #3175 and #3322.
             res = re.match("macosx-(\d*)", platform)
             osx_major = 0 if res is None else res[1]
             if int(osx_major) >= 11:
