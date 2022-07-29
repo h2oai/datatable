@@ -3,18 +3,21 @@
 Using datatable
 ===============
 
-This section describes common functionality and commands that you can run in ``datatable``.
+This section describes common functionality and commands supported by
+``datatable``.
 
-Create Frame
-------------
 
-You can create a Frame from a variety of sources, including ``numpy`` arrays,
-``pandas`` DataFrames, raw Python objects, etc::
+Create a Frame
+--------------
+
+:class:`Frame <dt.Frame>` can be :meth:`created <dt.Frame.__init__>`
+from a variety of sources. For instance, from ``numpy`` arrays::
 
     >>> import datatable as dt
     >>> import numpy as np
     >>> np.random.seed(1)
-    >>> dt.Frame(np.random.randn(1000000))
+    >>> NP = np.random.randn(1000000)
+    >>> dt.Frame(NP)
            |         C0
            |    float64
     ------ + ----------
@@ -42,9 +45,11 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
 
     [1000000 rows x 1 column]
 
+From ``pandas`` DataFrames::
+
     >>> import pandas as pd
-    >>> pf = pd.DataFrame({"A": range(1000)})
-    >>> dt.Frame(pf)
+    >>> PD = pd.DataFrame({"A": range(1000)})
+    >>> dt.Frame(PD)
         |     A
         | int64
     --- + -----
@@ -72,6 +77,8 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
 
     [1000 rows x 1 column]
 
+Or from raw Python objects::
+
     >>> dt.Frame({"n": [1, 3], "s": ["foo", "bar"]})
        |     n s
        | int32 str32
@@ -85,20 +92,23 @@ You can create a Frame from a variety of sources, including ``numpy`` arrays,
 Convert a Frame
 ---------------
 
-Convert an existing Frame into a ``numpy`` array, a ``pandas`` DataFrame,
-or a pure Python object::
+An existing frame ``DT`` can be
+:ref:`converted <convert-into-other-formats>` to other formats,
+including ``numpy`` arrays, ``pandas`` DataFrames, Python objects,
+and CSV files::
 
-    >>> nparr = DT.to_numpy()
-    >>> pddfr = DT.to_pandas()
-    >>> pyobj = DT.to_list()
+    >>> NP = DT.to_numpy()
+    >>> PD = DT.to_pandas()
+    >>> PY = DT.to_list()
+    >>> DT.to_csv("out.csv")
 
 
-Parse Text (csv) Files
-----------------------
+Parse CSV Files
+---------------
 
-``datatable`` provides fast and convenient parsing of text (csv) files::
+``datatable`` provides fast and convenient way to parse CSV files::
 
-    >>> DT = dt.fread("train.csv")
+    >>> DT = dt.fread("in.csv")
 
 The ``datatable`` parser
 
@@ -110,18 +120,10 @@ The ``datatable`` parser
 -  Reads both RFC4180-compliant and non-compliant files
 
 
-Write the Frame
----------------
-
-Write the Frame's content into a ``csv`` file (also multi-threaded)::
-
-    >>> DT.to_csv("out.csv")
-
-
 Save a Frame
 ------------
 
-Save a Frame into a binary format on disk, then open it later instantly,
+Save a Frame into a binary JAY format on disk, later open it instantly,
 regardless of the data size::
 
     >>> DT.to_jay("out.jay")
@@ -133,15 +135,15 @@ Basic Frame Properties
 
 Basic Frame properties include::
 
-    >>> print(DT.shape)   # (nrows, ncols)
-    >>> print(DT.names)   # column names
-    >>> print(DT.stypes)  # column types
+    >>> DT.shape   # (nrows, ncols)
+    >>> DT.names   # column names
+    >>> DT.types   # column types
 
 
-Compute Per-Column Summary Stats
---------------------------------
+Compute Frame Statistics
+------------------------
 
-Compute per-column summary stats using::
+Compute per-column summary statistics::
 
     >>> DT.sum()
     >>> DT.max()
@@ -153,10 +155,10 @@ Compute per-column summary stats using::
     >>> DT.nunique()
 
 
-Select Subsets of Rows/Columns
-------------------------------
+Select Subsets of Rows or Columns
+---------------------------------
 
-Select subsets of rows and/or columns using::
+Select subsets of rows or columns::
 
     >>> DT[:, "A"]         # select 1 column
     >>> DT[:10, :]         # first 10 rows
@@ -164,10 +166,10 @@ Select subsets of rows and/or columns using::
     >>> DT[27, 3]          # single element in row 27, column 3 (0-based)
 
 
-Delete Rows/Columns
--------------------
+Delete Rows or Columns
+----------------------
 
-Delete rows and or columns using::
+Delete rows or columns with ``del``::
 
     >>> del DT[:, "D"]     # delete column D
     >>> del DT[f.A < 0, :] # delete rows where column A has negative values
@@ -176,27 +178,27 @@ Delete rows and or columns using::
 Filter Rows
 -----------
 
-Filter rows via an expression using the following. In this example, ``mean``,
-``sd``, ``f`` are all symbols imported from ``datatable``::
+Filter rows via an :ref:`f-expression <f-expressions>`::
 
-    >>> DT[(f.x > mean(f.y) + 2.5 * sd(f.y)) | (f.x < -mean(f.y) - sd(f.y)), :]
+    >>> from datatable import mean, sd, f
+    >>> DT[(f.A > mean(f.B) + 2.5 * sd(f.B)) | (f.A < -mean(f.B) - sd(f.B)), :]
 
 
 Compute Columnar Expressions
 ----------------------------
 
-Compute columnar expressions using::
+:ref:`f-expressions` could also be used to compute columnar expressions::
 
-    >>> DT[:, {"x": f.x, "y": f.y, "x+y": f.x + f.y, "x-y": f.x - f.y}]
+    >>> DT[:, {"A": f.A, "B": f.B, "A+B": f.A + f.B, "A-B": f.A - f.B}]
 
 
 Sort Columns
 ------------
 
-Sort columns using::
+Sort columns via :meth:`Frame.sort() <dt.Frame.sort>` or via :func:`dt.sort()`::
 
     >>> DT.sort("A")
-    >>> DT[:, :, sort(f.A)]
+    >>> DT[:, :, dt.sort(f.A)]
 
 
 Perform Groupby Calculations
@@ -204,13 +206,18 @@ Perform Groupby Calculations
 
 Perform groupby calculations using::
 
-    >>> DT[:, mean(f.x), by("y")]
+    >>> DT[:, mean(f.A), dt.by("B")]
 
 
-Append Rows/Columns
--------------------
+Append Rows or Columns
+----------------------
 
-Append rows/columns to a Frame using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
+Append rows to the existing frame by using
+:meth:`Frame.rbind() <datatable.Frame.rbind>`::
 
-    >>> DT1.cbind(DT2, DT3)
-    >>> DT1.rbind(DT4, force=True)
+    >>> DT.rbind(DT2)
+
+Append columns by using :meth:`Frame.cbind() <datatable.Frame.cbind>`::
+
+    >>> DT.cbind(DT2)
+
