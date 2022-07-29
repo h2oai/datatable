@@ -450,12 +450,16 @@ class Wheel:
             abi_tag = self._get_abi_tag()
             platform = sysconfig.get_platform()
 
-            # For macOS with major versions >= 11 the minor version
-            # in the platform tag must be 0, see #3175 and #3322.
-            osx_major = int(re.match("macosx-(\d*)", platform)[1])
-            if osx_major >= 11:
-                plat_tag = re.sub("-"+osx_major+"(.*)-",
-                                  "_"+osx_major+"_0_",
+            # PEP-425 requires the result of `get_platform()` to have
+            # "all hyphens - and periods . replaced with
+            # underscore _". In addition, it was found that for OSX
+            # major versions >= 11 the minor version in the platform tag
+            # must be 0, see #3175 and #3322.
+            res = re.match("macosx-(\d*)", platform)
+            osx_major = 0 if res is None else res[1]
+            if int(osx_major) >= 11:
+                plat_tag = re.sub("-" + osx_major + "(.*)-",
+                                  "_" + osx_major + "_0_",
                                   platform)
             else:
                 plat_tag = platform.replace('.', '_').replace('-', '_')
