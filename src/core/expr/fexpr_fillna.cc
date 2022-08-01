@@ -20,13 +20,14 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/fillna.h"
+//#include "column/fillna.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
+#include "parallel/api.h"
 #include "stype.h"
 #include <iostream>
 #include "column/isna.h"
@@ -57,18 +58,60 @@ namespace dt {
           return out;
         }
 
+        template <bool REVERSE>
+        static RowIndex fill_rowindex(const Groupby& groupby, Column& col) {
+          Buffer buf_indices = Buffer::mem(static_cast<size_t>(col.nrows()) * sizeof(int32_t));
+          int32_t* indices = static_cast<int32_t*>(buf_indices.xptr());
+          auto group_offsets = groupby.offsets_r();
+          
+          dt::parallel_for_dynamic(
+            groupby.size(),
+            [&](size_t i){
+              int32_t i0 = group_offsets[i];
+              int32_t i1 = group_offsets[i+1];
+              bool is_valid;
+              int32_t prev = 0; 
+              if (REVERSE) {
+                while (i1 > i0) {
+                i1--;
+                is_valid = col.get_element_isvalid(i1);
+                prev = is_valid?i1:prev;
+                indices[i1] = prev;
+              }} else {
+                while (i0 < i1) {
+                is_valid = col.get_element_isvalid(i0);
+                prev = is_valid?i0:prev;
+                indices[i0] = prev;
+                i0++;
+              }}
+              }
+          );
+          return RowIndex(std::move(buf_indices), RowIndex::ARR32|RowIndex::SORTED);
+
+        }
+
 
         Workframe evaluate_n(EvalContext &ctx) const override {
           Workframe wf = arg_->evaluate_n(ctx);
-          Workframe out(ctx);
+          if (wf.nrows() == 0){
+            return wf;
+          }
+          Groupby gby = Groupby::single_group(wf.nrows());
+          if (ctx.has_groupby()) {
+            wf.increase_grouping_mode(Grouping::GtoALL);
+            gby = ctx.get_groupby();
+          }
+
           for (size_t i = 0; i < wf.ncols(); ++i) {
             Column coli = wf.retrieve_column(i);
-            coli = Column(new Isna_ColumnImpl<int8_t>(std::move(coli)));
-            RowIndex ri = RowIndex(std::move(coli));
-            coli.apply_rowindex(ri.negate(coli.nrows())); // i get bools here
-            out.add_column(std::move(coli), std::string(), out.get_grouping_mode());
+            if (coli.na_count() > 0){     
+              RowIndex ri = reverse_? fill_rowindex<true>(gby, coli) 
+                                    : fill_rowindex<false>(gby, coli);
+              coli.apply_rowindex(ri);
+              }
+            wf.replace_column(i, std::move(coli));
           }
-          return out;
+          return wf;
         }
 
     };

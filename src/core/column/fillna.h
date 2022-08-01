@@ -28,7 +28,7 @@
 
 namespace dt {
 
-  template <typename T>
+  //template <typename T>
   class FillNA_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
