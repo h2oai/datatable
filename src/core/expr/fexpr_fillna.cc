@@ -70,7 +70,7 @@ namespace dt {
               int32_t i0 = group_offsets[i];
               int32_t i1 = group_offsets[i+1];
               bool is_valid;
-              int32_t prev = 0; 
+              int32_t prev = std::move(i0); 
               if (REVERSE) {
                 while (i1 > i0) {
                 i1--;
