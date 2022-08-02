@@ -31,31 +31,22 @@ from tests import assert_equals
 # Errors
 #-------------------------------------------------------------------------------
 
-# remove this once strings evaluation is fixed
-def test_fillna_direction_not_a_string():
+msg =  "Argument reverse in function datatable.fillna\\(\\) should be a boolean, "
+msg += "instead got <class 'str'>"
+def test_fillna_reverse_not_a_boolean():
     DT = dt.Frame([1,2,None,4,5])
-    with pytest.raises(TypeError,
-                       match = r"Parameter direction in fillna\(\) should be a string,.+"):
-        DT[:, fillna(f[0], direction=3)]
+    with pytest.raises(TypeError, match = msg):
+        DT[:, fillna(f[0], reverse='True')]
 
 
-def test_fillna_direction_not_a_string_by():
+def test_fillna_reverse_not_a_boolean_by():
     DT = dt.Frame([1,2,None,4,5])
-    with pytest.raises(TypeError,
-                       match = r"Parameter direction in fillna\(\) should be a string,.+"):
-        DT[:, fillna(f[0], direction = 3), by(f[0])]
-
-
-def test_fillna_direction_not_up_or_down():
-    DT = dt.Frame([1,2,None,4,5])
-    with pytest.raises(ValueError,
-                       match = r"The value for the parameter direction in fillna\(\) "
-                                "should be either up or down"):
-        DT[:, fillna(f[0], direction = "UP"), by(f[0])]
+    with pytest.raises(TypeError, match = msg):
+        DT[:, fillna(f[0], reverse = 'True'), by(f[0])]
 
 def test_fillna_no_argument():
-    msg = (f"Function datatable.{fillna.__name__}"
-           "\\(\\) requires at least 1 positional argument, but none were given")
+    msg = (f"Function datatable.fillna\\(\\) "
+            "requires exactly 1 positional argument, but none were given")
     with pytest.raises(TypeError, match = msg):
         fillna()
 
@@ -66,32 +57,32 @@ def test_fillna_no_argument():
 
 
 def test_fillna_str():
-  assert str(fillna(f.A, direction='down')) == "FExpr<" + fillna.__name__ + "(f.A, direction=down)>"
-  assert str(fillna(f.A, direction='down') + 1) == "FExpr<" + fillna.__name__ + "(f.A, direction=down) + 1>"
-  assert str(fillna(f.A + f.B, direction = 'up')) == "FExpr<" + fillna.__name__ + "(f.A + f.B, direction=up)>"
-  assert str(fillna(f.B, direction = 'up')) == "FExpr<" + fillna.__name__ + "(f.B, direction=up)>"
-  assert str(fillna(f[:2], 'down')) == "FExpr<"+ fillna.__name__ + "(f[:2], direction=down)>"
+  assert str(fillna(f.A, reverse=False)) == "FExpr<" + fillna.__name__ + "(f.A, reverse=False)>"
+  assert str(fillna(f.A, reverse=False) + 1) == "FExpr<" + fillna.__name__ + "(f.A, reverse=False) + 1>"
+  assert str(fillna(f.A + f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.A + f.B, reverse=True)>"
+  assert str(fillna(f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.B, reverse=True)>"
+  assert str(fillna(f[:2], reverse = False)) == "FExpr<"+ fillna.__name__ + "(f[:2], reverse=False)>"
 
 
 
 def test_fillna_empty_frame():
     DT = dt.Frame()
-    expr_fillna = fillna(DT, direction='down')
+    expr_fillna = fillna(DT, reverse=False)
     assert isinstance(expr_fillna, FExpr)
-    assert_equals(DT[:, fillna(f[:], direction='down')], DT)
+    assert_equals(DT[:, fillna(f[:], reverse=False)], DT)
 
 
 
 def test_fillna_void():
     DT = dt.Frame([None, None, None])
-    DT_fillna = DT[:, fillna(f[:], direction='up')]
+    DT_fillna = DT[:, fillna(f[:], reverse=True)]
     assert_equals(DT_fillna, DT)
 
 
 
 def test_fillna_trivial():
     DT = dt.Frame([0]/dt.int64)
-    fillna_fexpr = fillna(f[:], 'up')
+    fillna_fexpr = fillna(f[:], reverse = True)
     DT_fillna = DT[:, fillna_fexpr]
     assert isinstance(fillna_fexpr, FExpr)
     assert_equals(DT, DT_fillna)
@@ -99,7 +90,7 @@ def test_fillna_trivial():
 
 def test_fillna_bool():
     DT = dt.Frame([None, False, None, True, False, True])
-    DT_fillna = DT[:, [fillna(f[:], 'down'), fillna(f[:], 'up')]]
+    DT_fillna = DT[:, [fillna(f[:], reverse = False), fillna(f[:], reverse = True)]]
     DT_ref = dt.Frame([
                 [None, False, False, True, False, True],
                 [False, False, True, True, False, True]
@@ -109,7 +100,7 @@ def test_fillna_bool():
 
 def test_fillna_small():
     DT = dt.Frame([None, 3, None, 4])
-    DT_fillna = DT[:, [fillna(f[:], 'down'), fillna(f[:], 'up')]]
+    DT_fillna = DT[:, [fillna(f[:], reverse = False), fillna(f[:], reverse = True)]]
     DT_ref = dt.Frame([
                   [None, 3, 3, 4],
                   [3, 3, 4, 4]
@@ -117,9 +108,9 @@ def test_fillna_small():
     assert_equals(DT_fillna, DT_ref)
 
 
-def test_fillna_groupby():
+def test_fillna_groTrueby():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91], ['a','a','a','b','b','c','c','c']])
-    DT_fillna = DT[:, [fillna(f[:], 'down'), fillna(f[:], 'up')], by(f[-1])]
+    DT_fillna = DT[:, [fillna(f[:], reverse = False), fillna(f[:], reverse = True)], by(f[-1])]
     DT_ref = dt.Frame({
                   'C1':['a','a','a','b','b','c','c','c'],
                   'C0':[15, 15, 136, 93, 743, None, None, 91],
@@ -128,9 +119,9 @@ def test_fillna_groupby():
     assert_equals(DT_fillna, DT_ref)
 
 
-def test_fillna_grouped_column():
+def test_fillna_groTrueed_column():
      DT = dt.Frame([2, 1, None, 1, 2])
-     DT_bfill = DT[:, [fillna(f[0], 'down'), fillna(f[0], 'up')], by(f[0])]
+     DT_bfill = DT[:, [fillna(f[0], reverse = False), fillna(f[0], reverse = True)], by(f[0])]
      DT_ref = dt.Frame([
                  [None, 1, 1, 2, 2],
                  [None, 1, 1, 2, 2],
