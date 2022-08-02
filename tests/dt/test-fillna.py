@@ -108,7 +108,7 @@ def test_fillna_small():
     assert_equals(DT_fillna, DT_ref)
 
 
-def test_fillna_groTrueby():
+def test_fillna_grouped():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91], ['a','a','a','b','b','c','c','c']])
     DT_fillna = DT[:, [fillna(f[:], reverse = False), fillna(f[:], reverse = True)], by(f[-1])]
     DT_ref = dt.Frame({
@@ -119,7 +119,7 @@ def test_fillna_groTrueby():
     assert_equals(DT_fillna, DT_ref)
 
 
-def test_fillna_groTrueed_column():
+def test_fillna_grouped_column():
      DT = dt.Frame([2, 1, None, 1, 2])
      DT_bfill = DT[:, [fillna(f[0], reverse = False), fillna(f[0], reverse = True)], by(f[0])]
      DT_ref = dt.Frame([
