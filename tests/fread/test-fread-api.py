@@ -106,6 +106,11 @@ def test_fread_from_url2():
     assert d0.source == url
 
 
+def test_fread_from_s3():
+    DT = dt.fread("s3://h2o-release/datatable/")
+    assert_equals(DT, dt.Frame())
+
+
 def test_fread_from_anysource_as_text1(capsys):
     src = "A\n" + "\n".join(str(i) for i in range(100))
     assert len(src) < 4096
