@@ -199,8 +199,8 @@ class ReportHook : public py::XObject<ReportHook>
 
 
 Source_Url::Source_Url(const std::string& url) : Source(url) {
-  // If s3 path is supplied, convert it to the corresponding http URL
-  if (url.substr(0, 2) == "s3") {
+  // If s3 path is supplied, convert it to the corresponding https URL
+  if (url.substr(0, 2) == "s3" || url.substr(0, 2) == "S3") {
     auto res = py::oobj::import("urllib.parse", "urlparse")
                  .call({py::ostring(url)});
     url_ = "https://";
