@@ -124,6 +124,9 @@
     -[enh] When reading Excel files, forward slash, backslash,
         and their mix are supported as separators for specifying subpath. [#3221]
 
+    -[enh] :func:`fread()` now supports reading from public S3 buckets,
+        when the source has a format of ``s3://<bucket name>/<key>``. [#3302]
+
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 

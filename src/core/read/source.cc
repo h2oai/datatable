@@ -198,15 +198,25 @@ class ReportHook : public py::XObject<ReportHook>
 };
 
 
-
-Source_Url::Source_Url(const std::string& url)
-  : Source(url), url_(url) {}
+Source_Url::Source_Url(const std::string& url) : Source(url) {
+  // If s3 path is supplied, convert it to the corresponding http URL
+  if (url.substr(0, 2) == "s3") {
+    auto res = py::oobj::import("urllib.parse", "urlparse")
+                 .call({py::ostring(url)});
+    url_ = "https://";
+    url_ += res.get_attr("netloc").to_string();
+    url_ += ".s3.amazonaws.com";
+    url_ += res.get_attr("path").to_string();
+  } else {
+    url_ = url;
+  }
+}
 
 
 py::oobj Source_Url::read(GenericReader& reader) {
   reader.source_name = &name_;
   TemporaryFile tmpfile;
-  {
+{
     dt::progress::work job(1);
     job.set_message("Downloading " + url_);
     // Characters [0-9a-zA-Z._~-] are always considered "safe".
