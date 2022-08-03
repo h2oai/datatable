@@ -251,12 +251,12 @@ ansiColor('xterm') {
                                         -c "cd /dot && \
                                             ls -la && \
                                             ls -la src/datatable && \
-                                            /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                            /opt/python/cp38-cp38m/bin/python3.8 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                             /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
-                                            echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.8 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                             mv dist/*debug*.whl . && \
                                             echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                             echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
@@ -335,12 +335,12 @@ ansiColor('xterm') {
                                             -c "cd /dot && \
                                                 ls -la && \
                                                 ls -la src/datatable && \
-                                                /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
+                                                /opt/python/cp38-cp38m/bin/python3.8 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                                 /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
-                                                echo '===== Py3.7 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.8 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                                 mv dist/*debug*.whl . && \
                                                 echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
@@ -365,20 +365,6 @@ ansiColor('xterm') {
             if (!params.DISABLE_ALL_TESTS) {
                 def testStages = [:]
                 testStages <<
-                    namedStage('Test x86_64-manylinux-py37-debug', { stageName, stageDir ->
-                        node(NODE_LINUX) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'x86_64-manylinux-debugwheels'
-                                    test_in_docker("x86_64-manylinux-py37-debug", "37",
-                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
                     namedStage('Test x86_64-manylinux-py37', { stageName, stageDir ->
                         node(NODE_LINUX) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -388,6 +374,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py37", "37",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test x86_64-manylinux-py38-debug', doPy38Tests, { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-debugwheels'
+                                    test_in_docker("x86_64-manylinux-py38-debug", "38",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
                                 }
                             }
@@ -435,20 +435,6 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
-                    namedStage('Test ppc64le-manylinux-py37-debug', doPpcTests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-debugwheels'
-                                    test_in_docker("ppc64le-manylinux-py37-debug", "37",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
                     namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -458,6 +444,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py37", "37",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test ppc64le-manylinux-py38-debug', doPpcTests && doPy38Tests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-debugwheels'
+                                    test_in_docker("ppc64le-manylinux-py38-debug", "38",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
