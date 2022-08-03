@@ -63,7 +63,7 @@ LINK_MAP = [
 
 
 DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
-DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2010_x86_64"
+DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2014_x86_64"
 
 
 // Note: global variables must be declared without `def`
