@@ -59,7 +59,6 @@ The following platforms are supported:
 
 - **Linux x86_64 / ppc64le**
 
-  .. TODO: correct tags.
   We produce binary wheels that are tagged as ``manylinux_2_12`` (for ``x86_64``
   architecture) and ``manylinux2014`` (for ``ppc64le``). Consequently, they will
   work with your Linux distribution if it is compatible with one of these tags.
