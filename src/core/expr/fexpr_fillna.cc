@@ -20,8 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-//#include "column/fillna.h"
-#include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
@@ -29,9 +27,7 @@
 #include "python/xargs.h"
 #include "parallel/api.h"
 #include "stype.h"
-#include <iostream>
-#include "column/isna.h"
-#include "sort.h"
+
 
 
 namespace dt {
@@ -119,21 +115,21 @@ namespace dt {
 
 
     static py::oobj pyfn_fillna(const py::XArgs &args) {
-      auto arg0 = args[0].to_oobj();
+      auto column = args[0].to_oobj();
       auto reverse = args[1].to<bool>(false);
 
 
-      return PyFExpr::make(new FExpr_FillNA(as_fexpr(arg0), reverse));
+      return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), reverse));
     }
 
 
     DECLARE_PYFN(&pyfn_fillna)
         ->name("fillna")
-        //->docs(doc_dt_fillna)
+        ->docs(doc_dt_fillna)
         ->arg_names({"column", "reverse"})
-        ->n_required_args(1)
+        ->n_required_args(2)
         ->n_positional_args(1)
-        ->n_keyword_args(1);
+        ->n_positional_or_keyword_args(1);
 
   }  // namespace dt::expr
 }    // namespace dt

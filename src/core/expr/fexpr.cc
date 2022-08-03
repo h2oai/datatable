@@ -365,18 +365,19 @@ DECLARE_METHOD(&PyFExpr::cumsum)
     ->docs(dt::doc_FExpr_cumsum);
 
 
+
 oobj PyFExpr::fillna(const XArgs& args) {
   auto fillnaFn = oobj::import("datatable", "fillna");
-  oobj direction = args[0].to_oobj();
-  return fillnaFn.call({this, direction});
+  oobj reverse = args[0].to_oobj();
+  return fillnaFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::fillna)
     ->name("fillna")
     ->docs(dt::doc_FExpr_fillna)
-    ->arg_names({"direction"})
-    ->n_required_args(1)
-    ->n_positional_or_keyword_args(1);
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(1);
 
 
 oobj PyFExpr::first(const XArgs&) {
