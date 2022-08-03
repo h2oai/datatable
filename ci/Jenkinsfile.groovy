@@ -252,7 +252,7 @@ ansiColor('xterm') {
                                             ls -la && \
                                             ls -la src/datatable && \
                                             /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                            /opt/python/cp38-cp38m/bin/python3.8 ci/ext.py debugwheel --audit && \
+                                            /opt/python/cp38-cp38/bin/python3.8 ci/ext.py debugwheel --audit && \
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                             /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
@@ -336,7 +336,7 @@ ansiColor('xterm') {
                                                 ls -la && \
                                                 ls -la src/datatable && \
                                                 /opt/python/cp37-cp37m/bin/python3.7 ci/ext.py wheel --audit && \
-                                                /opt/python/cp38-cp38m/bin/python3.8 ci/ext.py debugwheel --audit && \
+                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py debugwheel --audit && \
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                                 /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
