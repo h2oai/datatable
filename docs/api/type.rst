@@ -30,10 +30,10 @@
     - :meth:`dt.Type.cat32(T)`
     - :attr:`dt.Type.float32`
     - :attr:`dt.Type.float64`
+    - :attr:`dt.Type.int8`
     - :attr:`dt.Type.int16`
     - :attr:`dt.Type.int32`
     - :attr:`dt.Type.int64`
-    - :attr:`dt.Type.int8`
     - :attr:`dt.Type.obj64`
     - :attr:`dt.Type.str32`
     - :attr:`dt.Type.str64`

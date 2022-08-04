@@ -10,17 +10,20 @@
     Parameters
     ----------
     return: Frame
-        The frame will have one row and the same number/names
-        of columns as in the current frame. All the columns
-        will have `float64` stype. For non-numeric columns
-        this function returns NA values.
+        The resulting frame will have one row and the same
+        number/names of columns as in the original frame.
+        The column types are :attr:`int64 <dt.Type.int64>` for
+        void, boolean and integer columns, :attr:`float32 <dt.Type.float32>`
+        for :attr:`float32 <dt.Type.float32>` columns and
+        :attr:`float64 <dt.Type.float64>` for :attr:`float64 <dt.Type.float64>`
+        columns. For non-numeric columns an NA :attr:`float64 <dt.Type.float64>`
+        column is returned.
 
     See Also
     --------
     - :meth:`.sum1()` -- similar to this method, but operates on a
       single-column frame only, and returns a scalar value instead of
       a Frame.
-
 
     - :func:`dt.sum()` -- function for calculating the sum of all the values
       in a column or an expression; can also be applied per-group.

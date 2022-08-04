@@ -26,7 +26,7 @@
         not named, fread will attempt to guess its type. The most common
         type is `file`, but sometimes the argument is resolved as `text`
         (if the string contains newlines) or `url` (if the string starts
-        with `https://` or similar).
+        with `https://`, `s3://` or similar).
 
         Only one argument out of `anysource`, `file`, `text`, `cmd` or
         `url` can be specified at once.
@@ -54,9 +54,9 @@
 
     url: str
         This parameter can be used to specify the URL of the input file.
-        The data will first be downloaded into a temporary directory and
-        then read from there. In the end the temporary files will be
-        removed.
+        S3 URLs are also supported. The data will first be downloaded
+        into a temporary directory and then read from there. In the end
+        the temporary files will be removed.
 
         We use the standard ``urllib.request`` module to download the
         data. Changing the settings of that module, for example installing

@@ -15,6 +15,12 @@
     -[enh] :meth:`.to_numpy()` now has an option to control memory layout
         of the resulting numpy array. [#3275]
 
+    -[enh] column types returned by the method :meth:`.sum()` are now consistent with
+        the ones returned by the function :func:`dt.sum()`, i.e. :attr:`int64 <dt.Type.int64>`
+        for void, boolean and integer columns; :attr:`float32 <dt.Type.float32>`
+        for :attr:`float32 <dt.Type.float32>` columns; :attr:`float64 <dt.Type.float64>`
+        for :attr:`float64 <dt.Type.float64>` columns. [#2904]
+
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
         constant values. [#3088] [#3104] [#3108] [#3109]
@@ -81,6 +87,9 @@
     -[new] Added function :func:`dt.cumprod()`, as well as :meth:`.cumprod()` method,
       to calculate the cumulative product of values per column. [#3279]
 
+    -[new] Added function :func:`dt.cumcount()` and :func:`dt.ngroup()`,
+      to return the row number and group number respectively. [#3279]
+
     -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,
@@ -117,6 +126,9 @@
 
     -[enh] When reading Excel files, forward slash, backslash,
         and their mix are supported as separators for specifying subpath. [#3221]
+
+    -[enh] :func:`fread()` now supports reading from public S3 buckets,
+        when the source has a format of ``s3://bucket-name/key-name``. [#3302]
 
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
@@ -161,8 +173,11 @@
 
     -[enh] Added support for Python `3.10`. [#3210]
 
-
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns
         of incompatible types. [#3062]
+
+    -[enh] datatable's thread pool can now be used to parallelize external C++ applications
+        and will have no specific datatable dependencies, when the code is built with
+        ``DT_DISABLE`` variable being defined. [#3306]
 
