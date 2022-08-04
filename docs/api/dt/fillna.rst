@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_fillna.cc pyfn_fillna
     :tests: tests/dt/test-fillna.py
     :cvar: doc_dt_fillna
-    :signature: fillna(cols, direction)
+    :signature: fillna(cols, reverse)
 
     .. x-version-added:: 1.1.0
 
@@ -16,19 +16,15 @@
     cols: FExpr
         Input data for filling the nulls values down or up.
 
-    direction: string
-        If `down`, the nulls are filled down; if `up`, the nulls are filled up.
+    reverse: bool
+        If `False`, the nulls are filled down; if `True`, the nulls are filled up.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the previous/next non-null values.
 
     except: TypeError
-        The exception is raised if `direction` is not a string.
-
-    except: ValueError
-        The exception is raised if `direction` is not one of `up` or `down`.
-
+        The exception is raised if `reverse` is not a boolean.
 
     Examples
     --------
@@ -57,7 +53,7 @@
 
     Fill down on a single column::
         
-        >>> DT[:, dt.fillna(f.var1, direction = 'down')]
+        >>> DT[:, dt.fillna(f.var1, reverse = False)]
            |    var1
            | float64
         -- + -------
@@ -74,7 +70,7 @@
 
     Fill up on a single column::
 
-        >>> DT[:, dt.fillna(f.var1, direction = 'up')]
+        >>> DT[:, dt.fillna(f.var1, reverse = True)]
            |    var1
            | float64
         -- + -------
@@ -91,7 +87,7 @@
 
     Fill down on multiple columns::
 
-         >>> DT[:, dt.fillna(f['var1':], direction = 'down')]
+         >>> DT[:, dt.fillna(f['var1':], reverse = False)]
             |    var1   var2   var3   var4
             | float64  int32  int32  int32
          -- + -------  -----  -----  -----
@@ -108,7 +104,7 @@
 
     Fill up on multiple columns::
 
-        >>> DT[:, dt.fillna(f['var1':], direction = 'up')]
+        >>> DT[:, dt.fillna(f['var1':], reverse = True)]
            |    var1   var2   var3   var4
            | float64  int32  int32  int32
         -- + -------  -----  -----  -----
@@ -125,7 +121,7 @@
 
     Fill down in the presence of :func:`by()`::
 
-        >>> DT[:, dt.fillna(f['var1':], direction = 'down'), by('building')]
+        >>> DT[:, dt.fillna(f['var1':], reverse = False), by('building')]
            | building     var1   var2   var3   var4
            | str32     float64  int32  int32  int32
         -- + --------  -------  -----  -----  -----
@@ -142,7 +138,7 @@
 
     Fill up in the presence of :func:`by()`::
 
-        >>> DT[:, dt.fillna(f['var1':], direction = 'up'), by('building')]
+        >>> DT[:, dt.fillna(f['var1':], reverse = True), by('building')]
            | building     var1   var2   var3   var4
            | str32     float64  int32  int32  int32
         -- + --------  -------  -----  -----  -----

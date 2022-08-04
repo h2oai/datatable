@@ -177,6 +177,7 @@
 
         * - :meth:`.fillna()`
           - Same as :func:`dt.fillna()`.
+          
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
 

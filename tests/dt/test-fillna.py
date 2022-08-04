@@ -46,7 +46,7 @@ def test_fillna_reverse_not_a_boolean_by():
 
 def test_fillna_no_argument():
     msg = (f"Function datatable.fillna\\(\\) "
-            "requires exactly 1 positional argument, but none were given")
+            "requires at least 1 positional argument, but none were given")
     with pytest.raises(TypeError, match = msg):
         fillna()
 
@@ -104,6 +104,16 @@ def test_fillna_small():
     DT_ref = dt.Frame([
                   [None, 3, 3, 4],
                   [3, 3, 4, 4]
+              ])
+    assert_equals(DT_fillna, DT_ref)
+
+
+def test_fillna_string():
+    DT = dt.Frame([None, 'a', None, 'b'])
+    DT_fillna = DT[:, [fillna(f[:], reverse = False), fillna(f[:], reverse = True)]]
+    DT_ref = dt.Frame([
+                  [None, 'a', 'a', 'b'],
+                  ['a', 'a', 'b', 'b']
               ])
     assert_equals(DT_fillna, DT_ref)
 
