@@ -52,7 +52,7 @@ The following platforms are supported:
 
 - **macOS**
 
-  Datatable has been tested to work on macOS 10.12 (Sierra), macoS 10.13
+  Datatable has been tested to work on macOS 10.12 (Sierra), macOS 10.13
   (High Sierra), macOS 10.15 (Catalina), macOS 11 (BigSur) and 
   macOS 12 (Monterey).
 
