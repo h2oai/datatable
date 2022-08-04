@@ -52,16 +52,15 @@ The following platforms are supported:
 
 - **macOS**
 
-  Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
-  (High Sierra), macOS 10.15.7 (Catalina), and macOS 11.2.3 (BigSur).
-  The produced wheels are tagged as ``macosx_10_9``, so they should work on
-  earlier versions of macOS as well.
+  Datatable has been tested to work on macOS 10.12 (Sierra), macOS 10.13
+  (High Sierra), macOS 10.15 (Catalina), macOS 11 (BigSur) and 
+  macOS 12 (Monterey).
 
 - **Linux x86_64 / ppc64le**
 
-  We produce binary wheels that are tagged as ``manylinux_2_12`` (for ``x86_64``
-  architecture) and ``manylinux2014`` (for ``ppc64le``). Consequently, they will
-  work with your Linux distribution if it is compatible with one of these tags.
+  For ``x86_64`` and ``ppc64le`` architectures we produce binary wheels 
+  that are tagged as ``manylinux_2_17``. Consequently, they will
+  work with your Linux distribution if it is compatible with this tag.
   Please refer to :pep:`600` for details.
 
 - **Windows**
