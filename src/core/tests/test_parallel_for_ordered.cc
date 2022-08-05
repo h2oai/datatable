@@ -137,7 +137,7 @@ TEST(parallel, for_ordered_except_startall) {
       }
   };
 
-  ASSERT_THROWS([]{
+  ASSERT_THROWS([&]{
     dt::parallel_for_ordered(niters, []{ return std::make_unique<OTask>(); });
   }, RuntimeError);
 }
