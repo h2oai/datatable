@@ -103,7 +103,7 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-    python -m pip uninstall $DT_WHEEL
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -194,7 +194,7 @@ build_script:
 
       python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-      python -m pip uninstall $DT_WHEEL
+      python -m pip uninstall -y $DT_WHEEL
 
     }
 
@@ -224,7 +224,7 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-    python -m pip uninstall $DT_WHEEL
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -252,7 +252,7 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-    python -m pip uninstall $DT_WHEEL
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -280,7 +280,7 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-    python -m pip uninstall $DT_WHEEL
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -308,5 +308,5 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-    python -m pip uninstall $DT_WHEEL
+    python -m pip uninstall -y $DT_WHEEL
 
