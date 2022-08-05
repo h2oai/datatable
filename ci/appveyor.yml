@@ -103,6 +103,8 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
+    python -m pip uninstall $DT_WHEEL
+
 
 
 # Windows builds
@@ -192,6 +194,8 @@ build_script:
 
       python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
+      python -m pip uninstall $DT_WHEEL
+
     }
 
 
@@ -220,6 +224,8 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
+    python -m pip uninstall $DT_WHEEL
+
 
 
     # =======================================================================
@@ -245,6 +251,8 @@ build_script:
     python -m pip install $DT_WHEEL pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    python -m pip uninstall $DT_WHEEL
 
 
 
@@ -272,6 +280,8 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
+    python -m pip uninstall $DT_WHEEL
+
 
 
     # =======================================================================
@@ -297,3 +307,6 @@ build_script:
     python -m pip install $DT_WHEEL pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    python -m pip uninstall $DT_WHEEL
+
