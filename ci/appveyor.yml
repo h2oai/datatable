@@ -214,7 +214,7 @@ build_script:
 
     python ci/ext.py debugwheel
 
-    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX-debug-cp38-*.whl
+    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX.debug-cp38-*.whl
 
     echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
 
