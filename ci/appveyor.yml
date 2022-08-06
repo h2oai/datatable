@@ -114,6 +114,8 @@ build_script:
     #   Set up environment variables
     # =======================================================================
 
+    $ErrorActionPreference = "Stop"
+
     $env:DT_HARNESS = "AppVeyor"
 
     $DEFAULT_PATH = $env:PATH
