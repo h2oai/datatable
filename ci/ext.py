@@ -280,8 +280,8 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_compiler_flag("/Od")    # no optimization
             ext.compiler.add_compiler_flag("/Z7")
             ext.compiler.add_linker_flag("/DEBUG:FULL")
-            ext.compiler.add_compiler_flag("/DDT_TEST")
-            # ext.compiler.add_compiler_flag("/DDT_DEBUG")
+            # ext.compiler.add_compiler_flag("/DDT_TEST")
+            ext.compiler.add_compiler_flag("/DDT_DEBUG")
     else:
         # Common compile flags
         ext.compiler.add_compiler_flag("-std=c++14")
