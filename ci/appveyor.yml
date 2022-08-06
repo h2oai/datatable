@@ -205,18 +205,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.8
+    #   Build and test debug wheel for Python 3.8
     # =======================================================================
 
     $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py wheel
+    python ci/ext.py debugwheel
 
-    $DT_WHEEL = ls dist/*-cp38-*.whl
+    $DT_WHEEL = ls dist/*debug*-cp38-*.whl
 
-    echo "----- _build_info.py for Python 3.8 ------------------------------"
+    echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
 
@@ -233,18 +233,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test debug wheel for Python 3.8
+    #   Build and test wheel for Python 3.8
     # =======================================================================
 
     $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py debugwheel
+    python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*debug*-cp38-*.whl
+    $DT_WHEEL = ls dist/*-cp38-*.whl
 
-    echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
+    echo "----- _build_info.py for Python 3.8 ------------------------------"
 
     cat src/datatable/_build_info.py
 
