@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <atomic>       // std::atomic
 #include <cstdlib>      // std::rand, RAND_MAX
 #include <ctime>        // std::time
@@ -30,7 +30,8 @@
 #include "parallel/shared_mutex.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 // Helper class to ensure the thread pool is joined in the end, even if an
@@ -146,6 +147,5 @@ TEST(parallel, shared_bmutex) {
 
 
 
-
-} // namespace dttest
+}} // namespace dt::tests
 #endif

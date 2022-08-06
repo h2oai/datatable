@@ -19,14 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <atomic>
 #include <vector>
 #include "parallel/api.h"
 #include "parallel/thread_pool.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 TEST(parallel, for_static) {
@@ -89,6 +90,5 @@ TEST(parallel, for_dynamic_nested) {
 
 
 
-
-}  // namespace dttest
+}}  // namespace dt::tests
 #endif

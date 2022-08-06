@@ -19,13 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <vector>
 #include "parallel/api.h"
 #include "progress/work.h"      // dt::progress::work
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 static void test_progress_static(size_t n, size_t nth) {
@@ -206,6 +207,5 @@ TEST(progress, ordered_all) {
 
 
 
-
-}  // namespace dttest
+}} // namespace dt::tests
 #endif

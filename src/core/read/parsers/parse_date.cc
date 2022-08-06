@@ -115,7 +115,7 @@ bool parse_date32_iso(const char* ch, const char* end, int32_t* out) {
 }
 
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_date32_iso) {
     auto check = [](const char* input, int32_t expected_value, size_t advance) {
       ParseContext ctx;

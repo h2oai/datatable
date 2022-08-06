@@ -19,13 +19,14 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <algorithm>
 #include <vector>
 #include "parallel/api.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 TEST(parallel, barrier1) {
@@ -99,5 +100,5 @@ TEST(parallel, barrierN) {
 
 
 
-}  // namespace dttest
+}}  // namespace dt::tests
 #endif

@@ -683,7 +683,7 @@ void DataTable::_integrity_check_pynames() const {
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 
 TEST(coverage, names_FrameNameProviders) {
   pylistNP* t1 = new pylistNP(py::olist(0));

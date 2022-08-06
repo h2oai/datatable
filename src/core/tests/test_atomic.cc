@@ -19,14 +19,15 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <atomic>       // std::atomic
 #include <cmath>        // std::pow, std::abs
 #include "parallel/api.h"
 #include "parallel/atomic.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 template <typename T>
@@ -90,5 +91,5 @@ TEST(parallel, atomic_double) {
 
 
 
-} // namespace dttest
+}} // namespace dt::tests
 #endif
