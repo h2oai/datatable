@@ -216,8 +216,6 @@ build_script:
 
     $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX.debug-cp38-*.whl
 
-    echo "DT_WHEEL = $DT_WHEEL"
-
     echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
