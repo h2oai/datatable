@@ -21,6 +21,8 @@ artifacts:
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
 
+matrix:
+  fast_finish: true
 
 build_script:
 
