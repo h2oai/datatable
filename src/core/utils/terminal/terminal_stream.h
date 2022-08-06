@@ -39,9 +39,11 @@ class TerminalStream {
     bool use_colors_;
     size_t : 56;
 
+  private:
+    void _emit_pending_styles();
+
   public:
     TerminalStream(bool use_colors);
-    void _emit_pending_styles();
 
     template <typename T>
     TerminalStream& operator<<(const T& value) {
@@ -51,6 +53,7 @@ class TerminalStream {
     }
 
     std::string str();
+
 };
 
 template <> TerminalStream& TerminalStream::operator<<(const tstring&);
