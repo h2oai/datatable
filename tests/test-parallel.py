@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import itertools
+import os
 import pytest
 import subprocess
 import sys
@@ -73,6 +74,7 @@ def test_core_progress(testname):
 # Send interrupt signal and make sure process throws KeyboardInterrupt
 @cpp_test
 @skip_on_jenkins
+@pytest.mark.usefixtures("nowin")
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
@@ -104,7 +106,7 @@ def test_progress_interrupt(parallel_type, nthreads):
                             stderr = subprocess.PIPE)
 
     line = proc.stdout.readline()
-    assert line.decode() == str(parallel_type) + " start\n"
+    assert line.decode() == str(parallel_type) + " start" + os.linesep
     time.sleep(sleep_time);
 
     proc.send_signal(signal.Signals.SIGINT)

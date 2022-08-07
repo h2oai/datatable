@@ -22,6 +22,7 @@
 #ifndef dt_TYPES_TYPE_h
 #define dt_TYPES_TYPE_h
 #include "_dt.h"
+#include "utils/tests.h"
 namespace dt {
 
 class TypeImpl;

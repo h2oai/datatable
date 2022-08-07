@@ -26,6 +26,7 @@
 #include <sstream>
 #include "utils/assert.h"
 #include "utils/terminal/terminal_style.h"
+#include "utils/tests.h"
 namespace dt {
 
 class tstring;
@@ -49,16 +50,16 @@ class TerminalStream {
       out_ << value;
       return *this;
     }
+
     std::string str();
 
   private:
     void _emit_pending_styles();
+
 };
 
 template <> TerminalStream& TerminalStream::operator<<(const tstring&);
 template <> TerminalStream& TerminalStream::operator<<(const TerminalStyle&);
-
-
 
 
 }  // namespace dt

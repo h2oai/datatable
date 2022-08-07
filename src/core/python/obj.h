@@ -26,6 +26,8 @@
 #include <vector>   // std::vector
 #include "_dt.h"               // general declarations
 #include "utils/exceptions.h"  // Error
+#include "utils/tests.h"     
+
 namespace py {
 
 
