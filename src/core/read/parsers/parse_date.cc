@@ -151,4 +151,4 @@ bool parse_date32_iso(const char* ch, const char* end, int32_t* out) {
 
 
 
-}}  // namespace dt::read::
+}}  // namespace dt::read

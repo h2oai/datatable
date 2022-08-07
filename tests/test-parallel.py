@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -71,10 +71,9 @@ def test_core_progress(testname):
     core.run_test("progress", testname)
 
 
-# Send interrupt signal and make sure process throws KeyboardInterrupt
-@cpp_test
+
 @skip_on_jenkins
-@pytest.mark.usefixtures("nowin")
+@pytest.mark.usefixtures("nowin") # `SIGINT` is not supported on Windows
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
@@ -109,6 +108,7 @@ def test_progress_interrupt(parallel_type, nthreads):
     assert line.decode() == str(parallel_type) + " start" + os.linesep
     time.sleep(sleep_time);
 
+    # send interrupt signal and make sure the process throws `KeyboardInterrupt`
     proc.send_signal(signal.Signals.SIGINT)
     (stdout, stderr) = proc.communicate()
 

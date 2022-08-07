@@ -26,8 +26,9 @@
 #include <sstream>
 #include "utils/assert.h"
 #include "utils/terminal/terminal_style.h"
-#include "utils/tests.h"
+#include "utils/tests.h"  // compatibility with C++ tests
 namespace dt {
+
 
 class tstring;
 

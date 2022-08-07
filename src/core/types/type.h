@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,8 +22,9 @@
 #ifndef dt_TYPES_TYPE_h
 #define dt_TYPES_TYPE_h
 #include "_dt.h"
-#include "utils/tests.h"
+#include "utils/tests.h"  // compatibility with C++ tests
 namespace dt {
+
 
 class TypeImpl;
 
