@@ -28,8 +28,6 @@
 #include "parallel/api.h"
 #include "stype.h"
 
-
-
 namespace dt {
   namespace expr {
 
@@ -100,7 +98,11 @@ namespace dt {
 
           for (size_t i = 0; i < wf.ncols(); ++i) {
             Column coli = wf.retrieve_column(i);
-            if (coli.na_count() > 0){     
+            bool is_grouped = ctx.has_group_column(
+                              wf.get_frame_id(i),
+                              wf.get_column_id(i)
+                            );
+            if (coli.na_count() > 0 & !is_grouped){     
               RowIndex ri = reverse_? fill_rowindex<true>(gby, coli) 
                                     : fill_rowindex<false>(gby, coli);
               coli.apply_rowindex(ri);
