@@ -329,12 +329,12 @@ TEST(parallel, for_ordered_wait_until_all_finalized) {
 //------------------------------------------------------------------------------
 
 TEST(parallel, for_ordered_super_ordered) {
-  constexpr size_t N_ITERS  = 1000;
-  constexpr size_t SUPER_AT = 200;
-  constexpr size_t START0  = 1;
-  constexpr size_t FINISH0 = 2;
-  constexpr size_t START1  = 5;
-  constexpr size_t FINISH1 = 7;
+  static constexpr size_t N_ITERS  = 1000;
+  static constexpr size_t SUPER_AT = 200;
+  static constexpr size_t START0  = 1;
+  static constexpr size_t FINISH0 = 2;
+  static constexpr size_t START1  = 5;
+  static constexpr size_t FINISH1 = 7;
 
   class OTask : public dt::OrderedTask {
     private:
