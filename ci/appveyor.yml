@@ -229,6 +229,8 @@ build_script:
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
+    if(!$?) { Exit $LASTEXITCODE }
+
     python -m pip uninstall -y $DT_WHEEL
 
 
