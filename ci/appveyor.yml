@@ -23,7 +23,6 @@ environment:
 
 matrix:
   fast_finish: true
-  platform: x64
 
 build_script:
 
