@@ -43,7 +43,6 @@ def test_core_parallel(testname):
     core.run_test("parallel", testname)
 
 
-
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)
     import multiprocessing as mp
@@ -60,7 +59,6 @@ def test_multiprocessing_threadpool():
             # assert chthreads != parent_threads
 
 
-
 #-------------------------------------------------------------------------------
 # "progress" tests
 #-------------------------------------------------------------------------------
@@ -71,7 +69,7 @@ def test_core_progress(testname):
     core.run_test("progress", testname)
 
 
-
+@cpp_test
 @skip_on_jenkins
 @pytest.mark.usefixtures("nowin") # `SIGINT` is not supported on Windows
 @pytest.mark.parametrize('parallel_type, nthreads',
