@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_first
     :signature: first()
 
-    Equivalent to :func:`dt.first(self)`.
+    Equivalent to :func:`dt.first(cols)`.

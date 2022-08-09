@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_nunique
     :signature: nunique()
 
-    Equivalent to :func:`dt.nunique(self)`.
+    Equivalent to :func:`dt.nunique(cols)`.

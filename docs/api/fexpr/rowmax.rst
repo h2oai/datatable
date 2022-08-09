@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowmax
     :signature: rowmax()
 
-    Equivalent to :func:`dt.rowmax(self)`.
+    Equivalent to :func:`dt.rowmax(*cols)`.

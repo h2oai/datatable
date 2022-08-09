@@ -6,4 +6,4 @@
 
     .. x-version-added:: 1.1.0
 
-    Equivalent to :func:`dt.rowargmin(self)`.
+    Equivalent to :func:`dt.rowargmin(*cols)`.

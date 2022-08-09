@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowfirst
     :signature: rowfirst()
 
-    Equivalent to :func:`dt.rowfirst(self)`.
+    Equivalent to :func:`dt.rowfirst(*cols)`.

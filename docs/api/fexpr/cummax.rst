@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_cummax
     :signature: cummax()
 
-    Equivalent to :func:`dt.cummax(self)`.
+    Equivalent to :func:`dt.cummax(cols)`.

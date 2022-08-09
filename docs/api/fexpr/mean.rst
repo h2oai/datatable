@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_mean
     :signature: mean()
 
-    Equivalent to :func:`dt.mean(self)`.
+    Equivalent to :func:`dt.mean(cols)`.
