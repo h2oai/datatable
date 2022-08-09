@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_sum
     :signature: sum()
 
-    Equivalent to :func:`dt.sum(self)`.
+    Equivalent to :func:`dt.sum(cols)`.

@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowsd
     :signature: rowsd()
 
-    Equivalent to :func:`dt.rowsd(self)`.
+    Equivalent to :func:`dt.rowsd(*cols)`.

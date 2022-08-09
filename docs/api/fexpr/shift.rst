@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_shift
     :signature: shift(n=1)
 
-    Equivalent to :func:`dt.shift(self, n)`.
+    Equivalent to :func:`dt.shift(cols, n=1)`.
