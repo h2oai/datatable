@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowany
     :signature: rowany()
 
-    Equivalent to :func:`dt.rowany(*self)`.
+    Equivalent to :func:`dt.rowany(*cols)`.
