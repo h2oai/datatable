@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import itertools
+import os
 import pytest
 import subprocess
 import sys
@@ -42,7 +43,6 @@ def test_core_parallel(testname):
     core.run_test("parallel", testname)
 
 
-
 def test_multiprocessing_threadpool():
     # Verify that threads work properly after forking (#1758)
     import multiprocessing as mp
@@ -59,7 +59,6 @@ def test_multiprocessing_threadpool():
             # assert chthreads != parent_threads
 
 
-
 #-------------------------------------------------------------------------------
 # "progress" tests
 #-------------------------------------------------------------------------------
@@ -70,9 +69,9 @@ def test_core_progress(testname):
     core.run_test("progress", testname)
 
 
-# Send interrupt signal and make sure process throws KeyboardInterrupt
 @cpp_test
 @skip_on_jenkins
+@pytest.mark.usefixtures("nowin") # `SIGINT` is not supported on Windows
 @pytest.mark.parametrize('parallel_type, nthreads',
                          itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
@@ -104,9 +103,10 @@ def test_progress_interrupt(parallel_type, nthreads):
                             stderr = subprocess.PIPE)
 
     line = proc.stdout.readline()
-    assert line.decode() == str(parallel_type) + " start\n"
+    assert line.decode() == str(parallel_type) + " start" + os.linesep
     time.sleep(sleep_time);
 
+    # send interrupt signal and make sure the process throws `KeyboardInterrupt`
     proc.send_signal(signal.Signals.SIGINT)
     (stdout, stderr) = proc.communicate()
 

@@ -215,7 +215,7 @@ bool parse_time64_iso(const char* ch, const char* end, int64_t* out) {
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
   static constexpr int64_t NA = NA_INT64;
   static constexpr int64_t MILLI = 1000000LL;
   static constexpr int64_t SECS = 1000000000LL;

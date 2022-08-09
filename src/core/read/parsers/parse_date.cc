@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -115,7 +115,7 @@ bool parse_date32_iso(const char* ch, const char* end, int32_t* out) {
 }
 
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_date32_iso) {
     auto check = [](const char* input, int32_t expected_value, size_t advance) {
       ParseContext ctx;
@@ -151,4 +151,4 @@ bool parse_date32_iso(const char* ch, const char* end, int32_t* out) {
 
 
 
-}}  // namespace dt::read::
+}}  // namespace dt::read
