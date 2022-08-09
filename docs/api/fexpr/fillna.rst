@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_fillna
     :signature: fillna(reverse)
 
-    Equivalent to :func:`dt.fillna(col, reverse)`.
+    Equivalent to :func:`dt.fillna(cols, reverse)`.
