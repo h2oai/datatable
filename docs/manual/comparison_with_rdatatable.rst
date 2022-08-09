@@ -666,7 +666,6 @@ equivalent in ``datatable`` yet, that we would likely implement
 
 - Missing values functions
 
-  - `nafill <https://rdatatable.gitlab.io/data.table/reference/nafill.html>`__
   - `fcoalesce <https://rdatatable.gitlab.io/data.table/reference/coalesce.html>`__
 
 Also, at the moment, custom aggregations in the ``j`` section are not supported

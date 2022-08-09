@@ -175,6 +175,8 @@ Functions
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
       - Calculate covariance between two columns
+    * - :func:`fillna()`
+      - Impute missing values
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`
@@ -252,6 +254,7 @@ Other
     cut()             <dt/cut>
     dt                <dt/dt>
     f                 <dt/f>
+    fillna()          <dt/fillna>
     first()           <dt/first>
     fread()           <dt/fread>
     g                 <dt/g>
