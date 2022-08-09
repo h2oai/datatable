@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_cumsum
     :signature: cumsum()
 
-    Equivalent to :func:`dt.cumsum(self)`.
+    Equivalent to :func:`dt.cumsum(cols)`.

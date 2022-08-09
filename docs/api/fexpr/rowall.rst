@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowall
     :signature: rowall()
 
-    Equivalent to :func:`dt.rowall(self)`.
+    Equivalent to :func:`dt.rowall(*cols)`.

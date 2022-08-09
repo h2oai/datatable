@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_cummin
     :signature: cummin()
 
-    Equivalent to :func:`dt.cummin(self)`.
+    Equivalent to :func:`dt.cummin(cols)`.

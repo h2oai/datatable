@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_max
     :signature: max()
 
-    Equivalent to :func:`dt.max(self)`.
+    Equivalent to :func:`dt.max(cols)`.

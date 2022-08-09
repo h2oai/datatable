@@ -4,5 +4,5 @@
     :cvar: doc_FExpr_cumprod
     :signature: cumprod()
 
-    Equivalent to :func:`dt.cumprod(self)`.
+    Equivalent to :func:`dt.cumprod(cols)`.
 

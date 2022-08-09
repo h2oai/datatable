@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_sd
     :signature: sd()
 
-    Equivalent to :func:`dt.sd(self)`.
+    Equivalent to :func:`dt.sd(cols)`.

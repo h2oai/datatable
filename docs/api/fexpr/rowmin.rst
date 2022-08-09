@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowmin
     :signature: rowmin()
 
-    Equivalent to :func:`dt.rowmin(self)`.
+    Equivalent to :func:`dt.rowmin(*cols)`.
