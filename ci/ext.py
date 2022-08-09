@@ -279,6 +279,8 @@ def build_extension(cmd, verbosity=3):
         if cmd == "debug":
             ext.compiler.add_compiler_flag("/Od")    # no optimization
             ext.compiler.add_compiler_flag("/Z7")
+            ext.compiler.add_compiler_flag("/DDT_TEST")
+            ext.compiler.add_compiler_flag("/DDT_DEBUG")
             ext.compiler.add_linker_flag("/DEBUG:FULL")
     else:
         # Common compile flags
@@ -306,7 +308,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_compiler_flag("-g3")
             ext.compiler.add_compiler_flag("-glldb" if macos else "-ggdb")
             ext.compiler.add_compiler_flag("-O0")
-            ext.compiler.add_compiler_flag("-DDTTEST", "-DDT_DEBUG")
+            ext.compiler.add_compiler_flag("-DDT_TEST", "-DDT_DEBUG")
             ext.compiler.add_linker_flag("-fsanitize=address", "-shared-libasan")
 
         if cmd == "build":
@@ -317,7 +319,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_compiler_flag("-g2")
             ext.compiler.add_compiler_flag("-O0")
             ext.compiler.add_compiler_flag("--coverage")
-            ext.compiler.add_compiler_flag("-DDTTEST", "-DDT_DEBUG")
+            ext.compiler.add_compiler_flag("-DDT_TEST", "-DDT_DEBUG")
             ext.compiler.add_linker_flag("-O0")
             ext.compiler.add_linker_flag("--coverage")
 
@@ -325,7 +327,7 @@ def build_extension(cmd, verbosity=3):
             ext.compiler.add_compiler_flag("-g3")
             ext.compiler.add_compiler_flag("-glldb" if macos else "-ggdb")
             ext.compiler.add_compiler_flag("-O0")  # no optimization
-            ext.compiler.add_compiler_flag("-DDTTEST", "-DDT_DEBUG")
+            ext.compiler.add_compiler_flag("-DDT_TEST", "-DDT_DEBUG")
             if ext.compiler.flavor == "clang":
                 ext.compiler.add_compiler_flag("-fdebug-macro")
 

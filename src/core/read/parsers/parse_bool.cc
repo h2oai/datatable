@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -57,7 +57,7 @@ REGISTER_PARSER(PT::Bool01)
                   PT::Float64Plain, PT::Float64Ext, PT::Str32});
 
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_bool8_num) {
     auto check = [](const char* input, int8_t value, size_t advance) {
       ParseContext ctx;
@@ -112,7 +112,7 @@ REGISTER_PARSER(PT::BoolL)
     ->successors({PT::Str32});
 
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_bool8_lowercase) {
     auto check = [](const char* input, int8_t value, size_t advance) {
       ParseContext ctx;
@@ -171,7 +171,7 @@ REGISTER_PARSER(PT::BoolT)
     ->type(Type::bool8())
     ->successors({PT::Str32});
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_bool8_titlecase) {
     auto check = [](const char* input, int8_t value, size_t advance) {
       ParseContext ctx;
@@ -230,7 +230,7 @@ REGISTER_PARSER(PT::BoolU)
     ->type(Type::bool8())
     ->successors({PT::Str32});
 
-#ifdef DTTEST
+#ifdef DT_TEST
   TEST(fread, test_bool8_uppercase) {
     auto check = [](const char* input, int8_t value, size_t advance) {
       ParseContext ctx;

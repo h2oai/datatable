@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@
 #include "python/xargs.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-#ifdef DTTEST
+#ifdef DT_TEST
 namespace dt {
 namespace tests {
 
@@ -140,9 +140,9 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 }
 
 
-
-
 }}  // namespace dt::test
+
+
 //------------------------------------------------------------------------------
 // Python API
 //------------------------------------------------------------------------------
@@ -192,8 +192,6 @@ DECLARE_PYFN(&run_test)
     ->name("run_test")
     ->n_positional_args(2)
     ->arg_names({"suite", "test"});
-
-
 
 
 }  // namespace py
