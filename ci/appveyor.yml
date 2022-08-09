@@ -196,7 +196,7 @@ build_script:
 
       python ci/ext.py wheel
 
-      $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX-cp37-*.whl
+      $DT_WHEEL = ls dist/*-cp37-*.whl
 
       echo "DT_WHEEL = $DT_WHEEL"
 
@@ -232,45 +232,11 @@ build_script:
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX-cp38-*.whl
+    $DT_WHEEL = ls dist/*-cp38-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
     echo "----- _build_info.py for Python 3.8 ------------------------------"
-
-    cat src/datatable/_build_info.py
-
-    echo "------------------------------------------------------------------"
-
-    python -m pip install --upgrade pip
-
-    python -m pip install $DT_WHEEL
-
-    python -m pip install pytest docutils pandas pyarrow
-
-    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-    if(!$?) { Exit $LASTEXITCODE }
-
-    python -m pip uninstall -y $DT_WHEEL
-
-
-
-    # =======================================================================
-    #   Build and test debug wheel for Python 3.9
-    # =======================================================================
-
-    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
-
-    python -V
-
-    python ci/ext.py debugwheel
-
-    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX.debug-cp39-*.whl
-
-    echo "DT_WHEEL = $DT_WHEEL"
-
-    echo "----- _build_info.py for Python 3.9 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
 
@@ -300,11 +266,45 @@ build_script:
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX-cp39-*.whl
+    $DT_WHEEL = ls dist/*-cp39-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
     echo "----- _build_info.py for Python 3.9 ------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    python -m pip install --upgrade pip
+
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
+
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
+
+
+
+    # =======================================================================
+    #   Build and test debug wheel for Python 3.9
+    # =======================================================================
+
+    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
+
+    python ci/ext.py debugwheel
+
+    $DT_WHEEL = ls dist/*debug-cp39-*.whl
+
+    echo "DT_WHEEL = $DT_WHEEL"
+
+    echo "----- _build_info.py for Python 3.9 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
 
@@ -334,7 +334,7 @@ build_script:
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*$env:DT_BUILD_SUFFIX-cp310-*.whl
+    $DT_WHEEL = ls dist/*-cp310-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
