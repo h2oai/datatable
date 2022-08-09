@@ -176,7 +176,7 @@ Functions
     * - :func:`cov()`
       - Calculate covariance between two columns
     * - :func:`fillna()`
-      - Fill null values down or up with the previous/next non-null value
+      - Impute missing values
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`

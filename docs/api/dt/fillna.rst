@@ -3,28 +3,28 @@
     :src: src/core/expr/fexpr_fillna.cc pyfn_fillna
     :tests: tests/dt/test-fillna.py
     :cvar: doc_dt_fillna
-    :signature: fillna(cols, reverse)
+    :signature: fillna(cols, reverse=False)
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` fill the null values down or up with the previous/next non-null value. 
-
-    In the presence of :func:`by()`, the last non-null value is propagated down or up within each group.
+    For each column from `cols` fill the missing values with the
+    previous or subsequent non-missing values. In the presence of :func:`by()`
+    the filling is performed group-wise.
 
     Parameters
     ----------
     cols: FExpr
-        Input data for filling the nulls values down or up.
+        Input columns.
 
     reverse: bool
-        If `False`, the nulls are filled down; if `True`, the nulls are filled up.
+        If ``False``, the missing values are filled by using the closest
+        previous non-missing values as a replacement. if ``True``,
+        the closest subsequent non-missing values are used.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with the previous/next non-null values.
+        with the previous/subsequent non-missing values.
 
-    except: TypeError
-        The exception is raised if `reverse` is not a boolean.
 
     Examples
     --------
@@ -32,7 +32,6 @@
     Create a sample datatable frame::
 
         >>> from datatable import dt, f, by
-        >>> from datetime import datetime
         >>> DT = dt.Frame({'building': ['a', 'a', 'b', 'b', 'a', 'a', 'b', 'b'],
         ...                'var1': [1.5, None, 2.1, 2.2, 1.2, 1.3, 2.4, None],
         ...                'var2': [100, 110, 105, None, 102, None, 103, 107],
@@ -53,7 +52,7 @@
 
     Fill down on a single column::
         
-        >>> DT[:, dt.fillna(f.var1, reverse = False)]
+        >>> DT[:, dt.fillna(f.var1)]
            |    var1
            | float64
         -- + -------
@@ -87,7 +86,7 @@
 
     Fill down on multiple columns::
 
-         >>> DT[:, dt.fillna(f['var1':], reverse = False)]
+         >>> DT[:, dt.fillna(f['var1':])]
             |    var1   var2   var3   var4
             | float64  int32  int32  int32
          -- + -------  -----  -----  -----
@@ -121,7 +120,7 @@
 
     Fill down in the presence of :func:`by()`::
 
-        >>> DT[:, dt.fillna(f['var1':], reverse = False), by('building')]
+        >>> DT[:, dt.fillna(f['var1':]), by('building')]
            | building     var1   var2   var3   var4
            | str32     float64  int32  int32  int32
         -- + --------  -------  -----  -----  -----
