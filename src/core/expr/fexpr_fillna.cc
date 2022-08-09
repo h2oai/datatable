@@ -99,7 +99,13 @@ class FExpr_FillNA : public FExpr_Func {
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
                           );
-        if (!is_grouped){
+
+        auto stats = coli.get_stats_if_exist();
+        bool na_stats_exists = stats && stats->is_computed(Stat::NaCount);
+        bool has_nas = na_stats_exists? stats->nacount()
+                                      : true;
+
+        if (has_nas && !is_grouped){
           RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
                                 : fill_rowindex<false>(coli, gby);
           coli.apply_rowindex(ri);
