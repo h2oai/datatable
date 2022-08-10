@@ -293,6 +293,19 @@ DECLARE_METHOD(&PyFExpr::re_match)
 // Miscellaneous
 //------------------------------------------------------------------------------
 
+oobj PyFExpr::alias(const XArgs& args) {
+   auto aliasFn = oobj::import("datatable", "alias");
+   oobj names = args[0].to_oobj();
+   return aliasFn.call({this, names});
+ }
+
+ DECLARE_METHOD(&PyFExpr::alias)
+     ->name("alias")
+     //->docs(dt::doc_FExpr_alias)
+     ->arg_names({"names"})
+     ->n_positional_args(1)
+     ->n_required_args(1);
+
 
 oobj PyFExpr::as_type(const XArgs& args) {
   auto as_typeFn = oobj::import("datatable", "as_type");
