@@ -87,29 +87,32 @@ class FExpr_FillNA : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = Groupby::single_group(wf.nrows());
-      if (ctx.has_groupby()) {
+      Groupby gby = ctx.get_groupby();
+      if (!gby) {
+        gby = Groupby::single_group(wf.nrows());
+      } else {
         wf.increase_grouping_mode(Grouping::GtoALL);
-        gby = ctx.get_groupby();
       }
 
       for (size_t i = 0; i < wf.ncols(); ++i) {
-        Column coli = wf.retrieve_column(i);
         bool is_grouped = ctx.has_group_column(
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
                           );
+        if (is_grouped) continue;
 
+        Column coli = wf.retrieve_column(i);
         auto stats = coli.get_stats_if_exist();
         bool na_stats_exists = stats && stats->is_computed(Stat::NaCount);
         bool has_nas = na_stats_exists? stats->nacount()
                                       : true;
 
-        if (has_nas && !is_grouped){
+        if (has_nas) {
           RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
                                 : fill_rowindex<false>(coli, gby);
           coli.apply_rowindex(ri);
         }
+
         wf.replace_column(i, std::move(coli));
       }
 

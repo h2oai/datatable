@@ -53,15 +53,29 @@ class FExpr_CumMinMax : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext& ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = Groupby::single_group(wf.nrows());
+      Groupby gby = ctx.get_groupby();
 
-      if (ctx.has_groupby()) {
+      if (!gby) {
+        gby = Groupby::single_group(wf.nrows());
+      } else {
         wf.increase_grouping_mode(Grouping::GtoALL);
-        gby = ctx.get_groupby();
       }
 
       for (size_t i = 0; i < wf.ncols(); ++i) {
-        Column coli = evaluate1(wf.retrieve_column(i), gby);
+        Column coli = wf.retrieve_column(i);
+        auto typei = coli.type();
+        if (!(typei.is_numeric_or_void() || typei.is_boolean() ||
+              typei.is_temporal()))
+        {
+          throw TypeError()
+            << "Invalid column of type `" << typei << "` in " << repr();
+        }
+
+        bool is_grouped = ctx.has_group_column(
+                            wf.get_frame_id(i),
+                            wf.get_column_id(i)
+                          );
+        if (!is_grouped) coli = evaluate1(std::move(coli), gby);
         wf.replace_column(i, std::move(coli));
       }
       return wf;
@@ -81,8 +95,7 @@ class FExpr_CumMinMax : public FExpr_Func {
         case SType::INT64:   return make<int64_t>(std::move(col), gby);
         case SType::FLOAT32: return make<float>(std::move(col), gby);
         case SType::FLOAT64: return make<double>(std::move(col), gby);
-        default: throw TypeError()
-          << "Invalid column of type `" << stype << "` in " << repr();
+        default: throw RuntimeError();
       }
     }
 
