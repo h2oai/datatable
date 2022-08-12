@@ -53,11 +53,11 @@ namespace dt {
 
         Workframe evaluate_n(EvalContext &ctx) const override {
           Workframe wf = arg_->evaluate_n(ctx);
-          Groupby gby = Groupby::single_group(wf.nrows());
-
-          if (ctx.has_groupby()) {
+          Groupby gby = ctx.get_groupby();
+          if (!gby) {
+            gby = Groupby::single_group(wf.nrows());
+          } else {
             wf.increase_grouping_mode(Grouping::GtoALL);
-            gby = ctx.get_groupby();
           }
 
           for (size_t i = 0; i < wf.ncols(); ++i) {
