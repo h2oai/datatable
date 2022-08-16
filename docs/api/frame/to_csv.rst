@@ -27,7 +27,7 @@
         will be returned.
 
     sep: str
-        Field separator for the output. It must be a single-character string.
+        Field separator, must be a single-character string.
 
     quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
         `"minimal"` | `csv.QUOTE_MINIMAL`
