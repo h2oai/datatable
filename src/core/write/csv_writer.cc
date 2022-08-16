@@ -100,15 +100,15 @@ void csv_writer::write_preamble() {
   if (options.quoting_mode == Quoting::ALL) {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_quoted(i, ctx);
-      *ctx.ch++ = ',';
+      *ctx.ch++ = sep;
     }
   } else {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_normal(i, ctx);
-      *ctx.ch++ = ',';
+      *ctx.ch++ = sep;
     }
   }
-  // Replace the last ',' with a newline. This is valid since `ncols > 0`.
+  // Replace the last separator with a newline. This is valid since `ncols > 0`.
   ctx.ch[-1] = '\n';
 
   // Write this string buffer into the target.
@@ -122,12 +122,12 @@ void csv_writer::write_row(writing_context& ctx, size_t j) {
   if (options.quoting_mode == Quoting::ALL) {
     for (const auto& writer : columns) {
       writer->write_quoted(j, ctx);
-      *ctx.ch++ = ',';
+      *ctx.ch++ = sep;
     }
   } else {
     for (const auto& writer : columns) {
       writer->write_normal(j, ctx);
-      *ctx.ch++ = ',';
+      *ctx.ch++ = sep;
     }
   }
   ctx.ch[-1] = '\n';

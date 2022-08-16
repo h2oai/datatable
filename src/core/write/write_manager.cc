@@ -35,9 +35,10 @@ namespace write {
 // Construction
 //------------------------------------------------------------------------------
 
-write_manager::write_manager(DataTable* dt_, std::string path_)
+write_manager::write_manager(DataTable* dt_, std::string path_, char sep_)
   : dt(dt_),
     path(std::move(path_)),
+    sep(sep_),
     strategy(WritableBuffer::Strategy::Auto),
     fixed_size_per_row(0),
     estimated_output_size(0),

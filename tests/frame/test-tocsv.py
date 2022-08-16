@@ -474,6 +474,42 @@ def test_method(capsys, tempfile):
     assert err == ""
 
 
+#-------------------------------------------------------------------------------
+# Parameter sep=
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("sep", ["", "\r\n", "\t\t", ";;;"])
+def test_sep_wrong(sep):
+    DT = dt.Frame([3, 14, 15])
+    msg = r"Parameter sep in Frame.to_csv\(\) should be a single-character " \
+           "string, instead its length is " + str(len(sep))
+    with pytest.raises(ValueError, match=msg):
+        DT.to_csv(sep=sep)
+
+
+@pytest.mark.parametrize("sep", [None, ",", ";", "\t"])
+def test_sep_simple(sep):
+    DT = dt.Frame([[1, 4, 5],
+                  [True, False, None],
+                  ["foo", None, "bar"]],
+                 names=["A", "B", "C"])
+    out = DT.to_csv(sep = sep)
+
+    if sep is None:
+        sep = ","
+
+    ref = ""
+    ref += "A"+sep+"B"+sep+"C\n1"+sep+"1"+sep+"foo\n4"
+    ref += sep+"0"+sep+"\n5"+sep+sep+"bar\n"
+
+    assert out == ref
+    assert_equals(dt.fread(out, na_strings=[""]), DT)
+
+
+#-------------------------------------------------------------------------------
+# Parameter quoting=
+#-------------------------------------------------------------------------------
+
 def test_quoting():
     import csv
     DT = dt.Frame(A=range(5),
@@ -534,6 +570,10 @@ def test_quoting_invalid():
         with pytest.raises(ValueError, match=msg):
             DT.to_csv(quoting=q)
 
+
+#-------------------------------------------------------------------------------
+# Parameter compression=
+#-------------------------------------------------------------------------------
 
 def test_compress1():
     DT = dt.Frame(A=range(5))

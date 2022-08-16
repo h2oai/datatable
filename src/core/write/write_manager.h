@@ -73,11 +73,12 @@ class write_manager {
     // Input parameters
     DataTable* dt;
     std::string path;
+    char sep;
     output_options options;
     WritableBuffer::Strategy strategy;
     bool append_;
     bool write_header_;
-    size_t : 40;
+    size_t : 32;
 
     // Runtime parameters
     write_chronicler chronicler;
@@ -93,7 +94,7 @@ class write_manager {
     static constexpr size_t WRITE_FINALIZE = 2;
 
   public:
-    write_manager(DataTable* dt_, std::string path_);
+    write_manager(DataTable* dt_, std::string path_, char sep_);
     write_manager(const write_manager&) = delete;
     write_manager(write_manager&&) = delete;
     virtual ~write_manager();

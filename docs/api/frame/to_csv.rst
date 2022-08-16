@@ -3,9 +3,9 @@
     :src: src/core/frame/to_csv.cc Frame::to_csv
     :tests: tests/frame/test-tocsv.py
     :cvar: doc_Frame_to_csv
-    :signature: to_csv(self, path=None, *, quoting="minimal", append=False,
-           header="auto", bom=False, hex=False, compression=None,
-           verbose=False, method="auto")
+    :signature: to_csv(self, path=None, *, sep =",", quoting="minimal",
+           append=False, header="auto", bom=False, hex=False,
+           compression=None, verbose=False, method="auto")
 
     Write the contents of the Frame into a CSV file.
 
@@ -25,6 +25,9 @@
         already exists, it will be overwritten. If no path is given,
         then the Frame will be serialized into a string, and that string
         will be returned.
+
+    sep: str | ","
+        Field separator for the output. It must be a single-character string.
 
     quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
         `"minimal"` | `csv.QUOTE_MINIMAL`
