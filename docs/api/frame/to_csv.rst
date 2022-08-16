@@ -26,7 +26,7 @@
         then the Frame will be serialized into a string, and that string
         will be returned.
 
-    sep: str | ","
+    sep: str
         Field separator for the output. It must be a single-character string.
 
     quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
