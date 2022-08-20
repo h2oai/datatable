@@ -29,6 +29,7 @@
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
 #include "expr/fexpr_slice.h"
+#include "column/alias.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
 #include "documentation.h"
@@ -294,9 +295,33 @@ DECLARE_METHOD(&PyFExpr::re_match)
 //------------------------------------------------------------------------------
 
 oobj PyFExpr::alias(const XArgs& args) {
-   auto aliasFn = oobj::import("datatable", "alias");
-   oobj names = args[0].to_oobj();
-   return aliasFn.call({this, names});
+auto column = args[0].to_oobj();
+       auto names = args[1].to_oobj();
+       strvec names_sequence;
+       if (names.is_list_or_tuple()) {
+        py::oiter names_iter = names.to_oiter();
+        if (names_iter.size() < 1) {
+          throw TypeError() <<"Kindly provide at least one string value in the `names` argument.";
+        }
+        names_sequence.reserve(names_iter.size());
+        size_t i = 0;
+        for (auto n_iter : names_iter) {
+          if (!n_iter.is_string()) {
+            throw TypeError() << "Argument " <<i<<" in the `names` parameter in `alias()` "
+                "should be a string; instead, got "<< n_iter.typeobj();
+          }
+          names_sequence.push_back(n_iter.to_string());
+          i++;
+        }
+       }
+       else if (names.is_string()){
+        names_sequence.push_back(names.to_string());
+       }
+       else {
+        throw TypeError() << "The `names` parameter in `alias()` should "
+            "be a string/list/tuple; instead, got " << names.typeobj();
+       }
+       return PyFExpr::make(new FExpr_Alias(as_fexpr(column), std::move(names_sequence)));
  }
 
  DECLARE_METHOD(&PyFExpr::alias)

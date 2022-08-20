@@ -26,6 +26,7 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
+#include "column/alias.h"
 
 
 namespace dt {
@@ -81,42 +82,42 @@ class FExpr_Alias : public FExpr_Func {
     }
 };
 
-    static py::oobj pyfn_alias(const py::XArgs &args) {
-       auto column = args[0].to_oobj();
-       auto names = args[1].to_oobj();
-       strvec names_sequence;
-       if (names.is_list_or_tuple()) {
-        py::oiter names_iter = names.to_oiter();
-        if (names_iter.size() < 1) {
-          throw TypeError() <<"Kindly provide at least one string value in the `names` argument.";
-        }
-        names_sequence.reserve(names_iter.size());
-        size_t i = 0;
-        for (auto n_iter : names_iter) {
-          if (!n_iter.is_string()) {
-            throw TypeError() << "Argument " <<i<<" in the `names` parameter in `alias()` "
-                "should be a string; instead, got "<< n_iter.typeobj();
-          }
-          names_sequence.push_back(n_iter.to_string());
-          i++;
-        }
-       }
-       else if (names.is_string()){
-        names_sequence.push_back(names.to_string());
-       }
-       else {
-        throw TypeError() << "The `names` parameter in `alias()` should "
-            "be a string/list/tuple; instead, got " << names.typeobj();
-       }
-       return PyFExpr::make(new FExpr_Alias(as_fexpr(column), std::move(names_sequence)));
-     }
+    // static py::oobj pyfn_alias(const py::XArgs &args) {
+    //    auto column = args[0].to_oobj();
+    //    auto names = args[1].to_oobj();
+    //    strvec names_sequence;
+    //    if (names.is_list_or_tuple()) {
+    //     py::oiter names_iter = names.to_oiter();
+    //     if (names_iter.size() < 1) {
+    //       throw TypeError() <<"Kindly provide at least one string value in the `names` argument.";
+    //     }
+    //     names_sequence.reserve(names_iter.size());
+    //     size_t i = 0;
+    //     for (auto n_iter : names_iter) {
+    //       if (!n_iter.is_string()) {
+    //         throw TypeError() << "Argument " <<i<<" in the `names` parameter in `alias()` "
+    //             "should be a string; instead, got "<< n_iter.typeobj();
+    //       }
+    //       names_sequence.push_back(n_iter.to_string());
+    //       i++;
+    //     }
+    //    }
+    //    else if (names.is_string()){
+    //     names_sequence.push_back(names.to_string());
+    //    }
+    //    else {
+    //     throw TypeError() << "The `names` parameter in `alias()` should "
+    //         "be a string/list/tuple; instead, got " << names.typeobj();
+    //    }
+    //    return PyFExpr::make(new FExpr_Alias(as_fexpr(column), std::move(names_sequence)));
+    //  }
 
 
-     DECLARE_PYFN(&pyfn_alias)
-         ->name("alias")
-         ->arg_names({"column", "names"})
-         ->n_required_args(2)
-         ->n_positional_args(2);
+    //  DECLARE_PYFN(&pyfn_alias)
+    //      ->name("alias")
+    //      ->arg_names({"column", "names"})
+    //      ->n_required_args(2)
+    //      ->n_positional_args(2);
 
 
 }}  // dt::expr
