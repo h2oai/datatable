@@ -25,7 +25,8 @@
 #include "python/xargs.h"
 #include "parallel/api.h"
 #include "stype.h"
-#include "column/fillna.h"
+#include "column/ifelse.h"
+#include "column/isna.h"
 namespace dt {
 namespace expr {
 
@@ -97,14 +98,18 @@ class FExpr_FillNA : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      } else {
-        wf.increase_grouping_mode(Grouping::GtoALL);
-      }
       bool hasValue = (value_->get_expr_kind() != Kind::None);
-      for (size_t i = 0; i < wf.ncols(); ++i) {
+      if (hasValue) {
+        Workframe wf_value = value_->evaluate_n(ctx);
+        if (wf_value.ncols()==1) wf_value.repeat_column(wf.ncols());
+        if (wf_value.ncols() != wf.ncols()) {
+          throw TypeError() << "Incompatible number of columns in " << repr()
+              << ": the first argument has " << wf.ncols() <<", while the `value` "
+              <<"argument has " << wf_value.ncols();
+        }
+        wf.sync_grouping_mode(wf_value);
+        Workframe outputs(ctx);
+        for (size_t i = 0; i < wf.ncols(); ++i) {
         bool is_grouped = ctx.has_group_column(
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
@@ -112,56 +117,44 @@ class FExpr_FillNA : public FExpr_Func {
         if (is_grouped) continue;
 
         Column coli = wf.retrieve_column(i);
-        auto stats = coli.get_stats_if_exist();
-        bool na_stats_exists = stats && stats->is_computed(Stat::NaCount);
-        bool has_nas = na_stats_exists? stats->nacount()
-                                      : true;
-
-        if (has_nas) {
-          if (hasValue) {
-            Workframe wf_val = value_->evaluate_n(ctx);
-            if (wf_val.ncols() != 1) {
-              throw TypeError() << "The `value` argument in fillna "
-                                   " cannot be a multi-column expression";
-            }
-            Column val_arg = wf_val.retrieve_column(0);
-            SType out_stype = common_stype(val_arg.stype(), coli.stype());
-            val_arg.cast_inplace(out_stype);
-            coli.cast_inplace(out_stype);
-            coli = evaluate1(std::move(coli), std::move(val_arg));
-
+        Column colj = wf_value.retrieve_column(i);
+        SType out_stype = common_stype(coli.stype(), colj.stype());
+        coli.cast_inplace(out_stype);
+        colj.cast_inplace(out_stype);
+        Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(coli)));
+        Column output = Column(new IfElse_ColumnImpl(std::move(cond), std::move(coli), std::move(colj)));
+        wf.replace_column(i, std::move(output));
+      }} else {
+          Groupby gby = ctx.get_groupby();
+          if (!gby) {
+            gby = Groupby::single_group(wf.nrows());
           } else {
-            RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
-                                  : fill_rowindex<false>(coli, gby);
-            coli.apply_rowindex(ri);
-        }}
+            wf.increase_grouping_mode(Grouping::GtoALL);
+          }
+          
+          for (size_t i = 0; i < wf.ncols(); ++i) {
+            bool is_grouped = ctx.has_group_column(
+                                wf.get_frame_id(i),
+                                wf.get_column_id(i)
+                              );
+            if (is_grouped) continue;
 
-        wf.replace_column(i, std::move(coli));
-      }
+            Column coli = wf.retrieve_column(i);
+            auto stats = coli.get_stats_if_exist();
+            bool na_stats_exists = stats && stats->is_computed(Stat::NaCount);
+            bool has_nas = na_stats_exists? stats->nacount()
+                                          : true;
+
+            if (has_nas) {
+                RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
+                                      : fill_rowindex<false>(coli, gby);
+                coli.apply_rowindex(ri);
+            }
+
+            wf.replace_column(i, std::move(coli));}
+          }
 
       return wf;
-    }
-
-    Column evaluate1(Column&& col, Column&& value) const {
-      switch (col.stype()) {
-        case SType::BOOL:
-        case SType::INT8:    return make<int8_t>(std::move(col), std::move(value));
-        case SType::INT16:   return make<int16_t>(std::move(col), std::move(value));
-        case SType::DATE32:
-        case SType::INT32:   return make<int32_t>(std::move(col), std::move(value));
-        case SType::TIME64:
-        case SType::INT64:   return make<int64_t>(std::move(col), std::move(value));
-        case SType::FLOAT32: return make<float>(std::move(col), std::move(value));
-        case SType::FLOAT64: return make<double>(std::move(col), std::move(value));
-        // case SType::STR32: return make<CString>(std::move(col), std::move(value));
-        // case SType::STR64: return make<CString>(std::move(col), std::move(value));
-        default: throw RuntimeError();
-      }
-    }
-
-    template <typename T>
-    Column make(Column&& col, Column&& value) const {
-      return Column(new FillNA_ColumnImpl<T>(std::move(col), std::move(value)));
     }
 
 };
