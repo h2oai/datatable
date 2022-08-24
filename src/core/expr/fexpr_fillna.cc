@@ -31,12 +31,14 @@ namespace expr {
 class FExpr_FillNA : public FExpr_Func {
   private:
     ptrExpr arg_;
+    ptrExpr value_;
     bool reverse_;
     size_t : 56;
 
   public:
-    FExpr_FillNA(ptrExpr &&arg, bool reverse)
+    FExpr_FillNA(ptrExpr &&arg, ptrExpr &&value, bool reverse)
         : arg_(std::move(arg)),
+          value_(std::move(value)),
           reverse_(reverse)
          {}
 
@@ -45,9 +47,15 @@ class FExpr_FillNA : public FExpr_Func {
       std::string out = "fillna";
       out += '(';
       out += arg_->repr();
+      bool hasValue = (value_->get_expr_kind() != Kind::None);
+      if (hasValue) {
+      out +=", value=";
+      out += value_->repr();
+      } else {
       out += ", reverse=";
       out += reverse_? "True" : "False";
       out += ')';
+      }
       return out;
     }
 
@@ -124,15 +132,16 @@ class FExpr_FillNA : public FExpr_Func {
 
 static py::oobj pyfn_fillna(const py::XArgs &args) {
   auto column = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
-  return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), reverse));
+  auto value = args[1].to_oobj_or_none();
+  auto reverse = args[2].to<bool>(false);
+  return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), as_fexpr(value), reverse));
 }
 
 
 DECLARE_PYFN(&pyfn_fillna)
     ->name("fillna")
     ->docs(doc_dt_fillna)
-    ->arg_names({"column", "reverse"})
+    ->arg_names({"column", "value", "reverse"})
     ->n_required_args(1)
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(1);
