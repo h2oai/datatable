@@ -43,9 +43,9 @@ class writing_context {
     size_t buffer_capacity;
     size_t fixed_size_per_row;
 
+    // Used in `char_needs_escaping()`
     const char sep;
     const unsigned char max_escaped_char;
-
     size_t : 48;
 
     // Either nullptr if no compression is needed, or an instance of zlib_writer

@@ -270,7 +270,7 @@ using time64_writer = generic_writer<29, int64_t, write_time64>;
 // string writers
 //------------------------------------------------------------------------------
 
-static inline bool _needs_escaping(const char c, writing_context& ctx) {
+static inline bool char_needs_escaping(const char c, writing_context& ctx) {
   auto u = static_cast<unsigned char>(c);
 
   // First condition is to give an opportunity to short-circuit early
@@ -306,7 +306,7 @@ static void write_str(const CString& value, writing_context& ctx) {
   if (Detect && *sch != ' ' && strend[-1] != ' ') {
     while (sch < strend) {
       char c = *sch;
-      if (_needs_escaping(c, ctx)) break;
+      if (char_needs_escaping(c, ctx)) break;
       *ch++ = c;
       sch++;
     }
