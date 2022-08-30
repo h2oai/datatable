@@ -51,7 +51,7 @@
         .. note::
             To use `csv.QUOTE_*` constants,
             `csv <https://docs.python.org/3/library/csv.html>`_ module
-            must be imported first.
+            should be imported first.
 
     append: bool
         If True, the file given in the `path` parameter will be opened
