@@ -55,7 +55,9 @@ class generic_writer : public value_writer {
         *ctx.ch++ = '"';
       }
       else {
+        *ctx.ch++ = '"';
         ctx.write_na();
+        *ctx.ch++ = '"';
       }
     }
 };

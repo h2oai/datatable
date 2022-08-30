@@ -50,6 +50,9 @@
 
     -[fix] Fixed a crash in :meth:`.to_pandas()` when called on keyed frames. [#3224]
 
+    -[fix] Fixed :meth:`.to_csv()` to quote missing values when
+        `quoting="all"` is specified. [#3340]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -532,8 +532,8 @@ def test_quoting():
     answer1 = ('"A","B","C","D"\n'
                '"0","1","0.77","once"\n'
                '"1","0","-3.14","up\'on"\n'
-               '"2",,"inf","  a time  "\n'
-               '"3",,,\n'
+               '"2","","inf","  a time  "\n'
+               '"3","","",""\n'
                '"4","1","200.001",", THE END"\n')
     for q in [csv.QUOTE_ALL, "all", "ALL"]:
         out = DT.to_csv(quoting=q)
