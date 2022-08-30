@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <algorithm>  // std::min
 #include "utils/alloc.h"
 #include "utils/assert.h"
 #include "write/writing_context.h"
@@ -29,7 +30,12 @@ namespace write {
 
 
 writing_context::writing_context(
-  size_t size_per_row, size_t nrows, bool compress)
+  size_t size_per_row, size_t nrows, bool compress, char sep_in) :
+    sep(sep_in),
+    max_escaped_char(std::max(
+      static_cast<unsigned char>('\''),
+      static_cast<unsigned char>(sep)
+    ))
 {
   fixed_size_per_row = size_per_row;
   ch = nullptr;
@@ -71,6 +77,16 @@ void writing_context::reset_buffer() {
 const CString& writing_context::get_buffer() const {
   xassert(!output.isna());
   return output;
+}
+
+
+unsigned char writing_context::get_max_escaped_char() const {
+  return max_escaped_char;
+}
+
+
+char writing_context::get_sep() const {
+  return sep;
 }
 
 

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -45,23 +45,31 @@ static void change_to_lowercase(std::string& str) {
 
 oobj Frame::to_csv(const XArgs& args) {
   const Arg& arg_path     = args[0];
-  const Arg& arg_quoting  = args[1];
-  const Arg& arg_append   = args[2];
-  const Arg& arg_header   = args[3];
-  const Arg& arg_bom      = args[4];
-  const Arg& arg_hex      = args[5];
-  const Arg& arg_compress = args[6];
-  const Arg& arg_verbose  = args[7];
-  const Arg& arg_strategy = args[8];
+  const Arg& arg_sep      = args[1];
+  const Arg& arg_quoting  = args[2];
+  const Arg& arg_append   = args[3];
+  const Arg& arg_header   = args[4];
+  const Arg& arg_bom      = args[5];
+  const Arg& arg_hex      = args[6];
+  const Arg& arg_compress = args[7];
+  const Arg& arg_verbose  = args[8];
+  const Arg& arg_strategy = args[9];
 
   // path
   oobj path = arg_path.to<oobj>(ostring(""));
   if (!path.is_string()) {
-    throw TypeError() << "Parameter `path` in Frame.to_csv() should be a "
+    throw TypeError() << "Parameter `path` in `Frame.to_csv()` should be a "
         "string, instead got " << path.typeobj();
   }
   path = oobj::import("os", "path", "expanduser").call(path);
   std::string filename = path.to_string();
+
+  // sep
+  std::string sep = arg_sep.to<std::string>(",");
+  if (sep.size() != 1) {
+    throw ValueError() << "Parameter `sep` in `Frame.to_csv()` should be a "
+        "single-character string, instead its length is " << sep.size();
+  }
 
   // quoting
   int quoting;
@@ -74,13 +82,13 @@ oobj Frame::to_csv(const XArgs& args) {
     else if (quoting_str == "none") quoting = 3;
     else {
       throw ValueError() << "Invalid value of the `quoting` parameter in "
-          "Frame.to_csv(): '" << quoting_str << "'";
+          "`Frame.to_csv()`: '" << quoting_str << "'";
     }
   } else {
     quoting = arg_quoting.to<int>(0);
     if (quoting < 0 || quoting > 3) {
       throw ValueError() << "Invalid value of the `quoting` parameter in "
-          "Frame.to_csv(): " << quoting;
+          "`Frame.to_csv()`: " << quoting;
     }
   }
 
@@ -125,7 +133,7 @@ oobj Frame::to_csv(const XArgs& args) {
     }
   } else {
     throw ValueError() << "Unsupported compression method '"
-        << compress_str << "' in Frame.to_csv()";
+        << compress_str << "' in `Frame.to_csv()`";
   }
 
   // verbose
@@ -143,6 +151,7 @@ oobj Frame::to_csv(const XArgs& args) {
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
   writer.set_bom(bom);
+  writer.set_sep(sep[0]);
   writer.set_verbose(verbose);
   writer.set_quoting(quoting);
   writer.set_compression(compress);
@@ -150,15 +159,15 @@ oobj Frame::to_csv(const XArgs& args) {
   return writer.get_result();
 }
 
+
 DECLARE_METHOD(&Frame::to_csv)
     ->name("to_csv")
     ->docs(dt::doc_Frame_to_csv)
     ->n_positional_or_keyword_args(1)
-    ->n_keyword_args(8)
-    ->arg_names({"path", "quoting", "append", "header", "bom", "hex",
-                 "compression", "verbose", "method"})
+    ->n_keyword_args(9)
+    ->arg_names({"path", "sep", "quoting", "append", "header", "bom",
+                 "hex", "compression", "verbose", "method"})
     ->add_synonym_arg("_strategy", "method");
-
 
 
 
