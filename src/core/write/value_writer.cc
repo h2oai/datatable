@@ -270,7 +270,7 @@ using time64_writer = generic_writer<29, int64_t, write_time64>;
 // string writers
 //------------------------------------------------------------------------------
 
-static inline bool character_needs_escaping(char c, char sep) {
+static inline bool character_needs_escaping(const char c, const char sep) {
   auto u = static_cast<unsigned char>(c);
   return u < 32 || c == sep || c == '"' || c == '\'';
 }

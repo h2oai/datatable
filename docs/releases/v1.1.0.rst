@@ -22,7 +22,7 @@
         for :attr:`float64 <dt.Type.float64>` columns. [#2904]
 
     -[enh] :meth:`.to_csv()` now has an option ``sep`` to control
-        the field delimiter. [#3337]
+        the field separator. [#3337]
 
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
