@@ -499,8 +499,10 @@ def test_sep_simple(sep):
         sep = ","
 
     ref = ""
-    ref += "A"+sep+"B"+sep+"C\n1"+sep+"1"+sep+"foo\n4"
-    ref += sep+"0"+sep+"\n5"+sep+sep+"bar\n"
+    ref += 'A'+sep+'B'+sep+'C\n'
+    ref += '1'+sep+'1'+sep+'foo\n'
+    ref += '4'+sep+'0'+sep+'\n'
+    ref += '5'+sep+''+sep+'bar\n'
 
     assert out == ref
     assert_equals(dt.fread(out, na_strings=[""]), DT)

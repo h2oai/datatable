@@ -89,7 +89,7 @@ void csv_writer::write_preamble() {
 
   Column names_as_col = Column(new Strvec_ColumnImpl(column_names));
   auto writer = value_writer::create(names_as_col, options);
-  writing_context ctx { 3*dt->ncols() + 3, 1, options.compress_zlib };
+  writing_context ctx { 3*dt->ncols() + 3, 1, options.compress_zlib, options.sep };
 
   if (options.bom) {
     *ctx.ch++ = '\xEF';
@@ -100,12 +100,12 @@ void csv_writer::write_preamble() {
   if (options.quoting_mode == Quoting::ALL) {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_quoted(i, ctx);
-      *ctx.ch++ = sep;
+      *ctx.ch++ = options.sep;
     }
   } else {
     for (size_t i = 0; i < dt->ncols(); ++i) {
       writer->write_normal(i, ctx);
-      *ctx.ch++ = sep;
+      *ctx.ch++ = options.sep;
     }
   }
   // Replace the last separator with a newline. This is valid since `ncols > 0`.
@@ -122,12 +122,12 @@ void csv_writer::write_row(writing_context& ctx, size_t j) {
   if (options.quoting_mode == Quoting::ALL) {
     for (const auto& writer : columns) {
       writer->write_quoted(j, ctx);
-      *ctx.ch++ = sep;
+      *ctx.ch++ = options.sep;
     }
   } else {
     for (const auto& writer : columns) {
       writer->write_normal(j, ctx);
-      *ctx.ch++ = sep;
+      *ctx.ch++ = options.sep;
     }
   }
   ctx.ch[-1] = '\n';

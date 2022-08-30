@@ -43,12 +43,20 @@ class writing_context {
     size_t buffer_capacity;
     size_t fixed_size_per_row;
 
+    // Separator, needed to make sure we quote it if appears in the data
+    const char sep;
+    size_t : 56;
+
     // Either nullptr if no compression is needed, or an instance of zlib_writer
     // class, defined in "writer/zlib_writer.h"
     zlib_writer* zwriter;
 
   public:
-    writing_context(size_t size_per_row, size_t nrows, bool compress = false);
+    writing_context(size_t size_per_row,
+                    size_t nrows,
+                    bool compress = false,
+                    char sep_in = ',');
+
     ~writing_context();
 
     void ensure_buffer_capacity(size_t sz);
@@ -57,6 +65,7 @@ class writing_context {
     void reset_buffer();
 
     void write_na() {}
+    char get_sep() const;
 
   private:
     void allocate_buffer(size_t sz);

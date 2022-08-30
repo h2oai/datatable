@@ -145,12 +145,13 @@ oobj Frame::to_csv(const XArgs& args) {
                                            WritableBuffer::Strategy::Auto;
 
   // Create the CsvWriter object
-  dt::write::csv_writer writer(dt, filename, sep[0]);
+  dt::write::csv_writer writer(dt, filename);
   writer.set_append(append);
   writer.set_header(header);
   writer.set_strategy(sstrategy);
   writer.set_usehex(hex);
   writer.set_bom(bom);
+  writer.set_sep(sep[0]);
   writer.set_verbose(verbose);
   writer.set_quoting(quoting);
   writer.set_compression(compress);

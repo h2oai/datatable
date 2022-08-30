@@ -270,11 +270,9 @@ using time64_writer = generic_writer<29, int64_t, write_time64>;
 // string writers
 //------------------------------------------------------------------------------
 
-static inline bool character_needs_escaping(char c) {
+static inline bool character_needs_escaping(char c, char sep) {
   auto u = static_cast<unsigned char>(c);
-  // Note: field separator is hard-coded as ','
-  // First `u <= 44` is to give an opportunity to short-circuit early.
-  return (u <= 44) && (c == ',' || c == '"' || c == '\'' || u < 32);
+  return u < 32 || c == sep || c == '"' || c == '\'';
 }
 
 static void write_str_unquoted(const CString& value, writing_context& ctx) {
@@ -305,7 +303,7 @@ static void write_str(const CString& value, writing_context& ctx) {
   if (Detect && *sch != ' ' && strend[-1] != ' ') {
     while (sch < strend) {
       char c = *sch;
-      if (character_needs_escaping(c)) break;
+      if (character_needs_escaping(c, ctx.get_sep())) break;
       *ch++ = c;
       sch++;
     }

@@ -29,7 +29,7 @@ namespace write {
 
 
 writing_context::writing_context(
-  size_t size_per_row, size_t nrows, bool compress)
+  size_t size_per_row, size_t nrows, bool compress, char sep_in) : sep(sep_in)
 {
   fixed_size_per_row = size_per_row;
   ch = nullptr;
@@ -71,6 +71,11 @@ void writing_context::reset_buffer() {
 const CString& writing_context::get_buffer() const {
   xassert(!output.isna());
   return output;
+}
+
+
+char writing_context::get_sep() const {
+  return sep;
 }
 
 
