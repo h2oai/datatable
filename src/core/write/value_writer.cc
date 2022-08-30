@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -270,9 +270,12 @@ using time64_writer = generic_writer<29, int64_t, write_time64>;
 // string writers
 //------------------------------------------------------------------------------
 
-static inline bool character_needs_escaping(const char c, const char sep) {
+static inline bool _needs_escaping(const char c, writing_context& ctx) {
   auto u = static_cast<unsigned char>(c);
-  return u < 32 || c == sep || c == '"' || c == '\'';
+
+  // First condition is to give an opportunity to short-circuit early
+  return (u <= ctx.get_max_escaped_char()) &&
+         (c == ctx.get_sep() || c == '"' || c == '\'' || u < 32);
 }
 
 static void write_str_unquoted(const CString& value, writing_context& ctx) {
@@ -303,7 +306,7 @@ static void write_str(const CString& value, writing_context& ctx) {
   if (Detect && *sch != ' ' && strend[-1] != ' ') {
     while (sch < strend) {
       char c = *sch;
-      if (character_needs_escaping(c, ctx.get_sep())) break;
+      if (_needs_escaping(c, ctx)) break;
       *ch++ = c;
       sch++;
     }

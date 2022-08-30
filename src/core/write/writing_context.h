@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -43,9 +43,10 @@ class writing_context {
     size_t buffer_capacity;
     size_t fixed_size_per_row;
 
-    // Separator, needed to make sure we quote it if appears in the data
     const char sep;
-    size_t : 56;
+    const unsigned char max_escaped_char;
+
+    size_t : 48;
 
     // Either nullptr if no compression is needed, or an instance of zlib_writer
     // class, defined in "writer/zlib_writer.h"
@@ -66,6 +67,7 @@ class writing_context {
 
     void write_na() {}
     char get_sep() const;
+    unsigned char get_max_escaped_char() const;
 
   private:
     void allocate_buffer(size_t sz);
