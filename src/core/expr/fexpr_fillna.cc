@@ -27,6 +27,7 @@
 #include "stype.h"
 #include "column/ifelse.h"
 #include "column/isna.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -110,11 +111,6 @@ class FExpr_FillNA : public FExpr_Func {
         wf.sync_grouping_mode(wf_value);
         Workframe outputs(ctx);
         for (size_t i = 0; i < wf.ncols(); ++i) {
-        bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-        if (is_grouped) continue;
 
         Column coli = wf.retrieve_column(i);
         Column colj = wf_value.retrieve_column(i);
@@ -122,8 +118,8 @@ class FExpr_FillNA : public FExpr_Func {
         coli.cast_inplace(out_stype);
         colj.cast_inplace(out_stype);
         Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(coli)));
-        Column output = Column(new IfElse_ColumnImpl(std::move(cond), std::move(coli), std::move(colj)));
-        wf.replace_column(i, std::move(output));
+        Column out = Column(new IfElse_ColumnImpl(std::move(cond), std::move(colj), std::move(coli)));
+        wf.replace_column(i, std::move(out));
       }} else {
           Groupby gby = ctx.get_groupby();
           if (!gby) {
