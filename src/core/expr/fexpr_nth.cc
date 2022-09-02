@@ -79,8 +79,8 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
   auto arg = args[0].to_oobj();
   auto nth_arg = args[1].to_oobj();
   if (!nth_arg.is_int()) {
-    throw ValueError() << "The argument for the `nth` parameter "
-                <<"in `nth()` function should be an integer, "
+    throw TypeError() << "The argument for the `nth` parameter "
+                <<"in function datatable.nth() should be an integer, "
                 <<"instead got "<<nth_arg.typeobj();
   }
   return PyFExpr::make(new FExpr_Nth(as_fexpr(arg), nth_arg));
@@ -91,7 +91,8 @@ DECLARE_PYFN(&pyfn_nth)
     ->name("nth")
     //->docs(doc_dt_nth)
     ->arg_names({"cols", "nth"})
-    ->n_positional_args(2)
+    ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(2);
 
 }}  // dt::expr
