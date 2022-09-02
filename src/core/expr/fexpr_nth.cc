@@ -6,7 +6,9 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
-
+#include "parallel/api.h"
+#include "rowindex.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -29,6 +31,25 @@ class FExpr_Nth : public FExpr_Func {
       out += ')';
       return out;
     }
+
+    static RowIndex nth_rowindex(int32_t nth_arg, const Groupby& gby) {
+      Buffer buf = Buffer::mem(gby.size() * sizeof(int32_t));
+      int32_t* indices = static_cast<int32_t*>(buf.xptr());
+
+      dt::parallel_for_dynamic(
+        gby.size(),
+        [&](size_t gi) {
+          size_t i1, i2;
+          gby.get_group(gi, &i1, &i2);
+          nth_arg = nth_arg < 0 ? nth_arg + (i2 - i1) 
+                                : nth_arg;
+          indices[gi] = nth_arg >= 0 & nth_arg < i2 - i1 ? nth_arg + i1
+                                          : RowIndex::NA<int32_t>;
+            }
+      );
+      return RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+
+    }
     
     Workframe evaluate_n(EvalContext &ctx) const override {
         Workframe wf = arg_->evaluate_n(ctx);
@@ -38,9 +59,17 @@ class FExpr_Nth : public FExpr_Func {
             wf.increase_grouping_mode(Grouping::GtoALL);
             gby = ctx.get_groupby();
         }
+        Workframe outputs(ctx);
+        RowIndex ri = nth_rowindex(nth_arg_, gby);
+        for (size_t i = 0; i < wf.ncols(); ++i) {
+          Column coli = wf.retrieve_column(i);
+          coli.apply_rowindex(ri);
+          outputs.add_column(std::move(coli), std::string(), Grouping::GtoONE);
+        }
 
-        return wf;
+        return outputs;
     }
+
     
     
 };
