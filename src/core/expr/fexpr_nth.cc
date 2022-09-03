@@ -8,7 +8,6 @@
 #include "stype.h"
 #include "parallel/api.h"
 #include "rowindex.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -68,10 +67,7 @@ class FExpr_Nth : public FExpr_Func {
         }
 
         return outputs;
-    }
-
-    
-    
+    }     
 };
 
 
