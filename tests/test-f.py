@@ -480,3 +480,4 @@ def test_nth():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.nth(nth=1)], DT[:, dt.nth(f.A, 1)])
     assert_equals(DT[:, f.A.nth(nth=0)], DT[:, dt.nth(f.A, 0)])
+

@@ -116,5 +116,3 @@ def test_nth_grouped():
              })
     assert_equals(DT_nth, DT_ref)
 
-
-
