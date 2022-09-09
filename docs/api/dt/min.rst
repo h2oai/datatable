@@ -15,7 +15,7 @@
     cols: FExpr
         Input columns.
 
-    return: FExpr
+    return: Expr
         f-expression having one row and the same names, stypes and number
         of columns as in `cols`.
 

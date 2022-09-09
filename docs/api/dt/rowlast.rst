@@ -11,10 +11,10 @@
 
     Parameters
     ----------
-    cols: Expr
+    cols: FExpr
         Input columns.
 
-    return: Expr
+    return: FExpr
         f-expression consisting of one column and the same number
         of rows as in `cols`.
 
