@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_CUMMINMAX_h
 #define dt_COLUMN_CUMMINMAX_h
+#include "column/latent.h"
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -45,10 +46,12 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
 
 
     void materialize(Column& col_out, bool) override {
+      Latent_ColumnImpl::vivify<T>(col_);
+
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
-
       auto offsets = gby_.offsets_r();
+
       dt::parallel_for_dynamic(
         gby_.size(),
         [&](size_t gi) {
