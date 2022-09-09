@@ -22,6 +22,7 @@
 #ifndef dt_COLUMN_LATENT_h
 #define dt_COLUMN_LATENT_h
 #include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 
@@ -64,8 +65,43 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, py::oobj*) const override;
     bool get_element(size_t, Column*)   const override;
 
+    // This method must be called first in the case, when
+    // the latent column data are going to be accessed from
+    // multiple threads later. That's because `materialize()`
+    // is not a thread-safe method.
+    template <typename T>
+    static void vivify(const Column& col) {
+      T value;
+      col.get_element(0, &value);
+    }
+
+    static void vivify(const Column& col) {
+      dt::SType st = col.type().is_categorical()? col.child(0).stype()
+                                                : col.stype();
+      switch (st) {
+        case SType::VOID:
+        case SType::BOOL:
+        case SType::INT8:    vivify<int8_t>(col); break;
+        case SType::INT16:   vivify<int16_t>(col); break;
+        case SType::DATE32:
+        case SType::INT32:   vivify<int32_t>(col); break;
+        case SType::TIME64:
+        case SType::INT64:   vivify<int64_t>(col); break;
+        case SType::FLOAT32: vivify<float>(col); break;
+        case SType::FLOAT64: vivify<double>(col); break;
+        case SType::STR32:
+        case SType::STR64:   vivify<CString>(col); break;
+        case SType::OBJ:     vivify<py::oobj>(col); break;
+        case SType::ARR32:
+        case SType::ARR64:   vivify<Column>(col); break;
+        default:
+          throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
+      }
+    }
+
+
   private:
-    ColumnImpl* vivify(bool to_memory = false) const;
+    ColumnImpl* vivify_impl(bool to_memory = false) const;
 };
 
 

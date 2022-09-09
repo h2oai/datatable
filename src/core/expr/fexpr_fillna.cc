@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
@@ -56,6 +57,7 @@ class FExpr_FillNA : public FExpr_Func {
     static RowIndex fill_rowindex(Column& col, const Groupby& gby) {
       Buffer buf = Buffer::mem(static_cast<size_t>(col.nrows()) * sizeof(int32_t));
       auto indices = static_cast<int32_t*>(buf.xptr());
+      Latent_ColumnImpl::vivify(col);
 
       dt::parallel_for_dynamic(
         gby.size(),

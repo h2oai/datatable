@@ -130,12 +130,23 @@ def test_fillna_grouped():
 
 def test_fillna_grouped_column():
     DT = dt.Frame([2, 1, None, 1, 2])
-    DT_bfill = DT[:, [fillna(f[0], reverse = False),
+    DT_fillna = DT[:, [fillna(f[0], reverse = False),
                       fillna(f[0], reverse = True)], by(f[0])]
     DT_ref = dt.Frame([
                  [None, 1, 1, 2, 2],
                  [None, 1, 1, 2, 2],
                  [None, 1, 1, 2, 2]
              ])
-    assert_equals(DT_bfill, DT_ref)
+    assert_equals(DT_fillna, DT_ref)
+
+
+def test_fillna_groupby_complex():
+    DT = dt.Frame([[3, None, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
+    DT_fillna = DT[:, fillna(f[0].min()), by(f[1])]
+
+    DT_ref = dt.Frame({
+               "C1" : ["a", "a", "cat", "cat", "dog"],
+               "C0" : [3, 3, 6, 6, 92]
+             })
+    assert_equals(DT_fillna, DT_ref)
 
