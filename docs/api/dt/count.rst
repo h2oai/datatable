@@ -9,7 +9,7 @@
 
     Parameters
     ----------
-    cols: Expr
+    cols: FExpr
         Input columns.
 
     return: Expr
