@@ -65,10 +65,10 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     bool get_element(size_t, py::oobj*) const override;
     bool get_element(size_t, Column*)   const override;
 
-    // This method must be called first in the case, when
-    // the latent column data are going to be accessed from
-    // multiple threads later. That's because `materialize()`
-    // is not a thread-safe method.
+    // The `vivify()` method must be called first in the case,
+    // when the latent column's data are going to be accessed from
+    // multiple threads. That's because the `materialize()`
+    // method is not thread-safe.
     template <typename T>
     static void vivify(const Column& col) {
       T value;
