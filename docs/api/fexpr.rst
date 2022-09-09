@@ -163,11 +163,11 @@
         * - :meth:`.countna()`
           - Same as :func:`dt.countna()`.
 
-        * - :meth:`.cummin()`
-          - Same as :func:`dt.cummin()`.
-
         * - :meth:`.cummax()`
           - Same as :func:`dt.cummax()`.
+
+        * - :meth:`.cummin()`
+          - Same as :func:`dt.cummin()`.
 
         * - :meth:`.cumprod()`
           - Same as :func:`dt.cumprod()`.
