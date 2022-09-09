@@ -182,6 +182,18 @@ def test_cumminmax_groupby_complex():
     assert_equals(DT_mm, DT_ref)
 
 
+def test_cumminmax_groupby_complex():
+    DT = dt.Frame([[3, 14, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
+    DT_mm = DT[:, [cummin(f[0].min()), cummax(f[0].max())], by(f[1])]
+
+    DT_ref = dt.Frame(
+                 {"C1" : ["a", "a", "cat", "cat", "dog"],
+                 "C0" : [3, 3, 6, 6, 92],
+                 "C2" : [15, 15, 14, 14, 92]}
+             )
+    assert_equals(DT_mm, DT_ref)
+
+
 def test_cumminmax_reverse():
     from datetime import date as d
     src = [None, d(1997, 9, 1), d(2002, 7, 31), None, d(2000, 2, 20)]

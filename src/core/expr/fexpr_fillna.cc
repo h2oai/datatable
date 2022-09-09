@@ -19,9 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/const.h"
-#include "column/ifelse.h"
-#include "column/isna.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"

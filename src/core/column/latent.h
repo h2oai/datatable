@@ -76,7 +76,8 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     static void vivify(const Column& col) {
-      dt::SType st = col.data_stype();
+      dt::SType st = col.type().is_categorical()? col.child(0).stype()
+                                                : col.stype();
       switch (st) {
         case SType::VOID:
         case SType::BOOL:

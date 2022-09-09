@@ -224,8 +224,8 @@ def test_fillna_grouped_value_vs_ifelse():
 
 def test_fillna_grouped_column():
     DT = dt.Frame([2, 1, None, 1, 2])
-    DT_fillna = DT[:, [fillna(f[0], reverse=False),
-                      fillna(f[0], reverse=True)], by(f[0])]
+    DT_fillna = DT[:, [fillna(f[0], reverse = False),
+                      fillna(f[0], reverse = True)], by(f[0])]
     DT_ref = dt.Frame([
                  [None, 1, 1, 2, 2],
                  [None, 1, 1, 2, 2],
@@ -235,13 +235,12 @@ def test_fillna_grouped_column():
 
 
 def test_fillna_groupby_complex():
-    DT = dt.Frame([[3, None, None, 15, 92, 6],
-                  ["a", "a", "cat", "a", "dog", "cat"]])
-    DT_fillna = DT[:, fillna(f[0], value=f[0].min()), by(f[1])]
+    DT = dt.Frame([[3, None, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
+    DT_fillna = DT[:, fillna(f[0].min()), by(f[1])]
 
     DT_ref = dt.Frame({
-               "C1" : ["a", "a", "a", "cat", "cat", "dog"],
-               "C0" : [3, 3, 15, 6, 6, 92]
+               "C1" : ["a", "a", "cat", "cat", "dog"],
+               "C0" : [3, 3, 6, 6, 92]
              })
     assert_equals(DT_fillna, DT_ref)
 
