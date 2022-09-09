@@ -107,3 +107,14 @@ def test_cumprod_grouped_column():
     DT_ref = dt.Frame([[None, 1, 1, 2, 2], [1, 1, 1, 2, 4]/dt.int64])
     assert_equals(DT_cumprod, DT_ref)
 
+
+def test_cumprod_groupby_complex():
+    DT = dt.Frame([[3, 14, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
+    DT_cumprod = DT[:, cumprod(f[0].min()), by(f[1])]
+
+    DT_ref = dt.Frame({
+               "C1" : ["a", "a", "cat", "cat", "dog"],
+               "C0" : [3, 9, 6, 36, 92]/dt.int64
+             })
+    assert_equals(DT_cumprod, DT_ref)
+

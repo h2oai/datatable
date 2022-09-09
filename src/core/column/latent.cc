@@ -60,12 +60,12 @@ ColumnImpl* Latent_ColumnImpl::clone() const {
 }
 
 void Latent_ColumnImpl::materialize(Column&, bool to_memory) {
-  vivify(to_memory);
+  vivify_impl(to_memory);
 }
 
 
 bool Latent_ColumnImpl::allow_parallel_access() const {
-  return vivify()->allow_parallel_access();
+  return vivify_impl()->allow_parallel_access();
 }
 
 
@@ -75,21 +75,21 @@ size_t Latent_ColumnImpl::n_children() const noexcept {
 
 
 
-bool Latent_ColumnImpl::get_element(size_t i, int8_t* out)   const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, int16_t* out)  const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, int32_t* out)  const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, int64_t* out)  const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, float* out)    const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, double* out)   const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, CString* out)  const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, py::oobj* out) const { return vivify()->get_element(i, out); }
-bool Latent_ColumnImpl::get_element(size_t i, Column* out)   const { return vivify()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, int8_t* out)   const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, int16_t* out)  const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, int32_t* out)  const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, int64_t* out)  const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, float* out)    const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, double* out)   const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, CString* out)  const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, py::oobj* out) const { return vivify_impl()->get_element(i, out); }
+bool Latent_ColumnImpl::get_element(size_t i, Column* out)   const { return vivify_impl()->get_element(i, out); }
 
 
 // This method is not thread-safe!
 // In particular, if multiple threads are trying to retrieve
 // different elements at the same time, then each thread will call
-// the `vivify()` function simultaneously, resulting in UB.
+// the `vivify_impl()` function simultaneously, resulting in UB.
 // It might be possible to fix this by adding a mutex; however it
 // will still be problematic:
 //   - if only 1 thread is working on materialization, while others
@@ -100,7 +100,7 @@ bool Latent_ColumnImpl::get_element(size_t i, Column* out)   const { return vivi
 // Thus, a better approach is needed: some mechanism to inform the
 // caller that this column must be "prepared" first.
 
-ColumnImpl* Latent_ColumnImpl::vivify(bool to_memory) const {
+ColumnImpl* Latent_ColumnImpl::vivify_impl(bool to_memory) const {
   xassert(num_threads_in_team() == 0);
   // Note: we're using placement-materialize to overwrite `this` with
   // the materialized `column` object. Effectively, the current object
