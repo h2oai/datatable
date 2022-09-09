@@ -164,7 +164,7 @@ Functions
     * - :func:`countna()`
       - Count the number of NA values per column
     * - :func:`cumcount()`
-      - Return the row number.
+      - Number rows within each group
     * - :func:`cummax()`
       - Calculate the cumulative maximum of values per column
     * - :func:`cummin()`
@@ -186,7 +186,7 @@ Functions
     * - :func:`min()`
       - Find the smallest element per column
     * - :func:`ngroup()`
-      - Return the group number.
+      - Number each group
     * - :func:`nunique()`
       - Count the number of unique values per column
     * - :func:`prod()`
