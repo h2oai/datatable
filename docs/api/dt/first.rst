@@ -11,7 +11,7 @@
 
     Parameters
     ----------
-    cols: Expr | iterable
+    cols: FExpr | iterable
         Input columns or an iterable.
 
     return: Expr | ...
