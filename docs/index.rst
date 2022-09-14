@@ -110,7 +110,7 @@
             <img src="https://img.shields.io/pypi/v/datatable.svg">
           </a>
           <a href="https://ci.appveyor.com/project/h2oops/datatable">
-            <img src="https://ci.appveyor.com/api/projects/status/github/h2oai/datatable?branch=main">
+            <img src="https://ci.appveyor.com/api/projects/status/github/h2oai/datatable?branch=main&svg=true">
           </a>
           <a href="https://datatable.readthedocs.io/en/latest/?badge=latest">
             <img src="https://readthedocs.org/projects/datatable/badge/?version=latest">
