@@ -1,13 +1,11 @@
 #include "column/const.h"
-#include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
-#include "parallel/api.h"
-#include "rowindex.h"
+#include "column/nth.h"
 namespace dt {
 namespace expr {
 
@@ -30,26 +28,7 @@ class FExpr_Nth : public FExpr_Func {
       out += ')';
       return out;
     }
-
-    static RowIndex nth_rowindex(int32_t nth_arg, const Groupby& gby) {
-      Buffer buf = Buffer::mem(gby.size() * sizeof(int32_t));
-      int32_t* indices = static_cast<int32_t*>(buf.xptr());
-
-      dt::parallel_for_dynamic(
-        gby.size(),
-        [&](size_t gi) {
-          size_t i1, i2;
-          gby.get_group(gi, &i1, &i2);
-          nth_arg = nth_arg < 0 ? nth_arg + (i2 - i1) 
-                                : nth_arg;
-          indices[gi] = nth_arg >= 0 & nth_arg < i2 - i1 ? nth_arg + i1
-                                          : RowIndex::NA<int32_t>;
-            }
-      );
-      return RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
-
-    }
-    
+  
     Workframe evaluate_n(EvalContext &ctx) const override {
         Workframe wf = arg_->evaluate_n(ctx);
         Groupby gby = Groupby::single_group(wf.nrows());
@@ -59,15 +38,38 @@ class FExpr_Nth : public FExpr_Func {
             gby = ctx.get_groupby();
         }
         Workframe outputs(ctx);
-        RowIndex ri = nth_rowindex(nth_arg_, gby);
         for (size_t i = 0; i < wf.ncols(); ++i) {
           Column coli = wf.retrieve_column(i);
-          coli.apply_rowindex(ri);
+          coli = evaluate1(std::move(coli), nth_arg_, gby);
           outputs.add_column(std::move(coli), std::string(), Grouping::GtoONE);
         }
 
         return outputs;
     }     
+
+    Column evaluate1(Column&& col, int32_t n, const Groupby& gby) const {
+      SType stype = col.stype();
+      switch (stype) {
+        case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size(), stype));
+        case SType::BOOL:
+        case SType::INT8:    return make<int8_t>(std::move(col), n, gby);
+        case SType::INT16:   return make<int16_t>(std::move(col), n, gby);
+        case SType::DATE32:
+        case SType::INT32:   return make<int32_t>(std::move(col), n, gby);
+        case SType::TIME64:
+        case SType::INT64:   return make<int64_t>(std::move(col), n, gby);
+        case SType::FLOAT32: return make<float>(std::move(col), n, gby);
+        case SType::FLOAT64: return make<double>(std::move(col), n, gby);
+        case SType::STR32:   return make<CString>(std::move(col), n, gby);
+        case SType::STR64:   return make<CString>(std::move(col), n, gby);
+        default: throw RuntimeError();
+      }
+    }
+
+    template <typename T>
+    Column make(Column&& col, int32_t n, const Groupby& gby) const {
+      return Column(new NTH_ColumnImpl<T>(std::move(col), n, gby));
+    }
 };
 
 
