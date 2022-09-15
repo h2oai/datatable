@@ -443,17 +443,18 @@ DECLARE_METHOD(&PyFExpr::min)
 
 
 oobj PyFExpr::nth(const XArgs& args) {
-  auto nthFn = oobj::import("datatable", "nth");
+  auto nthFn = oobj::import("datatable", "nth", "skipna");
   oobj nth_arg = args[0].to_oobj();
-  return nthFn.call({this, nth_arg});
+  oobj skipna = args[1].to_oobj(); // what am I doing wrong here?
+  return nthFn.call({this, nth_arg, skipna});
 }
 
 DECLARE_METHOD(&PyFExpr::nth)
     ->name("nth")
     //->docs(dt::doc_FExpr_as_type)
-    ->arg_names({"nth"})
-    ->n_positional_or_keyword_args(1)
-    ->n_required_args(1);
+    ->arg_names({"nth", "skipna"})
+    ->n_positional_or_keyword_args(2)
+    ->n_required_args(2);
 
 oobj PyFExpr::nunique(const XArgs&) {
   auto nuniqueFn = oobj::import("datatable", "nunique");

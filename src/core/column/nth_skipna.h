@@ -57,7 +57,7 @@ class NthSkipNA_ColumnImpl : public Virtual_ColumnImpl {
       return col_;
     }
     void materialize(Column& col_out, bool) override {
-      //Latent_ColumnImpl::vivify<T>(col_);
+      Latent_ColumnImpl::vivify<T>(col_);
 
       Column col = Column::new_data_column(gby_.size(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
@@ -71,19 +71,19 @@ class NthSkipNA_ColumnImpl : public Virtual_ColumnImpl {
 
           T val;
           size_t n;
+          bool is_valid;
           n = nth_<0 ? static_cast<size_t>(nth_)+i2
                      : static_cast<size_t>(nth_)+i1;
           if (n < i1 || n >= i2){
             data[gi] = GETNA<T>();
           } else {
               for (size_t i = n; i < i2; ++i) {
-                bool is_valid = col_.get_element(i, &val);
+                is_valid = col_.get_element(i, &val);
                 if (is_valid) {
-                  data[gi] = val;
                   break;
                 }
-              }
-            data[gi] = GETNA<T>();
+              }            
+            data[gi] = is_valid ? val : GETNA<T>();
           }       
         });
 
