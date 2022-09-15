@@ -19,21 +19,25 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_NTH_h
-#define dt_NTH_h
+#ifndef dt_NTHSKIPNA_h
+#define dt_NTHSKIPNA_h
 #include "column/virtual.h"
+#include "parallel/api.h"
+#include "latent.h"
 #include "stype.h"
 
 namespace dt {
-template<typename T>
-class NTH_ColumnImpl : public Virtual_ColumnImpl {
+
+
+template <typename T>
+class NthSkipNA_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     int32_t nth_;
     Groupby gby_;
 
   public:
-    NTH_ColumnImpl(Column&& col, int32_t nth,  const Groupby& gby)
+    NthSkipNA_ColumnImpl(Column&& col, int32_t nth,  const Groupby& gby)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
         nth_(nth),        
@@ -41,7 +45,7 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       {xassert(col_.can_be_read_as<T>());}
 
     ColumnImpl* clone() const override {
-      return new NTH_ColumnImpl(Column(col_), nth_, gby_);
+      return new NthSkipNA_ColumnImpl(Column(col_), nth_, gby_);
     }
 
     size_t n_children() const noexcept override {
@@ -52,20 +56,41 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       xassert(i == 0);  (void)i;
       return col_;
     }
+    void materialize(Column& col_out, bool) override {
+      //Latent_ColumnImpl::vivify<T>(col_);
 
-    bool get_element(size_t i, T* out) const override{ 
-      size_t n;          
-      size_t i0, i1;
-      gby_.get_group(i, &i0, &i1);
-      xassert(i0 < i1);
-      n = nth_<0 ? static_cast<size_t>(nth_)+i1
-                 : static_cast<size_t>(nth_)+i0;
-      if (n >= i0 & n< i1){
-      bool isvalid = col_.get_element(n, out);
-      return isvalid?true:false;
-      } else {*out = GETNA<T>();}
-      return false;
+      Column col = Column::new_data_column(gby_.size(), col_.stype());
+      auto data = static_cast<T*>(col.get_data_editable());
+
+      auto offsets = gby_.offsets_r();
+      dt::parallel_for_dynamic(
+        gby_.size(),
+        [&](size_t gi) {
+          size_t i1 = size_t(offsets[gi]);
+          size_t i2 = size_t(offsets[gi + 1]);
+
+          T val;
+          size_t n;
+          n = nth_<0 ? static_cast<size_t>(nth_)+i2
+                     : static_cast<size_t>(nth_)+i1;
+          if (n < i1 || n >= i2){
+            data[gi] = GETNA<T>();
+          } else {
+              for (size_t i = n; i < i2; ++i) {
+                bool is_valid = col_.get_element(i, &val);
+                if (is_valid) {
+                  data[gi] = val;
+                  break;
+                }
+              }
+            data[gi] = GETNA<T>();
+          }       
+        });
+
+      col_out = std::move(col);
     }
+
+
 };
 
 

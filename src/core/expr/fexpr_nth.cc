@@ -6,9 +6,11 @@
 #include "python/xargs.h"
 #include "stype.h"
 #include "column/nth.h"
+#include "column/nth_skipna.h"
 namespace dt {
 namespace expr {
 
+template<bool SKIPNA>
 class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -25,6 +27,8 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", nth=";
       out += std::to_string(nth_arg_);
+      out += ", skipna=";
+      out += SKIPNA? "True" : "False";
       out += ')';
       return out;
     }
@@ -76,21 +80,26 @@ class FExpr_Nth : public FExpr_Func {
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto arg = args[0].to_oobj();
   auto nth_arg = args[1].to_oobj();
+  auto skipna = args[2].to<bool>(false);
   if (!nth_arg.is_int()) {
     throw TypeError() << "The argument for the `nth` parameter "
                 <<"in function datatable.nth() should be an integer, "
                 <<"instead got "<<nth_arg.typeobj();
   }
-  return PyFExpr::make(new FExpr_Nth(as_fexpr(arg), nth_arg));
+  if (skipna) {
+    return PyFExpr::make(new FExpr_Nth<true>(as_fexpr(arg), nth_arg));
+  } else {
+    return PyFExpr::make(new FExpr_Nth<false>(as_fexpr(arg), nth_arg));;
+  }
 }
 
 
 DECLARE_PYFN(&pyfn_nth)
     ->name("nth")
     //->docs(doc_dt_nth)
-    ->arg_names({"cols", "nth"})
+    ->arg_names({"cols", "nth", "skipna"})
     ->n_positional_args(1)
-    ->n_positional_or_keyword_args(1)
+    ->n_positional_or_keyword_args(2)
     ->n_required_args(2);
 
 }}  // dt::expr
