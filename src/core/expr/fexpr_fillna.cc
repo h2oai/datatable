@@ -101,6 +101,7 @@ class FExpr_FillNA : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
+      Workframe wff = arg_->evaluate_n(ctx);
       bool hasValue = (value_->get_expr_kind() != Kind::None);
       if (hasValue) {
         Workframe wf_value = value_->evaluate_n(ctx);
@@ -113,16 +114,17 @@ class FExpr_FillNA : public FExpr_Func {
         wf.sync_grouping_mode(wf_value);
         Workframe outputs(ctx);
         for (size_t i = 0; i < wf.ncols(); ++i) {
-
-        Column coli = wf.retrieve_column(i);
-        Column colj = wf_value.retrieve_column(i);
-        SType out_stype = common_stype(coli.stype(), colj.stype());
-        coli.cast_inplace(out_stype);
-        colj.cast_inplace(out_stype);
-        Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(coli)));
-        Column out = Column(new IfElse_ColumnImpl(std::move(cond), std::move(colj), std::move(coli)));
-        wf.replace_column(i, std::move(out));
-      }} else {
+        Column cond_col = wf.retrieve_column(i);
+        Column orig_col = wff.retrieve_column(i);
+        Column repl_col = wf_value.retrieve_column(i);
+        SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
+        repl_col.cast_inplace(out_stype);
+        orig_col.cast_inplace(out_stype);
+        Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));     
+       Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
+       outputs.add_column(std::move(out), std::string(), wf.get_grouping_mode());
+        
+      }return outputs;} else {
           Groupby gby = ctx.get_groupby();
           if (!gby) {
             gby = Groupby::single_group(wf.nrows());
