@@ -106,25 +106,33 @@ class FExpr_FillNA : public FExpr_Func {
       // scalar fill
       if (hasValue) {
         Workframe wf_value = value_->evaluate_n(ctx);
-        if (wf_value.ncols()==1) wf_value.repeat_column(wf.ncols());
+        if (wf_value.ncols() == 1) wf_value.repeat_column(wf.ncols());
         if (wf_value.ncols() != wf.ncols()) {
           throw TypeError() << "Incompatible number of columns in " << repr()
-              << ": the first argument has " << wf.ncols() <<", while the `value` "
-              <<"argument has " << wf_value.ncols();
+            << ": the first argument has " << wf.ncols() <<", while the `value` "
+            <<"argument has " << wf_value.ncols();
         }
+
         wf.sync_grouping_mode(wf_value);
         Workframe outputs(ctx);
+
         for (size_t i = 0; i < wf.ncols(); ++i) {
-        Column cond_col = wf.retrieve_column(i);
-        Column orig_col = wff.retrieve_column(i);
-        Column repl_col = wf_value.retrieve_column(i);
-        SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
-        repl_col.cast_inplace(out_stype);
-        orig_col.cast_inplace(out_stype);
-        Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));     
-        Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
-        wff.replace_column(i, std::move(out));}
-        return wff;} 
+          Column cond_col = wf.retrieve_column(i);
+          Column orig_col = wff.retrieve_column(i);
+          Column repl_col = wf_value.retrieve_column(i);
+
+          SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
+          repl_col.cast_inplace(out_stype);
+          orig_col.cast_inplace(out_stype);
+          
+          Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));     
+          Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
+          wff.replace_column(i, std::move(out));
+          }
+
+        return wff;
+
+        } 
       // forward/backward fill
        else {
           Groupby gby = ctx.get_groupby();
