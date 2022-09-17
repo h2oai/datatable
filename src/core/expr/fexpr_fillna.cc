@@ -103,6 +103,7 @@ class FExpr_FillNA : public FExpr_Func {
       Workframe wf = arg_->evaluate_n(ctx);
       Workframe wff = arg_->evaluate_n(ctx);
       bool hasValue = (value_->get_expr_kind() != Kind::None);
+      // scalar fill
       if (hasValue) {
         Workframe wf_value = value_->evaluate_n(ctx);
         if (wf_value.ncols()==1) wf_value.repeat_column(wf.ncols());
@@ -121,10 +122,11 @@ class FExpr_FillNA : public FExpr_Func {
         repl_col.cast_inplace(out_stype);
         orig_col.cast_inplace(out_stype);
         Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));     
-       Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
-       outputs.add_column(std::move(out), std::string(), wf.get_grouping_mode());
-        
-      }return outputs;} else {
+        Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
+        wff.replace_column(i, std::move(out));}
+        return wff;} 
+      // forward/backward fill
+       else {
           Groupby gby = ctx.get_groupby();
           if (!gby) {
             gby = Groupby::single_group(wf.nrows());
@@ -174,7 +176,7 @@ DECLARE_PYFN(&pyfn_fillna)
     ->arg_names({"column", "value", "reverse"})
     ->n_required_args(1)
     ->n_positional_args(1)
-    ->n_positional_or_keyword_args(1);
+    ->n_positional_or_keyword_args(2);
 
 
 }}  // dt::expr
