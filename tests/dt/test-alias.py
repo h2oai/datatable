@@ -32,46 +32,55 @@ from tests import assert_equals
 # Errors
 #-------------------------------------------------------------------------------
 
-def test_alias_not_a_string_or_sequence():
+def test_alias_names_wrong_type():
     DT = dt.Frame(list('abcde'))
-    msg = 'The names parameter in alias\\(\\) '
-    msg = msg + 'should be a string/list/tuple.+'
+    msg = r"Parameter names in datatable\.alias\(\) must be a string, " \
+          r"or a list/tuple of strings, instead got: <class 'int'>"
     with pytest.raises(TypeError, match = msg):
         DT[:, alias(f[0], 1)]
 
 
-def test_alias_non_string_in_sequence():
+def test_alias_names_wrong_element_type():
     DT = dt.Frame(list('abcde'))
-    msg = "Argument 1 in the names parameter in alias() "
-    msg = msg + "should be a string; instead, got <class 'int'>"
-    with pytest.raises(TypeError, match = re.escape(msg)):
-        DT[:, alias([f[0], f[0]], ['rar', 1]), by(f[0])]
-
-def test_alias_empty_seq():
-    DT = dt.Frame(list('abcde'))
-    msg = "Kindly provide at least one string value in the names argument."
+    msg = r"All elements of the list/tuple of the names in datatable\.alias\(\) " \
+          r"must be strings, instead got: <class 'int'>"
     with pytest.raises(TypeError, match = msg):
-        DT[:, alias([f[0], f[0]], []), by(f[0])]
+        DT[:, alias([f[0], f[0]], ['rar', 1])]
+
+
+def test_alias_empty_cols():
+    DT = dt.Frame(range(5))
+    msg = "The number of columns does not match the number of names: 0 vs 1"
+    with pytest.raises(ValueError, match = msg):
+        DT[:, alias([], ["new_name"])]
+
+
+def test_alias_empty_names():
+    DT = dt.Frame(list('abcde'))
+    msg = "The number of columns does not match the number of names: 2 vs 0"
+    with pytest.raises(ValueError, match = msg):
+        DT[:, alias([f[0], f[0]], [])]
+
 
 def test_alias_no_args_passed():
-    msg = (f"Function datatable.{alias.__name__}"
-           "\\(\\) requires exactly 2 positional arguments, but none were given")
+    msg = r"Function datatable.alias\(\) requires exactly 2 positional " \
+          r"arguments, but none were given"
     with pytest.raises(TypeError, match = msg):
         alias()
 
+
 def test_alias_size_mismatch():
     DT = dt.Frame(list('abcde'))
-    msg = "The number of arguments\\(2\\) passed to names does not match "
-    msg = msg + "the number of specified columns\\(1\\)."
+    msg = "The number of columns does not match the number of names: 1 vs 2"
     with pytest.raises(ValueError, match = msg):
-         DT[:, dt.alias(f.C0, ['r', 'i'])]
+        DT[:, dt.alias(f.C0, ['r', 'i'])]
+
 
 def test_alias_empty_frame():
     DT = dt.Frame()
-    msg = "The number of arguments\\(1\\) passed to names does not match "
-    msg = msg + "the number of specified columns\\(0\\)."
+    msg = "The number of columns does not match the number of names: 0 vs 1"
     with pytest.raises(ValueError, match = msg):
-         DT[:, alias(DT, 'C0')]
+        DT[:, alias(DT, 'C0')]
 
 
 #-------------------------------------------------------------------------------
@@ -79,12 +88,11 @@ def test_alias_empty_frame():
 #-------------------------------------------------------------------------------
 
 def test_alias_str():
-  assert str(alias(f.A, 'rar')) == "FExpr<" + alias.__name__ + "(f.A, names=[rar,])>"
-  assert str(alias(f.A, 'rar') + 1) == "FExpr<" + alias.__name__ + "(f.A, names=[rar,]) + 1>"
-  assert str(alias(f.A + f.B, 'double')) == "FExpr<" + alias.__name__ + "(f.A + f.B, names=[double,])>"
-  assert str(alias([f.B, f.C], ['c','b'])) == "FExpr<" + alias.__name__ + "([f.B, f.C], names=[c,b,])>"
-  assert str(alias(f[:2], ['1','2'])) == "FExpr<"+ alias.__name__ + "(f[:2], names=[1,2,])>"
-
+  assert str(alias(f.A, 'rar')) == "FExpr<" + alias.__name__ + "(f.A, [rar,])>"
+  assert str(alias(f.A, 'rar') + 1) == "FExpr<" + alias.__name__ + "(f.A, [rar,]) + 1>"
+  assert str(alias(f.A + f.B, 'double')) == "FExpr<" + alias.__name__ + "(f.A + f.B, [double,])>"
+  assert str(alias([f.B, f.C], ['c','b'])) == "FExpr<" + alias.__name__ + "([f.B, f.C], [c,b,])>"
+  assert str(alias(f[:2], ['1','2'])) == "FExpr<"+ alias.__name__ + "(f[:2], [1,2,])>"
 
 
 def test_alias_single_column():
@@ -92,6 +100,7 @@ def test_alias_single_column():
     DT_mm = DT[:, alias(f[:], 'void')]
     DT.names = ['void']
     assert_equals(DT_mm, DT)
+
 
 def test_alias_multiple_columns():
     DT = dt.Frame([range(5), [None, -1, None, 5.5, 3]])

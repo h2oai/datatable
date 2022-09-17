@@ -451,11 +451,13 @@ def test_cummax():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummax()], DT[:, dt.cummax(f.A)])
 
+
 def test_cummin():
     assert str(dt.cummin(f.A)) == str(f.A.cummin())
     assert str(dt.cummin(f[:])) == str(f[:].cummin())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummin()], DT[:, dt.cummin(f.A)])
+
 
 def test_cumprod():
     assert str(dt.cumprod(f.A)) == str(f.A.cumprod())
@@ -471,6 +473,7 @@ def test_fillna():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.fillna(reverse=True)], DT[:, dt.fillna(f.A, True)])
     assert_equals(DT[:, f.A.fillna(reverse=False)], DT[:, dt.fillna(f.A, False)])
+
 
 def test_alias():
      assert str(dt.alias(f.A, 'a')) == str(f.A.alias('a'))
