@@ -56,6 +56,7 @@ class FExpr_FillNA : public FExpr_Func {
       if (hasValue) {
       out +=", value=";
       out += value_->repr();
+      out += ')';
       } else {
       out += ", reverse=";
       out += reverse_? "True" : "False";
@@ -124,8 +125,11 @@ class FExpr_FillNA : public FExpr_Func {
           SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
           repl_col.cast_inplace(out_stype);
           orig_col.cast_inplace(out_stype);
-          
-          Column cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));     
+          Column cond;
+          if (cond_col.stype() == SType::STR32 || cond_col.stype() == SType::STR64) {
+            cond = Column(new Isna_ColumnImpl<CString>(std::move(cond_col)));
+          }
+          else {cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));}
           Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
           wff.replace_column(i, std::move(out));
           }

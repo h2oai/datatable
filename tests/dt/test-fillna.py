@@ -50,6 +50,13 @@ def test_fillna_no_argument():
     with pytest.raises(TypeError, match = msg):
         fillna()
 
+def test_fillna_values_count():
+    """Raise error where values count is greater than number of columns."""
+    msg = "Incompatible number of columns in .+"
+    DT = dt.Frame([1, 2, None, 4, 5])
+    with pytest.raises(TypeError, match = msg):
+        DT[:, fillna(f[0, -1], [2,3,4] )]
+
 
 #-------------------------------------------------------------------------------
 # Normal
@@ -61,6 +68,9 @@ def test_fillna_str():
   assert str(fillna(f.A + f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.A + f.B, reverse=True)>"
   assert str(fillna(f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.B, reverse=True)>"
   assert str(fillna(f[:2], reverse = False)) == "FExpr<"+ fillna.__name__ + "(f[:2], reverse=False)>"
+  assert str(fillna(f.A, value = 2)) == "FExpr<" + fillna.__name__ + "(f.A, value=2)>"
+  assert str(fillna([f.A, f.B], value = 2)) == "FExpr<" + fillna.__name__ + "([f.A, f.B], value=2)>"
+  assert str(fillna([f.A, f.B], value = 2, reverse = True)) == "FExpr<" + fillna.__name__ + "([f.A, f.B], value=2)>"
 
 
 def test_fillna_empty_frame():
@@ -69,16 +79,35 @@ def test_fillna_empty_frame():
     assert isinstance(expr_fillna, FExpr)
     assert_equals(DT[:, fillna(f[:], reverse=False)], DT)
 
+def test_fillna_empty_frame_value():
+    DT = dt.Frame()
+    expr_fillna = fillna(DT, reverse=False)
+    assert isinstance(expr_fillna, FExpr)
+    assert_equals(DT[:, fillna(f[:], value = 2)], DT)
+
 
 def test_fillna_void():
     DT = dt.Frame([None, None, None])
     DT_fillna = DT[:, fillna(f[:], reverse=True)]
     assert_equals(DT_fillna, DT)
 
+def test_fillna_void_value():
+    DT = dt.Frame([None, None, None])
+    DT_fillna = DT[:, fillna(f[:], 2)]
+    out = dt.Frame({'C0':[2,2,2]/dt.int32})
+    assert_equals(DT_fillna, out)
+
 
 def test_fillna_trivial():
     DT = dt.Frame([0]/dt.int64)
     fillna_fexpr = fillna(f[:], reverse = True)
+    DT_fillna = DT[:, fillna_fexpr]
+    assert isinstance(fillna_fexpr, FExpr)
+    assert_equals(DT, DT_fillna)
+
+def test_fillna_trivial_value():
+    DT = dt.Frame([0]/dt.int64)
+    fillna_fexpr = fillna(f[:], 2)
     DT_fillna = DT[:, fillna_fexpr]
     assert isinstance(fillna_fexpr, FExpr)
     assert_equals(DT, DT_fillna)
@@ -94,6 +123,16 @@ def test_fillna_bool():
              ])
     assert_equals(DT_fillna, DT_ref)
 
+def test_fillna_bool_value():
+    DT = dt.Frame([None, False, None, True, False, True])
+    DT_fillna = DT[:, [fillna(f[:], 2),
+                       fillna(f[:], 2.0)]]
+    DT_ref = dt.Frame([
+                [2, 0, 2, 1, 0, 1]/dt.int32,
+                [2, 0, 2, 1, 0, 1]/dt.float64,
+             ])
+    assert_equals(DT_fillna, DT_ref)
+
 
 def test_fillna_small():
     DT = dt.Frame([None, 3, None, 4])
@@ -102,6 +141,16 @@ def test_fillna_small():
     DT_ref = dt.Frame([
                   [None, 3, 3, 4],
                   [3, 3, 4, 4]
+              ])
+    assert_equals(DT_fillna, DT_ref)
+
+def test_fillna_small_value():
+    DT = dt.Frame([None, 3, None, 4])
+    DT_fillna = DT[:, [fillna(f[:], 1.1),
+                       fillna(f[:], 3.145)]]
+    DT_ref = dt.Frame([
+                  [1.1,3,1.1,4]/dt.float64,
+                  [3.145,3,3.145,4]/dt.float64
               ])
     assert_equals(DT_fillna, DT_ref)
 
@@ -115,6 +164,12 @@ def test_fillna_string():
              ])
     assert_equals(DT_fillna, DT_ref)
 
+def test_fillna_string_value():
+    DT = dt.Frame([None, 'a', None, 'b'])
+    DT_fillna = DT[:, fillna(f[:], 'None')]
+    DT_ref = dt.Frame([['None', 'a', 'None', 'b']])
+    assert_equals(DT_fillna, DT_ref)
+
 
 def test_fillna_grouped():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
@@ -124,6 +179,17 @@ def test_fillna_grouped():
                 'C1':['a','a','a','b','b','c','c','c'],
                 'C0':[15, 15, 136, 93, 743, None, None, 91],
                 'C2':[15, 136, 136, 93, 743, 91, 91, 91],
+             })
+    assert_equals(DT_fillna, DT_ref)
+
+
+def test_fillna_grouped_value():
+    DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
+                  ['a','a','a','b','b','c','c','c']])
+    DT_fillna = DT[:, fillna(f[:], f.C0.mean()), by(f[-1])]
+    DT_ref = dt.Frame({
+                'C1':['a','a','a','b','b','c','c','c'],
+                'C0':[15, 75.5, 136, 93, 743, 91, 91, 91]/dt.float64,
              })
     assert_equals(DT_fillna, DT_ref)
 
