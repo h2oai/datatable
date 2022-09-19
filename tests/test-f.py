@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019-2020 H2O.ai
+# Copyright 2019-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -473,11 +473,4 @@ def test_fillna():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.fillna(reverse=True)], DT[:, dt.fillna(f.A, True)])
     assert_equals(DT[:, f.A.fillna(reverse=False)], DT[:, dt.fillna(f.A, False)])
-
-
-def test_alias():
-     assert str(dt.alias(f.A, 'a')) == str(f.A.alias('a'))
-     assert str(dt.alias(f[:], ['a','b'])) == str(f[:].alias(['a','b']))
-     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
-     assert_equals(DT[:, f.A.alias('aaa')], DT[:, dt.alias(f.A, 'aaa')])
 

@@ -24,7 +24,7 @@
 import math
 import re
 import pytest
-from datatable import dt, f, alias, FExpr, by
+from datatable import dt, f, FExpr, by
 from tests import assert_equals
 
 
@@ -34,53 +34,54 @@ from tests import assert_equals
 
 def test_alias_names_wrong_type():
     DT = dt.Frame(list('abcde'))
-    msg = r"Parameter names in datatable\.alias\(\) must be a string, " \
-          r"or a list/tuple of strings, instead got: <class 'int'>"
+    msg = r"datatable.FExpr.alias\(\) expects all names to be strings, " \
+          r"or lists/tuples of strings, instead name 0 is <class 'int'>"
     with pytest.raises(TypeError, match = msg):
-        DT[:, alias(f[0], 1)]
+        DT[:, f[0].alias(1)]
 
 
 def test_alias_names_wrong_element_type():
     DT = dt.Frame(list('abcde'))
-    msg = r"All elements of the list/tuple of the names in datatable\.alias\(\) " \
-          r"must be strings, instead got: <class 'int'>"
+    msg = r"datatable.FExpr.alias\(\) expects all elements of lists/tuples " \
+          r"of names to be strings, instead for name 0 element 1 is " \
+          r"<class 'int'>"
     with pytest.raises(TypeError, match = msg):
-        DT[:, alias([f[0], f[0]], ['rar', 1])]
+        DT[:, f[0, 0].alias(['rar', 1])]
 
 
 def test_alias_empty_cols():
     DT = dt.Frame(range(5))
     msg = "The number of columns does not match the number of names: 0 vs 1"
     with pytest.raises(ValueError, match = msg):
-        DT[:, alias([], ["new_name"])]
+        DT[:, f[None].alias("new_name")]
 
 
 def test_alias_empty_names():
     DT = dt.Frame(list('abcde'))
     msg = "The number of columns does not match the number of names: 2 vs 0"
     with pytest.raises(ValueError, match = msg):
-        DT[:, alias([f[0], f[0]], [])]
+        DT[:, f[0, 0].alias([])]
 
 
-def test_alias_no_args_passed():
-    msg = r"Function datatable.alias\(\) requires exactly 2 positional " \
-          r"arguments, but none were given"
-    with pytest.raises(TypeError, match = msg):
-        alias()
+def test_alias_no_args():
+    DT = dt.Frame(list('abcde'))
+    msg = "The number of columns does not match the number of names: 1 vs 0"
+    with pytest.raises(ValueError, match = msg):
+        DT[:, f[0].alias()]
 
 
 def test_alias_size_mismatch():
     DT = dt.Frame(list('abcde'))
     msg = "The number of columns does not match the number of names: 1 vs 2"
     with pytest.raises(ValueError, match = msg):
-        DT[:, dt.alias(f.C0, ['r', 'i'])]
+        DT[:, f.C0.alias('r', 'i')]
 
 
 def test_alias_empty_frame():
     DT = dt.Frame()
     msg = "The number of columns does not match the number of names: 0 vs 1"
     with pytest.raises(ValueError, match = msg):
-        DT[:, alias(DT, 'C0')]
+        DT[:, f[:].alias('C0')]
 
 
 #-------------------------------------------------------------------------------
@@ -88,32 +89,33 @@ def test_alias_empty_frame():
 #-------------------------------------------------------------------------------
 
 def test_alias_str():
-  assert str(alias(f.A, 'rar')) == "FExpr<" + alias.__name__ + "(f.A, [rar,])>"
-  assert str(alias(f.A, 'rar') + 1) == "FExpr<" + alias.__name__ + "(f.A, [rar,]) + 1>"
-  assert str(alias(f.A + f.B, 'double')) == "FExpr<" + alias.__name__ + "(f.A + f.B, [double,])>"
-  assert str(alias([f.B, f.C], ['c','b'])) == "FExpr<" + alias.__name__ + "([f.B, f.C], [c,b,])>"
-  assert str(alias(f[:2], ['1','2'])) == "FExpr<"+ alias.__name__ + "(f[:2], [1,2,])>"
+  assert str(f.A.alias('rar')) == "FExpr<alias(f.A, [rar,])>"
+  assert str((f.A + 1).alias('rar')) == "FExpr<alias(f.A + 1, [rar,])>"
+  assert str((f.A + f.B).alias('double')) == "FExpr<alias(f.A + f.B, [double,])>"
+  assert str(f['B', 'C'].alias(['c','b'])) == "FExpr<alias(f[['B', 'C']], [c,b,])>"
+  assert str(f['B', 'C'].alias('c','b')) == "FExpr<alias(f[['B', 'C']], [c,b,])>"
+  assert str(f[:2].alias(['1','2'])) == "FExpr<alias(f[:2], [1,2,])>"
 
 
 def test_alias_single_column():
     DT = dt.Frame([None, None, None])
-    DT_mm = DT[:, alias(f[:], 'void')]
+    DT_mm = DT[:, f[:].alias('void')]
     DT.names = ['void']
     assert_equals(DT_mm, DT)
 
 
 def test_alias_multiple_columns():
     DT = dt.Frame([range(5), [None, -1, None, 5.5, 3]])
-    DT_alias = DT[:, dt.alias(f[:], ('column1', 'column2'))]
-    DT_ref = DT[:, [dt.alias(f[0], 'column1'), dt.alias(f[1], 'column2')]]
+    DT_multiple = DT[:, f[:].alias('column1', 'column2')]
+    DT_twice_single = DT[:, [f[0].alias('column1'), f[1].alias('column2')]]
     DT.names = ['column1', 'column2']
-    assert_equals(DT_alias, DT)
-    assert_equals(DT_ref, DT)
+    assert_equals(DT_multiple, DT)
+    assert_equals(DT_twice_single, DT)
 
 
 def test_alias_groupby():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, None, 3]])
-    DT_cummax = DT[:, [dt.cummin(f[:]), dt.cummax(f[:])], by(dt.alias(f[0], 'group'))]
+    DT_cummax = DT[:, [dt.cummin(f[:]), dt.cummax(f[:])], by(f[0].alias('group'))]
     DT_ref = dt.Frame([
                  [1, 1, 1, 2, 2],
                  [1, 1, 1, 2, 2],

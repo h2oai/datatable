@@ -19,53 +19,24 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/eval_context.h"
-#include "expr/fexpr_alias.h"
+#ifndef dt_EXPR_FEXPR_ALIAS_h
+#define dt_EXPR_FEXPR_ALIAS_h
+#include "expr/fexpr_func.h"
 namespace dt {
 namespace expr {
 
 
-FExpr_Alias::FExpr_Alias(ptrExpr&& arg, strvec&& names) :
-  arg_(std::move(arg)),
-  names_(std::move(names))
-  {}
+class FExpr_Alias : public FExpr_Func {
+  private:
+    ptrExpr arg_;
+    strvec names_;
 
-
-std::string FExpr_Alias::repr() const {
-  std::string out = "alias";
-  out += '(';
-  out += arg_->repr();
-  out += ", [";
-  for (auto name : names_) {
-    out += name;
-    out += ",";
-  }
-  out += "]";
-  out += ')';
-  return out;
-}
-
-
-Workframe FExpr_Alias::evaluate_n(EvalContext& ctx) const {
-  Workframe wf = arg_->evaluate_n(ctx);
-  if (wf.ncols() != names_.size()) {
-    throw ValueError()
-      << "The number of columns does not match the number of names: "
-      << wf.ncols() << " vs " << names_.size();
-  }
-
-  Workframe wf_out(ctx);
-  auto gmode = wf.get_grouping_mode();
-
-  for (size_t i = 0; i < wf.ncols(); ++i) {
-    Workframe arg_out(ctx);
-    Column col = wf.retrieve_column(i);
-    arg_out.add_column(std::move(col), std::string(names_[i]), gmode);
-    wf_out.cbind( std::move(arg_out) );
-  }
-
-  return wf_out;
-}
+  public:
+    FExpr_Alias(ptrExpr&& arg, strvec&& names);
+    std::string repr() const override;
+    Workframe evaluate_n(EvalContext& ctx) const override;
+};
 
 
 }}  // dt::expr
+#endif
