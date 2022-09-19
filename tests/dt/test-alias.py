@@ -113,6 +113,13 @@ def test_alias_multiple_columns():
     assert_equals(DT_twice_single, DT)
 
 
+def test_alias_some_columns():
+    DT = dt.Frame([range(5), [None, -1, None, 5.5, 3]])
+    DT_some = DT[:, [f[0], f[1].alias("F1"), f[0]]]
+    DT.names = {"C1" : "F1"}
+    assert_equals(DT_some, DT[:, [f[0], f[1], f[0]]])
+
+
 def test_alias_groupby():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, None, 3]])
     DT_cummax = DT[:, [dt.cummin(f[:]), dt.cummax(f[:])], by(f[0].alias('group'))]
