@@ -90,7 +90,7 @@
     -[new] Added function :func:`dt.cumcount()` and :func:`dt.ngroup()`,
       to return the row number and group number respectively. [#3279]
 
-    -[enh] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
+    -[new] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,
       which behaves exactly as the equivalent base level function :func:`dt.nunique()`.
@@ -100,6 +100,9 @@
 
     -[new] Added function :func:`dt.fillna()`, as well as :meth:`.fillna()` method,
       to impute missing values. [#3279]
+
+    -[new] Class :class:`dt.FExpr` now has method :meth:`.alias()`,
+      to assign new names to the selected columns. [#2684]
 
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
