@@ -333,7 +333,7 @@ oobj PyFExpr::alias(const XArgs& args) {
 
 DECLARE_METHOD(&PyFExpr::alias)
    ->name("alias")
-   //->docs(dt::doc_FExpr_alias)
+   ->docs(dt::doc_FExpr_alias)
    ->allow_varargs();
 
 

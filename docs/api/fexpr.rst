@@ -4,9 +4,9 @@
     :src: src/core/expr/fexpr.h FExpr
     :cvar: doc_FExpr
 
-    FExpr is an object that encapsulates computations to be done on a frame.
+    ``FExpr`` is an object that encapsulates computations to be done on a frame.
 
-    FExpr objects are rarely constructed directly (though it is possible too),
+    ``FExpr`` objects are rarely constructed directly (though it is possible too),
     instead they are more commonly created as inputs/outputs from various
     functions in :mod:`datatable`.
 
@@ -53,11 +53,14 @@
         * - :meth:`.__init__(e)`
           - Create an ``FExpr``.
 
+        * - :meth:`.alias()`
+          - Assign new names to the columns from the ``FExpr``.
+
         * - :meth:`.extend()`
-          - Append another FExpr.
+          - Append another ``FExpr``.
 
         * - :meth:`.remove()`
-          - Remove columns from the FExpr.
+          - Remove columns from the ``FExpr``.
 
 
     Arithmeritc operators
@@ -255,7 +258,7 @@
         :class: api-table
 
         * - :meth:`.__bool__()`
-          - Implicitly convert FExpr into a boolean value.
+          - Implicitly convert ``FExpr`` into a boolean value.
 
         * - :meth:`.__getitem__()`
           - Apply slice to a string column.
@@ -298,6 +301,7 @@
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
+    .alias()        <fexpr/alias>
     .as_type()      <fexpr/as_type>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
