@@ -21,6 +21,8 @@
     --------
     .. code-block:: python
 
+    Create a frame::
+
         >>> from datatable import dt, f, by
         >>>
         >>> DT = dt.Frame([[1, 2, 3], ["one", "two", "three"]])
@@ -28,9 +30,9 @@
            |    C0  C1
            | int32  str32
         -- + -----  -----
-         0 |     1  a
-         1 |     2  b
-         2 |     3  c
+         0 |     1  one
+         1 |     2  two
+         2 |     3  three
         [3 rows x 2 columns]
 
 
