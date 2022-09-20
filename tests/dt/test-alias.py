@@ -21,10 +21,8 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import math
-import re
 import pytest
-from datatable import dt, f, FExpr, by
+from datatable import dt, f, by
 from tests import assert_equals
 
 
@@ -121,6 +119,7 @@ def test_alias_some_columns():
 
 
 def test_alias_groupby():
+    import math
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, None, 3]])
     DT_cummax = DT[:, [dt.cummin(f[:]), dt.cummax(f[:])], by(f[0].alias('group'))]
     DT_ref = dt.Frame([

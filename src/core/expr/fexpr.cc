@@ -305,6 +305,7 @@ oobj PyFExpr::alias(const XArgs& args) {
       py::oiter names_iter = arg.to_oiter();
       names_vec.reserve(names_iter.size());
       size_t namei = 0;
+
       for (auto name : names_iter) {
         if (name.is_string()) {
           names_vec.emplace_back(name.to_string());
@@ -317,6 +318,7 @@ oobj PyFExpr::alias(const XArgs& args) {
         }
         namei++;
       }
+
     } else {
       throw TypeError()
         << "`datatable.FExpr.alias()` expects all names to be strings, or "
