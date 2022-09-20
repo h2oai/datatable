@@ -179,6 +179,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj len();                        // [DEPRECATED]
     py::oobj re_match(const py::XArgs&);   // [DEPRECATED]
 
+    py::oobj alias(const py::XArgs&);
     py::oobj as_type(const py::XArgs&);
     py::oobj count(const py::XArgs&);
     py::oobj countna(const py::XArgs&);

@@ -23,6 +23,7 @@
 #include "documentation.h"
 #include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
+#include "expr/fexpr_alias.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
 #include "expr/fexpr_frame.h"
@@ -292,6 +293,50 @@ DECLARE_METHOD(&PyFExpr::re_match)
 //------------------------------------------------------------------------------
 // Miscellaneous
 //------------------------------------------------------------------------------
+
+oobj PyFExpr::alias(const XArgs& args) {
+  strvec names_vec;
+  size_t argi = 0;
+
+  for (auto arg : args.varargs()) {
+    if (arg.is_string()) {
+      names_vec.push_back(arg.to_string());
+    } else if (arg.is_list_or_tuple()) {
+      py::oiter names_iter = arg.to_oiter();
+      names_vec.reserve(names_iter.size());
+      size_t namei = 0;
+
+      for (auto name : names_iter) {
+        if (name.is_string()) {
+          names_vec.emplace_back(name.to_string());
+        } else {
+          throw TypeError()
+            << "`datatable.FExpr.alias()` expects all elements of lists/tuples "
+            << "of names to be strings, instead for name `" << argi << "` "
+            << "element `" << namei << "` is "
+            << name.typeobj();
+        }
+        namei++;
+      }
+
+    } else {
+      throw TypeError()
+        << "`datatable.FExpr.alias()` expects all names to be strings, or "
+        << "lists/tuples of strings, instead name `" << argi << "` is "
+        << arg.typeobj();
+    }
+    argi++;
+  }
+
+  return PyFExpr::make(new FExpr_Alias(ptrExpr(expr_), std::move(names_vec)));
+
+}
+
+
+DECLARE_METHOD(&PyFExpr::alias)
+   ->name("alias")
+   ->docs(dt::doc_FExpr_alias)
+   ->allow_varargs();
 
 
 oobj PyFExpr::as_type(const XArgs& args) {
