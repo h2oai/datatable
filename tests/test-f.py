@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019-2020 H2O.ai
+# Copyright 2019-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -451,11 +451,13 @@ def test_cummax():
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummax()], DT[:, dt.cummax(f.A)])
 
+
 def test_cummin():
     assert str(dt.cummin(f.A)) == str(f.A.cummin())
     assert str(dt.cummin(f[:])) == str(f[:].cummin())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummin()], DT[:, dt.cummin(f.A)])
+
 
 def test_cumprod():
     assert str(dt.cumprod(f.A)) == str(f.A.cumprod())
