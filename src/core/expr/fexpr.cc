@@ -488,7 +488,7 @@ DECLARE_METHOD(&PyFExpr::min)
 
 
 oobj PyFExpr::nth(const XArgs& args) {
-  auto nthFn = oobj::import("datatable", "nth", "skipna");
+  auto nthFn = oobj::import("datatable", "nth");
   oobj nth_arg = args[0].to_oobj();
   oobj skipna = args[1].to_oobj(); // what am I doing wrong here?
   return nthFn.call({this, nth_arg, skipna});
