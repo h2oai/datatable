@@ -19,7 +19,6 @@
 
     Examples
     --------
-    .. code-block:: python
 
     Create a frame::
 
