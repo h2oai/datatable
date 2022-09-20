@@ -112,13 +112,6 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.alias()`,
       to assign new names to the selected columns. [#2684]
 
-    -[new] Added function :func:`dt.categories()`, as well as the corresponding
-      :meth:`.categories()` method, to retrieve categories
-      for categorical columns. [#3367]
-
-    -[new] Added function :func:`dt.codes()`, as well as the corresponding
-      :meth:`.codes()` method, to retrieve codes for categorical columns. [#3371]
-
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
     -[enh] Function :func:`dt.qcut()` can now be used in a groupby context. [#3165]
