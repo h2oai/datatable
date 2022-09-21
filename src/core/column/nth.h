@@ -25,7 +25,7 @@
 #include "stype.h"
 
 namespace dt {
-template<typename T>
+template<typename T, bool SKIPNA>
 class NTH_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -60,10 +60,17 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       xassert(i0 < i1);
       n = nth_<0 ? static_cast<size_t>(nth_)+i1
                  : static_cast<size_t>(nth_)+i0;
+      bool isvalid = false;
       if (n >= i0 & n< i1){
-      bool isvalid = col_.get_element(n, out);
-      return isvalid?true:false;
-      } else {*out = GETNA<T>();}
+        for (size_t ii = n; ii < i1; ++ii) {
+          isvalid = col_.get_element(ii, out);
+          if (isvalid || !SKIPNA) {break;}
+        }
+      }
+      if (isvalid){
+        return true;
+      }
+      else {*out = GETNA<T>();}
       return false;
     }
 };
