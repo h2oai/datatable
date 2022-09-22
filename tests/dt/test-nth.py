@@ -153,3 +153,4 @@ def test_nth_grouped_skipna():
                 'C3':[136, None,91 ],
              })
     assert_equals(DT_nth, DT_ref)
+
