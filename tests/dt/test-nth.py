@@ -123,12 +123,11 @@ def test_nth_small():
     DT_ref = dt.Frame([[3]/dt.int32,[None]/dt.int32])
     assert_equals(DT_nth, DT_ref)
 
-# uncomment this after fixing runtime error for skipna on strings
-# def test_nth_string():
-#     DT = dt.Frame(['d', 'a', 'z', 'b'])
-#     DT_nth = DT[:, [nth(f[:], 0), nth(f[:], nth = -1)]]
-#     DT_ref = dt.Frame([['d'], ['b'] ])
-#     assert_equals(DT_nth, DT_ref)
+def test_nth_string():
+    DT = dt.Frame(['d', 'a', 'z', 'b'])
+    DT_nth = DT[:, [nth(f[:], 0), nth(f[:], nth = -1)]]
+    DT_ref = dt.Frame([['d'], ['b'] ])
+    assert_equals(DT_nth, DT_ref)
 
 
 def test_nth_grouped():
