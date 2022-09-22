@@ -499,7 +499,7 @@ DECLARE_METHOD(&PyFExpr::nth)
     //->docs(dt::doc_FExpr_as_type)
     ->arg_names({"nth", "skipna"})
     ->n_positional_or_keyword_args(2)
-    ->n_required_args(2);
+    ->n_required_args(1);
 
 oobj PyFExpr::nunique(const XArgs&) {
   auto nuniqueFn = oobj::import("datatable", "nunique");
