@@ -136,8 +136,8 @@ def test_nth_grouped():
     DT_nth = DT[:, [nth(f[:], n = 0), nth(f[:], n = 2)], by(f[-1])]
     DT_ref = dt.Frame({
                 'C1':['a','b','c',],
-                'C2':[15,93, None],
-                'C3':[136, None,91 ],
+                'C0':[15,93, None],
+                'C2':[136, None,91 ],
              })
     assert_equals(DT_nth, DT_ref)
 
@@ -148,8 +148,8 @@ def test_nth_grouped_skipna():
     DT_nth = DT[:, [nth(f[:], n = 0, skipna=True), nth(f[:], n = 2,skipna=True)], by(f[-1])]
     DT_ref = dt.Frame({
                 'C1':['a','b','c',],
-                'C2':[15,93, 91],
-                'C3':[136, None,91 ],
+                'C0':[15,93, 91],
+                'C2':[136, None,91 ],
              })
     assert_equals(DT_nth, DT_ref)
 
