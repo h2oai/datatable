@@ -63,7 +63,7 @@ class FExpr_Nth : public FExpr_Func {
         case SType::INT64:   return make<int64_t>(std::move(col), n, gby);
         case SType::FLOAT32: return make<float>(std::move(col), n, gby);
         case SType::FLOAT64: return make<double>(std::move(col), n, gby);
-        case SType::STR32:   return make<CString>(std::move(col), n, gby); //-- any ideas on how to make this work @oleksiyskononenko
+        case SType::STR32:   return make<CString>(std::move(col), n, gby);
         case SType::STR64:   return make<CString>(std::move(col), n, gby);
         default: throw RuntimeError();
       }
