@@ -29,19 +29,19 @@ template<typename T, bool SKIPNA>
 class NTH_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    int32_t nth_;
+    int32_t n_;
     Groupby gby_;
 
   public:
-    NTH_ColumnImpl(Column&& col, int32_t nth,  const Groupby& gby)
+    NTH_ColumnImpl(Column&& col, int32_t n,  const Groupby& gby)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
-        nth_(nth),        
+        n_(n),        
         gby_(gby)
       {xassert(col_.can_be_read_as<T>());}
 
     ColumnImpl* clone() const override {
-      return new NTH_ColumnImpl(Column(col_), nth_, gby_);
+      return new NTH_ColumnImpl(Column(col_), n_, gby_);
     }
 
     size_t n_children() const noexcept override {
@@ -54,15 +54,15 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
     }
 
     bool get_element(size_t i, T* out) const override{ 
-      size_t n;          
+      size_t pos;          
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
       xassert(i0 < i1);
-      n = nth_<0 ? static_cast<size_t>(nth_)+i1
-                 : static_cast<size_t>(nth_)+i0;
+      pos = n_<0 ? static_cast<size_t>(n_)+i1
+                 : static_cast<size_t>(n_)+i0;
       bool isvalid = false;
-      if (n >= i0 & n< i1){
-        for (size_t ii = n; ii < i1; ++ii) {
+      if (pos >= i0 & pos< i1){
+        for (size_t ii = pos; ii < i1; ++ii) {
           isvalid = col_.get_element(ii, out);
           if (isvalid || !SKIPNA) {break;}
         }
