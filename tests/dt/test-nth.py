@@ -119,3 +119,4 @@ def test_nth_grouped():
                 'C2':[136, None, 91 ],
              })
     assert_equals(DT_nth, DT_ref)
+
