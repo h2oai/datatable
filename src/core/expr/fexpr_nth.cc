@@ -60,19 +60,7 @@ class FExpr_Nth : public FExpr_Func {
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
 
-<<<<<<< HEAD
       if (!gby) gby = Groupby::single_group(ctx.nrows()); 
-=======
-        if (ctx.has_groupby()) {
-            gby = ctx.get_groupby();
-        }
-        Workframe outputs(ctx);
-        for (size_t i = 0; i < wf.ncols(); ++i) {
-          Column coli = wf.retrieve_column(i);
-          coli = evaluate1(std::move(coli), n_, gby);
-          outputs.add_column(std::move(coli), std::string(wf.retrieve_name(i)), Grouping::GtoONE);
-        }
->>>>>>> 6efa7081 (updates based on feedback)
 
       for (size_t i = 0; i < inputs.ncols(); ++i) {
         auto coli = inputs.retrieve_column(i);
@@ -85,12 +73,8 @@ class FExpr_Nth : public FExpr_Func {
       return outputs;
     }
 
-<<<<<<< HEAD
 
     Column evaluate1(Column&& col, const Groupby& gby, const int32_t n) const {
-=======
-    Column evaluate1 (Column&& col, int32_t n, const Groupby& gby) const {
->>>>>>> 6efa7081 (updates based on feedback)
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
@@ -115,10 +99,6 @@ class FExpr_Nth : public FExpr_Func {
     template <typename T>
     Column make(Column&& col, const Groupby& gby, int32_t n) const {
       return Column(new Nth_ColumnImpl<T>(std::move(col), gby, n));
-    }
-
-};
-
 
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto cols = args[0].to_oobj();
@@ -135,13 +115,8 @@ DECLARE_PYFN(&pyfn_nth)
     //->docs(doc_dt_nth)
     ->arg_names({"cols", "n"})
     ->n_positional_args(1)
-<<<<<<< HEAD
     ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
-=======
-    ->n_positional_or_keyword_args(2)
-    ->n_required_args(1);
->>>>>>> 6efa7081 (updates based on feedback)
 
 }}  // dt::expr
