@@ -489,9 +489,15 @@ DECLARE_METHOD(&PyFExpr::min)
 
 oobj PyFExpr::nth(const XArgs& args) {
   auto nthFn = oobj::import("datatable", "nth");
+<<<<<<< HEAD
   oobj n = args[0].to_oobj() ? args[0].to_oobj() 
                              : py::oint(0);
   return nthFn.call({this, n});
+=======
+  oobj n = args[0].to_oobj() ? args[0].to_oobj() : py::oint(0);
+  oobj skipna = args[1] ? args[1].to_oobj() : py::obool(false);
+  return nthFn.call({this, n, skipna});
+>>>>>>> 6efa7081 (updates based on feedback)
 }
 
 DECLARE_METHOD(&PyFExpr::nth)
