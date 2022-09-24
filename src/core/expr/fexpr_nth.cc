@@ -43,7 +43,7 @@ class FExpr_Nth : public FExpr_Func {
         for (size_t i = 0; i < wf.ncols(); ++i) {
           Column coli = wf.retrieve_column(i);
           coli = evaluate1(std::move(coli), n_, gby);
-          outputs.add_column(std::move(coli), std::string(wf.retrieve_name(i)), Grouping::GtoONE);
+          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
         }
 
         return outputs;
