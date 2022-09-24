@@ -37,7 +37,6 @@ class FExpr_Nth : public FExpr_Func {
         Groupby gby = Groupby::single_group(wf.nrows());
 
         if (ctx.has_groupby()) {
-            wf.increase_grouping_mode(Grouping::GtoALL);
             gby = ctx.get_groupby();
         }
         Workframe outputs(ctx);
@@ -50,7 +49,7 @@ class FExpr_Nth : public FExpr_Func {
         return outputs;
     }     
 
-    Column evaluate1(Column&& col, int32_t n, const Groupby& gby) const {
+    Column evaluate1 (Column&& col, int32_t n, const Groupby& gby) const {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size(), stype));
@@ -76,9 +75,9 @@ class FExpr_Nth : public FExpr_Func {
 };
 
 
-static py::oobj pyfn_nth(const py::XArgs& args) {
+static py::oobj pyfn_nth (const py::XArgs& args) {
   auto arg = args[0].to_oobj();
-  auto n = args[1].to_oobj();
+  auto n = args[1].to_oobj() ? args[1].to_oobj() : py::oint(0);
   auto skipna = args[2].to<bool>(false);
   if (!n.is_int()) {
     throw TypeError() << "The argument for the `n` parameter "
@@ -99,7 +98,7 @@ DECLARE_PYFN(&pyfn_nth)
     ->arg_names({"cols", "n", "skipna"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(2)
-    ->n_required_args(2);
+    ->n_required_args(1);
 
 }}  // dt::expr
 

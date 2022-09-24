@@ -33,7 +33,7 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
     Groupby gby_;
 
   public:
-    NTH_ColumnImpl(Column&& col, int32_t n,  const Groupby& gby)
+    NTH_ColumnImpl (Column&& col, int32_t n,  const Groupby& gby)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
         n_(n),        
@@ -48,30 +48,31 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       return 1;
     }
 
-    const Column& child(size_t i) const override {
+    const Column& child (size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;
     }
 
-    bool get_element(size_t i, T* out) const override{ 
+    bool get_element (size_t i, T* out) const override{ 
       size_t pos;          
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
       xassert(i0 < i1);
-      pos = n_<0 ? static_cast<size_t>(n_)+i1
-                 : static_cast<size_t>(n_)+i0;
+      pos = n_<0 ? static_cast<size_t>(n_) + i1
+                 : static_cast<size_t>(n_) + i0;
       bool isvalid = false;
-      if (pos >= i0 & pos< i1){
-        for (size_t ii = pos; ii < i1; ++ii) {
-          isvalid = col_.get_element(ii, out);
-          if (isvalid || !SKIPNA) {break;}
+      if (pos >= i0 && pos< i1){
+        if (SKIPNA){
+          for (size_t ii = pos; ii < i1; ++ii) {
+            isvalid = col_.get_element(ii, out);
+            if (isvalid) break;
+          }
+        }
+        else{
+          isvalid = col_.get_element(pos, out);
         }
       }
-      if (isvalid){
-        return true;
-      }
-      else {*out = GETNA<T>();}
-      return false;
+      return isvalid;
     }
 };
 
@@ -80,3 +81,5 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
 
 
 #endif
+
+
