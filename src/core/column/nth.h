@@ -31,9 +31,10 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
     Column col_;
     int32_t n_;
     Groupby gby_;
+    size_t : 32;
 
   public:
-    NTH_ColumnImpl (Column&& col, int32_t n,  const Groupby& gby)
+    NTH_ColumnImpl(Column&& col, int32_t n,  const Groupby& gby)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
         n_(n),        
@@ -48,12 +49,12 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       return 1;
     }
 
-    const Column& child (size_t i) const override {
+    const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;
     }
 
-    bool get_element (size_t i, T* out) const override{ 
+    bool get_element(size_t i, T* out) const override{ 
       size_t pos;          
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);

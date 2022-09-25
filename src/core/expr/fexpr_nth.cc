@@ -16,7 +16,7 @@ class FExpr_Nth : public FExpr_Func {
     int32_t n_;
 
   public:
-    FExpr_Nth (ptrExpr&& arg, py::oobj n)
+    FExpr_Nth(ptrExpr&& arg, py::oobj n)
       : arg_(std::move(arg))
        {n_ = n.to_int32_strict();}
 
@@ -32,7 +32,7 @@ class FExpr_Nth : public FExpr_Func {
       return out;
     }
   
-    Workframe evaluate_n (EvalContext &ctx) const override {
+    Workframe evaluate_n(EvalContext &ctx) const override {
         Workframe wf = arg_->evaluate_n(ctx);
         Groupby gby = Groupby::single_group(wf.nrows());
 
@@ -49,7 +49,7 @@ class FExpr_Nth : public FExpr_Func {
         return outputs;
     }     
 
-    Column evaluate1 (Column&& col, int32_t n, const Groupby& gby) const {
+    Column evaluate1(Column&& col, int32_t n, const Groupby& gby) const {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size(), stype));
@@ -69,13 +69,13 @@ class FExpr_Nth : public FExpr_Func {
     }
 
     template <typename T>
-    Column make (Column&& col, int32_t n, const Groupby& gby) const {
+    Column make(Column&& col, int32_t n, const Groupby& gby) const {
       return Column(new NTH_ColumnImpl<T, SKIPNA>(std::move(col), n, gby));
     }
 };
 
 
-static py::oobj pyfn_nth (const py::XArgs& args) {
+static py::oobj pyfn_nth(const py::XArgs& args) {
   auto arg = args[0].to_oobj();
   auto n = args[1].to_oobj() ? args[1].to_oobj() : py::oint(0);
   auto skipna = args[2].to<bool>(false);
