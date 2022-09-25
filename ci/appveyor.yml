@@ -182,43 +182,37 @@ build_script:
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
+    # =======================================================================
+    #   Build and test wheel for Python 3.7
+    # =======================================================================
 
-    if ($env:DT_RELEASE -eq "True") {
+    $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
 
+    python -V
 
-      # =======================================================================
-      #   Build and test wheel for Python 3.7
-      # =======================================================================
+    python ci/ext.py wheel
 
-      $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
+    $DT_WHEEL = ls dist/*-cp37-*.whl
 
-      python -V
+    echo "DT_WHEEL = $DT_WHEEL"
 
-      python ci/ext.py wheel
+    echo "----- _build_info.py for Python 3.7 ------------------------------"
 
-      $DT_WHEEL = ls dist/*-cp37-*.whl
+    cat src/datatable/_build_info.py
 
-      echo "DT_WHEEL = $DT_WHEEL"
+    echo "------------------------------------------------------------------"
 
-      echo "----- _build_info.py for Python 3.7 ------------------------------"
+    python -m pip install --upgrade pip
 
-      cat src/datatable/_build_info.py
+    python -m pip install $DT_WHEEL
 
-      echo "------------------------------------------------------------------"
+    python -m pip install pytest docutils pandas pyarrow
 
-      python -m pip install --upgrade pip
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
-      python -m pip install $DT_WHEEL
+    if(!$?) { Exit $LASTEXITCODE }
 
-      python -m pip install pytest docutils pandas pyarrow
-
-      python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-      if(!$?) { Exit $LASTEXITCODE }
-
-      python -m pip uninstall -y $DT_WHEEL
-
-    }
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
