@@ -67,7 +67,6 @@ class FExpr_Nth : public FExpr_Func {
         outputs.add_column(
           evaluate1(std::move(coli), gby, n_),
           inputs.retrieve_name(i),
-          Grouping::GtoONE
         );
       }
       return outputs;
@@ -78,9 +77,6 @@ class FExpr_Nth : public FExpr_Func {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-        case SType::BOOL:
-        case SType::INT8:    return make<int8_t>(std::move(col), gby, n);
-        case SType::INT16:   return make<int16_t>(std::move(col), gby, n);
         case SType::DATE32:
         case SType::INT32:   return make<int32_t>(std::move(col), gby, n);
         case SType::TIME64:
