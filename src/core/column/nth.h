@@ -54,7 +54,7 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
       return col_;
     }
 
-    bool get_element(size_t i, T* out) const override{ 
+    bool get_element(size_t i, T* out) const override { 
       size_t pos;          
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
