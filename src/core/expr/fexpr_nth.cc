@@ -77,7 +77,8 @@ class FExpr_Nth : public FExpr_Func {
 
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto arg = args[0].to_oobj();
-  auto n = args[1].to_oobj() ? args[1].to_oobj() : py::oint(0);
+  auto n = args[1].to_oobj() ? args[1].to_oobj()
+                             : py::oint(0);
   auto skipna = args[2].to<bool>(false);
   if (!n.is_int()) {
     throw TypeError() << "The argument for the `n` parameter "
