@@ -163,10 +163,10 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   Groupby gb = std::move(res.second);
   auto offsets = gb.offsets_r();
 
-  Buffer buf = Buffer::mem(col.nrows() * sizeof(T));
-  Buffer buf_cat = Buffer::mem(gb.size() * sizeof(int32_t));
-  auto buf_ptr = static_cast<T*>(buf.xptr());
-  auto buf_cat_ptr = static_cast<int32_t*>(buf_cat.xptr());
+  Buffer buf_codes = Buffer::mem(col.nrows() * sizeof(T));
+  Buffer buf_cats = Buffer::mem(gb.size() * sizeof(int32_t));
+  auto buf_codes_ptr = static_cast<T*>(buf_codes.xptr());
+  auto buf_cats_ptr = static_cast<int32_t*>(buf_cats.xptr());
 
   const size_t MAX_CATS = std::numeric_limits<T>::max() + size_t(1);
 
@@ -177,22 +177,22 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   }
 
   // Fill out two buffers:
-  // - `buf_cat` with row indices of unique elements (one element per category)
-  // - `buf` with the codes of categories (group ids).
+  // - `buf_cats` with row indices of unique elements (one element per category)
+  // - `buf_codes` with the codes of categories (group ids).
   dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
       size_t jj;
       ri.get_element(static_cast<size_t>(offsets[i]), &jj);
-      buf_cat_ptr[i] = static_cast<int32_t>(jj);
+      buf_cats_ptr[i] = static_cast<int32_t>(jj);
 
       for (int32_t j = offsets[i]; j < offsets[i + 1]; ++j) {
         ri.get_element(static_cast<size_t>(j), &jj);
-        buf_ptr[static_cast<size_t>(jj)] = static_cast<T>(i);
+        buf_codes_ptr[static_cast<size_t>(jj)] = static_cast<T>(i);
       }
     });
 
   // Modify `col` in-place by only leaving one element per a category
-  const RowIndex ri_cat(std::move(buf_cat), RowIndex::ARR32);
+  const RowIndex ri_cat(std::move(buf_cats), RowIndex::ARR32);
   col.apply_rowindex(ri_cat);
   col.materialize();
 
@@ -205,7 +205,7 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   col = Column(new Categorical_ColumnImpl<T>(
           nrows,
           std::move(val),
-          std::move(buf),
+          std::move(buf_codes),
           std::move(col)
         ));
 }
