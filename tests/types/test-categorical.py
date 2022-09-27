@@ -256,8 +256,36 @@ def test_create_multicolumn(t):
     assert_equals(DT2, DT2[:, :])
 
 
+
 #-------------------------------------------------------------------------------
-# Conversion
+# Casting to other types
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
+def test_void_to_cat(t):
+    src = [None] * 11
+    DT = dt.Frame(src)
+    DT[0] = t(dt.Type.str32)
+    DT_ref = dt.Frame(src, type=t(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
+def test_obj_to_cat(t):
+    src = [None, "cat", "cat", "dog", "mouse", None, "panda", "dog"]
+    DT = dt.Frame(A=src, type=object)
+    DT['A'] = t(dt.Type.str32)
+    DT_ref = dt.Frame(A=src, type=t(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+
+#-------------------------------------------------------------------------------
+# Conversion to other formats
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('t', [dt.Type.cat8,
