@@ -23,54 +23,65 @@
 #define dt_NTH_h
 #include "column/virtual.h"
 #include "stype.h"
-
 namespace dt {
+
+
 template<typename T, bool SKIPNA>
-class NTH_ColumnImpl : public Virtual_ColumnImpl {
+class Nth_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    int32_t n_;
     Groupby gby_;
+    int32_t n_;
     size_t : 32;
 
   public:
-    NTH_ColumnImpl(Column&& col, int32_t n,  const Groupby& gby)
+    Nth_ColumnImpl(Column&& col, const Groupby& gby, int32_t n)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
-        n_(n),        
-        gby_(gby)
-      {xassert(col_.can_be_read_as<T>());}
+        gby_(gby),
+        n_(n)
+    {
+      xassert(col_.can_be_read_as<T>());
+    }
+
 
     ColumnImpl* clone() const override {
-      return new NTH_ColumnImpl(Column(col_), n_, gby_);
+      return new Nth_ColumnImpl(Column(col_), gby_, n_);
     }
+
 
     size_t n_children() const noexcept override {
       return 1;
     }
+
 
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;
     }
 
+
     bool get_element(size_t i, T* out) const override { 
-      size_t pos;          
+      xassert(i < gby_.size());
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
-      xassert(i0 < i1);
-      pos = n_<0 ? static_cast<size_t>(n_) + i1
-                 : static_cast<size_t>(n_) + i0;
+
+      // Note, when `n_` is negative it is cast to `size_t`, that is
+      // an unsigned type. Then, when adding `i1`, we rely on `size_t`
+      // wrap-around.
+      size_t ni = (n_ >= 0)? static_cast<size_t>(n_) + i0
+                           : static_cast<size_t>(n_) + i1;
+
       bool isvalid = false;
-      if (pos >= i0 && pos< i1){
+      if (ni >= i0 && ni < i1){
         if (SKIPNA){
-          for (size_t ii = pos; ii < i1; ++ii) {
+          size_t ii = ni;
+          while (ii < i1 && !isvalid) {
             isvalid = col_.get_element(ii, out);
-            if (isvalid) break;
+            ii++;
           }
-        }
-        else{
-          isvalid = col_.get_element(pos, out);
+        } else {
+          isvalid = col_.get_element(ni, out);
         }
       }
       return isvalid;
@@ -79,8 +90,6 @@ class NTH_ColumnImpl : public Virtual_ColumnImpl {
 
 
 }  // namespace dt
-
-
 #endif
 
 

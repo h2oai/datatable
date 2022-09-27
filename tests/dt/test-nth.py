@@ -30,25 +30,20 @@ from tests import assert_equals
 # Errors
 #-------------------------------------------------------------------------------
 
-msg =  "The argument for the n parameter in function datatable.nth\\(\\) should be an integer, " 
-msg += "instead got <class 'str'>"
 def test_nth_parameter_not_int():
+    msg = r"Argument n in function datatable.nth\(\) should be an integer, " \
+          "instead got <class 'str'>"
     DT = dt.Frame([1, 2, None, 4, 5])
     with pytest.raises(TypeError, match = msg):
         DT[:, nth(f[0], '1')]
 
 
-def test_nth_parameter_not_int():
-    DT = dt.Frame([1, 2, None, 4, 5])
-    with pytest.raises(TypeError, match = msg):
-         DT[:, nth(f[0], '1'), by(f[0])]
-
-
 def test_nth_no_argument():
-    msg = (f"Function datatable.nth\\(\\) "
-            "requires at least 1 positional argument, but none were given")
+    msg = r"Function datatable.nth\(\) requires at least 1 positional " \
+          "argument, but none were given"
     with pytest.raises(TypeError, match = msg):
         nth()
+
 
 #-------------------------------------------------------------------------------
 # Normal
@@ -57,9 +52,10 @@ def test_nth_no_argument():
 def test_nth_str():
   assert str(nth(f.A, n=1)) == "FExpr<" + nth.__name__ + "(f.A, n=1, skipna=False)>"
   assert str(nth(f.A, n=1, skipna=True) + 1) == "FExpr<" + nth.__name__ + "(f.A, n=1, skipna=True) + 1>"
-  assert str(nth(f.A + f.B, n = 1)) == "FExpr<" + nth.__name__ + "(f.A + f.B, n=1, skipna=False)>"
+  assert str(nth(f.A + f.B, n=1)) == "FExpr<" + nth.__name__ + "(f.A + f.B, n=1, skipna=False)>"
   assert str(nth(f.B, 1, True)) == "FExpr<" + nth.__name__ + "(f.B, n=1, skipna=True)>"
   assert str(nth(f[:2], 1)) == "FExpr<"+ nth.__name__ + "(f[:2], n=1, skipna=False)>"
+
 
 def test_nth_empty_frame():
     DT = dt.Frame()
@@ -67,32 +63,37 @@ def test_nth_empty_frame():
     assert isinstance(expr_nth, FExpr)
     assert_equals(DT[:, nth(f[:], 1)], DT)
 
+
 def test_nth_empty_frame_skipna():
     DT = dt.Frame()
     expr_nth = nth(DT, 1)
     assert isinstance(expr_nth, FExpr)
     assert_equals(DT[:, nth(f[:], 1)], DT)
 
+
 def test_nth_void():
     DT = dt.Frame([None, None, None])
     DT_nth = DT[:, nth(f[:], 0)]
     assert_equals(DT_nth, DT[0, :])
+
 
 def test_nth_void_skipna():
     DT = dt.Frame([None, None, None])
     DT_nth = DT[:, nth(f[:], 0, True)]
     assert_equals(DT_nth, DT[0, :])
 
+
 def test_nth_trivial():
     DT = dt.Frame([0]/dt.int64)
-    nth_fexpr = nth(f[:], n = -1)
+    nth_fexpr = nth(f[:], n=-1)
     DT_nth = DT[:, nth_fexpr]
     assert isinstance(nth_fexpr, FExpr)
     assert_equals(DT, DT_nth)
 
+
 def test_nth_trivial_skipna():
     DT = dt.Frame([0]/dt.int64)
-    nth_fexpr = nth(f[:], n = -1, skipna=True)
+    nth_fexpr = nth(f[:], n=-1, skipna=True)
     DT_nth = DT[:, nth_fexpr]
     assert isinstance(nth_fexpr, FExpr)
     assert_equals(DT, DT_nth)
@@ -100,32 +101,33 @@ def test_nth_trivial_skipna():
 
 def test_nth_bool():
     DT = dt.Frame([None, False, None, True, False, True])
-    DT_nth = DT[:, [nth(f[:], n = 1),
-                    nth(f[:], n = -1),
-                    nth(f[:], n = 24)]]
+    DT_nth = DT[:, [nth(f[:], n=1),
+                    nth(f[:], n=-1),
+                    nth(f[:], n=24)]]
     DT_ref = dt.Frame([[False], [True], [None]/dt.bool8])
-
     assert_equals(DT_nth, DT_ref)
+
 
 def test_nth_bool_skipna():
     DT = dt.Frame([None, False, None, True, False, True])
-    DT_nth = DT[:, [nth(f[:], n = 0, skipna=True),
-                    nth(f[:], n = -1, skipna=True),
-                    nth(f[:], n = 2,skipna=True)]]
+    DT_nth = DT[:, [nth(f[:], n=0, skipna=True),
+                    nth(f[:], n=-1, skipna=True),
+                    nth(f[:], n=2, skipna=True)]]
     DT_ref = dt.Frame([[False], [True], [True]])
-
     assert_equals(DT_nth, DT_ref)
+
 
 def test_nth_small():
     DT = dt.Frame([None, 3, None, 4])
-    DT_nth = DT[:, [nth(f[:], n = 1),
-                       nth(f[:], n = -5)]]
-    DT_ref = dt.Frame([[3]/dt.int32,[None]/dt.int32])
+    DT_nth = DT[:, [nth(f[:], n=1),
+                    nth(f[:], n=-5)]]
+    DT_ref = dt.Frame([[3]/dt.int32, [None]/dt.int32])
     assert_equals(DT_nth, DT_ref)
+
 
 def test_nth_string():
     DT = dt.Frame(['d', 'a', 'z', 'b'])
-    DT_nth = DT[:, [nth(f[:], 0), nth(f[:], n = -1)]]
+    DT_nth = DT[:, [nth(f[:], 0), nth(f[:], n=-1)]]
     DT_ref = dt.Frame([['d'], ['b'] ])
     assert_equals(DT_nth, DT_ref)
 
@@ -133,11 +135,11 @@ def test_nth_string():
 def test_nth_grouped():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
                   ['a','a','a','b','b','c','c','c']])
-    DT_nth = DT[:, [nth(f[:], n = 0), nth(f[:], n = 2)], by(f[-1])]
+    DT_nth = DT[:, [nth(f[:], n=0), nth(f[:], n=2)], by(f[-1])]
     DT_ref = dt.Frame({
                 'C1':['a','b','c',],
-                'C0':[15,93, None],
-                'C2':[136, None,91 ],
+                'C0':[15, 93, None],
+                'C2':[136, None, 91 ],
              })
     assert_equals(DT_nth, DT_ref)
 
@@ -145,11 +147,12 @@ def test_nth_grouped():
 def test_nth_grouped_skipna():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
                   ['a','a','a','b','b','c','c','c']])
-    DT_nth = DT[:, [nth(f[:], n = 0, skipna=True), nth(f[:], n = 2,skipna=True)], by(f[-1])]
+    DT_nth = DT[:, [nth(f[:], n=0, skipna=True),
+                    nth(f[:], n=2, skipna=True)], by(f[-1])]
     DT_ref = dt.Frame({
                 'C1':['a','b','c',],
-                'C0':[15,93, 91],
-                'C2':[136, None,91 ],
+                'C0':[15, 93, 91],
+                'C2':[136, None, 91 ],
              })
     assert_equals(DT_nth, DT_ref)
 
