@@ -43,9 +43,6 @@ class FExpr_Nth : public FExpr_Func {
         n_(n)
         {}
 
-
-    std::string repr() const override {
-      std::string out = "nth";
       out += '(';
       out += arg_->repr();
       out += ", n=";
@@ -104,15 +101,6 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
 
 
 }
-
-
-DECLARE_PYFN(&pyfn_nth)
-    ->name("nth")
-    //->docs(doc_dt_nth)
-    ->arg_names({"cols", "n"})
-    ->n_positional_args(1)
-    ->n_positional_or_keyword_args(1)
-    ->n_required_args(1);
 
 
 }}  // dt::expr

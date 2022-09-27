@@ -53,6 +53,7 @@ class Nth_ColumnImpl : public Virtual_ColumnImpl {
       return 1;
     }
 
+
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;
       return col_;

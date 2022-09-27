@@ -57,6 +57,7 @@ def test_nth_str():
   assert str(nth(f[:2], 1)) == "FExpr<"+ nth.__name__ + "(f[:2], n=1)>"
 
 
+
 def test_nth_empty_frame():
     DT = dt.Frame()
     expr_nth = nth(DT, 1)
@@ -77,6 +78,7 @@ def test_nth_void():
     assert_equals(DT_nth, DT[0, :])
 
 
+
 def test_nth_trivial():
     DT = dt.Frame([0]/dt.int64)
     nth_fexpr = nth(f[:], n=-1)
@@ -92,6 +94,7 @@ def test_nth_bool():
                     nth(f[:], n=24)]]
     DT_ref = dt.Frame([[False], [True], [None]/dt.bool8])
     assert_equals(DT_nth, DT_ref)
+
 
 
 def test_nth_small():
