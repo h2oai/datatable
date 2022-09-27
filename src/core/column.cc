@@ -172,6 +172,15 @@ dt::SType Column::stype() const noexcept {
   return impl_->type_.stype();
 }
 
+dt::SType Column::data_stype() const noexcept {
+  if (impl_->type_.is_categorical()) {
+    if (n_children()) return child(0).stype();
+    else              return dt::SType::VOID;
+  } else {
+    return stype();
+  }
+}
+
 dt::LType Column::ltype() const noexcept {
   return dt::stype_to_ltype(impl_->stype());
 }
@@ -273,8 +282,7 @@ static inline py::oobj getelem(const Column& col, size_t i) {
 }
 
 py::oobj Column::get_element_as_pyobject(size_t i) const {
-  dt::SType st = type().is_categorical()? child(0).stype()
-                                        : stype();
+  dt::SType st = data_stype();
 
   switch (st) {
     case dt::SType::VOID:    return py::None();
@@ -328,8 +336,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
 }
 
 bool Column::get_element_isvalid(size_t i) const {
-  dt::SType st = type().is_categorical()? child(0).stype()
-                                        : stype();
+  dt::SType st = data_stype();
 
   switch (st) {
     case dt::SType::VOID: return false;
