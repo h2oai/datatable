@@ -500,10 +500,6 @@ DECLARE_METHOD(&PyFExpr::nth)
     ->arg_names({"n"})
     ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
-
-oobj PyFExpr::nunique(const XArgs&) {
-  auto nuniqueFn = oobj::import("datatable", "nunique");
-  return nuniqueFn.call({this});
 }
 
 DECLARE_METHOD(&PyFExpr::nunique)

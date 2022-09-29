@@ -35,10 +35,11 @@ class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32_t n_;
+    std::string dropna_;
     size_t : 32;
 
   public:
-    FExpr_Nth(ptrExpr&& arg, int32_t n)
+    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string dropna)
       : arg_(std::move(arg)),
         n_(n)
         {}
@@ -47,11 +48,6 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-      out += ')';
-      return out;
-    }
-  
-
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe inputs = arg_->evaluate_n(ctx);
       Workframe outputs(ctx);
@@ -92,15 +88,44 @@ class FExpr_Nth : public FExpr_Func {
     template <typename T>
     Column make(Column&& col, const Groupby& gby, int32_t n) const {
       return Column(new Nth_ColumnImpl<T>(std::move(col), gby, n));
+<<<<<<< HEAD
+=======
+    }
+
+};
+
+>>>>>>> 5a379979 (skeleton for dropna logic)
 
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto cols = args[0].to_oobj();
   auto n = args[1].to<int32_t>(0);
+<<<<<<< HEAD
 
   return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n));
 
+=======
+  auto dropna = args[2].to<std::string>("None");
+  bool dropna_check = dropna == "any" || dropna == "all" || dropna == "None";
+  if (!dropna_check) {
+    throw ValueError() << "Parameter `dropna` in nth() should be "
+        "either `None`, `any`, or `all`";
+  }
+  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, dropna));
+>>>>>>> 5a379979 (skeleton for dropna logic)
 
 }
 
 
+<<<<<<< HEAD
+=======
+DECLARE_PYFN(&pyfn_nth)
+    ->name("nth")
+    //->docs(doc_dt_nth)
+    ->arg_names({"cols", "n", "dropna"})
+    ->n_positional_args(1)
+    ->n_positional_or_keyword_args(2)
+    ->n_required_args(1);
+
+
+>>>>>>> 5a379979 (skeleton for dropna logic)
 }}  // dt::expr
