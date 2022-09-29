@@ -25,8 +25,7 @@
 #include "stype.h"
 namespace dt {
 
-
-template<typename T, bool SKIPNA>
+template<typename T>
 class Nth_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -74,15 +73,7 @@ class Nth_ColumnImpl : public Virtual_ColumnImpl {
 
       bool isvalid = false;
       if (ni >= i0 && ni < i1){
-        if (SKIPNA){
-          size_t ii = ni;
-          while (ii < i1 && !isvalid) {
-            isvalid = col_.get_element(ii, out);
-            ii++;
-          }
-        } else {
-          isvalid = col_.get_element(ni, out);
-        }
+        isvalid = col_.get_element(ni, out);
       }
       return isvalid;
     }
