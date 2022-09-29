@@ -25,6 +25,9 @@
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
 #include "python/xargs.h"
+#include "expr/fnary/fnary.h"
+#include "expr/fexpr_list.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -61,6 +64,10 @@ class FExpr_Nth : public FExpr_Func {
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
       if (!gby) gby = Groupby::single_group(ctx.nrows());
+      if (dropna_ != "None"){
+        Column all_ = Column(new FExpr_RowAll());         
+
+      }
 
       for (size_t i = 0; i < inputs.ncols(); ++i) {
         auto coli = inputs.retrieve_column(i);
@@ -113,6 +120,13 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
     throw ValueError() << "Parameter `dropna` in nth() should be "
         "either `None`, `any`, or `all`";
   }
+  // ptrExpr a;
+  //         a = FExpr_List::empty();
+  //   for (auto arg : args.varargs()) {
+  //     static_cast<FExpr_List*>(a.get())->add_expr(as_fexpr(arg));
+  //   }
+  // ptrExpr b;
+  // b = PyFExpr::make(new FExpr_RowAll(std::move(a)));
   return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, dropna));
 
 }
