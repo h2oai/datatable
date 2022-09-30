@@ -36,14 +36,14 @@ class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32_t n_;
-    std::string dropna_;
+    std::string skipna_;
     size_t : 32;
 
   public:
-    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string dropna)
+    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string skipna)
       : arg_(std::move(arg)),
         n_(n),
-        dropna_(dropna) {}
+        skipna_(skipna) {}
 
 
     std::string repr() const override {
@@ -52,8 +52,8 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-      out += ", dropna=";
-      out += dropna_;
+      out += ", skipna=";
+      out += skipna_;
       out += ')';
       return out;
     }
@@ -64,10 +64,10 @@ class FExpr_Nth : public FExpr_Func {
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
       if (!gby) gby = Groupby::single_group(ctx.nrows());
-      if (dropna_ != "None"){
-        Column all_ = Column(new FExpr_RowAll());         
+      // if (skipna_ != "None"){
+      //   Column all_ = Column(new FExpr_RowAll());         
 
-      }
+      // }
 
       for (size_t i = 0; i < inputs.ncols(); ++i) {
         auto coli = inputs.retrieve_column(i);
@@ -114,20 +114,20 @@ class FExpr_Nth : public FExpr_Func {
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto cols = args[0].to_oobj();
   auto n = args[1].to<int32_t>(0);
-  auto dropna = args[2].to<std::string>("None");
-  bool dropna_check = dropna == "any" || dropna == "all" || dropna == "None";
-  if (!dropna_check) {
-    throw ValueError() << "Parameter `dropna` in nth() should be "
+  auto skipna = args[2].to<std::string>("None");
+  bool skipna_check = skipna == "any" || skipna == "all" || skipna == "None";
+  if (!skipna_check) {
+    throw ValueError() << "Parameter `skipna` in nth() should be "
         "either `None`, `any`, or `all`";
   }
-  // ptrExpr a;
-  //         a = FExpr_List::empty();
-  //   for (auto arg : args.varargs()) {
-  //     static_cast<FExpr_List*>(a.get())->add_expr(as_fexpr(arg));
-  //   }
-  // ptrExpr b;
-  // b = PyFExpr::make(new FExpr_RowAll(std::move(a)));
-  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, dropna));
+  ptrExpr a;
+          a = FExpr_List::empty();
+    for (auto arg : args.varargs()) {
+      static_cast<FExpr_List*>(a.get())->add_expr(as_fexpr(arg));
+    }
+  ptrExpr b;
+  b = Column(new FExpr_RowAll(std::move(a)));
+  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, skipna));
 
 }
 
@@ -135,7 +135,7 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
 DECLARE_PYFN(&pyfn_nth)
     ->name("nth")
     //->docs(doc_dt_nth)
-    ->arg_names({"cols", "n", "dropna"})
+    ->arg_names({"cols", "n", "skipna"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(2)
     ->n_required_args(1);
