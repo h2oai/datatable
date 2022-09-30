@@ -139,6 +139,8 @@
     -[enh] :func:`fread()` now supports reading from public S3 buckets,
         when the source has a format of ``s3://bucket-name/key-name``. [#3302]
 
+    -[enh] Header detection heuristics has been improved for CSV files. [#3363]
+
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 
