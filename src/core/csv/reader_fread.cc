@@ -709,7 +709,7 @@ void FreadReader::detect_header() {
 
   if (ncols_header != sncols && n_sample_lines > 0 && !fill) {
     header = true;
-    D() << "`header` determined to be True because the first line contains "
+    D() << "`header` determined to be `True` because the first line contains "
            "different number of columns (" << ncols_header << ") than the rest "
            "of the file (" << ncols << ")";
     if (ncols_header > sncols) {
@@ -727,7 +727,7 @@ void FreadReader::detect_header() {
           !dt::read::parser_infos[saved_types[j]].type().is_string() &&
           saved_types[j] != dt::read::PT::Void) {
         header = true;
-        D() << "`header` determined to be True due to column " << j + 1
+        D() << "`header` determined to be `True` due to column " << j + 1
             << " containing a string on row 1 and type "
             << dt::read::parser_infos[saved_types[j]].name()
             << " in the rest of the sample";

@@ -459,7 +459,7 @@ def test_issue939(capsys):
     assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
     out, err = capsys.readouterr()
     assert not err
-    assert "`header` determined to be False" in out
+    assert "`header` determined to be `False`" in out
     assert "Sampled 18 rows" in out
     assert "Type codes (jump 0): isb" in out
     assert "columns need to be re-read" not in out
