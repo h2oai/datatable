@@ -35,11 +35,11 @@ class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32_t n_;
-    std::string dropna_;
+    std::string skipna_;
     size_t : 32;
 
   public:
-    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string dropna)
+    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string skipna)
       : arg_(std::move(arg)),
         n_(n)
         {}
@@ -48,12 +48,6 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-    Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe inputs = arg_->evaluate_n(ctx);
-      Workframe outputs(ctx);
-      Groupby gby = ctx.get_groupby();
-
-      if (!gby) gby = Groupby::single_group(ctx.nrows()); 
 
       for (size_t i = 0; i < inputs.ncols(); ++i) {
         auto coli = inputs.retrieve_column(i);
