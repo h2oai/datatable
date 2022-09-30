@@ -745,7 +745,7 @@ void FreadReader::detect_header() {
   }
   if (all_strings) {
     header = true;
-    D() << "`header` determined to be `True` because all inputs columns are "
+    D() << "`header` determined to be `True` because all input columns are "
            "strings/voids and better guess is not possible";
   } else {
     header = false;
