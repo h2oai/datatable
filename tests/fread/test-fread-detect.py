@@ -71,6 +71,14 @@ def test_fread_headers_with_blanks():
     assert f0[:, -2:].to_list() == [[None] * 3, [2865] * 3]
 
 
+def test_fread_headers_first_colname_missing():
+    DT = dt.fread(text=",first_name,last_name\n0,John,Doe\n1,Jane,Doe\n2,J,D")
+    DT_ref = dt.Frame(C0=[0, 1, 2],
+                      first_name = ["John", "Jane", "J"],
+                      last_name = ["Doe", "Doe", "D"])
+    assert_equals(DT, DT_ref)
+
+
 
 #-------------------------------------------------------------------------------
 # Detect separator

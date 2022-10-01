@@ -333,17 +333,12 @@ def test_issue_643():
 
 
 def test_issue_664(capsys):
-    f = dt.fread("x\nA B 2\n\ny\n", sep=" ", fill=True, verbose=True,
+    DT = dt.fread("x\nA B 2\n\ny\n", sep=" ", fill=True, verbose=True,
                  skip_blank_lines=True)
     out, err = capsys.readouterr()
     assert not err
-    assert "Too few rows allocated" not in out
-    assert "we know nrows=3 exactly" in out
-    frame_integrity_check(f)
-    assert f.shape == (3, 3)
-    assert f.to_list() == [["x", "A", "y"],
-                           [None, "B", None],
-                           [None, 2, None]]
+    DT_ref = dt.Frame(x=["A", "y"], C0=["B", None], C1=[2, None])
+    assert_equals(DT, DT_ref)
 
 
 def test_issue_670():
@@ -464,7 +459,7 @@ def test_issue939(capsys):
     assert df.stypes == (dt.stype.int32, dt.stype.str32, dt.stype.bool8)
     out, err = capsys.readouterr()
     assert not err
-    assert "`header` determined to be False" in out
+    assert "`header` determined to be `False`" in out
     assert "Sampled 18 rows" in out
     assert "Type codes (jump 0): isb" in out
     assert "columns need to be re-read" not in out
