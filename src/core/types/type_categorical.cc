@@ -120,6 +120,12 @@ size_t Type_Cat::hash() const noexcept {
   *
   * The following type casts are currently supported:
   *   * void    -> cat*<T>
+  *   * bool    -> cat*<T>
+  *   * int*    -> cat*<T>
+  *   * date32  -> cat*<T>
+  *   * time64  -> cat*<T>
+  *   * float*  -> cat*<T>
+  *   * str*    -> cat*<T>
   *   * obj64   -> cat*<T>
   */
 Column Type_Cat::cast_column(Column&& col) const {
@@ -127,11 +133,22 @@ Column Type_Cat::cast_column(Column&& col) const {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), make_type());
 
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::DATE32:
+    case SType::INT32:
+    case SType::TIME64:
+    case SType::INT64:
+    case SType::FLOAT32:
+    case SType::FLOAT64:
+    case SType::STR32:
+    case SType::STR64:
     case SType::OBJ: {
       switch (stype()) {
-        case SType::CAT8:  cast_obj_column_<uint8_t>(col); break;
-        case SType::CAT16: cast_obj_column_<uint16_t>(col); break;
-        case SType::CAT32: cast_obj_column_<uint32_t>(col); break;
+        case SType::CAT8:  cast_column_impl<uint8_t>(col); break;
+        case SType::CAT16: cast_column_impl<uint16_t>(col); break;
+        case SType::CAT32: cast_column_impl<uint32_t>(col); break;
         default: throw RuntimeError() << "Unknown categorical type";
       }
       return std::move(col);
@@ -152,7 +169,7 @@ Column Type_Cat::cast_column(Column&& col) const {
   * finally assigning it to `col`.
   */
 template <typename T>
-void Type_Cat::cast_obj_column_(Column& col) const {
+void Type_Cat::cast_column_impl(Column& col) const {
   size_t nrows = col.nrows(); // save nrows as `col` will be modified in-place
 
   // First, cast `col` to the requested `elementType_` and obtain
@@ -172,8 +189,8 @@ void Type_Cat::cast_obj_column_(Column& col) const {
 
   if (gb.size() > MAX_CATS) {
     throw ValueError() << "Number of categories in the column is `" << gb.size()
-      << "`, that is larger than " << to_string() << " type "
-      << "can accomodate, i.e. `" << MAX_CATS << "`";
+      << "`, that is larger than " << to_string() << " type supports, "
+      << "i.e. `" << MAX_CATS << "`";
   }
 
   // Fill out two buffers:
