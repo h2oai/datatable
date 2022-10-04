@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2021 H2O.ai
+# Copyright 2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -116,8 +116,8 @@ def test_create_too_many_cats_error(t):
     src = list(range(1000))
 
     if t is dt.Type.cat8:
-        msg = r"Number of categories in the column is 1000, that is larger than cat8\(int32\) " \
-               "type can accomodate, i.e. 256"
+        msg = "Number of categories in the column is 1000, that is larger " \
+              r"than cat8\(int32\) type supports, i.e. 256"
         with pytest.raises(ValueError, match=msg):
             DT = dt.Frame(src, types = [t(dt.Type.int32)])
     else:
@@ -261,25 +261,173 @@ def test_create_multicolumn(t):
 # Casting to other types
 #-------------------------------------------------------------------------------
 
-@pytest.mark.parametrize('t', [dt.Type.cat8,
-                               dt.Type.cat16,
-                               dt.Type.cat32])
-def test_void_to_cat(t):
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_void_to_cat(cat_type):
     src = [None] * 11
     DT = dt.Frame(src)
-    DT[0] = t(dt.Type.str32)
-    DT_ref = dt.Frame(src, type=t(dt.Type.str32))
+    DT[0] = cat_type(dt.Type.str32)
+    DT_ref = dt.Frame(src, type=cat_type(dt.Type.str32))
     assert_equals(DT, DT_ref)
 
 
-@pytest.mark.parametrize('t', [dt.Type.cat8,
-                               dt.Type.cat16,
-                               dt.Type.cat32])
-def test_obj_to_cat(t):
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_bool_to_cat(cat_type):
+    src = [True, False, False, False, True, True]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.bool8)
+    DT_ref = dt.Frame(src, type=cat_type(dt.Type.bool8))
+    assert_equals(DT, DT_ref)
+
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('type', [dt.Type.int8,
+                                  dt.Type.int16,
+                                  dt.Type.int32,
+                                  dt.Type.int64])
+def test_int_to_cat(cat_type, type):
+    src = [100, 500, 100500, 500, 100, 1]
+    DT = dt.Frame(src, type=type)
+    DT[0] = cat_type(type)
+    DT_ref = dt.Frame(src, type=cat_type(type))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('type', [dt.Type.float32,
+                                  dt.Type.float64])
+def test_float_to_cat(cat_type, type):
+    src = [100.1, -3.14, 500.1, 100500.5, None, 100500900.9, None]
+    DT = dt.Frame(src, type=type)
+    DT[0] = cat_type(type)
+    DT_ref = dt.Frame(src, type=cat_type(type))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('type', [dt.Type.str32,
+                                  dt.Type.str64])
+def test_str_to_cat(cat_type, type):
+    src = ["cat", "dog", "mouse", "dog", "mouse", "a"]
+    DT = dt.Frame(src, type=type)
+    DT[0] = cat_type(type)
+    DT_ref = dt.Frame(src, type=cat_type(type))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('type', [dt.Type.date32,
+                                  dt.Type.time64])
+def test_str_to_cat(cat_type, type):
+    from datetime import datetime as d
+    src = [d(1991, 1, 9, 10, 2, 3, 500),
+           d(2014, 7, 2, 1, 3, 5, 100),
+           d(2021, 2, 2, 1, 3, 5, 1000),
+           d(2014, 7, 2, 1, 3, 5, 100),
+           d(2020, 2, 22, 1, 3, 5, 129),
+           d(2020, 2, 22, 1, 3, 5, 129),
+           d(1950, 8, 2, 4, 3, 5, 10)]
+    DT = dt.Frame(src, type=type)
+    print(DT)
+    DT[0] = cat_type(type)
+    print(DT)
+    DT_ref = dt.Frame(src, type=cat_type(type))
+    print(DT_ref)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_obj_to_cat(cat_type):
     src = [None, "cat", "cat", "dog", "mouse", None, "panda", "dog"]
     DT = dt.Frame(A=src, type=object)
-    DT['A'] = t(dt.Type.str32)
-    DT_ref = dt.Frame(A=src, type=t(dt.Type.str32))
+    DT['A'] = cat_type(dt.Type.str32)
+    DT_ref = dt.Frame(A=src, type=cat_type(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_str_to_cat_bool(cat_type):
+    src = ["True", "weird", "False", "False", "None", "True", "True"]
+    src_ref = [True, None, False, False, None, True, True]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.bool8)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.bool8))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_bool_to_cat_str(cat_type):
+    src = [True, None, False, False, None, True, True]
+    src_ref = ["True", None, "False", "False", None, "True", "True"]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.str32)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_str_to_cat_int(cat_type):
+    src = ["weird", "500", "100500", None, "100500900"]
+    src_ref = [None, 500, 100500, None, 100500900]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.int32)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.int32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_int_to_cat_str(cat_type):
+    src = [None, 500, 100500, None, 100500900]
+    src_ref = [None, "500", "100500", None, "100500900"]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.str32)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_str_to_cat_float(cat_type):
+    src = ["100.1", "500.1", "100500.5", None, "100500900.9", "yeah"]
+    src_ref = [100.1, 500.1, 100500.5, None, 100500900.9, None]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.float32)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.float32))
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_float_to_cat_str(cat_type):
+    src = [100.1, 500.1, 100500.5, None, 100500900.9, None]
+    src_ref = ["100.1", "500.1", "100500.5", None, "100500900.9", None]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.str32)
+    DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.str32))
     assert_equals(DT, DT_ref)
 
 
