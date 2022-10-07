@@ -120,7 +120,7 @@ DECLARE_PYFN(&fn_match)
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(1)
     ->n_keyword_args(1)
-    ->arg_names({"column", "pattern", "icase"});
+    ->arg_names({"cols", "pattern", "icase"});
 
 
 
