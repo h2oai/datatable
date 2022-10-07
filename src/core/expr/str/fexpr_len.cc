@@ -80,7 +80,7 @@ DECLARE_PYFN(&fn_len)
     ->docs(doc_str_len)
     ->n_required_args(1)
     ->n_positional_args(1)
-    ->arg_names({"column"});
+    ->arg_names({"cols"});
 
 
 
