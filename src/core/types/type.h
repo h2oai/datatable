@@ -101,6 +101,7 @@ class Type {
     bool is_numeric_or_void() const;
     bool is_object() const;
     bool is_string() const;
+    bool is_string_or_void() const;
     bool is_temporal() const;
     bool is_void() const;
 

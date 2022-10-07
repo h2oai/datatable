@@ -452,10 +452,10 @@ def test_0x2(tempfile):
     assert_equals(d1, dt.Frame(abcd=[], e=[]))
 
 
-def test_1x2_empty():
+def test_0x2_empty():
     d0 = dt.fread(text=",")
     frame_integrity_check(d0)
-    assert d0.shape == (1, 2)  # should this be 0x2 ?
+    assert d0.shape == (0, 2)
     assert d0.names == ("C0", "C1")
 
 

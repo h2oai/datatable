@@ -709,7 +709,7 @@ void FreadReader::detect_header() {
 
   if (ncols_header != sncols && n_sample_lines > 0 && !fill) {
     header = true;
-    D() << "`header` determined to be True because the first line contains "
+    D() << "`header` determined to be `True` because the first line contains "
            "different number of columns (" << ncols_header << ") than the rest "
            "of the file (" << ncols << ")";
     if (ncols_header > sncols) {
@@ -727,7 +727,7 @@ void FreadReader::detect_header() {
           !dt::read::parser_infos[saved_types[j]].type().is_string() &&
           saved_types[j] != dt::read::PT::Void) {
         header = true;
-        D() << "`header` determined to be True due to column " << j + 1
+        D() << "`header` determined to be `True` due to column " << j + 1
             << " containing a string on row 1 and type "
             << dt::read::parser_infos[saved_types[j]].name()
             << " in the rest of the sample";
@@ -738,19 +738,19 @@ void FreadReader::detect_header() {
 
   bool all_strings = true;
   for (size_t j = 0; j < ncols; ++j) {
-    if (!dt::read::parser_infos[header_types[j]].type().is_string()) {
+    if (!dt::read::parser_infos[header_types[j]].type().is_string_or_void()) {
       all_strings = false;
       break;
     }
   }
   if (all_strings) {
     header = true;
-    D() << "`header` determined to be True because all inputs columns are "
-           "strings and better guess is not possible";
+    D() << "`header` determined to be `True` because all input columns are "
+           "strings/voids and better guess is not possible";
   } else {
     header = false;
-    D() << "`header` determined to be False because some of the fields on "
-           "the first row are not of the string type";
+    D() << "`header` determined to be `False` because some of the fields on "
+           "the first row are not of the string/void type";
     // If header is false, then the first row also belongs to the sample.
     // Accurate count of sample lines is needed so that we can allocate
     // the correct amount of rows for the output Frame.
