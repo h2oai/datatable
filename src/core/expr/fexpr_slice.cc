@@ -151,7 +151,7 @@ static py::oobj py_slice(const py::XArgs& args) {
 DECLARE_PYFN(&py_slice)
     ->name("slice")
     ->docs(dt::doc_str_slice)
-    ->arg_names({"column", "start", "stop", "step"})
+    ->arg_names({"col", "start", "stop", "step"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(3)
     ->n_required_args(3);

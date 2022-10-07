@@ -144,20 +144,21 @@ Column Type_Cat::cast_column(Column&& col) const {
     case SType::FLOAT64:
     case SType::STR32:
     case SType::STR64:
-    case SType::OBJ: {
+    case SType::OBJ:
       switch (stype()) {
-        case SType::CAT8:  cast_column_impl<uint8_t>(col); break;
-        case SType::CAT16: cast_column_impl<uint16_t>(col); break;
-        case SType::CAT32: cast_column_impl<uint32_t>(col); break;
+        case SType::CAT8:  cast_non_compound<uint8_t>(col); break;
+        case SType::CAT16: cast_non_compound<uint16_t>(col); break;
+        case SType::CAT32: cast_non_compound<uint32_t>(col); break;
         default: throw RuntimeError() << "Unknown categorical type";
       }
-      return std::move(col);
-    }
+      break;
 
     default:
-      throw NotImplError() << "Unable to cast column of type `" << col.type()
+      throw NotImplError() << "Unable to cast a column of type `" << col.type()
                            << "` into `" << to_string() << "`";
   }
+
+  return std::move(col);
 }
 
 
@@ -169,7 +170,7 @@ Column Type_Cat::cast_column(Column&& col) const {
   * finally assigning it to `col`.
   */
 template <typename T>
-void Type_Cat::cast_column_impl(Column& col) const {
+void Type_Cat::cast_non_compound(Column& col) const {
   size_t nrows = col.nrows(); // save nrows as `col` will be modified in-place
 
   // First, cast `col` to the requested `elementType_` and obtain

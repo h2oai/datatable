@@ -31,7 +31,7 @@ namespace dt {
 class Type_Cat : public TypeImpl {
   private:
     template <typename T>
-    void cast_column_impl(Column& col) const;
+    void cast_non_compound(Column& col) const;
 
   protected:
     Type elementType_;
