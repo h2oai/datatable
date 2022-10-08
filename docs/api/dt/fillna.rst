@@ -84,7 +84,7 @@
          7 |     2      107      2      8
         [8 rows x 4 columns]
 
-    Fill multiple columns in the presence of :func:`by()`::
+    Fill each column with a different value, in the presence of :func:`by()`::
 
         >>> DT[:, dt.fillna(f[:], dt.mean(f[:])), by('building')]
            | building     var1     var2     var3     var4
