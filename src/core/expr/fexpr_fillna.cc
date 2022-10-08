@@ -126,7 +126,7 @@ class FExpr_FillNA : public FExpr_Func {
           SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
           repl_col.cast_inplace(out_stype);
           orig_col.cast_inplace(out_stype);
-          Column cond = evaluate1(std::move(cond_col), out_stype);
+          Column cond = evaluate1(std::move(cond_col));
           Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
           wff.replace_column(i, std::move(out));
           }
@@ -168,8 +168,8 @@ class FExpr_FillNA : public FExpr_Func {
       return wf;
     }
 
-    Column evaluate1(Column&& col, SType stype) const {
-      switch (stype) {
+    Column evaluate1(Column&& col) const {
+      switch (col.stype()) {
         case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
         case SType::BOOL:
         case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
