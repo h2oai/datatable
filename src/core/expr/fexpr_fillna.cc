@@ -185,7 +185,7 @@ static py::oobj pyfn_fillna(const py::XArgs &args) {
 DECLARE_PYFN(&pyfn_fillna)
     ->name("fillna")
     ->docs(doc_dt_fillna)
-    ->arg_names({"cols", "reverse"})
+    ->arg_names({"cols", "value", "reverse"})
     ->n_required_args(1)
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(2);
