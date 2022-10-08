@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/latent.h"
+#include "column/const.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
@@ -125,11 +126,7 @@ class FExpr_FillNA : public FExpr_Func {
           SType out_stype = common_stype(orig_col.stype(), repl_col.stype());
           repl_col.cast_inplace(out_stype);
           orig_col.cast_inplace(out_stype);
-          Column cond;
-          if (cond_col.stype() == SType::STR32 || cond_col.stype() == SType::STR64) {
-            cond = Column(new Isna_ColumnImpl<CString>(std::move(cond_col)));
-          }
-          else {cond = Column(new Isna_ColumnImpl<int8_t>(std::move(cond_col)));}
+          Column cond = evaluate1(std::move(cond_col), out_stype);
           Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
           wff.replace_column(i, std::move(out));
           }
@@ -169,6 +166,24 @@ class FExpr_FillNA : public FExpr_Func {
           }
 
       return wf;
+    }
+
+    Column evaluate1(Column&& col, SType stype) const {
+      switch (stype) {
+        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+        case SType::BOOL:
+        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+        case SType::DATE32:
+        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+        case SType::TIME64:
+        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
+        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
+        case SType::STR32:
+        case SType::STR64:  return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+        default: throw RuntimeError();
+      }
     }
 
 };
