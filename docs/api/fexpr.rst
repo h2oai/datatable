@@ -160,6 +160,9 @@
         * - :meth:`.as_type()`
           - Same as :func:`dt.as_type()`.
 
+        * - :meth:`.categories()`
+          - Same as :func:`dt.categories()`.
+
         * - :meth:`.count()`
           - Same as :func:`dt.count()`.
 
@@ -303,6 +306,7 @@
     .__xor__()      <fexpr/__xor__>
     .alias()        <fexpr/alias>
     .as_type()      <fexpr/as_type>
+    .categories()   <fexpr/categories>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
     .cummin()       <fexpr/cummin>
