@@ -57,16 +57,11 @@ class FExpr_Categories : public FExpr_Func {
       for (size_t i = 0; i < wf.ncols(); ++i) {
         Column col = wf.retrieve_column(i);
         if (!col.type().is_categorical()) {
-          throw TypeError()
-            << "Invalid column of type `" << col.stype()
+          throw TypeError() << "Invalid column of type `" << col.stype()
             << "` in " << repr();
         }
-        Column categories;
-        if (col.n_children()) {
-          categories = Column(col.child(0));
-        } else {
-          categories = Const_ColumnImpl::make_na_column(1);
-        }
+        Column categories = col.n_children()? col.child(0)
+                                            : Const_ColumnImpl::make_na_column(1);
         wf.replace_column(i, std::move(categories));
       }
       return wf;
