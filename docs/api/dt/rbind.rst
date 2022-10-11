@@ -17,17 +17,26 @@
     frames: Frame | List[Frame] | None
 
     force: bool
-        If True, then the frames are allowed to have mismatching set of
+        If `True`, then the frames are allowed to have mismatching set of
         columns (either different counts or different names). Any gaps in
         the data will be filled with NAs.
 
-        In addition, when this parameter is True, rbind will no longer
+        In addition, when this parameter is `True`, rbind will no longer
         produce an error when combining columns of unrelated types.
         Instead, both columns will be converted into strings.
 
     bynames: bool
+        Whether to match column names when rbinding.
 
     return: Frame
+        A new frame that is created by appending rows from `frames`.
+
+
+    See also
+    --------
+    - :func:`cbind()` -- function for col-binding several frames.
+    - :meth:`dt.Frame.rbind()` -- Frame method for rbinding some frames to
+      another.
 
 
     Examples
@@ -108,10 +117,3 @@
          4 |      4     181     50
          5 |      5     169     67
         [6 rows x 3 columns]
-
-
-    See also
-    --------
-    - :func:`cbind()` -- function for col-binding several frames.
-    - :meth:`dt.Frame.rbind()` -- Frame method for rbinding some frames to
-      another.

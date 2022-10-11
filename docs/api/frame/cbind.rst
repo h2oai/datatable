@@ -33,11 +33,11 @@
     ----------
     frames: Frame | List[Frame] | None
         The list/tuple/sequence/generator expression of Frames to append
-        to the current frame. The list may also contain `None` values,
+        to the current frame. It may also contain `None` values,
         which will be simply skipped.
 
     force: bool
-        If True, allows Frames to be appended even if they have unequal
+        If `True`, allows Frames to be appended even if they have unequal
         number of rows. The resulting Frame will have number of rows equal
         to the largest among all Frames. Those Frames which have less
         than the largest number of rows, will be padded with NAs (with the
@@ -72,6 +72,14 @@
         >>> df["newcol"] = frame1
 
 
+    See also
+    --------
+    - :func:`datatable.cbind` -- function for cbinding frames
+      "out-of-place" instead of in-place;
+
+    - :meth:`.rbind()` -- method for row-binding frames.
+
+
     Examples
     --------
     >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
@@ -86,10 +94,3 @@
      2 |     3      0     -5
     [3 rows x 3 columns]
 
-
-    See also
-    --------
-    - :func:`datatable.cbind` -- function for cbinding frames
-      "out-of-place" instead of in-place;
-
-    - :meth:`.rbind()` -- method for row-binding frames.
