@@ -12,5 +12,5 @@
 
     See also
     --------
-    - :meth:`.cat8(T)` -- another categorical type, but with 8-bit codes.
-    - :meth:`.cat32(T)` -- another categorical type, but with 32-bit codes.
+    - :meth:`.cat8(T)` -- categorical type with 8-bit codes.
+    - :meth:`.cat32(T)` -- categorical type with 32-bit codes.
