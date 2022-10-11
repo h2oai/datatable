@@ -72,6 +72,14 @@
         >>> df["newcol"] = frame1
 
 
+    See also
+    --------
+    - :func:`datatable.cbind` -- function for cbinding frames
+      "out-of-place" instead of in-place;
+
+    - :meth:`.rbind()` -- method for row-binding frames.
+
+
     Examples
     --------
     >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
@@ -86,10 +94,3 @@
      2 |     3      0     -5
     [3 rows x 3 columns]
 
-
-    See also
-    --------
-    - :func:`datatable.cbind` -- function for cbinding frames
-      "out-of-place" instead of in-place;
-
-    - :meth:`.rbind()` -- method for row-binding frames.
