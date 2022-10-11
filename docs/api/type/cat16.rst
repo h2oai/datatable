@@ -10,7 +10,7 @@
     is a value of type `T`.
 
 
-    See Also
+    See also
     --------
     - :meth:`.cat8(T)` -- another categorical type, but with 8-bit codes.
     - :meth:`.cat32(T)` -- another categorical type, but with 32-bit codes.
