@@ -13,16 +13,26 @@
     Parameters
     ----------
     frames: Frame | List[Frame] | None
+        The list/tuple/sequence/generator expression of Frames to append.
+        It may also contain `None` values, which will be simply
+        skipped.
 
     force: bool
+        If `True`, allows Frames to be appended even if they have unequal
+        number of rows. The resulting Frame will have number of rows equal
+        to the largest among all Frames. Those Frames which have less
+        than the largest number of rows, will be padded with NAs (with the
+        exception of Frames having just 1 row, which will be replicated
+        instead of filling with NAs).
 
     return: Frame
+        A new frame that is created by appending columns from `frames`.
 
 
     See also
     --------
     - :func:`rbind()` -- function for row-binding several frames.
-    - :meth:`dt.Frame.cbind()` -- Frame method for cbinding some frames to
+    - :meth:`dt.Frame.cbind()` -- Frame method for cbinding several frames to
       another.
 
 
