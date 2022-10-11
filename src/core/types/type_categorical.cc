@@ -149,13 +149,14 @@ Column Type_Cat::cast_column(Column&& col) const {
         case SType::CAT8:  cast_non_compound<uint8_t>(col); break;
         case SType::CAT16: cast_non_compound<uint16_t>(col); break;
         case SType::CAT32: cast_non_compound<uint32_t>(col); break;
-        default: throw RuntimeError() << "Unknown categorical type";
+        default: throw RuntimeError()
+          << "Unknown categorical type: " << stype();
       }
       break;
 
     default:
-      throw NotImplError() << "Unable to cast a column of type `" << col.type()
-                           << "` into `" << to_string() << "`";
+      throw NotImplError() << "Unable to cast a column of type `"
+        << col.type() << "` into `" << to_string() << "`";
   }
 
   return std::move(col);

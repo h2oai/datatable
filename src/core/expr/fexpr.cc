@@ -353,6 +353,16 @@ DECLARE_METHOD(&PyFExpr::as_type)
     ->n_required_args(1);
 
 
+oobj PyFExpr::categories(const XArgs&) {
+  auto categoriesFn = oobj::import("datatable", "categories");
+  return categoriesFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::categories)
+    ->name("categories")
+    ->docs(dt::doc_FExpr_categories);
+
+
 oobj PyFExpr::count(const XArgs&) {
   auto countFn = oobj::import("datatable", "count");
   return countFn.call({this});
