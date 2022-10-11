@@ -330,7 +330,7 @@ def test_str_to_cat(cat_type, type):
                                       dt.Type.cat32])
 @pytest.mark.parametrize('type', [dt.Type.date32,
                                   dt.Type.time64])
-def test_str_to_cat(cat_type, type):
+def test_datetime_to_cat(cat_type, type):
     from datetime import datetime as d
     src = [d(1991, 1, 9, 10, 2, 3, 500),
            d(2014, 7, 2, 1, 3, 5, 100),
@@ -340,11 +340,8 @@ def test_str_to_cat(cat_type, type):
            d(2020, 2, 22, 1, 3, 5, 129),
            d(1950, 8, 2, 4, 3, 5, 10)]
     DT = dt.Frame(src, type=type)
-    print(DT)
     DT[0] = cat_type(type)
-    print(DT)
     DT_ref = dt.Frame(src, type=cat_type(type))
-    print(DT_ref)
     assert_equals(DT, DT_ref)
 
 
@@ -476,3 +473,54 @@ def test_repr_numbers_in_terminal(t):
         " 4 | 7            \n"
         "[5 rows x 1 column]\n"
     )
+
+
+
+#-------------------------------------------------------------------------------
+# Getting categories
+#-------------------------------------------------------------------------------
+
+def test_categories_wrong_type():
+    DT = dt.Frame(range(10))
+    msg = r"Invalid column of type int32 in categories\(f\.C0\)"
+    with pytest.raises(TypeError, match=msg):
+        DT[:, dt.categories(f.C0)]
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_void(cat_type):
+    src = [None] * 11
+    DT = dt.Frame(src, type=cat_type(dt.Type.void))
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame([None])
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_simple(cat_type):
+    src = ["cat", "dog", "mouse", "cat"]
+    DT = dt.Frame([src], type=cat_type(dt.Type.str32))
+    DT_cats = DT[:, dt.categories(f.C0)]
+    DT_ref = dt.Frame(["cat", "dog", "mouse"])
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_multicolumn(cat_type):
+    N = 123
+    src_int = [None, 100, 500, None, 100, 100500, 100, 500] * N
+    src_str = [None, "dog", "mouse", None, "dog", "cat", "dog", "mouse"] * N
+    DT = dt.Frame([src_int, src_str],
+                  types=[cat_type(dt.Type.int32), cat_type(dt.Type.str32)])
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame([[None, 100, 500, 100500],
+                       [None, "cat", "dog", "mouse"]])
+    assert_equals(DT_cats, DT_ref)
+
+
