@@ -131,7 +131,7 @@ def test_create_too_many_cats_error(t):
 @pytest.mark.parametrize('t', [dt.Type.cat8,
                                dt.Type.cat16,
                                dt.Type.cat32])
-def test_create_from_empty(t):
+def test_create_from_zero_rows(t):
     src = [[]]
     DT1 = dt.Frame(src)
     DT2 = dt.Frame(src, types = [t(dt.Type.bool8)])
@@ -504,7 +504,7 @@ def test_categories_wrong_type():
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
                                       dt.Type.cat16,
                                       dt.Type.cat32])
-def test_categories_empty(cat_type):
+def test_categories_zero_rows(cat_type):
     src = [[]]
     data_type = dt.Type.int32
     DT = dt.Frame(src, type=cat_type(data_type))
