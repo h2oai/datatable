@@ -131,6 +131,20 @@ def test_create_too_many_cats_error(t):
 @pytest.mark.parametrize('t', [dt.Type.cat8,
                                dt.Type.cat16,
                                dt.Type.cat32])
+def test_create_from_empty(t):
+    src = [[]]
+    DT1 = dt.Frame(src)
+    DT2 = dt.Frame(src, types = [t(dt.Type.bool8)])
+    assert DT2.type == t(dt.Type.bool8)
+    assert DT1.shape == DT2.shape
+    assert DT1.names == DT2.names
+    assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
+
+
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
 def test_create_from_void(t):
     src = [None] * 10
     DT1 = dt.Frame(src)
@@ -485,6 +499,18 @@ def test_categories_wrong_type():
     msg = r"Invalid column of type int32 in categories\(f\.C0\)"
     with pytest.raises(TypeError, match=msg):
         DT[:, dt.categories(f.C0)]
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_empty(cat_type):
+    src = [[]]
+    data_type = dt.Type.int32
+    DT = dt.Frame(src, type=cat_type(data_type))
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame(src, type=data_type)
+    assert_equals(DT_cats, DT_ref)
 
 
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
