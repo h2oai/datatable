@@ -211,6 +211,8 @@ Workframe FExpr_List::evaluate_j(EvalContext& ctx) const {
   for (const auto& arg : args_) {
     outputs.cbind( arg->evaluate_j(ctx) );
   }
+
+  outputs.sync_grouping_mode();
   return outputs;
 }
 

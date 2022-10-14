@@ -127,6 +127,7 @@ class Workframe {
     // This method ensures that two `Workframe` objects have the
     // same grouping mode. It can either modify itself, or
     // `other` object.
+    void sync_grouping_mode();
     void sync_grouping_mode(Workframe& other);
     void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;

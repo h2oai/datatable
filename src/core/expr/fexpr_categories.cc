@@ -53,6 +53,7 @@ class FExpr_Categories : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
+      Workframe wf_out(ctx);
 
       for (size_t i = 0; i < wf.ncols(); ++i) {
         Column col = wf.retrieve_column(i);
@@ -60,11 +61,13 @@ class FExpr_Categories : public FExpr_Func {
           throw TypeError() << "Invalid column of type `" << col.stype()
             << "` in " << repr();
         }
-        Column categories = col.n_children()? col.child(0)
-                                            : Const_ColumnImpl::make_na_column(1);
-        wf.replace_column(i, std::move(categories));
+        Column col_cats = col.n_children()? col.child(0)
+                                          : Const_ColumnImpl::make_na_column(1);
+        wf_out.add_column(std::move(col_cats), wf.retrieve_name(i), Grouping::GtoFEW);
       }
-      return wf;
+
+      wf_out.sync_grouping_mode();
+      return wf_out;
     }
 
 };
