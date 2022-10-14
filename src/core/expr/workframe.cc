@@ -310,7 +310,7 @@ std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
 // Grouping mode manipulation
 //------------------------------------------------------------------------------
 
-void Workframe::sync_grouping_mode() {
+void Workframe::sync_gtofew_columns() {
   if (ncols() > 1 && grouping_mode_ == Grouping::GtoFEW) {
     for (auto& item : entries_) {
       if (!item.column) continue;  // placeholder column
@@ -320,7 +320,6 @@ void Workframe::sync_grouping_mode() {
       }
     }
   }
-
 }
 
 

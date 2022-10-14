@@ -212,7 +212,7 @@ Workframe FExpr_List::evaluate_j(EvalContext& ctx) const {
     outputs.cbind( arg->evaluate_j(ctx) );
   }
 
-  outputs.sync_grouping_mode();
+  outputs.sync_gtofew_columns();
   return outputs;
 }
 

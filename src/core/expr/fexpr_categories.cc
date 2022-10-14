@@ -66,7 +66,7 @@ class FExpr_Categories : public FExpr_Func {
         wf_out.add_column(std::move(col_cats), wf.retrieve_name(i), Grouping::GtoFEW);
       }
 
-      wf_out.sync_grouping_mode();
+      wf_out.sync_gtofew_columns();
       return wf_out;
     }
 

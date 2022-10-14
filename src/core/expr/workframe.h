@@ -124,10 +124,13 @@ class Workframe {
 
     std::unique_ptr<DataTable> convert_to_datatable() &&;
 
+    // This method promotes workframe to `GtoALL`, in the case
+    // when `GtoFEW` columns have different number of rows.
+    void sync_gtofew_columns();
+
     // This method ensures that two `Workframe` objects have the
     // same grouping mode. It can either modify itself, or
     // `other` object.
-    void sync_grouping_mode();
     void sync_grouping_mode(Workframe& other);
     void sync_grouping_mode(Column& col, Grouping gmode);
     Grouping get_grouping_mode() const;

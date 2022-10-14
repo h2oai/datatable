@@ -68,7 +68,7 @@ Workframe FExpr_Dict::evaluate_n(EvalContext& ctx) const {
     outputs.cbind( std::move(arg_out) );
   }
 
-  outputs.sync_grouping_mode();
+  outputs.sync_gtofew_columns();
   return outputs;
 }
 
