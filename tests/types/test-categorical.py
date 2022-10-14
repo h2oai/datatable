@@ -545,8 +545,8 @@ def test_categories_multicolumn_uneven_ncats(cat_type):
     DT = dt.Frame([src_int, src_str],
                   types=[cat_type(dt.Type.int32), cat_type(dt.Type.str32)])
     DT_cats = DT[:, dt.categories(f[:])]
-    DT_ref = dt.Frame([[None, 100, 500, 100500] + [None]*4,
-                       [None, "cat", "dog"] + [None]*5])
+    DT_ref = dt.Frame([[None, 100, 500, 100500] + [None] * 4,
+                       [None, "cat", "dog"] + [None] * 5])
     assert_equals(DT_cats, DT_ref)
 
 
