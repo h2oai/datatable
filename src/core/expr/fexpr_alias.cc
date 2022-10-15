@@ -58,10 +58,8 @@ Workframe FExpr_Alias::evaluate_n(EvalContext& ctx) const {
   auto gmode = wf.get_grouping_mode();
 
   for (size_t i = 0; i < wf.ncols(); ++i) {
-    Workframe arg_out(ctx);
     Column col = wf.retrieve_column(i);
-    arg_out.add_column(std::move(col), std::string(names_[i]), gmode);
-    wf_out.cbind( std::move(arg_out) );
+    wf_out.add_column(std::move(col), std::string(names_[i]), gmode);
   }
 
   return wf_out;

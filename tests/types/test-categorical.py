@@ -131,6 +131,20 @@ def test_create_too_many_cats_error(t):
 @pytest.mark.parametrize('t', [dt.Type.cat8,
                                dt.Type.cat16,
                                dt.Type.cat32])
+def test_create_from_zero_rows(t):
+    src = [[]]
+    DT1 = dt.Frame(src)
+    DT2 = dt.Frame(src, types = [t(dt.Type.bool8)])
+    assert DT2.type == t(dt.Type.bool8)
+    assert DT1.shape == DT2.shape
+    assert DT1.names == DT2.names
+    assert DT1.to_list() == DT2.to_list()
+    assert_equals(DT2, DT2[:, :])
+
+
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
 def test_create_from_void(t):
     src = [None] * 10
     DT1 = dt.Frame(src)
@@ -490,6 +504,30 @@ def test_categories_wrong_type():
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
                                       dt.Type.cat16,
                                       dt.Type.cat32])
+def test_categories_zero_rows(cat_type):
+    src = [[]]
+    data_type = dt.Type.int32
+    DT = dt.Frame(src, type=cat_type(data_type))
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame(src, type=data_type)
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_zero_rows_casted(cat_type):
+    src = [[]]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.void)
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame(src)
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
 def test_categories_void(cat_type):
     src = [None] * 11
     DT = dt.Frame(src, type=cat_type(dt.Type.void))
@@ -501,26 +539,52 @@ def test_categories_void(cat_type):
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
                                       dt.Type.cat16,
                                       dt.Type.cat32])
-def test_categories_simple(cat_type):
-    src = ["cat", "dog", "mouse", "cat"]
+def test_categories_one_column(cat_type):
+    src = [None, "cat", "dog", None, "mouse", "cat"] * 7
     DT = dt.Frame([src], type=cat_type(dt.Type.str32))
     DT_cats = DT[:, dt.categories(f.C0)]
-    DT_ref = dt.Frame(["cat", "dog", "mouse"])
+    DT_ref = dt.Frame([None, "cat", "dog", "mouse"])
     assert_equals(DT_cats, DT_ref)
 
 
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
                                       dt.Type.cat16,
                                       dt.Type.cat32])
-def test_categories_multicolumn(cat_type):
-    N = 123
-    src_int = [None, 100, 500, None, 100, 100500, 100, 500] * N
-    src_str = [None, "dog", "mouse", None, "dog", "cat", "dog", "mouse"] * N
+def test_categories_one_column_plus_orig(cat_type):
+    src = [None, "cat", "dog", None, "mouse", "cat"]
+    DT = dt.Frame([src], type=cat_type(dt.Type.str32))
+    DT_cats = DT[:, [f.C0, dt.categories(f.C0)]]
+    DT_ref = dt.Frame([src,
+                      [None, "cat", "dog", "mouse"] + [None] * 2],
+                      types=[cat_type(dt.Type.str32), dt.Type.str32])
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_multicolumn_even_ncats(cat_type):
+    src_int = [None, 100, 500, None, 100, 100500, 100, 500]
+    src_str = [None, "dog", "mouse", None, "dog", "cat", "dog", "mouse"]
     DT = dt.Frame([src_int, src_str],
                   types=[cat_type(dt.Type.int32), cat_type(dt.Type.str32)])
     DT_cats = DT[:, dt.categories(f[:])]
     DT_ref = dt.Frame([[None, 100, 500, 100500],
                        [None, "cat", "dog", "mouse"]])
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categories_multicolumn_uneven_ncats(cat_type):
+    src_int = [None, 100, 500, None, 100, 100500, 100, 500]
+    src_str = [None, "dog", None, None, "dog", "cat", "dog", None]
+    DT = dt.Frame([src_int, src_str],
+                  types=[cat_type(dt.Type.int32), cat_type(dt.Type.str32)])
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame([[None, 100, 500, 100500] + [None] * 4,
+                       [None, "cat", "dog"] + [None] * 5])
     assert_equals(DT_cats, DT_ref)
 
 
