@@ -516,6 +516,18 @@ def test_categories_zero_rows(cat_type):
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
                                       dt.Type.cat16,
                                       dt.Type.cat32])
+def test_categories_zero_rows_casted(cat_type):
+    src = [[]]
+    DT = dt.Frame(src)
+    DT[0] = cat_type(dt.Type.void)
+    DT_cats = DT[:, dt.categories(f[:])]
+    DT_ref = dt.Frame(src)
+    assert_equals(DT_cats, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
 def test_categories_void(cat_type):
     src = [None] * 11
     DT = dt.Frame(src, type=cat_type(dt.Type.void))

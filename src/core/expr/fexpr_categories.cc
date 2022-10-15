@@ -61,8 +61,18 @@ class FExpr_Categories : public FExpr_Func {
           throw TypeError() << "Invalid column of type `" << col.stype()
             << "` in " << repr();
         }
-        Column col_cats = col.n_children()? col.child(0)
-                                          : Const_ColumnImpl::make_na_column(1);
+
+        Column col_cats;
+        if (col.n_children()) {
+          // categorical ccolumn is backed by `Categorical_ColumnImpl`
+          xassert(col.n_children() == 1);
+          col_cats = col.child(0);
+        } else {
+          // categorical column is backed by `ConstNa_ColumnImpl`
+          bool ncats = bool(col.nrows());
+          col_cats = Const_ColumnImpl::make_na_column(ncats);
+        }
+
         wf_out.add_column(std::move(col_cats), wf.retrieve_name(i), Grouping::GtoFEW);
       }
 

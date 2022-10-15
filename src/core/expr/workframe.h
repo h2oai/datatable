@@ -124,8 +124,8 @@ class Workframe {
 
     std::unique_ptr<DataTable> convert_to_datatable() &&;
 
-    // This method promotes workframe to `GtoALL`, in the case
-    // when `GtoFEW` columns have different number of rows.
+    // This method promotes `GtoFEW` workframe to `GtoALL`,
+    // in the case columns have different number of rows.
     void sync_gtofew_columns();
 
     // This method ensures that two `Workframe` objects have the
