@@ -310,6 +310,19 @@ std::unique_ptr<DataTable> Workframe::convert_to_datatable() && {
 // Grouping mode manipulation
 //------------------------------------------------------------------------------
 
+void Workframe::sync_gtofew_columns() {
+  if (ncols() <= 1 || grouping_mode_ != Grouping::GtoFEW) return;
+
+  for (auto& item : entries_) {
+    if (!item.column) continue;  // placeholder column
+    if (nrows() != item.column.nrows()) {
+      increase_grouping_mode(Grouping::GtoALL);
+      break;
+    }
+  }
+}
+
+
 void Workframe::sync_grouping_mode(Workframe& other) {
   if (grouping_mode_ != other.grouping_mode_) {
     size_t g1 = static_cast<size_t>(grouping_mode_);
@@ -328,7 +341,7 @@ void Workframe::sync_grouping_mode(Column& col, Grouping gmode) {
     if (g1 < g2) increase_grouping_mode(gmode);
     else         column_increase_grouping_mode(col, gmode, grouping_mode_);
   }
-  xassert(ncols() == 0 || nrows() == col.nrows());
+  xassert(ncols() == 0 || nrows() == col.nrows() || gmode == Grouping::GtoFEW);
 }
 
 
@@ -359,7 +372,7 @@ void Workframe::increase_grouping_mode(Grouping gmode) {
 void Workframe::column_increase_grouping_mode(
     Column& col, Grouping gfrom, Grouping gto)
 {
-  xassert(gfrom != Grouping::GtoFEW && gfrom != Grouping::GtoANY);
+  xassert(gfrom != Grouping::GtoANY);
   xassert(gto != Grouping::GtoFEW && gto != Grouping::GtoANY);
   xassert(static_cast<int>(gfrom) < static_cast<int>(gto));
   if (gfrom == Grouping::SCALAR && gto == Grouping::GtoONE) {
@@ -376,6 +389,9 @@ void Workframe::column_increase_grouping_mode(
       col.apply_rowindex(ctx_.get_ungroup_rowindex());
     }
     xassert(col.nrows() == ctx_.nrows());
+  }
+  else if (gfrom == Grouping::GtoFEW && gto == Grouping::GtoALL) {
+    col.resize(ctx_.nrows());
   }
   else {
     throw RuntimeError() << "Unexpected Grouping mode";  // LCOV_EXCL_LINE
