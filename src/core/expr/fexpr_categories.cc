@@ -64,7 +64,7 @@ class FExpr_Categories : public FExpr_Func {
 
         Column col_cats;
         if (col.n_children()) {
-          // categorical ccolumn is backed by `Categorical_ColumnImpl`
+          // categorical column is backed by `Categorical_ColumnImpl`
           xassert(col.n_children() == 1);
           col_cats = col.child(0);
         } else {
