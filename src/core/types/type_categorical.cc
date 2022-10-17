@@ -146,9 +146,9 @@ Column Type_Cat::cast_column(Column&& col) const {
     case SType::STR64:
     case SType::OBJ:
       switch (stype()) {
-        case SType::CAT8:  cast_non_compound<uint8_t>(col); break;
-        case SType::CAT16: cast_non_compound<uint16_t>(col); break;
-        case SType::CAT32: cast_non_compound<uint32_t>(col); break;
+        case SType::CAT8:  cast_non_compound<int8_t>(col); break;
+        case SType::CAT16: cast_non_compound<int16_t>(col); break;
+        case SType::CAT32: cast_non_compound<int32_t>(col); break;
         default: throw RuntimeError()
           << "Unknown categorical type: " << stype();
       }
@@ -187,7 +187,7 @@ void Type_Cat::cast_non_compound(Column& col) const {
   auto buf_codes_ptr = static_cast<T*>(buf_codes.xptr());
   auto buf_cats_ptr = static_cast<int32_t*>(buf_cats.xptr());
 
-  const size_t MAX_CATS = std::numeric_limits<T>::max() + size_t(1);
+  const size_t MAX_CATS = size_t(1) << (sizeof(T) * 8);
 
   if (gb.size() > MAX_CATS) {
     throw ValueError() << "Number of categories in the column is `" << gb.size()

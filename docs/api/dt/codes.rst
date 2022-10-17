@@ -1,13 +1,13 @@
 
-.. xfunction:: datatable.categories
-    :src: src/core/expr/fexpr_categories.cc pyfn_categories
+.. xfunction:: datatable.codes
+    :src: src/core/expr/fexpr_codes.cc pyfn_codes
     :tests: tests/types/test-categorical.py
-    :cvar: doc_dt_categories
-    :signature: categories(cols)
+    :cvar: doc_dt_codes
+    :signature: codes(cols)
 
     .. x-version-added:: 1.1.0
 
-    Get categories for categorical data.
+    Get integer codes for categorical data.
 
     Parameters
     ----------
@@ -15,7 +15,7 @@
         Input categorical data.
 
     return: FExpr
-        f-expression that returns categories for each column
+        f-expression that returns integer codes for each column
         from `cols`.
 
     except: TypeError
