@@ -8,7 +8,7 @@
     .. x-version-added:: 1.1.0
 
     For each column from `cols` either fill the missing values with a single value, 
-    or fill with the previous or subsequent non-missing values. 
+    or fill with the previous/subsequent non-missing values. 
     In the presence of :func:`by()` the filling is performed group-wise.
 
     Parameters
