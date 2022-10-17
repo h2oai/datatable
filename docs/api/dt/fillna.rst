@@ -16,7 +16,8 @@
     cols: FExpr
         Input columns.
 
-    value: Scalar or FExpr to replace the missing values.
+    value: None | bool | int | float | str | list | tuple | dict | FExpr
+        A single value, a list/tuple/dict of values or an f-expression (must be a reducer) to impute missing values with.
 
     reverse: bool
         If ``False``, the missing values are filled by using the closest
