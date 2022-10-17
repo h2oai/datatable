@@ -78,16 +78,16 @@ class FExpr_Codes : public FExpr_Func {
 
 
     template <typename T>
-    Column evaluate1(const Column& col, const SType st) const {
+    Column evaluate1(const Column& col, const SType stype) const {
       Column col_codes;
       if (col.n_children()) {
         col_codes = Column(new SentinelFw_ColumnImpl<T>(
                       col.nrows(),
-                      st,
+                      stype,
                       Buffer(col.get_data_buffer(1))
                     ));
       } else {
-        col_codes = Const_ColumnImpl::make_int_column(col.nrows(), 0, st);
+        col_codes = Const_ColumnImpl::make_int_column(col.nrows(), 0, stype);
       }
       return col_codes;
     }

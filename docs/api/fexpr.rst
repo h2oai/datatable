@@ -164,7 +164,7 @@
           - Same as :func:`dt.categories()`.
 
         * - :meth:`.codes()`
-        - Same as :func:`dt.codes()`.
+          - Same as :func:`dt.codes()`.
 
         * - :meth:`.count()`
           - Same as :func:`dt.count()`.
