@@ -245,6 +245,7 @@ Other
     by()              <dt/by>
     categories()      <dt/categories>
     cbind()           <dt/cbind>
+    codes()           <dt/codes>
     corr()            <dt/corr>
     count()           <dt/count>
     countna()         <dt/countna>
