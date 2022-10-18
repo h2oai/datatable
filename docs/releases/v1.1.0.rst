@@ -110,6 +110,13 @@
     -[new] Class :class:`dt.FExpr` now has method :meth:`.alias()`,
       to assign new names to the selected columns. [#2684]
 
+    -[new] Added function :func:`dt.categories()`, as well as the corresponding
+      :meth:`.categories()` method, to retrieve categories
+      for categorical columns. [#3367]
+
+    -[new] Added function :func:`dt.codes()`, as well as the corresponding
+      :meth:`.codes()` method, to retrieve codes for categorical columns. [#3371]
+
     -[enh] Function :func:`dt.re.match()` now supports case insensitive matching. [#3216]
 
     -[enh] Function :func:`dt.qcut()` can now be used in a groupby context. [#3165]
@@ -172,6 +179,7 @@
 
     -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
         :attr:`.is_boolean <dt.Type.is_boolean>`,
+        :attr:`.is_categorical <dt.Type.is_categorical>`,
         :attr:`.is_compound <dt.Type.is_compound>`,
         :attr:`.is_float <dt.Type.is_float>`,
         :attr:`.is_integer <dt.Type.is_integer>`,
@@ -179,7 +187,7 @@
         :attr:`.is_object <dt.Type.is_object>`,
         :attr:`.is_string <dt.Type.is_string>`,
         :attr:`.is_temporal <dt.Type.is_temporal>`,
-        :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101]
+        :attr:`.is_void <dt.Type.is_void>` to class :class:`dt.Type`. [#3101] [#3149]
 
     -[enh] Added support for macOS Big Sur. [#3175]
 
