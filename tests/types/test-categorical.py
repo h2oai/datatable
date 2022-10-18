@@ -491,7 +491,7 @@ def test_repr_numbers_in_terminal(t):
 
 
 #-------------------------------------------------------------------------------
-# Getting categories
+# Categories
 #-------------------------------------------------------------------------------
 
 def test_categories_wrong_type():
@@ -586,5 +586,54 @@ def test_categories_multicolumn_uneven_ncats(cat_type):
     DT_ref = dt.Frame([[None, 100, 500, 100500] + [None] * 4,
                        [None, "cat", "dog"] + [None] * 5])
     assert_equals(DT_cats, DT_ref)
+
+
+#-------------------------------------------------------------------------------
+# Codes
+#-------------------------------------------------------------------------------
+
+def test_codes_wrong_type():
+    DT = dt.Frame(range(10))
+    msg = r"Invalid column of type int32 in codes\(f\.C0\)"
+    with pytest.raises(TypeError, match=msg):
+        DT[:, dt.codes(f.C0)]
+
+
+@pytest.mark.parametrize('cat_type, code_type', [(dt.Type.cat8, dt.Type.int8),
+                                                 (dt.Type.cat16, dt.Type.int16),
+                                                 (dt.Type.cat32, dt.Type.int32)])
+def test_codes_void(cat_type, code_type):
+    N = 11
+    src = [None] * N
+    DT = dt.Frame(src, type=cat_type(dt.Type.void))
+    DT_codes = DT[:, dt.codes(f[:])]
+    DT_ref = dt.Frame([0] * N, type=code_type)
+    assert_equals(DT_codes, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type, code_type', [(dt.Type.cat8, dt.Type.int8),
+                                                 (dt.Type.cat16, dt.Type.int16),
+                                                 (dt.Type.cat32, dt.Type.int32)])
+def test_codes_simple(cat_type, code_type):
+    src = ["cat", "dog", "mouse", "cat"]
+    DT = dt.Frame([src], type=cat_type(dt.Type.str32))
+    DT_codes = DT[:, dt.codes(f.C0)]
+    DT_ref = dt.Frame([0, 1, 2, 0], type=code_type)
+    assert_equals(DT_codes, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type, code_type', [(dt.Type.cat8, dt.Type.int8),
+                                                 (dt.Type.cat16, dt.Type.int16),
+                                                 (dt.Type.cat32, dt.Type.int32)])
+def test_codes_multicolumn(cat_type, code_type):
+    N = 123
+    src_int = [None, 100, 500, None, 100, 100500, 100, 500] * N
+    src_str = [None, "dog", "mouse", None, "dog", "cat", "dog", "pig"] * N
+    DT = dt.Frame([src_int, src_str],
+                  types=[cat_type(dt.Type.int32), cat_type(dt.Type.str32)])
+    DT_codes = DT[:, dt.codes(f[:])]
+    DT_ref = dt.Frame([[0, 1, 2, 0, 1, 3, 1, 2] * N,
+                       [0, 2, 3, 0, 2, 1, 2, 4] * N], type=code_type)
+    assert_equals(DT_codes, DT_ref)
 
 
