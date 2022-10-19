@@ -198,6 +198,13 @@ def test_fillna_grouped_value():
              })
     assert_equals(DT_fillna, DT_ref)
 
+def test_fillna_grouped_value_ifelse():
+    "compare output with ifelse"
+    DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
+                  ['a','a','a','b','b','c','c','c']])
+    DT_fillna = DT[:, fillna(f.C0, f.C0.mean()), by(f[-1])]
+    DT_ref = DT[:, dt.ifelse(f.C0==None,f.C0.mean(), f.C0).alias('C0'), f.C1]
+    assert_equals(DT_fillna, DT_ref)
 
 def test_fillna_grouped_column():
     DT = dt.Frame([2, 1, None, 1, 2])
