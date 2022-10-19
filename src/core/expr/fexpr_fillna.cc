@@ -53,16 +53,11 @@ class FExpr_FillNA : public FExpr_Func {
       std::string out = "fillna";
       out += '(';
       out += arg_->repr();
-      bool hasValue = (value_->get_expr_kind() != Kind::None);
-      if (hasValue) {
       out +=", value=";
       out += value_->repr();
-      out += ')';
-      } else {
       out += ", reverse=";
       out += reverse_? "True" : "False";
       out += ')';
-      }
       return out;
     }
 
@@ -192,8 +187,19 @@ class FExpr_FillNA : public FExpr_Func {
 static py::oobj pyfn_fillna(const py::XArgs &args) {
   auto column = args[0].to_oobj();
   auto value = args[1].to_oobj_or_none();
-  auto reverse = args[2].to<bool>(false);
-  return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), as_fexpr(value), reverse));
+  auto reverse = args[2].to_oobj_or_none();
+  bool reverse_ = false;
+  if (!value.is_none() && !reverse.is_none()) {
+      throw ValueError() << "`value` and `reverse` in fillna() cannot be both set at the same time";
+    }
+  if (!reverse.is_none()){
+    if (!reverse.is_bool()) {
+      throw TypeError() << "Parameter `reverse` in fillna() should be "
+        "a boolean, instead got " << reverse.typeobj();
+    }
+    reverse_ = reverse.to_bool_strict();
+  }
+  return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), as_fexpr(value), reverse_));
 }
 
 
