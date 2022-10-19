@@ -124,13 +124,12 @@ class FExpr_FillNA : public FExpr_Func {
           Column cond = evaluate1(std::move(cond_col));
           Column out = Column{new IfElse_ColumnImpl(std::move(cond), std::move(repl_col), std::move(orig_col))};
           wff.replace_column(i, std::move(out));
-          }
+        }
 
         return wff;
 
-        } 
-      // forward/backward fill
-       else {
+      } else {
+        // forward/backward fill
           Groupby gby = ctx.get_groupby();
           if (!gby) {
             gby = Groupby::single_group(wf.nrows());
