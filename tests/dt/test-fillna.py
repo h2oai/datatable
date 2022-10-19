@@ -30,7 +30,7 @@ from tests import assert_equals
 # Errors
 #-------------------------------------------------------------------------------
 
-msg =  "Argument reverse in function datatable.fillna\\(\\) should be a boolean, "
+msg =  "Argument to the reverse parameter in function datatable.fillna\\(\\) should be a boolean, "
 msg += "instead got <class 'str'>"
 def test_fillna_reverse_not_a_boolean():
     DT = dt.Frame([1, 2, None, 4, 5])
@@ -57,20 +57,25 @@ def test_fillna_values_count():
     with pytest.raises(TypeError, match = msg):
         DT[:, fillna(f[0, -1], [2,3,4] )]
 
+def test_fillna_value_reverse():
+    """Raise if both value and reverse are present."""
+    msg = "value and reverse in function datatable.fillna\\(\\) cannot be both set at the same time"
+    DT = dt.Frame([1, 2, None, 4, 5])
+    with pytest.raises(ValueError, match = msg):
+        DT[:, fillna(f[0, -1], value = 2, reverse = False)]
 
 #-------------------------------------------------------------------------------
 # Normal
 #-------------------------------------------------------------------------------
 
 def test_fillna_str():
-  assert str(fillna(f.A, reverse=False)) == "FExpr<" + fillna.__name__ + "(f.A, reverse=False)>"
-  assert str(fillna(f.A, reverse=False) + 1) == "FExpr<" + fillna.__name__ + "(f.A, reverse=False) + 1>"
-  assert str(fillna(f.A + f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.A + f.B, reverse=True)>"
-  assert str(fillna(f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.B, reverse=True)>"
-  assert str(fillna(f[:2], reverse = False)) == "FExpr<"+ fillna.__name__ + "(f[:2], reverse=False)>"
-  assert str(fillna(f.A, value = 2)) == "FExpr<" + fillna.__name__ + "(f.A, value=2)>"
-  assert str(fillna([f.A, f.B], value = 2)) == "FExpr<" + fillna.__name__ + "([f.A, f.B], value=2)>"
-  assert str(fillna([f.A, f.B], value = 2, reverse = True)) == "FExpr<" + fillna.__name__ + "([f.A, f.B], value=2)>"
+  assert str(fillna(f.A, reverse=False)) == "FExpr<" + fillna.__name__ + "(f.A, value=None, reverse=False)>"
+  assert str(fillna(f.A, reverse=False) + 1) == "FExpr<" + fillna.__name__ + "(f.A, value=None, reverse=False) + 1>"
+  assert str(fillna(f.A + f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.A + f.B, value=None, reverse=True)>"
+  assert str(fillna(f.B, reverse = True)) == "FExpr<" + fillna.__name__ + "(f.B, value=None, reverse=True)>"
+  assert str(fillna(f[:2], reverse = False)) == "FExpr<"+ fillna.__name__ + "(f[:2], value=None, reverse=False)>"
+  assert str(fillna(f.A, value = 2)) == "FExpr<" + fillna.__name__ + "(f.A, value=2, reverse=False)>"
+  assert str(fillna([f.A, f.B], value = 2)) == "FExpr<" + fillna.__name__ + "([f.A, f.B], value=2, reverse=False)>"
 
 
 def test_fillna_empty_frame():

@@ -190,11 +190,11 @@ static py::oobj pyfn_fillna(const py::XArgs &args) {
   auto reverse = args[2].to_oobj_or_none();
   bool reverse_ = false;
   if (!value.is_none() && !reverse.is_none()) {
-      throw ValueError() << "`value` and `reverse` in fillna() cannot be both set at the same time";
+      throw ValueError() << "`value` and `reverse` in function datatable.fillna() cannot be both set at the same time";
     }
   if (!reverse.is_none()){
     if (!reverse.is_bool()) {
-      throw TypeError() << "Parameter `reverse` in fillna() should be "
+      throw TypeError() << "Argument to the `reverse` parameter in function datatable.fillna() should be "
         "a boolean, instead got " << reverse.typeobj();
     }
     reverse_ = reverse.to_bool_strict();
