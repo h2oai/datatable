@@ -414,7 +414,7 @@ DECLARE_METHOD(&PyFExpr::cumsum)
 oobj PyFExpr::fillna(const XArgs& args) {
   auto fillnaFn = oobj::import("datatable", "fillna");
   oobj value = args[0].to_oobj_or_none();
-  oobj reverse = args[1]? args[1].to_oobj() : py::obool(false);
+  oobj reverse = args[1].to_oobj_or_none();
   return fillnaFn.call({this, value, reverse});
 }
 
