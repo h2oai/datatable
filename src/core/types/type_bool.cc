@@ -67,9 +67,15 @@ const char* Type_Bool8::struct_format() const {
 //   - TIME64->BOOL: --
 //
 Column Type_Bool8::cast_column(Column&& col) const {
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), SType::BOOL);
+
+    case SType::BOOL:
+      if (col.type().is_categorical()) {
+        col.replace_type_unsafe(Type::bool8());
+      }
+      return std::move(col);
 
     case SType::INT8:
       return Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(col)));
