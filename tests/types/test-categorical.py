@@ -272,7 +272,7 @@ def test_create_multicolumn(t):
 
 
 #-------------------------------------------------------------------------------
-# Casting to other types
+# Cast to categorical types
 #-------------------------------------------------------------------------------
 
 @pytest.mark.parametrize('cat_type', [dt.Type.cat8,
@@ -439,6 +439,111 @@ def test_float_to_cat_str(cat_type):
     DT = dt.Frame(src)
     DT[0] = cat_type(dt.Type.str32)
     DT_ref = dt.Frame(src_ref, type=cat_type(dt.Type.str32))
+    assert_equals(DT, DT_ref)
+
+
+
+#-------------------------------------------------------------------------------
+# Cast from categorical types
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [None, bool, int, float, str])
+def test_cast_to_void(cat_type, data_type):
+    src = [None] * 10
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.void
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [bool, int, float, str])
+def test_cast_to_bool(cat_type, data_type):
+    src = [None, True, False, None, False, False]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.bool8
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [int, float, str])
+def test_cast_to_int(cat_type, data_type):
+    src = [3, None, 1, 4, 1, None, 5, 9, 2, 6]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.int32
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [float, str])
+def test_cast_to_float(cat_type, data_type):
+    src = [3.14, None, 1.15, 4.92, 1.6, None, 5.5, 9, 2.35, 6.0]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.float64
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [dt.Type.str32, dt.Type.str64])
+def test_cast_to_string(cat_type, data_type):
+    src = ["dog", "mouse", None, "dog", "cat", None, "1", "pig"]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.str32
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [str, dt.Type.date32, dt.Type.time64])
+def test_cast_to_date(cat_type, data_type):
+    from datetime import date as d
+    src = [d(1997, 9, 1), d(2002, 7, 31), d(2000, 2, 20), None]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.date32
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [str, dt.Type.time64])
+def test_cast_to_time(cat_type, data_type):
+    from datetime import datetime as d
+    src = [d(2000, 10, 18, 3, 30),
+           d(2010, 11, 13, 15, 11, 59),
+           d(2020, 2, 29, 20, 20, 20, 20), None]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.time64
+    DT_ref = dt.Frame(src)
+    assert_equals(DT, DT_ref)
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+@pytest.mark.parametrize('data_type', [int, float])
+def test_cast_to_obj(cat_type, data_type):
+    src = [1, 2, None, 100, -10]
+    DT = dt.Frame(src, type = cat_type(data_type))
+    DT[0] = dt.Type.obj64
+    DT_ref = dt.Frame(src, type=dt.Type.obj64)
     assert_equals(DT, DT_ref)
 
 

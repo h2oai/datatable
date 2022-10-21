@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -58,7 +58,7 @@ const char* Type_Object::struct_format() const {
 //
 Column Type_Object::cast_column(Column&& col) const {
   constexpr auto st = SType::OBJ;
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), st);
 

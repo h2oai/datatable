@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -62,7 +62,7 @@ TypeImpl* Type_String::common_type(TypeImpl* other) {
 //
 Column Type_String::cast_column(Column&& col) const {
   const auto st = stype();
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), st);
 
@@ -95,7 +95,12 @@ Column Type_String::cast_column(Column&& col) const {
 
     case SType::STR32:
     case SType::STR64:
-      if (st == col.stype()) return std::move(col);
+      if (st == col.data_stype()) {
+        if (col.type().is_categorical()) {
+          col.replace_type_unsafe(Type::from_stype(st));
+        }
+        return std::move(col);
+      }
       return Column(new CastString_ColumnImpl(st, std::move(col)));
 
     case SType::OBJ:
@@ -109,8 +114,6 @@ Column Type_String::cast_column(Column&& col) const {
 
 
 
-
-
 //------------------------------------------------------------------------------
 // Type_String32
 //-----------------------------------------------------------------------------
@@ -121,7 +124,6 @@ Type_String32::Type_String32()
 std::string Type_String32::to_string() const {
   return "str32";
 }
-
 
 
 

@@ -350,6 +350,27 @@ def test_save_str64():
         ",bvqpoeqnperoin;dj\n")
 
 
+@pytest.mark.parametrize('t', [dt.Type.cat8,
+                               dt.Type.cat16,
+                               dt.Type.cat32])
+def test_save_cat(t):
+    src = [[True, True, True, None, False],
+           [None, 3, 14, None, 15],
+           [-1.5, 1.5, 100.1, None, 18.0],
+           ["mouse", "cat", "dog", None, "mouse"],
+           [None] * 5]
+    DT = dt.Frame(src,
+                  types=[t(bool), t(int), t(float), t(str), t(None)],
+                  names=["Booleans", "Integers", "Floats", "Strings", "Voids"])
+    assert DT.to_csv() == (
+        "Booleans,Integers,Floats,Strings,Voids\n"
+        "True,,-1.5,mouse,\n"
+        "True,3,1.5,cat,\n"
+        "True,14,100.1,dog,\n"
+        ",,,,\n"
+        "False,15,18.0,mouse,\n")
+
+
 def test_issue_1278():
     f0 = dt.Frame([[True, False] * 10] * 1000)
     a = f0.to_csv()

@@ -62,7 +62,7 @@ TypeImpl* TypeImpl_Numeric::common_type(TypeImpl* other) {
 //
 Column TypeImpl_Numeric::cast_column(Column&& col) const {
   const SType st = stype();
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), st);
 
