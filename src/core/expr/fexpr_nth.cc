@@ -43,7 +43,8 @@ class FExpr_Nth : public FExpr_Func {
     FExpr_Nth(ptrExpr&& arg, int32_t n, std::string skipna)
       : arg_(std::move(arg)),
         n_(n),
-        skipna_(skipna) {}
+        skipna_(skipna)
+        {}
 
 
     std::string repr() const override {
@@ -52,8 +53,6 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-      out += ", skipna=";
-      out += skipna_;
       out += ')';
       return out;
     }
@@ -114,20 +113,20 @@ class FExpr_Nth : public FExpr_Func {
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto cols = args[0].to_oobj();
   auto n = args[1].to<int32_t>(0);
-  auto skipna = args[2].to<std::string>("None");
-  bool skipna_check = skipna == "any" || skipna == "all" || skipna == "None";
-  if (!skipna_check) {
-    throw ValueError() << "Parameter `skipna` in nth() should be "
-        "either `None`, `any`, or `all`";
+  auto skipna = args[2].to_oobj_or_none();
+  if (skipna.is_none() && (skipna != py::ostring("any") || 
+                           skipna != py::ostring("all"))
+      ) {throw ValueError() << "Parameter `skipna` in nth() should be "
+              "either `None`, `any` or `all`";
+        }
+  else if (skipna.is_none()) {
+    skipna = py::ostring("None");
   }
-  ptrExpr a;
-          a = FExpr_List::empty();
-    for (auto arg : args.varargs()) {
-      static_cast<FExpr_List*>(a.get())->add_expr(as_fexpr(arg));
-    }
-  ptrExpr b;
-  b = Column(new FExpr_RowAll(std::move(a)));
-  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, skipna));
+  std::string skipNA = skipna.to_string();
+
+
+  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, skipNA));
+
 
 }
 
