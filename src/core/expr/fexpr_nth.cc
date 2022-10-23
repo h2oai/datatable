@@ -72,13 +72,7 @@ class FExpr_Nth : public FExpr_Func {
         auto coli = evaluate2(inputs.retrieve_column(i));
         col_s.push_back(coli);
       }
-      ptrExpr a;
-      a = FExpr_List::empty();
-      static_cast<FExpr_List*>(a.get())->add_expr(as_fexpr(arg_));
-      // if (skipna_ != "None"){
-      //   Column all_ = Column(new FExpr_RowAll());         
-
-      // }
+      FExpr_RowAll::apply_function(std::move(col_s), inputs.nrows(), inputs.ncols());
 
       // for (size_t i = 0; i < inputs.ncols(); ++i) {
       //   auto coli = inputs.retrieve_column(i);
