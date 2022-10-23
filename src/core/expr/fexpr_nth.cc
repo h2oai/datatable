@@ -78,6 +78,24 @@ class FExpr_Nth : public FExpr_Func {
       }
     }
 
+    Column evaluate2(Column&& col) const {
+      switch (col.stype()) {
+        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+        case SType::BOOL:
+        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+        case SType::DATE32:
+        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+        case SType::TIME64:
+        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
+        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
+        case SType::STR32:
+        case SType::STR64:  return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+        default: throw RuntimeError();
+      }
+    }
+
 
     template <typename T>
     Column make(Column&& col, const Groupby& gby, int32_t n) const {
