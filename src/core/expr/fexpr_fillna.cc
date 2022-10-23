@@ -29,7 +29,6 @@
 #include "stype.h"
 #include "column/ifelse.h"
 #include "column/isna.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
