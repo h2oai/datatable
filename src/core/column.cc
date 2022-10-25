@@ -169,7 +169,7 @@ const dt::Type& Column::type() const noexcept {
 }
 
 dt::SType Column::stype() const noexcept {
-  return impl_->stype();
+  return impl_->type_.stype();
 }
 
 dt::SType Column::data_stype() const noexcept {
