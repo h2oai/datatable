@@ -27,7 +27,6 @@
 #include "groupby.h"     // Groupby
 #include "buffer.h"      // Buffer
 #include "stats.h"       // Stats
-#include "stype.h"
 #include "types/type.h"
 namespace dt {
 
@@ -94,15 +93,8 @@ class ColumnImpl
   //------------------------------------
   public:
     size_t nrows() const noexcept { return nrows_; }
-    SType  stype() const { return type_.stype(); }
-    SType  data_stype() const {
-      if (type_.is_categorical()) {
-        return n_children()? child(0).stype()
-                           : dt::SType::VOID;
-      }
-      return stype();
-    }
-
+    SType stype() const { return type_.stype(); }
+    SType data_stype() const;
     const Type& type() const { return type_; }
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
