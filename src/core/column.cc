@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -173,12 +173,7 @@ dt::SType Column::stype() const noexcept {
 }
 
 dt::SType Column::data_stype() const noexcept {
-  if (impl_->type_.is_categorical()) {
-    if (n_children()) return child(0).stype();
-    else              return dt::SType::VOID;
-  } else {
-    return stype();
-  }
+  return impl_->data_stype();
 }
 
 dt::LType Column::ltype() const noexcept {
