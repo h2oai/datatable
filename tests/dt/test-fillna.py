@@ -183,6 +183,14 @@ def test_fillna_multicolumn_value():
     assert_equals(DT_fillna, DT_ref)
 
 
+def test_fillna_value_fexpr():
+    DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
+                   [1, 2, 3, 4, 5, 6, 7, 8]])
+    DT_fillna = DT[:, fillna(f[0], value=f[1])]
+    DT_ref = dt.Frame([15, 2, 136, 93, 743, 6, 7, 91])
+    assert_equals(DT_fillna, DT_ref)
+
+
 def test_fillna_grouped():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
                   ['a', 'a', 'a', 'b', 'b', 'c', 'c', 'c']])
