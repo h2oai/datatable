@@ -19,6 +19,9 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/const.h"
+#include "column/ifelse.h"
+#include "column/isna.h"
 #include "column/latent.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -32,12 +35,14 @@ namespace expr {
 class FExpr_FillNA : public FExpr_Func {
   private:
     ptrExpr arg_;
+    ptrExpr value_;
     bool reverse_;
     size_t : 56;
 
   public:
-    FExpr_FillNA(ptrExpr &&arg, bool reverse)
+    FExpr_FillNA(ptrExpr &&arg, ptrExpr &&value, bool reverse)
         : arg_(std::move(arg)),
+          value_(std::move(value)),
           reverse_(reverse)
          {}
 
@@ -46,8 +51,13 @@ class FExpr_FillNA : public FExpr_Func {
       std::string out = "fillna";
       out += '(';
       out += arg_->repr();
-      out += ", reverse=";
-      out += reverse_? "True" : "False";
+      if (value_->get_expr_kind() != Kind::None) {
+        out +=", value=";
+        out += value_->repr();
+      } else {
+        out += ", reverse=";
+        out += reverse_? "True" : "False";
+      }
       out += ')';
       return out;
     }
@@ -55,7 +65,7 @@ class FExpr_FillNA : public FExpr_Func {
 
     template <bool REVERSE>
     static RowIndex fill_rowindex(Column& col, const Groupby& gby) {
-      Buffer buf = Buffer::mem(static_cast<size_t>(col.nrows()) * sizeof(int32_t));
+      Buffer buf = Buffer::mem(col.nrows() * sizeof(int32_t));
       auto indices = static_cast<int32_t*>(buf.xptr());
       Latent_ColumnImpl::vivify(col);
 
@@ -89,55 +99,124 @@ class FExpr_FillNA : public FExpr_Func {
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      } else {
-        wf.increase_grouping_mode(Grouping::GtoALL);
-      }
+      bool value_fill = (value_->get_expr_kind() != Kind::None);
 
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-        bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-        if (is_grouped) continue;
+      if (value_fill) {
+        // Fill with the `value`
+        Workframe wf_value = value_->evaluate_n(ctx);
+        if (wf_value.ncols() == 1) wf_value.repeat_column(wf.ncols());
 
-        Column coli = wf.retrieve_column(i);
-        auto stats = coli.get_stats_if_exist();
-        bool na_stats_exists = stats && stats->is_computed(Stat::NaCount);
-        bool has_nas = na_stats_exists? stats->nacount()
-                                      : true;
-
-        if (has_nas) {
-          RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
-                                : fill_rowindex<false>(coli, gby);
-          coli.apply_rowindex(ri);
+        if (wf_value.ncols() != wf.ncols()) {
+          throw ValueError() << "The number of columns in function "
+            << "`datatable.fillna()` does not match the number of "
+            << "the provided values: "
+            << wf.ncols() << " vs " << wf_value.ncols();
         }
 
-        wf.replace_column(i, std::move(coli));
+        wf.sync_grouping_mode(wf_value);
+        Workframe outputs(ctx);
+
+        for (size_t i = 0; i < wf.ncols(); ++i) {
+          Column col_orig = Column(wf.get_column(i));
+          Column col_cond = make_isna_col(wf.retrieve_column(i));
+          Column col_repl = wf_value.retrieve_column(i);
+
+          SType st = common_stype(col_orig.stype(), col_repl.stype());
+          col_repl.cast_inplace(st);
+          col_orig.cast_inplace(st);
+
+          Column col_out = Column(new IfElse_ColumnImpl(
+                             std::move(col_cond),
+                             std::move(col_repl),
+                             std::move(col_orig)
+                           ));
+          wf.replace_column(i, std::move(col_out));
+        }
+
+      } else {
+        // Fill with the previous/subsequent non-missing values
+        Groupby gby = ctx.get_groupby();
+        if (!gby) {
+          gby = Groupby::single_group(wf.nrows());
+        } else {
+          wf.increase_grouping_mode(Grouping::GtoALL);
+        }
+
+        for (size_t i = 0; i < wf.ncols(); ++i) {
+          bool is_grouped = ctx.has_group_column(
+                              wf.get_frame_id(i),
+                              wf.get_column_id(i)
+                            );
+          if (is_grouped) continue;
+
+          Column coli = wf.retrieve_column(i);
+          auto stats = coli.get_stats_if_exist();
+          bool na_stats_exists = (stats && stats->is_computed(Stat::NaCount));
+          bool has_nas = na_stats_exists? stats->nacount()
+                                        : true;
+
+          if (has_nas) {
+              RowIndex ri = reverse_? fill_rowindex<true>(coli, gby)
+                                    : fill_rowindex<false>(coli, gby);
+              coli.apply_rowindex(ri);
+          }
+
+          wf.replace_column(i, std::move(coli));
+        }
       }
 
       return wf;
+    }
+
+
+    static Column make_isna_col(Column&& col) {
+      switch (col.stype()) {
+        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+        case SType::BOOL:
+        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+        case SType::DATE32:
+        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+        case SType::TIME64:
+        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
+        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
+        case SType::STR32:
+        case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+        default: throw RuntimeError();
+      }
     }
 
 };
 
 
 static py::oobj pyfn_fillna(const py::XArgs &args) {
-  auto column = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
-  return PyFExpr::make(new FExpr_FillNA(as_fexpr(column), reverse));
+  auto cols = args[0].to_oobj();
+  auto value = args[1].to_oobj_or_none();
+  auto reverse = args[2].to_oobj_or_none();
+  if (!value.is_none() && !reverse.is_none()) {
+    throw ValueError() << "Parameters `value` and `reverse` in function "
+      << "datatable.fillna() cannot be both set at the same time";
+  }
+
+  bool reverse_ = reverse.is_none()? false
+                                   : reverse.to_bool_strict();
+
+  return PyFExpr::make(new FExpr_FillNA(
+           as_fexpr(cols),
+           as_fexpr(value),
+           reverse_
+         ));
 }
 
 
 DECLARE_PYFN(&pyfn_fillna)
     ->name("fillna")
     ->docs(doc_dt_fillna)
-    ->arg_names({"cols", "reverse"})
+    ->arg_names({"cols", "value", "reverse"})
     ->n_required_args(1)
     ->n_positional_args(1)
-    ->n_positional_or_keyword_args(1);
+    ->n_keyword_args(2);
 
 
 }}  // dt::expr
