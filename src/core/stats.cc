@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -1165,7 +1165,7 @@ size_t VoidStats::nmodal(bool* isvalid) {
 
 static std::unique_ptr<Stats> _make_stats(const dt::ColumnImpl* col) {
   using StatsPtr = std::unique_ptr<Stats>;
-  switch (col->stype()) {
+  switch (col->data_stype()) {
     case dt::SType::VOID:    return StatsPtr(new VoidStats(col));
     case dt::SType::BOOL:    return StatsPtr(new BooleanStats(col));
     case dt::SType::INT8:    return StatsPtr(new IntegerStats<int8_t>(col));
@@ -1383,7 +1383,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
       return pywrap_stat<double>(stat);
     }
     case Stat::Sum: {
-      switch (dt::stype_to_ltype(column->stype())) {
+      switch (dt::stype_to_ltype(column->data_stype())) {
         case dt::LType::MU:
         case dt::LType::BOOL:
         case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
@@ -1394,7 +1394,7 @@ py::oobj Stats::get_stat_as_pyobject(Stat stat) {
     case Stat::Min:
     case Stat::Max:
     case Stat::Mode: {
-      switch (dt::stype_to_ltype(column->stype())) {
+      switch (dt::stype_to_ltype(column->data_stype())) {
         case dt::LType::BOOL:
         case dt::LType::INT:  return pywrap_stat<int64_t>(stat);
         case dt::LType::REAL: return pywrap_stat<double>(stat);
@@ -1469,7 +1469,7 @@ Column Stats::strcolwrap_stat(Stat stat) {
   dt::CString value;
   bool isvalid = get_stat(stat, &value);
   return isvalid? _make_column_str(value)
-                : _make_nacol(column->stype());
+                : _make_nacol(column->data_stype());
 }
 
 
@@ -1491,7 +1491,7 @@ Column Stats::get_stat_as_column(Stat stat) {
       return colwrap_stat<double, double>(stat, dt::SType::FLOAT64);
     }
     case Stat::Sum: {
-      switch (column->stype()) {
+      switch (column->data_stype()) {
         case dt::SType::VOID:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
         case dt::SType::BOOL:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
         case dt::SType::INT8:    return colwrap_stat<int64_t, int64_t>(stat, dt::SType::INT64);
@@ -1506,7 +1506,7 @@ Column Stats::get_stat_as_column(Stat stat) {
     case Stat::Min:
     case Stat::Max:
     case Stat::Mode: {
-      switch (column->stype()) {
+      switch (column->data_stype()) {
         case dt::SType::BOOL:    return colwrap_stat<int64_t, int8_t>(stat, dt::SType::BOOL);
         case dt::SType::INT8:    return colwrap_stat<int64_t, int8_t>(stat, dt::SType::INT8);
         case dt::SType::INT16:   return colwrap_stat<int64_t, int16_t>(stat, dt::SType::INT16);
@@ -1518,7 +1518,7 @@ Column Stats::get_stat_as_column(Stat stat) {
         case dt::SType::STR64:   return strcolwrap_stat(stat);
         case dt::SType::DATE32:  return colwrap_stat<int64_t, int32_t>(stat, dt::SType::DATE32);
         case dt::SType::TIME64:  return colwrap_stat<int64_t, int64_t>(stat, dt::SType::TIME64);
-        default:                 return _make_nacol(column->stype());
+        default:                 return _make_nacol(column->data_stype());
       }
     }
     default:
