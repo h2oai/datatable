@@ -30,29 +30,29 @@ from tests import assert_equals
 # Errors
 #-------------------------------------------------------------------------------
 
-def test_fillna_reverse_not_a_boolean():
+def test_fillna_wrong_reverse():
     msg = "Expected a boolean, instead got <class 'str'>"
     DT = dt.Frame([1, 2, None, 4, 5])
     with pytest.raises(TypeError, match=msg):
         DT[:, fillna(f[0], reverse='True')]
 
 
-def test_fillna_no_argument():
+def test_fillna_no_arguments():
     msg = r"Function datatable.fillna\(\) " \
           "requires exactly 1 positional argument, but none were given"
     with pytest.raises(TypeError, match=msg):
         fillna()
 
 
-def test_fillna_values_count():
+def test_fillna_values_mismatch():
     msg = r"The number of columns in function datatable.fillna\(\) does not " \
           "match the number of the provided values: 2 vs 3"
     DT = dt.Frame([1, 2, None, 4, 5])
-    with pytest.raises(TypeError, match=msg):
+    with pytest.raises(ValueError, match=msg):
         DT[:, fillna(f[0, -1], value=[2, 3, 4] )]
 
 
-def test_fillna_value_reverse():
+def test_fillna_both_value_and_reverse():
     msg = r"Parameters value and reverse in function datatable.fillna\(\) " \
           "cannot be both set at the same time"
     DT = dt.Frame([1, 2, None, 4, 5])

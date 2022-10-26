@@ -8,7 +8,7 @@
     .. x-version-added:: 1.1.0
 
     For each column from `cols` either fill the missing values with `value`,
-    or with the previous/subsequent non-missing values.
+    or with the previous/subsequent non-missing values in that column.
     In the presence of :func:`by()` the filling is performed group-wise.
 
     Parameters
@@ -17,8 +17,10 @@
         Input columns.
 
     value: None | bool | int | float | str | list | tuple | dict | FExpr
-        A single value, a list/tuple/dict of values or an f-expression
-        to impute missing values with.
+        A scalar, a list/tuple/dict of values or an f-expression
+        to impute missing values with. The number of elements
+        in this argument, unless it is a scalar, must match
+        the number of columns in the input data.
 
     reverse: bool
         If ``False``, the missing values are filled by using the closest
@@ -28,6 +30,10 @@
     return: FExpr
         f-expression that converts input columns into the columns filled
         with `value`, or with the previous/subsequent non-missing values.
+
+    except: ValueError
+        The exception is raised when the number of elements in `value`,
+        unless it is a scalar, does not match the number of columns in `cols`.
 
 
     Examples

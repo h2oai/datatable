@@ -107,7 +107,7 @@ class FExpr_FillNA : public FExpr_Func {
         if (wf_value.ncols() == 1) wf_value.repeat_column(wf.ncols());
 
         if (wf_value.ncols() != wf.ncols()) {
-          throw TypeError() << "The number of columns in function "
+          throw ValueError() << "The number of columns in function "
             << "`datatable.fillna()` does not match the number of "
             << "the provided values: "
             << wf.ncols() << " vs " << wf_value.ncols();
