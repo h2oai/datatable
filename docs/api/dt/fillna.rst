@@ -7,8 +7,8 @@
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` either fill the missing values with a single value, 
-    or fill with the previous/subsequent non-missing values. 
+    For each column from `cols` either fill the missing values with `value`,
+    or with the previous/subsequent non-missing values.
     In the presence of :func:`by()` the filling is performed group-wise.
 
     Parameters
@@ -17,7 +17,8 @@
         Input columns.
 
     value: None | bool | int | float | str | list | tuple | dict | FExpr
-        A single value, a list/tuple/dict of values or an f-expression to impute missing values with.
+        A single value, a list/tuple/dict of values or an f-expression
+        to impute missing values with.
 
     reverse: bool
         If ``False``, the missing values are filled by using the closest
@@ -26,7 +27,7 @@
 
     return: FExpr
         f-expression that converts input columns into the columns filled
-        with a single value, or the previous/subsequent non-missing values.
+        with `value`, or with the previous/subsequent non-missing values.
 
 
     Examples
@@ -53,7 +54,7 @@
          7 | b            NA      107     NA      8
         [8 rows x 5 columns]
 
-    Fill a single column with a specified value::
+    Fill all the missing values in a column with a single value::
 
        >>> DT[:, dt.fillna(f.var1, 2)]
           |    var1
@@ -69,7 +70,7 @@
         7 |     2  
        [8 rows x 1 column]
 
-    Fill multiple columns with a single value::
+    Fill all the missing values in multiple columns with a single value::
 
         >>> DT[:, dt.fillna(f[1:], 2)]
            |    var1   var2   var3   var4
@@ -85,7 +86,7 @@
          7 |     2      107      2      8
         [8 rows x 4 columns]
 
-    Fill each column with a different value, in the presence of :func:`by()`::
+    For the grouped frame, fill missing values with the group's mean::
 
         >>> DT[:, dt.fillna(f[:], dt.mean(f[:])), by('building')]
            | building     var1     var2     var3     var4
@@ -169,7 +170,7 @@
         [8 rows x 4 columns]
 
 
-    Fill down in the presence of :func:`by()`::
+    Fill down the grouped frame::
 
         >>> DT[:, dt.fillna(f['var1':]), by('building')]
            | building     var1   var2   var3   var4
@@ -186,7 +187,7 @@
         [8 rows x 5 columns]
 
 
-    Fill up in the presence of :func:`by()`::
+    Fill up the grouped frame::
 
         >>> DT[:, dt.fillna(f['var1':], reverse = True), by('building')]
            | building     var1   var2   var3   var4

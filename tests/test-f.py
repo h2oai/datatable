@@ -467,13 +467,14 @@ def test_cumprod():
 
 
 def test_fillna():
+    assert str(dt.fillna(f.A)) == str(f.A.fillna())
     assert str(dt.fillna(f.A, reverse=False)) == str(f.A.fillna(reverse=False))
     assert str(dt.fillna(f.A, reverse=True)) == str(f.A.fillna(reverse=True))
-    assert str(dt.fillna(f[:], True)) == str(f[:].fillna(True))
-    assert str(dt.fillna(f.A, value = 1)) == str(f.A.fillna(value = 1))
-    assert str(dt.fillna(f.A, 1)) == str(f.A.fillna(1))
-    assert str(dt.fillna(f.A, reverse=True)) == str(f.A.fillna(reverse=True))
-    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
-    assert_equals(DT[:, f.A.fillna(reverse=True)], DT[:, dt.fillna(f.A, reverse = True)])
-    assert_equals(DT[:, f.A.fillna(reverse=False)], DT[:, dt.fillna(f.A, reverse = False)])
+    assert str(dt.fillna(f.A, value=3.14)) == str(f.A.fillna(value=3.14))
+    assert str(dt.fillna(f.A, value=[-1, 0, 1])) == str(f.A.fillna(value=[-1, 0, 1]))
+    DT = dt.Frame(A = [None, 9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None])
+    assert_equals(DT[:, f.A.fillna()], DT[:, dt.fillna(f.A)])
+    assert_equals(DT[:, f.A.fillna(reverse=True)], DT[:, dt.fillna(f.A, reverse=True)])
+    assert_equals(DT[:, f.A.fillna(reverse=False)], DT[:, dt.fillna(f.A, reverse=False)])
+    assert_equals(DT[:, f.A.fillna(value=3.14)], DT[:, dt.fillna(f.A, value=3.14)])
 
