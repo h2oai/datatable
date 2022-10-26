@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -84,7 +84,7 @@ Column Type_Time64::cast_column(Column&& col) const {
   constexpr SType st = SType::TIME64;
   constexpr int64_t SECONDS = 1000000000;
   constexpr int64_t DAYS = 24 * 3600 * SECONDS;
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), st);
 
@@ -109,6 +109,9 @@ Column Type_Time64::cast_column(Column&& col) const {
     }
 
     case SType::TIME64:
+      if (col.type().is_categorical()) {
+        col.replace_type_unsafe(Type::time64());
+      }
       return std::move(col);
 
     case SType::OBJ:

@@ -104,6 +104,8 @@ Functions
       -
     * - :func:`as_type()`
       - Cast column into another type
+    * - :func:`categories()`
+      - Get categories for categorical columns
     * - :func:`ifelse()`
       - Ternary if operator
     * - :func:`shift()`
@@ -241,7 +243,9 @@ Other
     as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>
+    categories()      <dt/categories>
     cbind()           <dt/cbind>
+    codes()           <dt/codes>
     corr()            <dt/corr>
     count()           <dt/count>
     countna()         <dt/countna>

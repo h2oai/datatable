@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -67,9 +67,15 @@ const char* Type_Bool8::struct_format() const {
 //   - TIME64->BOOL: --
 //
 Column Type_Bool8::cast_column(Column&& col) const {
-  switch (col.stype()) {
+  switch (col.data_stype()) {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), SType::BOOL);
+
+    case SType::BOOL:
+      if (col.type().is_categorical()) {
+        col.replace_type_unsafe(Type::bool8());
+      }
+      return std::move(col);
 
     case SType::INT8:
       return Column(new CastNumericToBool_ColumnImpl<int8_t>(std::move(col)));

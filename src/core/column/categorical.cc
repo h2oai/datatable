@@ -163,9 +163,9 @@ bool Categorical_ColumnImpl<T>::get_element(size_t i, Column* out) const {
 }
 
 
-template class Categorical_ColumnImpl<uint8_t>;
-template class Categorical_ColumnImpl<uint16_t>;
-template class Categorical_ColumnImpl<uint32_t>;
+template class Categorical_ColumnImpl<int8_t>;
+template class Categorical_ColumnImpl<int16_t>;
+template class Categorical_ColumnImpl<int32_t>;
 
 
 }  // namespace dt

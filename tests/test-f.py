@@ -478,3 +478,19 @@ def test_fillna():
     assert_equals(DT[:, f.A.fillna(reverse=False)], DT[:, dt.fillna(f.A, reverse=False)])
     assert_equals(DT[:, f.A.fillna(value=3.14)], DT[:, dt.fillna(f.A, value=3.14)])
 
+
+def test_categories():
+    assert str(dt.categories(f.A)) == str(f.A.categories())
+    assert str(dt.categories(f[:])) == str(f[:].categories())
+    DT = dt.Frame(A = ["cat", "dog", None, "cat", "mouse", "dog", "dog", None],
+                  type = dt.Type.cat8(dt.Type.str32))
+    assert_equals(DT[:, f.A.categories()], DT[:, dt.categories(f.A)])
+
+
+def test_codes():
+    assert str(dt.codes(f.A)) == str(f.A.codes())
+    assert str(dt.codes(f[:])) == str(f[:].codes())
+    DT = dt.Frame(A = ["cat", "dog", None, "cat", "mouse", "dog", "dog", None],
+                  type = dt.Type.cat8(dt.Type.str32))
+    assert_equals(DT[:, f.A.codes()], DT[:, dt.codes(f.A)])
+

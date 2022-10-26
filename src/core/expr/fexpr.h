@@ -181,6 +181,8 @@ class PyFExpr : public py::XObject<PyFExpr> {
 
     py::oobj alias(const py::XArgs&);
     py::oobj as_type(const py::XArgs&);
+    py::oobj categories(const py::XArgs&);
+    py::oobj codes(const py::XArgs&);
     py::oobj count(const py::XArgs&);
     py::oobj countna(const py::XArgs&);
     py::oobj cummin(const py::XArgs&);

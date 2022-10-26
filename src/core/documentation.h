@@ -25,7 +25,9 @@ namespace dt {
 
 extern const char* doc_dt_as_type;
 extern const char* doc_dt_by;
+extern const char* doc_dt_categories;
 extern const char* doc_dt_cbind;
+extern const char* doc_dt_codes;
 extern const char* doc_dt_corr;
 extern const char* doc_dt_count;
 extern const char* doc_dt_countna;
@@ -284,6 +286,8 @@ extern const char* doc_Frame_view;
 extern const char* doc_FExpr;
 extern const char* doc_FExpr_alias;
 extern const char* doc_FExpr_as_type;
+extern const char* doc_FExpr_categories;
+extern const char* doc_FExpr_codes;
 extern const char* doc_FExpr_count;
 extern const char* doc_FExpr_countna;
 extern const char* doc_FExpr_cummax;
@@ -342,7 +346,6 @@ extern const char* doc_Type_is_void;
 extern const char* doc_Type_max;
 extern const char* doc_Type_min;
 extern const char* doc_Type_name;
-
 
 
 
