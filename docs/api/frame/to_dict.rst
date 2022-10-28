@@ -6,7 +6,7 @@
 
     Convert the frame into a dictionary of lists, by columns.
 
-    In Python 3.6+ the order of records in the dictionary will be the
+    The order of records in the dictionary will be the
     same as the order of columns in the frame.
 
     Parameters

@@ -9,14 +9,13 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.6+ is required. Generally, we will support each version of Python
+Python 3.7+ is required. Generally, we will support each version of Python
 until its official `end of life`_. You can verify your python version via
 
 .. code-block:: console
 
     $ python --version
-    Python 3.6.6
-
+    Python 3.7.10
 
 In addition, we recommend using ``pip`` version 20.3+, especially if you're
 planning to install datatable from the source, or if you are on a Unix machine.
@@ -234,7 +233,7 @@ know how to resolve them. If none of these help you, please ask a question on
 ``Python.h: no such file or directory`` when compiling from source
   Your Python distribution was shipped without the ``Python.h`` header file.
   This has been observed on certain Linux machines. You would need to install
-  a Python package with a ``-dev`` suffix, for example ``python3.6-dev``.
+  a Python package with a ``-dev`` suffix, for example ``python3.7-dev``.
 
 ``fatal error: 'sys/mman.h' file not found`` on macOS
   In order to compile from source on mac computers, you need to have Xcode
