@@ -294,7 +294,6 @@ def build_extension(cmd, verbosity=3):
         # Common link flags
         ext.compiler.add_linker_flag("-shared")
         ext.compiler.add_linker_flag("-g")
-        ext.compiler.add_linker_flag("-m64")
         if macos:
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         if linux:
