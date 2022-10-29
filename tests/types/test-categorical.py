@@ -594,6 +594,31 @@ def test_categorical_repr_numbers_in_terminal(t):
     )
 
 
+#-------------------------------------------------------------------------------
+# [i, j] access
+#-------------------------------------------------------------------------------
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categorical_element_access(cat_type):
+    src = ["cat", "dog", "hotdog", None, "cat", None]
+    DT = dt.Frame(src, type=cat_type(str))
+    assert DT[0, 0] == "cat"
+    assert DT[3, 0] is None
+
+
+@pytest.mark.parametrize('cat_type', [dt.Type.cat8,
+                                      dt.Type.cat16,
+                                      dt.Type.cat32])
+def test_categorical_slice(cat_type):
+    src = ["cat", "dog", "hotdog", None, "cat", None]
+    DT = dt.Frame(src, type=cat_type(str))
+    assert_equals(DT[0, :], dt.Frame([src[0]]))
+    assert_equals(DT[0:, :], dt.Frame(src))
+    assert_equals(DT[2:3, :], dt.Frame([src[2]]))
+    assert_equals(DT[[3, 4], :], dt.Frame([src[3], src[4]]))
+
 
 #-------------------------------------------------------------------------------
 # Categories
