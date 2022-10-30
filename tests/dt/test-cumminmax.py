@@ -50,7 +50,7 @@ def test_cumminmax_non_numeric_by(mm):
 @pytest.mark.parametrize("mm", [cummin, cummax])
 def test_cumminmax_no_argument(mm):
     msg = (f"Function datatable.{mm.__name__}"
-           "\\(\\) requires exactly 1 positional argument, but none were given")
+           "\\(\\) requires at least 1 positional argument, but none were given")
     with pytest.raises(TypeError, match = msg):
         mm()
 
@@ -61,11 +61,13 @@ def test_cumminmax_no_argument(mm):
 
 @pytest.mark.parametrize("mm", [cummin, cummax])
 def test_cumminmax_str(mm):
-  assert str(mm(f.A)) == "FExpr<" + mm.__name__ + "(f.A)>"
-  assert str(mm(f.A) + 1) == "FExpr<" + mm.__name__ + "(f.A) + 1>"
-  assert str(mm(f.A + f.B)) == "FExpr<" + mm.__name__ + "(f.A + f.B)>"
-  assert str(mm(f.B)) == "FExpr<" + mm.__name__ + "(f.B)>"
-  assert str(mm(f[:2])) == "FExpr<"+ mm.__name__ + "(f[:2])>"
+  assert str(mm(f.A)) == "FExpr<" + mm.__name__ + "(f.A, reverse=False)>"
+  assert str(mm(f.A) + 1) == "FExpr<" + mm.__name__ + "(f.A, reverse=False) + 1>"
+  assert str(mm(f.A + f.B)) == "FExpr<" + mm.__name__ + "(f.A + f.B, reverse=False)>"
+  assert str(mm(f.B)) == "FExpr<" + mm.__name__ + "(f.B, reverse=False)>"
+  assert str(mm(f[:2])) == "FExpr<"+ mm.__name__ + "(f[:2], reverse=False)>"
+  assert str(mm(f[:2], True)) == "FExpr<"+ mm.__name__ + "(f[:2], reverse=True)>"
+  assert str(mm(f[:2], reverse=True)) == "FExpr<"+ mm.__name__ + "(f[:2], reverse=True)>"
 
 
 @pytest.mark.parametrize("mm", [cummin, cummax])
@@ -180,3 +182,21 @@ def test_cumminmax_groupby_complex():
     assert_equals(DT_mm, DT_ref)
 
 
+def test_cumminmax_reverse():
+    from datetime import date as d
+    src = [None, d(1997, 9, 1), d(2002, 7, 31), None, d(2000, 2, 20)]
+    DT = dt.Frame(src)
+    DT_mm = DT[:, [cummin(f.C0, reverse=True), cummax(f.C0, True)]]
+    DT_ref = DT[::-1, :][:, [cummin(f.C0), cummax(f.C0)]][::-1, :]
+    assert_equals(DT_mm, DT_ref)
+
+def test_cumminmax_groupby_reverse():
+    DT = dt.Frame([[3, 14, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
+    DT_mm = DT[:, [cummin(f[0], reverse=True), cummax(f[0], True)], by(f[1])]
+
+    DT_ref = dt.Frame(
+                 {"C1" : ["a", "a", "cat", "cat", "dog"],
+                 "C0" : [3, 15, 6, 6, 92],
+                 "C2" : [15, 15, 14, 6, 92]}
+             )
+    assert_equals(DT_mm, DT_ref)
