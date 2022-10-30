@@ -447,16 +447,20 @@ def test_cumsum():
 
 def test_cummax():
     assert str(dt.cummax(f.A)) == str(f.A.cummax())
+    assert str(dt.cummax(f.A, reverse=True)) == str(f.A.cummax(True))
     assert str(dt.cummax(f[:])) == str(f[:].cummax())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummax()], DT[:, dt.cummax(f.A)])
+    assert_equals(DT[:, f.A.cummax(reverse=True)], DT[:, dt.cummax(f.A, reverse=True)])
 
 
 def test_cummin():
     assert str(dt.cummin(f.A)) == str(f.A.cummin())
+    assert str(dt.cummin(f.A, reverse=True)) == str(f.A.cummin(True))
     assert str(dt.cummin(f[:])) == str(f[:].cummin())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummin()], DT[:, dt.cummin(f.A)])
+    assert_equals(DT[:, f.A.cummin(True)], DT[:, dt.cummin(f.A, True)])
 
 
 def test_cumprod():
