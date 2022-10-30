@@ -33,7 +33,7 @@
 namespace dt {
 namespace expr {
 
-template <bool MIN>
+template <bool MIN, bool REVERSE>
 class FExpr_CumMinMax : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -46,6 +46,8 @@ class FExpr_CumMinMax : public FExpr_Func {
       std::string out = MIN? "cummin" : "cummax";
       out += '(';
       out += arg_->repr();
+      out += ", reverse=";
+      out += REVERSE? "True" : "False";
       out += ')';
       return out;
     }
@@ -103,7 +105,7 @@ class FExpr_CumMinMax : public FExpr_Func {
     template <typename T>
     Column make(Column&& col, const Groupby& gby) const {
       return Column(new Latent_ColumnImpl(
-        new CumMinMax_ColumnImpl<T, MIN>(std::move(col), gby)
+        new CumMinMax_ColumnImpl<T, MIN, REVERSE>(std::move(col), gby)
       ));
     }
 };
@@ -111,29 +113,41 @@ class FExpr_CumMinMax : public FExpr_Func {
 
 static py::oobj pyfn_cummax(const py::XArgs& args) {
   auto cummax = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CumMinMax<false>(as_fexpr(cummax)));
+  auto reverse = args[1].to<bool>(false);
+  if (reverse) {
+    return PyFExpr::make(new FExpr_CumMinMax<false, true>(as_fexpr(cummax)));
+  } else {
+    return PyFExpr::make(new FExpr_CumMinMax<false, false>(as_fexpr(cummax)));
+  }
 }
 
 
 static py::oobj pyfn_cummin(const py::XArgs& args) {
   auto cummin = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CumMinMax<true>(as_fexpr(cummin)));
+  auto reverse = args[1].to<bool>(false);
+  if (reverse) {
+    return PyFExpr::make(new FExpr_CumMinMax<true, true>(as_fexpr(cummin)));
+  } else {
+    return PyFExpr::make(new FExpr_CumMinMax<true, false>(as_fexpr(cummin)));
+  }
 }
 
 
 DECLARE_PYFN(&pyfn_cummax)
     ->name("cummax")
     ->docs(doc_dt_cummax)
-    ->arg_names({"cummax"})
+    ->arg_names({"cols", "reverse"})
     ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 
 DECLARE_PYFN(&pyfn_cummin)
     ->name("cummin")
     ->docs(doc_dt_cummin)
-    ->arg_names({"cummin"})
+    ->arg_names({"cols", "reverse"})
     ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 
