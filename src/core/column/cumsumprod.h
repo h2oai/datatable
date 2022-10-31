@@ -29,7 +29,7 @@
 
 namespace dt {
 
-  template <typename T, bool SUM>
+  template <typename T, bool SUM, bool REVERSE>
   class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -56,6 +56,24 @@ namespace dt {
             size_t i1 = size_t(offsets[gi]);
             size_t i2 = size_t(offsets[gi + 1]);
 
+          if (REVERSE) {
+            T val;
+            bool is_valid = col_.get_element(i2-1, &val);
+            if (SUM) {
+                  data[i2-1] = is_valid? val : 0;
+                } else {
+                  data[i2-1] = is_valid? val : 1;
+                }
+            for (size_t i = i2-1; i-- > i1;) {
+              bool is_valid = col_.get_element(i, &val);
+              if (SUM) {
+                data[i] = data[i + 1] + (is_valid? val : 0);
+              } else {
+                data[i] = data[i + 1] * (is_valid? val : 1);
+              }
+              
+              }
+          } else {
             T val;
             bool is_valid = col_.get_element(i1, &val);
             if (SUM) {
@@ -71,7 +89,8 @@ namespace dt {
                 data[i] = data[i - 1] * (is_valid? val : 1);
               }
             }
-          });
+              }}
+          );
 
       col_out = std::move(col);
     }

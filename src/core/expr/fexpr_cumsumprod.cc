@@ -32,7 +32,7 @@ namespace dt {
 namespace expr {
 
 
-template <bool SUM>
+template <bool SUM, bool REVERSE>
 class FExpr_CumSumProd : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -45,6 +45,8 @@ class FExpr_CumSumProd : public FExpr_Func {
       std::string out = SUM? "cumsum" : "cumprod";
       out += '(';
       out += arg_->repr();
+      out += ", reverse=";
+      out += REVERSE? "True" : "False";
       out += ')';
       return out;
     }
@@ -97,7 +99,7 @@ class FExpr_CumSumProd : public FExpr_Func {
     Column make(Column &&col, SType stype, const Groupby &gby) const {
        col.cast_inplace(stype);
        return Column(new Latent_ColumnImpl(
-         new CumSumProd_ColumnImpl<T, SUM>(std::move(col), gby)
+         new CumSumProd_ColumnImpl<T, SUM, REVERSE>(std::move(col), gby)
        ));
     }
 };
@@ -105,26 +107,38 @@ class FExpr_CumSumProd : public FExpr_Func {
 
 static py::oobj pyfn_cumsum(const py::XArgs &args) {
   auto cumsum = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CumSumProd<true>(as_fexpr(cumsum)));
+  auto reverse = args[1].to<bool>(false);
+  if (reverse) {
+    return PyFExpr::make(new FExpr_CumSumProd<true, true>(as_fexpr(cumsum)));
+  } else {
+    return PyFExpr::make(new FExpr_CumSumProd<true, false>(as_fexpr(cumsum)));
+  }
 }
 
 static py::oobj pyfn_cumprod(const py::XArgs &args) {
   auto cumprod = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CumSumProd<false>(as_fexpr(cumprod)));
+  auto reverse = args[1].to<bool>(false);
+  if (reverse) {
+    return PyFExpr::make(new FExpr_CumSumProd<false, true>(as_fexpr(cumprod)));
+  } else {
+    return PyFExpr::make(new FExpr_CumSumProd<false, false>(as_fexpr(cumprod)));
+  }
 }
 
 DECLARE_PYFN(&pyfn_cumsum)
     ->name("cumsum")
     ->docs(doc_dt_cumsum)
-    ->arg_names({"cols"})
+    ->arg_names({"cols", "reverse"})
     ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 DECLARE_PYFN(&pyfn_cumprod)
     ->name("cumprod")
     ->docs(doc_dt_cumprod)
-    ->arg_names({"cols"})
+    ->arg_names({"cols", "reverse"})
     ->n_positional_args(1)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 
