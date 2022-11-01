@@ -420,24 +420,32 @@ DECLARE_METHOD(&PyFExpr::cummin)
     ->n_required_args(0);
 
 
-oobj PyFExpr::cumprod(const XArgs&) {
+oobj PyFExpr::cumprod(const XArgs& args) {
   auto cumprodFn = oobj::import("datatable", "cumprod");
-  return cumprodFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumprodFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumprod)
     ->name("cumprod")
-    ->docs(dt::doc_FExpr_cumprod);
+    ->docs(dt::doc_FExpr_cumprod)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
 
-oobj PyFExpr::cumsum(const XArgs&) {
+oobj PyFExpr::cumsum(const XArgs& args) {
   auto cumsumFn = oobj::import("datatable", "cumsum");
-  return cumsumFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumsumFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumsum)
     ->name("cumsum")
-    ->docs(dt::doc_FExpr_cumsum);
+    ->docs(dt::doc_FExpr_cumsum)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
 
 
