@@ -16,6 +16,11 @@
     cols: FExpr
         Input data for cumulative product calculation.
 
+    reverse: bool
+        If ``False``, the cumulative product is computed from the last row
+        to the first row. if ``True``, the cumulative product is computed 
+        from the first row to the last row.
+        
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the respective cumulative products.
@@ -56,6 +61,20 @@
          1 |     2
          2 |    10
          3 |   -10
+         4 |     0
+        [5 rows x 1 column]
+        
+
+    Calculate the cumulative product when `reverse` is `True`::
+
+        >>> DT[:, dt.cumprod(f.A, reverse=True)]
+           |     A
+           | int64
+        -- + -----
+         0 |     0
+         1 |     0
+         2 |     0
+         3 |     0
          4 |     0
         [5 rows x 1 column]
 

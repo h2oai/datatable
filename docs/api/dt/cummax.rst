@@ -15,6 +15,11 @@
     cols: FExpr
         Input data for cumulative maximum calculation.
 
+    reverse: bool
+        If ``False``, the cumulative maximum is computed from the last row
+        to the first row. if ``True``, the cumulative maximum is computed 
+        from the first row to the last row.
+
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the respective cumulative maximums.
@@ -56,6 +61,20 @@
          2 |     5
          3 |     5
          4 |     5
+        [5 rows x 1 column]
+        
+
+    Calculate the cumulative maximum when `reverse` is `True`::
+
+        >>> DT[:, dt.cummax(f.A, reverse=True)]
+           |     A
+           | int32
+        -- + -----
+         0 |     5
+         1 |     5
+         2 |     5
+         3 |     0
+         4 |     0
         [5 rows x 1 column]
 
 

@@ -16,6 +16,11 @@
     cols: FExpr
         Input data for cumulative sum calculation.
 
+    reverse: bool
+        If ``False``, the cumulative sum is computed from the last row
+        to the first row. if ``True``, the cumulative sum is computed 
+        from the first row to the last row.
+
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the respective cumulative sums.
@@ -59,6 +64,20 @@
          4 |     6
         [5 rows x 1 column]
 
+
+    Calculate the cumulative sum when `reverse` is `True`::
+
+        >>> DT[:, dt.cumsum(f.A, reverse=True)]
+           |     A
+           | int64
+        -- + -----
+         0 |     6
+         1 |     4
+         2 |     4
+         3 |    -1
+         4 |     0
+        [5 rows x 1 column]
+        
 
     Calculate cumulative sums in multiple columns::
 

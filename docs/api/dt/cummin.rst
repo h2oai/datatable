@@ -15,6 +15,11 @@
     cols: FExpr
         Input data for cumulative minimum calculation.
 
+    reverse: bool
+        If ``False``, the cumulative minimum is computed from the last row
+        to the first row. if ``True``, the cumulative minimum is computed 
+        from the first row to the last row.
+
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the respective cumulative minimums.
@@ -56,6 +61,20 @@
          2 |     2
          3 |    -1
          4 |    -1
+        [5 rows x 1 column]
+        
+
+    Calculate the cumulative minimum when `reverse` is `True`::
+
+        >>> DT[:, dt.cummin(f.A, reverse=True)]
+           |     A
+           | int32
+        -- + -----
+         0 |    -1
+         1 |    -1
+         2 |    -1
+         3 |    -1
+         4 |     0
         [5 rows x 1 column]
 
 
