@@ -388,13 +388,20 @@ know how to resolve them. If none of these help you, please ask a question on
 
 ``ModuleNotFoundError: No module named 'gendoc'``
   Check your python version with ``python --version``. if you are running 
-  python3.10 or above, you will need to :ref:`install the latest dev version<Install Dev Version>`
-  or :ref:`build from source<Install from Source>`.
+  ``python3.10``, you will need to :ref:`install the latest dev version<Install Dev Version>`
+  or :ref:`build from source<Install from Source>` or revert to ``python3.9``.
+
+  - This issue is resolved by `Include gendoc file into the source distribution (#3151)`_ is
+    currently available in the :ref:`latest development version<Install Dev Version>`.
 
 ``ImportError: DLL load failed while importing _datatable: The specified module could not be found.``
-  Check your python version with ``python --version``. if you are running 
-  python3.10 or above, you will need to :ref:`install the latest dev version<Install Dev Version>`
+  Check your python version with ``python --version``. If you are running 
+  ``python3.11``, you will need to revert to ``python3.9``. Alternatively, you may 
+  use ``python3.10`` and :ref:`install the latest dev version<Install Dev Version>`
   or :ref:`build from source<Install from Source>`.
+
+  - This issue is an active feature request to `add support for python 3.11 (#3374)`_
+    and will be included in `Release 1.1.0`_ of datatable. 
 
 .. _PVE:
 
@@ -540,3 +547,9 @@ Windows CMD
 .. _`Visual Studio`: https://visualstudio.microsoft.com/vs/
 
 .. _`Visual Studio Community Edition`: https://visualstudio.microsoft.com/vs/community/
+
+.. _`Include gendoc file into the source distribution (#3151)`: https://github.com/h2oai/datatable/pull/3151
+
+.. _`add support for python 3.11 (#3374)`: https://github.com/h2oai/datatable/issues/3374
+
+.. _`Release 1.1.0`: https://github.com/h2oai/datatable/milestone/26
