@@ -70,20 +70,48 @@ The following platforms are supported:
 
   Windows wheels are available for Windows 10 or later.
 
-
+.. _Install Dev Version:
 
 Install latest dev version
 --------------------------
 
 If you wish to test the latest version of ``datatable`` before it has been
 officially released, then you can use one of the binary wheels that we build
-as part of our Continuous Integration process. There are two repositories
-available: `AppVeyor`_ and our `S3 repository`_
+as part of our Continuous Integration process. 
 
-First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE>`.
+There are two sources available;
 
-Install from AppVeyor
-^^^^^^^^^^^^^^^^^^^^^
+- For macOS and Linux please use our `S3 repository`_. 
+
+- For Windows installations, you can find the latest wheels within our
+  `AppVeyor`_ build system.
+
+
+Install from the Amazon S3 Repository (macOS & Linux)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
+
+Both the most current and historical development wheels for macOS & Linux can 
+be found at our `S3 repository`_.
+
+- To install the most current development version, **scroll to the bottom** of 
+  the page to find the latest links, and then download or copy the URL of a
+  wheel that corresponds to your Python version and platform. 
+
+  .. image:: ../_static/amazon_s3_repo.png
+    :scale: 25 %
+    :alt: datatable S3 binary wheel links
+
+- This wheel can be installed with ``pip`` as usual:
+
+.. code-block:: console
+
+    $ pip install https://AWS S3 DATATABLE BUILD WHEEL URL.whl
+
+Install from AppVeyor (Windows)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE Windows>`.
 
 - To find the latest build wheels for datatable, go to datatable's `AppVeyor`_ 
   CI/CD Instance and select the platform you're installing for:
@@ -107,27 +135,8 @@ Install from AppVeyor
 
     C:\> pip install https://APPVEYOR DATATABLE BUILD WHEEL URL.whl
 
-Install from the Amazon S3 Repository
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Both the most current and historical development wheels can be found at 
-our `S3 repository`_.
-
-- To install the most current development version, **scroll to the bottom** of 
-  the page to find the latest links, and then download or copy the URL of a
-  wheel that corresponds to your Python version and platform. 
-
-  .. image:: ../_static/amazon_s3_repo.png
-    :scale: 25 %
-    :alt: datatable appveyor artifact links
-
-- This wheel can be installed with ``pip`` as usual:
-
-.. code-block:: console
-
-    $ pip install https://AWS S3 DATATABLE BUILD WHEEL URL.whl
-
-
+.. _Install from Source:
 
 Installation from Source
 ------------------------
@@ -166,7 +175,7 @@ Build for Linux
 
     $ sudo yum groupinstall "Development tools"
 
-- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & MacOS>`.
+- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
 
 - Then install datatable directly from github from using 
   :code:`pip install git+https://...`
@@ -176,10 +185,10 @@ Build for Linux
   $ pip install git+https://github.com/h2oai/datatable
 
 
-Build for MacOS
+Build for macOS
 ^^^^^^^^^^^^^^^
 
-- For MacOS you will need to install the ``XCode Command Line Tools``
+- For macOS you will need to install the ``XCode Command Line Tools``
 - run :code:`xcode-select --install`` from your terminal and confirm the 
   prompts for download and installation of the xcode command-line tools.
 
@@ -190,7 +199,7 @@ Build for MacOS
 - Then install datatable directly from github from using 
   :code:`pip install git+https://...`
 
-- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & MacOS>`.
+- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
 
 .. code-block:: console
 
@@ -210,7 +219,7 @@ Build for Windows
 
   - e.g. :code:`C:\\Program Files\\Microsoft Visual Studio\\2022\\Community\\Common7\\Tools\\`
 
-- Depending on your shell, Run the VS CLI environment setup script:
+- Depending on your shell, run the VS CLI environment setup script:
 
   - Powershell
 
@@ -224,7 +233,7 @@ Build for Windows
 
     C:\> "C:\Program Files\Microsoft Visual Studio\2022\Community\Common7\Tools\LaunchDevCmd.bat"
 
-- Lastly, On windows, Datatable uses an shell environment variable to find the
+- Lastly, On windows, datatable uses an environment variable to find the
   MSVC compiler, so you must set that variable.
 
   - Powershell
@@ -377,14 +386,19 @@ know how to resolve them. If none of these help you, please ask a question on
   The most likely cause of this error is a misconfigured ``PYTHONPATH``
   environment variable. Unset that variable and try again.
 
+``ModuleNotFoundError: No module named 'gendoc'``
+  Check your python version with ``python --version``. if you are running 
+  python3.10 or above, you will need to :ref:`install the latest dev version<Install Dev Version>`
+  or :ref:`build from source<Install from Source>`.
+
 .. _PVE:
 
 Appendix: Creating a Python Virtual Environment
 -----------------------------------------------
 
-.. _PVE Linux & MacOS:
+.. _PVE Linux & macOS:
 
-Linux & MacOS
+Linux & macOS
 ^^^^^^^^^^^^^
 
 - Create a new project directory and change to it
