@@ -79,7 +79,7 @@ If you wish to test the latest version of ``datatable`` before it has been
 officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process. 
 
-There are two sources available;
+There are two sources available:
 
 - For macOS and Linux please use our `S3 repository`_. 
 
