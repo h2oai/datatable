@@ -391,6 +391,11 @@ know how to resolve them. If none of these help you, please ask a question on
   python3.10 or above, you will need to :ref:`install the latest dev version<Install Dev Version>`
   or :ref:`build from source<Install from Source>`.
 
+``ImportError: DLL load failed while importing _datatable: The specified module could not be found.``
+  Check your python version with ``python --version``. if you are running 
+  python3.10 or above, you will need to :ref:`install the latest dev version<Install Dev Version>`
+  or :ref:`build from source<Install from Source>`.
+
 .. _PVE:
 
 Appendix: Creating a Python Virtual Environment
