@@ -57,28 +57,29 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
         [&](size_t gi) {
           size_t i1 = size_t(offsets[gi]);
           size_t i2 = size_t(offsets[gi + 1]);
-        if (REVERSE) {
           T val;
-          bool res_valid = col_.get_element(i2-1, &val);
-          data[i2-1] = res_valid? val : GETNA<T>();
-          for (size_t i = i2-1; i-- > i1;) {
-            bool is_valid = col_.get_element(i, &val);
-            if (is_valid) {
-              if (MIN) {
-                data[i] = (res_valid && data[i + 1] < val)? data[i + 1] : val;
+
+          if (REVERSE) {
+            bool res_valid = col_.get_element(i2 - 1, &val);
+            data[i2 - 1] = res_valid? val : GETNA<T>();
+
+            for (size_t i = i2 - 1; i-- > i1;) {
+              bool is_valid = col_.get_element(i, &val);
+              if (is_valid) {
+                if (MIN) {
+                  data[i] = (res_valid && data[i + 1] < val)? data[i + 1] : val;
+                } else {
+                  data[i] = (res_valid && data[i + 1] > val)? data[i + 1] : val;
+                }
+                res_valid = true;
               } else {
-                data[i] = (res_valid && data[i + 1] > val)? data[i + 1] : val;
+                data[i] = data[i + 1];
               }
-              res_valid = true;
-            } else {
-              data[i] = data[i + 1];
             }
-            }
-        } else {
-            T val;
+          } else {
             bool res_valid = col_.get_element(i1, &val);
             data[i1] = res_valid? val : GETNA<T>();
-  
+
             for (size_t i = i1 + 1; i < i2; ++i) {
               bool is_valid = col_.get_element(i, &val);
               if (is_valid) {
@@ -91,9 +92,8 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
               } else {
                 data[i] = data[i - 1];
               }
-            }}
-          
-          
+            }
+          }
 
         });
 
@@ -105,9 +105,11 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
       return new CumMinMax_ColumnImpl(Column(col_), gby_);
     }
 
+
     size_t n_children() const noexcept override {
       return 1;
     }
+
 
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;

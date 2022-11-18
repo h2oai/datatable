@@ -113,7 +113,7 @@ class FExpr_CumMinMax : public FExpr_Func {
 
 static py::oobj pyfn_cummax(const py::XArgs& args) {
   auto cummax = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
+  bool reverse = args[1].to<bool>(false);
   if (reverse) {
     return PyFExpr::make(new FExpr_CumMinMax<false, true>(as_fexpr(cummax)));
   } else {
@@ -124,7 +124,7 @@ static py::oobj pyfn_cummax(const py::XArgs& args) {
 
 static py::oobj pyfn_cummin(const py::XArgs& args) {
   auto cummin = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
+  bool reverse = args[1].to<bool>(false);
   if (reverse) {
     return PyFExpr::make(new FExpr_CumMinMax<true, true>(as_fexpr(cummin)));
   } else {

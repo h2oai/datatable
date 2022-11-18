@@ -190,6 +190,7 @@ def test_cumminmax_reverse():
     DT_ref = DT[::-1, :][:, [cummin(f.C0), cummax(f.C0)]][::-1, :]
     assert_equals(DT_mm, DT_ref)
 
+
 def test_cumminmax_groupby_reverse():
     DT = dt.Frame([[3, 14, 15, 92, 6], ["a", "cat", "a", "dog", "cat"]])
     DT_mm = DT[:, [cummin(f[0], reverse=True), cummax(f[0], True)], by(f[1])]

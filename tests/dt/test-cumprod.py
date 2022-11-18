@@ -103,11 +103,13 @@ def test_cumprod_groupby():
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, -math.inf, -math.inf, 1.5, 4.5]/dt.float64])
     assert_equals(DT_cumprod, DT_ref)
 
+
 def test_cumprod_groupby_reverse():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
     DT_cumprod = DT[:, cumprod(f[:], reverse=True), by(f[0])]
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-math.inf, math.inf, 2.0, 4.5, 3.0]/dt.float64])
     assert_equals(DT_cumprod, DT_ref)
+
 
 def test_cumprod_void_grouped_column():
     DT = dt.Frame([None]*10)

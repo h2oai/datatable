@@ -107,7 +107,7 @@ class FExpr_CumSumProd : public FExpr_Func {
 
 static py::oobj pyfn_cumsum(const py::XArgs &args) {
   auto cumsum = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
+  bool reverse = args[1].to<bool>(false);
   if (reverse) {
     return PyFExpr::make(new FExpr_CumSumProd<true, true>(as_fexpr(cumsum)));
   } else {
@@ -115,15 +115,17 @@ static py::oobj pyfn_cumsum(const py::XArgs &args) {
   }
 }
 
+
 static py::oobj pyfn_cumprod(const py::XArgs &args) {
   auto cumprod = args[0].to_oobj();
-  auto reverse = args[1].to<bool>(false);
+  bool reverse = args[1].to<bool>(false);
   if (reverse) {
     return PyFExpr::make(new FExpr_CumSumProd<false, true>(as_fexpr(cumprod)));
   } else {
     return PyFExpr::make(new FExpr_CumSumProd<false, false>(as_fexpr(cumprod)));
   }
 }
+
 
 DECLARE_PYFN(&pyfn_cumsum)
     ->name("cumsum")

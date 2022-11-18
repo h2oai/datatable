@@ -89,6 +89,7 @@ def test_cumsum_small():
     DT_ref = dt.Frame([[0, 1, 3, 6, 10]/dt.int64, [-1, 0, 0, 2, 7.5]])
     assert_equals(DT_cumsum, DT_ref)
 
+
 def test_cumsum_reverse():
     DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
     DT_cumsum = DT[:, cumsum(f[:], reverse=True)]
@@ -101,6 +102,7 @@ def test_cumsum_groupby():
     DT_cumsum = DT[:, cumsum(f[:]), by(f[0])]
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, math.inf, math.inf, 1.5, 4.5]/dt.float64])
     assert_equals(DT_cumsum, DT_ref)
+
 
 def test_cumsum_groupby_reverse():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
