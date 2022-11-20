@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumsum
     :tests: tests/dt/test-cumsum.py
     :cvar: doc_dt_cumsum
-    :signature: cumsum(cols)
+    :signature: cumsum(cols, reverse=False)
 
     .. x-version-added:: 1.1.0
 
@@ -15,6 +15,10 @@
     ----------
     cols: FExpr
         Input data for cumulative sum calculation.
+
+    reverse: bool
+        If ``False``, computation is done from top to bottom.
+        If ``True``, it is done from bottom to top.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
@@ -60,6 +64,20 @@
         [5 rows x 1 column]
 
 
+    Calculate the cumulative sum from bottom to top::
+
+        >>> DT[:, dt.cumsum(f.A, reverse=True)]
+           |     A
+           | int64
+        -- + -----
+         0 |     6
+         1 |     4
+         2 |     4
+         3 |    -1
+         4 |     0
+        [5 rows x 1 column]
+        
+
     Calculate cumulative sums in multiple columns::
 
         >>> DT[:, dt.cumsum(f[:-1])]
@@ -74,7 +92,7 @@
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate cumulative sums within each group::
+    For a grouped frame calculate cumulative sums within each group::
 
         >>> DT[:, dt.cumsum(f[:]), by('D')]
            | D          A      B        C
