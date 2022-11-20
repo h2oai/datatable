@@ -3,17 +3,21 @@
     :src: src/core/expr/fexpr_cumminmax.cc pyfn_cummax
     :tests: tests/dt/test-cumminmax.py
     :cvar: doc_dt_cummax
-    :signature: cummax(cols)
+    :signature: cummax(cols, reverse=False)
 
     .. x-version-added:: 1.1.0
 
-    For each column from `cols` calculate cumulative maximum. In the presence of :func:`by()`,
-    the cumulative maximum is computed within each group.
+    For each column from `cols` calculate cumulative maximum. In the presence
+    of :func:`by()`, the cumulative maximum is computed within each group.
 
     Parameters
     ----------
     cols: FExpr
         Input data for cumulative maximum calculation.
+
+    reverse: bool
+        If ``False``, computation is done from top to bottom.
+        If ``True``, it is done from bottom to top.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
@@ -57,6 +61,20 @@
          3 |     5
          4 |     5
         [5 rows x 1 column]
+        
+
+    Calculate the cumulative maximum from bottom to top::
+
+        >>> DT[:, dt.cummax(f.A, reverse=True)]
+           |     A
+           | int32
+        -- + -----
+         0 |     5
+         1 |     5
+         2 |     5
+         3 |     0
+         4 |     0
+        [5 rows x 1 column]
 
 
     Calculate the cumulative maximum in multiple columns::
@@ -73,7 +91,7 @@
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate the cumulative maximum within each group::
+    For a grouped frame calculate the cumulative maximum within each group::
 
         >>> DT[:, dt.cummax(f[:]), by('D')]
            | D          A     B        C
