@@ -1,6 +1,6 @@
 image:
-  - macos-monterey
   - Ubuntu
+  - macos-monterey
   - Visual Studio 2019
 
 init:
