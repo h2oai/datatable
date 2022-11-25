@@ -38,9 +38,7 @@ __all__ = (
     "min",
     "nunique",
     "sd",
-    "sum",
     "countna",
-    "prod",
 )
 
 
@@ -57,8 +55,6 @@ def count(iterable=None):
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
 
-def prod(iterable=None):
-    return Expr(OpCodes.PROD, (iterable,))
 
 def countna(iterable=None):
     return Expr(OpCodes.COUNTNA, (iterable,))
@@ -110,13 +106,6 @@ def corr(col1, col2):
     return Expr(OpCodes.CORR, (col1, col2))
 
 
-# noinspection PyShadowingBuiltins
-def sum(iterable, start=0):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.SUM, (iterable,))
-    else:
-        return _builtin_sum(iterable, start)
-
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
@@ -142,6 +131,6 @@ def max(*args, **kwds):
         return _builtin_max(*args, **kwds)
 
 
-sum.__doc__ = _builtin_sum.__doc__
+# sum.__doc__ = _builtin_sum.__doc__
 min.__doc__ = _builtin_min.__doc__
 max.__doc__ = _builtin_max.__doc__

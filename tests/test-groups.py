@@ -24,7 +24,7 @@
 import datatable as dt
 import pytest
 import random
-from datatable import f, mean, min, max, sum, count, by, sort, prod
+from datatable import f, mean, min, max, count, by, sort, prod
 from datatable.internal import frame_integrity_check
 from tests import list_equals, assert_equals, isview
 
@@ -288,7 +288,7 @@ def test_reduce_sum():
 def test_reduce_sum_same_column():
     # See issue #3110
     f0 = dt.Frame({"ints" : [0, 1, 0, 0, 1, 2]})
-    f1 = f0[:, {"sum" : sum(f.ints)}, f.ints]
+    f1 = f0[:, {"sum" : dt.sum(f.ints)}, f.ints]
     frame_integrity_check(f1)
     assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "sum" : [0, 2, 2]/dt.int64}))
 

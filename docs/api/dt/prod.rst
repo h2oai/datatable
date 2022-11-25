@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.prod
-    :src: src/core/expr/head_reduce_unary.cc prod_reducer
+    :src: src/core/expr/fexpr_sumprod.cc pyfn_prod
     :tests: tests/test-reduce.py
     :cvar: doc_dt_prod
     :signature: prod(cols)

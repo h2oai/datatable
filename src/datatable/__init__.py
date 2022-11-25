@@ -21,8 +21,8 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .frame import Frame
-from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   last, log, log10, f, g, median, cov, corr, countna, nunique, prod)
+from .expr import (mean, min, max, sd, isna, count, first, abs, exp,
+                   last, log, log10, f, g, median, cov, corr, countna, nunique)
 from .lib._datatable import (
     as_type,
     by,
@@ -45,6 +45,7 @@ from .lib._datatable import (
     join,
     Namespace,
     ngroup,
+    prod,
     qcut,
     rbind,
     repeat,
@@ -64,6 +65,7 @@ from .lib._datatable import (
     shift,
     sort,
     split_into_nhot_deprecated as split_into_nhot,
+    sum,
     symdiff,
     Type,
     union,
@@ -131,6 +133,7 @@ __all__ = (
     "ngroup",
     "obj64",
     "options",
+    "prod",
     "qcut",
     "rbind",
     "repeat",
@@ -151,6 +154,7 @@ __all__ = (
     "shift",
     "sort",
     "split_into_nhot",
+    "sum",
     "str32",
     "str64",
     "stype",
