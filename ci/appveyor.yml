@@ -1,7 +1,7 @@
 image:
-  - Visual Studio 2019
   - macos-monterey
   - Ubuntu
+  - Visual Studio 2019
 
 init:
   # Uncomment the line below to enable RDP access on AppVeyor
