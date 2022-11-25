@@ -73,9 +73,6 @@ PyObject* FExpr_Type = nullptr;
 #else
   #define _Py_static_string_init(value) { NULL, value, NULL }
 #endif
-_Py_IDENTIFIER(stdin);
-_Py_IDENTIFIER(stdout);
-_Py_IDENTIFIER(stderr);
 _Py_IDENTIFIER(write);
 
 
@@ -1306,31 +1303,19 @@ robj rnone()    { return robj(Py_None); }
 
 robj rstdin() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stdin)  // borrowed ref
-    #else
-      PySys_GetObject("stdin")         // borrowed ref
-    #endif
+    PySys_GetObject("stdin")         // borrowed ref
   );
 }
 
 robj rstdout() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
-    #else
-      PySys_GetObject("stdout")         // borrowed ref
-    #endif
+    PySys_GetObject("stdout")         // borrowed ref
   );
 }
 
 robj rstderr() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stderr)  // borrowed ref
-    #else
-      PySys_GetObject("stderr")         // borrowed ref
-    #endif
+    PySys_GetObject("stderr")         // borrowed ref
   );
 }
 

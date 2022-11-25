@@ -22,6 +22,7 @@
 #ifndef dt_CALL_LOGGER_h
 #define dt_CALL_LOGGER_h
 #include "_dt.h"
+#include "python/python.h"
 namespace dt {
 
 

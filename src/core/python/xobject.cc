@@ -81,7 +81,7 @@ void XTypeMaker::initialize_type() {
         py::ostring(class_name_), py::otuple(0), defs
     });
     type = reinterpret_cast<PyTypeObject*>(std::move(typeObj).release());
-    xassert(type->tp_basicsize == sizeof(PyObject) + 16);
+    // xassert(type->tp_basicsize == sizeof(PyObject) + 16);
     type->tp_basicsize = static_cast<Py_ssize_t>(object_size);
   }
   else {
