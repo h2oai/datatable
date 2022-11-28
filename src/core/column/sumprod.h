@@ -59,7 +59,7 @@ namespace dt {
         }
       }
       *out = result;
-      return true;
+      return true; // the result is never a missing value
     }
 
 
