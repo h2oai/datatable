@@ -95,8 +95,7 @@ class FExpr_SumProd : public FExpr_Func {
     template <typename T>
     Column make(Column &&col, SType stype, const Groupby &gby) const {
        col.cast_inplace(stype);
-       return Column(new SumProd_ColumnImpl<T, SUM>(std::move(col), gby)
-       );
+       return Column(new SumProd_ColumnImpl<T, SUM>(std::move(col), gby));
     }
 };
 
