@@ -44,12 +44,7 @@ namespace dt {
 
 
     bool get_element(size_t i, T* out) const override {
-      T result;
-      if (SUM){
-        result = 0;
-      } else {
-        result = 1;
-      }            
+      T result = !SUM;      
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
       for (size_t i = i0; i < i1; ++i) {
