@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_SUM_h
 #define dt_COLUMN_SUM_h
-#include "column/latent.h"
 #include "column/virtual.h"
 #include "stype.h"
 
@@ -31,12 +30,14 @@ namespace dt {
   class SumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
+    bool is_grouped_;
     Groupby gby_;
 
   public:
-    SumProd_ColumnImpl(Column &&col, const Groupby &gby)
+    SumProd_ColumnImpl(Column &&col, bool is_grouped, const Groupby &gby)
       :Virtual_ColumnImpl(gby.size(), col.stype()),
        col_(std::move(col)),
+       is_grouped_(is_grouped),
        gby_(gby)
     {
       xassert(col_.can_be_read_as<T>());
@@ -44,27 +45,41 @@ namespace dt {
 
 
     bool get_element(size_t i, T* out) const override {
-      T result = !SUM;      
+      T result = !SUM; 
+      T value;     
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
-      for (size_t i = i0; i < i1; ++i) {
-        T value;
+      if (is_grouped_){
         bool isvalid = col_.get_element(i, &value);
         if (isvalid){
-          if (SUM) {
-            result += value;
+          if (SUM) {            
+            result = static_cast<T>(i1-i0) * value;
           } else {
-            result *= value;
-          }          
+            for (size_t i = i0; i < i1; ++i) {
+              result *= value;
+            }
+          }
         }
-      }
-      *out = result;
+      } else {
+        for (size_t i = i0; i < i1; ++i) {
+          bool isvalid = col_.get_element(i, &value);
+          if (isvalid){
+            if (SUM) {
+              result += value;
+            } else {
+              result *= value;
+            }          
+          }
+        }
+      
+      } 
+      *out = result;     
       return true; // the result is never a missing value
     }
 
 
     ColumnImpl *clone() const override {
-      return new SumProd_ColumnImpl(Column(col_), gby_);
+      return new SumProd_ColumnImpl(Column(col_), is_grouped_, gby_);
     }
 
 

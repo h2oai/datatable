@@ -133,7 +133,7 @@ def test_group_reduce_all_columns():
         fork=[None,None,10,None,None,None,210,None],
         veg=[17,None,None,40,1,2,None,340]
     )
-    assert_equals(DT[:, sum(f[:]), by(f.id)],
+    assert_equals(DT[:, dt.sum(f[:]), by(f.id)],
                   dt.Frame(id=[3, 4],
                            beef=[23, 0]/dt.int64,
                            eggs=[33, 300]/dt.int64,
@@ -202,7 +202,7 @@ def test_group_empty_frame3():
 
 def test_group_empty_frame4():
     DT = dt.Frame(A=[], stype=dt.float32)
-    D2 = DT[:, sum(f.A), by(f.A)]
+    D2 = DT[:, dt.sum(f.A), by(f.A)]
     frame_integrity_check(D2)
     assert D2.shape == (0, 2)
     assert D2.stypes == (dt.float32, dt.float32)
@@ -279,7 +279,7 @@ def test_group_boolean4():
 def test_reduce_sum():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, -1]})
-    f1 = f0[:, sum(f.size), f.color]
+    f1 = f0[:, dt.sum(f.size), f.color]
     frame_integrity_check(f1)
     assert f1.to_list() == [["blue", "green", "red"],
                             [2, 6, 18]]
@@ -351,7 +351,7 @@ def test_issue_2242(seed):
     n = 25000
     X = dt.Frame(AGE=[random.randint(1, 50) for i in range(n)],
                  PAY=[random.choice([True, False]) for i in range(n)])
-    RES = X[:, dt.math.log((count() + 1)/(sum(f.PAY) + 0.5) - 1), by(f.AGE)]
+    RES = X[:, dt.math.log((count() + 1)/(dt.sum(f.PAY) + 0.5) - 1), by(f.AGE)]
     assert RES.shape == (50, 2)
     data = RES.to_list()
     assert data[0] == list(range(1, 51))
@@ -366,7 +366,7 @@ def test_issue_2242(seed):
 
 def test_groupby_multi():
     DT = dt.Frame(A=[1, 2, 3] * 3, B=[1, 2] * 4 + [1], C=range(9))
-    res = DT[:, sum(f.C), by("A", "B")]
+    res = DT[:, dt.sum(f.C), by("A", "B")]
     assert res.to_list() == [[1, 1, 2, 2, 3, 3],
                              [1, 2, 1, 2, 1, 2],
                              [6, 3, 4, 8, 10, 5]]
@@ -402,7 +402,7 @@ def test_groupby_multi_large(seed):
         sumval += rows[i][3]
     grouped.append(lastkey + (sumval,))
     DT0 = dt.Frame([col0, col1, col2, col3], names=["A", "B", "C", "D"])
-    DT1 = DT0[:, sum(f.D), by(f.A, f.B, f.C)]
+    DT1 = DT0[:, dt.sum(f.D), by(f.A, f.B, f.C)]
     DT2 = dt.Frame(grouped)
     assert list_equals(DT1.to_list(), DT2.to_list())
 
