@@ -51,7 +51,6 @@ def test_common_symbols():
 def test_reducers():
     assert dt.max != max
     assert dt.min != min
-    assert dt.sum != sum
     assert mean
     assert median
     assert sd
@@ -100,7 +99,7 @@ def test_builtins_all():
     """Check that no builtin variable was exported from datatable."""
     import builtins
     global_vars = [v for v in globals().keys()
-                   if not v.startswith('__')]
+                   if not v.startswith('__') and v not in {'sum'}]
     builtin_vars = dir(builtins)
     common = set(global_vars) & set(builtin_vars)
     assert not common
