@@ -64,17 +64,6 @@ PyObject* Expr_Type = nullptr;
 // Set from expr/fexpr.cc
 PyObject* FExpr_Type = nullptr;
 
-// `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
-// a designated initializer, that is not supported by the C++14 standard.
-// Redefine `_Py_static_string_init` here to use a regular initializer.
-#undef _Py_static_string_init
-#if PY_VERSION_HEX >= 0x030a0000
-  #define _Py_static_string_init(value) { value, -1 }
-#else
-  #define _Py_static_string_init(value) { NULL, value, NULL }
-#endif
-_Py_IDENTIFIER(write);
-
 
 
 //------------------------------------------------------------------------------
@@ -1325,11 +1314,7 @@ void write_to_stdout(const std::string& str) {
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(
-      #ifndef Py_LIMITED_API
-        _PyObject_GetAttrId(py_stdout, &PyId_write)  // new ref
-      #else
         PyObject_GetAttrString(py_stdout, "write")   // new ref
-      #endif
     );
     if (!writer) PyErr_Clear();
   }

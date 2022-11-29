@@ -1,7 +1,8 @@
 image:
   - Visual Studio 2019
-  - macos-monterey
   - Ubuntu
+  # Uncomment the line below when python 3.11 is added to macOS image
+  # - macos-monterey
 
 init:
   # Uncomment the line below to enable RDP access on AppVeyor
@@ -82,18 +83,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.10
+    #   Build and test wheel for Python 3.11
     # =======================================================================
 
-    source $HOME/venv3.10/bin/activate
+    source $HOME/venv3.11/bin/activate
 
     python -V
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp310-*.whl`
+    DT_WHEEL=`ls dist/*-cp311-*.whl`
 
-    echo "----- _build_info.py for Python 3.10 ------------------------------"
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
 
     cat src/datatable/_build_info.py
 
