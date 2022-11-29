@@ -298,10 +298,14 @@ ansiColor('xterm') {
                                         source /Users/jenkins/datatable_envs/py310/bin/activate
                                         python ci/ext.py wheel
                                         deactivate
+                                        source /Users/jenkins/datatable_envs/py311/bin/activate
+                                        python ci/ext.py wheel
+                                        deactivate
                                         echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
                                         echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
                                         echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
                                         echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py
+                                        echo '===== Py3.11 =====' && unzip -p dist/*cp311*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
