@@ -1314,7 +1314,7 @@ void write_to_stdout(const std::string& str) {
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(
-        PyObject_GetAttrString(py_stdout, "write")   // new ref
+      PyObject_GetAttrString(py_stdout, "write")   // new ref
     );
     if (!writer) PyErr_Clear();
   }
