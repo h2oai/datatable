@@ -19,6 +19,8 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#ifndef dt_PYTHON_h
+#define dt_PYTHON_h
 
 // `locale` must be included before <Python.h>, otherwise datatable won't
 // compile on macOS with Apple LLVM clang 9.1.0
@@ -42,5 +44,7 @@
     ob->ob_type = type;
   }
   #define Py_SET_TYPE(ob, type) _Py_SET_TYPE(_PyObject_CAST(ob), type)
+#endif
+
 #endif
 
