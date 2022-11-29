@@ -1292,19 +1292,19 @@ robj rnone()    { return robj(Py_None); }
 
 robj rstdin() {
   return robj(
-    PySys_GetObject("stdin")         // borrowed ref
+    PySys_GetObject("stdin")  // borrowed ref
   );
 }
 
 robj rstdout() {
   return robj(
-    PySys_GetObject("stdout")         // borrowed ref
+    PySys_GetObject("stdout")  // borrowed ref
   );
 }
 
 robj rstderr() {
   return robj(
-    PySys_GetObject("stderr")         // borrowed ref
+    PySys_GetObject("stderr")  // borrowed ref
   );
 }
 
@@ -1314,7 +1314,7 @@ void write_to_stdout(const std::string& str) {
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(
-      PyObject_GetAttrString(py_stdout, "write")   // new ref
+      PyObject_GetAttrString(py_stdout, "write")  // new ref
     );
     if (!writer) PyErr_Clear();
   }
