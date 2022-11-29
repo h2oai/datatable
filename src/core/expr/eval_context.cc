@@ -45,6 +45,7 @@ EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
   frames_.emplace_back(dt, RowIndex(), /* natural_join= */ false);
   eval_mode_ = evalmode;
   add_groupby_columns_ = true;
+  na_position_ = NaPosition::FIRST;
 }
 
 
