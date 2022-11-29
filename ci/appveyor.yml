@@ -1,7 +1,7 @@
 image:
+  - Visual Studio 2019
   - Ubuntu
   - macos-monterey
-  - Visual Studio 2019
 
 init:
   # Uncomment the line below to enable RDP access on AppVeyor
@@ -183,6 +183,39 @@ build_script:
 
 
     # =======================================================================
+    #   Build and test wheel for Python 3.11
+    # =======================================================================
+
+    $env:PATH = "C:/Python311-x64;C:/Python311-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
+
+    python ci/ext.py wheel
+
+    $DT_WHEEL = ls dist/*-cp311-*.whl
+
+    echo "DT_WHEEL = $DT_WHEEL"
+
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    python -m pip install --upgrade pip
+
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
+
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
+
+
+    # =======================================================================
     #   Build and test wheel for Python 3.7
     # =======================================================================
 
@@ -333,39 +366,6 @@ build_script:
     echo "DT_WHEEL = $DT_WHEEL"
 
     echo "----- _build_info.py for Python 3.10 ------------------------------"
-
-    cat src/datatable/_build_info.py
-
-    echo "------------------------------------------------------------------"
-
-    python -m pip install --upgrade pip
-
-    python -m pip install $DT_WHEEL
-
-    python -m pip install pytest docutils pandas pyarrow
-
-    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-    if(!$?) { Exit $LASTEXITCODE }
-
-    python -m pip uninstall -y $DT_WHEEL
-
-
-    # =======================================================================
-    #   Build and test wheel for Python 3.11
-    # =======================================================================
-
-    $env:PATH = "C:/Python311-x64;C:/Python311-x64/Scripts;$DEFAULT_PATH"
-
-    python -V
-
-    python ci/ext.py wheel
-
-    $DT_WHEEL = ls dist/*-cp311-*.whl
-
-    echo "DT_WHEEL = $DT_WHEEL"
-
-    echo "----- _build_info.py for Python 3.11 ------------------------------"
 
     cat src/datatable/_build_info.py
 

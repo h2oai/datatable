@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include <iostream>
 #include "column/latent.h"
 #include "expr/expr.h"
 #include "expr/eval_context.h"
@@ -238,6 +239,7 @@ bool EvalContext::get_reverse_flag(size_t id) {
 }
 
 NaPosition EvalContext::get_na_position() const {
+  std::cout << "na_position_: " << na_position_ << "\r\n";
   return na_position_;
 }
 
