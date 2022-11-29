@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include "column/latent.h"
 #include "expr/expr.h"
 #include "expr/eval_context.h"
@@ -46,7 +45,7 @@ EvalContext::EvalContext(DataTable* dt, EvalMode evalmode)
   frames_.emplace_back(dt, RowIndex(), /* natural_join= */ false);
   eval_mode_ = evalmode;
   add_groupby_columns_ = true;
-  na_position_ = NaPosition::FIRST;
+  na_position_ = NaPosition::FIRST; // default for groupby
 }
 
 
@@ -240,7 +239,6 @@ bool EvalContext::get_reverse_flag(size_t id) {
 }
 
 NaPosition EvalContext::get_na_position() const {
-  std::cout << "na_position_: " << na_position_ << "\r\n";
   return na_position_;
 }
 
