@@ -208,6 +208,8 @@ build_script:
 
     python -m pip install pytest docutils pandas pyarrow
 
+    pytest tests/test-groups.py::test_groups1b
+
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
     if(!$?) { Exit $LASTEXITCODE }
