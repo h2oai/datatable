@@ -38,12 +38,12 @@
   static inline void _Py_SET_REFCNT(PyObject *ob, Py_ssize_t refcnt) {
     ob->ob_refcnt = refcnt;
   }
-  #define Py_SET_REFCNT(ob, refcnt) _Py_SET_REFCNT(_PyObject_CAST(ob), refcnt)
+  #define Py_SET_REFCNT(ob, refcnt) _Py_SET_REFCNT(reinterpret_cast<PyObject*>(ob), refcnt)
 
   static inline void _Py_SET_TYPE(PyObject *ob, PyTypeObject *type) {
     ob->ob_type = type;
   }
-  #define Py_SET_TYPE(ob, type) _Py_SET_TYPE(_PyObject_CAST(ob), type)
+  #define Py_SET_TYPE(ob, type) _Py_SET_TYPE(reinterpret_cast<PyObject*>(ob), type)
 #endif
 
 #endif
