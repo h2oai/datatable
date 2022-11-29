@@ -253,20 +253,20 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.9
+    #   Build and test debug wheel for Python 3.8
     # =======================================================================
 
-    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py wheel
+    python ci/ext.py debugwheel
 
-    $DT_WHEEL = ls dist/*-cp39-*.whl
+    $DT_WHEEL = ls dist/*debug-cp38-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.9 ------------------------------"
+    echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
 
@@ -287,20 +287,20 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test debug wheel for Python 3.9
+    #   Build and test wheel for Python 3.9
     # =======================================================================
 
     $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py debugwheel
+    python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*debug-cp39-*.whl
+    $DT_WHEEL = ls dist/*-cp39-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.9 debug wheel ------------------"
+    echo "----- _build_info.py for Python 3.9 ------------------------------"
 
     cat src/datatable/_build_info.py
 
