@@ -1219,34 +1219,13 @@ bool is_python_system_attr(const dt::CString& attr) {
 
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
-  #if PY_VERSION_HEX >= 0x03070000
-    // PyImport_GetModule(name)
-    //   Return the already imported module with the given name. If the module
-    //   has not been imported yet then returns NULL but does not set an error.
-    //   Returns NULL and sets an error if the lookup failed.
-    PyObject* res = PyImport_GetModule(pyname.v);
-    if (!res && PyErr_Occurred()) PyErr_Clear();
-    return oobj::from_new_reference(res);
-
-  #else
-    // PyImport_GetModuleDict() returns a borrowed ref
-    oobj sys_modules(PyImport_GetModuleDict());
-    if (sys_modules.v == nullptr) {
-      PyErr_Clear();
-      return oobj(nullptr);
-    }
-    if (PyDict_CheckExact(sys_modules.v)) {
-      // PyDict_GetItem() returns a borowed ref, or NULL if the key is not
-      // present (without setting an exception)
-      return oobj(PyDict_GetItem(sys_modules.v, pyname.v));
-    } else {
-      // PyObject_GetItem() returns a new reference
-      PyObject* res = PyObject_GetItem(sys_modules.v, pyname.v);
-      if (!res) PyErr_Clear();
-      return oobj::from_new_reference(res);
-    }
-
-  #endif
+  // PyImport_GetModule(name)
+  //   Return the already imported module with the given name. If the module
+  //   has not been imported yet then returns NULL but does not set an error.
+  //   Returns NULL and sets an error if the lookup failed.
+  PyObject* res = PyImport_GetModule(pyname.v);
+  if (!res && PyErr_Occurred()) PyErr_Clear();
+  return oobj::from_new_reference(res);
 }
 
 

@@ -22,7 +22,7 @@
 #ifndef dt_PYTHON_h
 #define dt_PYTHON_h
 
-// `locale` must be included before <Python.h>, otherwise datatable won't
+// `locale` must be included before `Python.h`, otherwise datatable won't
 // compile on macOS with Apple LLVM clang 9.1.0
 #include <locale>
 #include <Python.h>
