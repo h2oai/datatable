@@ -21,7 +21,8 @@
 //------------------------------------------------------------------------------
 #ifndef dt_LTYPE_h
 #define dt_LTYPE_h
-#include "_dt.h"     // size_t, uint8_t, PyObject
+#include "_dt.h"           // size_t, uint8_t
+#include "python/python.h" // PyObject
 namespace dt {
 
 
