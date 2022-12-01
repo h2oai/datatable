@@ -21,9 +21,10 @@
 //------------------------------------------------------------------------------
 #ifndef dt_UTILS_EXCEPTIONS_h
 #define dt_UTILS_EXCEPTIONS_h
-#include <exception>  // std::exception
-#include <sstream>    // std::ostringstream
+#include <exception>        // std::exception
+#include <sstream>          // std::ostringstream
 #include "_dt.h"
+#include "python/python.h"  // PyObject
 
 class CErrno {};
 extern CErrno Errno;

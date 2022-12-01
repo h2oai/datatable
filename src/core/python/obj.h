@@ -25,6 +25,7 @@
 #include <string>   // std::string
 #include <vector>   // std::vector
 #include "_dt.h"               // general declarations
+#include "python/python.h"     // PyObject
 #include "utils/exceptions.h"  // Error
 #include "utils/tests.h"       // compatibility with C++ tests
 namespace py {

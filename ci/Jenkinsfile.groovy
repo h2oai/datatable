@@ -1,6 +1,6 @@
 #!/usr/bin/groovy
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -256,12 +256,14 @@ ansiColor('xterm') {
                                             /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                             /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                             /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
+                                            /opt/python/cp311-cp311/bin/python3.11 ci/ext.py wheel --audit && \
                                             echo '===== Py3.8 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                             mv dist/*debug*.whl . && \
                                             echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                             echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
                                             echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
                                             echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py && \
+                                            echo '===== Py3.11 =====' && unzip -p dist/*cp311*.whl datatable/_build_info.py && \
                                             mv *debug*.whl dist/ && \
                                             ls -la dist"
                                 """
@@ -296,10 +298,14 @@ ansiColor('xterm') {
                                         source /Users/jenkins/datatable_envs/py310/bin/activate
                                         python ci/ext.py wheel
                                         deactivate
+                                        source /Users/jenkins/datatable_envs/py311/bin/activate
+                                        python ci/ext.py wheel
+                                        deactivate
                                         echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py
                                         echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py
                                         echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py
                                         echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py
+                                        echo '===== Py3.11 =====' && unzip -p dist/*cp311*.whl datatable/_build_info.py
                                         ls dist
                                     """
                                     stash name: 'x86_64-macos-wheels', includes: "dist/*.whl"
@@ -340,12 +346,14 @@ ansiColor('xterm') {
                                                 /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
                                                 /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
                                                 /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
+                                                /opt/python/cp311-cp311/bin/python3.11 ci/ext.py wheel --audit && \
                                                 echo '===== Py3.8 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
                                                 mv dist/*debug*.whl . && \
                                                 echo '===== Py3.7 =====' && unzip -p dist/*cp37*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
                                                 echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py && \
+                                                echo '===== Py3.11 =====' && unzip -p dist/*cp311*.whl datatable/_build_info.py && \
                                                 mv *debug*.whl dist/ && \
                                                 ls -la dist"
                                     """
@@ -435,6 +443,20 @@ ansiColor('xterm') {
                             }
                         }
                     }) <<
+                    namedStage('Test x86_64-manylinux-py311', { stageName, stageDir ->
+                        node(NODE_LINUX) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'x86_64-manylinux-wheels'
+                                    test_in_docker("x86_64-manylinux-py311", "311",
+                                                   DOCKER_IMAGE_X86_64_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
                     namedStage('Test ppc64le-manylinux-py37', doPpcTests, { stageName, stageDir ->
                         node(NODE_PPC) {
                             buildSummary.stageWithSummary(stageName, stageDir) {
@@ -500,6 +522,20 @@ ansiColor('xterm') {
                                     unstash 'datatable-sources'
                                     unstash 'ppc64le-manylinux-wheels'
                                     test_in_docker("ppc64le-manylinux-py310", "310",
+                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
+                                }
+                            }
+                        }
+                    }) <<
+                    namedStage('Test ppc64le-manylinux-py311', doPpcTests && doPy38Tests, { stageName, stageDir ->
+                        node(NODE_PPC) {
+                            buildSummary.stageWithSummary(stageName, stageDir) {
+                                cleanWs()
+                                dumpInfo()
+                                dir(stageDir) {
+                                    unstash 'datatable-sources'
+                                    unstash 'ppc64le-manylinux-wheels'
+                                    test_in_docker("ppc64le-manylinux-py311", "311",
                                                    DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
@@ -792,6 +828,7 @@ def get_python_for_docker(String pyver, String image) {
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
         if (pyver == "39") return "/opt/python/cp39-cp39/bin/python3.9"
         if (pyver == "310") return "/opt/python/cp310-cp310/bin/python3.10"
+        if (pyver == "311") return "/opt/python/cp311-cp311/bin/python3.11"
     }
     throw new Exception("Unknown python ${pyver} for docker ${image}")
 }
