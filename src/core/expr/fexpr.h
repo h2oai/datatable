@@ -180,7 +180,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj re_match(const py::XArgs&);   // [DEPRECATED]
 
     py::oobj alias(const py::XArgs&);
-    py::oobj extendd(const py::XArgs&);
+    py::oobj extend(const py::XArgs&);
     py::oobj as_type(const py::XArgs&);
     py::oobj categories(const py::XArgs&);
     py::oobj codes(const py::XArgs&);
