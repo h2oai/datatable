@@ -236,7 +236,6 @@ oobj PyFExpr::nb__pos__() {
 
 oobj PyFExpr::extend(const XArgs& args) {
   auto arg = args[0].to_oobj();   
-
   return PyFExpr::make(new FExpr_Extend(ptrExpr(expr_), as_fexpr(arg)));
 
 }
