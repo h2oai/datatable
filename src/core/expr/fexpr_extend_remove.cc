@@ -20,19 +20,19 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "expr/eval_context.h"
-#include "expr/fexpr_extend.h"
+#include "expr/fexpr_extend_remove.h"
 namespace dt {
 namespace expr {
 
-
-FExpr_Extend::FExpr_Extend(ptrExpr&& arg, ptrExpr&& values) :
+FExpr_Extend_Remove::FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& values, bool extend) :
   arg_(std::move(arg)),
-  values_(std::move(values))
+  values_(std::move(values)),
+  extend_(extend)
   {}
 
 
-std::string FExpr_Extend::repr() const {
-  std::string out = "extend";
+std::string FExpr_Extend_Remove::repr() const {
+  std::string out = extend_? "extend" : "remove";
   out += '(';
   out += arg_->repr();
   out += ", arg=";
@@ -42,11 +42,15 @@ std::string FExpr_Extend::repr() const {
 }
 
 
-Workframe FExpr_Extend::evaluate_n(EvalContext& ctx) const {
+Workframe FExpr_Extend_Remove::evaluate_n(EvalContext& ctx) const {
   Workframe wf = arg_->evaluate_n(ctx);
   Workframe out = values_ -> evaluate_n(ctx);
-  wf.cbind(std::move(out));
-
+  if (extend_){
+    wf.cbind(std::move(out));
+  } else {
+    wf.remove(std::move(out));
+  }
+  
   return wf;
 }
 

@@ -135,10 +135,10 @@ def test_f_columnset_extend():
 
 
 def test_f_columnset_remove():
-    assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
-    assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
+    assert str(f[:].remove(f.A)) == "FExpr<remove(f[:], arg=f.A)>"
+    assert str(f[int].remove(f[0])) == "FExpr<remove(f[int], arg=f[0])>"
     assert str(f.A.remove(f['B','C'])) == \
-        "Expr:setminus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+        "FExpr<remove(f.A, arg=f[['B', 'C']])>"
 
 
 

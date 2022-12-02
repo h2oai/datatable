@@ -19,20 +19,20 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FEXPR_EXTEND_h
-#define dt_EXPR_FEXPR_EXTEND_h
+#ifndef dt_EXPR_FEXPR_EXTEND_REMOVE_h
+#define dt_EXPR_FEXPR_EXTEND_REMOVE_h
 #include "expr/fexpr_func.h"
 namespace dt {
 namespace expr {
 
-
-class FExpr_Extend : public FExpr_Func {
+class FExpr_Extend_Remove : public FExpr_Func {
   private:
     ptrExpr arg_;
     ptrExpr values_;
+    bool extend_;
 
   public:
-    FExpr_Extend(ptrExpr&& arg, ptrExpr&& values);
+    FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& values, bool extend);
     std::string repr() const override;
     Workframe evaluate_n(EvalContext& ctx) const override;
 };

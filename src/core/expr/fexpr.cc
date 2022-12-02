@@ -26,7 +26,7 @@
 #include "expr/fexpr_alias.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
-#include "expr/fexpr_extend.h"
+#include "expr/fexpr_extend_remove.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
@@ -236,7 +236,7 @@ oobj PyFExpr::nb__pos__() {
 
 oobj PyFExpr::extend(const XArgs& args) {
   auto arg = args[0].to_oobj();   
-  return PyFExpr::make(new FExpr_Extend(ptrExpr(expr_), as_fexpr(arg)));
+  return PyFExpr::make(new FExpr_Extend_Remove(ptrExpr(expr_), as_fexpr(arg), true));
 
 }
 
@@ -250,8 +250,9 @@ DECLARE_METHOD(&PyFExpr::extend)
 
 
 oobj PyFExpr::remove(const XArgs& args) {
-  auto arg = args[0].to_oobj();
-  return make_binexpr(dt::expr::Op::SETMINUS, robj(this), arg);
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr_Extend_Remove(ptrExpr(expr_), as_fexpr(arg), false));
+
 }
 
 DECLARE_METHOD(&PyFExpr::remove)
