@@ -127,11 +127,11 @@ def test_f_columnset_str():
 
 def test_f_columnset_extend():
     assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
+        "FExpr<extend(f[:], arg=f.A)>"
     assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
+        "FExpr<extend(f[int], arg=f[str])>"
     assert str(f.A.extend(f['B','C'])) == \
-        "Expr:setplus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+        "FExpr<extend(f.A, arg=f[['B', 'C']])>"
 
 
 def test_f_columnset_remove():
