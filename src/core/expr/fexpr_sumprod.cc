@@ -115,7 +115,6 @@ static py::oobj pyfn_prod(const py::XArgs &args) {
     return PyFExpr::make(new FExpr_SumProd<false>(as_fexpr(prod)));
 }
 
-
 DECLARE_PYFN(&pyfn_sum)
     ->name("sum")
     ->docs(doc_dt_sum)
