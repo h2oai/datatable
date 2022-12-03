@@ -55,8 +55,14 @@ namespace dt {
           if (SUM) {            
             result = static_cast<T>(i1-i0) * value;
           } else {
-            for (size_t i = i0; i < i1; ++i) {
-              result *= value;
+            size_t power = i1-i0;
+            while (power) {
+              if (power % 2) {
+                result *= value;
+              }
+              if (!result) break;
+              value *= value;
+              power /= 2;
             }
           }
         }
@@ -68,6 +74,7 @@ namespace dt {
               result += value;
             } else {
               result *= value;
+              if (!result) break;
             }          
           }
         }
