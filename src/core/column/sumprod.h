@@ -22,6 +22,7 @@
 #ifndef dt_COLUMN_SUM_h
 #define dt_COLUMN_SUM_h
 #include "column/virtual.h"
+#include "models/utils.h"
 #include "stype.h"
 
 namespace dt {
@@ -56,13 +57,7 @@ namespace dt {
             result = static_cast<T>(i1-i0) * value;
           } else {
             size_t power = i1-i0;
-            while (power) {
-              if (power % 2) {
-                result *= value;
-              }
-              value *= value;
-              power /= 2;
-            }
+            result = ipow(result, power, value);
           }
         }
       } else {

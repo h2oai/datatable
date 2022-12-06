@@ -56,6 +56,22 @@ size_t gcd(size_t, size_t);
 
 
 /**
+ *  Calculate powers via the exponentiation by squaring algorithm
+ */
+template <typename T>
+T ipow(T result, size_t power, T value){
+  while (power) {
+    if (power % 2) {
+      result *= value;
+    }
+    value *= value;
+    power /= 2;
+  }
+  return result;
+}
+
+
+/**
  *  Create list of sorting indexes.
  */
 template <typename T>
