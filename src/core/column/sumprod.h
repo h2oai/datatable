@@ -57,7 +57,7 @@ namespace dt {
             result = static_cast<T>(i1-i0) * value;
           } else {
             size_t power = i1-i0;
-            result = ipow(result, power, value);
+            result = ipow(value, power);
           }
         }
       } else {
