@@ -20,6 +20,7 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
+#include "column/latent.h"
 #include "column/sumprod.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
@@ -99,7 +100,7 @@ class FExpr_SumProd : public FExpr_Func {
     template <typename T>
     Column make(Column &&col, SType stype, bool is_grouped, const Groupby &gby) const {
        col.cast_inplace(stype);
-       return Column(new SumProd_ColumnImpl<T, SUM>(std::move(col), is_grouped, gby));
+       return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM>(std::move(col), is_grouped, gby)));
     }
 };
 

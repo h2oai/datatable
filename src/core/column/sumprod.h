@@ -60,7 +60,6 @@ namespace dt {
               if (power % 2) {
                 result *= value;
               }
-              if (!result) break;
               value *= value;
               power /= 2;
             }
@@ -74,7 +73,6 @@ namespace dt {
               result += value;
             } else {
               result *= value;
-              if (!result) break;
             }          
           }
         }
