@@ -28,7 +28,6 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
-
 namespace dt {
 namespace expr {
 
@@ -52,27 +51,30 @@ class FExpr_SumProd : public FExpr_Func {
 
 
     Workframe evaluate_n(EvalContext &ctx) const override {
+      Workframe outputs(ctx);
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
+
       if (!gby) {
         gby = Groupby::single_group(wf.nrows());
       }
-      
-      Workframe outputs(ctx);
+
       for (size_t i = 0; i < wf.ncols(); ++i) {
          bool is_grouped = ctx.has_group_column(
-                           wf.get_frame_id(i),
-                           wf.get_column_id(i)
-                          );
-         Column coli = evaluate1(wf.retrieve_column(i), is_grouped, gby);
+                             wf.get_frame_id(i),
+                             wf.get_column_id(i)
+                           );
+         Column coli = evaluate1(wf.retrieve_column(i), std::move(gby), is_grouped);
          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
       }
+
       return outputs;
     }
 
 
-    Column evaluate1(Column &&col, bool is_grouped, const Groupby &gby) const {
+    Column evaluate1(Column &&col, Groupby &&gby, bool is_grouped) const {
       SType stype = col.stype();
+
       switch (stype) {
         case SType::VOID:
           if (SUM) {
@@ -85,11 +87,11 @@ class FExpr_SumProd : public FExpr_Func {
         case SType::INT16:
         case SType::INT32:
         case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, is_grouped, gby);
+          return make<int64_t>(std::move(col), SType::INT64, std::move(gby), is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, is_grouped, gby);
+          return make<float>(std::move(col), SType::FLOAT32, std::move(gby), is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, is_grouped, gby);
+          return make<double>(std::move(col), SType::FLOAT64, std::move(gby), is_grouped);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -98,23 +100,26 @@ class FExpr_SumProd : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column &&col, SType stype, bool is_grouped, const Groupby &gby) const {
-       col.cast_inplace(stype);
-       return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM>(std::move(col), is_grouped, gby)));
+    Column make(Column &&col, SType stype, Groupby &&gby, bool is_grouped) const {
+      col.cast_inplace(stype);
+      return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM>(
+        std::move(col), std::move(gby), is_grouped
+      )));
     }
 };
 
 
 static py::oobj pyfn_sum(const py::XArgs &args) {
   auto sum = args[0].to_oobj();
-    return PyFExpr::make(new FExpr_SumProd<true>(as_fexpr(sum)));
+  return PyFExpr::make(new FExpr_SumProd<true>(as_fexpr(sum)));
 }
 
 
 static py::oobj pyfn_prod(const py::XArgs &args) {
   auto prod = args[0].to_oobj();
-    return PyFExpr::make(new FExpr_SumProd<false>(as_fexpr(prod)));
+  return PyFExpr::make(new FExpr_SumProd<false>(as_fexpr(prod)));
 }
+
 
 DECLARE_PYFN(&pyfn_sum)
     ->name("sum")

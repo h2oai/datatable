@@ -31,55 +31,51 @@ namespace dt {
   class SumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
-    bool is_grouped_;
     Groupby gby_;
+    bool is_grouped_;
+    size_t : 56;
 
   public:
-    SumProd_ColumnImpl(Column &&col, bool is_grouped, const Groupby &gby)
-      :Virtual_ColumnImpl(gby.size(), col.stype()),
-       col_(std::move(col)),
-       is_grouped_(is_grouped),
-       gby_(gby)
+    SumProd_ColumnImpl(Column &&col, Groupby &&gby, bool is_grouped)
+      : Virtual_ColumnImpl(gby.size(), col.stype()),
+        col_(std::move(col)),
+        gby_(std::move(gby)),
+        is_grouped_(is_grouped)
     {
       xassert(col_.can_be_read_as<T>());
     }
 
 
     bool get_element(size_t i, T* out) const override {
-      T result = !SUM; 
+      T result = !SUM;
       T value;     
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
+      size_t nrows = i1 - i0;
+
       if (is_grouped_){
-        bool isvalid = col_.get_element(i, &value);
-        if (isvalid){
-          if (SUM) {            
-            result = static_cast<T>(i1-i0) * value;
-          } else {
-            size_t power = i1-i0;
-            result = ipow(value, power);
-          }
+        bool is_valid = col_.get_element(i, &value);
+        if (is_valid){
+          result = SUM? static_cast<T>(nrows) * value
+                      : ipow(value, nrows);
         }
       } else {
-        for (size_t i = i0; i < i1; ++i) {
-          bool isvalid = col_.get_element(i, &value);
-          if (isvalid){
-            if (SUM) {
-              result += value;
-            } else {
-              result *= value;
-            }          
+        for (size_t gi = i0; gi < i1; ++gi) {
+          bool is_valid = col_.get_element(gi, &value);
+          if (is_valid){
+            result = SUM? result + value
+                        : result * value;
           }
         }
       
       } 
-      *out = result;     
+      *out = result;
       return true; // the result is never a missing value
     }
 
 
     ColumnImpl *clone() const override {
-      return new SumProd_ColumnImpl(Column(col_), is_grouped_, gby_);
+      return new SumProd_ColumnImpl(Column(col_), Groupby(gby_), is_grouped_);
     }
 
 

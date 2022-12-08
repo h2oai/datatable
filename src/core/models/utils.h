@@ -56,23 +56,6 @@ size_t gcd(size_t, size_t);
 
 
 /**
- *  Calculate powers via the exponentiation by squaring algorithm
- */
-template <typename T>
-T ipow(size_t power, T value){
-  T result = 1;
-  while (power) {
-    if (power % 2) {
-      result *= value;
-    }
-    value *= value;
-    power /= 2;
-  }
-  return result;
-}
-
-
-/**
  *  Create list of sorting indexes.
  */
 template <typename T>
@@ -159,6 +142,25 @@ void softmax(std::vector<T*>& p, const size_t nrows) {
       p[j][i] /= sum;
     }
   });
+}
+
+
+
+/**
+ *  Calculate integer powers via the exponentiation by squaring algorithm.
+ *  Note, this implementation will compute 0 ^ 0 as 1.
+ */
+template <typename T>
+T ipow(T base, size_t exp){
+  T res = 1;
+  while (exp) {
+    if (exp % 2) {
+      res *= base;
+    }
+    base *= base;
+    exp /= 2;
+  }
+  return res;
 }
 
 

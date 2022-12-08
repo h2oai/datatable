@@ -15,7 +15,7 @@
     cols: FExpr
         Input columns.
 
-    return: Expr
+    return: FExpr
         f-expression having one row, and the same names and number of columns
         as in `cols`. The column stypes are `int64` for
         boolean and integer columns, `float32` for `float32` columns
