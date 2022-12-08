@@ -64,7 +64,7 @@ class FExpr_SumProd : public FExpr_Func {
                              wf.get_frame_id(i),
                              wf.get_column_id(i)
                            );
-         Column coli = evaluate1(wf.retrieve_column(i), std::move(gby), is_grouped);
+         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
       }
 
@@ -72,7 +72,7 @@ class FExpr_SumProd : public FExpr_Func {
     }
 
 
-    Column evaluate1(Column &&col, Groupby &&gby, bool is_grouped) const {
+    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
       SType stype = col.stype();
 
       switch (stype) {
@@ -87,11 +87,11 @@ class FExpr_SumProd : public FExpr_Func {
         case SType::INT16:
         case SType::INT32:
         case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, std::move(gby), is_grouped);
+          return make<int64_t>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, std::move(gby), is_grouped);
+          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, std::move(gby), is_grouped);
+          return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -100,10 +100,10 @@ class FExpr_SumProd : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column &&col, SType stype, Groupby &&gby, bool is_grouped) const {
+    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
       return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM>(
-        std::move(col), std::move(gby), is_grouped
+        std::move(col), gby, is_grouped
       )));
     }
 };

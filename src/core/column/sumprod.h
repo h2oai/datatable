@@ -36,10 +36,10 @@ namespace dt {
     size_t : 56;
 
   public:
-    SumProd_ColumnImpl(Column &&col, Groupby &&gby, bool is_grouped)
+    SumProd_ColumnImpl(Column &&col, const Groupby& gby, bool is_grouped)
       : Virtual_ColumnImpl(gby.size(), col.stype()),
         col_(std::move(col)),
-        gby_(std::move(gby)),
+        gby_(gby),
         is_grouped_(is_grouped)
     {
       xassert(col_.can_be_read_as<T>());
