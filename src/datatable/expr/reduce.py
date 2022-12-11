@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -38,6 +38,7 @@ __all__ = (
     "min",
     "nunique",
     "sd",
+    "sum",
     "countna",
 )
 
@@ -106,6 +107,13 @@ def corr(col1, col2):
     return Expr(OpCodes.CORR, (col1, col2))
 
 
+# noinspection PyShadowingBuiltins
+def sum(iterable, start=0):
+    if isinstance(iterable, core.FExpr):
+        return core.sum(iterable)
+    else:
+        return _builtin_sum(iterable, start)
+
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
@@ -130,7 +138,6 @@ def max(*args, **kwds):
     else:
         return _builtin_max(*args, **kwds)
 
-
-# sum.__doc__ = _builtin_sum.__doc__
+sum.__doc__ = _builtin_sum.__doc__
 min.__doc__ = _builtin_min.__doc__
 max.__doc__ = _builtin_max.__doc__
