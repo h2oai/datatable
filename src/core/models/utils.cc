@@ -103,3 +103,5 @@ size_t get_work_amount(const size_t nrows, const size_t min_rows_per_thread) {
   size_t residual_rows = std::min(nrows - chunk_rows * nth, min_rows_per_thread);
   return chunk_rows + residual_rows;
 }
+
+
