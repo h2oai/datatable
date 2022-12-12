@@ -39,7 +39,7 @@ class FExpr_SumProd : public FExpr_Func {
 
   public:
     FExpr_SumProd(ptrExpr &&arg)
-        : arg_(std::move(arg)) {}
+      : arg_(std::move(arg)) {}
 
     std::string repr() const override {
       std::string out = SUM? "sum" : "prod";
@@ -77,11 +77,7 @@ class FExpr_SumProd : public FExpr_Func {
 
       switch (stype) {
         case SType::VOID:
-          if (SUM) {
-            return Column(new ConstInt_ColumnImpl(gby.size(), 0, SType::INT64));
-          } else {
-            return Column(new ConstInt_ColumnImpl(gby.size(), 1, SType::INT64));
-          }
+          return Column(new ConstInt_ColumnImpl(gby.size(), !SUM, SType::INT64));
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:

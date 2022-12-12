@@ -19,13 +19,13 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SUM_h
-#define dt_COLUMN_SUM_h
+#ifndef dt_COLUMN_SUMPROD_h
+#define dt_COLUMN_SUMPROD_h
 #include "column/virtual.h"
-#include "models/utils.h"
+#include "models/utils.h"   // ipow
 #include "stype.h"
-
 namespace dt {
+
 
   template <typename T, bool SUM>
   class SumProd_ColumnImpl : public Virtual_ColumnImpl {
@@ -47,13 +47,13 @@ namespace dt {
 
 
     bool get_element(size_t i, T* out) const override {
-      T result = !SUM;
+      T result = !SUM; // 0 for `sum()` and 1 for `prod()`
       T value;     
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
-      size_t nrows = i1 - i0;
 
       if (is_grouped_){
+        size_t nrows = i1 - i0;
         bool is_valid = col_.get_element(i, &value);
         if (is_valid){
           result = SUM? static_cast<T>(nrows) * value
@@ -67,8 +67,8 @@ namespace dt {
                         : result * value;
           }
         }
-      
-      } 
+      }
+
       *out = result;
       return true; // the result is never a missing value
     }
@@ -91,7 +91,7 @@ namespace dt {
     }
   };
 
-}  // namespace dt
 
+}  // namespace dt
 
 #endif

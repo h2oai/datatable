@@ -149,7 +149,7 @@ void softmax(std::vector<T*>& p, const size_t nrows) {
 
 /**
  *  Calculate integer powers via the exponentiation by squaring algorithm.
- *  Note, this implementation will compute 0 ^ 0 as 1.
+ *  Note, this implementation will compute zero to the power of zero as one.
  */
 template <typename T>
 T ipow(T base, size_t exp){
