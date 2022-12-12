@@ -44,7 +44,7 @@ std::string FExpr_Extend_Remove::repr() const {
 
 Workframe FExpr_Extend_Remove::evaluate_n(EvalContext& ctx) const {
   Workframe wf = arg_->evaluate_n(ctx);
-  Workframe out = values_ -> evaluate_n(ctx);
+  Workframe out = values_->evaluate_n(ctx);
   if (extend_){
     wf.cbind(std::move(out));
   } else {
