@@ -1,0 +1,44 @@
+name: Run datatable Tests
+
+on:
+    - push
+    - pull_request
+
+jobs:
+    tests:
+        name: ${{ matrix.session }} ${{ matrix.python-version }} / ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - {
+                          python-version: 3.8,
+                          os: ubuntu-latest,
+                      }
+
+        steps:
+            - name: Check out the repository
+              uses: actions/checkout@v3.1.0
+              with:
+                  remote: true
+                  submodules: recursive
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v4
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Install dependencies
+              run: make test_install
+
+            - name: Build Package
+              run: | 
+                make wheel
+                pip install dist/*.whl
+
+            - name: Run Tests
+              run: |
+                make test_install
+                make extra_install
+                make test
