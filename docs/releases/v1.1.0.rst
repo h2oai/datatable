@@ -53,6 +53,8 @@
     -[fix] Fixed :meth:`.to_csv()` to quote missing values when
         `quoting="all"` is specified. [#3340]
 
+    -[fix] Fixed groupby behaviour on columns that contain missing values. [#3331]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
@@ -197,6 +199,8 @@
     -[enh] Added support for macOS Big Sur. [#3175]
 
     -[enh] Added support for Python `3.10`. [#3210]
+
+    -[enh] Added support for Python `3.11`. [#3374]
 
     -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
         :meth:`dt.Frame.rbind()`) will now allow combining columns

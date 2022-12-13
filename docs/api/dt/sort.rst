@@ -2,7 +2,7 @@
 .. xfunction:: datatable.sort
     :src: src/core/expr/py_sort.cc osort::osort_pyobject::m__init__
     :cvar: doc_dt_sort
-    :signature: sort(*cols, reverse=False)
+    :signature: sort(*cols, reverse=False, na_position="first")
 
     Sort clause for use in Frame's square-bracket selector.
 
@@ -33,6 +33,12 @@
     reverse: bool
         If ``False``, sorting is performed in the ascending order. If ``True``,
         sorting is descending.
+
+    na_position: None | "first" | "last" | "remove"
+        If "first", the default behaviour, missing values are placed
+        first in sorted output. If "last", they are placed last.
+        If "remove", rows that contain missing values in `cols`
+        are excluded from the output.
 
     return: object
         ``datatable.sort`` object for use in square-bracket selector.
