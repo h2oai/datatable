@@ -292,6 +292,7 @@ def test_reduce_sum_same_column():
     frame_integrity_check(f1)
     assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "sum" : [0, 2, 2]/dt.int64}))
 
+
 def test_reduce_prod():
     f0 = dt.Frame({"color": ["red", "blue", "green", "red", "green"],
                    "size": [5, 2, 7, 13, -1]})
@@ -300,9 +301,10 @@ def test_reduce_prod():
     assert f1.to_list() == [["blue", "green", "red"],
                             [2, -7, 65]]
 
+
 def test_reduce_prod_same_column():
     # See issue #3390
-    f0 = dt.Frame({"ints" : [0, 1, 2, 2, 1, 2]})
+    f0 = dt.Frame({"ints" : [0, -1, 2, 2, -1, 2]})
     f1 = f0[:, {"prod" : prod(f.ints)}, f.ints]
     frame_integrity_check(f1)
     assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "prod" : [0, 1, 8]/dt.int64}))
