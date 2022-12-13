@@ -307,7 +307,7 @@ def test_reduce_prod_same_column():
     f0 = dt.Frame({"ints" : [0, -1, 2, 2, -1, 2]})
     f1 = f0[:, {"prod" : prod(f.ints)}, f.ints]
     frame_integrity_check(f1)
-    assert_equals(f1, dt.Frame({"ints" : [0, 1, 2], "prod" : [0, 1, 8]/dt.int64}))
+    assert_equals(f1, dt.Frame({"ints" : [-1, 0, 2], "prod" : [1, 0, 8]/dt.int64}))
                         
 
 
