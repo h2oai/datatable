@@ -50,3 +50,8 @@ src/core/documentation.cc
 # vscode settings
 .vscode/settings.json
 .vscode/c_cpp_properties.json
+
+
+# python environment
+.venv
+venv
