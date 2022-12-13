@@ -35,8 +35,6 @@ planning to install datatable from the source, or if you are on a Unix machine.
 There are no other prerequisites. Datatable does not depend on any other python
 module [#v11]_, nor on any non-standard system library.
 
-It is also **recommended** to :ref:`Create a Python Virtual Environment<PVE>`.
-
 
 
 
@@ -79,24 +77,23 @@ If you wish to test the latest version of ``datatable`` before it has been
 officially released, then you can use one of the binary wheels that we build
 as part of our Continuous Integration process. 
 
-There are two sources available:
+- **macOS / Linux x86_64 / ppc64le**
+  The wheels could be Installed from :ref:`datatable S3 repository<Install from datatable S3 Repository>`
 
-- For macOS and Linux please use our `S3 repository`_. 
-
-- For Windows installations, you can find the latest wheels within our
-  `AppVeyor`_ build system.
+- **Windows**
+  The wheels could be Installed from :ref:`datatable AppVeyor account<Install from datatable AppVeyor artifacts>`
 
 
-Install from the Amazon S3 Repository (macOS & Linux)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
+.. _Install from datatable S3 Repository:
 
-Both the most current and historical development wheels for macOS & Linux can 
-be found at our `S3 repository`_.
+Install from datatable S3 Repository (macOS / Linux x86\_64, / ppc64le)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-- To install the most current development version, **scroll to the bottom** of 
-  the page to find the latest links, and then download or copy the URL of a
-  wheel that corresponds to your Python version and platform. 
+Both the most current and historical development wheels for 
+**macOS / Linux x86_64, / ppc64le** can be found at our `S3 repository`_.
+
+- The most current development version can be found at the bottom of the page. 
+  Copy the URL of a wheel that corresponds to your Python version and platform:
 
   .. image:: ../_static/amazon_s3_repo.png
     :scale: 25 %
@@ -106,22 +103,29 @@ be found at our `S3 repository`_.
 
 .. code-block:: console
 
-    $ pip install https://AWS S3 DATATABLE BUILD WHEEL URL.whl
+    $ pip install S3_DATATABLE_WHEEL_URL
 
-Install from AppVeyor (Windows)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+- You can also download the wheel and then install locally as
 
-First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE Windows>`.
+.. code-block::console
+  $ pip install S3_DATATABLE_WHEEL
+.. _Install from datatable AppVeyor artifacts:
 
-- To find the latest build wheels for datatable, go to datatable's `AppVeyor`_ 
-  CI/CD Instance and select the platform you're installing for:
+Install from datatable AppVeyor artifacts (Windows)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+- If you are on Windows, then pre-built wheels are available on `AppVeyor`_.
+  Click on a green main build of your choice, then navigate to the "Artifacts"
+  tab, copy the wheel URL that corresponds to your Python version, and finally
+  install it as:
 
   .. image:: ../_static/appveyor-platform.png
     :scale: 25 %
     :alt: datatable appveyor platform links
 
 - next, select **"Artifacts"** and **right/option-click** on the filename for 
-  your desired build wheel.
+  your desired Python version.
 - then, Select "Copy Link Address" from your browser's context menu to copy 
   the wheel's URL
 
@@ -133,7 +137,7 @@ First it is **recommended** to :ref:`Create a Python Virtual Environment<PVE Win
 
 .. code-block:: doscon
 
-    C:\> pip install https://APPVEYOR DATATABLE BUILD WHEEL URL.whl
+    C:\> pip install APPVEYOR_DATATABLE_WHEEL_URL
 
 
 .. _Install from Source:
@@ -175,9 +179,8 @@ Build for Linux
 
     $ sudo yum groupinstall "Development tools"
 
-- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
 
-- Then install datatable directly from github from using 
+- Then install datatable directly from github as 
   :code:`pip install git+https://...`
 
 .. code-block:: console
@@ -198,8 +201,6 @@ Build for macOS
 
 - Then install datatable directly from github from using 
   :code:`pip install git+https://...`
-
-- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Linux & macOS>`.
 
 .. code-block:: console
 
@@ -250,8 +251,6 @@ Build for Windows
 
 - Finally, you can install datatable directly from github from using 
   :code:`pip install git+https://...`
-
-- **Recommended:** :ref:`Create a Python Virtual Environment<PVE Windows>`.
 
 .. code-block:: console
 
@@ -403,127 +402,6 @@ know how to resolve them. If none of these help you, please ask a question on
   - This issue is an active feature request to `add support for python 3.11 (#3374)`_
     and will be included in `Release 1.1.0`_ of datatable. 
 
-.. _PVE:
-
-Appendix: Creating a Python Virtual Environment
------------------------------------------------
-
-.. _PVE Linux & macOS:
-
-Linux & macOS
-^^^^^^^^^^^^^
-
-- Create a new project directory and change to it
-
-.. code-block:: console
-
-  $ mkdir myproject && cd myproject && pwd
-
-- Create a Python Virtual Environment and activate it
-
-.. code-block:: console
-
-  $ python -m venv venv && source venv/bin/activate
-
-- Confirm Python Path and Version
-
-.. code-block:: console
-
-  $ which python && python --version
-
-
-.. _PVE Windows:
-
-Windows Powershell
-^^^^^^^^^^^^^^^^^^
-
-- Launch a Powershell Terminal
-  - Run as Administrator (right-click on shortcut and click Run as Admin...)
-- Verify your desired Python version:
-
-.. code-block:: powershell
-
-  > python --version
-
-- Your output should reflect your python version if you clicked the checkbox 
-  when installing python.
-  - If not, you can run the following to add Python to your system's Path. 
-  - Once complete, you will need to relaunch powershell as admin.
-
-.. code-block:: powershell
-
-  > [Environment]::SetEnvironmentVariable("Path", "$env:Path;C:\Program Files\Python310")
-
-- Next, you will need to modify the Execution Policy to allow Python's venv
-  scripts to execute:
-
-.. code-block:: powershell
-
-  > Set-ExecutionPolicy Unrestricted -Force
-
-- Now that the Powershell setup is complete, you're ready to create a
-  Python virtual Environment:
-
-  - Create a new directory and change to it:
-
-  .. code-block:: powershell
-
-    > New-Item -Path ".\" -Name "myproject" -ItemType "directory"; Set-Location .\myproject\
-
-  - Create a Virtual Environment and activate it:
-
-  .. code-block:: powershell
-
-    > python -m venv venv; .\venv\Scripts\Activate.ps1
-
-  - Confirm Path and Python Version:
-
-  .. code-block:: powershell
-
-    > Get-Command python | select Source; python --version
-
-
-Windows CMD
-^^^^^^^^^^^
-
-- Launch a CMD Prompt
-  - Run as Administrator (right-click on shortcut and click Run as Admin...)
-- Verify your desired Python version:
-
-.. code-block:: doscon
-
-  C:\> python --version
-
-- Your output should reflect your python version if you clicked the checkbox 
-  when installing python.
-  - If not, you can run the following to add Python to your system's Path.
-
-.. code-block:: doscon
-
-  C:\> setx /M PATH "%PATH%;C:\Program Files\Python310"
-
-
-- Now that the CMD/DOS setup is complete, you're ready to create a
-  Python virtual Environment:
-
-  - Create a new directory and change to it:
-
-  .. code-block:: doscon
-
-    C:\> mkdir myproject && cd myproject\
-
-  - Create a Virtual Environment and activate it:
-
-  .. code-block:: doscon
-
-    C:\> python -m venv venv && .\venv\Scripts\activate.bat
-
-  - Confirm Path and Python Version:
-
-  .. code-block:: doscon
-
-    C:\> where python && python --version
-
 
 .. rubric:: Footnotes
 
@@ -536,7 +414,7 @@ Windows CMD
 
 .. _`PyPI`: https://pypi.org/
 
-.. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/
+.. _`AppVeyor`: https://ci.appveyor.com/project/h2oops/datatable/history
 
 .. _`S3 repository`: https://h2o-release.s3.amazonaws.com/datatable/index.html
 
