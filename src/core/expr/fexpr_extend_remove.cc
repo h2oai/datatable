@@ -37,7 +37,7 @@ std::string FExpr_Extend_Remove<EXTEND>::repr() const {
   std::string out = EXTEND? "extend" : "remove";
   out += '(';
   out += arg_->repr();
-  out += ", arg=";
+  out += ", ";
   out += other_->repr();
   out += ')';
   return out;
@@ -47,11 +47,11 @@ std::string FExpr_Extend_Remove<EXTEND>::repr() const {
 template <bool EXTEND>
 Workframe FExpr_Extend_Remove<EXTEND>::evaluate_n(EvalContext& ctx) const {
   Workframe wf = arg_->evaluate_n(ctx);
-  Workframe out = other_->evaluate_n(ctx);
+  Workframe wf_other = other_->evaluate_n(ctx);
   if (EXTEND){
-    wf.cbind(std::move(out));
+    wf.cbind(std::move(wf_other));
   } else {
-    wf.remove(std::move(out));
+    wf.remove(std::move(wf_other));
   }
   
   return wf;

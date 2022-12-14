@@ -126,19 +126,15 @@ def test_f_columnset_str():
 
 
 def test_f_columnset_extend():
-    assert str(f[:].extend(f.A)) == \
-        "FExpr<extend(f[:], arg=f.A)>"
-    assert str(f[int].extend(f[str])) == \
-        "FExpr<extend(f[int], arg=f[str])>"
-    assert str(f.A.extend(f['B','C'])) == \
-        "FExpr<extend(f.A, arg=f[['B', 'C']])>"
+    assert str(f[:].extend(f.A)) == "FExpr<extend(f[:], f.A)>"
+    assert str(f[int].extend(f[str])) == "FExpr<extend(f[int], f[str])>"
+    assert str(f.A.extend(f['B','C'])) == "FExpr<extend(f.A, f[['B', 'C']])>"
 
 
 def test_f_columnset_remove():
-    assert str(f[:].remove(f.A)) == "FExpr<remove(f[:], arg=f.A)>"
-    assert str(f[int].remove(f[0])) == "FExpr<remove(f[int], arg=f[0])>"
-    assert str(f.A.remove(f['B','C'])) == \
-        "FExpr<remove(f.A, arg=f[['B', 'C']])>"
+    assert str(f[:].remove(f.A)) == "FExpr<remove(f[:], f.A)>"
+    assert str(f[int].remove(f[0])) == "FExpr<remove(f[int], f[0])>"
+    assert str(f.A.remove(f['B','C'])) == "FExpr<remove(f.A, f[['B', 'C']])>"
 
 
 
@@ -209,7 +205,7 @@ def test_f_columnset_ltypes(DT):
 def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
-    assert_equals( DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
+    assert_equals(DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
     assert_equals(DT[:, f.A.extend(f.B)], DT[:, ['A', 'B']])
     assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
                   dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
