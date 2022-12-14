@@ -25,7 +25,8 @@
 namespace dt {
 namespace expr {
 
-template<bool EXTEND>
+
+template <bool EXTEND>
 class FExpr_Extend_Remove : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -36,6 +37,9 @@ class FExpr_Extend_Remove : public FExpr_Func {
     std::string repr() const override;
     Workframe evaluate_n(EvalContext& ctx) const override;
 };
+
+extern template class FExpr_Extend_Remove<true>;
+extern template class FExpr_Extend_Remove<false>;
 
 
 }}  // dt::expr
