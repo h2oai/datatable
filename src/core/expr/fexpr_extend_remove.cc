@@ -24,19 +24,19 @@
 namespace dt {
 namespace expr {
 
-FExpr_Extend_Remove::FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& values, bool extend) :
+template<bool EXTEND>
+FExpr_Extend_Remove::FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& other) :
   arg_(std::move(arg)),
-  values_(std::move(values)),
-  extend_(extend)
+  other_(std::move(other))
   {}
 
 
 std::string FExpr_Extend_Remove::repr() const {
-  std::string out = extend_? "extend" : "remove";
+  std::string out = EXTEND? "extend" : "remove";
   out += '(';
   out += arg_->repr();
   out += ", arg=";
-  out += values_->repr();
+  out += other_->repr();
   out += ')';
   return out;
 }
@@ -44,8 +44,8 @@ std::string FExpr_Extend_Remove::repr() const {
 
 Workframe FExpr_Extend_Remove::evaluate_n(EvalContext& ctx) const {
   Workframe wf = arg_->evaluate_n(ctx);
-  Workframe out = values_->evaluate_n(ctx);
-  if (extend_){
+  Workframe out = other_->evaluate_n(ctx);
+  if (EXTEND){
     wf.cbind(std::move(out));
   } else {
     wf.remove(std::move(out));

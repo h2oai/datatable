@@ -25,14 +25,14 @@
 namespace dt {
 namespace expr {
 
+template<bool EXTEND>
 class FExpr_Extend_Remove : public FExpr_Func {
   private:
     ptrExpr arg_;
-    ptrExpr values_;
-    bool extend_;
+    ptrExpr other_;
 
   public:
-    FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& values, bool extend);
+    FExpr_Extend_Remove(ptrExpr&& arg, ptrExpr&& other);
     std::string repr() const override;
     Workframe evaluate_n(EvalContext& ctx) const override;
 };

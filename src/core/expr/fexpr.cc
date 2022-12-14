@@ -33,7 +33,6 @@
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
-#include "documentation.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -236,7 +235,7 @@ oobj PyFExpr::nb__pos__() {
 
 oobj PyFExpr::extend(const XArgs& args) {
   auto arg = args[0].to_oobj();   
-  return PyFExpr::make(new FExpr_Extend_Remove(ptrExpr(expr_), as_fexpr(arg), true));
+  return PyFExpr::make(new FExpr_Extend_Remove<true>(ptrExpr(expr_), as_fexpr(arg)));
 
 }
 
@@ -251,7 +250,7 @@ DECLARE_METHOD(&PyFExpr::extend)
 
 oobj PyFExpr::remove(const XArgs& args) {
   auto arg = args[0].to_oobj();   
-  return PyFExpr::make(new FExpr_Extend_Remove(ptrExpr(expr_), as_fexpr(arg), false));
+  return PyFExpr::make(new FExpr_Extend_Remove<false>(ptrExpr(expr_), as_fexpr(arg)));
 
 }
 
