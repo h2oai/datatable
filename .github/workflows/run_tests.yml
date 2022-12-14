@@ -30,7 +30,9 @@ jobs:
                   python-version: ${{ matrix.python-version }}
 
             - name: Install dependencies
-              run: make test_install
+              run: |
+                make test_install
+                make extra_install
 
             - name: Build Package
               run: | 
@@ -39,6 +41,4 @@ jobs:
 
             - name: Run Tests
               run: |
-                make test_install
-                make extra_install
                 make test
