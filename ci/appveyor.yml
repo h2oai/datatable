@@ -1,8 +1,7 @@
 image:
   - Visual Studio 2019
   - Ubuntu
-  # Uncomment the line below when python 3.11 is added to macOS image
-  # - macos-monterey
+  - macos-monterey
 
 init:
   # Uncomment the line below to enable RDP access on AppVeyor
