@@ -27,8 +27,8 @@
 namespace dt {
 
 
-  template <typename T, bool SUM>
-  class SumProd_ColumnImpl : public Virtual_ColumnImpl {
+template <typename T, bool SUM>
+class SumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
     Groupby gby_;
@@ -48,7 +48,7 @@ namespace dt {
 
     bool get_element(size_t i, T* out) const override {
       T result = !SUM; // 0 for `sum()` and 1 for `prod()`
-      T value;     
+      T value;
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
 
@@ -89,7 +89,7 @@ namespace dt {
       (void)i;
       return col_;
     }
-  };
+};
 
 
 }  // namespace dt
