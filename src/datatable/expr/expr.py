@@ -51,8 +51,7 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # Reducers
-    MIN = 402
-    MAX = 403
+    MEAN = 401
     STDEV = 404
     FIRST = 405
     LAST = 406
