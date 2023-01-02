@@ -1120,6 +1120,7 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::MIN:    fn = compute_min; break;
       case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
+      case Op::SUM:    fn = compute_sum; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;
       case Op::SUM:    fn = compute_sum; break;
@@ -1137,8 +1138,11 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::STDEV:  fn = compute_gsd; break;
       case Op::MIN:
       case Op::MAX:
+<<<<<<< HEAD
       case Op::FIRST:
       case Op::LAST:   fn = compute_gfirstlast; break;
+=======
+>>>>>>> 9fb1a1f9 (implement first/last)
       case Op::SUM:    fn = compute_gsum; break;
       case Op::COUNT:  fn = compute_gcount<false>; break;
       case Op::COUNTNA:fn = compute_gcount<true>; break;
