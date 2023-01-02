@@ -35,11 +35,10 @@ class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32_t n_;
-    std::string skipna_;
     size_t : 32;
 
   public:
-    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string skipna)
+    FExpr_Nth(ptrExpr&& arg, int32_t n)
       : arg_(std::move(arg)),
         n_(n)
         {}
@@ -48,7 +47,6 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-
       for (size_t i = 0; i < inputs.ncols(); ++i) {
         auto coli = inputs.retrieve_column(i);
         outputs.add_column(
@@ -75,24 +73,6 @@ class FExpr_Nth : public FExpr_Func {
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
-      }
-    }
-
-    Column evaluate2(Column&& col) const {
-      switch (col.stype()) {
-        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
-        case SType::BOOL:
-        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
-        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
-        case SType::DATE32:
-        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
-        case SType::TIME64:
-        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
-        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
-        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
-        case SType::STR32:
-        case SType::STR64:  return Column(new Isna_ColumnImpl<CString>(std::move(col)));
-        default: throw RuntimeError();
       }
     }
 
