@@ -184,73 +184,6 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 
 
 
-//------------------------------------------------------------------------------
-// mean(A)
-//------------------------------------------------------------------------------
-
-template <typename T, typename U>
-bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  double sum = 0;
-  int64_t count = 0;
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      sum += static_cast<double>(value);
-      count++;
-    }
-  }
-  if (!count) return false;
-  *out = static_cast<U>(sum / static_cast<double>(count));
-  return true;  // *out is not NA
-}
-
-
-
-template <typename T>
-static Column _mean(Column&& arg, const Groupby& gby) {
-  using U = typename std::conditional<std::is_same<T, float>::value,
-                                      float, double>::type;
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, mean_reducer<T, U>
-            )));
-}
-
-static Column compute_mean(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _mean<int8_t> (std::move(arg), gby);
-    case SType::INT16:   return _mean<int16_t>(std::move(arg), gby);
-    case SType::INT32:   return _mean<int32_t>(std::move(arg), gby);
-    case SType::INT64:   return _mean<int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _mean<float>  (std::move(arg), gby);
-    case SType::FLOAT64: return _mean<double> (std::move(arg), gby);
-    case SType::TIME64: {
-      auto col = _mean<int64_t>(std::move(arg), gby);
-      col.cast_inplace(SType::TIME64);
-      return col;
-    }
-    default: throw _error("mean", arg.stype());
-  }
-}
-
-static Column compute_gmean(Column&& arg, const Groupby&) {
-  SType arg_stype = arg.stype();
-  if (arg_stype == SType::STR32 || arg_stype == SType::STR64) {
-    throw _error("mean", arg_stype);
-  }
-  SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
-                                                 : SType::FLOAT64;
-  if (arg.nrows() == 0) {
-    return Column::new_na_column(1, res_stype);
-  }
-  arg.cast_inplace(res_stype);
-  return std::move(arg);
-}
-
 
 
 
@@ -874,7 +807,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
   maker_fn fn = nullptr;
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
-      case Op::MEAN:   fn = compute_mean; break;
       case Op::MIN:    fn = compute_min; break;
       case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
@@ -889,7 +821,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
     }
   } else {
     switch (op) {
-      case Op::MEAN:   fn = compute_gmean; break;
       case Op::STDEV:  fn = compute_gsd; break;
       case Op::MIN:
       case Op::MAX:

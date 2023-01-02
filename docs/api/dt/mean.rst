@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.mean
-    :src: src/core/expr/head_reduce_unary.cc mean_reducer
+    :src: src/core/expr/fexpr_sumprod.cc pyfn_mean
     :cvar: doc_dt_mean
     :tests: tests/test-reduce.py
     :signature: mean(cols)
