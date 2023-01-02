@@ -26,9 +26,7 @@
 #include "expr/eval_context.h"
 #include "python/xargs.h"
 #include "expr/fnary/fnary.h"
-#include "expr/fexpr_list.h"
 #include "column/isna.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -37,14 +35,12 @@ class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
     int32_t n_;
-    std::string skipna_;
     size_t : 32;
 
   public:
-    FExpr_Nth(ptrExpr&& arg, int32_t n, std::string skipna)
+    FExpr_Nth(ptrExpr&& arg, int32_t n)
       : arg_(std::move(arg)),
-        n_(n),
-        skipna_(skipna)
+        n_(n)
         {}
 
 
@@ -54,8 +50,6 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-      out += ", skipna=";
-      out += skipna_;
       out += ')';
       return out;
     }
@@ -65,23 +59,17 @@ class FExpr_Nth : public FExpr_Func {
       Workframe inputs = arg_->evaluate_n(ctx);
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
-      colvec col_s;
-      col_s.reserve(inputs.ncols());
-      if (!gby) gby = Groupby::single_group(ctx.nrows()); 
-      for (size_t i = 0; i < inputs.ncols(); ++i) {
-        auto coli = evaluate2(inputs.retrieve_column(i));
-        col_s.push_back(coli);
-      }
-      FExpr_RowAll::apply_function(std::move(col_s), inputs.nrows(), inputs.ncols());
 
-      // for (size_t i = 0; i < inputs.ncols(); ++i) {
-      //   auto coli = inputs.retrieve_column(i);
-      //   outputs.add_column(
-      //     evaluate1(std::move(coli), gby, n_),
-      //     inputs.retrieve_name(i),
-      //     Grouping::GtoONE
-      //   );
-      // }
+      if (!gby) gby = Groupby::single_group(ctx.nrows()); 
+
+      for (size_t i = 0; i < inputs.ncols(); ++i) {
+        auto coli = inputs.retrieve_column(i);
+        outputs.add_column(
+          evaluate1(std::move(coli), gby, n_),
+          inputs.retrieve_name(i),
+          Grouping::GtoONE
+        );
+      }
       return outputs;
     }
 
@@ -107,24 +95,6 @@ class FExpr_Nth : public FExpr_Func {
       }
     }
 
-    Column evaluate2(Column&& col) const {
-      switch (col.stype()) {
-        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
-        case SType::BOOL:
-        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
-        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
-        case SType::DATE32:
-        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
-        case SType::TIME64:
-        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
-        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
-        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
-        case SType::STR32:
-        case SType::STR64:  return Column(new Isna_ColumnImpl<CString>(std::move(col)));
-        default: throw RuntimeError();
-      }
-    }
-
 
     template <typename T>
     Column make(Column&& col, const Groupby& gby, int32_t n) const {
@@ -137,19 +107,8 @@ class FExpr_Nth : public FExpr_Func {
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto cols = args[0].to_oobj();
   auto n = args[1].to<int32_t>(0);
-  auto skipna = args[2].to_oobj_or_none();
-  if (!skipna.is_none() && (skipna != py::ostring("any") || 
-                           skipna != py::ostring("all"))
-      ) {throw ValueError() << "Parameter `skipna` in nth() should be "
-              "either `None`, `any` or `all`";
-        }
-  else if (skipna.is_none()) {
-    skipna = py::ostring("None");
-  }
-  std::string skipNA = skipna.to_string();
 
-
-  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n, skipNA));
+  return PyFExpr::make(new FExpr_Nth(as_fexpr(cols), n));
 
 
 }
@@ -158,9 +117,9 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
 DECLARE_PYFN(&pyfn_nth)
     ->name("nth")
     //->docs(doc_dt_nth)
-    ->arg_names({"cols", "n", "skipna"})
+    ->arg_names({"cols", "n"})
     ->n_positional_args(1)
-    ->n_positional_or_keyword_args(2)
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 

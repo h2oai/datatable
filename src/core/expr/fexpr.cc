@@ -491,15 +491,14 @@ oobj PyFExpr::nth(const XArgs& args) {
   auto nthFn = oobj::import("datatable", "nth");
   oobj n = args[0].to_oobj() ? args[0].to_oobj() 
                              : py::oint(0);
-  oobj skipna = args[1].to_oobj_or_none();
-  return nthFn.call({this, n, skipna});
+  return nthFn.call({this, n});
 }
 
 DECLARE_METHOD(&PyFExpr::nth)
     ->name("nth")
     //->docs(dt::doc_FExpr_as_type)
-    ->arg_names({"n", "skipna"})
-    ->n_positional_or_keyword_args(2)
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1)
     ->n_required_args(1);
 
 oobj PyFExpr::nunique(const XArgs&) {
