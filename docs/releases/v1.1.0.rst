@@ -114,7 +114,7 @@
 
     -[new] Added reducer functions :func:`dt.countna()` and :func:`dt.nunique()`. [#2999]
 
-    -[new] Added function :func:`dt.nth()` to retrieve specified row. [#3128]
+    -[new] Added function :func:`dt.nth()` to retrieve the n-th row. [#3128]
 
     -[new] Class :class:`dt.FExpr` now has method :meth:`.nunique()`,
       which behaves exactly as the equivalent base level function :func:`dt.nunique()`.
