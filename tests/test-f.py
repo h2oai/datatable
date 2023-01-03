@@ -509,5 +509,3 @@ def test_nth():
     assert_equals(DT[:, f.A.nth(nth=0, skipna=True)], DT[:, dt.nth(f.A, 0, True)])
     assert_equals(DT[:, f.A.nth(nth=0, skipna=True)], DT[:, dt.nth(f.A, 0, skipna=True)])
     
-
-    
