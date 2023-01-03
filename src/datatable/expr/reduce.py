@@ -30,8 +30,6 @@ __all__ = (
     "corr",
     "count",
     "cov",
-    "first",
-    "last",
     "max",
     "median",
     "min",
@@ -61,16 +59,16 @@ def countna(iterable=None):
 
 
 def first(iterable):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.FIRST, (iterable,))
+    if isinstance(iterable, core.FExpr):
+        return core.first(iterable)
     else:
         for x in iterable:
             return x
 
 
 def last(iterable):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.LAST, (iterable,))
+    if isinstance(iterable, core.FExpr):
+        return core.last(iterable)
     else:
         try:
             for x in reversed(iterable):

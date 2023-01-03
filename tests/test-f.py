@@ -499,3 +499,13 @@ def test_codes():
                   type = dt.Type.cat8(dt.Type.str32))
     assert_equals(DT[:, f.A.codes()], DT[:, dt.codes(f.A)])
 
+
+def test_nth():
+    assert str(dt.nth(f.A, n=0)) == str(f.A.nth(n=0))
+    assert str(dt.nth(f.A, n=1)) == str(f.A.nth(n=1))
+    assert str(dt.nth(f[:], -1)) == str(f[:].nth(-1))
+    DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
+    assert_equals(DT[:, f.A.nth(n=1)], DT[:, dt.nth(f.A, 1)])
+    assert_equals(DT[:, f.A.nth(n=0)], DT[:, dt.nth(f.A, 0)])
+    assert_equals(DT[:, f.A.nth(n=0)], DT[:, dt.nth(f.A, 0)])
+    
