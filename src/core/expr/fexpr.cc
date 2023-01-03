@@ -532,6 +532,20 @@ DECLARE_METHOD(&PyFExpr::min)
     ->name("min")
     ->docs(dt::doc_FExpr_min);
 
+oobj PyFExpr::nth(const XArgs& args) {
+  auto nthFn = oobj::import("datatable", "nth");
+  oobj n = args[0].to_oobj() ? args[0].to_oobj() 
+                             : py::oint(0);
+  return nthFn.call({this, n});
+}
+
+DECLARE_METHOD(&PyFExpr::nth)
+    ->name("nth")
+    ->arg_names({"n"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(1)
+    ->docs(dt::doc_FExpr_nth);
+
 
 oobj PyFExpr::nunique(const XArgs&) {
   auto nuniqueFn = oobj::import("datatable", "nunique");

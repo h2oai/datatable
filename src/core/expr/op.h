@@ -67,8 +67,6 @@ enum class Op : size_t {
   MIN,                      // head_reduce_unary.cc
   MAX,                      // head_reduce_unary.cc
   STDEV,                    // head_reduce_unary.cc
-  FIRST,                    // head_reduce_unary.cc
-  LAST,                     // head_reduce_unary.cc
   SUM,                      // head_reduce_unary.cc
   COUNT,                    // head_reduce_unary.cc
   COUNT0,                   // head_reduce_nullary.cc

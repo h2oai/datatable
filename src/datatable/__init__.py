@@ -21,8 +21,8 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .frame import Frame
-from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   last, log, log10, f, g, median, cov, corr, countna, nunique)
+from .expr import (mean, min, max, sd, isna, sum, count,  abs, exp,
+                   log, log10, f, g, median, cov, corr, countna, nunique)
 from .lib._datatable import (
     as_type,
     by,
@@ -37,14 +37,17 @@ from .lib._datatable import (
     cut,
     FExpr,
     fillna,
+    first,
     fread,
     ifelse,
     init_styles,
     intersect,
     iread,
     join,
+    last,
     Namespace,
     ngroup,
+    nth,
     prod,
     qcut,
     rbind,
@@ -130,6 +133,7 @@ __all__ = (
     "mean",
     "median",
     "ngroup",
+    "nth",
     "obj64",
     "options",
     "prod",

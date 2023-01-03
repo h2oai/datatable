@@ -55,8 +55,6 @@ class OpCodes(enum.Enum):
     MIN = 402
     MAX = 403
     STDEV = 404
-    FIRST = 405
-    LAST = 406
     COUNT = 408
     COUNT0 = 409
     MEDIAN = 410
