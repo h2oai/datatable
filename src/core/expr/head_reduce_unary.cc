@@ -108,6 +108,83 @@ class Reduced_ColumnImpl : public Virtual_ColumnImpl {
 
 
 
+
+//------------------------------------------------------------------------------
+// first(A), last(A)
+//------------------------------------------------------------------------------
+
+template <bool FIRST>
+class FirstLast_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column arg;
+    Groupby groupby;
+
+  public:
+    FirstLast_ColumnImpl(Column&& col, const Groupby& grpby)
+      : Virtual_ColumnImpl(grpby.size(), col.stype()),
+        arg(std::move(col)),
+        groupby(grpby) {}
+
+    ColumnImpl* clone() const override {
+      return new FirstLast_ColumnImpl<FIRST>(Column(arg), groupby);
+    }
+
+    bool get_element(size_t i, int8_t*   out) const override { return _get(i, out); }
+    bool get_element(size_t i, int16_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, int32_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, int64_t*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, float*    out) const override { return _get(i, out); }
+    bool get_element(size_t i, double*   out) const override { return _get(i, out); }
+    bool get_element(size_t i, CString*  out) const override { return _get(i, out); }
+    bool get_element(size_t i, py::oobj* out) const override { return _get(i, out); }
+
+
+    bool computationally_expensive() const override {
+      return true;
+    }
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+    const Column& child(size_t i) const override {
+      xassert(i == 0);  (void)i;
+      return arg;
+    }
+
+
+  private:
+    template <typename T>
+    bool _get(size_t i, T* out) const {
+      size_t i0, i1;
+      groupby.get_group(i, &i0, &i1);
+      xassert(i0 < i1);
+      return FIRST? arg.get_element(i0, out)
+                  : arg.get_element(i1 - 1, out);
+    }
+};
+
+
+template <bool FIRST>
+static Column compute_firstlast(Column&& arg, const Groupby& gby) {
+  if (arg.nrows() == 0) {
+    return Column::new_na_column(1, arg.stype());
+  }
+  else {
+    return Column(new FirstLast_ColumnImpl<FIRST>(std::move(arg), gby));
+  }
+}
+
+
+static Column compute_gfirstlast(Column&& arg, const Groupby&) {
+  return (arg.nrows() == 0)? Column::new_na_column(1, arg.stype())
+                           : std::move(arg);
+}
+
+
+
+
+
 //------------------------------------------------------------------------------
 // mean(A)
 //------------------------------------------------------------------------------
@@ -802,6 +879,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::MIN:    fn = compute_min; break;
       case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
+      case Op::FIRST:  fn = compute_firstlast<true>; break;
+      case Op::LAST:   fn = compute_firstlast<false>; break;
       case Op::COUNT:  fn = compute_count; break;
       case Op::COUNTNA:fn = compute_countna; break;
       case Op::MEDIAN: fn = compute_median; break;
@@ -815,6 +894,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::STDEV:  fn = compute_gsd; break;
       case Op::MIN:
       case Op::MAX:
+      case Op::FIRST:
+      case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::COUNT:  fn = compute_gcount<false>; break;
       case Op::COUNTNA:fn = compute_gcount<true>; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
