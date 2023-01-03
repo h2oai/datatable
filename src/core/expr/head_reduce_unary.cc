@@ -711,6 +711,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
       case Op::STDEV:  fn = compute_sd; break;
+      case Op::FIRST:  fn = compute_firstlast<true>; break;
+      case Op::LAST:   fn = compute_firstlast<false>; break;
       case Op::COUNT:  fn = compute_count; break;
       case Op::COUNTNA:fn = compute_countna; break;
       case Op::MEDIAN: fn = compute_median; break;
@@ -725,6 +727,8 @@ Workframe Head_Reduce_Unary::evaluate_n(
       case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::MIN:
       case Op::MAX:
+      case Op::FIRST:
+      case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::COUNT:  fn = compute_gcount<false>; break;
       case Op::COUNTNA:fn = compute_gcount<true>; break;
       case Op::MEDIAN: fn = compute_gmedian; break;

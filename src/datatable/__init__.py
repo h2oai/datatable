@@ -37,7 +37,6 @@ from .lib._datatable import (
     cut,
     FExpr,
     fillna,
-    first,
     fread,
     ifelse,
     init_styles,
