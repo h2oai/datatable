@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_nth.cc pyfn_nth
     :cvar: doc_dt_nth
     :tests: tests/test-reduce.py
-    :signature: nth(cols, n)
+    :signature: nth(cols, n=0, skipna=None)
 
     Return the ``nth`` row for an ``Expr``.
 
@@ -11,6 +11,13 @@
     ----------
     cols: FExpr | iterable
         Input columns or an iterable.
+
+    n: int
+        The number of the row to be returned.
+
+    skipna: str
+        Drop the nulls before counting which row is the nth row.
+        Needs to be ``None``, ``any``, or ``all``.
 
     return: Expr | ...
         One-row f-expression that has the same names, stypes and
@@ -53,23 +60,6 @@
         -- + -----  -----  -----
          0 |     2      3      1
 
-    Replicate :func:`first()`::
-
-        >>> df[:, dt.nth(f.A, n=0)]
-           |     A
-           | int32
-        -- + -----
-         0 |     1
-        [1 row x 1 column]
-
-    Replicate :func:`last()`::
-
-        >>> df[:, dt.nth(f.A, n=-1)]
-           |     A
-           | int32
-        -- + -----
-         0 |     2
-        [1 row x 1 column]
 
 In the presence of :func:`by()`, it returns the nth row of the specified columns per group::
 

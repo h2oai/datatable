@@ -44,7 +44,7 @@ class FExpr_Nth : public FExpr_Func {
       std::string out = "nth";
       out += '(';
       out += arg_->repr();
-      out += ", nth=";
+      out += ", n=";
       out += std::to_string(n_);
       out += ", skipna=";
       out += SKIPNA? "True" : "False";
@@ -122,7 +122,7 @@ static py::oobj pyfn_nth(const py::XArgs& args) {
 DECLARE_PYFN(&pyfn_nth)
     ->name("nth")
     ->docs(doc_dt_nth)
-    ->arg_names({"cols", "nth", "skipna"})
+    ->arg_names({"cols", "n", "skipna"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(2)
     ->n_required_args(2);
