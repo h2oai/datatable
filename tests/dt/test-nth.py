@@ -114,8 +114,7 @@ def test_nth_bool_skipna():
                     nth(f[:], n = 2,skipna=True)]]
     DT_ref = dt.Frame([[False], [True], [True]])
 
-    assert_equals(DT_nth, DT_ref)
-    
+    assert_equals(DT_nth, DT_ref)    
     
 
 def test_nth_small():
