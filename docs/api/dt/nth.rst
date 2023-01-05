@@ -15,7 +15,7 @@
     n: int
         The number of the row to be returned.
 
-    skipna: str
+    skipna: None | "any" | "all"
         Drop the nulls before counting which row is the nth row.
         Needs to be ``None``, ``any``, or ``all``.
 
