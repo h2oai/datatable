@@ -54,39 +54,45 @@ class FExpr_Nth : public FExpr_Func {
   
 
     Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe inputs = arg_->evaluate_n(ctx);
+      Workframe wf = arg_->evaluate_n(ctx);
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
 
       if (!gby) gby = Groupby::single_group(ctx.nrows()); 
 
-      for (size_t i = 0; i < inputs.ncols(); ++i) {
-        auto coli = inputs.retrieve_column(i);
-        outputs.add_column(
-          evaluate1(std::move(coli), gby, n_),
-          inputs.retrieve_name(i),
-          Grouping::GtoONE
-        );
+      for (size_t i = 0; i < wf.ncols(); ++i) {
+        bool is_grouped = ctx.has_group_column(
+                            wf.get_frame_id(i),
+                            wf.get_column_id(i)
+                          );
+        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped, n_);        
+        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+        // auto coli = inputs.retrieve_column(i);
+        // outputs.add_column(
+        //   evaluate1(std::move(coli), gby, n_),
+        //   inputs.retrieve_name(i),
+        //   Grouping::GtoONE
+        // );
       }
       return outputs;
     }
 
 
-    Column evaluate1(Column&& col, const Groupby& gby, const int32_t n) const {
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped, const int32_t n) const {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
         case SType::BOOL:
-        case SType::INT8:    return make<int8_t>(std::move(col), gby, n);
-        case SType::INT16:   return make<int16_t>(std::move(col), gby, n);
+        case SType::INT8:    return make<int8_t>(std::move(col), gby, is_grouped, n);
+        case SType::INT16:   return make<int16_t>(std::move(col), gby, is_grouped, n);
         case SType::DATE32:
-        case SType::INT32:   return make<int32_t>(std::move(col), gby, n);
+        case SType::INT32:   return make<int32_t>(std::move(col), gby, is_grouped, n);
         case SType::TIME64:
-        case SType::INT64:   return make<int64_t>(std::move(col), gby, n);
-        case SType::FLOAT32: return make<float>(std::move(col), gby, n);
-        case SType::FLOAT64: return make<double>(std::move(col), gby, n);
-        case SType::STR32:   return make<CString>(std::move(col), gby, n);
-        case SType::STR64:   return make<CString>(std::move(col), gby, n);
+        case SType::INT64:   return make<int64_t>(std::move(col), gby, is_grouped, n);
+        case SType::FLOAT32: return make<float>(std::move(col), gby, is_grouped, n);
+        case SType::FLOAT64: return make<double>(std::move(col), gby, is_grouped, n);
+        case SType::STR32:   return make<CString>(std::move(col), gby, is_grouped, n);
+        case SType::STR64:   return make<CString>(std::move(col), gby, is_grouped,n);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -95,8 +101,8 @@ class FExpr_Nth : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column&& col, const Groupby& gby, int32_t n) const {
-      return Column(new Nth_ColumnImpl<T>(std::move(col), gby, n));
+    Column make(Column&& col, const Groupby& gby, bool is_grouped, int32_t n) const {
+      return Column(new Nth_ColumnImpl<T>(std::move(col), gby, is_grouped, n));
     }
 
 };
