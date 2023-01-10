@@ -77,7 +77,7 @@ class FExpr_Mean : public FExpr_Func {
 
       switch (stype) {
         case SType::VOID: {
-          return Column(new ConstNa_ColumnImpl(gby.size(), stype));
+          return Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64));
         }
           
         case SType::BOOL:
