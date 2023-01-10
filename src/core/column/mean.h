@@ -46,7 +46,6 @@ class Mean_ColumnImpl : public Virtual_ColumnImpl {
 
 
     bool get_element(size_t i, T* out) const override {
-      
       T value;
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
