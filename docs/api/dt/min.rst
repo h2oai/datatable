@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.min
-    :src: src/core/expr/fexpr_sumprod.cc pyfn_min
+    :src: src/core/expr/fexpr_minmax.cc pyfn_min
     :tests: tests/test-reduce.py
     :cvar: doc_dt_min
     :signature: min(cols)

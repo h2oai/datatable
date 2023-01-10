@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.max
-    :src: src/core/expr/fexpr_sumprod.cc pyfn_max
+    :src: src/core/expr/fexpr_minmax.cc pyfn_max
     :tests: tests/test-reduce.py
     :cvar: doc_dt_max
     :signature: max(cols)
