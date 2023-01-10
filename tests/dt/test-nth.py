@@ -143,6 +143,13 @@ def test_nth_grouped():
              })
     assert_equals(DT_nth, DT_ref)
 
+
+def test_nth_grouped_by():
+    """Test nth when called on the `by` column"""
+    DT = dt.Frame([0, 1, 0])
+    DT_nth = DT[:, dt.nth(f.C0, 0), by(f.C0)]
+    DT_ref = dt.Frame({'C0':[0,1], 'C1':[0,1]})
+
 @pytest.mark.xfail(reason='skipna not implemented yet')
 def test_nth_grouped_skipna():
     DT = dt.Frame([[15, None, 136, 93, 743, None, None, 91],
