@@ -28,8 +28,6 @@
     -[enh] :meth:`.to_csv()` now has an option ``sep`` to control
         the field separator. [#3337]
 
-
-
     -[fix] Void columns can now be used with :func:`dt.sort()` and :func:`dt.by()`.
         In addition, datatable will now skip sorting any column that it knows contains
         constant values. [#3088] [#3104] [#3108] [#3109]
