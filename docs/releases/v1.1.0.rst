@@ -35,7 +35,7 @@
 
     -[fix] :func:`dt.sum()` now works correctly when called on grouped column. [#3110]
 
-    -[fix] Fixed :func:`dt.sum()` behaviour when called on iterables and frames. [#3406]
+    -[fix] Fixed :func:`dt.sum()` behavior when called on iterables and frames. [#3406]
 
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
@@ -54,7 +54,7 @@
     -[fix] Fixed :meth:`.to_csv()` to quote missing values when
         `quoting="all"` is specified. [#3340]
 
-    -[fix] Fixed groupby behaviour on columns that contain missing values. [#3331]
+    -[fix] Fixed groupby behavior on columns that contain missing values. [#3331]
 
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
@@ -130,7 +130,7 @@
 
     -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
 
-    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269] [#3272]
+    -[fix] Fixed :func:`dt.shift()` behavior on grouped columns. [#3269] [#3272]
 
     -[fix] Reducers and row-wise functions now support :attr:`void <dt.Type.void>`
        columns. [#3284]
@@ -173,7 +173,7 @@
         that in some cases resulted in the gradient and model coefficients
         blow up. [#3234]
 
-    -[fix] Fixed undefined behaviour when :class:`LinearModel <dt.models.LinearModel>`
+    -[fix] Fixed undefined behavior when :class:`LinearModel <dt.models.LinearModel>`
         predicted on frames with missing values. [#3260]
 
 

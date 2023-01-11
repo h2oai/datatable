@@ -35,7 +35,7 @@
         sorting is descending.
 
     na_position: None | "first" | "last" | "remove"
-        If "first", the default behaviour, missing values are placed
+        If "first", the default behavior, missing values are placed
         first in sorted output. If "last", they are placed last.
         If "remove", rows that contain missing values in `cols`
         are excluded from the output.
