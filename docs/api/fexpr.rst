@@ -327,6 +327,7 @@
     .median()       <fexpr/median>
     .min()          <fexpr/min>
     .nunique()      <fexpr/nunique>
+    .nth()          <fexpr/nth>
     .prod()         <fexpr/prod>
     .re_match()     <fexpr/re_match>
     .remove()       <fexpr/remove>
