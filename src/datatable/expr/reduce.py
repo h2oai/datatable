@@ -109,7 +109,9 @@ def corr(col1, col2):
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
-    if not isinstance(iterable, dict) and (isinstance(iterable, core.FExpr) or isinstance(iterable[0], core.FExpr)):
+    if (not isinstance(iterable, dict)
+        and (isinstance(iterable, core.FExpr)
+        or (hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
         return core.sum(iterable)
     elif isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
         return core.sum(iterable)
@@ -121,7 +123,9 @@ def sum(iterable, start=0):
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
+    if (len(args) == 1
+        and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return Expr(OpCodes.MIN, args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return Expr(OpCodes.MIN, args)
@@ -133,7 +137,9 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
+    if (len(args) == 1 and (not isinstance(args[0], dict))
+        and (isinstance(args[0], (Expr, core.FExpr))
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return Expr(OpCodes.MAX, args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return Expr(OpCodes.MAX, args)
