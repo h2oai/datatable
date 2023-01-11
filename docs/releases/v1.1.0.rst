@@ -33,8 +33,9 @@
 
     -[fix] Joining with void columns now works correctly. [#3094]
 
-    -[fix] :func:`dt.sum()` now works correctly when applied to the same
-        column as :func:`dt.by()`. [#3110]
+    -[fix] :func:`dt.sum()` now works correctly when called on grouped column. [#3110]
+
+    -[fix] Fixed :func:`dt.sum()` behaviour when called on iterables and frames. [#3406]
 
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]

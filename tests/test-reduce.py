@@ -376,6 +376,24 @@ def test_sum_grouped():
     assert str(DT_sum)
 
 
+def test_sum_multicolumn():
+    # See issue #3406
+    DT = dt.Frame(range(5))
+    DT_sum_list = DT[:, sum([f.C0, f.C0])]
+    DT_sum_tuple = DT[:, sum((f.C0, f.C0))]
+    DT_sum_dict = DT[:, sum({"A":f.C0, "B":f.C0})]
+    DT_ref = dt.Frame([10]/dt.int64)
+    assert_equals(DT_sum_list, DT_ref[:, [f.C0, f.C0]])
+    assert_equals(DT_sum_tuple, DT_ref[:, [f.C0, f.C0]])
+    assert_equals(DT_sum_dict, DT_ref[:, {"A":f.C0, "B":f.C0}])
+
+
+def test_sum_frame():
+    # See issue #3406
+    DT = dt.Frame(range(5))
+    DT_sum = dt.sum(DT)
+    assert_equals(DT_sum, DT.sum())
+
 
 #-------------------------------------------------------------------------------
 # Mean

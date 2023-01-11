@@ -109,8 +109,12 @@ def corr(col1, col2):
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
-    if isinstance(iterable, core.FExpr):
+    if not isinstance(iterable, dict) and (isinstance(iterable, core.FExpr) or isinstance(iterable[0], core.FExpr)):
         return core.sum(iterable)
+    elif isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
+        return core.sum(iterable)
+    elif isinstance(iterable, core.Frame):
+        return iterable.sum()
     else:
         return _builtin_sum(iterable, start)
 
