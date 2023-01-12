@@ -320,6 +320,13 @@ def test_minmax_nas(mm, st):
     assert DT2[:, mm(f.B)].to_list() == [[None]]
 
 
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 9)])
+def test_minmax_comprehension(mm, res):
+    # See issue #3409
+    s = mm([i for i in range(10)])
+    assert s == res
+
+
 
 #-------------------------------------------------------------------------------
 # sum
@@ -391,8 +398,15 @@ def test_sum_multicolumn():
 def test_sum_frame():
     # See issue #3406
     DT = dt.Frame(range(5))
-    DT_sum = dt.sum(DT)
+    DT_sum = sum(DT)
     assert_equals(DT_sum, DT.sum())
+
+
+def test_sum_comprehension():
+    # See issue #3406
+    s = sum([i for i in range(10)])
+    assert s == 45
+
 
 
 #-------------------------------------------------------------------------------
