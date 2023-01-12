@@ -93,7 +93,7 @@
     were renamed into ``method=``. The old parameter name still works, so this
     change is not breaking.
 
-  -[api] The behaviour of a method :meth:`.sort()` is made consistent with
+  -[api] The behavior of a method :meth:`.sort()` is made consistent with
     the function :func:`dt.sort()`. When the list of columns to sort
     is empty, both will not sort any columns.
 
