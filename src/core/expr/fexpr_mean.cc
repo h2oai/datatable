@@ -92,6 +92,11 @@ class FExpr_Mean : public FExpr_Func {
         case SType::INT64:
         case SType::FLOAT64:
           return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+        case SType::DATE32: {
+          Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+          coli.cast_inplace(SType::DATE32);
+          return coli;
+        }
         case SType::TIME64: {
           Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
           coli.cast_inplace(SType::TIME64);
