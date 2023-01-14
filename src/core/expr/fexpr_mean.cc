@@ -53,7 +53,6 @@ class FExpr_Mean : public FExpr_Func {
       Workframe outputs(ctx);
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
-      bool has_by = ctx.has_groupby();
 
 
       if (!gby) {
@@ -65,7 +64,7 @@ class FExpr_Mean : public FExpr_Func {
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
                           );
-        Column coli = evaluate1(wf.retrieve_column(i), gby, has_by, is_grouped);        
+        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);        
         outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
       }
         
@@ -73,14 +72,12 @@ class FExpr_Mean : public FExpr_Func {
     }
 
 
-    Column evaluate1(Column &&col, const Groupby& gby, bool has_by, bool is_grouped) const {
+    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
       SType stype = col.stype();
 
       switch (stype) {
         case SType::VOID: {
-          Column coli = has_by? Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64))
-                              : Column(new ConstNa_ColumnImpl(gby.size()));
-          return coli;
+          return Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64));
         }
           
         case SType::BOOL:
