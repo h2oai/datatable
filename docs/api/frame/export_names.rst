@@ -28,7 +28,7 @@
     return: Tuple[Expr, ...]
         The length of the tuple is equal to the number of columns in the
         frame. Each element of the tuple is a datatable *expression*, and
-        can be used primarily with the ``DT[i,j]`` notation.
+        can be used primarily with the ``DT[i, j]`` notation.
 
     Notes
     -----

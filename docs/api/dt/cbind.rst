@@ -6,9 +6,20 @@
 
     Create a new Frame by appending columns from several `frames`.
 
-    This function is exactly equivalent to::
+    .. note::
+        In contrast to :meth:`dt.Frame.cbind()` that modifies
+        the original Frame in-place and returns `None`,
+        this function returns a new Frame and do not modify any
+        of the `frames`.
 
-        >>> dt.Frame().cbind(*frames, force=force)
+        Therefore,::
+
+            >>> DT = dt.cbind(*frames, force=force)
+
+        is exactly equivalent to::
+
+            >>> DT = dt.Frame()
+            >>> DT.cbind(*frames, force=force)
 
     Parameters
     ----------

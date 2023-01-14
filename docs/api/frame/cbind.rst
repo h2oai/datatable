@@ -28,6 +28,11 @@
     to ensure that the column names in the current frame remain unique.
     A warning will also be issued in this case.
 
+    .. note::
+        Since this method modifies the original Frame in-place, it will
+        have no visible effect when called on a Frame, that is not
+        associated with any variable.
+
 
     Parameters
     ----------
@@ -63,7 +68,7 @@
     to collect them in a list first and then call a single `cbind()`
     instead of cbinding them one-by-one.
 
-    It is possible to cbind frames using the standard `DT[i,j]` syntax::
+    It is also possible to cbind frames using the standard `DT[i, j]` syntax::
 
         >>> df[:, update(**frame1, **frame2, ...)]
 
@@ -82,10 +87,11 @@
 
     Examples
     --------
-    >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
-    >>> frame1 = dt.Frame(N=[-1, -2, -5])
-    >>> DT.cbind(frame1)
-    >>> DT
+
+    >>> DT0 = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+    >>> DT1 = dt.Frame(N=[-1, -2, -5])
+    >>> DT0.cbind(DT1)
+    >>> DT0
        |     A      B      N
        | int32  int32  int32
     -- + -----  -----  -----
@@ -93,4 +99,11 @@
      1 |     2      7     -2
      2 |     3      0     -5
     [3 rows x 3 columns]
+
+    At the same time, doing
+
+    >>> DT0[:, :].cbind(DT1)
+
+    will have no effect on ``DT0``, because ``DT0[:, :]`` is a different view frame
+    that is not assigned to any variable.
 
