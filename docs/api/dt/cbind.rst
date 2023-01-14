@@ -8,15 +8,15 @@
 
     .. note::
         In contrast to :meth:`dt.Frame.cbind()` that modifies
-        the original Frame in-place and returns `None`,
+        the original Frame in-place and returns ``None``,
         this function returns a new Frame and do not modify any
         of the `frames`.
 
-        Therefore,::
+        Therefore,
 
             >>> DT = dt.cbind(*frames, force=force)
 
-        is exactly equivalent to::
+        is exactly equivalent to
 
             >>> DT = dt.Frame()
             >>> DT.cbind(*frames, force=force)
