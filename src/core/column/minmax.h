@@ -46,30 +46,37 @@ class MinMax_ColumnImpl : public Virtual_ColumnImpl {
 
 
     bool get_element(size_t i, T* out) const override {      
-      T result;
-      bool res_valid;
       size_t i0, i1;
       gby_.get_group(i, &i0, &i1);
 
       if (is_grouped_) {
-        res_valid = col_.get_element(i, &result);
+        T value;
+        bool is_valid = col_.get_element(i, &value);
+        *out = value;
+        return is_valid;
       } else {
-          res_valid = col_.get_element(i0, &result);
-          T value;
-          for (size_t gi = i0+1; gi < i1; ++gi){
-            bool is_valid = col_.get_element(gi, &value);
-            if (is_valid && res_valid){
-              bool check = MIN? value < result
-                              : value > result;
-              result = check?value:result;
-            } else if (is_valid) {
-                result = value;
-                res_valid = true;
-            } else if (!is_valid) continue;
-          }          
-      }
-      *out = result;
-      return res_valid;      
+          T minmax = MIN ? std::numeric_limits<T>::min()
+                         : std::numeric_limits<T>::max();
+          bool isna = true;
+          for (size_t gi = i0; gi < i1; ++gi){
+            T value;
+            bool isvalid = col_.get_element(gi, &value);
+            if (isvalid && MIN) {
+              if (value < minmax || isna){
+                minmax = value;
+                isna = false;
+              }
+            } else if (isvalid && !MIN) {
+                if (value > minmax || isna){
+                  minmax = value;
+                  isna = false;
+                }
+              }
+          }
+        *out = static_cast<T>(minmax);
+        return !isna;             
+        }
+         
       
     }
 
