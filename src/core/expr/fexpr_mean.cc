@@ -28,7 +28,6 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -79,7 +78,6 @@ class FExpr_Mean : public FExpr_Func {
 
       switch (stype) {
         case SType::VOID: {
-          std::cout<<has_by<<std::endl;
           Column coli = has_by? Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64))
                               : Column(new ConstNa_ColumnImpl(gby.size()));
           return coli;
