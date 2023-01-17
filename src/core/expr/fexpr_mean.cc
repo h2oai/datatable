@@ -78,8 +78,7 @@ class FExpr_Mean : public FExpr_Func {
       switch (stype) {
         case SType::VOID: {
           return Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64));
-        }
-          
+        }          
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
@@ -124,7 +123,7 @@ static py::oobj pyfn_mean(const py::XArgs &args) {
 
 DECLARE_PYFN(&pyfn_mean)
     ->name("mean")
-    ->docs(doc_dt_min)
+    ->docs(doc_dt_mean)
     ->arg_names({"cols"})
     ->n_positional_args(1)
     ->n_required_args(1);
