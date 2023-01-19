@@ -830,7 +830,7 @@ static Column compute_median(Column&& arg, const Groupby& gby) {
     return Column::new_na_column(1, arg.stype());
   }
   switch (arg.stype()) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(1));
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
     case SType::BOOL:
     case SType::INT8:    return _median<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _median<int16_t>(std::move(arg), gby);

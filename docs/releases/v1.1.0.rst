@@ -139,6 +139,9 @@
     -[fix] Reducers and row-wise functions now support :attr:`void <dt.Type.void>`
        columns. [#3284]
 
+    -[fix] Fixed :func:`dt.median()` when used in a groupby context with
+       :attr:`void <dt.Type.void>` columns. [#3411]
+
 
     fread
     -----
