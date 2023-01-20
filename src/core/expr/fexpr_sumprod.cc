@@ -98,9 +98,15 @@ class FExpr_SumProd : public FExpr_Func {
     template <typename T>
     Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
-      return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM>(
-        std::move(col), gby, is_grouped
-      )));
+      if (is_grouped) {
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, true>(
+          std::move(col), gby
+        )));
+      } else {
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, false>(
+          std::move(col), gby
+        )));
+      }
     }
 };
 

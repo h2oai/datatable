@@ -19,43 +19,43 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SUMPROD_h
-#define dt_COLUMN_SUMPROD_h
-#include "column/reduce_unary.h"
-#include "models/utils.h"   // ipow
+#ifndef dt_COLUMN_REDUCE_UNARY_h
+#define dt_COLUMN_REDUCE_UNARY_h
+#include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 
-template <typename T, bool SUM, bool IS_GROUPED>
-class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
+template <typename T, bool IS_GROUPED>
+class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Column col_;
+    Groupby gby_;
+
   public:
-    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
+      : Virtual_ColumnImpl(gby.size(), col.stype()),
+        col_(std::move(col)),
+        gby_(gby)
+    {
+      xassert(col_.can_be_read_as<T>());
+    }
 
-    bool get_element(size_t i, T* out) const override {
-      T result = !SUM; // 0 for `sum()` and 1 for `prod()`
-      T value;
-      size_t i0, i1;
-      this->gby_.get_group(i, &i0, &i1);
 
-      if (IS_GROUPED){
-        size_t nrows = i1 - i0;
-        bool is_valid = this->col_.get_element(i, &value);
-        if (is_valid){
-          result = SUM? static_cast<T>(nrows) * value
-                      : ipow(value, nrows);
-        }
-      } else {
-        for (size_t gi = i0; gi < i1; ++gi) {
-          bool is_valid = this->col_.get_element(gi, &value);
-          if (is_valid){
-            result = SUM? result + value
-                        : result * value;
-          }
-        }
-      }
+    ColumnImpl *clone() const override {
+      return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_));
+    }
 
-      *out = result;
-      return true; // the result is never a missing value
+
+    size_t n_children() const noexcept override {
+      return 1;
+    }
+
+
+    const Column &child(size_t i) const override {
+      xassert(i == 0);
+      (void)i;
+      return col_;
     }
 };
 
