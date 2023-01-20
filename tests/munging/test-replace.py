@@ -95,9 +95,9 @@ def test_replace_bool_na():
 
 def test_replace_bool_numpy():
     df = dt.Frame([True, None, False, True, False, False])
-    df.replace({None: np.bool8(False),
-                np.bool8(True): np.bool8(False),
-                np.bool8(False): None
+    df.replace({None: np.bool_(False),
+                np.bool_(True): np.bool_(False),
+                np.bool_(False): None
                })
     frame_integrity_check(df)
     assert df.stypes == (dt.bool8,)

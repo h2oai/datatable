@@ -76,9 +76,9 @@ class FExpr_Mean : public FExpr_Func {
       SType stype = col.stype();
 
       switch (stype) {
-        case SType::VOID: {
-          return Column(new ConstNa_ColumnImpl(gby.size(), SType::FLOAT64));
-        }          
+        case SType::VOID: return Column(new ConstNa_ColumnImpl(
+                            gby.size(), SType::FLOAT64
+                          ));
         case SType::BOOL:
         case SType::INT8:
         case SType::INT16:
@@ -86,6 +86,9 @@ class FExpr_Mean : public FExpr_Func {
         case SType::INT64:
         case SType::FLOAT64:
           return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+        case SType::FLOAT32:
+          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
+
         case SType::DATE32: {
           Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
           coli.cast_inplace(SType::DATE32);
@@ -96,8 +99,6 @@ class FExpr_Mean : public FExpr_Func {
           coli.cast_inplace(SType::TIME64);
           return coli;
         }           
-        case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
         
         default:
           throw TypeError()
@@ -127,4 +128,6 @@ DECLARE_PYFN(&pyfn_mean)
     ->arg_names({"cols"})
     ->n_positional_args(1)
     ->n_required_args(1);
+
+
 }}  // dt::expr

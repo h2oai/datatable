@@ -56,21 +56,20 @@ class Mean_ColumnImpl : public Virtual_ColumnImpl {
         *out = static_cast<T>(value);
         return true;
       } else {
-          double sum = 0;
-          int64_t count = 0;
-          for (size_t gi = i0; gi < i1; ++gi) {
-            bool is_valid = col_.get_element(gi, &value);
-            if (is_valid) {
-              sum += static_cast<double>(value);
-              count++;
-            }
+        double sum = 0;
+        int64_t count = 0;
+        for (size_t gi = i0; gi < i1; ++gi) {
+          bool is_valid = col_.get_element(gi, &value);
+          if (is_valid) {
+            sum += static_cast<double>(value);
+            count++;
           }
-          if (!count) return false;
-          *out = static_cast<T>(sum / static_cast<double>(count));
-          return true;
         }
+        if (!count) return false;
+        *out = static_cast<T>(sum / static_cast<double>(count));
+        return true;
+      }
 
-      
     }
 
 

@@ -504,7 +504,7 @@ def test_issue1953():
 
 def test_stats_bool_large(numpy):
     n = 12345678
-    a = numpy.random.randint(2, size=n, dtype=numpy.bool8)
+    a = numpy.random.randint(2, size=n, dtype=numpy.bool_)
     dt0 = dt.Frame(a)
     assert dt0.sum().to_list() == [[a.sum()]]
     assert dt0.countna().to_list() == [[0]]
