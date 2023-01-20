@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .frame import Frame
-from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
+from .expr import (min, max, sd, isna, sum, count, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr, countna, nunique)
 from .lib._datatable import (
     as_type,
@@ -43,6 +43,7 @@ from .lib._datatable import (
     intersect,
     iread,
     join,
+    mean,
     Namespace,
     ngroup,
     prod,

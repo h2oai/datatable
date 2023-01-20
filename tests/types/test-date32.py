@@ -552,7 +552,8 @@ def test_date32_in_groupby():
                  "min": dt.min(f.B),
                  "max": dt.max(f.B),
                  "first": dt.first(f.B),
-                 "last": dt.last(f.B)},
+                 "last": dt.last(f.B),
+                 "mean": dt.mean(f.B)},
             dt.by(f.A)]
     date32 = dt.stype.date32
     assert_equals(RES,
@@ -561,7 +562,8 @@ def test_date32_in_groupby():
                  min = [0, 1, 2] / date32,
                  max = [2997, 2998, 2999] / date32,
                  first = [0, 1, 2] / date32,
-                 last = [2997, 2998, 2999] / date32))
+                 last = [2997, 2998, 2999] / date32,
+                 mean = [1498, 1499, 1500] / date32))
 
 
 def test_select_dates():

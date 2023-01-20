@@ -416,13 +416,13 @@ def test_sum_comprehension():
 def test_mean_void():
     DT = dt.Frame([None] * 10)
     DT_mean = DT[:, mean(f.C0)]
-    assert_equals(DT_mean, dt.Frame([None]))
+    assert_equals(DT_mean, dt.Frame([None]/dt.float64))
 
 
 def test_mean_void_per_group():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
     DT_mean = DT[:, mean(f.C0), by(f.C1)]
-    assert_equals(DT_mean, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+    assert_equals(DT_mean, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
 
 
 def test_mean_void_grouped():
@@ -459,13 +459,13 @@ def test_mean_empty_frame():
 def test_median_void():
     DT = dt.Frame([None] * 10)
     DT_median = DT[:, median(f.C0)]
-    assert_equals(DT_median, dt.Frame([None]))
+    assert_equals(DT_median, dt.Frame([None]/dt.float64))
 
 
 def test_median_void_per_group():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
     DT_median = DT[:, median(f.C0), by(f.C1)]
-    assert_equals(DT_median, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+    assert_equals(DT_median, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
 
 
 def test_median_nonvoid_per_void_group():

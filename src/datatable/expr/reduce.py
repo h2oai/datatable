@@ -33,7 +33,6 @@ __all__ = (
     "first",
     "last",
     "max",
-    "mean",
     "median",
     "min",
     "nunique",
@@ -83,9 +82,6 @@ def last(iterable):
                 pass
             return x
 
-
-def mean(expr):
-    return Expr(OpCodes.MEAN, (expr,))
 
 
 def sd(expr):
