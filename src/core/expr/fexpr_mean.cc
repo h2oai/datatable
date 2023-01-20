@@ -54,7 +54,6 @@ class FExpr_Mean : public FExpr_Func {
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
 
-
       if (!gby) {
         gby = Groupby::single_group(wf.nrows());
       } 

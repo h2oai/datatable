@@ -563,7 +563,7 @@ def test_date32_in_groupby():
                  max = [2997, 2998, 2999] / date32,
                  first = [0, 1, 2] / date32,
                  last = [2997, 2998, 2999] / date32,
-                 mean = [1498, 1499, 1500]/date32))
+                 mean = [1498, 1499, 1500] / date32))
 
 
 def test_select_dates():
