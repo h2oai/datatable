@@ -710,7 +710,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
   maker_fn fn = nullptr;
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
-      case Op::MEAN:   fn = compute_mean; break;
       case Op::STDEV:  fn = compute_sd; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;

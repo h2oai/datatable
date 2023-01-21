@@ -21,37 +21,23 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_MINMAX_h
 #define dt_COLUMN_MINMAX_h
-#include "column/virtual.h"
+#include "column/reduce_unary.h"
 #include "stype.h"
 namespace dt {
 
 
-template <typename T, bool MIN>
-class MinMax_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column col_;
-    Groupby gby_;
-    bool is_grouped_;
-    size_t : 56;
-
+template <typename T, bool MIN, bool IS_GROUPED>
+class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
   public:
-    MinMax_ColumnImpl(Column &&col, const Groupby& gby, bool is_grouped)
-      : Virtual_ColumnImpl(gby.size(), col.stype()),
-        col_(std::move(col)),
-        gby_(gby),
-        is_grouped_(is_grouped)
-    {
-      xassert(col_.can_be_read_as<T>());
-    }
-
+    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {      
       size_t i0, i1;
-      gby_.get_group(i, &i0, &i1);
+      this->gby_.get_group(i, &i0, &i1);
 
-      if (is_grouped_) {
+      if (IS_GROUPED) {
         T value;
-        bool is_valid = col_.get_element(i, &value);
+        bool is_valid = this->col_.get_element(i, &value);
         *out = value;
         return is_valid;
       } else {
@@ -60,7 +46,7 @@ class MinMax_ColumnImpl : public Virtual_ColumnImpl {
           bool isna = true;
           for (size_t gi = i0; gi < i1; ++gi){
             T value;
-            bool isvalid = col_.get_element(gi, &value);
+            bool isvalid = this->col_.get_element(gi, &value);
             if (isvalid && MIN) {
               if (value < minmax || isna){
                 minmax = value;
@@ -78,23 +64,6 @@ class MinMax_ColumnImpl : public Virtual_ColumnImpl {
         }
          
       
-    }
-
-
-    ColumnImpl *clone() const override {
-      return new MinMax_ColumnImpl(Column(col_), Groupby(gby_), is_grouped_);
-    }
-
-
-    size_t n_children() const noexcept override {
-      return 1;
-    }
-
-
-    const Column &child(size_t i) const override {
-      xassert(i == 0);
-      (void)i;
-      return col_;
     }
 };
 

@@ -113,9 +113,15 @@ class FExpr_MinMax : public FExpr_Func {
     template <typename T>
     Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
-      return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN>(
-        std::move(col), gby, is_grouped
-      )));
+      if (is_grouped) {
+        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, true>(
+          std::move(col), gby
+        )));
+      } else {
+        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
+          std::move(col), gby
+        )));
+      }
     }
 };
 
