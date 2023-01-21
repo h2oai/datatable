@@ -28,7 +28,7 @@ namespace dt {
 
 template <typename T, bool IS_GROUPED>
 class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
-  private:
+  protected:
     Column col_;
     Groupby gby_;
 
