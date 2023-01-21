@@ -109,9 +109,16 @@ class FExpr_Mean : public FExpr_Func {
     template <typename T>
     Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
-      return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T>(
-        std::move(col), gby, is_grouped
-      )));
+
+      if (is_grouped) {
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, true>(
+          std::move(col), gby
+        )));
+      } else {
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, false>(
+          std::move(col), gby
+        )));
+      }
     }
 };
 
