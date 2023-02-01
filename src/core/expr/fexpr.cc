@@ -22,6 +22,7 @@
 #include <iostream>
 #include "documentation.h"
 #include "expr/expr.h"            // OldExpr
+#include "expr/fbinary/fexpr__compare__.h"
 #include "expr/fexpr.h"
 #include "expr/fexpr_alias.h"
 #include "expr/fexpr_column.h"
@@ -232,6 +233,20 @@ oobj PyFExpr::nb__pos__() {
 
 
 //----- Other methods ----------------------------------------------------------
+oobj PyFExpr::eq(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__eq__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::eq)
+    ->name("eq")
+    //->docs(dt::doc_FExpr_eq)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
+
+
 
 oobj PyFExpr::extend(const XArgs& args) {
   auto arg = args[0].to_oobj();   

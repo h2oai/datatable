@@ -189,6 +189,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj cummax(const py::XArgs&);
     py::oobj cumprod(const py::XArgs&);
     py::oobj cumsum(const py::XArgs&);
+    py::oobj eq(const py::XArgs&);
     py::oobj extend(const py::XArgs&);
     py::oobj fillna(const py::XArgs&);
     py::oobj first(const py::XArgs&);

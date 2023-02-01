@@ -101,6 +101,8 @@ def test_f_col_selector_list_tuple():
 
 def test_f_expressions():
     assert str(f.C1 < f.C2) == "FExpr<f.C1 < f.C2>"
+    assert str(f.C1 == f.C2) == "FExpr<f.C1 == f.C2>"
+    assert str(f.C1.eq(f.C2)) == "FExpr<f.C1 == f.C2>"
     assert str(f.C1 > f.C2) == "FExpr<f.C1 > f.C2>"
     assert str(f.C1 <= f.C2) == "FExpr<f.C1 <= f.C2>"
     assert str(f.C1 >= f.C2) == "FExpr<f.C1 >= f.C2>"
