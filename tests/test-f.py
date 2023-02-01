@@ -101,11 +101,17 @@ def test_f_col_selector_list_tuple():
 
 def test_f_expressions():
     assert str(f.C1 < f.C2) == "FExpr<f.C1 < f.C2>"
+    assert str(f.C1.lt(f.C2)) == "FExpr<f.C1 < f.C2>"
     assert str(f.C1 == f.C2) == "FExpr<f.C1 == f.C2>"
     assert str(f.C1.eq(f.C2)) == "FExpr<f.C1 == f.C2>"
     assert str(f.C1 > f.C2) == "FExpr<f.C1 > f.C2>"
+    assert str(f.C1.gt(f.C2)) == "FExpr<f.C1 > f.C2>"
     assert str(f.C1 <= f.C2) == "FExpr<f.C1 <= f.C2>"
+    assert str(f.C1.le(f.C2)) == "FExpr<f.C1 <= f.C2>"
     assert str(f.C1 >= f.C2) == "FExpr<f.C1 >= f.C2>"
+    assert str(f.C1.ge(f.C2)) == "FExpr<f.C1 >= f.C2>"
+    assert str(f.C1 != f.C2) == "FExpr<f.C1 != f.C2>"
+    assert str(f.C1.ne(f.C2)) == "FExpr<f.C1 != f.C2>"
 
 
 def test_f_columnset_str():

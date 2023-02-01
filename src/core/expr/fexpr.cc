@@ -241,11 +241,83 @@ oobj PyFExpr::eq(const XArgs& args) {
 
 DECLARE_METHOD(&PyFExpr::eq)
     ->name("eq")
-    //->docs(dt::doc_FExpr_eq)
+    ->docs(dt::doc_FExpr_eq)
     ->n_positional_args(1)
     ->n_required_args(1)
     ->arg_names({"arg"});
 
+
+
+oobj PyFExpr::ge(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__ge__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::ge)
+    ->name("ge")
+    ->docs(dt::doc_FExpr_ge)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
+
+
+oobj PyFExpr::gt(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__gt__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::gt)
+    ->name("gt")
+    ->docs(dt::doc_FExpr_gt)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
+
+
+
+oobj PyFExpr::le(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__le__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::le)
+    ->name("le")
+    ->docs(dt::doc_FExpr_le)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
+
+
+
+oobj PyFExpr::lt(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__lt__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::lt)
+    ->name("lt")
+    ->docs(dt::doc_FExpr_lt)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
+
+
+oobj PyFExpr::ne(const XArgs& args) {
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr__ne__(ptrExpr(expr_), as_fexpr(arg)));
+
+}
+
+DECLARE_METHOD(&PyFExpr::ne)
+    ->name("ne")
+    ->docs(dt::doc_FExpr_ne)
+    ->n_positional_args(1)
+    ->n_required_args(1)
+    ->arg_names({"arg"});
 
 
 oobj PyFExpr::extend(const XArgs& args) {

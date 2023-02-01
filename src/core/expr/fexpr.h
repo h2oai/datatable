@@ -193,11 +193,16 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj extend(const py::XArgs&);
     py::oobj fillna(const py::XArgs&);
     py::oobj first(const py::XArgs&);
+    py::oobj ge(const py::XArgs&);
+    py::oobj gt(const py::XArgs&);
     py::oobj last(const py::XArgs&);
+    py::oobj le(const py::XArgs&);
+    py::oobj lt(const py::XArgs&);
     py::oobj max(const py::XArgs&);
     py::oobj mean(const py::XArgs&);
     py::oobj median(const py::XArgs&);
     py::oobj min(const py::XArgs&);
+    py::oobj ne(const py::XArgs&);
     py::oobj nunique(const py::XArgs&);
     py::oobj prod(const py::XArgs&);
     py::oobj remove(const py::XArgs&);
