@@ -1,8 +1,8 @@
 
-.. xmethod:: datatable.FExpr.eq
-    :src: src/core/expr/fexpr.cc PyFExpr::eq
-    :cvar: doc_FExpr_eq
-    :signature: eq()
+.. xmethod:: datatable.FExpr.le
+    :src: src/core/expr/fexpr.cc PyFExpr::le
+    :cvar: doc_FExpr_le
+    :signature: le()
 
     .. x-version-added:: 1.1.0
 
