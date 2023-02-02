@@ -6,5 +6,5 @@
 
     .. x-version-added:: 1.1.0
 
-    Equivalent to :func:`dt.__ge__(x, y)`.
+    Equivalent to :`__ge__(x, y)`.
 

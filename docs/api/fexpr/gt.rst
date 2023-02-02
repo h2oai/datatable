@@ -6,5 +6,5 @@
 
     .. x-version-added:: 1.1.0
 
-    Equivalent to :func:`dt.__gt__(x, y)`.
+    Equivalent to :`__gt__(x, y)`.
 

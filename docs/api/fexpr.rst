@@ -317,15 +317,21 @@
     .cummax()       <fexpr/cummax>
     .cumprod()      <fexpr/cumprod>
     .cumsum()       <fexpr/cumsum>
+    .eq()           <fexpr/eq>
     .extend()       <fexpr/extend>
     .fillna()       <fexpr/fillna>
     .first()        <fexpr/first>
+    .ge()           <fexpr/ge>
+    .gt()           <fexpr/gt>
     .last()         <fexpr/last>
+    .le()           <fexpr/le>
     .len()          <fexpr/len>
+    .lt()           <fexpr/lt>
     .max()          <fexpr/max>
     .mean()         <fexpr/mean>
     .median()       <fexpr/median>
     .min()          <fexpr/min>
+    .ne()           <fexpr/ne>
     .nunique()      <fexpr/nunique>
     .prod()         <fexpr/prod>
     .re_match()     <fexpr/re_match>
