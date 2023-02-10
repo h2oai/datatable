@@ -1,0 +1,44 @@
+name: Snyk Security Vulnerability Scan
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+  push:
+    tags:
+      - 'v.[0-9]+.[0-100]+.[0-100]+'
+    branches:
+      - 'main'
+      - 'devops/snyk-integration'
+
+jobs:
+  snyk_scan_test:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+
+      - name: Snyk scan for Python dependencies
+        uses: snyk/actions/python-3.7@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --command=python3 --file=requirements.txt --skip-unresolved -d --fail-on=all
+  
+  snyk_scan_monitor:
+    if: ${{ github.event_name == 'push' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract github branch/tag name
+        shell: bash
+        run: echo "ref=$(echo ${GITHUB_REF##*/})" >> $GITHUB_OUTPUT
+        id: extract_ref
+      
+      - uses: actions/checkout@master
+
+      - name: Snyk scan for Python dependencies
+        uses: snyk/actions/python-3.7@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor
+          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --file=requirements.txt  --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/requirements.txt -d --fail-on=all
