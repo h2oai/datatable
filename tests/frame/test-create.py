@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -1009,8 +1009,35 @@ def test_create_from_3d_numpy_array(numpy):
     assert "Cannot create Frame from a 3-D numpy array" in str(e.value)
 
 
-def test_create_from_string_numpy_array(numpy):
-    a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "юйґї"])
+def test_create_from_numpy_array_ascii_strings(numpy):
+    a = numpy.array(["alef", "bet", "gimel", "dalet", "he", "12345"])
+    d = dt.Frame(a)
+    frame_integrity_check(d)
+    assert d.shape == (6, 1)
+    assert d.names == ("C0", )
+    assert d.to_list() == [a.tolist()]
+
+
+def test_create_from_numpy_array_unicode_strings(numpy):
+    a = numpy.array(["數據表", "даних", "データ表", "таблиця", "ґїґїґї"])
+    d = dt.Frame(a)
+    frame_integrity_check(d)
+    assert d.shape == (5, 1)
+    assert d.names == ("C0", )
+    assert d.to_list() == [a.tolist()]
+
+
+def test_create_from_numpy_array_unicode_strings_issue3420(numpy):
+    a = numpy.array(['ы']*100)
+    d = dt.Frame(a)
+    frame_integrity_check(d)
+    assert d.shape == (100, 1)
+    assert d.names == ("C0", )
+    assert d.to_list() == [a.tolist()]
+
+
+def test_create_from_numpy_array_mixed_strings(numpy):
+    a = numpy.array(["數據表", "one", "數", "юйґї", "データ表", "five"])
     d = dt.Frame(a)
     frame_integrity_check(d)
     assert d.shape == (6, 1)

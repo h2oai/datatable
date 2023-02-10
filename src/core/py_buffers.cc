@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -115,12 +115,13 @@ Column Column::from_pybuffer(const py::robj& pyobj) {
 
 static Column convert_fwchararray_to_column(py::buffer&& view)
 {
-  // Number of characters in each element (each Unicode character is 4 bytes
-  // in numpy).
+  // When calculating `k` (the number of characters in an element) and
+  // `maxsize` (the maximum size of the string buffer), we take into account
+  // that in numpy the size of each unicode character is 4 bytes.
   size_t k = view.itemsize() / 4;
   size_t nrows = view.nelements();
   size_t stride = view.stride() * k;
-  size_t maxsize = nrows * k;
+  size_t maxsize = nrows * k * 4;
   auto input = static_cast<uint32_t*>(view.data());
 
   Buffer strbuf = Buffer::mem(maxsize);
