@@ -12,7 +12,7 @@ on:
 
 jobs:
   snyk_scan_test:
-    if: ${{ github.event_name == 'pull_request' }}
+    if: ${{ github.event_name == 'push' }}
     strategy:
       matrix:
         depsfiles: [
