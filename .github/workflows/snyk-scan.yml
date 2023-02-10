@@ -29,7 +29,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --command=python3 --file=${{ matrix.depsfiles }} --skip-unresolved -d --fail-on=all
+          args: --command=python3 --package-manager=pip --file=${{ matrix.depsfiles }} --skip-unresolved -d --fail-on=all
   
   snyk_scan_monitor:
     if: ${{ github.event_name == 'push' }}
@@ -55,4 +55,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
+          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
