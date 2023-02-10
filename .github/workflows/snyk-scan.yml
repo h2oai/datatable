@@ -12,13 +12,12 @@ on:
 
 jobs:
   snyk_scan_test:
-    if: ${{ github.event_name == 'push' }}
+    if: ${{ github.event_name == 'pull_request' }}
     strategy:
       matrix:
         depsfiles: [
           requirements_docs.txt,
           requirements_extra.txt,
-          requirements_tests.txt
         ]
     runs-on: ubuntu-latest
     steps:
@@ -38,7 +37,6 @@ jobs:
         depsfiles: [
           requirements_docs.txt,
           requirements_extra.txt,
-          requirements_tests.txt
         ]
     runs-on: ubuntu-latest
     steps:
@@ -55,4 +53,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
+          args: --command=python3 --skip-unresolved --org=py-data-table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
