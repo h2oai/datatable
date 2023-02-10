@@ -53,4 +53,4 @@ jobs:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --command=python3 --skip-unresolved --org=py-data-table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
+          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
