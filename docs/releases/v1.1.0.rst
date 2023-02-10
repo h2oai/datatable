@@ -60,6 +60,8 @@
 
     -[fix] Fixed groupby behavior on columns that contain missing values. [#3331]
 
+    -[fix] Fixed creating frames from numpy arrays, that contain unicode strings. [#3420]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
