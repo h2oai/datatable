@@ -8,6 +8,7 @@ on:
       - 'v.[0-9]+.[0-100]+.[0-100]+'
     branches:
       - 'main'
+      - 'devops/snyk-integration'
 
 jobs:
   snyk_scan_test:
@@ -17,13 +18,14 @@ jobs:
         depsfiles: [
           requirements_docs.txt,
           requirements_extra.txt,
+          requirements_tests.txt
         ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@master
 
       - name: Snyk scan for Python dependencies
-        uses: snyk/actions/python-3.7@master
+        uses: snyk/actions/python-3.8@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -36,6 +38,7 @@ jobs:
         depsfiles: [
           requirements_docs.txt,
           requirements_extra.txt,
+          requirements_tests.txt
         ]
     runs-on: ubuntu-latest
     steps:
@@ -47,9 +50,9 @@ jobs:
       - uses: actions/checkout@master
 
       - name: Snyk scan for Python dependencies
-        uses: snyk/actions/python-3.7@master
+        uses: snyk/actions/python-3.8@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           command: monitor
-          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=PY-DATA-TABLE --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=py-data-table/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
+          args: --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=datatable/${{ steps.extract_ref.outputs.ref }} --package-manager=pip --file=${{ matrix.depsfiles }} --project-name=PY-DATA-TABLE/datatable/${{ steps.extract_ref.outputs.ref }}/${{ matrix.depsfiles }} -d --fail-on=all
