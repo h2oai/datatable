@@ -3,6 +3,9 @@ name: Snyk Security Vulnerability Scan
 on:
   pull_request:
     types: [opened, edited, synchronize]
+  create:
+    tags:
+      - 'v.[0-9]+.[0-100]+.[0-100]+'
   push:
     tags:
       - 'v.[0-9]+.[0-100]+.[0-100]+'
