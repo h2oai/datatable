@@ -68,12 +68,12 @@ class FExpr_MinMax : public FExpr_Func {
         }
       } else {
           for (size_t i = 0; i < wf.ncols(); ++i) {
-          bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-          Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);        
-          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
+            bool is_grouped = ctx.has_group_column(
+                                wf.get_frame_id(i),
+                                wf.get_column_id(i)
+                              );
+            Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);        
+            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
           }
         }
       return outputs;
@@ -118,10 +118,10 @@ class FExpr_MinMax : public FExpr_Func {
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
-          std::move(col), gby
-        )));
-      }
+          return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
+            std::move(col), gby
+          )));
+        }
     }
 };
 
