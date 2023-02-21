@@ -23,7 +23,6 @@
 #define dt_COLUMN_MINMAX_h
 #include "column/reduce_unary.h"
 #include "stype.h"
-#include <limits>
 namespace dt {
 
 
@@ -40,33 +39,28 @@ class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
         T value;
         bool is_valid = this->col_.get_element(i, &value);
         *out = value;
-        return is_valid;
       } else {
-          T minmax = MIN ? (std::numeric_limits<T>::has_infinity ? std::numeric_limits<T>::infinity() 
-                                                                 : std::numeric_limits<T>::max()
-                           )
-                         : (std::numeric_limits<T>::has_infinity ? std::numeric_limits<T>::lowest() 
-                                                                 : std::numeric_limits<T>::min()
-                           );  
-          bool valid = false;
+          T minmax = MIN ? std::numeric_limits<T>::max()
+                         : std::numeric_limits<T>::min();  
+          bool minmax_isna = true;
           for (size_t gi = i0; gi < i1; ++gi){
             T value;
             bool isvalid = this->col_.get_element(gi, &value);
             if (MIN) {
-              if (isvalid && (value < minmax)) {
+              if (isvalid && (value < minmax || minmax_isna)) {
                 minmax = value;
-                valid = true;
+                minmax_isna = false;
               } 
             } else {
-                if (isvalid && (value > minmax)) {
+                if (isvalid && (value > minmax || minmax_isna)) {
                   minmax = value;
-                  valid = true;
+                  minmax_isna = false;
                 } 
               }
             
           }
           *out = static_cast<T>(minmax);
-          return valid;             
+          return !minmax_isna;             
         }    
     }
 };

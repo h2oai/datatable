@@ -359,8 +359,6 @@ def test_minmax_frame(mm, res):
     # See issue #3406
     DT = dt.Frame(range(5))
     assert mm(DT)[0,0] == res
-    #assert_equals(DT_minmax, DT.min())
-
 
 #-------------------------------------------------------------------------------
 # sum
