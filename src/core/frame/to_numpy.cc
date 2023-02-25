@@ -71,8 +71,8 @@ oobj Frame::to_numpy(const PKArgs& args) {
       col.cast_inplace(target_type);
     }
     auto res = to_numpy_impl(
-        Frame::oframe(new DataTable({col}, DataTable::default_names)),
-        c_contiguous
+      Frame::oframe(new DataTable({col}, DataTable::default_names)),
+      c_contiguous
     );
     return res.invoke("reshape", {oint(col.nrows())});
   }
@@ -103,7 +103,7 @@ static oobj to_numpy_impl(oobj frame, bool c_contiguous) {
   size_t ncols = dt->ncols();
   if (ncols == 0) {
     otuple shape(2);
-    shape.set(0, oint(0));
+    shape.set(0, oint(frame.get_attr("nrows")));
     shape.set(1, oint(0));
     return numpy.invoke("empty", {shape});
   }
