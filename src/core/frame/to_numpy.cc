@@ -103,7 +103,7 @@ static oobj to_numpy_impl(oobj frame, bool c_contiguous) {
   size_t ncols = dt->ncols();
   if (ncols == 0) {
     otuple shape(2);
-    shape.set(0, oint(frame.get_attr("nrows")));
+    shape.set(0, frame.get_attr("nrows").to_pyint());
     shape.set(1, oint(0));
     return numpy.invoke("empty", {shape});
   }
