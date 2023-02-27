@@ -2,3 +2,4 @@ numpy
 pandas
 pyarrow
 xlrd<=1.2.0
+
