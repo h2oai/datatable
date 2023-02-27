@@ -63,6 +63,5 @@ jobs:
         run: |
           for file in requirements*.txt; do
             python3 -m pip install -r $file
-            file=${file:2}
-            snyk monitor --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=datatable/${{ steps.extract_ref.outputs.ref }} --package-manager=pip --file=$file --project-name=PY-DATA-TABLE/datatable/$file-d --fail-on=all
+            snyk monitor --command=python3 --skip-unresolved --org=py_data_table --remote-repo-url=datatable/${{ steps.extract_ref.outputs.ref }} --package-manager=pip --file=$file --project-name=PY-DATA-TABLE/datatable/${{ steps.extract_ref.outputs.ref }}/$file -d --fail-on=all
           done
