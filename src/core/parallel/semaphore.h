@@ -154,6 +154,7 @@ class Semaphore {
       // http://stackoverflow.com/questions/2013181/gdb-causes-sem-wait-to-fail-with-eintr-error
       int rc;
       do {
+        std::this_thread::yield();
         rc = sem_wait(&m_sema);
       } while (rc == -1 && errno == EINTR);
     }
@@ -164,6 +165,7 @@ class Semaphore {
 
     void signal(int count) {
       while (count-- > 0) {
+        std::this_thread::yield();
         sem_post(&m_sema);
       }
     }
@@ -204,7 +206,7 @@ class LightweightSemaphore {
     }
 
     void wait() {
-      int spin_count = 1000000;
+      int spin_count = 100;
       do {
         if (try_wait()) return;
         // This line significantly boosts the performance.
