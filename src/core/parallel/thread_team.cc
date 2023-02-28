@@ -39,10 +39,11 @@ ThreadTeam::ThreadTeam(size_t nth, ThreadPool* pool)
     barrier_counter {0}
 {
   if (thpool->current_team) {
+    std::string msg = "Unable to create a nested thread team";
     #ifdef DT_DISABLE
-      throw std::runtime_error("Unable to create a nested thread team");
+      throw std::runtime_error(msg);
     #else
-      throw RuntimeError() << "Unable to create a nested thread team";
+      throw RuntimeError() << msg;
     #endif
   }
   thpool->current_team = this;
