@@ -192,10 +192,15 @@
     General
     -------
 
-    -[api] Datatable no longer supports Python 3.6 and 3.7, because they
-      have reached their end of life and will no longer be supported.
-      If you are still using these old Python versions, please consider upgrading.
-      [#3376] [#3434]
+    -[api] Datatable no longer supports Python 3.6, because it
+      has reached its end of life on 2021-12-23 and will no longer be supported.
+      If you are still using Python 3.6, please consider upgrading.
+      [#3376]
+
+    -[api] Datatable no longer supports Python 3.7, because it
+      has reached its end of life on 2023-06-27 and will no longer be supported.
+      If you are still using Python 3.7, please consider upgrading.
+      [#3434]
 
     -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
         :attr:`.is_boolean <dt.Type.is_boolean>`,
