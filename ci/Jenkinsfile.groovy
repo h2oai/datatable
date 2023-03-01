@@ -213,7 +213,7 @@ ansiColor('xterm') {
                                 -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
                                 --entrypoint /bin/bash \
                                 ${DOCKER_IMAGE_X86_64_MANYLINUX} \
-                                -c "env && /opt/python/cp38-cp38m/bin/python3.8 ci/ext.py sdist"
+                                -c "env && /opt/python/cp38-cp38/bin/python3.8 ci/ext.py sdist"
                         """
                         sh """
                             echo "--------- _build_info.py --------------------"
