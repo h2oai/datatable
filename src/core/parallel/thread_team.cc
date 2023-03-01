@@ -23,7 +23,12 @@
 #include "parallel/thread_pool.h"
 #include "parallel/thread_job.h"
 #include "parallel/thread_team.h"
-#include "utils/exceptions.h"
+#ifdef DT_DISABLE
+  #include <stdexcept>
+#else
+  #include "utils/exceptions.h"
+#endif
+
 namespace dt {
 
 
@@ -34,8 +39,11 @@ ThreadTeam::ThreadTeam(size_t nth, ThreadPool* pool)
     barrier_counter {0}
 {
   if (thpool->current_team) {
-    #ifndef DT_DISABLE
-      throw RuntimeError() << "Unable to create a nested thread team";
+    std::string msg = "Unable to create a nested thread team";
+    #ifdef DT_DISABLE
+      throw std::runtime_error(msg);
+    #else
+      throw RuntimeError() << msg;
     #endif
   }
   thpool->current_team = this;
