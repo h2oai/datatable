@@ -26,6 +26,8 @@
 #include <mutex>                  // std::mutex
 #include "parallel/semaphore.h"   // LightweightSemaphore
 #include "parallel/thread_job.h"  // ThreadJob, ThreadTask
+#include <condition_variable>
+
 namespace dt {
 
 class SleepTask;
@@ -133,7 +135,8 @@ class SleepTask : public ThreadTask {
   private:
     Job_Idle* const      parent_;
     ThreadJob*           job_;
-    LightweightSemaphore semaphore_;
+    std::condition_variable cv_;
+    std::mutex cv_m_;
 
   public:
     SleepTask(Job_Idle*);

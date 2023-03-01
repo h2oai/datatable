@@ -26,6 +26,9 @@
 #include "parallel/api.h"
 #include "parallel/job_idle.h"
 #include "parallel/thread_pool.h"
+#include <condition_variable>
+#include <mutex>
+#include <iostream>
 namespace dt {
 
 
@@ -152,15 +155,19 @@ SleepTask::SleepTask(Job_Idle* idle_job)
 
 void SleepTask::execute() {
   parent_->remove_running_thread();
-  semaphore_.wait();
+  std::unique_lock<std::mutex> lk(cv_m_);
+  cv_.wait(lk,[&]{return job_ != nullptr;});
   xassert(job_);
   thpool->assign_job_to_current_thread(job_);
 }
 
 
 void SleepTask::wake_up(int nth, ThreadJob* next_job) {
-  job_ = next_job;
-  semaphore_.signal(nth);
+  {
+    std::lock_guard<std::mutex> lk(cv_m_);
+    job_ = next_job;
+  }
+  cv_.notify_all();
 }
 
 
