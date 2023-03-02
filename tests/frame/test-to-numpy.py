@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2022 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -43,6 +43,28 @@ def test_empty_frame():
     a = DT.to_numpy()
     assert a.shape == (0, 0)
     assert a.tolist() == []
+
+
+@numpy_test
+def test_empty_frame_rows():
+    # See issue #3427
+    N = 5
+    DT = dt.Frame()
+    DT.nrows = N
+    assert DT.shape == (N, 0)
+    NP = DT.to_numpy()
+    assert NP.shape == (N, 0)
+    assert NP.tolist() == [[] for _ in range(N)]
+
+
+@numpy_test
+def test_empty_frame_cols():
+    M = 5
+    DT = dt.Frame([[] for _ in range(M)])
+    assert DT.shape == (0, M)
+    NP = DT.to_numpy()
+    assert NP.shape == (0, M)
+    assert NP.tolist() == []
 
 
 @numpy_test

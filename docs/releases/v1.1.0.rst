@@ -60,6 +60,11 @@
 
     -[fix] Fixed groupby behavior on columns that contain missing values. [#3331]
 
+    -[fix] Fixed creating frames from numpy arrays, that contain unicode strings. [#3420]
+
+    -[fix] :meth:`.to_numpy()` will now create a correctly shaped array
+        in the case of zero-column frames. [#3427]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]
@@ -187,10 +192,15 @@
     General
     -------
 
-    -[api] Datatable no longer supports Python 3.6, because Python 3.6 itself
-      has reached its end of life on 2021-12-23 and will no longer be
-      supported. If you are still using Python 3.6, please consider upgrading.
+    -[api] Datatable no longer supports Python 3.6, because it
+      has reached its end of life on 2021-12-23 and will no longer be supported.
+      If you are still using Python 3.6, please consider upgrading.
       [#3376]
+
+    -[api] Datatable no longer supports Python 3.7, because it
+      has reached its end of life on 2023-06-27 and will no longer be supported.
+      If you are still using Python 3.7, please consider upgrading.
+      [#3434]
 
     -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
         :attr:`.is_boolean <dt.Type.is_boolean>`,
