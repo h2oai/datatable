@@ -28,7 +28,6 @@
 #include "parallel/thread_pool.h"
 #include <condition_variable>
 #include <mutex>
-#include <iostream>
 namespace dt {
 
 
@@ -173,11 +172,13 @@ void SleepTask::wake_up(int nth, ThreadJob* next_job) {
 
 void SleepTask::fall_asleep() {
   // Clear `job_` indicating that we no longer run in a parallel region.
+  std::lock_guard<std::mutex> lk(cv_m_);
   job_ = nullptr;
 }
 
 
 void SleepTask::abort_current_job() {
+  std::lock_guard<std::mutex> lk(cv_m_);
   if (job_) {
     job_->abort_execution();
   }

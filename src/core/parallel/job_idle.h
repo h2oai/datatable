@@ -24,7 +24,6 @@
 #include <atomic>                 // std::atomic
 #include <cstddef>                // std::size_t
 #include <mutex>                  // std::mutex
-#include "parallel/semaphore.h"   // LightweightSemaphore
 #include "parallel/thread_job.h"  // ThreadJob, ThreadTask
 #include <condition_variable>
 
