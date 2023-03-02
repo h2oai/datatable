@@ -158,7 +158,7 @@ void SleepTask::execute() {
 }
 
 
-void SleepTask::wake_up(int nth, ThreadJob* next_job) {
+void SleepTask::wake_up(ThreadJob* next_job) {
   {
     std::lock_guard<std::mutex> lk(cv_m_);
     job_ = next_job;

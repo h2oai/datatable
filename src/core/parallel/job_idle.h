@@ -141,7 +141,7 @@ class SleepTask : public ThreadTask {
     SleepTask(Job_Idle*);
     void execute() override;
 
-    void wake_up(int nthreads, ThreadJob* next_job);
+    void wake_up(ThreadJob* next_job);
     void fall_asleep();
     void abort_current_job();
     bool is_sleeping() const noexcept;
