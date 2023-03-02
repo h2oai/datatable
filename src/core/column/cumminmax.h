@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_CUMMINMAX_h
 #define dt_COLUMN_CUMMINMAX_h
+#include "column/latent.h"
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -28,7 +29,7 @@
 namespace dt {
 
 
-template <typename T, bool MIN>
+template <typename T, bool MIN, bool REVERSE>
 class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -45,34 +46,54 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
 
 
     void materialize(Column& col_out, bool) override {
+      Latent_ColumnImpl::vivify<T>(col_);
+
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
-
       auto offsets = gby_.offsets_r();
+
       dt::parallel_for_dynamic(
         gby_.size(),
         [&](size_t gi) {
           size_t i1 = size_t(offsets[gi]);
           size_t i2 = size_t(offsets[gi + 1]);
-
           T val;
-          bool res_valid = col_.get_element(i1, &val);
-          data[i1] = res_valid? val : GETNA<T>();
 
-          for (size_t i = i1 + 1; i < i2; ++i) {
-            bool is_valid = col_.get_element(i, &val);
-            if (is_valid) {
-              if (MIN) {
-                data[i] = (res_valid && data[i - 1] < val)? data[i - 1] : val;
+          if (REVERSE) {
+            bool res_valid = col_.get_element(i2 - 1, &val);
+            data[i2 - 1] = res_valid? val : GETNA<T>();
+
+            for (size_t i = i2 - 1; i-- > i1;) {
+              bool is_valid = col_.get_element(i, &val);
+              if (is_valid) {
+                if (MIN) {
+                  data[i] = (res_valid && data[i + 1] < val)? data[i + 1] : val;
+                } else {
+                  data[i] = (res_valid && data[i + 1] > val)? data[i + 1] : val;
+                }
+                res_valid = true;
               } else {
-                data[i] = (res_valid && data[i - 1] > val)? data[i - 1] : val;
+                data[i] = data[i + 1];
               }
-              res_valid = true;
-            } else {
-              data[i] = data[i - 1];
+            }
+          } else {
+            bool res_valid = col_.get_element(i1, &val);
+            data[i1] = res_valid? val : GETNA<T>();
+
+            for (size_t i = i1 + 1; i < i2; ++i) {
+              bool is_valid = col_.get_element(i, &val);
+              if (is_valid) {
+                if (MIN) {
+                  data[i] = (res_valid && data[i - 1] < val)? data[i - 1] : val;
+                } else {
+                  data[i] = (res_valid && data[i - 1] > val)? data[i - 1] : val;
+                }
+                res_valid = true;
+              } else {
+                data[i] = data[i - 1];
+              }
             }
           }
-          
 
         });
 
@@ -84,9 +105,11 @@ class CumMinMax_ColumnImpl : public Virtual_ColumnImpl {
       return new CumMinMax_ColumnImpl(Column(col_), gby_);
     }
 
+
     size_t n_children() const noexcept override {
       return 1;
     }
+
 
     const Column& child(size_t i) const override {
       xassert(i == 0);  (void)i;

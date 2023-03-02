@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -81,6 +81,10 @@ void write_manager::set_compression(bool f) {
   options.compress_zlib = f;
 }
 
+void write_manager::set_sep(char sep) {
+  options.sep = sep;
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -138,8 +142,8 @@ void write_manager::write_rows()
 
     public:
       OTask(size_t nrows, size_t nch, size_t rowsize,
-            write_manager* wm, WritableBuffer* wbuf, bool compress)
-        : ctx_(rowsize, std::max<size_t>(nrows / nch, 1), compress),
+            write_manager* wm, WritableBuffer* wbuf, bool compress, char sep)
+        : ctx_(rowsize, std::max<size_t>(nrows / nch, 1), compress, sep),
           wb_(wbuf),
           wmanager_(wm),
           nrows_(nrows),
@@ -173,7 +177,9 @@ void write_manager::write_rows()
   parallel_for_ordered(nchunks, NThreads(),
     [&] {
       return std::make_unique<OTask>(nrows, nchunks, fixed_size_per_row,
-                                     this, wb.get(), options.compress_zlib);
+                                     this, wb.get(),
+                                     options.compress_zlib,
+                                     options.sep);
     });
 }
 

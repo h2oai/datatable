@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_slice.cc FExpr_Slice::evaluate_n
     :tests: tests/str/test-slice.py
     :cvar: doc_str_slice
-    :signature: slice(column, start, stop, step=1)
+    :signature: slice(col, start, stop, step=1)
 
     Apply slice ``[start:stop:step]`` to each value in a `column` of string
     type.
@@ -17,7 +17,7 @@
 
     Parameters
     ----------
-    column : FExpr[str]
+    col : FExpr[str]
         The column to which the slice should be applied.
 
     return: FExpr[str]

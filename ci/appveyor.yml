@@ -1,10 +1,10 @@
 image:
   - Visual Studio 2019
-  - macos-bigsur
   - Ubuntu
+  - macos-monterey
 
 init:
-  # Uncomment the line below to enable RDP access
+  # Uncomment the line below to enable RDP access on AppVeyor
   # - ps: iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))
 
 branches:
@@ -21,10 +21,12 @@ artifacts:
 environment:
   APPVEYOR_YML_DISABLE_PS_LINUX: true
 
+matrix:
+  fast_finish: true
 
 build_script:
 
-# Linux and macOS builds
+# Linux and macOS builds.
 - sh: >-
 
     # =======================================================================
@@ -80,18 +82,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.10
+    #   Build and test wheel for Python 3.11
     # =======================================================================
 
-    source $HOME/venv3.10/bin/activate
+    source $HOME/venv3.11/bin/activate
 
     python -V
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp310-*.whl`
+    DT_WHEEL=`ls dist/*-cp311-*.whl`
 
-    echo "----- _build_info.py for Python 3.10 ------------------------------"
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
 
     cat src/datatable/_build_info.py
 
@@ -99,18 +101,34 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    python -m pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
 
 
-# Windows builds
+# Windows builds.
+#
+# We use PowerShell that has more powerful syntax
+# than the standard command prompt. Unfortunately, PowerShell only takes
+# into account exit code of the last command and, if other commands fail,
+# the build can still be marked as green. Partially this problem is solved
+# by setting `$ErrorActionPreference` to `"Stop"`, that works well with
+# cmdlets. However, ultimately every PowerShell command should be followed
+# by the check `if(!$?) { Exit $LASTEXITCODE }`, that will stop the build
+# on the first failed command. Since we don't want to make the code too
+# cumbersome, here we only check the exit status of `pytest` that is still
+# a pretty good indicator.
+
 - ps: >-
 
     # =======================================================================
     #   Set up environment variables
     # =======================================================================
+
+    $ErrorActionPreference = "Stop"
 
     $env:DT_HARNESS = "AppVeyor"
 
@@ -165,37 +183,6 @@ build_script:
 
 
 
-    if ($env:DT_RELEASE -eq "True") {
-
-
-      # =======================================================================
-      #   Build and test wheel for Python 3.7
-      # =======================================================================
-
-      $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
-
-      python -V
-
-      python ci/ext.py wheel
-
-      $DT_WHEEL = ls dist/*-cp37-*.whl
-
-      echo "----- _build_info.py for Python 3.7 ------------------------------"
-
-      cat src/datatable/_build_info.py
-
-      echo "------------------------------------------------------------------"
-
-      python -m pip install --upgrade pip
-
-      python -m pip install $DT_WHEEL pytest docutils pandas
-
-      python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-    }
-
-
-
     # =======================================================================
     #   Build and test wheel for Python 3.8
     # =======================================================================
@@ -208,6 +195,8 @@ build_script:
 
     $DT_WHEEL = ls dist/*-cp38-*.whl
 
+    echo "DT_WHEEL = $DT_WHEEL"
+
     echo "----- _build_info.py for Python 3.8 ------------------------------"
 
     cat src/datatable/_build_info.py
@@ -216,9 +205,49 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    python -m pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
+
+
+
+    # =======================================================================
+    #   Build and test debug wheel for Python 3.8
+    # =======================================================================
+
+    $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
+
+    python ci/ext.py debugwheel
+
+    $DT_WHEEL = ls dist/*debug-cp38-*.whl
+
+    echo "DT_WHEEL = $DT_WHEEL"
+
+    echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    python -m pip install --upgrade pip
+
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
+
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -234,6 +263,8 @@ build_script:
 
     $DT_WHEEL = ls dist/*-cp39-*.whl
 
+    echo "DT_WHEEL = $DT_WHEEL"
+
     echo "----- _build_info.py for Python 3.9 ------------------------------"
 
     cat src/datatable/_build_info.py
@@ -242,9 +273,15 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    python -m pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
 
 
 
@@ -260,6 +297,8 @@ build_script:
 
     $DT_WHEEL = ls dist/*-cp310-*.whl
 
+    echo "DT_WHEEL = $DT_WHEEL"
+
     echo "----- _build_info.py for Python 3.10 ------------------------------"
 
     cat src/datatable/_build_info.py
@@ -268,6 +307,47 @@ build_script:
 
     python -m pip install --upgrade pip
 
-    python -m pip install $DT_WHEEL pytest docutils pandas
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
 
     python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
+
+
+
+    # =======================================================================
+    #   Build and test wheel for Python 3.11
+    # =======================================================================
+
+    $env:PATH = "C:/Python311-x64;C:/Python311-x64/Scripts;$DEFAULT_PATH"
+
+    python -V
+
+    python ci/ext.py wheel
+
+    $DT_WHEEL = ls dist/*-cp311-*.whl
+
+    echo "DT_WHEEL = $DT_WHEEL"
+
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
+
+    cat src/datatable/_build_info.py
+
+    echo "------------------------------------------------------------------"
+
+    python -m pip install --upgrade pip
+
+    python -m pip install $DT_WHEEL
+
+    python -m pip install pytest docutils pandas pyarrow
+
+    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+    if(!$?) { Exit $LASTEXITCODE }
+
+    python -m pip uninstall -y $DT_WHEEL
+

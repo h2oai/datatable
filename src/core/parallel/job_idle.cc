@@ -20,9 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "utils/assert.h"
-#ifndef DT_DISABLE
-  #include "utils/exceptions.h"
-#endif
 #include "parallel/api.h"
 #include "parallel/job_idle.h"
 #include "parallel/thread_pool.h"

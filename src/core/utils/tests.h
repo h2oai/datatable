@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2021 H2O.ai
+// Copyright 2020-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -83,9 +83,10 @@
 #include "utils/macros.h"
 namespace dt {
 namespace tests {
-#ifndef DTTEST
+
+#ifndef DT_TEST
 #define TEST(suite, name)  \
-  static_assert(0, "TEST() macro should not be used when DTTEST not defined");
+  static_assert(0, "TEST() macro should not be used when DT_TEST is not defined");
 #else
 
 // C++ tests always need access to private fields and methods, which
@@ -237,6 +238,6 @@ void assert_throws(std::function<void()> expr, Error(*exception_class)(),
 
 
 
-#endif  // ifdef DTTEST
+#endif  // ifdef DT_TEST
 }}      // namespace dt::tests
 #endif

@@ -25,8 +25,6 @@
 namespace dt {
 
 
-
-
 TerminalStream::TerminalStream(bool use_colors) {
   use_colors_ = use_colors;
   stack_.push(style::reset);
@@ -78,8 +76,6 @@ TerminalStream& TerminalStream::operator<<(const tstring& s) {
 }
 
 
-
-
 void TerminalStream::_emit_pending_styles() {
   if (!use_colors_) return;
   TerminalStyle newsty = stack_.top();
@@ -112,7 +108,6 @@ void TerminalStream::_emit_pending_styles() {
     out_ << 'm';
   }
 }
-
 
 
 }  // namespace dt

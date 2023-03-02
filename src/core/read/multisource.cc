@@ -199,6 +199,7 @@ static bool _looks_like_url(const CString& text) {
     if (std::memcmp(ch, "http://", 7) == 0) return true;
     if (std::memcmp(ch, "file://", 7) == 0) return true;
     if (std::memcmp(ch, "ftp://", 6) == 0) return true;
+    if (std::memcmp(ch, "s3://", 5) == 0) return true;
   }
   return false;
 }

@@ -58,7 +58,7 @@ class WritableBuffer
      *
      * @param strategy
      *     Which subclass of `WritableBuffer` to construct. This could be `Auto`
-     *     (choose the best subclass automatically), while all  other values
+     *     (choose the best subclass automatically), while all other values
      *     force the choice of a particular subclass.
      *
      * @param append

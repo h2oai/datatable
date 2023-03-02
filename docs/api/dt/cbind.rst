@@ -6,23 +6,44 @@
 
     Create a new Frame by appending columns from several `frames`.
 
-    This function is exactly equivalent to::
+    .. note::
+        In contrast to :meth:`dt.Frame.cbind()` that modifies
+        the original Frame in-place and returns ``None``,
+        this function returns a new Frame and do not modify any
+        of the `frames`.
 
-        >>> dt.Frame().cbind(*frames, force=force)
+        Therefore,
+
+            >>> DT = dt.cbind(*frames, force=force)
+
+        is exactly equivalent to
+
+            >>> DT = dt.Frame()
+            >>> DT.cbind(*frames, force=force)
 
     Parameters
     ----------
     frames: Frame | List[Frame] | None
+        The list/tuple/sequence/generator expression of Frames to append.
+        It may also contain `None` values, which will be simply
+        skipped.
 
     force: bool
+        If `True`, allows Frames to be appended even if they have unequal
+        number of rows. The resulting Frame will have number of rows equal
+        to the largest among all Frames. Those Frames which have less
+        than the largest number of rows, will be padded with NAs (with the
+        exception of Frames having just 1 row, which will be replicated
+        instead of filling with NAs).
 
     return: Frame
+        A new frame that is created by appending columns from `frames`.
 
 
     See also
     --------
     - :func:`rbind()` -- function for row-binding several frames.
-    - :meth:`dt.Frame.cbind()` -- Frame method for cbinding some frames to
+    - :meth:`dt.Frame.cbind()` -- Frame method for cbinding several frames to
       another.
 
 

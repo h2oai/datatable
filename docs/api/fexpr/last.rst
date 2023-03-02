@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_last
     :signature: last()
 
-    Equivalent to :func:`dt.last(self)`.
+    Equivalent to :func:`dt.last(cols)`.

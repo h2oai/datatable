@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -106,6 +106,7 @@ class write_manager {
     void set_bom(bool);
     void set_quoting(int);
     void set_compression(bool);
+    void set_sep(char);
 
     void write_main();
     py::oobj get_result();

@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_min
     :signature: min()
 
-    Equivalent to :func:`dt.min(self)`.
+    Equivalent to :func:`dt.min(cols)`.

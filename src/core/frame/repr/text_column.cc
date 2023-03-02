@@ -369,8 +369,7 @@ tstring Data_TextColumn::_render_value_string(const Column& col, size_t i) const
 
 
 tstring Data_TextColumn::_render_value(const Column& col, size_t i) const {
-  SType st = col.type().is_categorical()? col.child(0).stype()
-                                        : col.stype();
+  SType st = col.data_stype();
 
   switch (st) {
     case SType::VOID:    return na_value_;

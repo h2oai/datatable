@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -33,14 +33,12 @@ __all__ = (
     "first",
     "last",
     "max",
-    "mean",
     "median",
     "min",
     "nunique",
     "sd",
     "sum",
     "countna",
-    "prod",
 )
 
 
@@ -57,8 +55,6 @@ def count(iterable=None):
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
 
-def prod(iterable=None):
-    return Expr(OpCodes.PROD, (iterable,))
 
 def countna(iterable=None):
     return Expr(OpCodes.COUNTNA, (iterable,))
@@ -87,9 +83,6 @@ def last(iterable):
             return x
 
 
-def mean(expr):
-    return Expr(OpCodes.MEAN, (expr,))
-
 
 def sd(expr):
     return Expr(OpCodes.STDEV, (expr,))
@@ -112,15 +105,23 @@ def corr(col1, col2):
 
 # noinspection PyShadowingBuiltins
 def sum(iterable, start=0):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.SUM, (iterable,))
+    if (not isinstance(iterable, dict)
+        and (isinstance(iterable, core.FExpr)
+        or (hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
+        return core.sum(iterable)
+    elif isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
+        return core.sum(iterable)
+    elif isinstance(iterable, core.Frame):
+        return iterable.sum()
     else:
         return _builtin_sum(iterable, start)
 
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
-    if len(args) == 1 and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
+    if (len(args) == 1
+        and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return Expr(OpCodes.MIN, args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return Expr(OpCodes.MIN, args)
@@ -132,7 +133,9 @@ def min(*args, **kwds):
 
 # noinspection PyShadowingBuiltins
 def max(*args, **kwds):
-    if len(args) == 1 and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr)) or isinstance(args[0][0], (Expr, core.FExpr))):
+    if (len(args) == 1 and (not isinstance(args[0], dict))
+        and (isinstance(args[0], (Expr, core.FExpr))
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return Expr(OpCodes.MAX, args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return Expr(OpCodes.MAX, args)
@@ -140,7 +143,6 @@ def max(*args, **kwds):
         return args[0].max()
     else:
         return _builtin_max(*args, **kwds)
-
 
 sum.__doc__ = _builtin_sum.__doc__
 min.__doc__ = _builtin_min.__doc__

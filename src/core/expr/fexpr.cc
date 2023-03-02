@@ -23,15 +23,16 @@
 #include "documentation.h"
 #include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
+#include "expr/fexpr_alias.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
+#include "expr/fexpr_extend_remove.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
-#include "documentation.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -233,8 +234,9 @@ oobj PyFExpr::nb__pos__() {
 //----- Other methods ----------------------------------------------------------
 
 oobj PyFExpr::extend(const XArgs& args) {
-  auto arg = args[0].to<oobj>(py::None());
-  return make_binexpr(dt::expr::Op::SETPLUS, robj(this), arg);
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr_Extend_Remove<true>(ptrExpr(expr_), as_fexpr(arg)));
+
 }
 
 DECLARE_METHOD(&PyFExpr::extend)
@@ -247,8 +249,9 @@ DECLARE_METHOD(&PyFExpr::extend)
 
 
 oobj PyFExpr::remove(const XArgs& args) {
-  auto arg = args[0].to_oobj();
-  return make_binexpr(dt::expr::Op::SETMINUS, robj(this), arg);
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr_Extend_Remove<false>(ptrExpr(expr_), as_fexpr(arg)));
+
 }
 
 DECLARE_METHOD(&PyFExpr::remove)
@@ -293,6 +296,50 @@ DECLARE_METHOD(&PyFExpr::re_match)
 // Miscellaneous
 //------------------------------------------------------------------------------
 
+oobj PyFExpr::alias(const XArgs& args) {
+  strvec names_vec;
+  size_t argi = 0;
+
+  for (auto arg : args.varargs()) {
+    if (arg.is_string()) {
+      names_vec.push_back(arg.to_string());
+    } else if (arg.is_list_or_tuple()) {
+      py::oiter names_iter = arg.to_oiter();
+      names_vec.reserve(names_iter.size());
+      size_t namei = 0;
+
+      for (auto name : names_iter) {
+        if (name.is_string()) {
+          names_vec.emplace_back(name.to_string());
+        } else {
+          throw TypeError()
+            << "`datatable.FExpr.alias()` expects all elements of lists/tuples "
+            << "of names to be strings, instead for name `" << argi << "` "
+            << "element `" << namei << "` is "
+            << name.typeobj();
+        }
+        namei++;
+      }
+
+    } else {
+      throw TypeError()
+        << "`datatable.FExpr.alias()` expects all names to be strings, or "
+        << "lists/tuples of strings, instead name `" << argi << "` is "
+        << arg.typeobj();
+    }
+    argi++;
+  }
+
+  return PyFExpr::make(new FExpr_Alias(ptrExpr(expr_), std::move(names_vec)));
+
+}
+
+
+DECLARE_METHOD(&PyFExpr::alias)
+   ->name("alias")
+   ->docs(dt::doc_FExpr_alias)
+   ->allow_varargs();
+
 
 oobj PyFExpr::as_type(const XArgs& args) {
   auto as_typeFn = oobj::import("datatable", "as_type");
@@ -306,6 +353,26 @@ DECLARE_METHOD(&PyFExpr::as_type)
     ->arg_names({"new_type"})
     ->n_positional_args(1)
     ->n_required_args(1);
+
+
+oobj PyFExpr::categories(const XArgs&) {
+  auto categoriesFn = oobj::import("datatable", "categories");
+  return categoriesFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::categories)
+    ->name("categories")
+    ->docs(dt::doc_FExpr_categories);
+
+
+oobj PyFExpr::codes(const XArgs&) {
+  auto codesFn = oobj::import("datatable", "codes");
+  return codesFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::codes)
+    ->name("codes")
+    ->docs(dt::doc_FExpr_codes);
 
 
 oobj PyFExpr::count(const XArgs&) {
@@ -327,42 +394,81 @@ DECLARE_METHOD(&PyFExpr::countna)
     ->name("countna")
     ->docs(dt::doc_FExpr_countna);
 
-oobj PyFExpr::cummax(const XArgs&) {
+oobj PyFExpr::cummax(const XArgs& args) {
   auto cummaxFn = oobj::import("datatable", "cummax");
-  return cummaxFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cummaxFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cummax)
     ->name("cummax")
-    ->docs(dt::doc_FExpr_cummax);
+    ->docs(dt::doc_FExpr_cummax)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
-oobj PyFExpr::cummin(const XArgs&) {
+
+oobj PyFExpr::cummin(const XArgs& args) {
   auto cumminFn = oobj::import("datatable", "cummin");
-  return cumminFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumminFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cummin)
     ->name("cummin")
-    ->docs(dt::doc_FExpr_cummin);
+    ->docs(dt::doc_FExpr_cummin)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
-oobj PyFExpr::cumprod(const XArgs&) {
+
+oobj PyFExpr::cumprod(const XArgs& args) {
   auto cumprodFn = oobj::import("datatable", "cumprod");
-  return cumprodFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumprodFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumprod)
     ->name("cumprod")
-    ->docs(dt::doc_FExpr_cumprod);
+    ->docs(dt::doc_FExpr_cumprod)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
 
-oobj PyFExpr::cumsum(const XArgs&) {
+oobj PyFExpr::cumsum(const XArgs& args) {
   auto cumsumFn = oobj::import("datatable", "cumsum");
-  return cumsumFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumsumFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumsum)
     ->name("cumsum")
-    ->docs(dt::doc_FExpr_cumsum);
+    ->docs(dt::doc_FExpr_cumsum)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
+
+
+
+oobj PyFExpr::fillna(const XArgs& args) {
+  auto fillnaFn = oobj::import("datatable", "fillna");
+  oobj value = args[0].to_oobj_or_none();
+  oobj reverse = args[1].to_oobj_or_none();
+
+  py::odict kws;
+  kws.set(py::ostring("value"), value);
+  kws.set(py::ostring("reverse"), reverse);
+
+  return fillnaFn.call({this}, kws);
+}
+
+DECLARE_METHOD(&PyFExpr::fillna)
+    ->name("fillna")
+    ->docs(dt::doc_FExpr_fillna)
+    ->arg_names({"value", "reverse"})
+    ->n_keyword_args(2)
+    ->n_required_args(0);
 
 
 oobj PyFExpr::first(const XArgs&) {

@@ -75,7 +75,7 @@ namespace expr {
   //   Each group is mapped to exactly `groupsize` rows. This is the
   //   most common grouping mode. Any simple column, or a function of
   //   a simple column will be using this mode. Few groupby functions
-  //   may use this mode too
+  //   may use this mode too.
   //
   // GtoANY
   //   Groups may be mapped to any number of rows, including having

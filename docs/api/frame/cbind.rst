@@ -28,16 +28,21 @@
     to ensure that the column names in the current frame remain unique.
     A warning will also be issued in this case.
 
+    .. note::
+        Since this method modifies the original Frame in-place, it will
+        have no visible effect when called on a Frame, that is not
+        associated with any variable.
+
 
     Parameters
     ----------
     frames: Frame | List[Frame] | None
         The list/tuple/sequence/generator expression of Frames to append
-        to the current frame. The list may also contain `None` values,
+        to the current frame. It may also contain `None` values,
         which will be simply skipped.
 
     force: bool
-        If True, allows Frames to be appended even if they have unequal
+        If `True`, allows Frames to be appended even if they have unequal
         number of rows. The resulting Frame will have number of rows equal
         to the largest among all Frames. Those Frames which have less
         than the largest number of rows, will be padded with NAs (with the
@@ -63,7 +68,7 @@
     to collect them in a list first and then call a single `cbind()`
     instead of cbinding them one-by-one.
 
-    It is possible to cbind frames using the standard `DT[i,j]` syntax::
+    It is also possible to cbind frames using the standard `DT[i, j]` syntax::
 
         >>> df[:, update(**frame1, **frame2, ...)]
 
@@ -72,12 +77,21 @@
         >>> df["newcol"] = frame1
 
 
+    See also
+    --------
+    - :func:`datatable.cbind` -- function for cbinding frames
+      "out-of-place" instead of in-place;
+
+    - :meth:`.rbind()` -- method for row-binding frames.
+
+
     Examples
     --------
-    >>> DT = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
-    >>> frame1 = dt.Frame(N=[-1, -2, -5])
-    >>> DT.cbind(frame1)
-    >>> DT
+
+    >>> DT0 = dt.Frame(A=[1, 2, 3], B=[4, 7, 0])
+    >>> DT1 = dt.Frame(N=[-1, -2, -5])
+    >>> DT0.cbind(DT1)
+    >>> DT0
        |     A      B      N
        | int32  int32  int32
     -- + -----  -----  -----
@@ -86,10 +100,10 @@
      2 |     3      0     -5
     [3 rows x 3 columns]
 
+    At the same time, doing
 
-    See also
-    --------
-    - :func:`datatable.cbind` -- function for cbinding frames
-      "out-of-place" instead of in-place;
+    >>> DT0[:, :].cbind(DT1)
 
-    - :meth:`.rbind()` -- method for row-binding frames.
+    will have no effect on ``DT0``, because ``DT0[:, :]`` is a different view frame
+    that is not assigned to any variable.
+

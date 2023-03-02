@@ -136,7 +136,9 @@ def test_sum(src):
     dt0 = dt.Frame(src)
     dtr = dt0.sum()
     frame_integrity_check(dtr)
-    assert dtr.stypes == (stype.float64, ) * dt0.ncols
+    stypes = [stype.float64 if ltype == dt.ltype.real else stype.int64
+              for ltype in dt0.ltypes]
+    assert list(dtr.stypes) == stypes
     assert dtr.shape == (1, dt0.ncols)
     assert dt0.names == dtr.names
     assert list_equals(dtr.to_list(), [[t_sum(src)]])
@@ -502,7 +504,7 @@ def test_issue1953():
 
 def test_stats_bool_large(numpy):
     n = 12345678
-    a = numpy.random.randint(2, size=n, dtype=numpy.bool8)
+    a = numpy.random.randint(2, size=n, dtype=numpy.bool_)
     dt0 = dt.Frame(a)
     assert dt0.sum().to_list() == [[a.sum()]]
     assert dt0.countna().to_list() == [[0]]

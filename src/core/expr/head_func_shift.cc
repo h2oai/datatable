@@ -176,7 +176,7 @@ DECLARE_PYFN(&pyfn_shift)
     ->docs(dt::doc_dt_shift)
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(1)
-    ->arg_names({"col", "n"});
+    ->arg_names({"cols", "n"});
 
 
 

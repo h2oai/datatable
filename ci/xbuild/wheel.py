@@ -36,7 +36,6 @@
 #
 #-------------------------------------------------------------------------------
 import base64
-import distutils.util
 import hashlib
 import io
 import os
@@ -449,14 +448,24 @@ class Wheel:
         if self._tag is None:
             impl_tag = self._get_python_tag()
             abi_tag = self._get_abi_tag()
-            # TODO: remove `distutils` dependency as it has been deprecated
-            platform = distutils.util.get_platform()
-            # Meanwhile, a workaround for macOS Big Sur, see #3175
-            if platform.startswith("macosx-11"):
-                plat_tag = re.sub("-11(.*)-", "_11_0_", platform)
+            platform = sysconfig.get_platform()
+
+            # PEP-425 requires the result of `get_platform()` to have
+            # "all hyphens - and periods . replaced with
+            # underscore _". In addition, it was found that for OSX
+            # major versions >= 11 the minor version in the platform tag
+            # must be set to 0, see #3175 and #3322.
+            res = re.match("macosx-(\d*)", platform)
+            osx_major = 0 if res is None else res[1]
+            if int(osx_major) >= 11:
+                plat_tag = re.sub("-" + osx_major + "(.*)-",
+                                  "_" + osx_major + "_0_",
+                                  platform)
             else:
                 plat_tag = platform.replace('.', '_').replace('-', '_')
+
             self._tag = "%s-%s-%s" % (impl_tag, abi_tag, plat_tag)
+
         return self._tag
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -21,25 +21,32 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .frame import Frame
-from .expr import (mean, min, max, sd, isna, sum, count, first, abs, exp,
-                   last, log, log10, f, g, median, cov, corr, countna, nunique, prod)
+from .expr import (min, max, sd, isna, sum, count, first, abs, exp,
+                   last, log, log10, f, g, median, cov, corr, countna, nunique)
 from .lib._datatable import (
     as_type,
     by,
+    categories,
     cbind,
+    codes,
+    cumcount,
     cummax,
     cummin,
     cumprod,
     cumsum,
     cut,
-    fread,
     FExpr,
+    fillna,
+    fread,
     ifelse,
     init_styles,
     intersect,
     iread,
     join,
+    mean,
     Namespace,
+    ngroup,
+    prod,
     qcut,
     rbind,
     repeat,
@@ -84,10 +91,13 @@ __all__ = (
     "as_type",
     "bool8",
     "by",
+    "categories",
     "cbind",
+    "codes",
     "corr",
     "count",
     "cov",
+    "cumcount",
     "cummax",
     "cummin",
     "cumprod",
@@ -95,8 +105,9 @@ __all__ = (
     "cut",
     "dt",
     "exp",
-    "f",
     "FExpr",
+    "f",
+    "fillna",
     "first",
     "float32",
     "float64",
@@ -119,8 +130,10 @@ __all__ = (
     "ltype",
     "mean",
     "median",
+    "ngroup",
     "obj64",
     "options",
+    "prod",
     "qcut",
     "rbind",
     "repeat",

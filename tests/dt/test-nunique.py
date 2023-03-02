@@ -26,10 +26,12 @@ from datatable import dt, f
 from tests import assert_equals
 from math import inf, nan
 
+srcs_void = [[None], [None, None, None, None, None]]
 
 srcs_bool = [[False, True, False, False, True],
              [True, None, None, True, False],
              [True], [False], [None] * 10]
+
 srcs_int = [[5, -3, 6, 3, 0],
             [None, -1, 0, 26, -3],
             [129, 38, 27, -127, 8],
@@ -39,6 +41,7 @@ srcs_int = [[5, -3, 6, 3, 0],
             [30, -284928, 59, 3, 2147483649],
             [2147483648, None, None, None, None],
             [-1, 1], [100], [0]]
+
 srcs_real = [[9.5, 0.2, 5.4857301, -3.14159265358979],
              [1.1, 2.3e12, -.5, None, inf, 0.0],
              [3.5, 2.36, nan, 696.9, 4097],
@@ -51,7 +54,7 @@ srcs_str = [["foo", None, "bar", "baaz", None],
             [None, "integrity", None, None, None, None, None] / dt.str64,
             ["f", "c", "e", "a", "c", "d", "f", "c", "e", "A", "a"] / dt.str64]
 
-srcs_numeric = srcs_bool + srcs_int + srcs_real
+srcs_numeric = srcs_void + srcs_bool + srcs_int + srcs_real
 srcs_all = srcs_numeric + srcs_str
 
 
@@ -64,14 +67,28 @@ def test_dt_nunique(src):
 
 
 def test_dt_nunique_with_by_for_ungroupped():
-    DT = dt.Frame(G=[1, 1, 1, 2, 2, 2], V=[None, None, None, None, 3, 5])
-    EXP = dt.Frame(G=[1, 2], V1=[0, 2]/dt.int64, V2=[0, 1]/dt.int64)
-    RES = DT[:, {"V1": dt.nunique(f.V), "V2": dt.nunique(dt.mean(f.V))}, dt.by(f.G)]
+    DT = dt.Frame(G=[1, 1, 1, 2, 2, 2],
+                  V=[None, None, None, None, 3, 5],
+                  N=[None, None, None, None, None, None])
+    EXP = dt.Frame(G=[1, 2],
+                   V1=[0, 2]/dt.int64,
+                   V2=[0, 1]/dt.int64,
+                   V3=[0, 0]/dt.int64)
+    RES = DT[:, {"V1": dt.nunique(f.V),
+                 "V2": dt.nunique(dt.mean(f.V)),
+                 "V3": dt.nunique(f.N)}, dt.by(f.G)]
     assert_equals(EXP, RES)
 
 
-def test_dt_nunique_with_by_for_groupped():
+def test_dt_nunique_with_by_for_groupped_int():
     DT = dt.Frame([1, None, 1, 2, None, None])
     EXP = dt.Frame(C0=[None, 1, 2], nunique=[0, 1, 1]/dt.int64)
+    RES = DT[:, {"nunique" : dt.nunique(f[0])}, dt.by(f[0])]
+    assert_equals(EXP, RES)
+
+
+def test_dt_nunique_with_by_for_groupped_void():
+    DT = dt.Frame([None] * 10)
+    EXP = dt.Frame(C0=[None], nunique=[0]/dt.int64)
     RES = DT[:, {"nunique" : dt.nunique(f[0])}, dt.by(f[0])]
     assert_equals(EXP, RES)

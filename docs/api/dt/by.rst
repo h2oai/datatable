@@ -26,11 +26,12 @@
       will select those rows where column A reaches its peak value within
       each group (there could be multiple such rows within each group).
 
-    - Before ``j`` is evaluated, the ``by()`` clause adds all its columns
-      at the start of ``j`` (unless ``add_columns`` argument is ``False``). If
-      ``j`` is a "select-all" slice (i.e. ``:``), then those columns will
-      also be excluded from the list of all columns so that they will be
-      present in the output only once.
+    - Before ``j`` is evaluated, the ``by()`` clause adds all the groupby
+      columns at the start of ``j`` (unless ``add_columns`` argument is
+      ``False``). If ``j`` is a "select-all" slice (i.e. ``:`` or
+      ``f[:]``), then the groupby columns will be excluded
+      from the list of all columns, so that they will be present in the output
+      only once.
 
     - During evaluation of ``j``, the reducer functions, such as
       :func:`min`, :func:`sum`, etc, will be evaluated by-group, that is

@@ -344,7 +344,7 @@ class Extension:
     def pyabi(self):
         """
         Python `SOABI` config variable, which may look something like
-        'cpython-37m-darwin'. If this does not correspond to the value
+        'cpython-38m-darwin'. If this does not correspond to the value
         stored in .xbuild, then all sources will be rebuilt.
         """
         return sysconfig.get_config_var("SOABI")

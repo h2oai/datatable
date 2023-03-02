@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,9 @@
 #include <string>   // std::string
 #include <vector>   // std::vector
 #include "_dt.h"               // general declarations
+#include "python/python.h"     // PyObject
 #include "utils/exceptions.h"  // Error
+#include "utils/tests.h"       // compatibility with C++ tests
 namespace py {
 
 

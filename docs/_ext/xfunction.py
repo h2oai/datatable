@@ -1015,21 +1015,32 @@ class XobjectDirective(SphinxDirective):
                                      classes=["sig-open-paren"])
             params = xnodes.div(classes=["sig-parameters"])
             last_i = len(self.parsed_params) - 1
+
+            # `comma` will be rendered in the beginning on the corresponding
+            # parameter, because for an optional `param` it has to go inside
+            # the square brackets.
+            comma = None
+
             for i, param in enumerate(self.parsed_params):
                 classes = ["param"]
-                comma = None
+
                 if param == "self": continue
-                if param in ["*" , "/", "..."]: classes += ["special"]
+
                 if i == last_i:
                     classes += ["final"]
-                else:
-                    comma = nodes.inline("", nodes.Text(", "), classes=["punct"])
+
                 if isinstance(param, str):
-                    if param in ["self", "*", "/", "..."]:
+                    if param in ["*", "/", "..."]:
+                        classes += ["special"]
                         ref = nodes.Text(param)
                     else:
                         ref = a_node(text=param, href="#" + param.lstrip("*"))
-                    params += xnodes.div(children=[ref, comma], classes=classes)
+
+                    # Here and below `comma` is rendered in a separate div,
+                    # so that for multiline signatures a new line has less
+                    # chances to start with ",".
+                    params += xnodes.div(children=[comma], classes=classes)
+                    params += xnodes.div(children=[ref], classes=classes)
                 else:
                     assert isinstance(param, tuple)
                     if len(param) == 2:
@@ -1039,20 +1050,21 @@ class XobjectDirective(SphinxDirective):
                         # "improve" quotation marks and ...s
                         default_value_node = nodes.literal("", nodes.Text(param[1]),
                                                           classes=["default"])
+                        params += xnodes.div(classes=classes, children=[comma])
                         params += xnodes.div(classes=classes, children=[
-                                                param_node,
-                                                equal_sign_node,
-                                                default_value_node,
-                                                comma
-                                             ])
+                                    param_node,
+                                    equal_sign_node,
+                                    default_value_node,
+                                  ])
                     else:
                         assert len(param) == 1
                         params += xnodes.div(classes=classes, children=[
-                                nodes.inline("", nodes.Text("["), classes=["punct"]),
-                                a_node(text=param[0], href="#" + param[0]),
-                                nodes.inline("", nodes.Text("]"), classes=["punct"]),
-                                comma
-                            ])
+                                    nodes.inline("", nodes.Text("["), classes=["punct"]),
+                                    comma,
+                                    a_node(text=param[0], href="#" + param[0]),
+                                    nodes.inline("", nodes.Text("]"), classes=["punct"])
+                                  ])
+                comma = nodes.inline("", nodes.Text(", "), classes=["punct"])
 
             if self.obj_name in square_bracket_functions:
                 params += nodes.inline("", nodes.Text(']'), classes=["sig-name"])

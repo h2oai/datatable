@@ -9,14 +9,13 @@ This page describes how to install ``datatable`` on various systems.
 Prerequisites
 -------------
 
-Python 3.6+ is required. Generally, we will support each version of Python
+Python 3.8+ is required. Generally, we will support each version of Python
 until its official `end of life`_. You can verify your python version via
 
 .. code-block:: console
 
     $ python --version
-    Python 3.6.6
-
+    Python 3.8.10
 
 In addition, we recommend using ``pip`` version 20.3+, especially if you're
 planning to install datatable from the source, or if you are on a Unix machine.
@@ -52,16 +51,15 @@ The following platforms are supported:
 
 - **macOS**
 
-  Datatable has been tested to work on macOS 10.12.5 (Sierra), macoS 10.13.6
-  (High Sierra), macOS 10.15.7 (Catalina), and macOS 11.2.3 (BigSur).
-  The produced wheels are tagged as ``macosx_10_9``, so they should work on
-  earlier versions of macOS as well.
+  Datatable has been tested to work on macOS 10.12 (Sierra), macOS 10.13
+  (High Sierra), macOS 10.15 (Catalina), macOS 11 (BigSur) and 
+  macOS 12 (Monterey).
 
 - **Linux x86_64 / ppc64le**
 
-  We produce binary wheels that are tagged as ``manylinux_2_12`` (for ``x86_64``
-  architecture) and ``manylinux2014`` (for ``ppc64le``). Consequently, they will
-  work with your Linux distribution if it is compatible with one of these tags.
+  For ``x86_64`` and ``ppc64le`` architectures we produce binary wheels 
+  that are tagged as ``manylinux_2_17``. Consequently, they will
+  work with your Linux distribution if it is compatible with this tag.
   Please refer to :pep:`600` for details.
 
 - **Windows**
@@ -235,7 +233,7 @@ know how to resolve them. If none of these help you, please ask a question on
 ``Python.h: no such file or directory`` when compiling from source
   Your Python distribution was shipped without the ``Python.h`` header file.
   This has been observed on certain Linux machines. You would need to install
-  a Python package with a ``-dev`` suffix, for example ``python3.6-dev``.
+  a Python package with a ``-dev`` suffix, for example ``python3.8-dev``.
 
 ``fatal error: 'sys/mman.h' file not found`` on macOS
   In order to compile from source on mac computers, you need to have Xcode

@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.sum
-    :src: src/core/expr/head_reduce_unary.cc sum_reducer
+    :src: src/core/expr/fexpr_sumprod.cc pyfn_sum
     :tests: tests/test-reduce.py
     :cvar: doc_dt_sum
     :signature: sum(cols)
@@ -11,14 +11,16 @@
 
     Parameters
     ----------
-    cols: Expr
+    cols: FExpr
         Input columns.
 
-    return: Expr
+    return: FExpr
         f-expression having one row, and the same names and number of columns
-        as in `cols`. The column stypes are `int64` for
-        boolean and integer columns, `float32` for `float32` columns
-        and `float64` for `float64` columns.
+        as in `cols`. The column types are :attr:`int64 <dt.Type.int64>` for
+        void, boolean and integer columns, :attr:`float32 <dt.Type.float32>`
+        for :attr:`float32 <dt.Type.float32>` columns and
+        :attr:`float64 <dt.Type.float64>` for :attr:`float64 <dt.Type.float64>`
+        columns.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
@@ -86,4 +88,10 @@
 
     See Also
     --------
+    - :meth:`.sum() <dt.Frame.sum>` -- the corresponding Frame's method
+      for multi-column frames.
+
+    - :meth:`.sum1() <dt.Frame.sum1>` -- the corresponding Frame's method
+      for single-column frames that returns a scalar value.
+
     - :func:`count()` -- function to calculate a number of non-missing values.
