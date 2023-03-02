@@ -307,6 +307,13 @@ def test_minmax_infs(mm):
 
 
 @pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("src", [[math.inf], [-math.inf]])
+def test_minmax_infs_only(mm, src):
+    DT = dt.Frame(A=src)
+    assert DT[:, mm(f.A)].to_list() == [src]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
 @pytest.mark.parametrize("st", dt.ltype.int.stypes + dt.ltype.real.stypes)
 def test_minmax_empty(mm, st):
     DT1 = dt.Frame(A=[], stype=st)
