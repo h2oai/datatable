@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2019-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,7 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 #include <atomic>
 #include <numeric>     // std::accumulate
 #include <vector>
@@ -27,7 +27,8 @@
 #include "parallel/thread_pool.h"
 #include "utils/exceptions.h"
 #include "utils/tests.h"
-namespace dttest {
+namespace dt {
+namespace tests {
 
 
 //------------------------------------------------------------------------------
@@ -137,7 +138,7 @@ TEST(parallel, for_ordered_except_startall) {
       }
   };
 
-  ASSERT_THROWS([]{
+  ASSERT_THROWS([&]{
     dt::parallel_for_ordered(niters, []{ return std::make_unique<OTask>(); });
   }, RuntimeError);
 }
@@ -328,12 +329,12 @@ TEST(parallel, for_ordered_wait_until_all_finalized) {
 //------------------------------------------------------------------------------
 
 TEST(parallel, for_ordered_super_ordered) {
-  constexpr size_t N_ITERS  = 1000;
-  constexpr size_t SUPER_AT = 200;
-  constexpr size_t START0  = 1;
-  constexpr size_t FINISH0 = 2;
-  constexpr size_t START1  = 5;
-  constexpr size_t FINISH1 = 7;
+  static constexpr size_t N_ITERS  = 1000;
+  static constexpr size_t SUPER_AT = 200;
+  static constexpr size_t START0  = 1;
+  static constexpr size_t FINISH0 = 2;
+  static constexpr size_t START1  = 5;
+  static constexpr size_t FINISH1 = 7;
 
   class OTask : public dt::OrderedTask {
     private:
@@ -391,6 +392,5 @@ TEST(parallel, for_ordered_super_ordered) {
 
 
 
-
-}  // namespace dttest
+}}  // namespace dt::tests
 #endif

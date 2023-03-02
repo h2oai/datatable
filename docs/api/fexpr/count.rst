@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_count
     :signature: count()
 
-    Equivalent to :func:`dt.count(self)`.
+    Equivalent to :func:`dt.count(cols)`.

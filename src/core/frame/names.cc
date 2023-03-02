@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -683,7 +683,7 @@ void DataTable::_integrity_check_pynames() const {
 //------------------------------------------------------------------------------
 // Tests
 //------------------------------------------------------------------------------
-#ifdef DTTEST
+#ifdef DT_TEST
 
 TEST(coverage, names_FrameNameProviders) {
   pylistNP* t1 = new pylistNP(py::olist(0));

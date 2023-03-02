@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_median
     :signature: median()
 
-    Equivalent to :func:`dt.median(self)`.
+    Equivalent to :func:`dt.median(cols)`.

@@ -104,6 +104,8 @@ Functions
       -
     * - :func:`as_type()`
       - Cast column into another type
+    * - :func:`categories()`
+      - Get categories for categorical columns
     * - :func:`ifelse()`
       - Ternary if operator
     * - :func:`shift()`
@@ -163,6 +165,8 @@ Functions
       - Count non-missing values per column
     * - :func:`countna()`
       - Count the number of NA values per column
+    * - :func:`cumcount()`
+      - Number rows within each group
     * - :func:`cummax()`
       - Calculate the cumulative maximum of values per column
     * - :func:`cummin()`
@@ -173,6 +177,8 @@ Functions
       - Calculate the cumulative sum of values per column
     * - :func:`cov()`
       - Calculate covariance between two columns
+    * - :func:`fillna()`
+      - Impute missing values
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`
@@ -181,6 +187,8 @@ Functions
       - Find the median element per column
     * - :func:`min()`
       - Find the smallest element per column
+    * - :func:`ngroup()`
+      - Number each group
     * - :func:`nunique()`
       - Count the number of unique values per column
     * - :func:`prod()`
@@ -235,11 +243,14 @@ Other
     as_type()         <dt/as_type>
     build_info        <dt/build_info>
     by()              <dt/by>
+    categories()      <dt/categories>
     cbind()           <dt/cbind>
+    codes()           <dt/codes>
     corr()            <dt/corr>
     count()           <dt/count>
     countna()         <dt/countna>
     cov()             <dt/cov>
+    cumcount()        <dt/cumcount>
     cummax()          <dt/cummax>
     cummin()          <dt/cummin>
     cumprod()         <dt/cumprod>
@@ -247,6 +258,7 @@ Other
     cut()             <dt/cut>
     dt                <dt/dt>
     f                 <dt/f>
+    fillna()          <dt/fillna>
     first()           <dt/first>
     fread()           <dt/fread>
     g                 <dt/g>
@@ -260,6 +272,7 @@ Other
     mean()            <dt/mean>
     median()          <dt/median>
     min()             <dt/min>
+    ngroup()          <dt/ngroup>
     nunique()         <dt/nunique>
     prod()            <dt/prod>
     qcut()            <dt/qcut>

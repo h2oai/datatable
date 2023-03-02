@@ -20,13 +20,13 @@
     Parameters
     ----------
     anysource: str | bytes | file | Pathlike | List
-        The first (unnamed) argument to fread is the *input source*.
-        Multiple types of sources are supported, and they can be named
-        explicitly: `file`, `text`, `cmd`, and `url`. When the source is
+        The first argument to fread is the input source.
+        Multiple types of sources are supported and can be named
+        explicitly as `file`, `text`, `cmd`, and `url`. When the source is
         not named, fread will attempt to guess its type. The most common
         type is `file`, but sometimes the argument is resolved as `text`
         (if the string contains newlines) or `url` (if the string starts
-        with `https://` or similar).
+        with `https://`, `s3://` or similar).
 
         Only one argument out of `anysource`, `file`, `text`, `cmd` or
         `url` can be specified at once.
@@ -37,7 +37,7 @@
         ``.read()``.
 
         Generally, specifying a file name should be preferred, since
-        reading from a Python ``file`` can only be done in single-threaded
+        reading from a Python ``file`` can only be done in a single-threaded
         mode.
 
         This argument also supports addressing files inside an archive,
@@ -55,8 +55,10 @@
     url: str
         This parameter can be used to specify the URL of the input file.
         The data will first be downloaded into a temporary directory and
-        then read from there. In the end the temporary files will be
-        removed.
+        then read from there. In the end the temporary files will be removed.
+
+        A path to a public S3 bucket is also supported, however, internally
+        it first gets converted into the corresponding https URL.
 
         We use the standard ``urllib.request`` module to download the
         data. Changing the settings of that module, for example installing
@@ -64,7 +66,7 @@
         the download process.
 
     columns: ...
-        Limit which columns to read from the input file.
+        Limit which columns to read from the CSV file.
 
     sep: str | None
         Field separator in the input file. If this value is `None`

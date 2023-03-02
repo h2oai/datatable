@@ -11,7 +11,7 @@
 
     Parameters
     ----------
-    col1, col2: Expr
+    col1, col2: FExpr
         Input columns.
 
     return: Expr

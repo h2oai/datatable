@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2019 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -41,8 +41,9 @@ struct output_options {
   bool integers_as_hex;
   bool booleans_as_words;
   bool bom;
+  char sep;
   Quoting quoting_mode;
-  size_t : 16;
+  size_t : 8;
 
   output_options()
     : compress_zlib(false),
@@ -50,6 +51,7 @@ struct output_options {
       integers_as_hex(false),
       booleans_as_words(false),
       bom(false),
+      sep(','),
       quoting_mode(Quoting::MINIMAL) {}
 };
 

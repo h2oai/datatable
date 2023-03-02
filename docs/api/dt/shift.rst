@@ -3,19 +3,29 @@
     :src: src/core/expr/head_func_shift.cc pyfn_shift
     :cvar: doc_dt_shift
     :tests: tests/dt/test-shift.py
-    :signature: shift(col, n=1)
+    :signature: shift(cols, n=1)
 
-    Produce a column obtained from `col` shifting it  `n` rows forward.
+    Shift columns' data forward or backwards. This function is group-aware,
+    i.e. in the presence of a groupby it will shift data separately
+    within each group.
 
-    The shift amount, `n`, can be both positive and negative. If positive,
-    a "lag" column is created, if negative it will be a "lead" column.
 
-    The shifted column will have the same number of rows as the original
-    column, with `n` observations in the beginning becoming missing, and
-    `n` observations at the end discarded.
+    Parameters
+    ----------
+    cols: FExpr
+        Input data to be shifted.
 
-    This function is group-aware, i.e. in the presence of a groupby it
-    will perform the shift separately within each group.
+    n: int
+        The shift amount. For positive `n`, the data are shifted forward, i.e.
+        a "lag" column is created. For negative `n`, the data are shifted backwards
+        creating a "lead" column.
+
+    return: FExpr
+        f-expression that shifts input data by `n` rows. The resulting data
+        will have the same number of rows as `cols`. Depending on `n`,
+        i.e. positive/negative, `n` observations in the beginning/end
+        will become missing and `n` observations at the end/beginning
+        will be discarded.
 
 
     Examples
@@ -39,7 +49,7 @@
          4 |      2      23     23
         [5 rows x 3 columns]
 
-    Shift forward - Create a "lag" column::
+    Shift forward by creating a "lag" column::
 
         >>> DT[:, dt.shift(f.period,  n = 3)]
            | period
@@ -52,7 +62,7 @@
          4 |      2
         [5 rows x 1 column]
 
-    Shift backwards - Create "lead" columns::
+    Shift backwards by creating "lead" columns::
 
         >>> DT[:, dt.shift(f[:], n = -3)]
            | object  period  value
@@ -65,7 +75,7 @@
          4 |     NA      NA     NA
         [5 rows x 3 columns]
 
-    Shift in the presence of :func:`by()`::
+    Shift within groups, i.e. in the presence of :func:`by()`::
 
         >>> DT[:, f[:].extend({"prev_value": dt.shift(f.value)}), by("object")]
            | object  period  value  prev_value

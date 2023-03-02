@@ -21,6 +21,7 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_CUMSUM_h
 #define dt_COLUMN_CUMSUM_h
+#include "column/latent.h"
 #include "column/virtual.h"
 #include "parallel/api.h"
 #include "stype.h"
@@ -28,7 +29,7 @@
 
 namespace dt {
 
-  template <typename T, bool SUM>
+  template <typename T, bool SUM, bool REVERSE>
   class CumSumProd_ColumnImpl : public Virtual_ColumnImpl {
   private:
     Column col_;
@@ -43,18 +44,36 @@ namespace dt {
       xassert(col_.can_be_read_as<T>());
     }
 
+
     void materialize(Column &col_out, bool) override {
+      Latent_ColumnImpl::vivify<T>(col_);
       Column col = Column::new_data_column(col_.nrows(), col_.stype());
       auto data = static_cast<T*>(col.get_data_editable());
 
       auto offsets = gby_.offsets_r();
       dt::parallel_for_dynamic(
-          gby_.size(),
-          [&](size_t gi) {
-            size_t i1 = size_t(offsets[gi]);
-            size_t i2 = size_t(offsets[gi + 1]);
+        gby_.size(),
+        [&](size_t gi) {
+          size_t i1 = size_t(offsets[gi]);
+          size_t i2 = size_t(offsets[gi + 1]);
+          T val;
 
-            T val;
+          if (REVERSE) {
+            bool is_valid = col_.get_element(i2 - 1, &val);
+            if (SUM) {
+              data[i2 - 1] = is_valid? val : 0;
+            } else {
+              data[i2 - 1] = is_valid? val : 1;
+            }
+            for (size_t i = i2 - 1; i-- > i1;) {
+              is_valid = col_.get_element(i, &val);
+              if (SUM) {
+                data[i] = data[i + 1] + (is_valid? val : 0);
+              } else {
+                data[i] = data[i + 1] * (is_valid? val : 1);
+              }
+            }
+          } else {
             bool is_valid = col_.get_element(i1, &val);
             if (SUM) {
               data[i1] = is_valid? val : 0;
@@ -69,18 +88,23 @@ namespace dt {
                 data[i] = data[i - 1] * (is_valid? val : 1);
               }
             }
-          });
+          }
+        }
+      );
 
       col_out = std::move(col);
     }
+
 
     ColumnImpl *clone() const override {
       return new CumSumProd_ColumnImpl(Column(col_), gby_);
     }
 
+
     size_t n_children() const noexcept override {
       return 1;
     }
+
 
     const Column &child(size_t i) const override {
       xassert(i == 0);

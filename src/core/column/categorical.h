@@ -65,9 +65,9 @@ class Categorical_ColumnImpl : public Virtual_ColumnImpl {
 };
 
 
-extern template class Categorical_ColumnImpl<uint8_t>;
-extern template class Categorical_ColumnImpl<uint16_t>;
-extern template class Categorical_ColumnImpl<uint32_t>;
+extern template class Categorical_ColumnImpl<int8_t>;
+extern template class Categorical_ColumnImpl<int16_t>;
+extern template class Categorical_ColumnImpl<int32_t>;
 
 
 }  // namespace dt

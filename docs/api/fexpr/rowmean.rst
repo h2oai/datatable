@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowmean
     :signature: rowmean()
 
-    Equivalent to :func:`dt.rowmean(self)`.
+    Equivalent to :func:`dt.rowmean(*cols)`.

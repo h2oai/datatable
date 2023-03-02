@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -55,7 +55,9 @@ class generic_writer : public value_writer {
         *ctx.ch++ = '"';
       }
       else {
+        *ctx.ch++ = '"';
         ctx.write_na();
+        *ctx.ch++ = '"';
       }
     }
 };
@@ -270,11 +272,12 @@ using time64_writer = generic_writer<29, int64_t, write_time64>;
 // string writers
 //------------------------------------------------------------------------------
 
-static inline bool character_needs_escaping(char c) {
+static inline bool char_needs_escaping(const char c, writing_context& ctx) {
   auto u = static_cast<unsigned char>(c);
-  // Note: field separator is hard-coded as ','
-  // First `u <= 44` is to give an opportunity to short-circuit early.
-  return (u <= 44) && (c == ',' || c == '"' || c == '\'' || u < 32);
+
+  // First condition is to give an opportunity to short-circuit early
+  return (u <= ctx.get_max_escaped_char()) &&
+         (c == ctx.get_sep() || c == '"' || c == '\'' || u < 32);
 }
 
 static void write_str_unquoted(const CString& value, writing_context& ctx) {
@@ -305,7 +308,7 @@ static void write_str(const CString& value, writing_context& ctx) {
   if (Detect && *sch != ' ' && strend[-1] != ' ') {
     while (sch < strend) {
       char c = *sch;
-      if (character_needs_escaping(c)) break;
+      if (char_needs_escaping(c, ctx)) break;
       *ch++ = c;
       sch++;
     }

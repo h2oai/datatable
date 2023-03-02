@@ -3,9 +3,9 @@
     :src: src/core/frame/to_csv.cc Frame::to_csv
     :tests: tests/frame/test-tocsv.py
     :cvar: doc_Frame_to_csv
-    :signature: to_csv(self, path=None, *, quoting="minimal", append=False,
-           header="auto", bom=False, hex=False, compression=None,
-           verbose=False, method="auto")
+    :signature: to_csv(self, path=None, *, sep =",", quoting="minimal",
+           append=False, header="auto", bom=False, hex=False,
+           compression=None, verbose=False, method="auto")
 
     Write the contents of the Frame into a CSV file.
 
@@ -26,22 +26,32 @@
         then the Frame will be serialized into a string, and that string
         will be returned.
 
+    sep: str
+        Field separator, must be a single-character string. To be
+        able to read the resulting CSV file back to datatable,
+        the separator should meet requirements of :func:`dt.fread()`.
+
     quoting: csv.QUOTE_* | "minimal" | "all" | "nonnumeric" | "none"
         `"minimal"` | `csv.QUOTE_MINIMAL`
-            quote the string fields only as necessary, i.e. if the string
+            Quote the string fields only as necessary, i.e. if the string
             starts or ends with the whitespace, or contains quote
             characters, separator, or any of the C0 control characters
             (including newlines, etc).
 
         `"all"` | `csv.QUOTE_ALL`
-            all fields will be quoted, both string, numeric, and boolean.
+            Fields for all the column types will be quoted.
 
         `"nonnumeric"` | `csv.QUOTE_NONNUMERIC`
-            all string fields will be quoted.
+            All string fields will be quoted.
 
         `"none"` | `csv.QUOTE_NONE`
-            none of the fields will be quoted. This option must be used
+            None of the fields will be quoted. This option must be used
             at user's own risk: the file produced may not be valid CSV.
+
+        .. note::
+            To use `csv.QUOTE_*` constants,
+            `csv <https://docs.python.org/3/library/csv.html>`_ module
+            must be imported first.
 
     append: bool
         If True, the file given in the `path` parameter will be opened

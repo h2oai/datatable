@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_countna
     :signature: countna()
 
-    Equivalent to :func:`dt.countna(self)`.
+    Equivalent to :func:`dt.countna(cols)`.

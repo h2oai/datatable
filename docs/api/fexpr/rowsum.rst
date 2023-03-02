@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowsum
     :signature: rowsum()
 
-    Equivalent to :func:`dt.rowsum(self)`.
+    Equivalent to :func:`dt.rowsum(*cols)`.

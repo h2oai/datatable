@@ -235,6 +235,14 @@ size_t ColumnImpl::null_count() const {
 }
 
 
+SType ColumnImpl::data_stype() const {
+  if (type_.is_categorical()) {
+    return n_children()? child(0).stype()
+                       : SType::VOID;
+  }
+  return stype();
+}
+
 
 
 }  // namespace dt

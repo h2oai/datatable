@@ -64,20 +64,6 @@ PyObject* Expr_Type = nullptr;
 // Set from expr/fexpr.cc
 PyObject* FExpr_Type = nullptr;
 
-// `_Py_static_string_init` invoked by the `_Py_IDENTIFIER` uses
-// a designated initializer, that is not supported by the C++14 standard.
-// Redefine `_Py_static_string_init` here to use a regular initializer.
-#undef _Py_static_string_init
-#if PY_VERSION_HEX >= 0x030a0000
-  #define _Py_static_string_init(value) { value, -1 }
-#else
-  #define _Py_static_string_init(value) { NULL, value, NULL }
-#endif
-_Py_IDENTIFIER(stdin);
-_Py_IDENTIFIER(stdout);
-_Py_IDENTIFIER(stderr);
-_Py_IDENTIFIER(write);
-
 
 
 //------------------------------------------------------------------------------
@@ -1233,34 +1219,13 @@ bool is_python_system_attr(const dt::CString& attr) {
 
 oobj get_module(const char* modname) {
   py::ostring pyname(modname);
-  #if PY_VERSION_HEX >= 0x03070000
-    // PyImport_GetModule(name)
-    //   Return the already imported module with the given name. If the module
-    //   has not been imported yet then returns NULL but does not set an error.
-    //   Returns NULL and sets an error if the lookup failed.
-    PyObject* res = PyImport_GetModule(pyname.v);
-    if (!res && PyErr_Occurred()) PyErr_Clear();
-    return oobj::from_new_reference(res);
-
-  #else
-    // PyImport_GetModuleDict() returns a borrowed ref
-    oobj sys_modules(PyImport_GetModuleDict());
-    if (sys_modules.v == nullptr) {
-      PyErr_Clear();
-      return oobj(nullptr);
-    }
-    if (PyDict_CheckExact(sys_modules.v)) {
-      // PyDict_GetItem() returns a borowed ref, or NULL if the key is not
-      // present (without setting an exception)
-      return oobj(PyDict_GetItem(sys_modules.v, pyname.v));
-    } else {
-      // PyObject_GetItem() returns a new reference
-      PyObject* res = PyObject_GetItem(sys_modules.v, pyname.v);
-      if (!res) PyErr_Clear();
-      return oobj::from_new_reference(res);
-    }
-
-  #endif
+  // PyImport_GetModule(name)
+  //   Return the already imported module with the given name. If the module
+  //   has not been imported yet then returns NULL but does not set an error.
+  //   Returns NULL and sets an error if the lookup failed.
+  PyObject* res = PyImport_GetModule(pyname.v);
+  if (!res && PyErr_Occurred()) PyErr_Clear();
+  return oobj::from_new_reference(res);
 }
 
 
@@ -1306,31 +1271,19 @@ robj rnone()    { return robj(Py_None); }
 
 robj rstdin() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stdin)  // borrowed ref
-    #else
-      PySys_GetObject("stdin")         // borrowed ref
-    #endif
+    PySys_GetObject("stdin")  // borrowed ref
   );
 }
 
 robj rstdout() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stdout)  // borrowed ref
-    #else
-      PySys_GetObject("stdout")         // borrowed ref
-    #endif
+    PySys_GetObject("stdout")  // borrowed ref
   );
 }
 
 robj rstderr() {
   return robj(
-    #ifndef Py_LIMITED_API
-      _PySys_GetObjectId(&PyId_stderr)  // borrowed ref
-    #else
-      PySys_GetObject("stderr")         // borrowed ref
-    #endif
+    PySys_GetObject("stderr")  // borrowed ref
   );
 }
 
@@ -1340,11 +1293,7 @@ void write_to_stdout(const std::string& str) {
   oobj writer;
   if (py_stdout && py_stdout != Py_None) {
     writer = oobj::from_new_reference(
-      #ifndef Py_LIMITED_API
-        _PyObject_GetAttrId(py_stdout, &PyId_write)  // new ref
-      #else
-        PyObject_GetAttrString(py_stdout, "write")   // new ref
-      #endif
+      PyObject_GetAttrString(py_stdout, "write")  // new ref
     );
     if (!writer) PyErr_Clear();
   }

@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_rowcount
     :signature: rowcount()
 
-    Equivalent to :func:`dt.rowcount(self)`.
+    Equivalent to :func:`dt.rowcount(*cols)`.

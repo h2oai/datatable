@@ -179,7 +179,10 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj len();                        // [DEPRECATED]
     py::oobj re_match(const py::XArgs&);   // [DEPRECATED]
 
+    py::oobj alias(const py::XArgs&);
     py::oobj as_type(const py::XArgs&);
+    py::oobj categories(const py::XArgs&);
+    py::oobj codes(const py::XArgs&);
     py::oobj count(const py::XArgs&);
     py::oobj countna(const py::XArgs&);
     py::oobj cummin(const py::XArgs&);
@@ -187,6 +190,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj cumprod(const py::XArgs&);
     py::oobj cumsum(const py::XArgs&);
     py::oobj extend(const py::XArgs&);
+    py::oobj fillna(const py::XArgs&);
     py::oobj first(const py::XArgs&);
     py::oobj last(const py::XArgs&);
     py::oobj max(const py::XArgs&);

@@ -170,7 +170,8 @@
         namespace ``g.``.
 
         This parameter may be listed multiple times if you need to join with
-        several frames.
+        several frames. However, for the moment, ``g.`` can only access
+        columns of the first joined frame.
 
     return : Frame | None
         If `j` is an :func:`update() <datatable.update>` clause then current

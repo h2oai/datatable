@@ -26,7 +26,9 @@
 #include <sstream>
 #include "utils/assert.h"
 #include "utils/terminal/terminal_style.h"
+#include "utils/tests.h"  // compatibility with C++ tests
 namespace dt {
+
 
 class tstring;
 
@@ -38,6 +40,7 @@ class TerminalStream {
     TerminalStyle current_;
     bool use_colors_;
     size_t : 56;
+
 
   public:
     TerminalStream(bool use_colors);
@@ -53,12 +56,11 @@ class TerminalStream {
 
   private:
     void _emit_pending_styles();
+
 };
 
 template <> TerminalStream& TerminalStream::operator<<(const tstring&);
 template <> TerminalStream& TerminalStream::operator<<(const TerminalStyle&);
-
-
 
 
 }  // namespace dt

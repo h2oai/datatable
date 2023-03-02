@@ -96,10 +96,10 @@ Workframe FExpr_Slice::evaluate_n(EvalContext& ctx) const {
   wfs.push_back(stop_->evaluate_n(ctx));
   wfs.push_back(step_->evaluate_n(ctx));
   if (wfs[0].ncols() != 1) {
-    throw TypeError() << "Slice cannot be applied to multi-column expressions";
+    throw TypeError() << "Slice can only be applied to one-column expressions";
   }
   if (wfs[1].ncols() != 1 || wfs[2].ncols() != 1 || wfs[3].ncols() != 1) {
-    throw TypeError() << "Cannot use multi-column expressions inside a slice";
+    throw TypeError() << "Can only use one-column expressions inside a slice";
   }
   auto gmode = Workframe::sync_grouping_mode(wfs);
 
@@ -151,7 +151,7 @@ static py::oobj py_slice(const py::XArgs& args) {
 DECLARE_PYFN(&py_slice)
     ->name("slice")
     ->docs(dt::doc_str_slice)
-    ->arg_names({"column", "start", "stop", "step"})
+    ->arg_names({"col", "start", "stop", "step"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(3)
     ->n_required_args(3);

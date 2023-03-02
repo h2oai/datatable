@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.mean
-    :src: src/core/expr/head_reduce_unary.cc mean_reducer
+    :src: src/core/expr/fexpr_mean.cc pyfn_mean
     :cvar: doc_dt_mean
     :tests: tests/test-reduce.py
     :signature: mean(cols)
@@ -13,7 +13,7 @@
     cols: FExpr
         Input columns.
 
-    return: FExpr
+    return: Expr
         f-expression having one row, and the same names and number of columns
         as in `cols`. The column stypes are `float32` for
         `float32` columns, and `float64` for all the other numeric types.

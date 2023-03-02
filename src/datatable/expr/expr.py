@@ -51,13 +51,11 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # Reducers
-    MEAN = 401
     MIN = 402
     MAX = 403
     STDEV = 404
     FIRST = 405
     LAST = 406
-    SUM = 407
     COUNT = 408
     COUNT0 = 409
     MEDIAN = 410
@@ -65,7 +63,6 @@ class OpCodes(enum.Enum):
     CORR = 412
     COUNTNA = 413
     NUNIQUE = 414
-    PROD = 415
 
     # Math: trigonometric
     SIN = 501

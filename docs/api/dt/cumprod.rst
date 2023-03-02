@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_cumsumprod.cc pyfn_cumprod
     :tests: tests/dt/test-cumprod.py
     :cvar: doc_dt_cumprod
-    :signature: cumprod(cols)
+    :signature: cumprod(cols, reverse=False)
 
     .. x-version-added:: 1.1.0
 
@@ -16,6 +16,10 @@
     cols: FExpr
         Input data for cumulative product calculation.
 
+    reverse: bool
+        If ``False``, computation is done from top to bottom.
+        If ``True``, it is done from bottom to top.
+        
     return: FExpr
         f-expression that converts input columns into the columns filled
         with the respective cumulative products.
@@ -58,6 +62,20 @@
          3 |   -10
          4 |     0
         [5 rows x 1 column]
+        
+
+    Calculate the cumulative product from bottom to top::
+
+        >>> DT[:, dt.cumprod(f.A, reverse=True)]
+           |     A
+           | int64
+        -- + -----
+         0 |     0
+         1 |     0
+         2 |     0
+         3 |     0
+         4 |     0
+        [5 rows x 1 column]
 
 
     Calculate cumulative products in multiple columns::
@@ -74,7 +92,7 @@
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate cumulative products within each group::
+    For a grouped frame calculate cumulative products within each group::
 
         >>> DT[:, dt.cumprod(f[:]), by('D')]
            | D          A      B        C

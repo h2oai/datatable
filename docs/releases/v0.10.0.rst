@@ -93,7 +93,7 @@
       >>> DT[(PROC_ID == "A") & (SORT_NR > 2), :]
 
     If you need to export only a subset of columns, you can select those columns
-    first via the standard ``DT[i,j]`` syntax::
+    first via the standard ``DT[i, j]`` syntax::
 
       >>> # Only create variables for the first 5 columns
       >>> A, B, C, D, E = DT[:, :5].export_names()
@@ -150,7 +150,7 @@
 
       >>> DT.to_csv("out.log", append=True)  # infer that header=False if file exists
 
-  -[enh] Range objects can now be used directly in ``DT[i,j]`` expressions in any
+  -[enh] Range objects can now be used directly in ``DT[i, j]`` expressions in any
     place where a column could be expected::
 
       >>> DT["id"] = range(1000)

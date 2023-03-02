@@ -120,6 +120,12 @@ size_t Type_Cat::hash() const noexcept {
   *
   * The following type casts are currently supported:
   *   * void    -> cat*<T>
+  *   * bool    -> cat*<T>
+  *   * int*    -> cat*<T>
+  *   * date32  -> cat*<T>
+  *   * time64  -> cat*<T>
+  *   * float*  -> cat*<T>
+  *   * str*    -> cat*<T>
   *   * obj64   -> cat*<T>
   */
 Column Type_Cat::cast_column(Column&& col) const {
@@ -127,20 +133,33 @@ Column Type_Cat::cast_column(Column&& col) const {
     case SType::VOID:
       return Column::new_na_column(col.nrows(), make_type());
 
-    case SType::OBJ: {
+    case SType::BOOL:
+    case SType::INT8:
+    case SType::INT16:
+    case SType::DATE32:
+    case SType::INT32:
+    case SType::TIME64:
+    case SType::INT64:
+    case SType::FLOAT32:
+    case SType::FLOAT64:
+    case SType::STR32:
+    case SType::STR64:
+    case SType::OBJ:
       switch (stype()) {
-        case SType::CAT8:  cast_obj_column_<uint8_t>(col); break;
-        case SType::CAT16: cast_obj_column_<uint16_t>(col); break;
-        case SType::CAT32: cast_obj_column_<uint32_t>(col); break;
-        default: throw RuntimeError() << "Unknown categorical type";
+        case SType::CAT8:  cast_non_compound<int8_t>(col); break;
+        case SType::CAT16: cast_non_compound<int16_t>(col); break;
+        case SType::CAT32: cast_non_compound<int32_t>(col); break;
+        default: throw RuntimeError()
+          << "Unknown categorical type: " << stype();
       }
-      return std::move(col);
-    }
+      break;
 
     default:
-      throw NotImplError() << "Unable to cast column of type `" << col.type()
-                           << "` into `" << to_string() << "`";
+      throw NotImplError() << "Unable to cast a column of type `"
+        << col.type() << "` into `" << to_string() << "`";
   }
+
+  return std::move(col);
 }
 
 
@@ -152,7 +171,7 @@ Column Type_Cat::cast_column(Column&& col) const {
   * finally assigning it to `col`.
   */
 template <typename T>
-void Type_Cat::cast_obj_column_(Column& col) const {
+void Type_Cat::cast_non_compound(Column& col) const {
   size_t nrows = col.nrows(); // save nrows as `col` will be modified in-place
 
   // First, cast `col` to the requested `elementType_` and obtain
@@ -163,36 +182,36 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   Groupby gb = std::move(res.second);
   auto offsets = gb.offsets_r();
 
-  Buffer buf = Buffer::mem(col.nrows() * sizeof(T));
-  Buffer buf_cat = Buffer::mem(gb.size() * sizeof(int32_t));
-  auto buf_ptr = static_cast<T*>(buf.xptr());
-  auto buf_cat_ptr = static_cast<int32_t*>(buf_cat.xptr());
+  Buffer buf_codes = Buffer::mem(col.nrows() * sizeof(T));
+  Buffer buf_cats = Buffer::mem(gb.size() * sizeof(int32_t));
+  auto buf_codes_ptr = static_cast<T*>(buf_codes.xptr());
+  auto buf_cats_ptr = static_cast<int32_t*>(buf_cats.xptr());
 
-  const size_t MAX_CATS = std::numeric_limits<T>::max() + size_t(1);
+  const size_t MAX_CATS = size_t(1) << (sizeof(T) * 8);
 
   if (gb.size() > MAX_CATS) {
     throw ValueError() << "Number of categories in the column is `" << gb.size()
-      << "`, that is larger than " << to_string() << " type "
-      << "can accomodate, i.e. `" << MAX_CATS << "`";
+      << "`, that is larger than " << to_string() << " type supports, "
+      << "i.e. `" << MAX_CATS << "`";
   }
 
   // Fill out two buffers:
-  // - `buf_cat` with row indices of unique elements (one element per category)
-  // - `buf` with the codes of categories (group ids).
+  // - `buf_cats` with row indices of unique elements (one element per category)
+  // - `buf_codes` with the codes of categories (group ids).
   dt::parallel_for_dynamic(gb.size(),
     [&](size_t i) {
       size_t jj;
       ri.get_element(static_cast<size_t>(offsets[i]), &jj);
-      buf_cat_ptr[i] = static_cast<int32_t>(jj);
+      buf_cats_ptr[i] = static_cast<int32_t>(jj);
 
       for (int32_t j = offsets[i]; j < offsets[i + 1]; ++j) {
         ri.get_element(static_cast<size_t>(j), &jj);
-        buf_ptr[static_cast<size_t>(jj)] = static_cast<T>(i);
+        buf_codes_ptr[static_cast<size_t>(jj)] = static_cast<T>(i);
       }
     });
 
   // Modify `col` in-place by only leaving one element per a category
-  const RowIndex ri_cat(std::move(buf_cat), RowIndex::ARR32);
+  const RowIndex ri_cat(std::move(buf_cats), RowIndex::ARR32);
   col.apply_rowindex(ri_cat);
   col.materialize();
 
@@ -205,7 +224,7 @@ void Type_Cat::cast_obj_column_(Column& col) const {
   col = Column(new Categorical_ColumnImpl<T>(
           nrows,
           std::move(val),
-          std::move(buf),
+          std::move(buf_codes),
           std::move(col)
         ));
 }

@@ -6,4 +6,4 @@
 
     .. x-version-added:: 1.1.0
 
-    Equivalent to :func:`dt.rowargmax(self)`.
+    Equivalent to :func:`dt.rowargmax(*cols)`.

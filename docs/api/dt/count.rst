@@ -9,7 +9,7 @@
 
     Parameters
     ----------
-    cols: Expr
+    cols: FExpr
         Input columns.
 
     return: Expr
@@ -20,10 +20,6 @@
         The exception is raised when one of the columns from `cols`
         has a non-numeric and non-string type.
 
-    See Also
-    --------
-
-    - :func:`sum()` -- function to calculate the sum of values.
 
     Examples
     --------
@@ -64,3 +60,9 @@
         -- + -----
          0 |     4
         [1 row x 1 column]
+
+
+    See Also
+    --------
+
+    - :func:`sum()` -- function to calculate the sum of values.

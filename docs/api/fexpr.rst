@@ -4,9 +4,9 @@
     :src: src/core/expr/fexpr.h FExpr
     :cvar: doc_FExpr
 
-    FExpr is an object that encapsulates computations to be done on a frame.
+    ``FExpr`` is a class that encapsulates computations to be done on a frame.
 
-    FExpr objects are rarely constructed directly (though it is possible too),
+    ``FExpr`` objects are rarely constructed directly (though it is possible too),
     instead they are more commonly created as inputs/outputs from various
     functions in :mod:`datatable`.
 
@@ -14,11 +14,11 @@
 
         math.sin(2 * f.Angle)
 
-    Here accessing column "Angle" in namespace ``f`` creates an ``FExpr``.
+    Here accessing column "Angle" in namespace ``f`` creates an ``FExpr`` object.
     Multiplying this ``FExpr`` by a python scalar ``2`` creates a new ``FExpr``.
     And finally, applying the sine function creates yet another ``FExpr``. The
     resulting expression can be applied to a frame via the
-    :meth:`DT[i,j] <dt.Frame.__getitem__>` method, which will compute that expression
+    :meth:`DT[i, j] <dt.Frame.__getitem__>` method, which will compute that expression
     using the data of that particular frame.
 
     Thus, an ``FExpr`` is a stored computation, which can later be applied to a
@@ -26,7 +26,7 @@
 
     Because of its delayed nature, an ``FExpr`` checks its correctness at the time
     when it is applied to a frame, not sooner. In particular, it is possible for
-    the same expression to work with one frame, but fail with another. In the
+    the same expression to work on one frame, but fail on another. In the
     example above, the expression may raise an error if there is no column named
     "Angle" in the frame, or if the column exists but has non-numeric type.
 
@@ -36,7 +36,7 @@
 
     Also, all functions that accept ``FExpr``s as arguments, will also accept
     certain other python types as an input, essentially converting them into
-    ``FExpr``s. Thus, we will sometimes say that a function accepts **FExpr-like**
+    ``FExpr``s. Hence, we will sometimes say that a function accepts **FExpr-like**
     objects as arguments.
 
     All binary operators ``op(x, y)`` listed below work when either ``x``
@@ -53,11 +53,14 @@
         * - :meth:`.__init__(e)`
           - Create an ``FExpr``.
 
+        * - :meth:`.alias()`
+          - Assign new names to the columns from the ``FExpr``.
+
         * - :meth:`.extend()`
-          - Append another FExpr.
+          - Append another ``FExpr``.
 
         * - :meth:`.remove()`
-          - Remove columns from the FExpr.
+          - Remove columns from the ``FExpr``.
 
 
     Arithmeritc operators
@@ -157,17 +160,23 @@
         * - :meth:`.as_type()`
           - Same as :func:`dt.as_type()`.
 
+        * - :meth:`.categories()`
+          - Same as :func:`dt.categories()`.
+
+        * - :meth:`.codes()`
+          - Same as :func:`dt.codes()`.
+
         * - :meth:`.count()`
           - Same as :func:`dt.count()`.
 
         * - :meth:`.countna()`
           - Same as :func:`dt.countna()`.
 
-        * - :meth:`.cummin()`
-          - Same as :func:`dt.cummin()`.
-
         * - :meth:`.cummax()`
           - Same as :func:`dt.cummax()`.
+
+        * - :meth:`.cummin()`
+          - Same as :func:`dt.cummin()`.
 
         * - :meth:`.cumprod()`
           - Same as :func:`dt.cumprod()`.
@@ -175,6 +184,9 @@
         * - :meth:`.cumsum()`
           - Same as :func:`dt.cumsum()`.
 
+        * - :meth:`.fillna()`
+          - Same as :func:`dt.fillna()`.
+          
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
 
@@ -252,7 +264,7 @@
         :class: api-table
 
         * - :meth:`.__bool__()`
-          - Implicitly convert FExpr into a boolean value.
+          - Implicitly convert ``FExpr`` into a boolean value.
 
         * - :meth:`.__getitem__()`
           - Apply slice to a string column.
@@ -295,7 +307,10 @@
     .__sub__()      <fexpr/__sub__>
     .__truediv__()  <fexpr/__truediv__>
     .__xor__()      <fexpr/__xor__>
+    .alias()        <fexpr/alias>
     .as_type()      <fexpr/as_type>
+    .categories()   <fexpr/categories>
+    .codes()        <fexpr/codes>
     .count()        <fexpr/count>
     .countna()      <fexpr/countna>
     .cummin()       <fexpr/cummin>
@@ -303,6 +318,7 @@
     .cumprod()      <fexpr/cumprod>
     .cumsum()       <fexpr/cumsum>
     .extend()       <fexpr/extend>
+    .fillna()       <fexpr/fillna>
     .first()        <fexpr/first>
     .last()         <fexpr/last>
     .len()          <fexpr/len>

@@ -320,6 +320,13 @@ def test_minmax_nas(mm, st):
     assert DT2[:, mm(f.B)].to_list() == [[None]]
 
 
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 9)])
+def test_minmax_comprehension(mm, res):
+    # See issue #3409
+    s = mm([i for i in range(10)])
+    assert s == res
+
+
 
 #-------------------------------------------------------------------------------
 # sum
@@ -329,6 +336,7 @@ def test_sum_void():
     DT = dt.Frame([None] * 10)
     DT_sum = DT[:, sum(f.C0)]
     assert_equals(DT_sum, dt.Frame([0]/dt.int64))
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_void_per_group():
@@ -345,32 +353,59 @@ def test_sum_void_grouped():
 
 def test_sum_simple():
     DT = dt.Frame(A=range(5))
-    R = DT[:, sum(f.A)]
-    frame_integrity_check(R)
-    assert R.to_list() == [[10]]
-    assert str(R)
+    DT_sum = DT[:, sum(f.A)]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.to_list() == [[10]]
+    assert str(DT_sum)
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_empty_frame():
     DT = dt.Frame([[]] * 5, names=list("ABCDE"),
                   stypes=(dt.bool8, dt.int32, dt.float32, dt.float64, dt.void))
     assert DT.shape == (0, 5)
-    RZ = DT[:, sum(f[:])]
-    frame_integrity_check(RZ)
-    assert RZ.shape == (1, 5)
-    assert RZ.names == ("A", "B", "C", "D", "E")
-    assert RZ.stypes == (dt.int64, dt.int64, dt.float32, dt.float64, dt.int64)
-    assert RZ.to_list() == [[0], [0], [0], [0], [0]]
-    assert str(RZ)
+    DT_sum = DT[:, sum(f[:])]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.shape == (1, 5)
+    assert DT_sum.names == ("A", "B", "C", "D", "E")
+    assert DT_sum.stypes == (dt.int64, dt.int64, dt.float32, dt.float64, dt.int64)
+    assert DT_sum.to_list() == [[0], [0], [0], [0], [0]]
+    assert str(DT_sum)
+    assert_equals(DT_sum, DT.sum())
 
 
 def test_sum_grouped():
     DT = dt.Frame(A=[True, False, True, True], B=[None, None, None, 10], C=[2,3,5,-5])
-    RES = DT[:, sum(f[:]), by(f.A)]
-    REF = dt.Frame(A=[False, True], B=[0, 10]/dt.int64, C=[3,2]/dt.int64)
-    frame_integrity_check(RES)
-    assert_equals(RES, REF)
-    assert str(RES)
+    DT_sum = DT[:, sum(f[:]), by(f.A)]
+    DT_ref = dt.Frame(A=[False, True], B=[0, 10]/dt.int64, C=[3,2]/dt.int64)
+    frame_integrity_check(DT_sum)
+    assert_equals(DT_sum, DT_ref)
+    assert str(DT_sum)
+
+
+def test_sum_multicolumn():
+    # See issue #3406
+    DT = dt.Frame(range(5))
+    DT_sum_list = DT[:, sum([f.C0, f.C0])]
+    DT_sum_tuple = DT[:, sum((f.C0, f.C0))]
+    DT_sum_dict = DT[:, sum({"A":f.C0, "B":f.C0})]
+    DT_ref = dt.Frame([10]/dt.int64)
+    assert_equals(DT_sum_list, DT_ref[:, [f.C0, f.C0]])
+    assert_equals(DT_sum_tuple, DT_ref[:, [f.C0, f.C0]])
+    assert_equals(DT_sum_dict, DT_ref[:, {"A":f.C0, "B":f.C0}])
+
+
+def test_sum_frame():
+    # See issue #3406
+    DT = dt.Frame(range(5))
+    DT_sum = sum(DT)
+    assert_equals(DT_sum, DT.sum())
+
+
+def test_sum_comprehension():
+    # See issue #3406
+    s = sum([i for i in range(10)])
+    assert s == 45
 
 
 
@@ -381,13 +416,13 @@ def test_sum_grouped():
 def test_mean_void():
     DT = dt.Frame([None] * 10)
     DT_mean = DT[:, mean(f.C0)]
-    assert_equals(DT_mean, dt.Frame([None]))
+    assert_equals(DT_mean, dt.Frame([None]/dt.float64))
 
 
 def test_mean_void_per_group():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
     DT_mean = DT[:, mean(f.C0), by(f.C1)]
-    assert_equals(DT_mean, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+    assert_equals(DT_mean, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
 
 
 def test_mean_void_grouped():
@@ -423,19 +458,25 @@ def test_mean_empty_frame():
 
 def test_median_void():
     DT = dt.Frame([None] * 10)
-    DT_median = DT[:, mean(f.C0)]
-    assert_equals(DT_median, dt.Frame([None]))
+    DT_median = DT[:, median(f.C0)]
+    assert_equals(DT_median, dt.Frame([None]/dt.float64))
 
 
 def test_median_void_per_group():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
-    DT_median = DT[:, mean(f.C0), by(f.C1)]
-    assert_equals(DT_median, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]))
+    DT_median = DT[:, median(f.C0), by(f.C1)]
+    assert_equals(DT_median, dt.Frame(C1=[1, 2]/dt.int32, C0=[None, None]/dt.float64))
+
+
+def test_median_nonvoid_per_void_group():
+    DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
+    DT_median = DT[:, median(f.C1), by(f.C0)]
+    assert_equals(DT_median, dt.Frame([[None], [2]/dt.float64]))
 
 
 def test_median_void_grouped():
     DT = dt.Frame([[None, None, None, None, None], [1, 2, 1, 2, 2]])
-    DT_median = DT[:, mean(f.C0), by(f.C0)]
+    DT_median = DT[:, median(f.C0), by(f.C0)]
     assert_equals(DT_median, dt.Frame([[None], [None]/dt.float64]))
 
 
