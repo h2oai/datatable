@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -32,36 +32,43 @@ class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
     using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {      
-      size_t i0, i1;
-      this->gby_.get_group(i, &i0, &i1);
-
       if (IS_GROUPED) {
         T value;
-        bool is_valid = this->col_.get_element(i, &value);
+        bool isvalid = this->col_.get_element(i, &value);
         *out = value;
+        return isvalid;
       } else {
-          T minmax = MIN ? std::numeric_limits<T>::max()
-                         : std::numeric_limits<T>::min();  
-          bool minmax_isna = true;
-          for (size_t gi = i0; gi < i1; ++gi){
-            T value;
-            bool isvalid = this->col_.get_element(gi, &value);
-            if (MIN) {
-              if (isvalid && (value < minmax || minmax_isna)) {
-                minmax = value;
-                minmax_isna = false;
-              } 
-            } else {
-                if (isvalid && (value > minmax || minmax_isna)) {
-                  minmax = value;
-                  minmax_isna = false;
-                } 
-              }
-            
+        // res` will be updated on the first valid element,
+        // due to `res_isna` initially being set to `true`.
+        // So the default value here
+        // only silences the compiler warning and makes the update
+        // to happen a little bit faster, but it has no effect
+        // on the final result.
+        T res = MIN ? std::numeric_limits<T>::max()
+                    : std::numeric_limits<T>::min();
+        bool res_isna = true;
+        size_t i0, i1;
+        this->gby_.get_group(i, &i0, &i1);
+
+        for (size_t gi = i0; gi < i1; ++gi) {
+          T value;
+          bool isvalid = this->col_.get_element(gi, &value);
+          if (MIN) {
+            if (isvalid && (value < res || res_isna)) {
+              res = value;
+              res_isna = false;
+            }
+          } else {
+            if (isvalid && (value > res || res_isna)) {
+              res = value;
+              res_isna = false;
+            }
           }
-          *out = static_cast<T>(minmax);
-          return !minmax_isna;             
-        }    
+        }
+
+        *out = static_cast<T>(res);
+        return !res_isna;
+      }
     }
 };
 

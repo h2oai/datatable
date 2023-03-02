@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -54,7 +54,6 @@ class FExpr_MinMax : public FExpr_Func {
       Workframe outputs(ctx);
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
-
 
       if (!gby) {
         gby = Groupby::single_group(wf.nrows());
@@ -118,10 +117,10 @@ class FExpr_MinMax : public FExpr_Func {
           std::move(col), gby
         )));
       } else {
-          return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
-            std::move(col), gby
-          )));
-        }
+        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
+          std::move(col), gby
+        )));
+      }
     }
 };
 
