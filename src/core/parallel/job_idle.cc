@@ -26,9 +26,7 @@
 #include "parallel/api.h"
 #include "parallel/job_idle.h"
 #include "parallel/thread_pool.h"
-#include <condition_variable>
-#include <mutex>
-#include <iostream>
+#include <atomic>
 namespace dt {
 
 
@@ -80,7 +78,7 @@ void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   n_threads_running_ += nth;
   saved_exception_ = nullptr;
 
-  previous_sleep_task_->wake_up(nth, job);
+  previous_sleep_task_->wake_up(job);
   thpool->workers_[0]->run_in_main_thread(job);
 }
 
@@ -155,37 +153,34 @@ SleepTask::SleepTask(Job_Idle* idle_job)
 
 void SleepTask::execute() {
   parent_->remove_running_thread();
-  std::unique_lock<std::mutex> lk(cv_m_);
-  cv_.wait(lk,[&]{return job_ != nullptr;});
-  xassert(job_);
-  thpool->assign_job_to_current_thread(job_);
+  ThreadJob* job;
+  while (!(job = job_.load(std::memory_order_consume))) std::this_thread::yield();
+  thpool->assign_job_to_current_thread(job);
 }
 
 
-void SleepTask::wake_up(int nth, ThreadJob* next_job) {
-  {
-    std::lock_guard<std::mutex> lk(cv_m_);
-    job_ = next_job;
-  }
-  cv_.notify_all();
+void SleepTask::wake_up(ThreadJob* next_job) {
+    job_.store(next_job, std::memory_order_release);
 }
 
 
 void SleepTask::fall_asleep() {
   // Clear `job_` indicating that we no longer run in a parallel region.
-  job_ = nullptr;
+  job_.store(nullptr, std::memory_order_release);
 }
 
 
 void SleepTask::abort_current_job() {
-  if (job_) {
-    job_->abort_execution();
+  ThreadJob* job = job_.load(std::memory_order_consume);
+  if (job) {
+    job->abort_execution();
   }
 }
 
 
 bool SleepTask::is_sleeping() const noexcept {
-  return (job_ == nullptr);
+  ThreadJob* job = job_.load(std::memory_order_consume);
+  return (job == nullptr);
 }
 
 
