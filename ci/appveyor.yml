@@ -184,40 +184,6 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.7
-    # =======================================================================
-
-    $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
-
-    python -V
-
-    python ci/ext.py wheel
-
-    $DT_WHEEL = ls dist/*-cp37-*.whl
-
-    echo "DT_WHEEL = $DT_WHEEL"
-
-    echo "----- _build_info.py for Python 3.7 ------------------------------"
-
-    cat src/datatable/_build_info.py
-
-    echo "------------------------------------------------------------------"
-
-    python -m pip install --upgrade pip
-
-    python -m pip install $DT_WHEEL
-
-    python -m pip install pytest docutils pandas pyarrow
-
-    python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
-
-    if(!$?) { Exit $LASTEXITCODE }
-
-    python -m pip uninstall -y $DT_WHEEL
-
-
-
-    # =======================================================================
     #   Build and test wheel for Python 3.8
     # =======================================================================
 
