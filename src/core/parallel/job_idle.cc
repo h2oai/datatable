@@ -151,8 +151,10 @@ SleepTask::SleepTask(Job_Idle* idle_job)
 
 void SleepTask::execute() {
   parent_->remove_running_thread();
-  std::unique_lock<std::mutex> lk(cv_m_);
-  cv_.wait(lk,[&]{return job_ != nullptr;});
+  {
+    std::unique_lock<std::mutex> lk(cv_m_);
+    cv_.wait(lk,[&]{return job_ != nullptr;});
+  }
   xassert(job_);
   thpool->assign_job_to_current_thread(job_);
 }
