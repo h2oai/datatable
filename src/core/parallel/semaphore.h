@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2023 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,6 +47,11 @@
 #include <thread>          // std::this_thread
 #include "utils/assert.h"
 #include "utils/macros.h"
+
+#ifndef DT_SEMAPHORE_SPIN_COUNT
+  #define DT_SEMAPHORE_SPIN_COUNT 1000000
+#endif
+
 namespace dt {
 
 
@@ -204,7 +209,7 @@ class LightweightSemaphore {
     }
 
     void wait() {
-      int spin_count = 1000000;
+      int spin_count = DT_SEMAPHORE_SPIN_COUNT;
       do {
         if (try_wait()) return;
         // This line significantly boosts the performance.
