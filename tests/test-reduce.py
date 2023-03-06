@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2022 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -292,6 +292,14 @@ def test_minmax_integer(mm, st):
 
 
 @pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("st", dt.ltype.int.stypes)
+def test_minmax_integer_grouped(mm, st):
+    src = [3, 2, 2, 2, 2, 3, -100, 15, -100]
+    DT = dt.Frame(A=src, stype=st)
+    assert DT[:, mm(f.A), by(f.A)].to_list() == [[-100, 2, 3, 15]]*2
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
 def test_minmax_real(mm):
     src = [5.6, 12.99, 1e+12, -3.4e-22, math.nan, 0.0]
     DT = dt.Frame(A=src)
@@ -304,6 +312,13 @@ def test_minmax_infs(mm):
     answer = -math.inf if mm == dt.min else +math.inf
     DT = dt.Frame(A=src)
     assert DT[:, mm(f.A)].to_list() == [[answer]]
+
+
+@pytest.mark.parametrize("mm", [dt.min, dt.max])
+@pytest.mark.parametrize("src", [[math.inf], [-math.inf]])
+def test_minmax_infs_only(mm, src):
+    DT = dt.Frame(A=src)
+    assert DT[:, mm(f.A)].to_list() == [src]
 
 
 @pytest.mark.parametrize("mm", [dt.min, dt.max])
@@ -325,6 +340,43 @@ def test_minmax_comprehension(mm, res):
     # See issue #3409
     s = mm([i for i in range(10)])
     assert s == res
+
+
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 9)])
+def test_minmax_generator_comprehension(mm, res):
+    # See issue #3409
+    s = mm(i for i in range(10))
+    assert s == res
+
+
+def test_min_multicolumn():
+    # See issue #3406
+    DT = dt.Frame({'C0':range(5), 'C1':range(5,10)})
+    DT_min_list = DT[:, dt.min([f.C0, f.C1])]
+    DT_min_tuple = DT[:, dt.min((f.C0, f.C1))]
+    DT_min_dict = DT[:, dt.min({"A":f.C0, "B":f.C1})]
+    DT_ref = dt.Frame([[0]/dt.int32, [5]/dt.int32])
+    assert_equals(DT_min_list, DT_ref)
+    assert_equals(DT_min_tuple, DT_ref)
+    assert_equals(DT_min_dict, DT_ref[:, {"A":f.C0, "B":f.C1}])
+
+def test_max_multicolumn():
+    # See issue #3406
+    DT = dt.Frame({'C0':range(5), 'C1':range(5,10)})
+    DT_max_list = DT[:, dt.max([f.C0, f.C1])]
+    DT_max_tuple = DT[:, dt.max((f.C0, f.C1))]
+    DT_max_dict = DT[:, dt.max({"A":f.C0, "B":f.C1})]
+    DT_ref = dt.Frame([[4]/dt.int32, [9]/dt.int32])
+    assert_equals(DT_max_list, DT_ref)
+    assert_equals(DT_max_tuple, DT_ref)
+    assert_equals(DT_max_dict, DT_ref[:, {"A":f.C0, "B":f.C1}])
+
+
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 4)])
+def test_minmax_frame(mm, res):
+    # See issue #3406
+    DT = dt.Frame(range(5))
+    assert mm(DT)[0,0] == res
 
 
 
