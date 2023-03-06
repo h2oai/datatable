@@ -17,15 +17,16 @@
 #define dt_PARALLEL_API_PRIMITIVES_h
 #include <cstddef>
 #include "utils/assert.h"
-namespace dt {
 
 #ifndef DT_DEFAULT_CHUNK_SIZE
   #define DT_DEFAULT_CHUNK_SIZE 1000
 #endif
-
 #ifndef DT_DEFAULT_MIN_ITERS_PER_THREAD
   #define DT_DEFAULT_MIN_ITERS_PER_THREAD 1000
 #endif
+
+namespace dt {
+
 
 size_t num_threads_in_pool();
 
