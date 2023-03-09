@@ -26,15 +26,16 @@
 namespace dt {
 
 
-template <typename T>
+template <typename T, typename U, bool IS_GROUPED>
 class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column col_;
     Groupby gby_;
+    
 
   public:
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), col.stype()),
+      : Virtual_ColumnImpl(gby.size(), stype_from<U>),
         col_(std::move(col)),
         gby_(gby)
     {
