@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.countna
-    :src: src/core/expr/head_reduce_unary.cc op_countna
+    :src: src/core/expr/fexpr_minmax.cc pyfn_countna
     :tests: tests/test-reduce.py
     :cvar: doc_dt_countna
     :signature: countna(cols)
