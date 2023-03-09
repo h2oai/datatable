@@ -55,11 +55,11 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
         case SType::INT16:
         case SType::INT32:
         case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
+          return make<float>(std::move(col), gby, is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+          return make<double>(std::move(col), gby, is_grouped);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -68,14 +68,13 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
 
 
     template <typename T>
-    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
-      col.cast_inplace(stype);
+    Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, true>(
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, T, SUM, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, false>(
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, T, SUM, false>(
           std::move(col), gby
         )));
       }

@@ -52,17 +52,27 @@ class FExpr_Mean : public FExpr_ReduceUnary {
                           ));
         case SType::BOOL:
         case SType::INT8:
+          return make<int8_t, double>(std::move(col), gby, is_grouped);
         case SType::INT16:
-        case SType::INT32:        
+          return make<int16_t, double>(std::move(col), gby, is_grouped);
+        case SType::INT32:   
+          return make<int32_t, double>(std::move(col), gby, is_grouped);     
         case SType::INT64:
-        case SType::DATE32:
-        case SType::TIME64:
+          return make<int64_t, double>(std::move(col), gby, is_grouped);
         case SType::FLOAT64:
-          col_out = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
-          break;
+          return make<double, double>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
-          col_out = make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
-          break;
+          return make<float, float>(std::move(col), gby, is_grouped);
+        case SType::DATE32: {
+          Column coli = make<double, double>(std::move(col), gby, is_grouped);
+          coli.cast_inplace(SType::DATE32);
+          return coli;
+        }
+        case SType::TIME64: {
+          Column coli = make<double, double>(std::move(col), gby, is_grouped);
+          coli.cast_inplace(SType::TIME64);
+          return coli;
+        }             
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -75,14 +85,17 @@ class FExpr_Mean : public FExpr_ReduceUnary {
     }
 
 
-    template <typename T>
-    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
-      col.cast_inplace(stype);
-
-      return is_grouped? std::move(col)
-                       : Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T>(
-                           std::move(col), gby
-                         )));
+    template <typename T, typename U>
+    Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
+      if (is_grouped) {
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, U, true>(
+          std::move(col), gby
+        )));
+      } else {
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, U, false>(
+          std::move(col), gby
+        )));
+      }
     }
 };
 

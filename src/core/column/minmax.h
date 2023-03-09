@@ -57,7 +57,7 @@ class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
         }
       }
 
-      *out = static_cast<T>(res);
+      *out = static_cast<U>(res);
       return !res_isna;
     }
 };
