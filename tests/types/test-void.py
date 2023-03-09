@@ -216,6 +216,10 @@ def test_groupby_void_reducer():
     DT = dt.Frame([None] * 5)[:, dt.count(), dt.by(0)]
     assert_equals(DT, dt.Frame(C0=[None], count=[5]/dt.int64))
 
+def test_groupby_void_countna():
+    DT = dt.Frame([None] * 5)[:, dt.countna(f[0]), dt.by(0)]
+    assert_equals(DT, dt.Frame(C0=[None], C1=[5]/dt.int64))
+
 
 def test_groupby_void_twice():
     # See issue #3108
