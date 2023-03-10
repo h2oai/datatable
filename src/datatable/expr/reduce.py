@@ -44,11 +44,8 @@ __all__ = (
 
 
 def count(iterable=None):
-    if isinstance(iterable, (Expr, core.FExpr)):
+    if isinstance(iterable, (Expr, core.FExpr)) or (iterable is None):
         return core.count(iterable)
-    elif iterable is None:
-        return core.count(iterable)
-        #return Expr(OpCodes.COUNT0, ())
     else:
         return _builtin_sum((x is not None) for x in iterable)
 
