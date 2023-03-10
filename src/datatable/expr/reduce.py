@@ -47,7 +47,8 @@ def count(iterable=None):
     if isinstance(iterable, (Expr, core.FExpr)):
         return core.count(iterable)
     elif iterable is None:
-        return Expr(OpCodes.COUNT0, ())
+        return core.count(iterable)
+        #return Expr(OpCodes.COUNT0, ())
     else:
         return _builtin_sum((x is not None) for x in iterable)
 
