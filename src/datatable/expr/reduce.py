@@ -45,7 +45,7 @@ __all__ = (
 
 def count(iterable=None):
     if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.COUNT, (iterable,))
+        return core.count(iterable)
     elif iterable is None:
         return Expr(OpCodes.COUNT0, ())
     else:
