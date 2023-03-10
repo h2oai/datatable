@@ -25,7 +25,7 @@
 namespace dt {
 
 
-template <typename T, typename U, bool COUNT, bool IS_GROUPED>
+template <typename T, typename U, bool COUNT, bool COUNTT, bool IS_GROUPED>
 class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
   public:
     using ReduceUnary_ColumnImpl<T, U, IS_GROUPED>::ReduceUnary_ColumnImpl;
@@ -36,7 +36,11 @@ class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
       this->gby_.get_group(i, &i0, &i1);
       int64_t count = 0;
 
-      if (IS_GROUPED){
+      if (COUNTT) {
+        *out = static_cast<U>(i1 - i0);
+        return true;
+      }
+      else if (IS_GROUPED){
         bool isvalid = this->col_.get_element(i, &value);
         if (COUNT){
           count = isvalid? static_cast<U>(i1 - i0) : 0;

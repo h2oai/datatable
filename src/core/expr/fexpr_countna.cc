@@ -31,7 +31,7 @@
 namespace dt {
 namespace expr {
 
-template<bool COUNT>
+template<bool COUNT, bool COUNTT>
 class FExpr_CountNA : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -43,7 +43,7 @@ class FExpr_CountNA : public FExpr_Func {
     std::string repr() const override {
       std::string out = COUNT? "count" : "countna";
       out += '(';
-      out += arg_->repr();
+      if (!COUNTT) out += arg_->repr();      
       out += ')';
       return out;
     }
@@ -64,8 +64,12 @@ class FExpr_CountNA : public FExpr_Func {
                             wf.get_column_id(i)
                           );
         
-        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);      
-        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
+        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
+        if (COUNTT) {
+          outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
+        } else {
+            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
+          }                    
       }
         
       return outputs;
@@ -105,11 +109,11 @@ class FExpr_CountNA : public FExpr_Func {
     template <typename T, typename U>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, true>(
+        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, COUNTT, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, false>(
+        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, COUNTT, false>(
           std::move(col), gby
         )));
       }
@@ -118,12 +122,15 @@ class FExpr_CountNA : public FExpr_Func {
 
 static py::oobj pyfn_count(const py::XArgs &args) {
   auto count = args[0].to_oobj_or_none();
-  return PyFExpr::make(new FExpr_CountNA<true>(as_fexpr(count)));
+  if (count.is_none()) {
+    return PyFExpr::make(new FExpr_CountNA<true, true>(as_fexpr(count)));
+  }
+  return PyFExpr::make(new FExpr_CountNA<true, false>(as_fexpr(count)));
 }
 
 static py::oobj pyfn_countna(const py::XArgs &args) {
   auto countna = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CountNA<false>(as_fexpr(countna)));
+  return PyFExpr::make(new FExpr_CountNA<false, false>(as_fexpr(countna)));
 }
 
 
