@@ -46,8 +46,7 @@ class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
           count = isvalid? static_cast<U>(i1 - i0) : 0;
         } else {
             count = isvalid? 0: static_cast<U>(i1 - i0);
-        }
-        
+          }        
         *out = count;
         return true;
       } else {

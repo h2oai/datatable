@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.count
-    :src: src/core/expr/head_reduce_unary.cc count_reducer
+    :src: src/core/expr/fexpr_count_countna.cc pyfn_count
     :cvar: doc_dt_count
     :tests: tests/test-reduce.py
     :signature: count(cols)
