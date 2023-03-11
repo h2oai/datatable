@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,7 @@
 namespace dt {
 
 
-template <typename T, typename U, bool COUNT, bool COUNTT, bool IS_GROUPED>
+template <typename T, typename U, bool COUNT_NOT_NULL, bool COUNT_ALL_ROWS, bool IS_GROUPED>
 class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
   public:
     using ReduceUnary_ColumnImpl<T, U, IS_GROUPED>::ReduceUnary_ColumnImpl;
@@ -36,13 +36,13 @@ class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
       this->gby_.get_group(i, &i0, &i1);
       int64_t count = 0;
 
-      if (COUNTT) {
+      if (COUNT_ALL_ROWS) {
         *out = static_cast<U>(i1 - i0);
         return true;
       }
       else if (IS_GROUPED){
         bool isvalid = this->col_.get_element(i, &value);
-        if (COUNT){
+        if (COUNT_NOT_NULL){
           count = isvalid? static_cast<U>(i1 - i0) : 0;
         } else {
             count = isvalid? 0: static_cast<U>(i1 - i0);
@@ -52,7 +52,7 @@ class CountNA_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
       } else {
           for (size_t gi = i0; gi < i1; ++gi) {        
             bool isvalid = this->col_.get_element(gi, &value);
-            count += COUNT? isvalid : !isvalid;
+            count += COUNT_NOT_NULL? isvalid : !isvalid;
           }
           *out = count;
           return true;  // *out is not NA
