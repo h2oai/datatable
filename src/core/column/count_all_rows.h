@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2023 H2O.ai
+// Copyright 2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,41 +19,54 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_COUNTNA_h
-#define dt_COLUMN_COUNTNA_h
-#include "column/reduce_unary.h"
+#ifndef dt_COLUMN_COUNTALLROWS_h
+#define dt_COLUMN_COUNTALLROWS_h
+#include "column/virtual.h"
+#include "parallel/api.h"
+#include "stype.h"
 namespace dt {
 
 
-template <typename T, typename U, bool COUNTNA, bool IS_GROUPED>
-class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
-  public:
-    using ReduceUnary_ColumnImpl<T, U, IS_GROUPED>::ReduceUnary_ColumnImpl;
+class CountAllRows_ColumnImpl : public Virtual_ColumnImpl {
+  private:
+    Groupby gby_;
 
-    bool get_element(size_t i, U* out) const override {
-      T value;
-      size_t i0, i1;
-      this->gby_.get_group(i, &i0, &i1);
-      int64_t count = 0;
-      if (IS_GROUPED){
-        bool isvalid = this->col_.get_element(i, &value);
-        if (COUNTNA){
-          count = isvalid? 0: static_cast<U>(i1 - i0);          
-        } else {
-            count = isvalid? static_cast<U>(i1 - i0) : 0;            
-          }        
-        *out = count;
-        return true;  // *out is not NA
-      } else {
-          for (size_t gi = i0; gi < i1; ++gi) {        
-            bool isvalid = this->col_.get_element(gi, &value);
-            count += COUNTNA? !isvalid : isvalid;
-          }
-          *out = count;
-          return true;  // *out is not NA
-        }
+  public:
+    CountAllRows_ColumnImpl(const Groupby& gby)
+      : Virtual_ColumnImpl(gby.size(), SType::INT64),
+        gby_(gby)
+    {}
+
+
+    ColumnImpl* clone() const override {
+      return new CountAllRows_ColumnImpl(gby_);
     }
+
+
+    size_t n_children() const noexcept override {
+      return 0;
+    }
+
+    void materialize(Column &col_out, bool) override {
+      size_t nrows = gby_.size();
+      const int32_t* offsets = gby_.offsets_r();
+      Column col = Column::new_data_column(nrows, SType::INT64);
+      auto data = static_cast<int64_t*>(col.get_data_editable());
+      dt::parallel_for_dynamic(gby_.size(),
+        [&](size_t gi) {
+          for (size_t i = 0; i < nrows; ++i) {
+            data[i] = offsets[i + 1] - offsets[i];
+          }
+        }
+      );
+
+      col_out = std::move(col);
+    }
+
 };
 
+
 }  // namespace dt
+
+
 #endif

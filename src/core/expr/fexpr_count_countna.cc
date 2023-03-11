@@ -22,6 +22,7 @@
 #include "column/const.h"
 #include "column/latent.h"
 #include "column/countna.h"
+#include "column/count_all_rows.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
@@ -32,7 +33,7 @@
 namespace dt {
 namespace expr {
 
-template<bool COUNT_NOT_NULL, bool COUNT_ALL_ROWS>
+template<bool COUNTNA>
 class FExpr_CountNA : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -42,9 +43,9 @@ class FExpr_CountNA : public FExpr_Func {
       : arg_(std::move(arg)) {}
 
     std::string repr() const override {
-      std::string out = COUNT_NOT_NULL? "count" : "countna";
+      std::string out = COUNTNA? "countna" : "count";
       out += '(';
-      if (!COUNT_ALL_ROWS) out += arg_->repr();      
+      if (arg_->get_expr_kind() != Kind::None) out += arg_->repr();      
       out += ')';
       return out;
     }
@@ -54,13 +55,26 @@ class FExpr_CountNA : public FExpr_Func {
       Workframe outputs(ctx);
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
+      // this covers a scenario where
+      // we dont care about the presence or absence of NAs
+      // we just want the total number of rows
+      bool count_all_rows = arg_->get_expr_kind() == Kind::None;
 
-      if (!gby && COUNT_ALL_ROWS) {
-        int64_t nrows = static_cast<int64_t>(ctx.nrows());
-        Column coli = Column(new ConstInt_ColumnImpl(1, nrows, SType::INT64));
+      if (count_all_rows && !gby) {
+        auto value = static_cast<int64_t>(ctx.nrows());
+        Column coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
         outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
         return outputs;
       }
+
+      if (count_all_rows && gby) {
+        Column coli = Column(new Latent_ColumnImpl(
+                new CountAllRows_ColumnImpl(gby)
+              ));
+        outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
+        return outputs;
+      }
+
       if (!gby) {
         gby = Groupby::single_group(wf.nrows());
       } 
@@ -71,11 +85,7 @@ class FExpr_CountNA : public FExpr_Func {
                             wf.get_column_id(i)
                           );        
         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
-        if (COUNT_ALL_ROWS) {
-          outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
-        } else {
-            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
-          }                    
+        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                   
       }        
       return outputs;
     }
@@ -113,11 +123,11 @@ class FExpr_CountNA : public FExpr_Func {
     template <typename T, typename U>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT_NOT_NULL, COUNT_ALL_ROWS, true>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, U, COUNTNA, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT_NOT_NULL, COUNT_ALL_ROWS, false>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, U, COUNTNA, false>(
           std::move(col), gby
         )));
       }
@@ -126,15 +136,12 @@ class FExpr_CountNA : public FExpr_Func {
 
 static py::oobj pyfn_count(const py::XArgs &args) {
   auto count = args[0].to_oobj_or_none();
-  if (count.is_none()) {
-    return PyFExpr::make(new FExpr_CountNA<true, true>(as_fexpr(count)));
-  }
-  return PyFExpr::make(new FExpr_CountNA<true, false>(as_fexpr(count)));
+  return PyFExpr::make(new FExpr_CountNA<false>(as_fexpr(count)));
 }
 
 static py::oobj pyfn_countna(const py::XArgs &args) {
   auto countna = args[0].to_oobj();
-  return PyFExpr::make(new FExpr_CountNA<false, false>(as_fexpr(countna)));
+  return PyFExpr::make(new FExpr_CountNA<true>(as_fexpr(countna)));
 }
 
 
