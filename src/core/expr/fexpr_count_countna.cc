@@ -28,6 +28,7 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -68,23 +69,20 @@ class FExpr_CountNA : public FExpr_Func {
         bool is_grouped = ctx.has_group_column(
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
-                          );
-        
+                          );        
         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
         if (COUNT_ALL_ROWS) {
           outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
         } else {
             outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
           }                    
-      }
-        
+      }        
       return outputs;
     }
 
 
     Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
       SType stype = col.stype();
-
       switch (stype) {
         case SType::VOID:
         case SType::BOOL:
