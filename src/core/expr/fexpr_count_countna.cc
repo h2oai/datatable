@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -31,7 +31,7 @@
 namespace dt {
 namespace expr {
 
-template<bool COUNT, bool COUNTT>
+template<bool COUNT_NOT_NULL, bool COUNT_ALL_ROWS>
 class FExpr_CountNA : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -41,9 +41,9 @@ class FExpr_CountNA : public FExpr_Func {
       : arg_(std::move(arg)) {}
 
     std::string repr() const override {
-      std::string out = COUNT? "count" : "countna";
+      std::string out = COUNT_NOT_NULL? "count" : "countna";
       out += '(';
-      if (!COUNTT) out += arg_->repr();      
+      if (!COUNT_ALL_ROWS) out += arg_->repr();      
       out += ')';
       return out;
     }
@@ -54,6 +54,12 @@ class FExpr_CountNA : public FExpr_Func {
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
 
+      if (!gby && COUNT_ALL_ROWS) {
+        int64_t nrows = static_cast<int64_t>(ctx.nrows());
+        Column coli = Column(new ConstInt_ColumnImpl(1, nrows, SType::INT64));
+        outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
+        return outputs;
+      }
       if (!gby) {
         gby = Groupby::single_group(wf.nrows());
       } 
@@ -65,7 +71,7 @@ class FExpr_CountNA : public FExpr_Func {
                           );
         
         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
-        if (COUNTT) {
+        if (COUNT_ALL_ROWS) {
           outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
         } else {
             outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
@@ -109,11 +115,11 @@ class FExpr_CountNA : public FExpr_Func {
     template <typename T, typename U>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, COUNTT, true>(
+        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT_NOT_NULL, COUNT_ALL_ROWS, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT, COUNTT, false>(
+        return Column(new Latent_ColumnImpl(new CountNA_ColumnImpl<T, U, COUNT_NOT_NULL, COUNT_ALL_ROWS, false>(
           std::move(col), gby
         )));
       }
