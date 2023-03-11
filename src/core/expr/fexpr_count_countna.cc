@@ -29,7 +29,6 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
