@@ -54,22 +54,21 @@ class FExpr_CountNA : public FExpr_Func {
       Workframe outputs(ctx);
       Workframe wf = arg_->evaluate_n(ctx);
       Groupby gby = ctx.get_groupby();
-      // this covers a scenario where
+      // this covers scenarios where
       // we dont care about the presence or absence of NAs
       // we just want the total number of rows
       bool count_all_rows = arg_->get_expr_kind() == Kind::None;
 
-      if (count_all_rows && !gby) {
-        auto value = static_cast<int64_t>(ctx.nrows());
-        Column coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
-        outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
-        return outputs;
-      }
-
-      if (count_all_rows && gby) {
-        Column coli = Column(new Latent_ColumnImpl(
+      if (count_all_rows) {
+        Column coli;
+        if (gby){
+          coli = Column(new Latent_ColumnImpl(
                 new CountAllRows_ColumnImpl(gby)
               ));
+        } else {
+            auto value = static_cast<int64_t>(ctx.nrows());
+            coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
+          }
         outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
         return outputs;
       }
