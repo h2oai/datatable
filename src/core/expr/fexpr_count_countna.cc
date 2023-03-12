@@ -59,7 +59,7 @@ class FExpr_CountNA : public FExpr_Func {
       // we just want the total number of rows
       bool count_all_rows = arg_->get_expr_kind() == Kind::None;
 
-      if (count_all_rows) {
+      if (count_all_rows && !COUNTNA) {
         Column coli;
         if (gby){
           coli = Column(new Latent_ColumnImpl(
