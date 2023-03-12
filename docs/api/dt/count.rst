@@ -3,14 +3,14 @@
     :src: src/core/expr/fexpr_count_countna.cc pyfn_count
     :cvar: doc_dt_count
     :tests: tests/test-reduce.py
-    :signature: count(cols)
+    :signature: count(cols=None)
 
     Calculate the number of non-missing values for each column from `cols`.
 
     Parameters
     ----------
     cols: FExpr
-        Input columns.
+        Input columns. If no `cols` is passed, then the count of all rows is returned.
 
     return: Expr
         f-expression having one row, and the same names and number of columns
