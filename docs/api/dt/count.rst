@@ -5,7 +5,8 @@
     :tests: tests/test-reduce.py
     :signature: count(cols=None)
 
-    Calculate the number of non-missing values for each column from `cols`.
+    Calculate the number of non-missing values for each column from `cols`, if `cols` is provided, 
+    or the total number of rows if `cols` is not provided.
 
     Parameters
     ----------
