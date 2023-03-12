@@ -82,9 +82,13 @@ class FExpr_CountNA : public FExpr_Func {
         bool is_grouped = ctx.has_group_column(
                             wf.get_frame_id(i),
                             wf.get_column_id(i)
-                          );        
-        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
-        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                   
+                          );
+        Column coli = wf.retrieve_column(i);   
+        if (COUNTNA && !ctx.has_groupby() && (coli.stype() == SType::VOID)) {
+          int64_t nrows = static_cast<int64_t>(ctx.nrows());
+          coli = Const_ColumnImpl::make_int_column(1, nrows, SType::INT64);
+        } else {coli = evaluate1(std::move(coli), gby, is_grouped);}
+        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                         
       }        
       return outputs;
     }
