@@ -74,3 +74,9 @@ def test_dt_count_na2():
     EXP = dt.Frame(G=[1,2], V1=[3,1], V2=[1,0])
     RES = DT[:, [dt.countna(f.V), dt.countna(dt.mean(f.V))], dt.by(f.G)]
     assert EXP.to_list() == RES.to_list()
+
+
+def test_dt_countna_void():
+    DT = dt.Frame([None])
+    RES = DT[:, dt.countna(f.C0), dt.by(f.C0)]
+    EXP = dt.Frame({"C0":[None], "C1":[1]/dt.int64})
