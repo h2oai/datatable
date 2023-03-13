@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+<<<<<<<< HEAD:src/core/expr/fexpr_isna.cc
 #include "column/const.h"
 #include "column/isna.h"
 #include "expr/fexpr_column.h"
@@ -28,10 +29,16 @@
 #include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
+========
+#ifndef dt_EXPR_FEXPR_ISNA_h
+#define dt_EXPR_FEXPR_ISNA_h
+#include "expr/fexpr_func.h"
+>>>>>>>> da5f26d3 (implemenation of isna fexpr):src/core/expr/fexpr_isna.h
 namespace dt {
 namespace expr {
 
 
+<<<<<<<< HEAD:src/core/expr/fexpr_isna.cc
 class FExpr_ISNA : public FExpr_FuncUnary {
   public:
     using FExpr_FuncUnary::FExpr_FuncUnary;
@@ -61,3 +68,18 @@ DECLARE_PYFN(&pyfn_isna)
 
 
 }}  // dt::expr
+========
+class FExpr_ISNA : public FExpr_Func {
+  private:
+    ptrExpr arg_;
+
+  public:
+    FExpr_ISNA(ptrExpr&& arg);
+    std::string repr() const override;
+    Workframe evaluate_n(EvalContext& ctx) const override;
+};
+
+
+}}  // dt::expr
+#endif
+>>>>>>>> da5f26d3 (implemenation of isna fexpr):src/core/expr/fexpr_isna.h
