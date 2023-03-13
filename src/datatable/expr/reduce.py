@@ -110,7 +110,7 @@ def corr(col1, col2):
 def sum(iterable, start=0):
     if (not isinstance(iterable, dict)
         and (isinstance(iterable, core.FExpr)
-        or (hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
+        or (iterable and hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
         return core.sum(iterable)
     elif isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
         return core.sum(iterable)
@@ -123,7 +123,7 @@ def sum(iterable, start=0):
 def min(*args, **kwds):
     if (len(args) == 1
         and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
-        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
+        or (args[0] and hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return core.min(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return core.min(args)
@@ -137,7 +137,7 @@ def min(*args, **kwds):
 def max(*args, **kwds):
     if (len(args) == 1 and (not isinstance(args[0], dict))
         and (isinstance(args[0], (Expr, core.FExpr))
-        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
+        or (args[0] and hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return core.max(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return core.max(args)
