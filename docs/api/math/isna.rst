@@ -14,7 +14,7 @@
 
     return: Expr
         f-expression having one row, and the same names and number of columns
-        as in `cols`. All the returned column stypes are `int8`.
+        as in `cols`. All the returned column stypes are `bool8`.
 
     Examples
     --------
