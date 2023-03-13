@@ -25,12 +25,12 @@
 namespace dt {
 
 
-template <typename T, typename U, bool COUNTNA, bool IS_GROUPED>
-class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
+template <typename T, bool COUNTNA, bool IS_GROUPED>
+class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t, IS_GROUPED> {
   public:
     using ReduceUnary_ColumnImpl<T, U, IS_GROUPED>::ReduceUnary_ColumnImpl;
 
-    bool get_element(size_t i, U* out) const override {
+    bool get_element(size_t i, int64_t* out) const override {
       T value;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
@@ -38,9 +38,9 @@ class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, U, IS_GROUPED> {
       if (IS_GROUPED){
         bool isvalid = this->col_.get_element(i, &value);
         if (COUNTNA){
-          count = isvalid? 0: static_cast<U>(i1 - i0);          
+          count = isvalid? 0: static_cast<int64_t>(i1 - i0);          
         } else {
-            count = isvalid? static_cast<U>(i1 - i0) : 0;            
+            count = isvalid? static_cast<int64_t>(i1 - i0) : 0;            
           }        
         *out = count;
         return true;  // *out is not NA
