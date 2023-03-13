@@ -77,7 +77,6 @@ Column FExpr_RowCount::apply_function(colvec&& columns,
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
     columns[i] = make_isna_col(std::move(columns[i]));
-    //columns[i] = unaryop(Op::ISNA, std::move(columns[i]));
   }
   return Column(new FuncNary_ColumnImpl<int32_t>(
                       std::move(columns), op_rowcount, nrows, SType::INT32));
