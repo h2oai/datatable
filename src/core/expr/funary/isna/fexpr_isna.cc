@@ -23,7 +23,7 @@
 #include "column/const.h"
 #include "documentation.h"
 #include "expr/fexpr_column.h"
-#include "expr/fexpr_isna.h"
+#include "expr/funary/isna/fexpr_isna.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
@@ -81,7 +81,7 @@ static py::oobj pyfn_isna(const py::XArgs& args) {
 
 DECLARE_PYFN(&pyfn_isna)
     ->name("isna")
-    //->docs(doc_dt_isna)
+    ->docs(doc_math_isna)
     ->arg_names({"cols"})
     ->n_positional_args(1)
     ->n_required_args(1);
