@@ -112,7 +112,6 @@ class OpCodes(enum.Enum):
     ISCLOSE = 540
     ISFINITE = 541
     ISINF = 542
-    ISNA = 543
     LDEXP = 544
     MODF = 545
     RINT = 546

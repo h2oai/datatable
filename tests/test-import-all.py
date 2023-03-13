@@ -78,7 +78,7 @@ def test_stypes():
 def test_ufuncs():
     assert dt.abs != abs
     assert exp
-    assert isna
+    assert dt.math.isna
     assert log
     assert log10
 

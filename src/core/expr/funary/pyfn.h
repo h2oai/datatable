@@ -65,7 +65,6 @@ extern py::PKArgs args_lgamma;
 // Floating-point
 extern py::PKArgs args_isfinite;
 extern py::PKArgs args_isinf;
-extern py::PKArgs args_isna;
 extern py::PKArgs args_ceil;
 extern py::PKArgs args_copysign;
 extern py::PKArgs args_abs;

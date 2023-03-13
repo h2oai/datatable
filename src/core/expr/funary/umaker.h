@@ -125,7 +125,6 @@ umaker_ptr resolve_op_lgamma(SType);
 // Floating-point
 umaker_ptr resolve_op_isfinite(SType);
 umaker_ptr resolve_op_isinf(SType);
-umaker_ptr resolve_op_isna(SType);
 umaker_ptr resolve_op_ceil(SType);
 umaker_ptr resolve_op_abs(SType);
 umaker_ptr resolve_op_fabs(SType);

@@ -124,51 +124,6 @@ umaker_ptr resolve_op_sign(SType stype) {
   }
 }
 
-
-
-
-//------------------------------------------------------------------------------
-// Op::ISNA
-//------------------------------------------------------------------------------
-
-py::PKArgs args_isna(1, 0, 0, false, false, {"x"}, "isna", dt::doc_math_isna);
-
-
-template <typename T>
-class isna_umaker : public umaker {
-  public:
-    Column compute(Column&& col) const override {
-      return Column(new Isna_ColumnImpl<T>(std::move(col)));
-    }
-};
-
-
-umaker_ptr resolve_op_isna(SType stype) {
-  switch (stype) {
-    case SType::VOID: {
-      return umaker_ptr(new umaker_const(
-                            Const_ColumnImpl::make_bool_column(1, true)));
-    }
-    case SType::BOOL:
-    case SType::INT8:    return umaker_ptr(new isna_umaker<int8_t>());
-    case SType::INT16:   return umaker_ptr(new isna_umaker<int16_t>());
-    case SType::DATE32:
-    case SType::INT32:   return umaker_ptr(new isna_umaker<int32_t>());
-    case SType::TIME64:
-    case SType::INT64:   return umaker_ptr(new isna_umaker<int64_t>());
-    case SType::FLOAT32: return umaker_ptr(new isna_umaker<float>());
-    case SType::FLOAT64: return umaker_ptr(new isna_umaker<double>());
-    case SType::STR32:
-    case SType::STR64:   return umaker_ptr(new isna_umaker<CString>());
-    default:
-      throw TypeError() << "Function `isna` cannot be applied to a "
-                           "column of type `" << stype << "`";
-  }
-}
-
-
-
-
 //------------------------------------------------------------------------------
 // Op::ISINF
 //------------------------------------------------------------------------------

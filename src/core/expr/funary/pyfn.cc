@@ -150,7 +150,6 @@ void py::DatatableModule::init_funary()
   // Floating-point
   FUNARY(args_isfinite,  Op::ISFINITE);
   FUNARY(args_isinf,     Op::ISINF);
-  FUNARY(args_isna,      Op::ISNA);
   FUNARY(args_ceil,      Op::CEIL);
   FUNARY(args_abs,       Op::ABS);
   FUNARY(args_fabs,      Op::FABS);

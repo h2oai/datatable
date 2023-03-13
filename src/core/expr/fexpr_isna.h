@@ -19,23 +19,23 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_EXPR_FLOATING_FEXPR_ISNA_h
-#define dt_EXPR_FLOATING_FEXPR_ISNA_h
-#include "expr/fexpr_func_unary.h"
+#ifndef dt_EXPR_FEXPR_ISNA_h
+#define dt_EXPR_FEXPR_ISNA_h
+#include "expr/fexpr_func.h"
 namespace dt {
 namespace expr {
 
 
+class FExpr_ISNA : public FExpr_Func {
+  private:
+    ptrExpr arg_;
 
-class FExpr_ISNA : public FExpr_FuncUnary {
   public:
-    using FExpr_FuncUnary::FExpr_FuncUnary;
-    std::string name() const override;
-    Column evaluate1(Column&& col) const override;
+    FExpr_ISNA(ptrExpr&& arg);
+    std::string repr() const override;
+    Workframe evaluate_n(EvalContext& ctx) const override;
 };
 
 
-
-
-}}  // namespace dt::expr
+}}  // dt::expr
 #endif

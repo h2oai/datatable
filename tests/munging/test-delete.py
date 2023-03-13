@@ -23,7 +23,8 @@
 #-------------------------------------------------------------------------------
 import datatable as dt
 import pytest
-from datatable import f, g, isna, ltype
+from datatable import f, g, ltype
+from datatable.math import isna
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 

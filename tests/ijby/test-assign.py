@@ -231,7 +231,7 @@ def test_assign_to_sliced_frame():
 
 def test_assign_string_columns():
     DT = dt.Frame(A=["One", "two", "three", None, "five"])
-    DT[dt.isna(f.A), f.A] = dt.Frame(["FOUR"])
+    DT[dt.math.isna(f.A), f.A] = dt.Frame(["FOUR"])
     assert_equals(DT, dt.Frame(A=["One", "two", "three", "FOUR", "five"]))
 
 

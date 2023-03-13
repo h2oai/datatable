@@ -78,4 +78,4 @@ def test_isna_joined():
 @pytest.mark.parametrize("src", all_sources[:-1])
 def test_isna_scalar(src):
     for val in src:
-        assert dt.math.isna(val) == (val is None or val is math.nan)
+        assert dt.math.isna(val) == (val is None or (val is math.nan))

@@ -122,7 +122,6 @@ __all__ = (
     "int8",
     "intersect",
     "iread",
-    "isna",
     "join",
     "last",
     "log",
