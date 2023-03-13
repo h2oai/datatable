@@ -44,10 +44,15 @@ __all__ = (
 
 
 def count(iterable=None):
-    if isinstance(iterable, (Expr, core.FExpr)) or (iterable is None):
+    if iterable is None:
         return core.count(iterable)
-    else:
-        return _builtin_sum((x is not None) for x in iterable)
+    if (not isinstance(iterable, dict)
+        and (isinstance(iterable, core.FExpr)
+        or (iterable and hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
+        return core.count(iterable)
+    if isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
+        return core.count(iterable)
+    return _builtin_sum((x is not None) for x in iterable)
 
 
 def nunique(iterable=None):
