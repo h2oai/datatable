@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.str.len
-    :src: src/core/expr/fexpr_slice.cc FExpr_Slice::evaluate_n
+    :src: src/core/expr/str/fexpr_len.cc fn_len
     :tests: tests/str/test-len.py
     :cvar: doc_str_len
     :signature: len(column)
