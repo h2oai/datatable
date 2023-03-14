@@ -45,13 +45,13 @@ class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t, IS_GROUPED> {
         *out = count;
         return true;  // *out is not NA
       } else {
-          for (size_t gi = i0; gi < i1; ++gi) {        
-            bool isvalid = this->col_.get_element(gi, &value);
-            count += COUNTNA? !isvalid : isvalid;
-          }
-          *out = count;
-          return true;  // *out is not NA
+        for (size_t gi = i0; gi < i1; ++gi) {        
+          bool isvalid = this->col_.get_element(gi, &value);
+          count += COUNTNA? !isvalid : isvalid;
         }
+        *out = count;
+        return true;  // *out is not NA
+      }
     }
 };
 
