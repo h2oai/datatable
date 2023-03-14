@@ -61,10 +61,12 @@ class FExpr_CountNA : public FExpr_Func {
 
       if (count_all_rows && !COUNTNA) {
         Column coli;
+        auto value = static_cast<int64_t>(ctx.nrows());
         if (gby){
-          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(wf.retrieve_column(0), gby)));
+          coli = Const_ColumnImpl::make_int_column(value, 1, SType::INT64);
+          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(std::move(coli), gby)));
         } else{
-            auto value = static_cast<int64_t>(ctx.nrows());
+            
             coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
           }
         outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
