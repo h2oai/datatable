@@ -59,7 +59,7 @@ def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
 
 
-def countna(iterable):
+def countna(iterable=None):
     return core.countna(iterable)
 
 

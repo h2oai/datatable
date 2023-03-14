@@ -81,3 +81,14 @@ def test_dt_countna_void():
     RES = DT[:, dt.countna(f.C0), dt.by(f.C0)]
     EXP = dt.Frame({"C0":[None], "C1":[1]/dt.int64})
 
+def test_dt_countna_None_by():
+    DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
+    EXP = dt.Frame(G=[1,2], C0=[0,0])
+    RES = DT[:, dt.countna(), f.G]
+    assert EXP.to_list() == RES.to_list()
+
+def test_dt_countna_None():
+    DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
+    EXP = dt.Frame(C0=[0])
+    RES = DT[:, dt.countna()]
+    assert EXP.to_list() == RES.to_list()
