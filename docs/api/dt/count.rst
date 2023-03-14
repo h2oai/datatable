@@ -16,6 +16,8 @@
     return: Expr
         f-expression having one row, and the same names and number of columns
         as in `cols`. All the returned column stypes are `int64`.
+        If `cols` is not provided, the total number of rows 
+        (a combination of the count of missing and non-missing values) is returned.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`

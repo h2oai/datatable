@@ -7,7 +7,7 @@
 
     .. x-version-added:: 1.1.0
 
-    Count the number of NA values for each column from `cols`.
+    Count the number of NA values for each column from `cols`. 
 
     Parameters
     ----------
@@ -17,6 +17,7 @@
     return: Expr
         f-expression having one row, and the same names and number of columns
         as in `cols`. All the returned column stypes are `int64`.
+        If `cols` is not provided, 0 is returned per group.
 
     except: TypeError
         The exception is raised when one of the columns from `cols`
