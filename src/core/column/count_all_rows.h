@@ -21,51 +21,21 @@
 //------------------------------------------------------------------------------
 #ifndef dt_COLUMN_COUNTALLROWS_h
 #define dt_COLUMN_COUNTALLROWS_h
-#include "column/virtual.h"
-#include "parallel/api.h"
-#include "stype.h"
+#include "column/reduce_unary.h"
 namespace dt {
 
-class CountAllRows_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Groupby gby_;
 
+class CountAllRows_ColumnImpl : public ReduceUnary_ColumnImpl<int64_t, int64_t, false> {
   public:
-    CountAllRows_ColumnImpl(const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), SType::INT64),
-        gby_(gby)
-    {}
+    using ReduceUnary_ColumnImpl<int64_t, int64_t, false>::ReduceUnary_ColumnImpl;
 
-
-    ColumnImpl* clone() const override {
-      return new CountAllRows_ColumnImpl(gby_);
+    bool get_element(size_t i, int64_t* out) const override {
+      size_t i0, i1;
+      this->gby_.get_group(i, &i0, &i1);
+      *out = static_cast<int64_t>(i1 - i0);
+      return true;
     }
-
-
-    size_t n_children() const noexcept override {
-      return 0;
-    }
-
-    void materialize(Column &col_out, bool) override {
-      size_t nrows = gby_.size();
-      const int32_t* offsets = gby_.offsets_r();
-      Column col = Column::new_data_column(nrows, SType::INT64);
-      auto data = static_cast<int64_t*>(col.get_data_editable());
-      dt::parallel_for_dynamic(gby_.size(),
-        [&](size_t gi) {
-          for (size_t i = 0; i < nrows; ++i) {
-            data[i] = offsets[i + 1] - offsets[i];
-          }
-        }
-      );
-
-      col_out = std::move(col);
-    }
-
 };
 
-
 }  // namespace dt
-
-
 #endif
