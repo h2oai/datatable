@@ -124,14 +124,14 @@ class FExpr_CountNA : public FExpr_Func {
     }
 
 
-    template <typename T>
+    template <typename T_IN>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, true>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, false>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, false>(
           std::move(col), gby
         )));
       }

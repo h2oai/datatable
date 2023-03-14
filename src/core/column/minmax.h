@@ -35,14 +35,14 @@ class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
       // initially being set to `true`. So the default value here
       // only silences the compiler warning and makes the update
       // to happen a little bit faster, but it has no effect on the final result.
-      T res = MIN ? std::numeric_limits<T>::max()
-                  : std::numeric_limits<T>::min();
+      T_IN res = MIN ? std::numeric_limits<T_IN>::max()
+                  : std::numeric_limits<T_IN>::min();
       bool res_isna = true;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
 
       for (size_t gi = i0; gi < i1; ++gi) {
-        T value;
+        T_IN value;
         bool isvalid = this->col_.get_element(gi, &value);
         if (MIN) {
           if (isvalid && (value < res || res_isna)) {
@@ -57,7 +57,7 @@ class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
         }
       }
 
-      *out = static_cast<U>(res);
+      *out = static_cast<T_OUT>(res);
       return !res_isna;
     }
 };
