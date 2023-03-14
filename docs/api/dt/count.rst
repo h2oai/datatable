@@ -11,7 +11,7 @@
     Parameters
     ----------
     cols: FExpr
-        Input columns. If no `cols` is passed, then the count of all rows is returned.
+        Input columns if any.
 
     return: Expr
         f-expression having one row, and the same names and number of columns
