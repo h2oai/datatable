@@ -70,11 +70,11 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
     template <typename T_IN>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T_IN, T_IN, SUM, true>(
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T_IN, SUM, true>(
           std::move(col), gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T_IN, T_IN, SUM, false>(
+        return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T_IN, SUM, false>(
           std::move(col), gby
         )));
       }

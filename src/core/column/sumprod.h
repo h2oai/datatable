@@ -31,7 +31,7 @@ class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
   public:
     using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
 
-    bool get_element(size_t i, T_OUT* out) const override {
+    bool get_element(size_t i, T_IN* out) const override {
       T_IN result = !SUM; // 0 for `sum()` and 1 for `prod()`
       T_IN value;
       size_t i0, i1;
