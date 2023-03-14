@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -194,7 +194,7 @@ class FrameInitializationManager {
               << i << " is a " << item.typeobj();
         }
       }
-      init_from_list_of_dicts_with_keys(nameslist);
+      init_from_list_of_dicts_with_keys(nameslist, nrows);
     }
 
 
@@ -229,11 +229,11 @@ class FrameInitializationManager {
           }
         }
       }
-      init_from_list_of_dicts_with_keys(nameslist);
+      init_from_list_of_dicts_with_keys(nameslist, nrows);
     }
 
 
-    void init_from_list_of_dicts_with_keys(const py::olist& nameslist) {
+    void init_from_list_of_dicts_with_keys(const py::olist& nameslist, size_t nrows) {
       py::olist srclist = src.to_pylist();
       size_t ncols = nameslist.size();
       for (size_t j = 0; j < ncols; ++j) {
@@ -242,6 +242,13 @@ class FrameInitializationManager {
         cols.push_back(Column::from_pylist_of_dicts(srclist, name, s));
       }
       make_datatable(nameslist);
+
+      // In the case there are no columns, preserve the number of rows
+      if (ncols == 0) {
+        frame->dt->resize_rows(nrows);
+      }
+      xassert(frame->dt->ncols() == ncols);
+      xassert(frame->dt->nrows() == nrows);
     }
 
 
@@ -252,6 +259,7 @@ class FrameInitializationManager {
       size_t ncols = item0.size();
       check_names_count(ncols);
       check_types_count(ncols);
+
       // Check that all entries are proper tuples
       for (size_t i = 0; i < nrows; ++i) {
         py::rtuple item = srclist[i].to_rtuple_lax();
@@ -268,6 +276,7 @@ class FrameInitializationManager {
               << " had " << ncols << " element" << (ncols == 1? "" : "s");
         }
       }
+
       // Create the columns
       for (size_t j = 0; j < ncols; ++j) {
         auto s = get_type_for_column(j);
@@ -278,6 +287,13 @@ class FrameInitializationManager {
       } else {
         make_datatable(item0.get_attr("_fields").to_pylist());
       }
+
+      // In the case there are no columns, preserve the number of rows
+      if (ncols == 0) {
+        frame->dt->resize_rows(nrows);
+      }
+      xassert(frame->dt->ncols() == ncols);
+      xassert(frame->dt->nrows() == nrows);
     }
 
 
