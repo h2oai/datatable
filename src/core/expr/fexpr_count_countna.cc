@@ -76,6 +76,12 @@ class FExpr_CountNA : public FExpr_Func {
         gby = Groupby::single_group(wf.nrows());
       } 
 
+      if (count_all_rows && COUNTNA){
+        Column coli = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
+        outputs.add_column(std::move(coli), std::string(), Grouping::GtoONE);
+        return outputs;
+      }
+
       for (size_t i = 0; i < wf.ncols(); ++i) {
         bool is_grouped = ctx.has_group_column(
                             wf.get_frame_id(i),
