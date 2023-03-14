@@ -38,7 +38,7 @@ class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t, IS_GROUPED> {
       if (IS_GROUPED){
         bool isvalid = this->col_.get_element(i, &value);
         if (COUNTNA){
-          count = isvalid? 0: static_cast<int64_t>(i1 - i0);          
+          count = isvalid? 0 : static_cast<int64_t>(i1 - i0);          
         } else {
             count = isvalid? static_cast<int64_t>(i1 - i0) : 0;            
         }        
