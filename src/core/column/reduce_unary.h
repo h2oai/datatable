@@ -26,7 +26,7 @@
 namespace dt {
 
 
-template <typename T, typename U, bool IS_GROUPED>
+template <typename T_IN, typename T_OUT, bool IS_GROUPED>
 class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column col_;
@@ -35,11 +35,11 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
 
   public:
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), stype_from<U>),
+      : Virtual_ColumnImpl(gby.size(), stype_from<T_OUT>),
         col_(std::move(col)),
         gby_(gby)
     {
-      xassert(col_.can_be_read_as<T>());
+      xassert(col_.can_be_read_as<T_IN>());
     }
 
 

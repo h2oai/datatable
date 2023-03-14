@@ -25,13 +25,13 @@
 namespace dt {
 
 
-template <typename T, bool COUNTNA, bool IS_GROUPED>
-class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t, IS_GROUPED> {
+template <typename T_IN, bool COUNTNA, bool IS_GROUPED>
+class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T_IN, int64_t, IS_GROUPED> {
   public:
-    using ReduceUnary_ColumnImpl<T, U, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T_IN, int64_t, IS_GROUPED>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, int64_t* out) const override {
-      T value;
+      T_IN value;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
       int64_t count = 0;
