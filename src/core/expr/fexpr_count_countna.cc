@@ -86,7 +86,9 @@ class FExpr_CountNA : public FExpr_Func {
         if (COUNTNA && !ctx.has_groupby() && (coli.stype() == SType::VOID)) {
           int64_t nrows = static_cast<int64_t>(ctx.nrows());
           coli = Const_ColumnImpl::make_int_column(1, nrows, SType::INT64);
-        } else {coli = evaluate1(std::move(coli), gby, is_grouped);}
+        } else {
+          coli = evaluate1(std::move(coli), gby, is_grouped);
+        }
         outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                         
       }        
       return outputs;
