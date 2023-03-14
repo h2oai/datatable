@@ -65,6 +65,10 @@
     -[fix] :meth:`.to_numpy()` will now create a correctly shaped array
         in the case of zero-column frames. [#3427]
 
+    -[fix] In the case a zero-column frame is created from a list of
+        tuples or dictionaries, the number of rows will be equal
+        to the number of elements in that list. [#3428]
+
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
         such column back into datatable produces a ``void`` column again. [#3063]

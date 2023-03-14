@@ -540,6 +540,13 @@ def test_create_from_list_of_namedtuples_names_override():
     assert d0.to_list() == [[5, 3], [6, 2], [7, 1]]
 
 
+def test_create_from_list_of_tuples_empty():
+    # See issue #3428
+    d0 = dt.Frame([(), ()])
+    frame_integrity_check(d0)
+    assert d0.shape == (2, 0)
+
+
 
 #-------------------------------------------------------------------------------
 # Create from a list of dictionaries (as rows)
@@ -586,9 +593,17 @@ def test_create_from_list_of_dicts_with_names1():
 
 
 def test_create_from_list_of_dicts_with_names2():
+    # See issue #3428
     d0 = dt.Frame([{"a": 5}, {"b": 6}, {"c": 11}, {}], names=[])
     frame_integrity_check(d0)
-    assert d0.shape == (0, 0)
+    assert d0.shape == (4, 0)
+
+
+def test_create_from_list_of_dicts_empty():
+    # See issue #3428
+    d0 = dt.Frame([{}])
+    frame_integrity_check(d0)
+    assert d0.shape == (1, 0)
 
 
 def test_create_from_list_of_dicts_bad1():
