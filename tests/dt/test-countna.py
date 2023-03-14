@@ -80,3 +80,4 @@ def test_dt_countna_void():
     DT = dt.Frame([None])
     RES = DT[:, dt.countna(f.C0), dt.by(f.C0)]
     EXP = dt.Frame({"C0":[None], "C1":[1]/dt.int64})
+

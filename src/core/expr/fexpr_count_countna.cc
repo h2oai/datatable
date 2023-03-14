@@ -62,10 +62,8 @@ class FExpr_CountNA : public FExpr_Func {
       if (count_all_rows && !COUNTNA) {
         Column coli;
         if (gby){
-          coli = Column(new Latent_ColumnImpl(
-                new CountAllRows_ColumnImpl(gby)
-              ));
-        } else {
+          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(wf.retrieve_column(0), gby)));
+        } else{
             auto value = static_cast<int64_t>(ctx.nrows());
             coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
           }
@@ -87,8 +85,8 @@ class FExpr_CountNA : public FExpr_Func {
           int64_t nrows = static_cast<int64_t>(ctx.nrows());
           coli = Const_ColumnImpl::make_int_column(1, nrows, SType::INT64);
         } else {
-          coli = evaluate1(std::move(coli), gby, is_grouped);
-        }
+            coli = evaluate1(std::move(coli), gby, is_grouped);
+          }
         outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                         
       }        
       return outputs;
@@ -122,7 +120,6 @@ class FExpr_CountNA : public FExpr_Func {
             << "Invalid column of type `" << stype << "` in " << repr();
       }
     }
-
 
     template <typename T_IN>
     Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
