@@ -297,6 +297,7 @@ extern const char* doc_FExpr_cumsum;
 extern const char* doc_FExpr_extend;
 extern const char* doc_FExpr_fillna;
 extern const char* doc_FExpr_first;
+extern const char* doc_FExpr_isna;
 extern const char* doc_FExpr_last;
 extern const char* doc_FExpr_max;
 extern const char* doc_FExpr_mean;

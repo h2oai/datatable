@@ -192,6 +192,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj extend(const py::XArgs&);
     py::oobj fillna(const py::XArgs&);
     py::oobj first(const py::XArgs&);
+    py::oobj isna(const py::XArgs&);
     py::oobj last(const py::XArgs&);
     py::oobj max(const py::XArgs&);
     py::oobj mean(const py::XArgs&);
