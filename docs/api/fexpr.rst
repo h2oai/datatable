@@ -63,7 +63,7 @@
           - Remove columns from the ``FExpr``.
 
 
-    Arithmeritc operators
+    Arithmetic operators
     ---------------------
 
     .. list-table::
