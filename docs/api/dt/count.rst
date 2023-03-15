@@ -68,4 +68,4 @@
     See Also
     --------
 
-    - :func:`sum()` -- function to calculate the sum of values.
+    - :func:`counta()` -- function to count the number of missing values.
