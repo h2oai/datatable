@@ -64,7 +64,7 @@
 
 
     Arithmetic operators
-    ---------------------
+    --------------------
 
     .. list-table::
         :widths: auto
