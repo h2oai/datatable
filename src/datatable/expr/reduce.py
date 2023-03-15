@@ -60,6 +60,8 @@ def nunique(iterable=None):
 
 
 def countna(iterable=None):
+    if isinstance(iterable, core.Frame):
+        return iterable.countna()
     return core.countna(iterable)
 
 
