@@ -68,4 +68,4 @@
     See Also
     --------
 
-    - :func:`counta()` -- function to count the number of missing values.
+    - :func:`countna()` -- function to count the number of missing values.
