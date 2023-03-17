@@ -19,23 +19,35 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_COUNTALLROWS_h
-#define dt_COLUMN_COUNTALLROWS_h
-#include "column/reduce_nullary.h"
+#ifndef dt_COLUMN_REDUCE_NULLARY_h
+#define dt_COLUMN_REDUCE_NULLARY_h
+#include "column/virtual.h"
+#include "stype.h"
 namespace dt {
 
 
-class CountAllRows_ColumnImpl : public ReduceNullary_ColumnImpl {
-  public:
-    using ReduceNullary_ColumnImpl::ReduceNullary_ColumnImpl;
+class ReduceNullary_ColumnImpl : public Virtual_ColumnImpl {
+  protected:
+    Groupby gby_;
+    
 
-    bool get_element(size_t i, int64_t* out) const override {
-      size_t i0, i1;
-      this->gby_.get_group(i, &i0, &i1);
-      *out = static_cast<int64_t>(i1 - i0);
-      return true;
+  public:
+    ReduceNullary_ColumnImpl(const Groupby& gby, SType stype)
+      : Virtual_ColumnImpl(gby.size(), stype),
+        gby_(gby)
+    {}
+
+
+    ColumnImpl *clone() const override {
+      return new ReduceNullary_ColumnImpl(Groupby(gby_), this->stype());
     }
+
+    size_t n_children() const noexcept override {
+      return 0;
+    }
+
 };
+
 
 }  // namespace dt
 #endif

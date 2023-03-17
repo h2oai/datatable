@@ -63,8 +63,7 @@ class FExpr_CountNA : public FExpr_Func {
         Column coli;
         auto value = static_cast<int64_t>(ctx.nrows());
         if (gby){
-          coli = Const_ColumnImpl::make_int_column(value, 1, SType::INT64);
-          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(std::move(coli), gby)));
+          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(gby, SType::INT64)));
         } else{            
           coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
         }
