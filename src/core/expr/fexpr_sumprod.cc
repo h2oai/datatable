@@ -55,6 +55,7 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
         case SType::INT16:
         case SType::INT32:
         case SType::INT64:
+          col.cast_inplace(SType::INT64);
           return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
           return make<float>(std::move(col), gby, is_grouped);
