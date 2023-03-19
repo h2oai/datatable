@@ -105,22 +105,22 @@ class FExpr_CountNA : public FExpr_Func {
         case SType::VOID:
         case SType::BOOL:
         case SType::INT8:
-          return make<int8_t>(std::move(col), gby, is_grouped);
+          return make<int8_t>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::INT16:
-          return make<int16_t>(std::move(col), gby, is_grouped);
+          return make<int16_t>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::DATE32: 
         case SType::INT32:
-          return make<int32_t>(std::move(col), gby, is_grouped);
+          return make<int32_t>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::TIME64: 
         case SType::INT64:
-          return make<int64_t>(std::move(col), gby, is_grouped);
+          return make<int64_t>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), gby, is_grouped);
+          return make<float>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), gby, is_grouped);
+          return make<double>(std::move(col), SType::INT64, gby, is_grouped);
         case SType::STR32:
         case SType::STR64:
-          return make<CString>(std::move(col), gby, is_grouped);                
+          return make<CString>(std::move(col), SType::INT64, gby, is_grouped);                
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -128,14 +128,14 @@ class FExpr_CountNA : public FExpr_Func {
     }
 
     template <typename T_IN>
-    Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
         return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, true>(
-          std::move(col), gby
+          std::move(col), stype, gby
         )));
       } else {
         return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, false>(
-          std::move(col), gby
+          std::move(col), stype, gby
         )));
       }
     }

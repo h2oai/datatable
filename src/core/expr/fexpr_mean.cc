@@ -52,24 +52,20 @@ class FExpr_Mean : public FExpr_ReduceUnary {
                           ));
         case SType::BOOL:
         case SType::INT8:
-          return make<int8_t, double>(std::move(col), gby, is_grouped);
         case SType::INT16:
-          return make<int16_t, double>(std::move(col), gby, is_grouped);
         case SType::INT32:   
-          return make<int32_t, double>(std::move(col), gby, is_grouped);     
         case SType::INT64:
-          return make<int64_t, double>(std::move(col), gby, is_grouped);
         case SType::FLOAT64:
-          return make<double, double>(std::move(col), gby, is_grouped);
+          return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
         case SType::FLOAT32:
-          return make<float, float>(std::move(col), gby, is_grouped);
+          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
         case SType::DATE32: {
-          Column coli = make<double, double>(std::move(col), gby, is_grouped);
+          Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
           coli.cast_inplace(SType::DATE32);
           return coli;
         }
         case SType::TIME64: {
-          Column coli = make<double, double>(std::move(col), gby, is_grouped);
+          Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
           coli.cast_inplace(SType::TIME64);
           return coli;
         }             
@@ -85,15 +81,16 @@ class FExpr_Mean : public FExpr_ReduceUnary {
     }
 
 
-    template <typename T_IN, typename T_OUT>
-    Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
+    template <typename T_IN>
+    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
+      col.cast_inplace(stype);
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, T_OUT, true>(
-          std::move(col), gby
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, true>(
+          std::move(col), stype, gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, T_OUT, false>(
-          std::move(col), gby
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, false>(
+          std::move(col), stype, gby
         )));
       }
     }

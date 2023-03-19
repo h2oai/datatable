@@ -52,7 +52,7 @@ class FExpr_MinMax : public FExpr_ReduceUnary {
           return Column(new ConstNa_ColumnImpl(gby.size(), stype));
         case SType::BOOL:
         case SType::INT8:
-          return make<int8_t>(std::move(col), gby, is_grouped);
+          return make<int8_t>(std::move(col), SType::INT8, gby, is_grouped);
         case SType::INT16:
           return make<int16_t>(std::move(col), gby, is_grouped);
         case SType::INT32:
@@ -62,7 +62,7 @@ class FExpr_MinMax : public FExpr_ReduceUnary {
         case SType::TIME64:
           return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), gby, is_grouped);
+          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
         case SType::FLOAT64:
           return make<double>(std::move(col), gby, is_grouped);
         default:
