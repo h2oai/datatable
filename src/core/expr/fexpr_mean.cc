@@ -81,15 +81,15 @@ class FExpr_Mean : public FExpr_ReduceUnary {
     }
 
 
-    template <typename T_IN>
+    template <typename T>
     Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, true>(
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, true>(
           std::move(col), stype, gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T_IN, false>(
+        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, false>(
           std::move(col), stype, gby
         )));
       }
