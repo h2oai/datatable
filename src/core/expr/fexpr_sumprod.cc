@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -39,7 +39,8 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
 
 
     std::string name() const override {
-      return SUM? "sum" : "prod";
+      return SUM? "sum"
+                : "prod";
     }
 
 
