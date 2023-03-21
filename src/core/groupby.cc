@@ -66,11 +66,12 @@ Groupby Groupby::single_group(size_t nrows) {
 
 Groupby Groupby::nrows_groups(size_t nrows) {
   XAssert(nrows <= Column::MAX_ARR32_SIZE);
-  Buffer buf = Buffer::mem((nrows + 1) * sizeof(int32_t));
-  auto bufdata = static_cast<int32_t*>(buf.wptr());
-  dt::parallel_for_static(nrows + 1,
+  size_t noffs = nrows + 1;
+  Buffer buf = Buffer::mem(noffs * sizeof(int32_t));
+  auto offs = static_cast<int32_t*>(buf.wptr());
+  dt::parallel_for_static(noffs,
     [&](size_t i) {
-      bufdata[i] = static_cast<int32_t>(i);
+      offs[i] = static_cast<int32_t>(i);
     });
 
   return Groupby(nrows, std::move(buf));
