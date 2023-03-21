@@ -23,7 +23,7 @@
 #include "column/latent.h"
 #include "column/mean.h"
 #include "documentation.h"
-#include "expr/fexpr_func.h"
+#include "expr/fexpr_reduce_unary.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
@@ -32,47 +32,19 @@ namespace dt {
 namespace expr {
 
 
-class FExpr_Mean : public FExpr_Func {
-  private:
-    ptrExpr arg_;
-
+class FExpr_Mean : public FExpr_ReduceUnary {
   public:
-    FExpr_Mean(ptrExpr &&arg)
-      : arg_(std::move(arg)) {}
+    using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
-    std::string repr() const override {
-      std::string out = "mean";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
+
+    std::string name() const override {
+      return "mean";
     }
 
 
-    Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe outputs(ctx);
-      Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      } 
-
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-        bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);        
-        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
-      }
-        
-      return outputs;
-    }
-
-
-    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const override{
       SType stype = col.stype();
+      Column col_out;
 
       switch (stype) {
         case SType::VOID: return Column(new ConstNa_ColumnImpl(
@@ -83,42 +55,34 @@ class FExpr_Mean : public FExpr_Func {
         case SType::INT16:
         case SType::INT32:        
         case SType::INT64:
+        case SType::DATE32:
+        case SType::TIME64:
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+          col_out = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+          break;
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
-
-        case SType::DATE32: {
-          Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
-          coli.cast_inplace(SType::DATE32);
-          return coli;
-        }
-        case SType::TIME64: {
-          Column coli = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
-          coli.cast_inplace(SType::TIME64);
-          return coli;
-        }           
-        
+          col_out = make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
+          break;
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
       }
+
+      if (stype == SType::DATE32 || stype == SType::TIME64) {
+        col_out.cast_inplace(stype);
+      }
+      return col_out;
     }
 
 
     template <typename T>
-    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
+    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
 
-      if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, true>(
-          std::move(col), gby
-        )));
-      } else {
-        return Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T, false>(
-          std::move(col), gby
-        )));
-      }
+      return is_grouped? std::move(col)
+                       : Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T>(
+                           std::move(col), gby
+                         )));
     }
 };
 

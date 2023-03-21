@@ -63,6 +63,16 @@ Groupby Groupby::single_group(size_t nrows) {
 }
 
 
+Groupby Groupby::nrows_groups(size_t nrows) {
+  XAssert(nrows <= Column::MAX_ARR32_SIZE);
+  Buffer mr = Buffer::mem((nrows + 1) * sizeof(int32_t));
+  for (size_t i = 0; i <= nrows; ++i) {
+    mr.set_element(i, static_cast<int32_t>(i));
+  }
+  return Groupby(nrows, std::move(mr));
+}
+
+
 // Returns true for a valid Groupby object, and false the default-
 // constructed "empty" Groupby.
 //

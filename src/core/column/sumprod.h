@@ -27,9 +27,9 @@ namespace dt {
 
 
 template <typename T, bool SUM, bool IS_GROUPED>
-class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
+class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
   public:
-    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {
       T result = !SUM; // 0 for `sum()` and 1 for `prod()`

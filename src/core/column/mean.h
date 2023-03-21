@@ -25,36 +25,29 @@
 namespace dt {
 
 
-template <typename T, bool IS_GROUPED>
-class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
+template <typename T>
+class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
   public:
-    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {
       T value;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
 
-      if (IS_GROUPED){
-        bool is_valid = this->col_.get_element(i, &value);
-        if (!is_valid) return false;
-        *out = static_cast<T>(value);
-        return true;
-      } else {
-        double sum = 0;
-        int64_t count = 0;
-        for (size_t gi = i0; gi < i1; ++gi) {
-          bool is_valid = this->col_.get_element(gi, &value);
-          if (is_valid) {
-            sum += static_cast<double>(value);
-            count++;
-          }
+      double sum = 0;
+      int64_t count = 0;
+      for (size_t gi = i0; gi < i1; ++gi) {
+        bool is_valid = this->col_.get_element(gi, &value);
+        if (is_valid) {
+          sum += static_cast<double>(value);
+          count++;
         }
-        if (!count) return false;
-        *out = static_cast<T>(sum / static_cast<double>(count));
-        return true;
       }
+      if (count == 0) return false;
 
+      *out = static_cast<T>(sum / static_cast<double>(count));
+      return true;
     }
 };
 
