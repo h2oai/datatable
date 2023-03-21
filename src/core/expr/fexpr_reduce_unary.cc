@@ -36,18 +36,18 @@ Workframe FExpr_ReduceUnary::evaluate_n(EvalContext &ctx) const {
   // a single-group-all-rows Groupby.
   Groupby gby = ctx.get_groupby();
 
-  // Check if the input frame is grouped to `GtoONE`
+  // Check if the input frame is grouped as `GtoONE`
   bool is_wf_grouped = (wf.get_grouping_mode() == Grouping::GtoONE);
 
   if (is_wf_grouped) {
-    // Check if the input frame is grouped by the i-th column
+    // Check if the input frame columns are grouped
     bool are_cols_grouped = ctx.has_group_column(
                               wf.get_frame_id(0),
                               wf.get_column_id(0)
                             );
 
     if (!are_cols_grouped) {
-      // When the input frame is `GtoONE`, but columns are not groupep,
+      // When the input frame is `GtoONE`, but columns are not grouped,
       // it means we are dealing with the output of another reducer.
       // In such a case we create a new groupby, that has one element
       // per a group. This may not be optimal performance-wise,
