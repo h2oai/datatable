@@ -379,6 +379,24 @@ def test_minmax_frame(mm, res):
     assert mm(DT)[0,0] == res
 
 
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 9)])
+def test_sum_chained(mm, res):
+    DT = dt.Frame(A=range(5))
+    DT_mm = DT[:, mm(mm(f.A))]
+    frame_integrity_check(DT_mm)
+    assert DT_mm.stypes == (dt.int64,)
+    assert DT_mm.to_list() == [[res]]
+
+
+@pytest.mark.parametrize("mm, res", [(dt.min, [None, -3, 5]), (dt.max, [None, -3, 5])])
+def test_sum_chained_grouped(mm, res):
+    DT = dt.Frame(A=[None, -3, -3, None, 5])
+    DT_mm = DT[:, mm(mm(f.A)), by(f.A)]
+    frame_integrity_check(DT_mm)
+    assert DT_mm.stypes == (dt.int32, dt.int64,)
+    assert DT_mm.to_list() == [[None, -3, 5], res]
+
+
 
 #-------------------------------------------------------------------------------
 # sum
