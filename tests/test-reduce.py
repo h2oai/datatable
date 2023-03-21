@@ -379,6 +379,24 @@ def test_minmax_frame(mm, res):
     assert mm(DT)[0,0] == res
 
 
+@pytest.mark.parametrize("mm, res", [(dt.min, 0), (dt.max, 9)])
+def test_sum_chained(mm, res):
+    DT = dt.Frame(A=range(5))
+    DT_mm = DT[:, mm(mm(f.A))]
+    frame_integrity_check(DT_mm)
+    assert DT_mm.stypes == (dt.int64,)
+    assert DT_mm.to_list() == [[res]]
+
+
+@pytest.mark.parametrize("mm, res", [(dt.min, [None, -3, 5]), (dt.max, [None, -3, 5])])
+def test_sum_chained_grouped(mm, res):
+    DT = dt.Frame(A=[None, -3, -3, None, 5])
+    DT_mm = DT[:, mm(mm(f.A)), by(f.A)]
+    frame_integrity_check(DT_mm)
+    assert DT_mm.stypes == (dt.int32, dt.int64,)
+    assert DT_mm.to_list() == [[None, -3, 5], res]
+
+
 
 #-------------------------------------------------------------------------------
 # sum
@@ -460,6 +478,22 @@ def test_sum_comprehension():
     assert s == 45
 
 
+def test_sum_chained():
+    DT = dt.Frame(A=range(5))
+    DT_sum = DT[:, sum(sum(f.A))]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.stypes == (dt.int64,)
+    assert DT_sum.to_list() == [[10]]
+
+
+def test_sum_chained_grouped():
+    DT = dt.Frame(A=[None, -3, -3, None, 5])
+    DT_sum = DT[:, sum(sum(f.A)), by(f.A)]
+    frame_integrity_check(DT_sum)
+    assert DT_sum.stypes == (dt.int32, dt.int64,)
+    assert DT_sum.to_list() == [[None, -3, 5], [0, -6, 5]]
+
+
 
 #-------------------------------------------------------------------------------
 # Mean
@@ -485,22 +519,38 @@ def test_mean_void_grouped():
 
 def test_mean_simple():
     DT = dt.Frame(A=range(5))
-    RZ = DT[:, mean(f.A)]
-    frame_integrity_check(RZ)
-    assert RZ.stypes == (dt.float64,)
-    assert RZ.to_list() == [[2.0]]
+    DT_mean = DT[:, mean(f.A)]
+    frame_integrity_check(DT_mean)
+    assert DT_mean.stypes == (dt.float64,)
+    assert DT_mean.to_list() == [[2.0]]
 
 
 def test_mean_empty_frame():
     DT = dt.Frame([[]] * 4, names=list("ABCD"),
                   stypes=(dt.bool8, dt.int32, dt.float32, dt.float64))
     assert DT.shape == (0, 4)
-    RZ = DT[:, mean(f[:])]
-    frame_integrity_check(RZ)
-    assert RZ.shape == (1, 4)
-    assert RZ.names == ("A", "B", "C", "D")
-    assert RZ.stypes == (dt.float64, dt.float64, dt.float32, dt.float64)
-    assert RZ.to_list() == [[None]] * 4
+    DT_mean = DT[:, mean(f[:])]
+    frame_integrity_check(DT_mean)
+    assert DT_mean.shape == (1, 4)
+    assert DT_mean.names == ("A", "B", "C", "D")
+    assert DT_mean.stypes == (dt.float64, dt.float64, dt.float32, dt.float64)
+    assert DT_mean.to_list() == [[None]] * 4
+
+
+def test_mean_chained():
+    DT = dt.Frame(A=range(5))
+    DT_mean = DT[:, mean(mean(f.A))]
+    frame_integrity_check(DT_mean)
+    assert DT_mean.stypes == (dt.float64,)
+    assert DT_mean.to_list() == [[2.0]]
+
+
+def test_mean_chained_grouped():
+    DT = dt.Frame(A=[None, -3, -3, None, 5])
+    DT_mean = DT[:, mean(mean(f.A)), by(f.A)]
+    frame_integrity_check(DT_mean)
+    assert DT_mean.stypes == (dt.int32, dt.float64,)
+    assert DT_mean.to_list() == [[None, -3, 5], [None, -3, 5]]
 
 
 
@@ -826,6 +876,22 @@ def test_prod_grouped():
     frame_integrity_check(RES)
     assert_equals(RES, REF)
     assert str(RES)
+
+
+def test_prod_chained():
+    DT = dt.Frame(A=range(5))
+    DT_prod = DT[:, prod(prod(f.A))]
+    frame_integrity_check(DT_prod)
+    assert DT_prod.stypes == (dt.int64,)
+    assert DT_prod.to_list() == [[0]]
+
+
+def test_prod_chained_grouped():
+    DT = dt.Frame(A=[None, -3, -3, None, 5])
+    DT_prod = DT[:, prod(prod(f.A)), by(f.A)]
+    frame_integrity_check(DT_prod)
+    assert DT_prod.stypes == (dt.int32, dt.int64,)
+    assert DT_prod.to_list() == [[None, -3, 5], [1, 9, 5]]
 
 
 #-------------------------------------------------------------------------------

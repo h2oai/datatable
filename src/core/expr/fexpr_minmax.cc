@@ -23,7 +23,7 @@
 #include "column/latent.h"
 #include "column/minmax.h"
 #include "documentation.h"
-#include "expr/fexpr_func.h"
+#include "expr/fexpr_reduce_unary.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
@@ -33,53 +33,18 @@ namespace expr {
 
 
 template <bool MIN>
-class FExpr_MinMax : public FExpr_Func {
-  private:
-    ptrExpr arg_;
-
+class FExpr_MinMax : public FExpr_ReduceUnary {
   public:
-    FExpr_MinMax(ptrExpr &&arg)
-      : arg_(std::move(arg)) {}
+    using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
-    std::string repr() const override {
-      std::string out = MIN? "min" : "max";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
+
+    std::string name() const override {
+      return MIN? "min"
+                : "max";
     }
 
 
-    Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe outputs(ctx);
-      Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      }
-
-      if (wf.nrows() == 0) {
-        for (size_t i = 0; i < wf.ncols(); ++i) {
-          Column coli = wf.retrieve_column(i);
-          coli = Column(new ConstNa_ColumnImpl(1, coli.stype()));
-          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
-        }
-      } else {
-          for (size_t i = 0; i < wf.ncols(); ++i) {
-            bool is_grouped = ctx.has_group_column(
-                                wf.get_frame_id(i),
-                                wf.get_column_id(i)
-                              );
-            Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);        
-            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);         
-          }
-        }
-      return outputs;
-    }
-
-
-    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const override {
       SType stype = col.stype();
 
       switch (stype) {
@@ -87,21 +52,19 @@ class FExpr_MinMax : public FExpr_Func {
           return Column(new ConstNa_ColumnImpl(gby.size(), stype));
         case SType::BOOL:
         case SType::INT8:
-          return make<int8_t>(std::move(col), SType::INT8, gby, is_grouped);
+          return make<int8_t>(std::move(col), gby, is_grouped);
         case SType::INT16:
-          return make<int16_t>(std::move(col), SType::INT16, gby, is_grouped);
-        case SType::DATE32:
-          return make<int32_t>(std::move(col), SType::DATE32, gby, is_grouped);
+          return make<int16_t>(std::move(col), gby, is_grouped);
         case SType::INT32:
-          return make<int32_t>(std::move(col), SType::INT32, gby, is_grouped);
-        case SType::TIME64:
-          return make<int64_t>(std::move(col), SType::TIME64, gby, is_grouped);
+        case SType::DATE32:
+          return make<int32_t>(std::move(col), gby, is_grouped);
         case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, gby, is_grouped);
+        case SType::TIME64:
+          return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
+          return make<float>(std::move(col), gby, is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
+          return make<double>(std::move(col), gby, is_grouped);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -110,17 +73,12 @@ class FExpr_MinMax : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
-      col.cast_inplace(stype);
-      if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, true>(
-          std::move(col), gby
-        )));
-      } else {
-        return Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN, false>(
-          std::move(col), gby
-        )));
-      }
+    Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
+      return is_grouped? std::move(col)
+                       : Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN>(
+                           std::move(col), gby
+                         )));
+
     }
 };
 

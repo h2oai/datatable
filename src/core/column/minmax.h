@@ -22,23 +22,15 @@
 #ifndef dt_COLUMN_MINMAX_h
 #define dt_COLUMN_MINMAX_h
 #include "column/reduce_unary.h"
-#include "stype.h"
 namespace dt {
 
 
-template <typename T, bool MIN, bool IS_GROUPED>
-class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
+template <typename T, bool MIN>
+class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
   public:
-    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {      
-      if (IS_GROUPED) {
-        T value;
-        bool isvalid = this->col_.get_element(i, &value);
-        *out = value;
-        return isvalid;
-      }
-
       // res` will be updated on the first valid element, due to `res_isna`
       // initially being set to `true`. So the default value here
       // only silences the compiler warning and makes the update

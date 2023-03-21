@@ -151,6 +151,8 @@
     -[fix] Fixed :func:`dt.median()` when used in a groupby context with
        :attr:`void <dt.Type.void>` columns. [#3411]
 
+    -[fix] Allow chained reducers to be used for :class:`dt.FExpr`s. [#3417]
+
 
     fread
     -----
