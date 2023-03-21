@@ -27,8 +27,7 @@ namespace expr {
 
 
 /**
-  * Base class for reducers that have only a single argument.
-  *
+  * Base class for FExpr reducers that have only one parameter.
   */
 class FExpr_ReduceUnary : public FExpr_Func {
   protected:

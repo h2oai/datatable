@@ -46,7 +46,7 @@ class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
       }
       if (count == 0) return false;
 
-      *out = static_cast<T>(sum / static_cast<double>(count));
+      *out = static_cast<T>(sum / count);
       return true;
     }
 };

@@ -73,7 +73,7 @@ class FExpr_MinMax : public FExpr_ReduceUnary {
 
 
     template <typename T>
-    Column make(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
       return is_grouped? std::move(col)
                        : Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN>(
                            std::move(col), gby
