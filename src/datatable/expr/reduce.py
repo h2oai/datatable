@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2022 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -114,17 +114,16 @@ def sum(iterable, start=0):
     elif isinstance(iterable, core.Frame):
         return iterable.sum()
     else:
-        return _builtin_sum(iterable, start)
-
+        return _builtin_sum(iterable, start)  
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
     if (len(args) == 1
         and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
         or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
-        return Expr(OpCodes.MIN, args)
+        return core.min(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
-        return Expr(OpCodes.MIN, args)
+        return core.min(args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
     else:
@@ -136,9 +135,9 @@ def max(*args, **kwds):
     if (len(args) == 1 and (not isinstance(args[0], dict))
         and (isinstance(args[0], (Expr, core.FExpr))
         or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
-        return Expr(OpCodes.MAX, args)
+        return core.max(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
-        return Expr(OpCodes.MAX, args)
+        return core.max(args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()
     else:

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2021 H2O.ai
+// Copyright 2019-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -476,105 +476,6 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 
 
 
-//------------------------------------------------------------------------------
-// min(A), max(A)
-//------------------------------------------------------------------------------
-
-template <typename T>
-bool min_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T min = std::numeric_limits<T>::max();
-  bool min_isna = true;
-
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      if (value < min || min_isna){
-        min = value;
-        min_isna = false;
-      }
-    }
-  }
-  *out = static_cast<T>(min);
-  return !min_isna;
-}
-
-
-
-template <typename T>
-static Column _min(SType stype, Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, min_reducer<T>
-            )));
-}
-
-static Column compute_min(Column&& arg, const Groupby& gby) {
-  auto st = arg.stype();
-  switch (st) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _min<int8_t>(st, std::move(arg), gby);
-    case SType::INT16:   return _min<int16_t>(st, std::move(arg), gby);
-    case SType::DATE32:
-    case SType::INT32:   return _min<int32_t>(st, std::move(arg), gby);
-    case SType::TIME64:
-    case SType::INT64:   return _min<int64_t>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _min<float>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _min<double>(st, std::move(arg), gby);
-    default: throw _error("min", arg.stype());
-  }
-}
-
-
-template <typename T>
-bool max_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T max = std::numeric_limits<T>::min();
-  bool max_isna = true;
-
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      if (value > max || max_isna){
-        max = value;
-        max_isna = false;
-      }
-    }
-  }
-  *out = static_cast<T>(max);
-  return !max_isna;
-}
-
-
-
-template <typename T>
-static Column _max(SType stype, Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, max_reducer<T>
-            )));
-}
-
-static Column compute_max(Column&& arg, const Groupby& gby) {
-  auto st = arg.stype();
-  switch (st) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _max<int8_t>(st, std::move(arg), gby);
-    case SType::INT16:   return _max<int16_t>(st, std::move(arg), gby);
-    case SType::DATE32:
-    case SType::INT32:   return _max<int32_t>(st, std::move(arg), gby);
-    case SType::TIME64:
-    case SType::INT64:   return _max<int64_t>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _max<float>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _max<double>(st, std::move(arg), gby);
-    default: throw _error("max", arg.stype());
-  }
-}
-
 
 //------------------------------------------------------------------------------
 // nunique(A:grouped)
@@ -809,8 +710,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
   maker_fn fn = nullptr;
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
-      case Op::MIN:    fn = compute_min; break;
-      case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;
@@ -824,8 +723,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
   } else {
     switch (op) {
       case Op::STDEV:  fn = compute_gsd; break;
-      case Op::MIN:
-      case Op::MAX:
       case Op::FIRST:
       case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::COUNT:  fn = compute_gcount<false>; break;
