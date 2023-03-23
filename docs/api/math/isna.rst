@@ -5,7 +5,7 @@
     :cvar: doc_math_isna
     :signature: isna(cols)
 
-    Returns `True` if the argument is NA, and `False` otherwise.
+    Tests if the column elements are missing values. 
 
     Parameters
     ----------
