@@ -26,9 +26,9 @@ namespace dt {
 
 
 template <typename T>
-class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
+class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T, T> {
   public:
-    using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T, T>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {
       T value;

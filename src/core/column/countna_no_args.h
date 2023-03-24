@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2023 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,34 +19,42 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_REDUCE_NULLARY_h
-#define dt_COLUMN_REDUCE_NULLARY_h
+#ifndef dt_COLUMN_COUNTNA_ALLROWS_h
+#define dt_COLUMN_COUNTNA_ALLROWS_h
 #include "column/virtual.h"
 #include "stype.h"
 namespace dt {
 
 
-class ReduceNullary_ColumnImpl : public Virtual_ColumnImpl {
+class CountAllRows_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Groupby gby_;
-    
 
   public:
-    ReduceNullary_ColumnImpl(const Groupby& gby, SType stype)
-      : Virtual_ColumnImpl(gby.size(), stype),
+    CountAllRows_ColumnImpl(const Groupby& gby)
+      : Virtual_ColumnImpl(gby.size(), SType::INT64),
         gby_(gby)
     {}
 
 
     ColumnImpl *clone() const override {
-      return new ReduceNullary_ColumnImpl(Groupby(gby_), this->stype());
+      return new CountAllRows_ColumnImpl(Groupby(gby_));
     }
 
     size_t n_children() const noexcept override {
       return 0;
     }
 
+
+    bool get_element(size_t i, int64_t* out) const override {
+      size_t i0, i1;
+      this->gby_.get_group(i, &i0, &i1);
+      *out = static_cast<int64_t>(i1 - i0);
+      return true;
+    }
 };
+
+
 
 
 }  // namespace dt
