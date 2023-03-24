@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2023 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -22,9 +22,9 @@
 #include "column/const.h"
 #include "column/latent.h"
 #include "column/countna.h"
-#include "column/count_all_rows.h"
+#include "column/countna_no_args.h"
 #include "documentation.h"
-#include "expr/fexpr_func.h"
+#include "expr/fexpr_reduce_unary.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
@@ -33,73 +33,17 @@ namespace dt {
 namespace expr {
 
 template<bool COUNTNA>
-class FExpr_CountNA : public FExpr_Func {
-  private:
-    ptrExpr arg_;
-
+class FExpr_CountNA : public FExpr_ReduceUnary {
   public:
-    FExpr_CountNA(ptrExpr &&arg)
-      : arg_(std::move(arg)) {}
+    using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
-    std::string repr() const override {
-      std::string out = COUNTNA? "countna" : "count";
-      out += '(';
-      if (arg_->get_expr_kind() != Kind::None) out += arg_->repr();      
-      out += ')';
-      return out;
+
+    std::string name() const override {
+      return COUNTNA? "countna"
+                    : "count";
     }
 
-
-    Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe outputs(ctx);
-      Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-      // this covers scenarios where
-      // we dont care about the presence or absence of NAs
-      // we just want the total number of rows
-      bool count_all_rows = arg_->get_expr_kind() == Kind::None;
-
-      if (count_all_rows && !COUNTNA) {
-        Column coli;
-        auto value = static_cast<int64_t>(ctx.nrows());
-        if (gby){
-          coli = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(gby, SType::INT64)));
-        } else{            
-          coli = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
-        }
-        outputs.add_column(std::move(coli), "count", Grouping::GtoONE);
-        return outputs;
-      }
-
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      } 
-
-      if (count_all_rows && COUNTNA){
-        Column coli = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
-        outputs.add_column(std::move(coli), std::string(), Grouping::GtoONE);
-        return outputs;
-      }
-
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-        bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-        Column coli = wf.retrieve_column(i);   
-        if (COUNTNA && !ctx.has_groupby() && (coli.stype() == SType::VOID)) {
-          int64_t nrows = static_cast<int64_t>(ctx.nrows());
-          coli = Const_ColumnImpl::make_int_column(1, nrows, SType::INT64);
-        } else {
-          coli = evaluate1(std::move(coli), gby, is_grouped);
-        }
-        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);                         
-      }        
-      return outputs;
-    }
-
-
-    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:
@@ -127,27 +71,74 @@ class FExpr_CountNA : public FExpr_Func {
       }
     }
 
-    template <typename T_IN>
-    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
+    template <typename T>
+    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, true>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, true>(
           std::move(col), stype, gby
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T_IN, COUNTNA, false>(
+        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, false>(
           std::move(col), stype, gby
         )));
       }
     }
 };
 
+
+// gets the count of all rows - nulls are not checked
+template<bool COUNTNA>
+class FExpr_CountNA_AllRows : public FExpr_Func {
+  public:
+    FExpr_CountNA_AllRows(){}
+
+    std::string repr() const override {
+      std::string out = COUNTNA ? "countna(None)" 
+                                : "count()";
+      return out;
+    }
+
+  Workframe evaluate_n(EvalContext &ctx) const override {
+    Workframe wf(ctx);
+    Groupby gby = ctx.get_groupby();
+    Column col;
+
+    if (!gby) {
+      gby = Groupby::single_group(wf.nrows());
+    } 
+
+    if (COUNTNA) {
+      col = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
+      wf.add_column(std::move(col), std::string(), Grouping::GtoONE);
+      return wf;
+    }
+    
+    if (ctx.has_groupby()) {
+      col = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(gby)));
+    } else {
+        auto value = static_cast<int64_t>(ctx.nrows());
+        col = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
+    }
+    wf.add_column(std::move(col), "count", Grouping::GtoONE);
+    return wf;
+  }
+
+};
+
+
 static py::oobj pyfn_count(const py::XArgs &args) {
   auto count = args[0].to_oobj_or_none();
+  if (count.is_none()) {
+    return PyFExpr::make(new FExpr_CountNA_AllRows<false>());
+  }
   return PyFExpr::make(new FExpr_CountNA<false>(as_fexpr(count)));
 }
 
 static py::oobj pyfn_countna(const py::XArgs &args) {
-  auto countna = args[0].to_oobj();
+  auto countna = args[0].to_oobj_or_none();
+  if (countna.is_none()) {
+    return PyFExpr::make(new FExpr_CountNA_AllRows<true>());
+  }
   return PyFExpr::make(new FExpr_CountNA<true>(as_fexpr(countna)));
 }
 
@@ -163,8 +154,7 @@ DECLARE_PYFN(&pyfn_countna)
     ->name("countna")
     ->docs(doc_dt_countna)
     ->arg_names({"cols"})
-    ->n_positional_args(1)
-    ->n_required_args(1);
+    ->n_positional_args(1);
 
 
 }}  // dt::expr

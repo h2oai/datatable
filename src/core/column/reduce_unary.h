@@ -26,7 +26,7 @@
 namespace dt {
 
 
-template <typename T_IN, typename T_OUT, bool IS_GROUPED>
+template <typename T_IN, typename T_OUT>
 class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column col_;
