@@ -89,11 +89,10 @@ def tol():
     double literals into double numbers.
     """
     tols = {"Windows": 1e-15, "PowerPC64": 1e-16, "ARM": 1e-15} 
-    platform = "PowerPC64" if is_ppc64() else \
-               "ARM" if is_arm() else \
-               platform.system()
-
-    return tols.get(platform, 0)
+    p = "PowerPC64" if is_ppc64() else \
+        "ARM" if is_arm() else \
+        platform.system()
+    return tols.get(p, 0)
 
 
 @pytest.fixture(scope="session")
