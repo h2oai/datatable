@@ -19,83 +19,76 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "column/isna.h"
-#include "column/const.h"
-#include "documentation.h"
-#include "expr/fexpr_column.h"
 #include "expr/funary/fexpr_isna.h"
+#include "column/const.h"
+#include "column/isna.h"
+#include "documentation.h"
 #include "expr/eval_context.h"
+#include "expr/fexpr_column.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
 namespace dt {
 namespace expr {
 
-    FExpr_ISNA::FExpr_ISNA(ptrExpr &&arg) : arg_(std::move(arg))
-    {}
+FExpr_ISNA::FExpr_ISNA(ptrExpr &&arg) : arg_(std::move(arg)) {}
 
-    std::string FExpr_ISNA::repr() const
-    {
-      std::string out = "isna";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
-    }
+std::string FExpr_ISNA::repr() const {
+  std::string out = "isna";
+  out += '(';
+  out += arg_->repr();
+  out += ')';
+  return out;
+}
 
-    static Column make_isna_col(Column &&col)
-    {
-      switch (col.stype())
-      {
-        case SType::VOID:
-          return Const_ColumnImpl::make_bool_column(col.nrows(), true);
-        case SType::BOOL:
-        case SType::INT8:
-          return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
-        case SType::INT16:
-          return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
-        case SType::DATE32:
-        case SType::INT32:
-          return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
-        case SType::TIME64:
-        case SType::INT64:
-          return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
-        case SType::FLOAT32:
-          return Column(new Isna_ColumnImpl<float>(std::move(col)));
-        case SType::FLOAT64:
-          return Column(new Isna_ColumnImpl<double>(std::move(col)));
-        case SType::STR32:
-        case SType::STR64:
-          return Column(new Isna_ColumnImpl<CString>(std::move(col)));
-        default:
-          throw RuntimeError();
-      }
-    }
-
-    Workframe FExpr_ISNA::evaluate_n(EvalContext &ctx) const
-    {
-      Workframe wf = arg_->evaluate_n(ctx);
-
-      for (size_t i = 0; i < wf.ncols(); ++i)
-      {
-        Column coli = make_isna_col(wf.retrieve_column(i));
-        wf.replace_column(i, std::move(coli));
-      }
-
-      return wf;
-    }
-
-    static py::oobj pyfn_isna(const py::XArgs &args)
-    {
-      auto isna = args[0].to_oobj();
-      return PyFExpr::make(new FExpr_ISNA(as_fexpr(isna)));
-    }
-
-    DECLARE_PYFN(&pyfn_isna)
-        ->name("isna")
-        ->docs(doc_math_isna)
-        ->arg_names({"cols"})
-        ->n_positional_args(1)
-        ->n_required_args(1);
-
+static Column make_isna_col(Column &&col) {
+  switch (col.stype()) {
+  case SType::VOID:
+      return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+  case SType::BOOL:
+  case SType::INT8:
+      return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+  case SType::INT16:
+      return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+  case SType::DATE32:
+  case SType::INT32:
+      return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+  case SType::TIME64:
+  case SType::INT64:
+      return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+  case SType::FLOAT32:
+      return Column(new Isna_ColumnImpl<float>(std::move(col)));
+  case SType::FLOAT64:
+      return Column(new Isna_ColumnImpl<double>(std::move(col)));
+  case SType::STR32:
+  case SType::STR64:
+      return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+  default:
+      throw RuntimeError();
   }
-} // dt::expr
+}
+
+Workframe FExpr_ISNA::evaluate_n(EvalContext &ctx) const {
+  Workframe wf = arg_->evaluate_n(ctx);
+
+  for (size_t i = 0; i < wf.ncols(); ++i) {
+      Column coli = make_isna_col(wf.retrieve_column(i));
+      wf.replace_column(i, std::move(coli));
+  }
+
+  return wf;
+}
+
+static py::oobj pyfn_isna(const py::XArgs &args) {
+  auto isna = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_ISNA(as_fexpr(isna)));
+}
+
+DECLARE_PYFN(&pyfn_isna)
+    ->name("isna")
+    ->docs(doc_math_isna)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
+
+} // namespace expr
+} // namespace dt

@@ -48,6 +48,7 @@ from .lib._datatable import (
     isclose,
     isfinite,
     isinf,
+    isna,
     ldexp,
     lgamma,
     log,
@@ -71,10 +72,6 @@ from .lib._datatable import (
     trunc,
 )
 
-from datatable.lib._datatable import (
-    isna
-)
-
 from datatable.lib import core
 import math
 
@@ -89,15 +86,3 @@ tau = 6.283185307179586
 nan = float('nan')
 inf = float('inf')
 
-
-def isna(arg):   
-    if (not isinstance(arg, dict)
-        and (isinstance(arg, core.FExpr)
-        or (arg and (hasattr(arg, "__getitem__") and isinstance(arg[0], core.FExpr))))):
-        return core.isna(arg)
-    if isinstance(arg, dict) and isinstance([*arg.values()][0], core.FExpr):
-        return core.isna(arg)
-    try:
-        return math.isnan(arg)
-    except TypeError:
-        return arg is None
