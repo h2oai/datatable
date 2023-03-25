@@ -65,6 +65,16 @@
          0 |     2
         [1 row x 1 column]
 
+    Get the count if no col is passed:
+
+        >>> df[:, dt.countna()]
+           |    C0
+           | int64
+        -- + -----
+         0 |     0
+        [1 row x 1 column]
+
+
 
 
     See Also
