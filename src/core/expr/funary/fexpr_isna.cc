@@ -23,7 +23,7 @@
 #include "column/const.h"
 #include "documentation.h"
 #include "expr/fexpr_column.h"
-#include "expr/funary/isna/fexpr_isna.h"
+#include "expr/funary/fexpr_isna.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
