@@ -27,10 +27,8 @@
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
-namespace dt
-{
-  namespace expr
-  {
+namespace dt {
+namespace expr {
 
     FExpr_ISNA::FExpr_ISNA(ptrExpr &&arg) : arg_(std::move(arg))
     {}
