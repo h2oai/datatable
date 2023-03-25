@@ -131,4 +131,4 @@ const long double pow10lookup[601] = {
 };
 
 
-}}  // namespace dt::read::
+}}  // namespace dt::read
