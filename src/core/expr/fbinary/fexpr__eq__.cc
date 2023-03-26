@@ -68,19 +68,10 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
       std::swap(lcol, rcol);
     }
     switch (type0.stype()) {
-      case SType::VOID:    return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);
-      case SType::BOOL:
-      case SType::INT8:    
-      case SType::INT16:   
-      case SType::DATE32:
-      case SType::INT32:   
-      case SType::TIME64:
-      case SType::INT64:   
-      case SType::FLOAT32: 
-      case SType::FLOAT64: 
-      case SType::STR32:
-      case SType::STR64:   return Column(new Isna_ColumnImpl(std::move(lcol)));
-      default: break;
+      case SType::VOID:    
+        return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);      
+      default:
+        return Column(new Isna_ColumnImpl(std::move(lcol)));
     }
   } else {
     switch (type0.stype()) {

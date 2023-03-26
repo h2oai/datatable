@@ -49,24 +49,6 @@ static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
   return true;
 }
 
-static Column make_isna_col(Column&& col) {
-  switch (col.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
-    case SType::BOOL:
-    case SType::INT8:    
-    case SType::INT16:   
-    case SType::DATE32:
-    case SType::INT32:   
-    case SType::TIME64:
-    case SType::INT64:   
-    case SType::FLOAT32: 
-    case SType::FLOAT64: 
-    case SType::STR32:
-    case SType::STR64:   return Column(new Isna_ColumnImpl(std::move(col)));
-    default: throw RuntimeError();
-  }
-}
-
 Column FExpr_RowCount::apply_function(colvec&& columns,
                                       const size_t nrows,
                                       const size_t) const
@@ -76,7 +58,10 @@ Column FExpr_RowCount::apply_function(colvec&& columns,
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    columns[i] = make_isna_col(std::move(columns[i]));
+    if (columns[i].stype() == SType::VOID) {
+      columns[i] = Const_ColumnImpl::make_bool_column(columns[i].nrows(), true);
+    }
+    columns[i] = Column(new Isna_ColumnImpl(std::move(columns[i])));
   }
   return Column(new FuncNary_ColumnImpl<int32_t>(
                       std::move(columns), op_rowcount, nrows, SType::INT32));
