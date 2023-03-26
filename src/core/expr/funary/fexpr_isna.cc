@@ -47,11 +47,9 @@ Workframe FExpr_ISNA::evaluate_n(EvalContext &ctx) const {
 
   for (size_t i = 0; i < wf.ncols(); ++i) {
     Column coli = wf.retrieve_column(i);
-    if (coli.stype() == SType::VOID) {
-        coli = Const_ColumnImpl::make_bool_column(coli.nrows(), true);
-    } else {
-        coli = Column(new Isna_ColumnImpl(std::move(coli)));
-        }
+    bool is_void_column = coli.stype() == SType::VOID;
+    coli = is_void_column? Const_ColumnImpl::make_bool_column(coli.nrows(), true)
+                         : Column(new Isna_ColumnImpl(std::move(coli)));
     wf.replace_column(i, std::move(coli));
   }
 

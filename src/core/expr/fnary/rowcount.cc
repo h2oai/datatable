@@ -58,10 +58,9 @@ Column FExpr_RowCount::apply_function(colvec&& columns,
   }
   for (size_t i = 0; i < columns.size(); ++i) {
     xassert(columns[i].nrows() == nrows);
-    if (columns[i].stype() == SType::VOID) {
-      columns[i] = Const_ColumnImpl::make_bool_column(columns[i].nrows(), true);
-    }
-    columns[i] = Column(new Isna_ColumnImpl(std::move(columns[i])));
+    bool is_void_column = columns[i].stype() == SType::VOID;
+    columns[i] = is_void_column? Const_ColumnImpl::make_bool_column(columns[i].nrows(), true)
+                               : Column(new Isna_ColumnImpl(std::move(columns[i])));
   }
   return Column(new FuncNary_ColumnImpl<int32_t>(
                       std::move(columns), op_rowcount, nrows, SType::INT32));

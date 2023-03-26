@@ -19,6 +19,7 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
+#include "column/const.h"
 #include "column/ifelse.h"
 #include "column/isna.h"
 #include "column/latent.h"
@@ -138,7 +139,10 @@ class FExpr_FillNA : public FExpr_Func {
 
         for (size_t i = 0; i < wf.ncols(); ++i) {
           Column col_orig = Column(wf.get_column(i));
-          Column col_cond = Column(new Isna_ColumnImpl(wf.retrieve_column(i)));
+          Column col_cond = wf.retrieve_column(i);
+          bool is_void_column = col_cond.stype() == SType::VOID;
+          col_cond = is_void_column? Const_ColumnImpl::make_bool_column(col_cond.nrows(), true)
+                                   : Column(new Isna_ColumnImpl(std::move(col_cond)));
           Column col_repl = wf_value.retrieve_column(i);
 
           SType st = common_stype(col_orig.stype(), col_repl.stype());
