@@ -55,9 +55,9 @@ class FExpr_FillNA : public FExpr_Func {
         out +=", value=";
         out += value_->repr();
       } else {
-        out += ", reverse=";
-        out += reverse_? "True" : "False";
-      }
+          out += ", reverse=";
+          out += reverse_? "True" : "False";
+        }
       out += ')';
       return out;
     }
@@ -109,7 +109,6 @@ class FExpr_FillNA : public FExpr_Func {
               fill_id = is_valid? i : fill_id;
               indices[i] = static_cast<int32_t>(fill_id);
             }
-          }
 
         }
       );
