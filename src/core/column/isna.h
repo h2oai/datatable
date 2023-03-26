@@ -26,7 +26,7 @@
 namespace dt {
 
 
-template <typename T>
+//template <typename T>
 class Isna_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column arg_;
@@ -36,12 +36,12 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
       : Virtual_ColumnImpl(col.nrows(), SType::BOOL),
         arg_(std::move(col))
     {
-      xassert(arg_.can_be_read_as<T>());
+      //xassert(arg_.can_be_read_as<T>());
     }
 
 
     ColumnImpl* clone() const override {
-      return new Isna_ColumnImpl<T>(Column(arg_));
+      return new Isna_ColumnImpl(Column(arg_));
     }
 
     size_t n_children() const noexcept override {
@@ -55,8 +55,8 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
 
 
     bool get_element(size_t i, int8_t* out) const override {
-      T tmp;
-      *out = ! arg_.get_element(i, &tmp);
+      // T tmp;
+      *out = !arg_.get_element_isvalid(i);
       return true;
     }
 };
