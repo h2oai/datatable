@@ -170,6 +170,8 @@
     -[enh] Header detection heuristics has been improved in the case when
         some of the column names are missing. [#3363]
 
+    -[enh] Improved handling of very small and very large float values. [#3447]
+
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
 

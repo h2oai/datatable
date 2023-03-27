@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -186,9 +186,9 @@ def test_cast_double_to_float():
 
 @pytest.mark.parametrize("target_stype", ltype.real.stypes)
 def test_cast_str_to_double(target_stype):
-    DT = dt.Frame(A=["2.45", "-3.333", "0.13e+29", "boo", None, "-4e-4"])
+    DT = dt.Frame(A=["2.45", "-3.333", "0.13e+29", "boo", None, "-4e-4", "3.14e+323"])
     DT["A"] = target_stype
-    assert_equals(DT, dt.Frame(A=[2.45, -3.333, 1.3e28, None, None, -0.0004],
+    assert_equals(DT, dt.Frame(A=[2.45, -3.333, 1.3e28, None, None, -0.0004, 3.14e+323],
                                stype=target_stype))
 
 

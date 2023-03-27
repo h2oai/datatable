@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -47,6 +47,11 @@ def is_ppc64():
     return platform.system() == "Linux" and "ppc64le" in platform_hardware
 
 
+def is_arm():
+    """Helper function to determine ARM platform"""
+    return platform.processor() == "arm"
+
+
 @pytest.fixture(scope="session")
 def noppc64():
     """ Skip the test if running in PowerPC64 """
@@ -83,10 +88,11 @@ def tol():
     long double type, resulting in a loss of precision when fread converts
     double literals into double numbers.
     """
-    platform_tols = {"Windows": 1e-15, "PowerPC64": 1e-16}
-    platform_system = "PowerPC64" if is_ppc64() else platform.system()
-
-    return platform_tols.get(platform_system, 0)
+    tols = {"Windows": 1e-15, "PowerPC64": 1e-16, "ARM": 1e-15} 
+    p = "PowerPC64" if is_ppc64() else \
+        "ARM" if is_arm() else \
+        platform.system()
+    return tols.get(p, 0)
 
 
 @pytest.fixture(scope="session")
