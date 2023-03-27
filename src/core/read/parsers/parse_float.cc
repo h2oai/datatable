@@ -231,15 +231,17 @@ static void parse_float64_simple(const ParseContext& ctx) {
   if (e < -350 || e > 350) goto fail;
   r = static_cast<long double>(acc);
 
-  // Handling of very small and very large floats.
-  // Based on https://github.com/Rdatatable/data.table/pull/4165
+  // For very small and very large floats do a separate lookup
+  // for extra exponent, i.e. anything above 300 or below -300.
+  // Note that the lookup array indices go from 0 (e == -300)
+  // to 600 (e == 300). The approach is based on
+  // https://github.com/Rdatatable/data.table/pull/4165
   if (e < -300 || e > 300) {
     auto extra = static_cast<int_fast8_t>(e - copysign(300, e));
     r *= dt::read::pow10lookup[extra + 300];
     e -= extra;
   }
-  e += 300;
-  r *= dt::read::pow10lookup[e];
+  r *= dt::read::pow10lookup[e + 300];
   ctx.target->float64 = static_cast<double>(neg? -r : r);
 
   ctx.ch = ch;

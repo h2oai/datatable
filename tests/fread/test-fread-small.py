@@ -163,15 +163,23 @@ def test_float_hex_invalid():
 
 
 def test_float_decimal0(tol):
-    assert list_equals(dt.fread("1.3485701e-303\n").to_list(),
-                       [[1.3485701e-303]],
-                       rel_tol = tol)
-    assert list_equals(dt.fread("1.46761e-313\n").to_list(),
-                       [[1.46761e-313]],
-                       rel_tol = tol)
-    assert (dt.fread("A\n1.23456789123456789123456999\n")[0, 0] ==
-            1.23456789123456789123456999)
+    src_str = ["1.23456789123456789123456999",
+               "1.3485701e+303",
+               "1.3485701e-303",
+               "1.46761e+343",
+               "1.46761e-343",
+              ]
 
+    src_float = [1.23456789123456789123456999,
+                 1.3485701e+303,
+                 1.3485701e-303,
+                 1.46761e+343,
+                 1.46761e-343,
+                ]
+
+    DT = dt.fread(text="\n".join(src_str))
+    assert list_equals(DT.to_list(), [src_float], rel_tol = tol)
+    assert DT[0, 0] == src_float[0]
 
 
 def test_float_precision():
