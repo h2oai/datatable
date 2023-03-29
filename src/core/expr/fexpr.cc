@@ -215,9 +215,9 @@ bool PyFExpr::nb__bool__() {
       "        f.B != 0\n";
 }
 
-oobj PyFExpr::nb__invert__() {
-  return make_unexpr(dt::expr::Op::UINVERT, this);
-}
+// oobj PyFExpr::nb__invert__() {
+//   return make_unexpr(dt::expr::Op::UINVERT, this);
+// }
 
 oobj PyFExpr::nb__neg__() {
   return make_unexpr(dt::expr::Op::UMINUS, this);

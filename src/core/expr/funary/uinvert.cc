@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2023 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,69 +20,86 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "documentation.h"
+#include "column/func_unary.h"
+#include "column/isna.h"
 #include "expr/fexpr_column.h"
-#include "expr/funary/umaker.h"
+#include "documentation.h"
+#include "expr/fexpr_func_unary.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
-namespace dt
-{
-  namespace expr
-  {
+#include "stype.h"
+namespace dt {
+namespace expr {
 
-    FExpr_UINVERT::FExpr_UINVERT(ptrExpr &&arg) : arg_(std::move(arg))
-    {}
 
-    std::string FExpr_UINVERT::repr() const
-    {
-      std::string out = "uinvert";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
+class FExpr_UInvert : public FExpr_FuncUnary {
+  public:
+    using FExpr_FuncUnary::FExpr_FuncUnary;
+
+
+    std::string name() const override {
+      return "uinvert";
     }
 
-    static Column make_isna_col(Column &&col)
-    {
+    template <typename T>
+    static inline T op_invert(T x) {
+      return ~x;
+    }
+
+    static inline int8_t op_invert_bool(int8_t x) {
+      return !x;
+    }
+  
+    Column evaluate1(Column&& col) const override{
+      SType stype = col.stype();
+      Column col_out;
+
       switch (stype) {
-        case SType::VOID:    return umaker_ptr(new umaker_copy());
-        case SType::BOOL:    return umaker1<int8_t, int8_t>::make(op_invert_bool, SType::AUTO, SType::BOOL);
-        case SType::INT8:    return _uinvert<int8_t>();
-        case SType::INT16:   return _uinvert<int16_t>();
-        case SType::INT32:   return _uinvert<int32_t>();
-        case SType::INT64:   return _uinvert<int64_t>();
+        case SType::VOID: return Column(new ConstNa_ColumnImpl(
+                                   col.nrows(), SType::VOID
+                                 ));
+        case SType::BOOL: 
+          col_out =  Column(new FuncUnary1_ColumnImpl<int8_t, int8_t>(
+                                std::move(col), op_invert_bool, col.nrows(), SType::BOOL
+                                ));
+          break;
+        case SType::INT8: 
+          col_out = Column(new FuncUnary1_ColumnImpl<int8_t, int8_t>(
+                               std::move(col), op_invert<int8_t>, col.nrows(), SType::INT8
+                               ));
+          break;
+        case SType::INT16: 
+          col_out = Column(new FuncUnary1_ColumnImpl<int16_t, int16_t>(
+                               std::move(col), op_invert<int16_t>, col.nrows(), SType::INT16
+                               ));
+          break;        
+        case SType::INT32:
+        case SType::DATE32:
+          col_out = Column(new FuncUnary1_ColumnImpl<int32_t, int32_t>(
+                               std::move(col), op_invert<int32_t>, col.nrows(), SType::INT32
+                               ));
+          break;        
+        case SType::INT64:
+        case SType::TIME64:
+          col_out = Column(new FuncUnary1_ColumnImpl<int64_t, int64_t>(
+                               std::move(col), op_invert<int64_t>, col.nrows(), SType::INT64
+                               ));
+          break;; 
         default:
-        throw TypeError() << "Cannot apply unary `operator ~` to a column with "
-                            "stype `" << stype << "`";
-    }
-    }
-
-    Workframe FExpr_UINVERT::evaluate_n(EvalContext &ctx) const
-    {
-      Workframe wf = arg_->evaluate_n(ctx);
-
-      for (size_t i = 0; i < wf.ncols(); ++i)
-      {
-        Column coli = make_isna_col(wf.retrieve_column(i));
-        wf.replace_column(i, std::move(coli));
+          throw TypeError() << "Cannot apply unary `operator ~` to a column with "
+                              "stype `" << stype << "`";
       }
-
-      return wf;
+      if (stype == SType::DATE32 || stype == SType::TIME64) {
+          col_out.cast_inplace(stype);
+      }
+      return col_out;
     }
+};
 
-    static py::oobj pyfn_isna(const py::XArgs &args)
-    {
-      auto uinvert = args[0].to_oobj();
-      return PyFExpr::make(new FExpr_ISNA(as_fexpr(uinvert)));
-    }
+py::oobj PyFExpr::nb__invert__(py::robj lhs) {
+  return PyFExpr::make(
+            new FExpr_UInvert(as_fexpr(lhs)));
+}
 
-    DECLARE_PYFN(&pyfn_isna)
-        ->name("uinvert")
-        ->docs(doc_math_isna)
-        ->arg_names({"cols"})
-        ->n_positional_args(1)
-        ->n_required_args(1);
-
-  }
-} // dt::expr
+}}  // dt::expr

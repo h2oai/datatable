@@ -63,7 +63,7 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     // Basic
     case Op::UPLUS:     return resolve_op_uplus(stype);
     case Op::UMINUS:    return resolve_op_uminus(stype);
-    case Op::UINVERT:   return resolve_op_uinvert(stype);
+    //case Op::UINVERT:   return resolve_op_uinvert(stype);
 
     // Math: trigonometric
     case Op::SIN:       return resolve_op_sin(stype);
