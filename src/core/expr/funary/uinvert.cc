@@ -53,7 +53,6 @@ class FExpr_UInvert : public FExpr_FuncUnary {
   
     Column evaluate1(Column&& col) const override{
       SType stype = col.stype();
-      Column col_out;
 
       switch (stype) {
         case SType::VOID: 
