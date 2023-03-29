@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2023 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,42 +19,37 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include "expr/funary/fexpr_isna.h"
 #include "column/const.h"
 #include "column/isna.h"
-#include "documentation.h"
-#include "expr/eval_context.h"
 #include "expr/fexpr_column.h"
+#include "documentation.h"
+#include "expr/fexpr_func_unary.h"
+#include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 
-FExpr_ISNA::FExpr_ISNA(ptrExpr &&arg) 
-    : arg_(std::move(arg)) 
-    {}
 
-std::string FExpr_ISNA::repr() const {
-  std::string out = "isna";
-  out += '(';
-  out += arg_->repr();
-  out += ')';
-  return out;
-}
+class FExpr_ISNA : public FExpr_FuncUnary {
+  public:
+    using FExpr_FuncUnary::FExpr_FuncUnary;
 
-Workframe FExpr_ISNA::evaluate_n(EvalContext &ctx) const {
-  Workframe wf = arg_->evaluate_n(ctx);
 
-  for (size_t i = 0; i < wf.ncols(); ++i) {
-    Column coli = wf.retrieve_column(i);
-    bool is_void_column = coli.stype() == SType::VOID;
-    coli = is_void_column? Const_ColumnImpl::make_bool_column(coli.nrows(), true)
-                         : Column(new Isna_ColumnImpl(std::move(coli)));
-    wf.replace_column(i, std::move(coli));
-  }
+    std::string name() const override {
+      return "isna";
+    }
 
-  return wf;
-}
+
+    Column evaluate1(Column&& col) const override{
+      bool is_void_column = col.stype() == SType::VOID;
+      col = is_void_column? Const_ColumnImpl::make_bool_column(col.nrows(), true)
+                          : Column(new Isna_ColumnImpl(std::move(col)));
+      return std::move(col);
+    }
+};
+
 
 static py::oobj pyfn_isna(const py::XArgs &args) {
   auto isna = args[0].to_oobj();
@@ -68,5 +63,5 @@ DECLARE_PYFN(&pyfn_isna)
     ->n_positional_args(1)
     ->n_required_args(1);
 
-} // namespace expr
-} // namespace dt
+
+}}  // dt::expr
