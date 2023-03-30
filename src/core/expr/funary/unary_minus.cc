@@ -87,41 +87,7 @@ class FExpr_UnaryMinus : public FExpr_FuncUnary {
     }
 };
 
-
-// gets the count of all rows - nulls are not checked
-class FExpr_UnaryMinus_Node : public FExpr_Func {
-  private:
-    ptrExpr arg_;
-  public:
-    FExpr_UnaryMinus_Node(ptrExpr &&arg)
-      : arg_(std::move(arg)) 
-      {}
-
-    std::string repr() const override {
-      std::string out = "uminus";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
-    }
-
-  Workframe evaluate_n(EvalContext &ctx) const override {
-    Workframe wf(ctx);
-
-    return wf;
-  }
-
-};
-
 py::oobj PyFExpr::nb__neg__(py::robj src) {
-  std::cout<<src.is_by_node()<<std::endl;
-  std::cout<<src.is_sort_node()<<std::endl;
-  if (src.is_by_node()){
-    return PyFExpr::make(
-            new FExpr_UnaryMinus_Node(as_fexpr(src)));
-
-  }
-
   return PyFExpr::make(
             new FExpr_UnaryMinus(as_fexpr(src)));
 }
