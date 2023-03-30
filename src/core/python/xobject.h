@@ -774,12 +774,12 @@ PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
   */
 
 #define METHOD__NEG__(METH)                                                    \
-    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__neg__>,        \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__neg__>,                       \
     py::XTypeMaker::nb_negative_tag
 
 
 #define METHOD__POS__(METH)                                                    \
-    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__pos__>,        \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__pos__>,                        \
     py::XTypeMaker::nb_positive_tag
 
 
@@ -789,7 +789,7 @@ PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
 
 
 #define METHOD__INVERT__(METH)                                                 \
-    py::_safe_uunary<METH, dt::CallLogger::Op::__invert__>,     \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__invert__>,                    \
     py::XTypeMaker::nb_invert_tag
 
 

@@ -172,11 +172,11 @@ oobj PyFExpr::m__getitem__(py::robj item) {
 
 //----- Basic arithmetics ------------------------------------------------------
 
-static oobj make_unexpr(dt::expr::Op op, const PyObject* self) {
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(op)),
-                  otuple{oobj(self)}});
-}
+// static oobj make_unexpr(dt::expr::Op op, const PyObject* self) {
+//   return robj(Expr_Type).call({
+//                   oint(static_cast<int>(op)),
+//                   otuple{oobj(self)}});
+// }
 
 static oobj make_binexpr(dt::expr::Op op, robj lhs, robj rhs) {
   return robj(Expr_Type).call({
@@ -219,13 +219,13 @@ bool PyFExpr::nb__bool__() {
 //   return make_unexpr(dt::expr::Op::UINVERT, this);
 // }
 
-oobj PyFExpr::nb__neg__() {
-  return make_unexpr(dt::expr::Op::UMINUS, this);
-}
+// oobj PyFExpr::nb__neg__() {
+//   return make_unexpr(dt::expr::Op::UMINUS, this);
+// }
 
-oobj PyFExpr::nb__pos__() {
-  return make_unexpr(dt::expr::Op::UPLUS, this);
-}
+// oobj PyFExpr::nb__pos__() {
+//   return make_unexpr(dt::expr::Op::UPLUS, this);
+// }
 
 
 

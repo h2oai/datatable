@@ -20,37 +20,27 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/func_unary.h"
-#include "column/isna.h"
 #include "expr/fexpr_column.h"
-#include "documentation.h"
 #include "expr/fexpr_func_unary.h"
-#include "expr/eval_context.h"
-#include "expr/workframe.h"
 #include "python/xargs.h"
 #include "stype.h"
 namespace dt {
 namespace expr {
 
 
-class FExpr_UInvert : public FExpr_FuncUnary {
+class FExpr_UPlus : public FExpr_FuncUnary {
   public:
     using FExpr_FuncUnary::FExpr_FuncUnary;
 
 
     std::string name() const override {
-      return "uinvert";
+      return "uplus";
     }
-
-    template <typename T>
-    static inline T op_invert(T x) {
-      return ~x;
-    }
-
-    static inline int8_t op_invert_bool(int8_t x) {
-      return !x;
-    }
-  
+    /**
+      * Unary operator `+` upcasts each numeric column to INT32, but
+      * otherwise keeps unmodified. The operator cannot be applied to
+      * string columns.
+      */
     Column evaluate1(Column&& col) const override{
       SType stype = col.stype();
 
@@ -58,35 +48,26 @@ class FExpr_UInvert : public FExpr_FuncUnary {
         case SType::VOID: 
           return Column(new ConstNa_ColumnImpl(col.nrows(), SType::VOID));
         case SType::BOOL: 
-          return Column(new FuncUnary1_ColumnImpl<int8_t, int8_t>(
-                   std::move(col), op_invert_bool, col.nrows(), SType::BOOL
-                 ));
         case SType::INT8: 
-          return Column(new FuncUnary1_ColumnImpl<int8_t, int8_t>(
-                   std::move(col), op_invert<int8_t>, col.nrows(), SType::INT8
-                 ));
         case SType::INT16: 
-          return Column(new FuncUnary1_ColumnImpl<int16_t, int16_t>(
-                   std::move(col), op_invert<int16_t>, col.nrows(), SType::INT16
-                 ));
+          col.cast_inplace(SType::INT32);
+          return std::move(col);
         case SType::INT32:
-          return Column(new FuncUnary1_ColumnImpl<int32_t, int32_t>(
-                   std::move(col), op_invert<int32_t>, col.nrows(), SType::INT32
-                 ));
         case SType::INT64:
-          return Column(new FuncUnary1_ColumnImpl<int64_t, int64_t>(
-                   std::move(col), op_invert<int64_t>, col.nrows(), SType::INT64
-                 ));
+        case SType::FLOAT32:
+        case SType::FLOAT64:
+          return std::move(col);
+
         default:
-          throw TypeError() << "Cannot apply unary `operator ~` to a column with "
+          throw TypeError() << "Cannot apply unary `operator +` to a column with "
                               "stype `" << stype << "`";
       }
     }
 };
 
-py::oobj PyFExpr::nb__invert__(py::robj lhs) {
+py::oobj PyFExpr::nb__pos__(py::robj src) {
   return PyFExpr::make(
-            new FExpr_UInvert(as_fexpr(lhs)));
+            new FExpr_UPlus(as_fexpr(src)));
 }
 
 }}  // dt::expr
