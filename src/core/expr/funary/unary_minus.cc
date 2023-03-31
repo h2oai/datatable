@@ -21,14 +21,9 @@
 //------------------------------------------------------------------------------
 #include "column/const.h"
 #include "column/func_unary.h"
-#include "expr/fexpr_column.h"
 #include "expr/fexpr_func_unary.h"
-#include "expr/eval_context.h"
-#include "expr/workframe.h"
-#include "expr/fexpr.h"
 #include "python/xargs.h"
 #include "stype.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 

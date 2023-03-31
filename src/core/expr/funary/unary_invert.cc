@@ -21,7 +21,6 @@
 //------------------------------------------------------------------------------
 #include "column/const.h"
 #include "column/func_unary.h"
-#include "expr/fexpr_column.h"
 #include "expr/fexpr_func_unary.h"
 #include "python/xargs.h"
 #include "stype.h"
