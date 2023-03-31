@@ -175,9 +175,6 @@ class PyFExpr : public py::XObject<PyFExpr> {
     static py::oobj nb__lshift__  (py::robj, py::robj);
     static py::oobj nb__rshift__  (py::robj, py::robj);
     bool nb__bool__();
-    //py::oobj nb__invert__();
-    //py::oobj nb__neg__();
-    //py::oobj nb__pos__();
 
     py::oobj len();                        // [DEPRECATED]
     py::oobj re_match(const py::XArgs&);   // [DEPRECATED]

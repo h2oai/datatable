@@ -60,11 +60,6 @@ static const umaker_ptr& get_umaker(Op opcode, SType stype) {
 umaker_ptr resolve_op(Op opcode, SType stype)
 {
   switch (opcode) {
-    // Basic
-    case Op::UPLUS:     return resolve_op_uplus(stype);
-    //case Op::UMINUS:    return resolve_op_uminus(stype);
-    //case Op::UINVERT:   return resolve_op_uinvert(stype);
-
     // Math: trigonometric
     case Op::SIN:       return resolve_op_sin(stype);
     case Op::COS:       return resolve_op_cos(stype);

@@ -81,11 +81,6 @@ using umaker_ptr = std::unique_ptr<umaker>;
 // Main resolver, calls individual-op resolvers below
 umaker_ptr resolve_op(Op, SType);
 
-// Basic
-umaker_ptr resolve_op_uplus(SType);
-//umaker_ptr resolve_op_uminus(SType);
-//umaker_ptr resolve_op_uinvert(SType);
-
 // Trigonometric
 umaker_ptr resolve_op_sin(SType);
 umaker_ptr resolve_op_cos(SType);
