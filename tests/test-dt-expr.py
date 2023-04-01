@@ -114,6 +114,20 @@ def test_logical_or2(seed):
          None if (src1[i] is None or src2[i] is None) else
          False
          for i in range(n)]
+    
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_logical_xor(seed):
+    random.seed(seed)
+    n = 1000
+    src1 = [random.choice([1, 0]) for _ in range(n)]
+    src2 = [random.choice([1, 0]) for _ in range(n)]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[:, f.A ^ f.B]
+    assert df1.to_list()[0] == \
+        [False if (src1[i] == src2[i]) else
+         True
+         for i in range(n)]
 
 
 
