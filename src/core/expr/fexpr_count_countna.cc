@@ -114,7 +114,7 @@ class FExpr_Count_Rows : public FExpr_Func {
     }
     
     if (ctx.has_groupby()) {
-      col = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(gby)));
+      col = Column(new Latent_ColumnImpl(new CountRows_ColumnImpl(gby)));
     } else {
       auto value = static_cast<int64_t>(ctx.nrows());
       col = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
@@ -129,7 +129,7 @@ class FExpr_Count_Rows : public FExpr_Func {
 static py::oobj pyfn_count(const py::XArgs &args) {
   auto arg = args[0].to_oobj_or_none();
   if (arg.is_none()) {
-    return PyFExpr::make(new FExpr_CountNA_AllRows<false>());
+    return PyFExpr::make(new FExpr_Count_Rows<false>());
   }
   return PyFExpr::make(new FExpr_Count<false>(as_fexpr(arg)));
 }
