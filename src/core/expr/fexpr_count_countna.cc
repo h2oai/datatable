@@ -116,8 +116,8 @@ class FExpr_CountNA_AllRows : public FExpr_Func {
     if (ctx.has_groupby()) {
       col = Column(new Latent_ColumnImpl(new CountAllRows_ColumnImpl(gby)));
     } else {
-        auto value = static_cast<int64_t>(ctx.nrows());
-        col = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
+      auto value = static_cast<int64_t>(ctx.nrows());
+      col = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
     }
     wf.add_column(std::move(col), "count", Grouping::GtoONE);
     return wf;
