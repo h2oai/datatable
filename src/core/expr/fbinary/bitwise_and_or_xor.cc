@@ -82,7 +82,7 @@ class FExpr__andor__ : public FExpr_BinaryOp {
 
 
     std::string name() const override        { return AND?"&":"|"; }
-    int precedence() const noexcept override { return AND?4:3; }
+    int precedence() const noexcept override { return AND?9:7; }
 
 
     Column evaluate1(Column&& lcol, Column&& rcol) const override {
