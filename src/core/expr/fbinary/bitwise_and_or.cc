@@ -68,6 +68,11 @@ inline static T op_or(T x, T y) {
   return (x | y);
 }
 
+template <typename T>
+inline static T op_xor(T x, T y) {
+  return (x ^ y);
+}
+
 template<bool AND>
 class FExpr__andor__ : public FExpr_BinaryOp {
   public:
@@ -110,7 +115,8 @@ class FExpr__andor__ : public FExpr_BinaryOp {
         case SType::INT32:   return make<int32_t, AND>(std::move(lcol), std::move(rcol), stype0);
         case SType::INT64:   return make<int64_t, AND>(std::move(lcol), std::move(rcol), stype0);
         default:
-          throw TypeError() << "Operator `&` cannot be applied to columns of "
+          char op = AND?'&':'|';
+          throw TypeError() << "Operator " << op << " cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
       }
     }
@@ -138,6 +144,50 @@ class FExpr__andor__ : public FExpr_BinaryOp {
 };
 
 
+class FExpr__xor__ : public FExpr_BinaryOp {
+  public:
+    using FExpr_BinaryOp::FExpr_BinaryOp;
+    using FExpr_BinaryOp::lhs_;
+    using FExpr_BinaryOp::rhs_;
+
+
+    std::string name() const override        { return "^"; }
+    int precedence() const noexcept override { return 8; }
+
+
+    Column evaluate1(Column&& lcol, Column&& rcol) const override {
+      xassert(lcol.nrows() == rcol.nrows());
+      auto stype1 = lcol.stype();
+      auto stype2 = rcol.stype();
+      auto stype0 = common_stype(stype1, stype2);
+
+      switch (stype0) {
+        case SType::BOOL:    return make<int8_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT8:    return make<int8_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT16:   return make<int16_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
+        default:
+          throw TypeError() << "Operator `^` cannot be applied to columns of "
+            "types `" << stype1 << "` and `" << stype2 << "`";
+      }
+    }
+
+  private:
+    template <typename T>
+    static Column make(Column&& a, Column&& b, SType stype) {
+      xassert(compatible_type<T>(stype));
+      size_t nrows = a.nrows();
+      a.cast_inplace(stype);
+      b.cast_inplace(stype);
+      return Column(new FuncBinary1_ColumnImpl<T, T, T>(
+        std::move(a), std::move(b),
+        op_xor<T>,
+        nrows, stype
+      ));
+    }
+};
+
 
 py::oobj PyFExpr::nb__and__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
@@ -149,6 +199,13 @@ py::oobj PyFExpr::nb__or__(py::robj lhs, py::robj rhs) {
             new FExpr__andor__<false>(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
+py::oobj PyFExpr::nb__xor__(py::robj lhs, py::robj rhs) {
+  return PyFExpr::make(
+            new FExpr__xor__(as_fexpr(lhs), as_fexpr(rhs)));
+}
+
 
 
 }}  // namespace dt::expr
+
+
