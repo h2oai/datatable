@@ -54,3 +54,4 @@ class Mean_ColumnImpl : public ReduceUnary_ColumnImpl<T, T> {
 
 }  // namespace dt
 #endif
+

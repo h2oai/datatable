@@ -92,3 +92,4 @@ def test_dt_countna_None():
     EXP = dt.Frame(C0=[0])
     RES = DT[:, dt.countna()]
     assert EXP.to_list() == RES.to_list()
+
