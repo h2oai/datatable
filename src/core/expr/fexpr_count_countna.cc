@@ -33,7 +33,7 @@ namespace dt {
 namespace expr {
 
 template<bool COUNTNA>
-class FExpr_CountNA : public FExpr_ReduceUnary {
+class FExpr_Count : public FExpr_ReduceUnary {
   public:
     using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
@@ -49,22 +49,22 @@ class FExpr_CountNA : public FExpr_ReduceUnary {
         case SType::VOID:
         case SType::BOOL:
         case SType::INT8:
-          return make<int8_t>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<int8_t>(std::move(col), gby, is_grouped);
         case SType::INT16:
-          return make<int16_t>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<int16_t>(std::move(col), gby, is_grouped);
         case SType::DATE32: 
         case SType::INT32:
-          return make<int32_t>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<int32_t>(std::move(col), gby, is_grouped);
         case SType::TIME64: 
         case SType::INT64:
-          return make<int64_t>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
-          return make<float>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<float>(std::move(col), gby, is_grouped);
         case SType::FLOAT64:
-          return make<double>(std::move(col), SType::INT64, gby, is_grouped);
+          return make<double>(std::move(col), gby, is_grouped);
         case SType::STR32:
         case SType::STR64:
-          return make<CString>(std::move(col), SType::INT64, gby, is_grouped);                
+          return make<CString>(std::move(col), gby, is_grouped);                
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
@@ -72,14 +72,14 @@ class FExpr_CountNA : public FExpr_ReduceUnary {
     }
 
     template <typename T>
-    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
+    Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
         return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, true>(
-          std::move(col), stype, gby
+          std::move(col), SType::INT64, gby
         )));
       } else {
         return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, false>(
-          std::move(col), stype, gby
+          std::move(col), SType::INT64, gby
         )));
       }
     }
@@ -88,13 +88,13 @@ class FExpr_CountNA : public FExpr_ReduceUnary {
 
 // gets the count of all rows - nulls are not checked
 template<bool COUNTNA>
-class FExpr_CountNA_AllRows : public FExpr_Func {
+class FExpr_Count_Rows : public FExpr_Func {
   public:
-    FExpr_CountNA_AllRows(){}
+    FExpr_Count_Rows(){}
 
     std::string repr() const override {
-      std::string out = COUNTNA ? "countna(None)" 
-                                : "count()";
+      std::string out = COUNTNA? "countna(None)" 
+                               : "count()";
       return out;
     }
 
@@ -127,19 +127,19 @@ class FExpr_CountNA_AllRows : public FExpr_Func {
 
 
 static py::oobj pyfn_count(const py::XArgs &args) {
-  auto count = args[0].to_oobj_or_none();
-  if (count.is_none()) {
+  auto arg = args[0].to_oobj_or_none();
+  if (arg.is_none()) {
     return PyFExpr::make(new FExpr_CountNA_AllRows<false>());
   }
-  return PyFExpr::make(new FExpr_CountNA<false>(as_fexpr(count)));
+  return PyFExpr::make(new FExpr_Count<false>(as_fexpr(arg)));
 }
 
 static py::oobj pyfn_countna(const py::XArgs &args) {
-  auto countna = args[0].to_oobj_or_none();
-  if (countna.is_none()) {
-    return PyFExpr::make(new FExpr_CountNA_AllRows<true>());
+  auto arg = args[0].to_oobj_or_none();
+  if (arg.is_none()) {
+    return PyFExpr::make(new FExpr_Count_Rows<true>());
   }
-  return PyFExpr::make(new FExpr_CountNA<true>(as_fexpr(countna)));
+  return PyFExpr::make(new FExpr_Count<true>(as_fexpr(arg)));
 }
 
 
