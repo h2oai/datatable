@@ -68,7 +68,6 @@ def test_dt_count_na1(src):
     RES = df[:, dt.countna(f[:])]
     assert_equals(EXP, RES)
 
-@pytest.mark.xfail(reason="commented out till #3417 is resolved.")
 def test_dt_count_na2():
     DT = dt.Frame(G=[1,1,1,2,2,2], V=[None, None, None, None, 3, 5])
     EXP = dt.Frame(G=[1,2], V1=[3,1], V2=[1,0])
@@ -92,4 +91,5 @@ def test_dt_countna_None():
     EXP = dt.Frame(C0=[0])
     RES = DT[:, dt.countna()]
     assert EXP.to_list() == RES.to_list()
+
 
