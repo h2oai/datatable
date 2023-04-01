@@ -109,7 +109,7 @@ class FExpr_CountNA_AllRows : public FExpr_Func {
 
     if (COUNTNA) {
       col = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
-      wf.add_column(std::move(col), std::string(), Grouping::GtoONE);
+      wf.add_column(std::move(col), "countna", Grouping::GtoONE);
       return wf;
     }
     
