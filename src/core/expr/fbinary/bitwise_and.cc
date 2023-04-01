@@ -40,20 +40,44 @@ static bool op_and_bool(ref_t<T> x, bool xvalid, ref_t<T> y, bool yvalid, int8_t
   return xvalid;
 }
 
+
+template <typename T>
+static bool op_or_bool(ref_t<T> x, bool xvalid, ref_t<T> y, bool yvalid, int8_t* out)
+{
+  if (x == 1 && xvalid) {  // short-circuit
+    *out = 1;
+    return true;
+  }
+  if (!yvalid) return false;
+  if (y == 1) {
+    *out = 1;
+    return true;
+  }
+  *out = 0;
+  return xvalid;
+}
+
+
 template <typename T>
 inline static T op_and(T x, T y) {
   return (x & y);
 }
 
-class FExpr__and__ : public FExpr_BinaryOp {
+template <typename T>
+inline static T op_or(T x, T y) {
+  return (x | y);
+}
+
+template<bool AND>
+class FExpr__andor__ : public FExpr_BinaryOp {
   public:
     using FExpr_BinaryOp::FExpr_BinaryOp;
     using FExpr_BinaryOp::lhs_;
     using FExpr_BinaryOp::rhs_;
 
 
-    std::string name() const override        { return "&"; }
-    int precedence() const noexcept override { return 4; }
+    std::string name() const override        { return AND?"&":"|"; }
+    int precedence() const noexcept override { return AND?4:3; }
 
 
     Column evaluate1(Column&& lcol, Column&& rcol) const override {
@@ -67,17 +91,24 @@ class FExpr__and__ : public FExpr_BinaryOp {
         return Column::new_na_column(lcol.nrows(), SType::VOID);
       }
       if (stype1 == SType::BOOL && stype2 == SType::BOOL) {
+        if (AND) {
+          return Column(new FuncBinary2_ColumnImpl<int8_t, int8_t, int8_t>(
+            std::move(lcol), std::move(rcol),
+            op_and_bool<int8_t>,
+            nrows, SType::BOOL
+          ));          
+        }
         return Column(new FuncBinary2_ColumnImpl<int8_t, int8_t, int8_t>(
           std::move(lcol), std::move(rcol),
-          op_and_bool<int8_t>,
+          op_or_bool<int8_t>,
           nrows, SType::BOOL
         ));
       }
       switch (stype0) {
-        case SType::INT8:    return make<int8_t>(std::move(lcol), std::move(rcol), stype0);
-        case SType::INT16:   return make<int16_t>(std::move(lcol), std::move(rcol), stype0);
-        case SType::INT32:   return make<int32_t>(std::move(lcol), std::move(rcol), stype0);
-        case SType::INT64:   return make<int64_t>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT8:    return make<int8_t, AND>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT16:   return make<int16_t, AND>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT32:   return make<int32_t, AND>(std::move(lcol), std::move(rcol), stype0);
+        case SType::INT64:   return make<int64_t, AND>(std::move(lcol), std::move(rcol), stype0);
         default:
           throw TypeError() << "Operator `&` cannot be applied to columns of "
             "types `" << stype1 << "` and `" << stype2 << "`";
@@ -85,15 +116,22 @@ class FExpr__and__ : public FExpr_BinaryOp {
     }
 
   private:
-    template <typename T>
+    template <typename T, bool ANDD>
     static Column make(Column&& a, Column&& b, SType stype) {
       xassert(compatible_type<T>(stype));
       size_t nrows = a.nrows();
       a.cast_inplace(stype);
       b.cast_inplace(stype);
+      if (AND) {
+        return Column(new FuncBinary1_ColumnImpl<T, T, T>(
+          std::move(a), std::move(b),
+          op_and<T>,
+          nrows, stype
+        ));
+      }
       return Column(new FuncBinary1_ColumnImpl<T, T, T>(
         std::move(a), std::move(b),
-        op_and<T>,
+        op_or<T>,
         nrows, stype
       ));
     }
@@ -103,7 +141,12 @@ class FExpr__and__ : public FExpr_BinaryOp {
 
 py::oobj PyFExpr::nb__and__(py::robj lhs, py::robj rhs) {
   return PyFExpr::make(
-            new FExpr__and__(as_fexpr(lhs), as_fexpr(rhs)));
+            new FExpr__andor__<true>(as_fexpr(lhs), as_fexpr(rhs)));
+}
+
+py::oobj PyFExpr::nb__or__(py::robj lhs, py::robj rhs) {
+  return PyFExpr::make(
+            new FExpr__andor__<false>(as_fexpr(lhs), as_fexpr(rhs)));
 }
 
 

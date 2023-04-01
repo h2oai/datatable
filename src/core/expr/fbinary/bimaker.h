@@ -78,7 +78,7 @@ using bimaker_ptr = std::unique_ptr<bimaker>;
 bimaker_ptr resolve_op(Op, SType, SType);
 
 //bimaker_ptr resolve_op_and(SType, SType);
-bimaker_ptr resolve_op_or(SType, SType);
+//bimaker_ptr resolve_op_or(SType, SType);
 bimaker_ptr resolve_op_xor(SType, SType);
 bimaker_ptr resolve_op_lshift(SType, SType);
 bimaker_ptr resolve_op_rshift(SType, SType);
