@@ -26,19 +26,19 @@
 namespace dt {
 
 
-class CountAllRows_ColumnImpl : public Virtual_ColumnImpl {
+class CountRows_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Groupby gby_;
 
   public:
-    CountAllRows_ColumnImpl(const Groupby& gby)
+    CountRows_ColumnImpl(const Groupby& gby)
       : Virtual_ColumnImpl(gby.size(), SType::INT64),
         gby_(gby)
     {}
 
 
     ColumnImpl *clone() const override {
-      return new CountAllRows_ColumnImpl(Groupby(gby_));
+      return new CountRows_ColumnImpl(Groupby(gby_));
     }
 
     size_t n_children() const noexcept override {

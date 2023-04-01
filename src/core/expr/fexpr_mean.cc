@@ -58,10 +58,10 @@ class FExpr_Mean : public FExpr_ReduceUnary {
         case SType::DATE32:
         case SType::TIME64:
         case SType::FLOAT64:
-          col_out = make<double>(std::move(col), gby, is_grouped);
+          col_out = make<double>(std::move(col), SType::FLOAT64, gby, is_grouped);
           break;
         case SType::FLOAT32:
-          col_out = make<float>(std::move(col), gby, is_grouped);
+          col_out = make<float>(std::move(col), SType::FLOAT32, gby, is_grouped);
           break;
         default:
           throw TypeError()
@@ -76,12 +76,12 @@ class FExpr_Mean : public FExpr_ReduceUnary {
 
 
     template <typename T>
-    Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
+    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
 
       return is_grouped? std::move(col)
                        : Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T>(
-                           std::move(col), col.stype(), gby
+                           std::move(col), stype, gby
                          )));
     }
 };
