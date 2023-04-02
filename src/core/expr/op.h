@@ -55,13 +55,6 @@ enum class Op : size_t {
   UMINUS,                   // funary/basic.cc
   UINVERT = UNOP_LAST,      // funary/basic.cc
 
-  // Binary
-  AND = 208,                // fbinary/bitwise.cc
-  XOR = 209,                // fbinary/bitwise.cc
-  OR = 210,                 // fbinary/bitwise.cc
-  LSHIFT = 211,             // fbinary/bitwise.cc
-  RSHIFT = 212,             // fbinary/bitwise.cc
-
   // Reducers
   MEAN = REDUCER_FIRST,     // head_reduce_unary.cc
   MIN,                      // head_reduce_unary.cc

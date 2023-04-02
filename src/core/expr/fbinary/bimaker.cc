@@ -45,12 +45,6 @@ static std::unordered_map<size_t, bimaker_ptr> bimakers_library;
 
 bimaker_ptr resolve_op(Op opcode, SType stype1, SType stype2) {
   switch (opcode) {
-    //case Op::AND:        return resolve_op_and(stype1, stype2);
-    //case Op::OR:         return resolve_op_or(stype1, stype2);
-    //case Op::XOR:        return resolve_op_xor(stype1, stype2);
-    // case Op::LSHIFT:     return resolve_op_lshift(stype1, stype2);
-    // case Op::RSHIFT:     return resolve_op_rshift(stype1, stype2);
-
     case Op::ARCTAN2:    return resolve_fn_atan2(stype1, stype2);
     case Op::HYPOT:      return resolve_fn_hypot(stype1, stype2);
     case Op::POWERFN:    return resolve_fn_pow(stype1, stype2);

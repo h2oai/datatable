@@ -72,7 +72,7 @@ class FExprBitShift : public FExpr_BinaryOp {
   private:
     template <typename T, bool L_SHIFT>
     static Column make(Column&& a, Column&& b, SType stype) {
-      xassert(compatible_type<T>(stype));
+      xassert(compatible_type<T>(a.stype()));
       size_t nrows = a.nrows();
       b.cast_inplace(stype);
       if (L_SHIFT) {
