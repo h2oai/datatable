@@ -103,10 +103,6 @@ class FExpr_Count_Rows : public FExpr_Func {
     Groupby gby = ctx.get_groupby();
     Column col;
 
-    if (!gby) {
-      gby = Groupby::single_group(wf.nrows());
-    } 
-
     if (COUNTNA) {
       col = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
       wf.add_column(std::move(col), "countna", Grouping::GtoONE);
