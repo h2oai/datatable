@@ -66,34 +66,23 @@ class FExpr_Hyperbolic : public FExpr_FuncUnary {
       *
       */
     template <typename T>
-    static inline T op_sinh(T x) {
-      return sinh(x);
+    static inline T op_hyperbolic(T x) {
+      switch (POS) {
+        case 1:
+          return sinh(x);
+        case 2:
+          return cosh(x);
+        case 3:
+          return tanh(x);
+        case 4:
+          return asinh(x);
+        case 5:
+          return acosh(x);
+        case 6:
+          return atanh(x);
+      }
     }
 
-    template <typename T>
-    static inline T op_cosh(T x) {
-      return cosh(x);
-    }
-
-    template <typename T>
-    static inline T op_tanh(T x) {
-      return tanh(x);
-    }
-
-    template <typename T>
-    static inline T op_arsinh(T x) {
-      return asinh(x);
-    }
-
-    template <typename T>
-    static inline T op_arcosh(T x) {
-      return acosh(x);
-    }
-
-    template <typename T>
-    static inline T op_artanh(T x) {
-      return atanh(x);
-    }
 
     Column evaluate1(Column&& col) const override{
       SType stype = col.stype();
@@ -123,39 +112,10 @@ class FExpr_Hyperbolic : public FExpr_FuncUnary {
     template <typename T, size_t POSS>
     static Column make(Column&& col) {
       xassert(compatible_type<T>(col.stype()));
-      switch (POSS) {
-        case 1:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_sinh<T>, 
-            col.nrows(), col.stype()
-            ));
-        case 2:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_cosh<T>, 
-            col.nrows(), col.stype()
-            ));
-        case 3:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_tanh<T>, 
-            col.nrows(), col.stype()
-            ));
-        case 4:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_arsinh<T>, 
-            col.nrows(), col.stype()
-            ));
-        case 5:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_arcosh<T>, 
-            col.nrows(), col.stype()
-            ));
-        case 6:
-          return Column(new FuncUnary1_ColumnImpl<T, T>(
-            std::move(col), op_artanh<T>, 
-            col.nrows(), col.stype()
-            ));
-      }
-      
+      return Column(new FuncUnary1_ColumnImpl<T, T>(
+        std::move(col), op_hyperbolic<T>, 
+        col.nrows(), col.stype()
+        ));     
     }
 
 };
