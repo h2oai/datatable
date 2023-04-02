@@ -65,9 +65,9 @@ class FExpr_Hyperbolic : public FExpr_FuncUnary {
       *     FLOAT32 -> FLOAT32
       *
       */
-    template <typename T>
+    template <typename T, size_t POSN>
     static inline T op_hyperbolic(T x) {
-      switch (POS) {
+      switch (POSN) {
         case 1:
           return sinh(x);
         case 2:
@@ -113,7 +113,7 @@ class FExpr_Hyperbolic : public FExpr_FuncUnary {
     static Column make(Column&& col) {
       xassert(compatible_type<T>(col.stype()));
       return Column(new FuncUnary1_ColumnImpl<T, T>(
-        std::move(col), op_hyperbolic<T>, 
+        std::move(col), op_hyperbolic<T, POSS>, 
         col.nrows(), col.stype()
         ));     
     }
