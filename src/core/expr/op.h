@@ -91,14 +91,6 @@ enum class Op : size_t {
   DEG2RAD,                  // funary/trigonometric.cc
   RAD2DEG,                  // funary/trigonometric.cc
 
-  // Math: hyperbolic
-  SINH,                     // funary/hyperbolic.cc
-  COSH,                     // funary/hyperbolic.cc
-  TANH,                     // funary/hyperbolic.cc
-  ARSINH,                   // funary/hyperbolic.cc
-  ARCOSH,                   // funary/hyperbolic.cc
-  ARTANH,                   // funary/hyperbolic.cc
-
   // Math: exponential/power
   CBRT,                     // funary/exponential.cc
   EXP,                      // funary/exponential.cc
