@@ -53,6 +53,9 @@ str_type_pairs = [(dt.str32, dt.str32), (dt.str32, dt.str64),
                   (dt.str64, dt.str32), (dt.str64, dt.str64)]
 
 
+src_integers = random.choices(range(100_000), k = 50)
+
+
 
 #-------------------------------------------------------------------------------
 # logical ops
@@ -130,7 +133,22 @@ def test_logical_xor(seed):
          for i in range(n)]
 
 
+#-------------------------------------------------------------------------------
+# Lshift/Rshift operators
+#-------------------------------------------------------------------------------
+def test_lshift():    
+    DT = dt.Frame({'C0': src_integers})
+    RES = DT[:, f.C0<<2]
+    EXP = [entry<<2 for entry in src_integers]
+    assert RES.to_list()[0] == EXP
 
+def test_rshift():    
+    DT = dt.Frame({'C0': src_integers})
+    RES = DT[:, f.C0>>2]
+    EXP = [entry>>2 for entry in src_integers]
+    assert RES.to_list()[0] == EXP
+
+    
 #-------------------------------------------------------------------------------
 # Equality operators
 #-------------------------------------------------------------------------------
