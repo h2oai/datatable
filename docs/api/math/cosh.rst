@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.cosh
-    :src: src/core/expr/funary/fexpr_hyperbolic.cc pyfn_cosh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_cosh
     :cvar: doc_math_cosh
     :signature: cosh(x)
 

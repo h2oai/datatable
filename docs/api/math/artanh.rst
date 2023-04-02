@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.artanh
-    :src: src/core/expr/funary/fexpr_hyperbolic.cc pyfn_artanh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_artanh
     :cvar: doc_math_artanh
     :signature: artanh(x)
 

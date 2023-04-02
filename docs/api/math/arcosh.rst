@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.arcosh
-    :src: src/core/expr/funary/fexpr_hyperbolic.cc pyfn_arcosh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_arcosh
     :cvar: doc_math_arcosh
     :signature: arcosh(x)
 

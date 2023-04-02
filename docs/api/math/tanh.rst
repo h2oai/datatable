@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.tanh
-    :src: src/core/expr/funary/fexpr_hyperbolic.cc pyfn_tanh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_tanh
     :cvar: doc_math_tanh
     :signature: tanh(x)
 

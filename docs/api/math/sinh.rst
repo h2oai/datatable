@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.sinh
-    :src: src/core/expr/funary/fexpr_hyperbolic.cc pyfn_sinh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_sinh
     :cvar: doc_math_sinh
     :signature: sinh(x)
 
