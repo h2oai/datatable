@@ -25,9 +25,10 @@ import math
 import pytest
 import random
 import datatable as dt
-from datatable import f, g, stype, join
+from datatable import dt, f, g, stype, join
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
+from itertools import product, islice
 
 
 # Sets of tuples containing test columns of each type
@@ -220,3 +221,56 @@ def test_log_srcs(src, fn):
              mathlog(x)
              for x in src]
     assert DT1.to_list()[0] == pyans
+
+
+#-------------------------------------------------------------------------------
+# Unary hyperbolic
+#-------------------------------------------------------------------------------
+
+def hyperbolic_func(func, t):
+    if t is None: return None
+    return func(t)
+
+
+funcs = [math.sinh, math.cosh, math.tanh]
+dt_funcs = [dt.math.sinh, dt.math.cosh, dt.math.tanh]
+
+@pytest.mark.parametrize("math_func, dt_func", zip(funcs, dt_funcs))
+def test_dt_hyperbolic1(math_func, dt_func):
+    srcs = srcs_bool + srcs_int[:2]
+    DT = dt.Frame(srcs)
+    RES = DT[:, dt_func(f[:])]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[hyperbolic_func(math_func, x) for x in src] for src in srcs]
+
+def test_dt_hyperbolic_acosh():
+    srcs = [[7, 56, 2.45, 1]] 
+    DT = dt.Frame(srcs)
+    RES = DT[:, dt.math.arcosh(f[:])]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[hyperbolic_func(math.acosh, x) for x in src] for src in srcs]
+
+def test_dt_hyperbolic_atanh():
+    srcs = [[0.59, -0.12, 0.00008]] 
+    DT = dt.Frame(srcs)
+    RES = DT[:, dt.math.artanh(f[:])]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[hyperbolic_func(math.atanh, x) for x in src] for src in srcs]
+
+def test_dt_hyperbolic_asinh():
+    srcs = [[0.59, -0.12, 0.00008]] 
+    DT = dt.Frame(srcs)
+    RES = DT[:, dt.math.arsinh(f[:])]
+    frame_integrity_check(RES)
+    assert RES.to_list() == [[hyperbolic_func(math.asinh, x) for x in src] for src in srcs]
+
+funcs = [math.sinh, math.cosh, math.tanh, math.acosh, math.asinh, math.atanh]
+funcs = product(dt_funcs, srcs_str)
+@pytest.mark.parametrize("dt_func, src", funcs)
+def test_dt_hyperbolic_invalid(dt_func, src):
+    DT = dt.Frame(src)
+    col_stype = DT.stype.name
+    fn_name = dt_func.__name__
+    with pytest.raises(TypeError, match=f"Function {fn_name} cannot be applied to a "
+                                        f"column of type {col_stype}"):
+        assert DT[:, dt_func(f[0])]
