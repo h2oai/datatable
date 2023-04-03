@@ -244,7 +244,7 @@ def test_dt_hyperbolic1(math_func, dt_func):
     assert RES.to_list() == [[hyperbolic_func(math_func, x) for x in src] for src in srcs]
 
 def test_dt_hyperbolic_acosh():
-    srcs = [[7, 56, 2.45, 1]] 
+    srcs = [[7, 56, 3, 1]] 
     DT = dt.Frame(srcs)
     RES = DT[:, dt.math.arcosh(f[:])]
     frame_integrity_check(RES)
