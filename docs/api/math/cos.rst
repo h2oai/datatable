@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.cos
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_cos
+    :src: src/core/expr/funary/trigonometric.cc pyfn_cos
     :cvar: doc_math_cos
     :signature: cos(x)
 

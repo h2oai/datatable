@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.arctan
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_arctan
+    :src: src/core/expr/funary/trigonometric.cc pyfn_arctan
     :cvar: doc_math_arctan
     :signature: arctan(x)
 
