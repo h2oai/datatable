@@ -88,6 +88,9 @@
         If `True` then the first line of the CSV file contains the header.
         If `False` then there is no header. By default the presence of the
         header is heuristically determined from the contents of the file.
+        When the number of column names in the header is one less than
+        the actual number of columns, the first column is assumed
+        to contain row names and gets the name "index".
 
     na_strings: List[str]
         The list of strings that were used in the input file to represent
