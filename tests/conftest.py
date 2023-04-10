@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,7 @@ import warnings
 @pytest.fixture(autouse=True, scope="session")
 def setup():
     """This fixture will be run once only."""
-    assert sys.version_info >= (3, 6), "Python version 3.6+ is required"
+    assert sys.version_info >= (3, 8), "Python version 3.8+ is required"
     dt.options.progress.enabled = False
 
 
@@ -105,6 +105,7 @@ def pandas():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             import pandas as pd
+            pd.__major_version__ = int(pd.__version__.split(".")[0])
             return pd
     except ImportError:
         pytest.skip("Pandas module is required for this test")

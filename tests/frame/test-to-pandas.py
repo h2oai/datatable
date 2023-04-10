@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -120,7 +120,8 @@ def test_topandas_keyed(pd):
     assert list(pf.columns) == ["B", "R"]
     assert pf['B'].tolist() == [7, 14, 1, 0]
     assert pf['R'].tolist() == ['va', 'dfkjv', 'q', '...']
-    assert isinstance(pf.index, pd.core.indexes.numeric.Int64Index)
+    assert isinstance(pf.index, pd.Index)
+    assert pf.index.dtype.name == "int32"
     assert pf.index.name == "A"
     assert pf.index.tolist() == [3, 5, 9, 11]
 
