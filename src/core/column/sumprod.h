@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -27,9 +27,9 @@ namespace dt {
 
 
 template <typename T, bool SUM, bool IS_GROUPED>
-class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T, IS_GROUPED> {
+class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T> {
   public:
-    using ReduceUnary_ColumnImpl<T, IS_GROUPED>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T>::ReduceUnary_ColumnImpl;
 
     bool get_element(size_t i, T* out) const override {
       T result = !SUM; // 0 for `sum()` and 1 for `prod()`

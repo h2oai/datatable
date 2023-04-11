@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,46 +19,31 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_REDUCE_UNARY_h
-#define dt_COLUMN_REDUCE_UNARY_h
-#include "column/virtual.h"
-#include "stype.h"
+#ifndef dt_EXPR_FEXPR_REDUCE_UNARY_h
+#define dt_EXPR_FEXPR_REDUCE_UNARY_h
+#include "expr/fexpr_func.h"
 namespace dt {
+namespace expr {
 
 
-template <typename T>
-class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
+/**
+  * Base class for FExpr reducers that have only one parameter.
+  */
+class FExpr_ReduceUnary : public FExpr_Func {
   protected:
-    Column col_;
-    Groupby gby_;
+    ptrExpr arg_;
 
   public:
-    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), col.stype()),
-        col_(std::move(col)),
-        gby_(gby)
-    {
-      xassert(col_.can_be_read_as<T>());
-    }
+    FExpr_ReduceUnary(ptrExpr&&);
+    Workframe evaluate_n(EvalContext&) const override;
+    std::string repr() const override;
 
-
-    ColumnImpl *clone() const override {
-      return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_));
-    }
-
-
-    size_t n_children() const noexcept override {
-      return 1;
-    }
-
-
-    const Column &child(size_t i) const override {
-      xassert(i == 0);
-      (void)i;
-      return col_;
-    }
+    // API for the derived classes
+    virtual Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const = 0;
+    virtual std::string name() const = 0;
 };
 
 
-}  // namespace dt
+
+}}  // namespace dt::expr
 #endif

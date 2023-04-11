@@ -3,7 +3,7 @@
 // License, v. 2.0. If a copy of the MPL was not distributed with this
 // file, You can obtain one at http://mozilla.org/MPL/2.0/.
 //
-// © H2O.ai 2018
+// © H2O.ai 2018-2023
 //------------------------------------------------------------------------------
 #include <limits>
 #include "read/constants.h"
@@ -66,18 +66,7 @@ const uint8_t allowedseps[128] = {
 };
 
 
-#if DT_OS_WINDOWS
-  #define LDBL(value) std::numeric_limits<double>::max()
-#else
-  #define LDBL(value) value
-#endif
-
-const long double pow10lookup[701] = {
-  1.0E-350L, 1.0E-349L, 1.0E-348L, 1.0E-347L, 1.0E-346L, 1.0E-345L, 1.0E-344L, 1.0E-343L, 1.0E-342L, 1.0E-341L,
-  1.0E-340L, 1.0E-339L, 1.0E-338L, 1.0E-337L, 1.0E-336L, 1.0E-335L, 1.0E-334L, 1.0E-333L, 1.0E-332L, 1.0E-331L,
-  1.0E-330L, 1.0E-329L, 1.0E-328L, 1.0E-327L, 1.0E-326L, 1.0E-325L, 1.0E-324L, 1.0E-323L, 1.0E-322L, 1.0E-321L,
-  1.0E-320L, 1.0E-319L, 1.0E-318L, 1.0E-317L, 1.0E-316L, 1.0E-315L, 1.0E-314L, 1.0E-313L, 1.0E-312L, 1.0E-311L,
-  1.0E-310L, 1.0E-309L, 1.0E-308L, 1.0E-307L, 1.0E-306L, 1.0E-305L, 1.0E-304L, 1.0E-303L, 1.0E-302L, 1.0E-301L,
+const long double pow10lookup[601] = {
   1.0E-300L, 1.0E-299L, 1.0E-298L, 1.0E-297L, 1.0E-296L, 1.0E-295L, 1.0E-294L, 1.0E-293L, 1.0E-292L, 1.0E-291L,
   1.0E-290L, 1.0E-289L, 1.0E-288L, 1.0E-287L, 1.0E-286L, 1.0E-285L, 1.0E-284L, 1.0E-283L, 1.0E-282L, 1.0E-281L,
   1.0E-280L, 1.0E-279L, 1.0E-278L, 1.0E-277L, 1.0E-276L, 1.0E-275L, 1.0E-274L, 1.0E-273L, 1.0E-272L, 1.0E-271L,
@@ -138,13 +127,8 @@ const long double pow10lookup[701] = {
   1.0E+270L, 1.0E+271L, 1.0E+272L, 1.0E+273L, 1.0E+274L, 1.0E+275L, 1.0E+276L, 1.0E+277L, 1.0E+278L, 1.0E+279L,
   1.0E+280L, 1.0E+281L, 1.0E+282L, 1.0E+283L, 1.0E+284L, 1.0E+285L, 1.0E+286L, 1.0E+287L, 1.0E+288L, 1.0E+289L,
   1.0E+290L, 1.0E+291L, 1.0E+292L, 1.0E+293L, 1.0E+294L, 1.0E+295L, 1.0E+296L, 1.0E+297L, 1.0E+298L, 1.0E+299L,
-  1.0E+300L, 1.0E+301L, 1.0E+302L, 1.0E+303L, 1.0E+304L, 1.0E+305L, 1.0E+306L, 1.0E+307L, 1.0E+308L, LDBL(1.0E+309L),
-  LDBL(1.0E+310L), LDBL(1.0E+311L), LDBL(1.0E+312L), LDBL(1.0E+313L), LDBL(1.0E+314L), LDBL(1.0E+315L), LDBL(1.0E+316L), LDBL(1.0E+317L), LDBL(1.0E+318L), LDBL(1.0E+319L),
-  LDBL(1.0E+320L), LDBL(1.0E+321L), LDBL(1.0E+322L), LDBL(1.0E+323L), LDBL(1.0E+324L), LDBL(1.0E+325L), LDBL(1.0E+326L), LDBL(1.0E+327L), LDBL(1.0E+328L), LDBL(1.0E+329L),
-  LDBL(1.0E+330L), LDBL(1.0E+331L), LDBL(1.0E+332L), LDBL(1.0E+333L), LDBL(1.0E+334L), LDBL(1.0E+335L), LDBL(1.0E+336L), LDBL(1.0E+337L), LDBL(1.0E+338L), LDBL(1.0E+339L),
-  LDBL(1.0E+340L), LDBL(1.0E+341L), LDBL(1.0E+342L), LDBL(1.0E+343L), LDBL(1.0E+344L), LDBL(1.0E+345L), LDBL(1.0E+346L), LDBL(1.0E+347L), LDBL(1.0E+348L), LDBL(1.0E+349L),
-  LDBL(1.0E+350L)
+  1.0E+300L
 };
 
 
-}}  // namespace dt::read::
+}}  // namespace dt::read

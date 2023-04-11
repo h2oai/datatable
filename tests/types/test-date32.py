@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2021 H2O.ai
+# Copyright 2021-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -355,7 +355,10 @@ def test_date32_to_pandas(pd):
     pf = DT.to_pandas()
     assert pf.shape == (5, 1)
     assert list(pf.columns) == ['C0']
-    assert pf['C0'].dtype.name == 'datetime64[ns]'
+    # For pandas >= 2.0.0 dates are stored as `datetime64[s]`,
+    # in contrast to the older pandas, where they are `datetime64[ns]`.
+    pf_dtype = 'datetime64[s]' if pd.__major_version__ > 1 else 'datetime64[ns]'
+    assert pf['C0'].dtype.name == pf_dtype
     assert pf['C0'].to_list() == [
         pd.Timestamp(2000, 1, 1),
         pd.Timestamp(2005, 7, 12),
