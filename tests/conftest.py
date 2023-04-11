@@ -37,7 +37,7 @@ import warnings
 @pytest.fixture(autouse=True, scope="session")
 def setup():
     """This fixture will be run once only."""
-    assert sys.version_info >= (3, 6), "Python version 3.6+ is required"
+    assert sys.version_info >= (3, 8), "Python version 3.8+ is required"
     dt.options.progress.enabled = False
 
 
@@ -111,6 +111,7 @@ def pandas():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             import pandas as pd
+            pd.__major_version__ = int(pd.__version__.split(".")[0])
             return pd
     except ImportError:
         pytest.skip("Pandas module is required for this test")
