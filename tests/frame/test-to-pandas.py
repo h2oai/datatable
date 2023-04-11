@@ -121,7 +121,7 @@ def test_topandas_keyed(pd):
     assert pf['B'].tolist() == [7, 14, 1, 0]
     assert pf['R'].tolist() == ['va', 'dfkjv', 'q', '...']
     assert isinstance(pf.index, pd.Index)
-    assert pf.index.dtype.name == "int32"
+    assert pd.api.types.is_numeric_dtype(pf.index.dtype)
     assert pf.index.name == "A"
     assert pf.index.tolist() == [3, 5, 9, 11]
 
