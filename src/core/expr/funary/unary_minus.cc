@@ -41,11 +41,7 @@ class FExpr_UnaryMinus : public FExpr_FuncUnary {
     static inline T op_minus(T x) {
       return -x;
     }
-    /**
-      * Unary operator `+` upcasts each numeric column to INT32, but
-      * otherwise keeps unmodified. The operator cannot be applied to
-      * string columns.
-      */
+
     Column evaluate1(Column&& col) const override{
       SType stype = col.stype();
 
