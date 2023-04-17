@@ -109,17 +109,17 @@ def corr(col1, col2):
 
 
 # noinspection PyShadowingBuiltins
-def sum(iterable=None, start=0):
+def sum(iterable, start=0):
     if (not isinstance(iterable, dict)
         and (isinstance(iterable, core.FExpr)
-        or (iterable and hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
+        or (hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
         return core.sum(iterable)
     elif isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
         return core.sum(iterable)
     elif isinstance(iterable, core.Frame):
         return iterable.sum()
     else:
-        return _builtin_sum(iterable, start)  
+        return _builtin_sum(iterable, start)   
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
