@@ -14,7 +14,7 @@
     cols: FExpr
         Input columns.
 
-    return: Expr
+    return: FExpr
         f-expression having one row, and the same names and number of columns
         as in `cols`. All the returned column stypes are `int64`.
         If `cols` is not provided, 0 is returned per group.
