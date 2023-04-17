@@ -67,12 +67,9 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
     if (type1.is_void()) {
       std::swap(lcol, rcol);
     }
-    switch (type0.stype()) {
-      case SType::VOID:    
-        return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);      
-      default:
-        return Column(new Isna_ColumnImpl(std::move(lcol)));
-    }
+    if (type0.stype() == SType::VOID) {
+      return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);
+    } else return Column(new Isna_ColumnImpl(std::move(lcol)));
   } else {
     switch (type0.stype()) {
       case SType::BOOL:
@@ -93,9 +90,6 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
       "types `" << type1 << "` and `" << type2 << "`";
 }
 
-
-
-
-
-
 }}  // namespace dt::expr
+
+

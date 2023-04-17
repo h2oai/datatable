@@ -13,7 +13,9 @@
         Input columns.
 
     return: FExpr
-        f-expression that returns `0` for valid elements and `1` otherwise. All the resulting columns will have `bool8` stypes and as many rows/columns as there are in `cols`.
+        f-expression that returns `0` for valid elements and `1` otherwise. 
+        All the resulting columns will have `bool8` stypes 
+        and as many rows/columns as there are in `cols`.
 
     Examples
     --------
