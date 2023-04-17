@@ -65,7 +65,7 @@
          0 |     2
         [1 row x 1 column]
 
-    Get the count if no col is passed:
+    When no `cols` is passed, the number of missing values returned is zero:
 
         >>> df[:, dt.countna()]
            |    C0
