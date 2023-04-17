@@ -20,16 +20,19 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
+#include "column/func_binary.h"
+#include "column/isna.h"
 #include "column/nth.h"
 #include "documentation.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
 #include "python/xargs.h"
+#include <iostream>
 namespace dt {
 namespace expr {
 
 
-template<bool SKIPNA>
+template<size_t SKIPNA>
 class FExpr_Nth : public FExpr_Func {
   private:
     ptrExpr arg_;
@@ -46,10 +49,56 @@ class FExpr_Nth : public FExpr_Func {
       out += arg_->repr();
       out += ", n=";
       out += std::to_string(n_);
-      out += ", skipna=";
-      out += SKIPNA? "True" : "False";
+      if (SKIPNA == 0) {
+        out += ", skipna=None";
+      } else if (SKIPNA == 1) {
+          out += ", skipna=any";
+        } else if (SKIPNA == 2) {
+            out += ", skipna=all";
+          }      
       out += ')';
       return out;
+    }
+
+    static Column make_isna_col(Column&& col) {
+      switch (col.stype()) {
+        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+        case SType::BOOL:
+        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+        case SType::DATE32:
+        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+        case SType::TIME64:
+        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
+        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
+        case SType::STR32:
+        case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+        default: throw RuntimeError();
+      }
+    }
+
+    template<typename T>
+    static Column make_bool_col(Column&& a, Column&& b, SType BOOL) {
+      xassert(compatible_type<T>(stype));
+      size_t nrows = a.nrows();
+      a.cast_inplace(SType::BOOL);
+      b.cast_inplace(SType::BOOL);
+      if (SKIPNA == 1) {
+        return Column(new FuncBinary1_ColumnImpl<T, T, T>(
+          std::move(a), std::move(b),
+          [](T x, T y){ return x | y; },
+          nrows, SType::BOOL
+        ));
+      } 
+      if (SKIPNA == 2) {
+        return Column(new FuncBinary1_ColumnImpl<T, T, T>(
+          std::move(a), std::move(b),
+          [](T x, T y){ return x & y; },
+          nrows, SType::BOOL
+        ));
+      }
+      
     }
   
 
@@ -67,15 +116,11 @@ class FExpr_Nth : public FExpr_Func {
                           );
         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped, n_);        
         outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
-        // auto coli = inputs.retrieve_column(i);
-        // outputs.add_column(
-        //   evaluate1(std::move(coli), gby, n_),
-        //   inputs.retrieve_name(i),
-        //   Grouping::GtoONE
-        // );
       }
       return outputs;
     }
+
+    
 
 
     Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped, const int32_t n) const {
@@ -111,17 +156,37 @@ class FExpr_Nth : public FExpr_Func {
 static py::oobj pyfn_nth(const py::XArgs& args) {
   auto arg = args[0].to_oobj();
   auto n = args[1].to<py::oobj>(py::oint(0));
-  auto skipna = args[2].to<bool>(false);
+  auto skipna = args[2].to_oobj_or_none();
+  if (!skipna.is_none()) {
+    if (!skipna.is_string()) {
+      throw TypeError() << "The argument for the `skipna` parameter "
+                  <<"in function datatable.nth() should either be None, "
+                  <<"or a string, instead got "<<skipna.typeobj();
+
+    }
+    std::string skip_na = skipna.to_string();
+    if (skip_na != "any" && skip_na != "all") {
+      throw TypeError() << "The argument for the `skipna` parameter "
+                <<"in function datatable.nth() should either be None, "
+                <<"any or all, instead got "<<skipna.repr();
+    }
+  }
   if (!n.is_int()) {
     throw TypeError() << "The argument for the `nth` parameter "
                 <<"in function datatable.nth() should be an integer, "
                 <<"instead got "<<n.typeobj();
   }
-  if (skipna) {
-    return PyFExpr::make(new FExpr_Nth<true>(as_fexpr(arg), n));
-  } else {
-    return PyFExpr::make(new FExpr_Nth<false>(as_fexpr(arg), n));
-  }
+  if (!skipna.is_none()) {
+    std::string skip_na = skipna.to_string();
+    if (skip_na == "any") {
+      return PyFExpr::make(new FExpr_Nth<1>(as_fexpr(arg), n));
+    }
+    if (skip_na == "all") {
+      return PyFExpr::make(new FExpr_Nth<2>(as_fexpr(arg), n));
+    }
+    
+  } 
+  return PyFExpr::make(new FExpr_Nth<0>(as_fexpr(arg), n));  
 }
 
 
@@ -131,7 +196,7 @@ DECLARE_PYFN(&pyfn_nth)
     ->arg_names({"cols", "n", "skipna"})
     ->n_positional_args(1)
     ->n_positional_or_keyword_args(2)
-    ->n_required_args(2);
+    ->n_required_args(1);
 
 
 }}  // dt::expr

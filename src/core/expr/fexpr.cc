@@ -543,7 +543,6 @@ DECLARE_METHOD(&PyFExpr::nth)
     ->name("nth")
     ->arg_names({"n", "skipna"})
     ->n_positional_or_keyword_args(2)
-    ->n_required_args(1)
     ->docs(dt::doc_FExpr_nth);
 
 
