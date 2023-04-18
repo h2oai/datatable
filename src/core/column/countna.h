@@ -57,3 +57,4 @@ class Count_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t> {
 
 }  // namespace dt
 #endif
+
