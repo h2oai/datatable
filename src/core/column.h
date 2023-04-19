@@ -171,7 +171,14 @@ class Column
     py::oobj get_element_as_pyobject(size_t i) const;
 
     // Return validity of the i-th element.
-    bool get_element_isvalid(size_t i) const;
+    // Note, it is not efficient to use this method to check validity
+    // of multiple elements within the same column. That's because everytime
+    // `get_element_validity()` is called, it has to determine
+    // the column's stype to call an appropriate `get_element()`
+    // implementation. If you do need validity of multiple elements,
+    // determine an appropriate `get_element()` implementation on your own,
+    // and then use it as many times as necessary.
+    bool get_element_validity(size_t i) const;
 
 
   //------------------------------------

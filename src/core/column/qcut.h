@@ -88,7 +88,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
 
       // If there is one group only, fill it with constants or NA's.
       if (is_const_ || gb.size() == 1) {
-        if (col_.get_element_isvalid(0)) {
+        if (col_.get_element_validity(0)) {
           col_tmp = Column(new ConstInt_ColumnImpl(
                       col_.nrows(),
                       (nquantiles_ - 1) / 2,
@@ -113,7 +113,7 @@ class Qcut_ColumnImpl : public Virtual_ColumnImpl {
         size_t row;
         bool row_valid = ri.get_element(0, &row);
         xassert(row_valid); (void) row_valid;
-        has_na_group = !col_.get_element_isvalid(row);
+        has_na_group = !col_.get_element_validity(row);
       }
 
       // Set up number of valid groups and the quantile coefficients.
