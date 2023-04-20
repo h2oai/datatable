@@ -330,7 +330,7 @@ py::oobj Column::get_element_as_pyobject(size_t i) const {
   }
 }
 
-bool Column::get_element_isvalid(size_t i) const {
+bool Column::get_element_validity(size_t i) const {
   dt::SType st = data_stype();
 
   switch (st) {
