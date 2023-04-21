@@ -104,12 +104,12 @@ class FExpr_FillNA : public FExpr_Func {
               indices[i] = static_cast<int32_t>(fill_id);
             }
           } else {
-            for (size_t i = i1; i < i2; ++i) {
-              is_valid = col.get_element(i, &value);
-              fill_id = is_valid? i : fill_id;
-              indices[i] = static_cast<int32_t>(fill_id);
+              for (size_t i = i1; i < i2; ++i) {
+                is_valid = col.get_element(i, &value);
+                fill_id = is_valid? i : fill_id;
+                indices[i] = static_cast<int32_t>(fill_id);
+              }
             }
-
         }
       );
 

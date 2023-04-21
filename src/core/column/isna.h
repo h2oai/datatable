@@ -52,7 +52,7 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
 
 
     bool get_element(size_t i, int8_t* out) const override {
-      *out = !arg_.get_element_isvalid(i);
+      *out = !arg_.get_element_validity(i);
       return true;
     }
 };
