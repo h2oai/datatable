@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022-2023 H2O.ai
+// Copyright 2019-2021 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,61 +19,42 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_REDUCE_UNARY_h
-#define dt_COLUMN_REDUCE_UNARY_h
+#ifndef dt_COLUMN_COUNTNA_ALLROWS_h
+#define dt_COLUMN_COUNTNA_ALLROWS_h
 #include "column/virtual.h"
 #include "stype.h"
 namespace dt {
 
 
-template <typename T_IN, typename T_OUT>
-class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
+class CountRows_ColumnImpl : public Virtual_ColumnImpl {
   protected:
-    Column col_;
     Groupby gby_;
-    
-<<<<<<< HEAD
-  public:
-    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby, SType stype_out)
-      : Virtual_ColumnImpl(gby.size(), stype_out),
-=======
 
   public:
-    ReduceUnary_ColumnImpl(Column &&col, SType stype, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), stype),
->>>>>>> 8397a8ff6955daf00dca81070bebbd006d3d5b29
-        col_(std::move(col)),
+    CountRows_ColumnImpl(const Groupby& gby)
+      : Virtual_ColumnImpl(gby.size(), SType::INT64),
         gby_(gby)
-    {
-      xassert(col_.can_be_read_as<T_IN>());
-    }
-
-
-    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
-      : ReduceUnary_ColumnImpl(std::move(col), gby, col.stype())
     {}
 
 
     ColumnImpl *clone() const override {
-<<<<<<< HEAD
-      return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_), this->stype());
-=======
-      return new ReduceUnary_ColumnImpl(Column(col_), this->stype(), Groupby(gby_));
->>>>>>> 8397a8ff6955daf00dca81070bebbd006d3d5b29
+      return new CountRows_ColumnImpl(Groupby(gby_));
     }
-
 
     size_t n_children() const noexcept override {
-      return 1;
+      return 0;
     }
 
 
-    const Column &child(size_t i) const override {
-      xassert(i == 0);
-      (void)i;
-      return col_;
+    bool get_element(size_t i, int64_t* out) const override {
+      size_t i0, i1;
+      this->gby_.get_group(i, &i0, &i1);
+      *out = static_cast<int64_t>(i1 - i0);
+      return true;
     }
 };
+
+
 
 
 }  // namespace dt

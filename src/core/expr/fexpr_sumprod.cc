@@ -72,11 +72,11 @@ class FExpr_SumProd : public FExpr_ReduceUnary {
       col.cast_inplace(stype);
       if (is_grouped) {
         return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, true>(
-          std::move(col), gby
+          std::move(col), stype, gby
         )));
       } else {
         return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, false>(
-          std::move(col), gby
+          std::move(col), stype, gby
         )));
       }
     }

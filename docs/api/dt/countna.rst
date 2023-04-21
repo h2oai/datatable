@@ -24,6 +24,10 @@
         it also has the same names and number of columns as in `cols`.
         All the resulting column's stypes are `int64`.
 
+    except: TypeError
+        The exception is raised when one of the columns from `cols`
+        has an obj64 type.
+
 
     Examples
     --------
