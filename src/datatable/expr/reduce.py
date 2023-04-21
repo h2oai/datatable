@@ -28,8 +28,9 @@ from builtins import max as _builtin_max
 
 __all__ = (
     "corr",
-    "count",
     "cov",
+    "count",
+    "countna",
     "first",
     "last",
     "max",
@@ -38,31 +39,30 @@ __all__ = (
     "nunique",
     "sd",
     "sum",
-    "countna",
 )
 
 
 
 def count(iterable=None):
-    if iterable is None:
+    if isinstance(iterable, (core.FExpr)):
         return core.count(iterable)
-    if (not isinstance(iterable, dict)
-        and (isinstance(iterable, core.FExpr)
-        or (iterable and hasattr(iterable, "__getitem__") and isinstance(iterable[0], core.FExpr)))):
-        return core.count(iterable)
-    if isinstance(iterable, dict) and isinstance([*iterable.values()][0], core.FExpr):
-        return core.count(iterable)
-    return _builtin_sum((x is not None) for x in iterable)
+    elif iterable is None:
+        return core.count()
+    else:
+        return _builtin_sum((x is not None) for x in iterable)
+
+
+def countna(iterable=None):
+    if isinstance(iterable, (core.FExpr)):
+        return core.countna(iterable)
+    elif iterable is None:
+        return core.countna()
+    else:
+        return _builtin_sum((x is None) for x in iterable)
 
 
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
-
-
-def countna(iterable=None):
-    if isinstance(iterable, core.Frame):
-        return iterable.countna()
-    return core.countna(iterable)
 
 
 def first(iterable):
@@ -119,13 +119,14 @@ def sum(iterable, start=0):
     elif isinstance(iterable, core.Frame):
         return iterable.sum()
     else:
-        return _builtin_sum(iterable, start)   
+        return _builtin_sum(iterable, start)
+
 
 # noinspection PyShadowingBuiltins
 def min(*args, **kwds):
     if (len(args) == 1
         and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
-        or (args[0] and hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return core.min(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return core.min(args)
@@ -139,7 +140,7 @@ def min(*args, **kwds):
 def max(*args, **kwds):
     if (len(args) == 1 and (not isinstance(args[0], dict))
         and (isinstance(args[0], (Expr, core.FExpr))
-        or (args[0] and hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
+        or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
         return core.max(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
         return core.max(args)

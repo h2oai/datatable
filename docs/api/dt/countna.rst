@@ -1,13 +1,15 @@
 
 .. xfunction:: datatable.countna
-    :src: src/core/expr/fexpr_count_countna.cc pyfn_countna
+    :src: src/core/expr/fexpr_count.cc pyfn_countna
     :tests: tests/test-reduce.py
     :cvar: doc_dt_countna
-    :signature: countna(cols)
+    :signature: countna(cols=None)
 
     .. x-version-added:: 1.1.0
 
-    Count the number of NA values for each column from `cols`. 
+    Count missing values for each column from `cols`. This function
+    is group-aware.
+
 
     Parameters
     ----------
@@ -15,14 +17,12 @@
         Input columns.
 
     return: FExpr
-        f-expression having one row, and the same names and number of columns
-        as in `cols`. All the returned column stypes are `int64`.
-        If `cols` is not provided, 0 is returned per group.
-
-    except: TypeError
-        The exception is raised when one of the columns from `cols`
-        has an obj64 type.
-
+        f-expression that counts the number of missing values
+        for each column from `cols`. If `cols` is not provided,
+        it will return `0` for each of the frame's group.
+        The returned f-expression has as many rows as there are groups,
+        it also has the same names and number of columns as in `cols`.
+        All the resulting column's stypes are `int64`.
 
 
     Examples
@@ -32,42 +32,41 @@
 
         >>> from datatable import dt, f
         >>>
-        >>> df = dt.Frame({'A': [1, 1, 2, None, 1, 2],
-        ...                'B': [None, 2, 3, 4, None, 5],
-        ...                'C': [1, 2, 1, 1, 2, 4]})
-        >>> df
+        >>> DT = dt.Frame({'A': [None, 1, 2, None, 2],
+        ...                'B': [None, 2, 3, 4, 5],
+        ...                'C': [1, 2, 1, 1, 2]})
+        >>> DT
            |     A      B      C
            | int32  int32  int32
         -- + -----  -----  -----
-         0 |     1     NA      1
+         0 |    NA     NA      1
          1 |     1      2      2
          2 |     2      3      1
          3 |    NA      4      1
-         4 |     1     NA      2
-         5 |     2      5      4
-        [6 rows x 3 columns]
+         4 |     2      5      2
+        [5 rows x 3 columns]
 
-    Get the count of NAs of all rows:
+    Count missing values in all the columns::
 
-        >>> df[:, dt.countna(f[:])]
+        >>> DT[:, dt.countna(f[:])]
            |     A      B      C
            | int64  int64  int64
         -- + -----  -----  -----
-         0 |     1      2      0
+         0 |     2      1      0
         [1 row x 3 columns]
 
-    Get the count of NAs of column `B`:
+    Count missing values in the column `B` only::
 
-        >>> df[:, dt.countna(f.B)]
+        >>> DT[:, dt.countna(f.B)]
            |     B
            | int64
         -- + -----
-         0 |     2
+         0 |     1
         [1 row x 1 column]
 
-    When no `cols` is passed, the number of missing values returned is zero:
+    When no `cols` is passed, this function will always return zero::
 
-        >>> df[:, dt.countna()]
+        >>> DT[:, dt.countna()]
            |    C0
            | int64
         -- + -----

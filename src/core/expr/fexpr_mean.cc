@@ -71,6 +71,7 @@ class FExpr_Mean : public FExpr_ReduceUnary {
       if (stype == SType::DATE32 || stype == SType::TIME64) {
         col_out.cast_inplace(stype);
       }
+
       return col_out;
     }
 
@@ -81,7 +82,7 @@ class FExpr_Mean : public FExpr_ReduceUnary {
 
       return is_grouped? std::move(col)
                        : Column(new Latent_ColumnImpl(new Mean_ColumnImpl<T>(
-                           std::move(col), stype, gby
+                           std::move(col), gby
                          )));
     }
 };

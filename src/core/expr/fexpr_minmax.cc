@@ -56,11 +56,9 @@ class FExpr_MinMax : public FExpr_ReduceUnary {
         case SType::INT16:
           return make<int16_t>(std::move(col), gby, is_grouped);
         case SType::INT32:
-        return make<int32_t>(std::move(col), gby, is_grouped);
         case SType::DATE32:
           return make<int32_t>(std::move(col), gby, is_grouped);
         case SType::INT64:
-        return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::TIME64:
           return make<int64_t>(std::move(col), gby, is_grouped);
         case SType::FLOAT32:
@@ -78,7 +76,7 @@ class FExpr_MinMax : public FExpr_ReduceUnary {
     Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
       return is_grouped? std::move(col)
                        : Column(new Latent_ColumnImpl(new MinMax_ColumnImpl<T, MIN>(
-                           std::move(col), col.stype(), gby
+                           std::move(col), gby
                          )));
 
     }

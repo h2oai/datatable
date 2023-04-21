@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022-2023 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -21,8 +21,7 @@
 //------------------------------------------------------------------------------
 #include "column/const.h"
 #include "column/latent.h"
-#include "column/countna.h"
-#include "column/countna_no_args.h"
+#include "column/count.h"
 #include "documentation.h"
 #include "expr/fexpr_reduce_unary.h"
 #include "expr/eval_context.h"
@@ -32,8 +31,9 @@
 namespace dt {
 namespace expr {
 
+
 template<bool COUNTNA>
-class FExpr_Count : public FExpr_ReduceUnary {
+class FExpr_CountUnary : public FExpr_ReduceUnary {
   public:
     using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
@@ -43,7 +43,8 @@ class FExpr_Count : public FExpr_ReduceUnary {
                     : "count";
     }
 
-    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const {
+
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const override {
       SType stype = col.stype();
       switch (stype) {
         case SType::VOID:
@@ -71,71 +72,68 @@ class FExpr_Count : public FExpr_ReduceUnary {
       }
     }
 
+
     template <typename T>
     Column make(Column&& col, const Groupby& gby, bool is_grouped) const {
       if (is_grouped) {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, true>(
-          std::move(col), SType::INT64, gby
+        return Column(new Latent_ColumnImpl(new CountUnary_ColumnImpl<T, COUNTNA, true>(
+          std::move(col), gby, SType::INT64
         )));
       } else {
-        return Column(new Latent_ColumnImpl(new Count_ColumnImpl<T, COUNTNA, false>(
-          std::move(col), SType::INT64, gby
+        return Column(new Latent_ColumnImpl(new CountUnary_ColumnImpl<T, COUNTNA, false>(
+          std::move(col), gby, SType::INT64
         )));
       }
     }
+
 };
 
 
-// gets the count of all rows - nulls are not checked
-template<bool COUNTNA>
-class FExpr_Count_Rows : public FExpr_Func {
-  public:
-    FExpr_Count_Rows(){}
 
+template<bool COUNTNA>
+class FExpr_CountNullary : public FExpr_Func {
+  public:
     std::string repr() const override {
-      std::string out = COUNTNA? "countna(None)" 
+      std::string out = COUNTNA? "countna()"
                                : "count()";
       return out;
     }
 
-  Workframe evaluate_n(EvalContext &ctx) const override {
-    Workframe wf(ctx);
-    Groupby gby = ctx.get_groupby();
-    Column col;
 
-    if (COUNTNA) {
-      col = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
-      wf.add_column(std::move(col), "countna", Grouping::GtoONE);
-      return wf;
-    }
-    
-    if (ctx.has_groupby()) {
-      col = Column(new Latent_ColumnImpl(new CountRows_ColumnImpl(gby)));
-    } else {
+    Workframe evaluate_n(EvalContext &ctx) const override {
+      Workframe wf(ctx);
+      Groupby gby = ctx.get_groupby();
+      Column col;
+
+      if (COUNTNA) {
+        col = Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
+        wf.add_column(std::move(col), "countna", Grouping::GtoONE);
+        return wf;
+      }
+
+      if (ctx.has_groupby()) {
+        col = Column(new Latent_ColumnImpl(new CountNullary_ColumnImpl(gby)));
+      } else {
         auto value = static_cast<int64_t>(ctx.nrows());
         col = Const_ColumnImpl::make_int_column(1, value, SType::INT64);
       }
-    wf.add_column(std::move(col), "count", Grouping::GtoONE);
-    return wf;
-  }
+      wf.add_column(std::move(col), "count", Grouping::GtoONE);
+      return wf;
+    }
 
 };
 
 
 static py::oobj pyfn_count(const py::XArgs &args) {
   auto arg = args[0].to_oobj_or_none();
-  if (arg.is_none()) {
-    return PyFExpr::make(new FExpr_Count_Rows<false>());
-  }
-  return PyFExpr::make(new FExpr_Count<false>(as_fexpr(arg)));
+  return arg.is_none()? PyFExpr::make(new FExpr_CountNullary<false>())
+                      : PyFExpr::make(new FExpr_CountUnary<false>(as_fexpr(arg)));
 }
 
 static py::oobj pyfn_countna(const py::XArgs &args) {
   auto arg = args[0].to_oobj_or_none();
-  if (arg.is_none()) {
-    return PyFExpr::make(new FExpr_Count_Rows<true>());
-  }
-  return PyFExpr::make(new FExpr_Count<true>(as_fexpr(arg)));
+  return arg.is_none()? PyFExpr::make(new FExpr_CountNullary<true>())
+                      : PyFExpr::make(new FExpr_CountUnary<true>(as_fexpr(arg)));
 }
 
 
