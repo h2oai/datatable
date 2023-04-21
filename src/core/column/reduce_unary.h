@@ -31,7 +31,7 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column col_;
     Groupby gby_;
-    
+
   public:
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby, SType stype_out)
       : Virtual_ColumnImpl(gby.size(), stype_out),
