@@ -32,16 +32,9 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
     Column col_;
     Groupby gby_;
     
-<<<<<<< HEAD
   public:
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby, SType stype_out)
       : Virtual_ColumnImpl(gby.size(), stype_out),
-=======
-
-  public:
-    ReduceUnary_ColumnImpl(Column &&col, SType stype, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), stype),
->>>>>>> 8397a8ff6955daf00dca81070bebbd006d3d5b29
         col_(std::move(col)),
         gby_(gby)
     {
@@ -55,11 +48,7 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
 
 
     ColumnImpl *clone() const override {
-<<<<<<< HEAD
       return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_), this->stype());
-=======
-      return new ReduceUnary_ColumnImpl(Column(col_), this->stype(), Groupby(gby_));
->>>>>>> 8397a8ff6955daf00dca81070bebbd006d3d5b29
     }
 
 
