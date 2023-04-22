@@ -120,13 +120,6 @@ static ptrHead make_binop(Op op, const py::otuple& params) {
 }
 
 
-static ptrHead make_reduce0(Op op, const py::otuple& params) {
-  xassert(params.size() == 0);
-  (void) params;
-  return ptrHead(new Head_Reduce_Nullary(op));
-}
-
-
 static ptrHead make_reduce1(Op op, const py::otuple& params) {
   xassert(params.size() == 0);
   (void) params;
@@ -153,7 +146,6 @@ void Head_Func::init() {
   factory[static_cast<size_t>(Op::SETPLUS)]    = make_colsetop;
   factory[static_cast<size_t>(Op::SETMINUS)]   = make_colsetop;
   factory[static_cast<size_t>(Op::SHIFTFN)]    = &Head_Func_Shift::make;
-  factory[static_cast<size_t>(Op::COUNT0)]     = make_reduce0;
   factory[static_cast<size_t>(Op::COV)]        = make_reduce2;
   factory[static_cast<size_t>(Op::CORR)]       = make_reduce2;
   factory[static_cast<size_t>(Op::ARCTAN2)]    = make_binop;
