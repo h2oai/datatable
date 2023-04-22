@@ -25,8 +25,8 @@
         All the resulting column's stypes are `int64`.
 
     except: TypeError
-        The exception is raised when one of the columns from `cols`
-        has an obj64 type.
+        The exception is raised when one of the input columns has
+        an `obj64` type.
 
 
     Examples

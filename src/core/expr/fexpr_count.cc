@@ -65,7 +65,7 @@ class FExpr_CountUnary : public FExpr_ReduceUnary {
           return make<double>(std::move(col), gby, is_grouped);
         case SType::STR32:
         case SType::STR64:
-          return make<CString>(std::move(col), gby, is_grouped);                
+          return make<CString>(std::move(col), gby, is_grouped);
         default:
           throw TypeError()
             << "Invalid column of type `" << stype << "` in " << repr();
