@@ -33,6 +33,7 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
     Groupby gby_;
 
   public:
+
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby, SType stype_out)
       : Virtual_ColumnImpl(gby.size(), stype_out),
         col_(std::move(col)),
@@ -42,6 +43,8 @@ class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
     }
 
 
+    // Constructor for the case when `stype_out` is the same
+    // as the input column stype.
     ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
       : ReduceUnary_ColumnImpl(std::move(col), gby, col.stype())
     {}
