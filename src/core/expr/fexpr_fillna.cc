@@ -55,9 +55,9 @@ class FExpr_FillNA : public FExpr_Func {
         out +=", value=";
         out += value_->repr();
       } else {
-          out += ", reverse=";
-          out += reverse_? "True" : "False";
-        }
+        out += ", reverse=";
+        out += reverse_? "True" : "False";
+      }
       out += ')';
       return out;
     }
@@ -104,12 +104,13 @@ class FExpr_FillNA : public FExpr_Func {
               indices[i] = static_cast<int32_t>(fill_id);
             }
           } else {
-              for (size_t i = i1; i < i2; ++i) {
-                is_valid = col.get_element(i, &value);
-                fill_id = is_valid? i : fill_id;
-                indices[i] = static_cast<int32_t>(fill_id);
-              }
+            for (size_t i = i1; i < i2; ++i) {
+              is_valid = col.get_element(i, &value);
+              fill_id = is_valid? i : fill_id;
+              indices[i] = static_cast<int32_t>(fill_id);
             }
+          }
+
         }
       );
 
@@ -138,10 +139,7 @@ class FExpr_FillNA : public FExpr_Func {
 
         for (size_t i = 0; i < wf.ncols(); ++i) {
           Column col_orig = Column(wf.get_column(i));
-          Column col_cond = wf.retrieve_column(i);
-          bool is_void_column = col_cond.stype() == SType::VOID;
-          col_cond = is_void_column? Const_ColumnImpl::make_bool_column(col_cond.nrows(), true)
-                                   : Column(new Isna_ColumnImpl(std::move(col_cond)));
+          Column col_cond = make_isna_col(wf.retrieve_column(i));
           Column col_repl = wf_value.retrieve_column(i);
 
           SType st = common_stype(col_orig.stype(), col_repl.stype());
@@ -185,7 +183,27 @@ class FExpr_FillNA : public FExpr_Func {
 
       return wf;
     }
- };
+
+
+    static Column make_isna_col(Column&& col) {
+      switch (col.stype()) {
+        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
+        case SType::BOOL:
+        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
+        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
+        case SType::DATE32:
+        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
+        case SType::TIME64:
+        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
+        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
+        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
+        case SType::STR32:
+        case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
+        default: throw RuntimeError();
+      }
+    }
+
+};
 
 
 static py::oobj pyfn_fillna(const py::XArgs &args) {

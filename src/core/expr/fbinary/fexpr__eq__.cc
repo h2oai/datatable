@@ -67,9 +67,21 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
     if (type1.is_void()) {
       std::swap(lcol, rcol);
     }
-    if (type0.stype() == SType::VOID) {
-      return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);
-    } else return Column(new Isna_ColumnImpl(std::move(lcol)));
+    switch (type0.stype()) {
+      case SType::VOID:    return Const_ColumnImpl::make_bool_column(lcol.nrows(), true);
+      case SType::BOOL:
+      case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(lcol)));
+      case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(lcol)));
+      case SType::DATE32:
+      case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(lcol)));
+      case SType::TIME64:
+      case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(lcol)));
+      case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(lcol)));
+      case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(lcol)));
+      case SType::STR32:
+      case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(lcol)));
+      default: break;
+    }
   } else {
     switch (type0.stype()) {
       case SType::BOOL:
@@ -90,6 +102,9 @@ Column FExpr__eq__::evaluate1(Column&& lcol, Column&& rcol) const {
       "types `" << type1 << "` and `" << type2 << "`";
 }
 
+
+
+
+
+
 }}  // namespace dt::expr
-
-
