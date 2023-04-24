@@ -66,3 +66,4 @@ class Isna_ColumnImpl : public Virtual_ColumnImpl {
 
 }  // namespace dt
 #endif
+
