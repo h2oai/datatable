@@ -270,3 +270,7 @@ def test_nth_multiple_columns_skipna_all():
         }
     )
     assert_equals(DT_nth, DT_ref)
+
+def test_nth_zero_rows():
+    DT = dt.Frame()
+    assert_equals(DT[:, nth(f[:])], DT)

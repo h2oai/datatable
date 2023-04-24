@@ -106,7 +106,7 @@ class FExpr_Nth : public FExpr_Func {
       return true;
     }
 
-    static Column make_bool_column(colvec&& columns, const size_t nrows, const size_t ncols) {
+    static Column make_boolean_column(colvec&& columns, const size_t nrows, const size_t ncols) {
       if (SKIPNA == 1) {
         return Column(new FuncNary_ColumnImpl<int8_t>(
                       std::move(columns), op_rowany, nrows, SType::BOOL));
@@ -186,40 +186,39 @@ class FExpr_Nth : public FExpr_Func {
         }
       }
 
-      if (SKIPNA == 0) {
+      if (wf.nrows() == 0) {
         for (size_t i = 0; i < wf.ncols(); ++i) {
-          bool is_grouped = ctx.has_group_column(
-                              wf.get_frame_id(i),
-                              wf.get_column_id(i)
-                            );
-          Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped, n_);        
-          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+          Column coli = Column::new_na_column(1, wf.retrieve_column(i).stype());
+          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
         }
-      } else {
-          Workframe wf_skipna = arg_->evaluate_n(ctx);
-          colvec columns;
-          size_t ncols = wf_skipna.ncols();
-          size_t nrows = wf_skipna.nrows();
-          columns.reserve(ncols);
-          for (size_t i = 0; i < ncols; ++i) {
-            Column coli = make_isna_col(wf_skipna.retrieve_column(i));
-            columns.push_back(std::move(coli));
-          }
-          Column bool_column = make_bool_column(std::move(columns), nrows, ncols);
-          RowIndex ri = n_ < 0 ? rowindex_nth<false>(bool_column, gby)
-                               : rowindex_nth<true>(bool_column, gby);
-          for (size_t i = 0; i < wf.ncols(); ++i) {
-            bool is_grouped = ctx.has_group_column(
-                                wf.get_frame_id(i),
-                                wf.get_column_id(i)
-                              );
-            Column coli = wf.retrieve_column(i);
-            coli.apply_rowindex(ri);
-            coli = evaluate1(std::move(coli), gby, is_grouped, n_);        
-            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
-          }
+        return outputs;        
+      }
+
+      RowIndex ri;
+      if (SKIPNA > 0) {
+        Workframe wf_skipna = arg_->evaluate_n(ctx);
+        colvec columns;
+        size_t ncols = wf_skipna.ncols();
+        size_t nrows = wf_skipna.nrows();
+        columns.reserve(ncols);
+        for (size_t i = 0; i < ncols; ++i) {
+          Column coli = make_isna_col(wf_skipna.retrieve_column(i));
+          columns.push_back(std::move(coli));
         }
-            
+        Column bool_column = make_boolean_column(std::move(columns), nrows, ncols);
+        ri = n_ < 0 ? rowindex_nth<false>(bool_column, gby)
+                    : rowindex_nth<true>(bool_column, gby);
+      }
+      for (size_t i = 0; i < wf.ncols(); ++i) {
+        bool is_grouped = ctx.has_group_column(
+                            wf.get_frame_id(i),
+                            wf.get_column_id(i)
+                          );
+        Column coli = wf.retrieve_column(i);
+        if (SKIPNA > 0) coli.apply_rowindex(ri);
+        coli = evaluate1(std::move(coli), gby, is_grouped, n_);        
+        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+      }           
       return outputs;
     }   
 
