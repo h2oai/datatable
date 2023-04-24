@@ -30,7 +30,7 @@ namespace dt {
 
 SliceView_ColumnImpl::SliceView_ColumnImpl(
     Column&& col, const RowIndex& ri)
-  : Virtual_ColumnImpl(ri.size(), col.data_stype()),
+  : Virtual_ColumnImpl(ri.size(), col.data_type()),
     arg_(std::move(col)),
     start_(ri.slice_start()),
     step_(ri.slice_step())
@@ -41,7 +41,7 @@ SliceView_ColumnImpl::SliceView_ColumnImpl(
 
 SliceView_ColumnImpl::SliceView_ColumnImpl(
     Column&& col, size_t start, size_t count, size_t step)
-  : Virtual_ColumnImpl(count, col.data_stype()),
+  : Virtual_ColumnImpl(count, col.data_type()),
     arg_(std::move(col)),
     start_(start),
     step_(step)
@@ -97,7 +97,7 @@ template <> const int64_t* get_indices(const RowIndex& ri) { return ri.indices64
 template <typename T>
 ArrayView_ColumnImpl<T>::ArrayView_ColumnImpl(
     Column&& col, const RowIndex& ri, size_t nrows)
-  : Virtual_ColumnImpl(nrows, col.data_stype()),
+  : Virtual_ColumnImpl(nrows, col.data_type()),
     arg(std::move(col))
 {
   set_rowindex(ri);
@@ -169,7 +169,7 @@ template class ArrayView_ColumnImpl<int64_t>;
 static Column _make_view(Column&& col, const RowIndex& ri) {
   // This covers the case when ri.size()==0, and when all elements are NAs
   if (ri.is_all_missing()) {
-    return Column::new_na_column(ri.size(), col.data_stype());
+    return Column::new_na_column(ri.size(), col.data_type());
   }
   switch (ri.type()) {
     case RowIndexType::SLICE:

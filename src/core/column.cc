@@ -168,6 +168,10 @@ const dt::Type& Column::type() const noexcept {
   return impl_->type_;
 }
 
+const dt::Type Column::data_type() const noexcept {
+  return impl_->data_type();
+}
+
 dt::SType Column::stype() const noexcept {
   return impl_->type_.stype();
 }
