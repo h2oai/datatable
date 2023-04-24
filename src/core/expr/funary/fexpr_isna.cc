@@ -60,10 +60,7 @@ class FExpr_ISNA : public FExpr_FuncUnary {
     }
 
     Column evaluate1(Column&& col) const override{
-      bool is_void_column = col.stype() == SType::VOID;
-      col = is_void_column? Const_ColumnImpl::make_bool_column(col.nrows(), true)
-                          : make_isna_col(std::move(col));
-      return std::move(col);
+      return make_isna_col(std::move(col));
     }
 };
 
