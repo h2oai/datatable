@@ -20,14 +20,16 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include "column/const.h"
-#include "column/func_binary.h"
+#include "column/func_nary.h"
+#include "column/latent.h"
 #include "column/isna.h"
 #include "column/nth.h"
 #include "documentation.h"
+#include "expr/fnary/fnary.h"
 #include "expr/fexpr_func.h"
 #include "expr/eval_context.h"
+#include "parallel/api.h"
 #include "python/xargs.h"
-#include <iostream>
 namespace dt {
 namespace expr {
 
@@ -78,49 +80,148 @@ class FExpr_Nth : public FExpr_Func {
       }
     }
 
-    template<typename T>
-    static Column make_bool_col(Column&& a, Column&& b, SType BOOL) {
-      xassert(compatible_type<T>(stype));
-      size_t nrows = a.nrows();
-      a.cast_inplace(SType::BOOL);
-      b.cast_inplace(SType::BOOL);
-      if (SKIPNA == 1) {
-        return Column(new FuncBinary1_ColumnImpl<T, T, T>(
-          std::move(a), std::move(b),
-          [](T x, T y){ return x | y; },
-          nrows, SType::BOOL
-        ));
-      } 
-      if (SKIPNA == 2) {
-        return Column(new FuncBinary1_ColumnImpl<T, T, T>(
-          std::move(a), std::move(b),
-          [](T x, T y){ return x & y; },
-          nrows, SType::BOOL
-        ));
+    static bool op_rowany(size_t i, int8_t* out, const colvec& columns) {
+      for (const auto& col : columns) {
+        int8_t x;
+        bool xvalid = col.get_element(i, &x);
+        if (xvalid && x) {
+          *out = 1;
+          return true;
+        }
       }
-      
+      *out = 0;
+      return true;
     }
-  
+
+    static bool op_rowall(size_t i, int8_t* out, const colvec& columns) {
+      for (const auto& col : columns) {
+        int8_t x;
+        bool xvalid = col.get_element(i, &x);
+        if (!xvalid || x == 0) {
+          *out = 0;
+          return true;
+        }
+      }
+      *out = 1;
+      return true;
+    }
+
+    static Column make_bool_column(colvec&& columns, const size_t nrows, const size_t ncols) {
+      if (SKIPNA == 1) {
+        return Column(new FuncNary_ColumnImpl<int8_t>(
+                      std::move(columns), op_rowany, nrows, SType::BOOL));
+      }
+      return Column(new FuncNary_ColumnImpl<int8_t>(
+                    std::move(columns), op_rowall, nrows, SType::BOOL));
+      
+    } 
+
+    template <bool POSITIVE>
+    static RowIndex rowindex_nth(Column& col, const Groupby& gby) {
+      Buffer buf = Buffer::mem(col.nrows() * sizeof(int32_t));
+      auto indices = static_cast<int32_t*>(buf.xptr());
+      Latent_ColumnImpl::vivify(col);
+
+      dt::parallel_for_dynamic(
+        gby.size(),
+        [&](size_t gi) {
+          size_t i1, i2;
+          gby.get_group(gi, &i1, &i2);
+          size_t n = POSITIVE? i1: i2 - 1;
+          int8_t value;
+          bool is_valid;       
+
+          if (POSITIVE) {
+            for (size_t i = i1; i < i2; ++i) {
+              is_valid = col.get_element(i, &value);
+              if (value==0 && is_valid) {
+                indices[n] = static_cast<int32_t>(i);
+                n += 1;
+              }
+            }
+            for (size_t j = n; j < i2; ++j){
+              indices[j] = RowIndex::NA<int32_t>;
+            }    
+          } else {
+              for (size_t i = i2; i-- > i1;) {              
+                is_valid = col.get_element(i, &value);
+                if (value==0 && is_valid) {
+                  indices[n] = static_cast<int32_t>(i);
+                  n -= 1;
+                }
+              }
+              for (size_t j = n+1; j-- > i1;){
+                indices[j] = RowIndex::NA<int32_t>;
+              }    
+            }                   
+        } 
+      );
+
+      return RowIndex(std::move(buf), RowIndex::ARR32|RowIndex::SORTED);
+    }
 
     Workframe evaluate_n(EvalContext &ctx) const override {
       Workframe wf = arg_->evaluate_n(ctx);
       Workframe outputs(ctx);
       Groupby gby = ctx.get_groupby();
 
-      if (!gby) gby = Groupby::single_group(ctx.nrows()); 
+      // Check if the input frame is grouped as `GtoONE`
+      bool is_wf_grouped = (wf.get_grouping_mode() == Grouping::GtoONE);
 
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-        bool is_grouped = ctx.has_group_column(
-                            wf.get_frame_id(i),
-                            wf.get_column_id(i)
-                          );
-        Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped, n_);        
-        outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+      if (is_wf_grouped) {
+        // Check if the input frame columns are grouped
+        bool are_cols_grouped = ctx.has_group_column(
+                                  wf.get_frame_id(0),
+                                  wf.get_column_id(0)
+                                );
+
+        if (!are_cols_grouped) {
+          // When the input frame is `GtoONE`, but columns are not grouped,
+          // it means we are dealing with the output of another reducer.
+          // In such a case we create a new groupby, that has one element
+          // per a group. This may not be optimal performance-wise,
+          // but chained reducers is a very rare scenario.
+          xassert(gby.size() == wf.nrows());
+          gby = Groupby::nrows_groups(gby.size());
+        }
       }
-      return outputs;
-    }
 
-    
+      if (SKIPNA == 0) {
+        for (size_t i = 0; i < wf.ncols(); ++i) {
+          bool is_grouped = ctx.has_group_column(
+                              wf.get_frame_id(i),
+                              wf.get_column_id(i)
+                            );
+          Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped, n_);        
+          outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+        }
+      } else {
+          Workframe wf_skipna = arg_->evaluate_n(ctx);
+          colvec columns;
+          size_t ncols = wf_skipna.ncols();
+          size_t nrows = wf_skipna.nrows();
+          columns.reserve(ncols);
+          for (size_t i = 0; i < ncols; ++i) {
+            Column coli = make_isna_col(wf_skipna.retrieve_column(i));
+            columns.push_back(std::move(coli));
+          }
+          Column bool_column = make_bool_column(std::move(columns), nrows, ncols);
+          RowIndex ri = n_ < 0 ? rowindex_nth<false>(bool_column, gby)
+                               : rowindex_nth<true>(bool_column, gby);
+          for (size_t i = 0; i < wf.ncols(); ++i) {
+            bool is_grouped = ctx.has_group_column(
+                                wf.get_frame_id(i),
+                                wf.get_column_id(i)
+                              );
+            Column coli = wf.retrieve_column(i);
+            coli.apply_rowindex(ri);
+            coli = evaluate1(std::move(coli), gby, is_grouped, n_);        
+            outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE); 
+          }
+        }
+            
+      return outputs;
+    }   
 
 
     Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped, const int32_t n) const {

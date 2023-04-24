@@ -501,11 +501,11 @@ def test_codes():
 
 
 def test_nth():
-    assert str(dt.nth(f.A, n=0)) == str(f.A.nth(n=0, skipna=False))
-    assert str(dt.nth(f.A, n=1, skipna=True)) == str(f.A.nth(n=1, skipna=True))
-    assert str(dt.nth(f[:], -1, skipna=False)) == str(f[:].nth(-1, False))
+    assert str(dt.nth(f.A, n=0)) == str(f.A.nth(n=0, skipna=None))
+    assert str(dt.nth(f.A, n=1, skipna="any")) == str(f.A.nth(n=1, skipna="any"))
+    assert str(dt.nth(f[:], -1, skipna=None)) == str(f[:].nth(-1, None))
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
-    assert_equals(DT[:, f.A.nth(n=1, skipna=False)], DT[:, dt.nth(f.A, 1, False)])
-    assert_equals(DT[:, f.A.nth(n=0, skipna=True)], DT[:, dt.nth(f.A, 0, True)])
-    assert_equals(DT[:, f.A.nth(n=0, skipna=True)], DT[:, dt.nth(f.A, 0, skipna=True)])
+    assert_equals(DT[:, f.A.nth(n=1, skipna=None)], DT[:, dt.nth(f.A, 1, None)])
+    assert_equals(DT[:, f.A.nth(n=0, skipna="any")], DT[:, dt.nth(f.A, 0, "any")])
+    assert_equals(DT[:, f.A.nth(n=0, skipna="all")], DT[:, dt.nth(f.A, 0, skipna="all")])
     

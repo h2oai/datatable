@@ -71,16 +71,14 @@ class Nth_ColumnImpl : public Virtual_ColumnImpl {
       // wrap-around.
       size_t ni = (n_ >= 0)? static_cast<size_t>(n_) + i0
                            : static_cast<size_t>(n_) + i1;
-
       bool isvalid = false;
       if (ni >= i0 && ni < i1){
-        ni = is_grouped_?i0:ni;
+        ni = is_grouped_?i:ni;
         isvalid = col_.get_element(ni, out);
       }
       return isvalid;
     }
-};
-
+}; 
 
 }  // namespace dt
 #endif
