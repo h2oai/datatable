@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #-------------------------------------------------------------------------------
-# Copyright 2018-2021 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -51,13 +51,9 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # Reducers
-    MEAN = 401
-    MIN = 402
-    MAX = 403
     STDEV = 404
     FIRST = 405
     LAST = 406
-    SUM = 407
     COUNT = 408
     COUNT0 = 409
     MEDIAN = 410
@@ -65,7 +61,6 @@ class OpCodes(enum.Enum):
     CORR = 412
     COUNTNA = 413
     NUNIQUE = 414
-    PROD = 415
 
     # Math: trigonometric
     SIN = 501

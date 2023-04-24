@@ -1497,6 +1497,7 @@ RiGb group(const std::vector<Column>& columns,
 
 
 void dt::ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
+  out.materialize(); // `SortContext::continue_sort()` requires material column
   (void) out.stats();
   SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
   sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);

@@ -65,6 +65,25 @@ class FExpr_FillNA : public FExpr_Func {
 
     template <bool REVERSE>
     static RowIndex fill_rowindex(Column& col, const Groupby& gby) {
+      switch (col.stype()) {
+        case SType::BOOL:
+        case SType::INT8:    return fill_rowindex<int8_t, REVERSE>(col, gby);
+        case SType::INT16:   return fill_rowindex<int16_t, REVERSE>(col, gby);
+        case SType::DATE32:
+        case SType::INT32:   return fill_rowindex<int32_t, REVERSE>(col, gby);
+        case SType::TIME64:
+        case SType::INT64:   return fill_rowindex<int64_t, REVERSE>(col, gby);
+        case SType::FLOAT32: return fill_rowindex<float, REVERSE>(col, gby);
+        case SType::FLOAT64: return fill_rowindex<double, REVERSE>(col, gby);
+        case SType::STR32:
+        case SType::STR64:   return fill_rowindex<CString, REVERSE>(col, gby);
+        default: throw RuntimeError();
+      }
+    }
+
+
+    template <typename T, bool REVERSE>
+    static RowIndex fill_rowindex(Column& col, const Groupby& gby) {
       Buffer buf = Buffer::mem(col.nrows() * sizeof(int32_t));
       auto indices = static_cast<int32_t*>(buf.xptr());
       Latent_ColumnImpl::vivify(col);
@@ -75,16 +94,18 @@ class FExpr_FillNA : public FExpr_Func {
           size_t i1, i2;
           gby.get_group(gi, &i1, &i2);
           size_t fill_id = REVERSE? i2 - 1 : i1;
+          T value;
+          bool is_valid;
 
           if (REVERSE) {
             for (size_t i = i2; i-- > i1;) {
-              size_t is_valid = col.get_element_isvalid(i);
+              is_valid = col.get_element(i, &value);
               fill_id = is_valid? i : fill_id;
               indices[i] = static_cast<int32_t>(fill_id);
             }
           } else {
             for (size_t i = i1; i < i2; ++i) {
-              size_t is_valid = col.get_element_isvalid(i);
+              is_valid = col.get_element(i, &value);
               fill_id = is_valid? i : fill_id;
               indices[i] = static_cast<int32_t>(fill_id);
             }
@@ -136,18 +157,14 @@ class FExpr_FillNA : public FExpr_Func {
       } else {
         // Fill with the previous/subsequent non-missing values
         Groupby gby = ctx.get_groupby();
-        if (!gby) {
-          gby = Groupby::single_group(wf.nrows());
-        } else {
-          wf.increase_grouping_mode(Grouping::GtoALL);
-        }
+        wf.increase_grouping_mode(Grouping::GtoALL);
 
         for (size_t i = 0; i < wf.ncols(); ++i) {
           bool is_grouped = ctx.has_group_column(
                               wf.get_frame_id(i),
                               wf.get_column_id(i)
                             );
-          if (is_grouped) continue;
+          if (is_grouped || wf.get_column(i).stype() == SType::VOID) continue;
 
           Column coli = wf.retrieve_column(i);
           auto stats = coli.get_stats_if_exist();
@@ -160,7 +177,6 @@ class FExpr_FillNA : public FExpr_Func {
                                     : fill_rowindex<false>(coli, gby);
               coli.apply_rowindex(ri);
           }
-
           wf.replace_column(i, std::move(coli));
         }
       }

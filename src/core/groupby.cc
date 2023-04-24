@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2020 H2O.ai
+// Copyright 2018-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,6 +23,7 @@
 #include "utils/exceptions.h"
 #include "column.h"
 #include "groupby.h"
+#include "parallel/api.h"
 
 
 
@@ -48,18 +49,32 @@ Groupby::Groupby(size_t n, Buffer&& buf) {
 
 
 Groupby Groupby::zero_groups() {
-  Buffer mr = Buffer::mem(sizeof(int32_t));
-  mr.set_element<int32_t>(0, 0);
-  return Groupby(0, std::move(mr));
+  Buffer buf = Buffer::mem(sizeof(int32_t));
+  buf.set_element<int32_t>(0, 0);
+  return Groupby(0, std::move(buf));
 }
 
 
 Groupby Groupby::single_group(size_t nrows) {
   XAssert(nrows <= Column::MAX_ARR32_SIZE);
-  Buffer mr = Buffer::mem(2 * sizeof(int32_t));
-  mr.set_element<int32_t>(0, 0);
-  mr.set_element<int32_t>(1, static_cast<int32_t>(nrows));
-  return Groupby(1, std::move(mr));
+  Buffer buf = Buffer::mem(2 * sizeof(int32_t));
+  buf.set_element<int32_t>(0, 0);
+  buf.set_element<int32_t>(1, static_cast<int32_t>(nrows));
+  return Groupby(1, std::move(buf));
+}
+
+
+Groupby Groupby::nrows_groups(size_t nrows) {
+  XAssert(nrows <= Column::MAX_ARR32_SIZE);
+  size_t noffs = nrows + 1;
+  Buffer buf = Buffer::mem(noffs * sizeof(int32_t));
+  auto offs = static_cast<int32_t*>(buf.wptr());
+  dt::parallel_for_static(noffs,
+    [&](size_t i) {
+      offs[i] = static_cast<int32_t>(i);
+    });
+
+  return Groupby(nrows, std::move(buf));
 }
 
 

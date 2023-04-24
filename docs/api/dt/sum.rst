@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.sum
-    :src: src/core/expr/head_reduce_unary.cc sum_reducer
+    :src: src/core/expr/fexpr_sumprod.cc pyfn_sum
     :tests: tests/test-reduce.py
     :cvar: doc_dt_sum
     :signature: sum(cols)
@@ -14,7 +14,7 @@
     cols: FExpr
         Input columns.
 
-    return: Expr
+    return: FExpr
         f-expression having one row, and the same names and number of columns
         as in `cols`. The column types are :attr:`int64 <dt.Type.int64>` for
         void, boolean and integer columns, :attr:`float32 <dt.Type.float32>`

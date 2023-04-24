@@ -6,6 +6,10 @@
     -----
     .. current-class:: datatable.Frame
 
+    -[enh] Parameter ``force=True`` in method :meth:`.rbind()`
+        and function :func:`dt.rbind()` will now allow combining columns
+        of incompatible types. [#3062]
+
     -[enh] Frames with columns of type :attr:`obj64 <dt.Type.obj64>` can now
         be saved into CSV. The values in the object column will be stringified
         upon saving. [#3064]
@@ -33,8 +37,9 @@
 
     -[fix] Joining with void columns now works correctly. [#3094]
 
-    -[fix] :func:`dt.sum()` now works correctly when applied to the same
-        column as :func:`dt.by()`. [#3110]
+    -[fix] :func:`dt.sum()` now works correctly when called on grouped column. [#3110]
+
+    -[fix] Fixed :func:`dt.sum()` behavior when called on iterables and frames. [#3406]
 
     -[fix] Fixed a crash which could have occurred when sorting very long
         identical or nearly identical strings. [#3134]
@@ -52,6 +57,17 @@
 
     -[fix] Fixed :meth:`.to_csv()` to quote missing values when
         `quoting="all"` is specified. [#3340]
+
+    -[fix] Fixed groupby behavior on columns that contain missing values. [#3331]
+
+    -[fix] Fixed creating frames from numpy arrays, that contain unicode strings. [#3420]
+
+    -[fix] :meth:`.to_numpy()` will now create a correctly shaped array
+        in the case of zero-column frames. [#3427]
+
+    -[fix] In the case a zero-column frame is created from a list of
+        tuples or dictionaries, the number of rows will be equal
+        to the number of elements in that list. [#3428]
 
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
@@ -127,10 +143,15 @@
 
     -[fix] Fixed selection of ``time64`` columns by python class name. [#3253]
 
-    -[fix] Fixed :func:`dt.shift()` behaviour on grouped columns. [#3269] [#3272]
+    -[fix] Fixed :func:`dt.shift()` behavior on grouped columns. [#3269] [#3272]
 
     -[fix] Reducers and row-wise functions now support :attr:`void <dt.Type.void>`
        columns. [#3284]
+
+    -[fix] Fixed :func:`dt.median()` when used in a groupby context with
+       :attr:`void <dt.Type.void>` columns. [#3411]
+
+    -[fix] Allow chained reducers to be used for :class:`dt.FExpr`s. [#3417]
 
 
     fread
@@ -148,6 +169,8 @@
 
     -[enh] Header detection heuristics has been improved in the case when
         some of the column names are missing. [#3363]
+
+    -[enh] Improved handling of very small and very large float values. [#3447]
 
     -[fix] :func:`fread()` will no longer fail while reading mostly empty
         files. [#3055]
@@ -170,12 +193,22 @@
         that in some cases resulted in the gradient and model coefficients
         blow up. [#3234]
 
-    -[fix] Fixed undefined behaviour when :class:`LinearModel <dt.models.LinearModel>`
+    -[fix] Fixed undefined behavior when :class:`LinearModel <dt.models.LinearModel>`
         predicted on frames with missing values. [#3260]
 
 
     General
     -------
+
+    -[api] Datatable no longer supports Python 3.6, because it
+      has reached its end of life on 2021-12-23 and will no longer be supported.
+      If you are still using Python 3.6, please consider upgrading.
+      [#3376]
+
+    -[api] Datatable no longer supports Python 3.7, because it
+      has reached its end of life on 2023-06-27 and will no longer be supported.
+      If you are still using Python 3.7, please consider upgrading.
+      [#3434]
 
     -[new] Added properties :attr:`.is_array <dt.Type.is_array>`,
         :attr:`.is_boolean <dt.Type.is_boolean>`,
@@ -193,11 +226,12 @@
 
     -[enh] Added support for Python `3.10`. [#3210]
 
-    -[enh] Parameter ``force=True`` in function :func:`rbind()` (or method
-        :meth:`dt.Frame.rbind()`) will now allow combining columns
-        of incompatible types. [#3062]
+    -[enh] Added support for Python `3.11`. [#3374]
 
     -[enh] datatable's thread pool can now be used to parallelize external C++ applications
         and will have no specific datatable dependencies, when the code is built with
         ``DT_DISABLE`` variable being defined. [#3306]
 
+    -[enh] Python built-in functoins ``min()`` and ``max()`` will continue
+        working for list comprehensions even after :func:`dt.min()` and
+        :func:`dt.max()` have been imported from datatable. [#3409]

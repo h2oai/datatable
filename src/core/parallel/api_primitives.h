@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019 H2O.ai
+// Copyright 2019-2023 H2O.ai
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,16 +17,23 @@
 #define dt_PARALLEL_API_PRIMITIVES_h
 #include <cstddef>
 #include "utils/assert.h"
+
+#ifndef DT_DEFAULT_CHUNK_SIZE
+  #define DT_DEFAULT_CHUNK_SIZE 1000
+#endif
+#ifndef DT_DEFAULT_MIN_ITERS_PER_THREAD
+  #define DT_DEFAULT_MIN_ITERS_PER_THREAD 1000
+#endif
+
 namespace dt {
 
+
 size_t num_threads_in_pool();
-
-
 
 class ChunkSize {
   size_t value;
   public:
-    explicit ChunkSize(size_t sz = 1000 /* Default chunk size */) {
+    explicit ChunkSize(size_t sz = DT_DEFAULT_CHUNK_SIZE) {
       value = sz? sz : 1;
     }
     ChunkSize(const ChunkSize&) = default;
@@ -68,7 +75,7 @@ class NThreads {
  * iterations per thread.
  */
 NThreads nthreads_from_niters(size_t niters,
-                              size_t min_iters_per_thread = 1000,
+                              size_t min_iters_per_thread = DT_DEFAULT_MIN_ITERS_PER_THREAD,
                               bool parallel_ok = true);
 
 

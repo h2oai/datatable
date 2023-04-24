@@ -1,7 +1,7 @@
 image:
   - Visual Studio 2019
-  - macos-monterey
   - Ubuntu
+  - macos-monterey
 
 init:
   # Uncomment the line below to enable RDP access on AppVeyor
@@ -82,18 +82,18 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.10
+    #   Build and test wheel for Python 3.11
     # =======================================================================
 
-    source $HOME/venv3.10/bin/activate
+    source $HOME/venv3.11/bin/activate
 
     python -V
 
     python ci/ext.py wheel
 
-    DT_WHEEL=`ls dist/*-cp310-*.whl`
+    DT_WHEEL=`ls dist/*-cp311-*.whl`
 
-    echo "----- _build_info.py for Python 3.10 ------------------------------"
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
 
     cat src/datatable/_build_info.py
 
@@ -182,21 +182,22 @@ build_script:
     echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
 
 
+
     # =======================================================================
-    #   Build and test wheel for Python 3.7
+    #   Build and test wheel for Python 3.8
     # =======================================================================
 
-    $env:PATH = "C:/Python37-x64;C:/Python37-x64/Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*-cp37-*.whl
+    $DT_WHEEL = ls dist/*-cp38-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.7 ------------------------------"
+    echo "----- _build_info.py for Python 3.8 ------------------------------"
 
     cat src/datatable/_build_info.py
 
@@ -217,20 +218,20 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.8
+    #   Build and test debug wheel for Python 3.8
     # =======================================================================
 
     $env:PATH = "C:/Python38-x64;C:/Python38-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py wheel
+    python ci/ext.py debugwheel
 
-    $DT_WHEEL = ls dist/*-cp38-*.whl
+    $DT_WHEEL = ls dist/*debug-cp38-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.8 ------------------------------"
+    echo "----- _build_info.py for Python 3.8 debug wheel ------------------"
 
     cat src/datatable/_build_info.py
 
@@ -285,20 +286,20 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test debug wheel for Python 3.9
+    #   Build and test wheel for Python 3.10
     # =======================================================================
 
-    $env:PATH = "C:/Python39-x64;C:/Python39-x64/Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python310-x64;C:/Python310-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
-    python ci/ext.py debugwheel
+    python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*debug-cp39-*.whl
+    $DT_WHEEL = ls dist/*-cp310-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.9 debug wheel ------------------"
+    echo "----- _build_info.py for Python 3.10 ------------------------------"
 
     cat src/datatable/_build_info.py
 
@@ -319,20 +320,20 @@ build_script:
 
 
     # =======================================================================
-    #   Build and test wheel for Python 3.10
+    #   Build and test wheel for Python 3.11
     # =======================================================================
 
-    $env:PATH = "C:/Python310-x64;C:/Python310-x64/Scripts;$DEFAULT_PATH"
+    $env:PATH = "C:/Python311-x64;C:/Python311-x64/Scripts;$DEFAULT_PATH"
 
     python -V
 
     python ci/ext.py wheel
 
-    $DT_WHEEL = ls dist/*-cp310-*.whl
+    $DT_WHEEL = ls dist/*-cp311-*.whl
 
     echo "DT_WHEEL = $DT_WHEEL"
 
-    echo "----- _build_info.py for Python 3.10 ------------------------------"
+    echo "----- _build_info.py for Python 3.11 ------------------------------"
 
     cat src/datatable/_build_info.py
 

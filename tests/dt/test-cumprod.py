@@ -42,7 +42,7 @@ def test_cumprod_non_numeric_by():
         DT[:, cumprod(f[0]), by(f[0])]
 
 def test_cumprod_no_argument():
-    match = r'Function datatable.cumprod\(\) requires exactly 1 positional argument, ' \
+    match = r'Function datatable.cumprod\(\) requires at least 1 positional argument, ' \
              'but none were given'
     with pytest.raises(TypeError, match = match):
         dt.cumprod()
@@ -53,11 +53,14 @@ def test_cumprod_no_argument():
 #-------------------------------------------------------------------------------
 
 def test_cumprod_str():
-  assert str(cumprod(f.A)) == "FExpr<cumprod(f.A)>"
-  assert str(cumprod(f.A) + 1) == "FExpr<cumprod(f.A) + 1>"
-  assert str(cumprod(f.A + f.B)) == "FExpr<cumprod(f.A + f.B)>"
-  assert str(cumprod(f.B)) == "FExpr<cumprod(f.B)>"
-  assert str(cumprod(f[:2])) == "FExpr<cumprod(f[:2])>"
+  assert str(cumprod(f.A)) == "FExpr<cumprod(f.A, reverse=False)>"
+  assert str(cumprod(f.A, True)) == "FExpr<cumprod(f.A, reverse=True)>"
+  assert str(cumprod(f.A) + 1) == "FExpr<cumprod(f.A, reverse=False) + 1>"
+  assert str(cumprod(f.A + f.B)) == "FExpr<cumprod(f.A + f.B, reverse=False)>"
+  assert str(cumprod(f.A + f.B, reverse=True)) == "FExpr<cumprod(f.A + f.B, reverse=True)>"
+  assert str(cumprod(f.B)) == "FExpr<cumprod(f.B, reverse=False)>"
+  assert str(cumprod(f[:2])) == "FExpr<cumprod(f[:2], reverse=False)>"
+  assert str(cumprod(f[:2], reverse=True)) == "FExpr<cumprod(f[:2], reverse=True)>"
 
 
 def test_cumprod_empty_frame():
@@ -87,11 +90,24 @@ def test_cumprod_small():
     DT_ref = dt.Frame([[0, 0, 0, 0, 0]/dt.int64, [-1, -1, -1, -2, -11]/dt.float64])
     assert_equals(DT_cumprod, DT_ref)
 
+def test_cumprod_reverse():
+    DT = dt.Frame([range(5), [-1, 1, None, 2, 5.5]])
+    DT_cumprod = DT[:, cumprod(f[:], reverse=True)]
+    DT_ref = DT[::-1, cumprod(f[:])][::-1, :]
+    assert_equals(DT_cumprod, DT_ref)
+
 
 def test_cumprod_groupby():
     DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
     DT_cumprod = DT[:, cumprod(f[:]), by(f[0])]
     DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-1.5, -math.inf, -math.inf, 1.5, 4.5]/dt.float64])
+    assert_equals(DT_cumprod, DT_ref)
+
+
+def test_cumprod_groupby_reverse():
+    DT = dt.Frame([[2, 1, 1, 1, 2], [1.5, -1.5, math.inf, 2, 3]])
+    DT_cumprod = DT[:, cumprod(f[:], reverse=True), by(f[0])]
+    DT_ref = dt.Frame([[1, 1, 1, 2, 2], [-math.inf, math.inf, 2.0, 4.5, 3.0]/dt.float64])
     assert_equals(DT_cumprod, DT_ref)
 
 

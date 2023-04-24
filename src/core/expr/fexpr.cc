@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2022 H2O.ai
+// Copyright 2020-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,20 +19,19 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include "documentation.h"
 #include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"
 #include "expr/fexpr_alias.h"
 #include "expr/fexpr_column.h"
 #include "expr/fexpr_dict.h"
+#include "expr/fexpr_extend_remove.h"
 #include "expr/fexpr_frame.h"
 #include "expr/fexpr_list.h"
 #include "expr/fexpr_literal.h"
 #include "expr/fexpr_slice.h"
 #include "expr/re/fexpr_match.h"
 #include "expr/str/fexpr_len.h"
-#include "documentation.h"
 #include "python/obj.h"
 #include "python/xargs.h"
 #include "utils/exceptions.h"
@@ -234,8 +233,9 @@ oobj PyFExpr::nb__pos__() {
 //----- Other methods ----------------------------------------------------------
 
 oobj PyFExpr::extend(const XArgs& args) {
-  auto arg = args[0].to<oobj>(py::None());
-  return make_binexpr(dt::expr::Op::SETPLUS, robj(this), arg);
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr_Extend_Remove<true>(ptrExpr(expr_), as_fexpr(arg)));
+
 }
 
 DECLARE_METHOD(&PyFExpr::extend)
@@ -248,8 +248,9 @@ DECLARE_METHOD(&PyFExpr::extend)
 
 
 oobj PyFExpr::remove(const XArgs& args) {
-  auto arg = args[0].to_oobj();
-  return make_binexpr(dt::expr::Op::SETMINUS, robj(this), arg);
+  auto arg = args[0].to_oobj();   
+  return PyFExpr::make(new FExpr_Extend_Remove<false>(ptrExpr(expr_), as_fexpr(arg)));
+
 }
 
 DECLARE_METHOD(&PyFExpr::remove)
@@ -392,42 +393,60 @@ DECLARE_METHOD(&PyFExpr::countna)
     ->name("countna")
     ->docs(dt::doc_FExpr_countna);
 
-oobj PyFExpr::cummax(const XArgs&) {
+oobj PyFExpr::cummax(const XArgs& args) {
   auto cummaxFn = oobj::import("datatable", "cummax");
-  return cummaxFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cummaxFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cummax)
     ->name("cummax")
-    ->docs(dt::doc_FExpr_cummax);
+    ->docs(dt::doc_FExpr_cummax)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
-oobj PyFExpr::cummin(const XArgs&) {
+
+oobj PyFExpr::cummin(const XArgs& args) {
   auto cumminFn = oobj::import("datatable", "cummin");
-  return cumminFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumminFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cummin)
     ->name("cummin")
-    ->docs(dt::doc_FExpr_cummin);
+    ->docs(dt::doc_FExpr_cummin)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
-oobj PyFExpr::cumprod(const XArgs&) {
+
+oobj PyFExpr::cumprod(const XArgs& args) {
   auto cumprodFn = oobj::import("datatable", "cumprod");
-  return cumprodFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumprodFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumprod)
     ->name("cumprod")
-    ->docs(dt::doc_FExpr_cumprod);
+    ->docs(dt::doc_FExpr_cumprod)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
 
-oobj PyFExpr::cumsum(const XArgs&) {
+oobj PyFExpr::cumsum(const XArgs& args) {
   auto cumsumFn = oobj::import("datatable", "cumsum");
-  return cumsumFn.call({this});
+  oobj reverse = args[0]? args[0].to_oobj() : py::obool(false);
+  return cumsumFn.call({this, reverse});
 }
 
 DECLARE_METHOD(&PyFExpr::cumsum)
     ->name("cumsum")
-    ->docs(dt::doc_FExpr_cumsum);
+    ->docs(dt::doc_FExpr_cumsum)
+    ->arg_names({"reverse"})
+    ->n_positional_or_keyword_args(1)
+    ->n_required_args(0);
 
 
 

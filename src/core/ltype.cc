@@ -23,7 +23,6 @@
 #include "ltype.h"
 #include "python/int.h"
 #include "python/obj.h"
-#include "python/python.h"
 #include "python/tuple.h"
 #include "utils/assert.h"
 namespace dt {

@@ -126,19 +126,15 @@ def test_f_columnset_str():
 
 
 def test_f_columnset_extend():
-    assert str(f[:].extend(f.A)) == \
-        "Expr:setplus(FExpr<f[:]>, FExpr<f.A>; )"
-    assert str(f[int].extend(f[str])) == \
-        "Expr:setplus(FExpr<f[int]>, FExpr<f[str]>; )"
-    assert str(f.A.extend(f['B','C'])) == \
-        "Expr:setplus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    assert str(f[:].extend(f.A)) == "FExpr<extend(f[:], f.A)>"
+    assert str(f[int].extend(f[str])) == "FExpr<extend(f[int], f[str])>"
+    assert str(f.A.extend(f['B','C'])) == "FExpr<extend(f.A, f[['B', 'C']])>"
 
 
 def test_f_columnset_remove():
-    assert str(f[:].remove(f.A)) == "Expr:setminus(FExpr<f[:]>, FExpr<f.A>; )"
-    assert str(f[int].remove(f[0])) == "Expr:setminus(FExpr<f[int]>, FExpr<f[0]>; )"
-    assert str(f.A.remove(f['B','C'])) == \
-        "Expr:setminus(FExpr<f.A>, FExpr<f[['B', 'C']]>; )"
+    assert str(f[:].remove(f.A)) == "FExpr<remove(f[:], f.A)>"
+    assert str(f[int].remove(f[0])) == "FExpr<remove(f[int], f[0])>"
+    assert str(f.A.remove(f['B','C'])) == "FExpr<remove(f.A, f[['B', 'C']])>"
 
 
 
@@ -209,7 +205,7 @@ def test_f_columnset_ltypes(DT):
 def test_columnset_sum(DT):
     assert_equals(DT[:, f[int].extend(f[float])], DT[:, [int, float]])
     assert_equals(DT[:, f[:3].extend(f[-3:])], DT[:, [0, 1, 2, -3, -2, -1]])
-    assert_equals( DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
+    assert_equals(DT[:, f['A','B','C'].extend(f['E','F', 'G'])], DT[:, [0, 1, 2, -3, -2, -1]])
     assert_equals(DT[:, f.A.extend(f.B)], DT[:, ['A', 'B']])
     assert_equals(DT[:, f[:].extend({"extra": f.A + f.C})],
                   dt.cbind(DT, DT[:, {"extra": f.A + f.C}]))
@@ -441,29 +437,38 @@ def test_countna():
 def test_cumsum():
     assert str(dt.cumsum(f.A)) == str(f.A.cumsum())
     assert str(dt.cumsum(f[:])) == str(f[:].cumsum())
+    assert str(dt.cumsum(f[:], True)) == str(f[:].cumsum(True))
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cumsum()], DT[:, dt.cumsum(f.A)])
+    assert_equals(DT[:, f.A.cumsum(reverse=True)], DT[:, dt.cumsum(f.A, reverse=True)])
+
 
 
 def test_cummax():
     assert str(dt.cummax(f.A)) == str(f.A.cummax())
+    assert str(dt.cummax(f.A, reverse=True)) == str(f.A.cummax(True))
     assert str(dt.cummax(f[:])) == str(f[:].cummax())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummax()], DT[:, dt.cummax(f.A)])
+    assert_equals(DT[:, f.A.cummax(reverse=True)], DT[:, dt.cummax(f.A, reverse=True)])
 
 
 def test_cummin():
     assert str(dt.cummin(f.A)) == str(f.A.cummin())
+    assert str(dt.cummin(f.A, reverse=True)) == str(f.A.cummin(True))
     assert str(dt.cummin(f[:])) == str(f[:].cummin())
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cummin()], DT[:, dt.cummin(f.A)])
+    assert_equals(DT[:, f.A.cummin(True)], DT[:, dt.cummin(f.A, True)])
 
 
 def test_cumprod():
     assert str(dt.cumprod(f.A)) == str(f.A.cumprod())
     assert str(dt.cumprod(f[:])) == str(f[:].cumprod())
+    assert str(dt.cumprod(f[:], reverse=True)) == str(f[:].cumprod(reverse=True))
     DT = dt.Frame(A = [9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None, 1])
     assert_equals(DT[:, f.A.cumprod()], DT[:, dt.cumprod(f.A)])
+    assert_equals(DT[:, f.A.cumprod(True)], DT[:, dt.cumprod(f.A, True)])
 
 
 def test_fillna():

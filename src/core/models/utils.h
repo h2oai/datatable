@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2022 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -66,10 +66,11 @@ sztvec sort_index(const std::vector<T> &v) {
   std::iota(index.begin(), index.end(), 0);
 
   // Sort index based on comparing values in v
-  std::sort(index.begin(),
-       index.end(),
-       [&v](size_t i1, size_t i2) {return v[i1] < v[i2];}
-      );
+  std::sort(
+    index.begin(),
+    index.end(),
+    [&v](size_t i1, size_t i2) {return v[i1] < v[i2];}
+  );
 
   return index;
 }
@@ -142,6 +143,25 @@ void softmax(std::vector<T*>& p, const size_t nrows) {
       p[j][i] /= sum;
     }
   });
+}
+
+
+
+/**
+ *  Calculate integer powers via the exponentiation by squaring algorithm.
+ *  Note, this implementation will compute zero to the power of zero as one.
+ */
+template <typename T>
+T ipow(T base, size_t exp){
+  T res = 1;
+  while (exp) {
+    if (exp % 2) {
+      res *= base;
+    }
+    base *= base;
+    exp /= 2;
+  }
+  return res;
 }
 
 

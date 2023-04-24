@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -131,7 +131,7 @@ static void parse_float64_simple(const ParseContext& ctx) {
   const char* ch = ctx.ch;
 
   bool neg = 0, Eneg = 0;
-  double r;
+  long double r;
 
   if (ch < ctx.eof) {
     ch += (neg = *ch=='-') + (*ch=='+');
@@ -227,11 +227,23 @@ static void parse_float64_simple(const ParseContext& ctx) {
     }
     e += Eneg? -exp : exp;
   }
-  e += 350; // lookup table is arranged from -350 (0) to +350 (700)
-  if (e < 0 || e > 700) goto fail;
 
-  r = static_cast<double>(static_cast<long double>(acc) * dt::read::pow10lookup[e]);
-  ctx.target->float64 = neg? -r : r;
+  if (e < -350 || e > 350) goto fail;
+  r = static_cast<long double>(acc);
+
+  // For very small and very large floats do a separate lookup
+  // for extra exponent, i.e. anything above 300 or below -300.
+  // Note that the lookup array indices go from 0 (e == -300)
+  // to 600 (e == 300). The approach is based on
+  // https://github.com/Rdatatable/data.table/pull/4165
+  if (e < -300 || e > 300) {
+    auto extra = static_cast<int_fast8_t>(e - copysign(300, e));
+    r *= dt::read::pow10lookup[extra + 300];
+    e -= extra;
+  }
+  r *= dt::read::pow10lookup[e + 300];
+  ctx.target->float64 = static_cast<double>(neg? -r : r);
+
   ctx.ch = ch;
   return;
 

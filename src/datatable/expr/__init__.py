@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# Copyright 2018-2022 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 from .expr import f, g, Expr
 from .math import abs, log, log10, exp, isna
 from .reduce import (
-        sum, count, first, last, mean, median, min, max, sd, cov, corr, countna, nunique, prod)
+        sum, count, first, last, median, min, max, sd, cov, corr, countna, nunique)
 
 __all__ = (
     "Expr",
@@ -40,12 +40,10 @@ __all__ = (
     "log",
     "log10",
     "max",
-    "mean",
     "median",
     "min",
     "sd",
     "sum",
     "nunique",
     "countna",
-    "prod",
 )

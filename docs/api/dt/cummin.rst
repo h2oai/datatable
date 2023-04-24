@@ -3,7 +3,7 @@
     :src: src/core/expr/fexpr_cumminmax.cc pyfn_cummin
     :tests: tests/dt/test-cumminmax.py
     :cvar: doc_dt_cummin
-    :signature: cummin(cols)
+    :signature: cummin(cols, reverse=False)
 
     .. x-version-added:: 1.1.0
 
@@ -14,6 +14,10 @@
     ----------
     cols: FExpr
         Input data for cumulative minimum calculation.
+
+    reverse: bool
+        If ``False``, computation is done from top to bottom.
+        If ``True``, it is done from bottom to top.
 
     return: FExpr
         f-expression that converts input columns into the columns filled
@@ -57,6 +61,20 @@
          3 |    -1
          4 |    -1
         [5 rows x 1 column]
+        
+
+    Calculate the cumulative minimum from bottom to top::
+
+        >>> DT[:, dt.cummin(f.A, reverse=True)]
+           |     A
+           | int32
+        -- + -----
+         0 |    -1
+         1 |    -1
+         2 |    -1
+         3 |    -1
+         4 |     0
+        [5 rows x 1 column]
 
 
     Calculate the cumulative minimum in multiple columns::
@@ -73,7 +91,7 @@
         [5 rows x 3 columns]
 
 
-    In the presence of :func:`by()` calculate the cumulative minimum within each group::
+    For a grouped frame calculate the cumulative minimum within each group::
 
         >>> DT[:, dt.cummin(f[:]), by('D')]
            | D          A     B        C

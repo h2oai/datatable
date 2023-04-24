@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2021 H2O.ai
+// Copyright 2019-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -183,315 +183,6 @@ static Column compute_gfirstlast(Column&& arg, const Groupby&) {
 
 
 
-//------------------------------------------------------------------------------
-// product(A)
-//------------------------------------------------------------------------------
-
-template <typename T, typename U>
-bool prod_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  U prod = 1;
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      prod *= static_cast<U>(value);
-    }
-  }
-  *out = prod;
-  return true;  // *out is not NA
-}
-
-
-
-template <typename T, typename U>
-static Column _prod(Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, prod_reducer<T, U>
-            )));
-}
-
-static Column compute_prod(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_int_column(
-                           gby.size(), 1, SType::INT64
-                         );
-    case SType::BOOL:
-    case SType::INT8:    return _prod<int8_t, int64_t>(std::move(arg), gby);
-    case SType::INT16:   return _prod<int16_t, int64_t>(std::move(arg), gby);
-    case SType::INT32:   return _prod<int32_t, int64_t>(std::move(arg), gby);
-    case SType::INT64:   return _prod<int64_t, int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _prod<float, float>(std::move(arg), gby);
-    case SType::FLOAT64: return _prod<double, double>(std::move(arg), gby);
-    default: throw _error("prod", arg.stype());
-  }
-}
-
-
-//------------------------------------------------------------------------------
-// product(A:grouped)
-//------------------------------------------------------------------------------
-
-// T - type of input elements in the `arg` column
-// U - type of output elements
-template <typename T, typename U>
-class ProdGrouped_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg;
-    Groupby groupby;
-
-  public:
-    ProdGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
-      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
-        arg(std::move(col)),
-        groupby(grpby)
-        {}
-
-    ColumnImpl* clone() const override {
-      return new ProdGrouped_ColumnImpl<T, U>(Column(arg), groupby);
-    }
-
-    size_t n_children() const noexcept override {
-      return 1;
-    }
-
-    const Column& child(size_t i) const override {
-      xassert(i == 0);  (void)i;
-      return arg;
-    }
-
-    bool get_element(size_t i, U* out) const override {
-      T value;
-      size_t i0, i1;
-      groupby.get_group(i, &i0, &i1);
-      bool isvalid = arg.get_element(i, &value);
-      *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
-                    : U(0);
-      return true; // *out is never an NA
-    }
-
-};
-
-
-static Column compute_gprod(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_int_column(
-                           1, 1, SType::INT64
-                         );
-    case SType::BOOL:
-    case SType::INT8:    return Column(new ProdGrouped_ColumnImpl<int8_t, int64_t>(
-                           std::move(arg), gby
-                         ));
-    case SType::INT16:   return Column(new ProdGrouped_ColumnImpl<int16_t, int64_t>(
-                           std::move(arg), gby
-                         ));
-    case SType::INT32:   return Column(new ProdGrouped_ColumnImpl<int32_t, int64_t>(
-                           std::move(arg), gby
-                         ));
-    case SType::INT64:   return Column(new ProdGrouped_ColumnImpl<int64_t, int64_t>(
-                           std::move(arg), gby
-                         ));
-    case SType::FLOAT32: return Column(new ProdGrouped_ColumnImpl<float, float>(
-                           std::move(arg), gby
-                         ));
-    case SType::FLOAT64: return Column(new ProdGrouped_ColumnImpl<double, double>(
-                           std::move(arg), gby
-                         ));
-    default: throw _error("prod", arg.stype());
-  }
-}
-
-
-
-//------------------------------------------------------------------------------
-// sum(A)
-//------------------------------------------------------------------------------
-
-template <typename T, typename U>
-bool sum_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  U sum = 0;
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      sum += static_cast<U>(value);
-    }
-  }
-  *out = sum;
-  return true;  // *out is not NA
-}
-
-
-
-template <typename T, typename U>
-static Column _sum(Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, sum_reducer<T, U>
-            )));
-}
-
-static Column compute_sum(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_int_column(gby.size(), 0, SType::INT64);
-    case SType::BOOL:
-    case SType::INT8:    return _sum<int8_t, int64_t>(std::move(arg), gby);
-    case SType::INT16:   return _sum<int16_t, int64_t>(std::move(arg), gby);
-    case SType::INT32:   return _sum<int32_t, int64_t>(std::move(arg), gby);
-    case SType::INT64:   return _sum<int64_t, int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _sum<float, float>(std::move(arg), gby);
-    case SType::FLOAT64: return _sum<double, double>(std::move(arg), gby);
-    default: throw _error("sum", arg.stype());
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// sum(A:grouped)
-//------------------------------------------------------------------------------
-
-// T - type of input elements in the `arg` column
-// U - type of output elements
-template <typename T, typename U>
-class SumGrouped_ColumnImpl : public Virtual_ColumnImpl {
-  private:
-    Column arg;
-    Groupby groupby;
-
-  public:
-    SumGrouped_ColumnImpl(Column&& col, const Groupby& grpby)
-      : Virtual_ColumnImpl(grpby.size(), stype_from<U>),
-        arg(std::move(col)),
-        groupby(grpby)
-        {}
-
-    ColumnImpl* clone() const override {
-      return new SumGrouped_ColumnImpl<T, U>(Column(arg), groupby);
-    }
-
-    size_t n_children() const noexcept override {
-      return 1;
-    }
-
-    const Column& child(size_t i) const override {
-      xassert(i == 0);  (void)i;
-      return arg;
-    }
-
-    bool get_element(size_t i, U* out) const override {
-      T value;
-      size_t i0, i1;
-      groupby.get_group(i, &i0, &i1);
-      bool isvalid = arg.get_element(i, &value);
-      *out = isvalid? static_cast<U>(i1 - i0) * static_cast<U>(value)
-                    : U(0);
-      return true; // *out is never an NA
-    }
-
-};
-
-
-static Column compute_gsum(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Const_ColumnImpl::make_int_column(
-                                  1, 0, SType::INT64
-                                );
-    case SType::BOOL:
-    case SType::INT8:    return Column(new SumGrouped_ColumnImpl<int8_t,  int64_t>(
-                                  std::move(arg), gby
-                                ));
-    case SType::INT16:   return Column(new SumGrouped_ColumnImpl<int16_t, int64_t>(
-                                  std::move(arg), gby
-                                ));
-    case SType::INT32:   return Column(new SumGrouped_ColumnImpl<int32_t, int64_t>(
-                                  std::move(arg), gby
-                                ));
-    case SType::INT64:   return Column(new SumGrouped_ColumnImpl<int64_t, int64_t>(
-                                  std::move(arg), gby
-                                ));
-    case SType::FLOAT32: return Column(new SumGrouped_ColumnImpl<float,   float>  (
-                                  std::move(arg), gby
-                                ));
-    case SType::FLOAT64: return Column(new SumGrouped_ColumnImpl<double,  double> (
-                                  std::move(arg), gby
-                                ));
-    default: throw _error("sum", arg.stype());
-  }
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// mean(A)
-//------------------------------------------------------------------------------
-
-template <typename T, typename U>
-bool mean_reducer(const Column& col, size_t i0, size_t i1, U* out) {
-  double sum = 0;
-  int64_t count = 0;
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      sum += static_cast<double>(value);
-      count++;
-    }
-  }
-  if (!count) return false;
-  *out = static_cast<U>(sum / static_cast<double>(count));
-  return true;  // *out is not NA
-}
-
-
-
-template <typename T>
-static Column _mean(Column&& arg, const Groupby& gby) {
-  using U = typename std::conditional<std::is_same<T, float>::value,
-                                      float, double>::type;
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, U>(
-                 stype_from<U>, std::move(arg), gby, mean_reducer<T, U>
-            )));
-}
-
-static Column compute_mean(Column&& arg, const Groupby& gby) {
-  switch (arg.stype()) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _mean<int8_t> (std::move(arg), gby);
-    case SType::INT16:   return _mean<int16_t>(std::move(arg), gby);
-    case SType::INT32:   return _mean<int32_t>(std::move(arg), gby);
-    case SType::INT64:   return _mean<int64_t>(std::move(arg), gby);
-    case SType::FLOAT32: return _mean<float>  (std::move(arg), gby);
-    case SType::FLOAT64: return _mean<double> (std::move(arg), gby);
-    case SType::TIME64: {
-      auto col = _mean<int64_t>(std::move(arg), gby);
-      col.cast_inplace(SType::TIME64);
-      return col;
-    }
-    default: throw _error("mean", arg.stype());
-  }
-}
-
-static Column compute_gmean(Column&& arg, const Groupby&) {
-  SType arg_stype = arg.stype();
-  if (arg_stype == SType::STR32 || arg_stype == SType::STR64) {
-    throw _error("mean", arg_stype);
-  }
-  SType res_stype = (arg_stype == SType::FLOAT32)? SType::FLOAT32
-                                                 : SType::FLOAT64;
-  if (arg.nrows() == 0) {
-    return Column::new_na_column(1, res_stype);
-  }
-  arg.cast_inplace(res_stype);
-  return std::move(arg);
-}
 
 
 
@@ -785,105 +476,6 @@ static Column compute_gcount(Column&& arg, const Groupby& gby) {
 
 
 
-//------------------------------------------------------------------------------
-// min(A), max(A)
-//------------------------------------------------------------------------------
-
-template <typename T>
-bool min_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T min = std::numeric_limits<T>::max();
-  bool min_isna = true;
-
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      if (value < min || min_isna){
-        min = value;
-        min_isna = false;
-      }
-    }
-  }
-  *out = static_cast<T>(min);
-  return !min_isna;
-}
-
-
-
-template <typename T>
-static Column _min(SType stype, Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, min_reducer<T>
-            )));
-}
-
-static Column compute_min(Column&& arg, const Groupby& gby) {
-  auto st = arg.stype();
-  switch (st) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _min<int8_t>(st, std::move(arg), gby);
-    case SType::INT16:   return _min<int16_t>(st, std::move(arg), gby);
-    case SType::DATE32:
-    case SType::INT32:   return _min<int32_t>(st, std::move(arg), gby);
-    case SType::TIME64:
-    case SType::INT64:   return _min<int64_t>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _min<float>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _min<double>(st, std::move(arg), gby);
-    default: throw _error("min", arg.stype());
-  }
-}
-
-
-template <typename T>
-bool max_reducer(const Column& col, size_t i0, size_t i1, T* out) {
-  T max = std::numeric_limits<T>::min();
-  bool max_isna = true;
-
-  for (size_t i = i0; i < i1; ++i) {
-    T value;
-    bool isvalid = col.get_element(i, &value);
-    if (isvalid) {
-      if (value > max || max_isna){
-        max = value;
-        max_isna = false;
-      }
-    }
-  }
-  *out = static_cast<T>(max);
-  return !max_isna;
-}
-
-
-
-template <typename T>
-static Column _max(SType stype, Column&& arg, const Groupby& gby) {
-  return Column(
-          new Latent_ColumnImpl(
-            new Reduced_ColumnImpl<T, T>(
-                 stype, std::move(arg), gby, max_reducer<T>
-            )));
-}
-
-static Column compute_max(Column&& arg, const Groupby& gby) {
-  auto st = arg.stype();
-  switch (st) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(gby.size()));
-    case SType::BOOL:
-    case SType::INT8:    return _max<int8_t>(st, std::move(arg), gby);
-    case SType::INT16:   return _max<int16_t>(st, std::move(arg), gby);
-    case SType::DATE32:
-    case SType::INT32:   return _max<int32_t>(st, std::move(arg), gby);
-    case SType::TIME64:
-    case SType::INT64:   return _max<int64_t>(st, std::move(arg), gby);
-    case SType::FLOAT32: return _max<float>(st, std::move(arg), gby);
-    case SType::FLOAT64: return _max<double>(st, std::move(arg), gby);
-    default: throw _error("max", arg.stype());
-  }
-}
-
 
 //------------------------------------------------------------------------------
 // nunique(A:grouped)
@@ -1072,7 +664,9 @@ static Column compute_median(Column&& arg, const Groupby& gby) {
     return Column::new_na_column(1, arg.stype());
   }
   switch (arg.stype()) {
-    case SType::VOID:    return Column(new ConstNa_ColumnImpl(1));
+    case SType::VOID:    return Column(new ConstNa_ColumnImpl(
+                                  gby.size(), SType::FLOAT64
+                                ));
     case SType::BOOL:
     case SType::INT8:    return _median<int8_t> (std::move(arg), gby);
     case SType::INT16:   return _median<int16_t>(std::move(arg), gby);
@@ -1116,35 +710,25 @@ Workframe Head_Reduce_Unary::evaluate_n(
   maker_fn fn = nullptr;
   if (inputs.get_grouping_mode() == Grouping::GtoALL) {
     switch (op) {
-      case Op::MEAN:   fn = compute_mean; break;
-      case Op::MIN:    fn = compute_min; break;
-      case Op::MAX:    fn = compute_max; break;
       case Op::STDEV:  fn = compute_sd; break;
       case Op::FIRST:  fn = compute_firstlast<true>; break;
       case Op::LAST:   fn = compute_firstlast<false>; break;
-      case Op::SUM:    fn = compute_sum; break;
       case Op::COUNT:  fn = compute_count; break;
       case Op::COUNTNA:fn = compute_countna; break;
       case Op::MEDIAN: fn = compute_median; break;
       case Op::NUNIQUE:fn = compute_nunique; break;
-      case Op::PROD:   fn = compute_prod; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
   } else {
     switch (op) {
-      case Op::MEAN:   fn = compute_gmean; break;
       case Op::STDEV:  fn = compute_gsd; break;
-      case Op::MIN:
-      case Op::MAX:
       case Op::FIRST:
       case Op::LAST:   fn = compute_gfirstlast; break;
-      case Op::SUM:    fn = compute_gsum; break;
       case Op::COUNT:  fn = compute_gcount<false>; break;
       case Op::COUNTNA:fn = compute_gcount<true>; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
       case Op::NUNIQUE:fn = compute_gnunique; break;
-      case Op::PROD:   fn = compute_gprod; break;
       default: throw TypeError() << "Unknown reducer function: "
                                  << static_cast<size_t>(op);
     }
