@@ -103,6 +103,7 @@ class ColumnImpl
       }
       return type_;
     }
+
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;
