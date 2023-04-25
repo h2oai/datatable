@@ -149,8 +149,8 @@ def test_categorical_create_from_zero_rows(t):
 def test_categorical_create_from_void(t):
     src = [None] * 10
     DT1 = dt.Frame(src)
-    DT2 = dt.Frame(src, types = [t(dt.Type.bool8)])
-    assert DT2.type == t(dt.Type.bool8)
+    DT2 = dt.Frame(src, types = [t(dt.Type.void)])
+    assert DT2.type == t(dt.Type.void)
     assert DT1.shape == DT2.shape
     assert DT1.names == DT2.names
     assert DT1.to_list() == DT2.to_list()
