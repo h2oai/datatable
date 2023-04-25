@@ -240,7 +240,8 @@ const Type& ColumnImpl::data_type() const {
 }
 
 SType ColumnImpl::data_stype() const {
-  return data_type().stype();
+  return type_.is_categorical()? child(0).stype()
+                               : stype();
 }
 
 
