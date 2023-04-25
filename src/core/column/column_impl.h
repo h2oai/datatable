@@ -96,6 +96,10 @@ class ColumnImpl
     SType stype() const { return type_.stype(); }
     SType data_stype() const;
     const Type& type() const { return type_; }
+    const Type& data_type() const {
+      return type_.is_categorical()? child(0).type()
+                                   : type_;
+    }
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;

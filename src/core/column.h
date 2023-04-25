@@ -119,6 +119,7 @@ class Column
     size_t nrows() const noexcept;
     size_t na_count() const;
     const dt::Type& type() const noexcept;
+    const dt::Type& data_type() const noexcept;
     dt::LType ltype() const noexcept;
     dt::SType stype() const noexcept;
 
