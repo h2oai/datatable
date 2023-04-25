@@ -168,7 +168,7 @@ const dt::Type& Column::type() const noexcept {
   return impl_->type_;
 }
 
-const dt::Type Column::data_type() const noexcept {
+const dt::Type& Column::data_type() const noexcept {
   return impl_->data_type();
 }
 
