@@ -234,7 +234,7 @@ size_t ColumnImpl::null_count() const {
   return stats()->nacount();
 }
 
-const Type& data_type() const {
+const Type& ColumnImpl::data_type() const {
   return type_.is_categorical()? child(0).type()
                                : type_;
 }
