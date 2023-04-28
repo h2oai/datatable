@@ -46,7 +46,7 @@
          1 |     0      0      0      0
          2 |     1      0      0      0
         [3 rows x 4 columns]
-        Note that you can also call `dt.isna` directly: 
+
         >>> DT[:, dt.isna(f[:])]
            |   age   born   name    toy
            | bool8  bool8  bool8  bool8
