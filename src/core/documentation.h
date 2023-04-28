@@ -112,7 +112,7 @@ extern const char* doc_math_hypot;
 extern const char* doc_math_isclose;
 extern const char* doc_math_isfinite;
 extern const char* doc_math_isinf;
-extern const char* doc_math_isna;
+extern const char* doc_isna;
 extern const char* doc_math_ldexp;
 extern const char* doc_math_lgamma;
 extern const char* doc_math_log10;

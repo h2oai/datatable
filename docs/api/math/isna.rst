@@ -1,8 +1,8 @@
 
 .. xfunction:: datatable.math.isna
-    :src: src/core/expr/funary/fexpr_isna.cc pyfn_isna
+    :src: src/core/expr/fexpr_isna.cc pyfn_isna
     :tests: tests/math/test-isna.py
-    :cvar: doc_math_isna
+    :cvar: doc_isna
     :signature: isna(cols)
 
     Tests if the column elements are missing values. 

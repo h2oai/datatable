@@ -54,7 +54,7 @@ static py::oobj pyfn_isna(const py::XArgs &args) {
 
 DECLARE_PYFN(&pyfn_isna)
     ->name("isna")
-    ->docs(doc_math_isna)
+    ->docs(doc_isna)
     ->arg_names({"cols"})
     ->n_positional_args(1)
     ->n_required_args(1);
