@@ -1,5 +1,5 @@
 
-.. xfunction:: datatable.math.isna
+.. xfunction:: datatable.isna
     :src: src/core/expr/fexpr_isna.cc pyfn_isna
     :tests: tests/math/test-isna.py
     :cvar: doc_isna
@@ -38,7 +38,7 @@
          1 |       6  1939-05-27T00:00:00  Batman  Batmobile
          2 |      NA  1940-04-25T00:00:00          Joker    
         [3 rows x 4 columns]
-        >>> DT[:, dt.math.isna(f[:])]
+        >>> DT[:, dt.isna(f[:])]
            |   age   born   name    toy
            | bool8  bool8  bool8  bool8
         -- + -----  -----  -----  -----
