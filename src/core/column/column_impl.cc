@@ -234,10 +234,13 @@ size_t ColumnImpl::null_count() const {
   return stats()->nacount();
 }
 
+const Type& ColumnImpl::data_type() const {
+  return type_.is_categorical()? child(0).type()
+                               : type_;
+}
 
 SType ColumnImpl::data_stype() const {
-  return type_.is_categorical()? child(0).stype()
-                               : stype();
+  return data_type().stype();
 }
 
 

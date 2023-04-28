@@ -119,14 +119,14 @@ class Column
     size_t nrows() const noexcept;
     size_t na_count() const;
     const dt::Type& type() const noexcept;
-    const dt::Type& data_type() const noexcept;
     dt::LType ltype() const noexcept;
     dt::SType stype() const noexcept;
 
-    // For categorical columns this method will return the stype of the data,
-    // the column is backed up with. For all the other column types,
-    // this method is equivalent to `stype()`.
+    // For categorical columns these methods will return the stype/type
+    // of the data the column is backed up with. For all the other column types,
+    // these methods are equivalent to `stype()`/`type()`.
     dt::SType data_stype() const noexcept;
+    const dt::Type& data_type() const noexcept;
 
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
