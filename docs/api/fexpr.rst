@@ -190,7 +190,7 @@
         * - :meth:`.first()`
           - Same as :func:`dt.first()`.
 
-        * - :meth:`.math_isna()`
+        * - :meth:`.isna()`
           - Same as :func:`dt.math.isna()`.
 
         * - :meth:`.last()`
@@ -323,7 +323,7 @@
     .extend()       <fexpr/extend>
     .fillna()       <fexpr/fillna>
     .first()        <fexpr/first>
-    .math_isna()    <fexpr/math_isna>
+    .isna()         <fexpr/isna>
     .last()         <fexpr/last>
     .len()          <fexpr/len>
     .max()          <fexpr/max>

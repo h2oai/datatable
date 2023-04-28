@@ -20,7 +20,6 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
-#include "column/isna.h"
 #include "documentation.h"
 #include "expr/funary/pyfn.h"
 #include "expr/funary/umaker.h"

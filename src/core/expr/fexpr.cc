@@ -479,13 +479,13 @@ DECLARE_METHOD(&PyFExpr::first)
     ->docs(dt::doc_FExpr_first);
 
 
-oobj PyFExpr::math_isna(const XArgs&) {
+oobj PyFExpr::isna(const XArgs&) {
   auto isnaFn = oobj::import("datatable", "math", "isna");
   return isnaFn.call({this});
 }
 
-DECLARE_METHOD(&PyFExpr::math_isna)
-    ->name("math_isna")
+DECLARE_METHOD(&PyFExpr::isna)
+    ->name("isna")
     ->docs(dt::doc_FExpr_isna);
 
 

@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .frame import Frame
-from .expr import (min, max, sd, isna, sum, count, countna, first, abs, exp,
+from .expr import (min, max, sd, sum, count, countna, first, abs, exp,
                    last, log, log10, f, g, median, cov, corr, nunique)
 from .lib._datatable import (
     as_type,
@@ -42,6 +42,7 @@ from .lib._datatable import (
     init_styles,
     intersect,
     iread,
+    isna,
     join,
     mean,
     Namespace,
@@ -122,6 +123,7 @@ __all__ = (
     "int8",
     "intersect",
     "iread",
+    "isna",
     "join",
     "last",
     "log",
