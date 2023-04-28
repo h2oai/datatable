@@ -48,7 +48,7 @@ all_sources = [
 @pytest.mark.parametrize("src", all_sources)
 def test_isna(src):
     DT = dt.Frame(src)
-    RES = DT[:, dt.math.isna(f[0])]
+    RES = DT[:, dt.isna(f[0])]
     assert_equals(RES, dt.Frame([(x is None) for x in src]))
 
 
