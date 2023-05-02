@@ -191,7 +191,7 @@
           - Same as :func:`dt.first()`.
 
         * - :meth:`.isna()`
-          - Same as :func:`dt.math.isna()`.
+          - Same as :func:`dt.isna()`.
 
         * - :meth:`.last()`
           - Same as :func:`dt.last()`.
