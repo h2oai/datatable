@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2018-2021 H2O.ai
+// Copyright 2018-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -1497,9 +1497,14 @@ RiGb group(const std::vector<Column>& columns,
 
 
 void dt::ColumnImpl::sort_grouped(const Groupby& grps, Column& out) {
-  out.materialize(); // `SortContext::continue_sort()` requires material column
-  (void) out.stats();
   SortContext sc(nrows(), RowIndex(), grps, /* make_groups = */ false);
+
+  // Materialize `out` as `SortContext::continue_sort()` requires a material
+  // column. Be careful here, as `this` could be an impl of `out`,
+  // meaning that it may also change after `out` materialization.
+  out.materialize(); 
+  (void) out.stats();
+
   sc.continue_sort(out, /* desc = */ false, /* make_groups = */ false);
   out.apply_rowindex(sc.get_result_rowindex());
 }
