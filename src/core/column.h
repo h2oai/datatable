@@ -122,10 +122,11 @@ class Column
     dt::LType ltype() const noexcept;
     dt::SType stype() const noexcept;
 
-    // For categorical columns this method will return the stype of the data,
-    // the column is backed up with. For all the other column types,
-    // this method is equivalent to `stype()`.
+    // For categorical columns these methods will return the stype/type
+    // of the data the column is backed up with. For all the other column types,
+    // these methods are equivalent to `stype()`/`type()`.
     dt::SType data_stype() const noexcept;
+    const dt::Type& data_type() const noexcept;
 
     size_t elemsize() const noexcept;
     bool   is_fixedwidth() const noexcept;
@@ -171,7 +172,14 @@ class Column
     py::oobj get_element_as_pyobject(size_t i) const;
 
     // Return validity of the i-th element.
-    bool get_element_isvalid(size_t i) const;
+    // Note, it is not efficient to use this method to check validity
+    // of multiple elements within the same column. That's because everytime
+    // `get_element_validity()` is called, it has to determine
+    // the column's stype to call an appropriate `get_element()` implementation.
+    // If you do need validity of multiple elements, determine an appropriate
+    // `get_element()` implementation on your own, and then call it
+    // as many times as necessary.
+    bool get_element_validity(size_t i) const;
 
 
   //------------------------------------

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -26,24 +26,32 @@
 namespace dt {
 
 
-template <typename T>
+template <typename T_IN, typename T_OUT>
 class ReduceUnary_ColumnImpl : public Virtual_ColumnImpl {
   protected:
     Column col_;
     Groupby gby_;
 
   public:
-    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
-      : Virtual_ColumnImpl(gby.size(), col.stype()),
+
+    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby, SType stype_out)
+      : Virtual_ColumnImpl(gby.size(), stype_out),
         col_(std::move(col)),
         gby_(gby)
     {
-      xassert(col_.can_be_read_as<T>());
+      xassert(col_.can_be_read_as<T_IN>());
     }
 
 
+    // Constructor for the case when `stype_out` is the same
+    // as the input column stype.
+    ReduceUnary_ColumnImpl(Column &&col, const Groupby& gby)
+      : ReduceUnary_ColumnImpl(std::move(col), gby, col.stype())
+    {}
+
+
     ColumnImpl *clone() const override {
-      return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_));
+      return new ReduceUnary_ColumnImpl(Column(col_), Groupby(gby_), this->stype());
     }
 
 
