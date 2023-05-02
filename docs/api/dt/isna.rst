@@ -5,7 +5,7 @@
     :cvar: doc_dt_isna
     :signature: isna(cols)
 
-    Tests if the column elements are missing values. 
+    Test if the column elements are missing values. 
 
     Parameters
     ----------
