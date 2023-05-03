@@ -718,8 +718,7 @@ def test_rows_unary_minus(df1):
 
 
 def test_rows_isna(df1):
-    from datatable.math import isna
-    dt1 = df1[isna(f.A), :]
+    dt1 = df1[dt.isna(f.A), :]
     frame_integrity_check(dt1)
     assert dt1.names == df1.names
     assert dt1.to_list() == [[None, None], [None, 8]]

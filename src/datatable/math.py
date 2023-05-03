@@ -48,6 +48,7 @@ from .lib._datatable import (
     isclose,
     isfinite,
     isinf,
+    isna,
     ldexp,
     lgamma,
     log,
@@ -73,10 +74,6 @@ from .lib._datatable import (
 
 from datatable.lib import core
 import math
-
-__all__ = [
-    "isna"
-]
 
 e = 2.718281828459045
 golden = 1.618033988749895

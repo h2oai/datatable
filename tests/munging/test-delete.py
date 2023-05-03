@@ -24,7 +24,6 @@
 import datatable as dt
 import pytest
 from datatable import f, g, ltype
-from datatable.math import isna
 from datatable.internal import frame_integrity_check
 from tests import assert_equals
 
@@ -350,7 +349,7 @@ def test_del_rows_filter():
 
 def test_del_rows_nas():
     d0 = dt.Frame({"A": [1, 5, None, 12, 7, None, -3]})
-    del d0[isna(f.A), :]
+    del d0[dt.isna(f.A), :]
     frame_integrity_check(d0)
     assert d0.to_list() == [[1, 5, 12, 7, -3]]
 
@@ -367,7 +366,7 @@ def test_del_rows_from_view1():
 def test_del_rows_from_view2():
     f0 = dt.Frame([1, 3, None, 4, 5, None, None, 2, None, None, None])
     f1 = f0[5:, :]
-    del f1[isna(f[0]), :]
+    del f1[dt.isna(f[0]), :]
     assert f1.to_list() == [[2]]
 
 

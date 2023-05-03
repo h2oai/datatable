@@ -502,5 +502,5 @@ def test_codes():
 def test_isna():
     assert str(dt.math.isna(f.A)) == str(f.A.isna())
     DT = dt.Frame(A = [None, 9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None])
-    assert_equals (DT[:, dt.math.isna(f.A)], DT[:, f.A.isna()])
+    assert_equals (DT[:, dt.isna(f.A)], DT[:, f.A.isna()])
 

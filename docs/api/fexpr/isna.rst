@@ -4,4 +4,4 @@
     :cvar: doc_FExpr_isna
     :signature: isna()
 
-    Equivalent to :func:`dt.math.isna(cols)` or `dt.isna(cols)`.
+    Equivalent to :func:`dt.isna(cols)`.
