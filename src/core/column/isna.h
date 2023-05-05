@@ -77,7 +77,9 @@ static Column make_isna_col(Column&& col) {
     case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
     case SType::STR32:
     case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
-    default: throw RuntimeError();
+    default: 
+      throw RuntimeError() << "Function `isna` cannot be applied to a "
+        "column of type `" << col.stype()) << "`";
   }
 }
 
