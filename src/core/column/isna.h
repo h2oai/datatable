@@ -79,7 +79,7 @@ static Column make_isna_col(Column&& col) {
     case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
     default: 
       throw RuntimeError() << "Function `isna` cannot be applied to a "
-        "column of type `" << col.stype()) << "`";
+        "column of type `" << col.stype() << "`";
   }
 }
 
