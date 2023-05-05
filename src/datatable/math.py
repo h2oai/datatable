@@ -73,7 +73,6 @@ from .lib._datatable import (
 )
 
 from datatable.lib import core
-import math
 
 e = 2.718281828459045
 golden = 1.618033988749895
