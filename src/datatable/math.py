@@ -48,7 +48,6 @@ from .lib._datatable import (
     isclose,
     isfinite,
     isinf,
-    isna,
     ldexp,
     lgamma,
     log,

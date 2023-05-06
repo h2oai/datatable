@@ -21,7 +21,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 from .expr import f, g, Expr
-from .math import abs, log, log10, exp, isna
+from .math import abs, log, log10, exp
 from .reduce import (
         sum, count, countna, first, last, median, min, max, sd, cov, corr, nunique)
 
@@ -36,7 +36,6 @@ __all__ = (
     "f",
     "first",
     "g",
-    "isna",
     "last",
     "log",
     "log10",

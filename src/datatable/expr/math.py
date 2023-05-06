@@ -15,16 +15,8 @@
 # limitations under the License.
 # -------------------------------------------------------------------------------
 from datatable.lib import core
-import math
 
-__all__ = ("abs", "exp", "log", "log10", "isna")
-
-
-def isna(iterable):
-    if isinstance(iterable, core.FExpr):
-        return core.isna(iterable)
-    return (iterable is None) or (iterable is math.nan)
-
+__all__ = ("abs", "exp", "log", "log10")
 
 # Deprecated, use math namespace instead
 abs = core.abs
