@@ -951,6 +951,15 @@ def test_fread_header():
     assert d1.to_list() == [["A", "1"], ["B", "2"]]
 
 
+def test_fread_header_rownames():
+    inp = 'digit1,digit2\none,1,0\ntwo,2,0'
+    d0 = dt.fread(inp, header=None)
+    d1 = dt.fread(inp, header=True)
+    assert_equals(d0, d1)
+    assert d0.to_list() == [["one", "two"], [1, 2], [0, 0]]
+    assert d0.names == ("index", "digit1", "digit2")
+
+
 
 #-------------------------------------------------------------------------------
 # `skip_to_line/string`

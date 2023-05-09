@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -23,7 +23,7 @@
 #include "column/latent.h"
 #include "column/sumprod.h"
 #include "documentation.h"
-#include "expr/fexpr_func.h"
+#include "expr/fexpr_reduce_unary.h"
 #include "expr/eval_context.h"
 #include "expr/workframe.h"
 #include "python/xargs.h"
@@ -33,46 +33,18 @@ namespace expr {
 
 
 template <bool SUM>
-class FExpr_SumProd : public FExpr_Func {
-  private:
-    ptrExpr arg_;
-
+class FExpr_SumProd : public FExpr_ReduceUnary {
   public:
-    FExpr_SumProd(ptrExpr &&arg)
-      : arg_(std::move(arg)) {}
+    using FExpr_ReduceUnary::FExpr_ReduceUnary;
 
-    std::string repr() const override {
-      std::string out = SUM? "sum" : "prod";
-      out += '(';
-      out += arg_->repr();
-      out += ')';
-      return out;
+
+    std::string name() const override {
+      return SUM? "sum"
+                : "prod";
     }
 
 
-    Workframe evaluate_n(EvalContext &ctx) const override {
-      Workframe outputs(ctx);
-      Workframe wf = arg_->evaluate_n(ctx);
-      Groupby gby = ctx.get_groupby();
-
-      if (!gby) {
-        gby = Groupby::single_group(wf.nrows());
-      }
-
-      for (size_t i = 0; i < wf.ncols(); ++i) {
-         bool is_grouped = ctx.has_group_column(
-                             wf.get_frame_id(i),
-                             wf.get_column_id(i)
-                           );
-         Column coli = evaluate1(wf.retrieve_column(i), gby, is_grouped);
-         outputs.add_column(std::move(coli), wf.retrieve_name(i), Grouping::GtoONE);
-      }
-
-      return outputs;
-    }
-
-
-    Column evaluate1(Column &&col, const Groupby& gby, bool is_grouped) const {
+    Column evaluate1(Column&& col, const Groupby& gby, bool is_grouped) const override {
       SType stype = col.stype();
 
       switch (stype) {
@@ -96,7 +68,7 @@ class FExpr_SumProd : public FExpr_Func {
 
 
     template <typename T>
-    Column make(Column &&col, SType stype, const Groupby& gby, bool is_grouped) const {
+    Column make(Column&& col, SType stype, const Groupby& gby, bool is_grouped) const {
       col.cast_inplace(stype);
       if (is_grouped) {
         return Column(new Latent_ColumnImpl(new SumProd_ColumnImpl<T, SUM, true>(

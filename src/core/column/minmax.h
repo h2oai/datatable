@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022-2023 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,46 +19,50 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SUMPROD_h
-#define dt_COLUMN_SUMPROD_h
+#ifndef dt_COLUMN_MINMAX_h
+#define dt_COLUMN_MINMAX_h
 #include "column/reduce_unary.h"
-#include "models/utils.h"   // ipow
 namespace dt {
 
 
-template <typename T, bool SUM, bool IS_GROUPED>
-class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T, T> {
+template <typename T, bool MIN>
+class MinMax_ColumnImpl : public ReduceUnary_ColumnImpl<T, T> {
   public:
     using ReduceUnary_ColumnImpl<T, T>::ReduceUnary_ColumnImpl;
 
-    bool get_element(size_t i, T* out) const override {
-      T result = !SUM; // 0 for `sum()` and 1 for `prod()`
-      T value;
+    bool get_element(size_t i, T* out) const override {      
+      // res` will be updated on the first valid element, due to `res_isna`
+      // initially being set to `true`. So the default value here
+      // only silences the compiler warning and makes the update
+      // to happen a little bit faster, but it has no effect on the final result.
+      T res = MIN ? std::numeric_limits<T>::max()
+                  : std::numeric_limits<T>::min();
+      bool res_isna = true;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
 
-      if (IS_GROUPED){
-        size_t nrows = i1 - i0;
-        bool is_valid = this->col_.get_element(i, &value);
-        if (is_valid){
-          result = SUM? static_cast<T>(nrows) * value
-                      : ipow(value, nrows);
-        }
-      } else {
-        for (size_t gi = i0; gi < i1; ++gi) {
-          bool is_valid = this->col_.get_element(gi, &value);
-          if (is_valid){
-            result = SUM? result + value
-                        : result * value;
+      for (size_t gi = i0; gi < i1; ++gi) {
+        T value;
+        bool isvalid = this->col_.get_element(gi, &value);
+        if (MIN) {
+          if (isvalid && (value < res || res_isna)) {
+            res = value;
+            res_isna = false;
+          }
+        } else {
+          if (isvalid && (value > res || res_isna)) {
+            res = value;
+            res_isna = false;
           }
         }
       }
 
-      *out = result;
-      return true; // the result is never a missing value
+      *out = static_cast<T>(res);
+      return !res_isna;
     }
 };
 
 
 }  // namespace dt
+
 #endif

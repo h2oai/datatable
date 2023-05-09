@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2018-2020 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -37,7 +37,7 @@ import warnings
 @pytest.fixture(autouse=True, scope="session")
 def setup():
     """This fixture will be run once only."""
-    assert sys.version_info >= (3, 6), "Python version 3.6+ is required"
+    assert sys.version_info >= (3, 8), "Python version 3.8+ is required"
     dt.options.progress.enabled = False
 
 
@@ -45,6 +45,11 @@ def is_ppc64():
     """Helper function to determine ppc64 platform"""
     platform_hardware = [platform.machine(), platform.processor()]
     return platform.system() == "Linux" and "ppc64le" in platform_hardware
+
+
+def is_arm():
+    """Helper function to determine ARM platform"""
+    return platform.processor() == "arm"
 
 
 @pytest.fixture(scope="session")
@@ -83,10 +88,11 @@ def tol():
     long double type, resulting in a loss of precision when fread converts
     double literals into double numbers.
     """
-    platform_tols = {"Windows": 1e-15, "PowerPC64": 1e-16}
-    platform_system = "PowerPC64" if is_ppc64() else platform.system()
-
-    return platform_tols.get(platform_system, 0)
+    tols = {"Windows": 1e-15, "PowerPC64": 1e-16, "ARM": 1e-15} 
+    p = "PowerPC64" if is_ppc64() else \
+        "ARM" if is_arm() else \
+        platform.system()
+    return tols.get(p, 0)
 
 
 @pytest.fixture(scope="session")
@@ -105,6 +111,7 @@ def pandas():
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             import pandas as pd
+            pd.__major_version__ = int(pd.__version__.split(".")[0])
             return pd
     except ImportError:
         pytest.skip("Pandas module is required for this test")

@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020-2022 H2O.ai
+// Copyright 2020-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,7 +19,6 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <iostream>
 #include "documentation.h"
 #include "expr/expr.h"            // OldExpr
 #include "expr/fexpr.h"

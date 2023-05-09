@@ -131,8 +131,9 @@ size_t Type_Cat::hash() const noexcept {
 Column Type_Cat::cast_column(Column&& col) const {
   switch (col.stype()) {
     case SType::VOID:
-      return Column::new_na_column(col.nrows(), make_type());
-
+      // We could immediately `return Column::new_na_column(col.nrows(), make_type());`
+      // here, however, it appears to be not good from
+      // the consistency point of view.
     case SType::BOOL:
     case SType::INT8:
     case SType::INT16:

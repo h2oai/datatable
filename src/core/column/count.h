@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022-2023 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,43 +19,71 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#ifndef dt_COLUMN_SUMPROD_h
-#define dt_COLUMN_SUMPROD_h
+#ifndef dt_COLUMN_COUNT_h
+#define dt_COLUMN_COUNT_h
+#include "column/virtual.h"
 #include "column/reduce_unary.h"
-#include "models/utils.h"   // ipow
+#include "stype.h"
 namespace dt {
 
 
-template <typename T, bool SUM, bool IS_GROUPED>
-class SumProd_ColumnImpl : public ReduceUnary_ColumnImpl<T, T> {
+template <typename T, bool COUNTNA, bool IS_GROUPED>
+class CountUnary_ColumnImpl : public ReduceUnary_ColumnImpl<T, int64_t> {
   public:
-    using ReduceUnary_ColumnImpl<T, T>::ReduceUnary_ColumnImpl;
+    using ReduceUnary_ColumnImpl<T, int64_t>::ReduceUnary_ColumnImpl;
 
-    bool get_element(size_t i, T* out) const override {
-      T result = !SUM; // 0 for `sum()` and 1 for `prod()`
+    bool get_element(size_t i, int64_t* out) const override {
       T value;
       size_t i0, i1;
       this->gby_.get_group(i, &i0, &i1);
-
-      if (IS_GROUPED){
-        size_t nrows = i1 - i0;
+      int64_t count = 0;
+      if (IS_GROUPED) {
         bool is_valid = this->col_.get_element(i, &value);
-        if (is_valid){
-          result = SUM? static_cast<T>(nrows) * value
-                      : ipow(value, nrows);
+        if (COUNTNA) {
+          count = is_valid? 0
+                          : static_cast<int64_t>(i1 - i0);
+        } else {
+          count = is_valid? static_cast<int64_t>(i1 - i0)
+                          : 0;
         }
       } else {
         for (size_t gi = i0; gi < i1; ++gi) {
           bool is_valid = this->col_.get_element(gi, &value);
-          if (is_valid){
-            result = SUM? result + value
-                        : result * value;
-          }
+          count += COUNTNA != is_valid;
         }
       }
+      *out = count;
+      return true;  // *out is always valid
+    }
+};
 
-      *out = result;
-      return true; // the result is never a missing value
+
+
+class CountNullary_ColumnImpl : public Virtual_ColumnImpl {
+  protected:
+    Groupby gby_;
+
+  public:
+    CountNullary_ColumnImpl(const Groupby& gby)
+      : Virtual_ColumnImpl(gby.size(), SType::INT64),
+        gby_(gby)
+    {}
+
+
+    ColumnImpl *clone() const override {
+      return new CountNullary_ColumnImpl(Groupby(gby_));
+    }
+
+    size_t n_children() const noexcept override {
+      return 0;
+    }
+
+
+    bool get_element(size_t i, int64_t* out) const override {
+      size_t i0, i1;
+      this->gby_.get_group(i, &i0, &i1);
+      *out = static_cast<int64_t>(i1 - i0);
+      return true;
     }
 };
 

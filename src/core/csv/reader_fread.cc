@@ -920,7 +920,7 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     if (ilen > 0) {
       preframe.column(i).set_name(std::string(start, start + ilen));
     }
-    // Skip the separator, handling special case of sep=' ' (multiple spaces are
+    // Skip the separator, handling special case of sep == ' ' (multiple spaces are
     // treated as a single separator, and spaces at the beginning/end of line
     // are ignored).
     if (ch < eof && sep == ' ' && *ch == ' ') {
@@ -939,7 +939,10 @@ void FreadReader::parse_column_names(dt::read::ParseContext& ctx) {
     }
   }
 
-  if (sep == ' ' && ncols_found == ncols - 1) {
+  // When the number of column names in the header is one less than
+  // the actual number of columns, the first column is assumed
+  // to contain row names and gets the name "index".
+  if (ncols_found == ncols - 1) {
     for (size_t j = ncols - 1; j > 0; j--){
       preframe.column(j).swap_names(preframe.column(j-1));
     }

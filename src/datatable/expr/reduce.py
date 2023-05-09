@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #-------------------------------------------------------------------------------
-# Copyright 2018-2022 H2O.ai
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -28,8 +28,9 @@ from builtins import max as _builtin_max
 
 __all__ = (
     "corr",
-    "count",
     "cov",
+    "count",
+    "countna",
     "first",
     "last",
     "max",
@@ -38,26 +39,30 @@ __all__ = (
     "nunique",
     "sd",
     "sum",
-    "countna",
 )
 
 
 
 def count(iterable=None):
-    if isinstance(iterable, (Expr, core.FExpr)):
-        return Expr(OpCodes.COUNT, (iterable,))
+    if isinstance(iterable, (core.FExpr)):
+        return core.count(iterable)
     elif iterable is None:
-        return Expr(OpCodes.COUNT0, ())
+        return core.count()
     else:
         return _builtin_sum((x is not None) for x in iterable)
 
 
+def countna(iterable=None):
+    if isinstance(iterable, (core.FExpr)):
+        return core.countna(iterable)
+    elif iterable is None:
+        return core.countna()
+    else:
+        return _builtin_sum((x is None) for x in iterable)
+
+
 def nunique(iterable=None):
     return Expr(OpCodes.NUNIQUE, (iterable,))
-
-
-def countna(iterable=None):
-    return Expr(OpCodes.COUNTNA, (iterable,))
 
 
 def first(iterable):
@@ -81,7 +86,6 @@ def last(iterable):
             for x in iterable:
                 pass
             return x
-
 
 
 def sd(expr):
@@ -122,9 +126,9 @@ def min(*args, **kwds):
     if (len(args) == 1
         and (not isinstance(args[0], dict)) and (isinstance(args[0], (Expr, core.FExpr))
         or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
-        return Expr(OpCodes.MIN, args)
+        return core.min(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
-        return Expr(OpCodes.MIN, args)
+        return core.min(args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].min()
     else:
@@ -136,9 +140,9 @@ def max(*args, **kwds):
     if (len(args) == 1 and (not isinstance(args[0], dict))
         and (isinstance(args[0], (Expr, core.FExpr))
         or (hasattr(args[0], "__getitem__") and isinstance(args[0][0], (Expr, core.FExpr))))):
-        return Expr(OpCodes.MAX, args)
+        return core.max(args)
     elif len(args) == 1 and isinstance(args[0], dict) and isinstance([*args[0].values()][0], (Expr, core.FExpr)):
-        return Expr(OpCodes.MAX, args)
+        return core.max(args)
     elif len(args) == 1 and isinstance(args[0], core.Frame):
         return args[0].max()
     else:

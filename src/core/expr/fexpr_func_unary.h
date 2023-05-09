@@ -27,8 +27,7 @@ namespace expr {
 
 
 /**
-  * Base class for the functions that have only a single argument.
-  *
+  * Base class for FExpr functions that have only one parameter.
   */
 class FExpr_FuncUnary : public FExpr_Func {
   protected:

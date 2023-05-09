@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2021 H2O.ai
+// Copyright 2021-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -25,7 +25,6 @@
 #include "column/cast.h"
 #include "python/date.h"
 #include "python/string.h"
-#include "read/constants.h"  // dt::read::pow10lookup
 namespace dt {
 
 
