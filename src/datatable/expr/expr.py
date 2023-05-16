@@ -51,13 +51,13 @@ class OpCodes(enum.Enum):
     RSHIFT = 212
 
     # Reducers
-    STDEV = 404
-    FIRST = 405
-    LAST = 406
-    MEDIAN = 410
-    COV = 411
-    CORR = 412
-    NUNIQUE = 414
+    STDEV = 401
+    FIRST = 402
+    LAST = 403
+    MEDIAN = 404
+    COV = 405
+    CORR = 406
+    NUNIQUE = 407
 
     # Math: trigonometric
     SIN = 501
