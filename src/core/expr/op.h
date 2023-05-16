@@ -35,8 +35,6 @@ static constexpr size_t REDUCER_FIRST = 401;
 static constexpr size_t REDUCER_LAST  = 407;
 static constexpr size_t MATH_FIRST    = 501;
 static constexpr size_t MATH_LAST     = 554;
-static constexpr size_t UNOP_COUNT    = UNOP_LAST - UNOP_FIRST + 1;
-static constexpr size_t BINOP_COUNT   = BINOP_LAST - BINOP_FIRST + 1;
 
 
 // The values in this enum must be kept in sync with Python enum OpCodes in
