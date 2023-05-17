@@ -552,8 +552,6 @@ Workframe Head_Reduce_Unary::evaluate_n(
   } else {
     switch (op) {
       case Op::STDEV:  fn = compute_gsd; break;
-      case Op::MIN:
-      case Op::MAX:
       case Op::FIRST:
       case Op::LAST:   fn = compute_gfirstlast; break;
       case Op::MEDIAN: fn = compute_gmedian; break;
