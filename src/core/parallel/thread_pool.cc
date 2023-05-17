@@ -174,6 +174,15 @@ std::mutex& ThreadPool::global_mutex() {
 }
 
 
+bool ThreadPool::get_use_semaphore() {
+  return idle_job_.get_use_semaphore();
+}
+
+
+void ThreadPool::set_use_semaphore(bool use_semaphore) {
+  idle_job_.set_use_semaphore(use_semaphore);
+}
+
 
 
 //------------------------------------------------------------------------------
@@ -233,6 +242,18 @@ size_t get_hardware_concurrency() noexcept {
       set_nthreads,
       dt::doc_options_nthreads
     );
+
+    dt::register_option(
+      "use_semaphore",
+      []{ return py::obool(thpool->get_use_semaphore()); },
+      [](const py::Arg& arg) {
+        bool use_semaphore = arg.to_bool_strict();
+        thpool->set_use_semaphore(use_semaphore);
+      },
+      dt::doc_options_use_semaphore
+    );
+
+
   }
 #endif
 

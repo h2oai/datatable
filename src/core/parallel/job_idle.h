@@ -24,6 +24,7 @@
 #include <atomic>                 // std::atomic
 #include <cstddef>                // std::size_t
 #include <mutex>                  // std::mutex
+#include "parallel/semaphore.h"   // LightweightSemaphore
 #include "parallel/thread_job.h"  // ThreadJob, ThreadTask
 #include <condition_variable>
 
@@ -90,13 +91,15 @@ class Job_Idle : public ThreadJob {
 
     // How many threads are currently active (i.e. not sleeping)
     std::atomic<int>   n_threads_running_;
-    int : 32;
+    bool use_semaphore_;
+    int : 24;
 
     // If an exception occurs during execution, it will be saved here
     std::exception_ptr saved_exception_;
 
   public:
     Job_Idle();
+    ~Job_Idle() override;
 
     ThreadTask* get_next_task(size_t thread_index) override;
 
@@ -126,27 +129,54 @@ class Job_Idle : public ThreadJob {
     // threads.
     void add_running_thread();
     void remove_running_thread();
+    bool get_use_semaphore();
+    void set_use_semaphore(bool);
 };
 
 
-
 class SleepTask : public ThreadTask {
-  private:
+  protected:
     Job_Idle* const      parent_;
     ThreadJob*           job_;
+
+  public:
+    SleepTask(Job_Idle*);
+    bool is_sleeping() const noexcept;
+
+    // API for the derived classes
+    virtual void wake_up(int nthreads, ThreadJob* next_job) = 0;
+    virtual void fall_asleep() = 0;
+    virtual void abort_current_job() = 0;
+};
+
+
+class SleepTaskSemaphore : public SleepTask {
+  private:
+    LightweightSemaphore semaphore_;
+
+  public:
+    using SleepTask::SleepTask;
+    void execute() override;
+
+    void wake_up(int nthreads, ThreadJob* next_job) override;
+    void fall_asleep() override;
+    void abort_current_job() override;
+};
+
+
+class SleepTaskConditionVar : public SleepTask {
+  private:
     std::condition_variable cv_;
     std::mutex cv_m_;
 
   public:
-    SleepTask(Job_Idle*);
+    using SleepTask::SleepTask;
     void execute() override;
 
-    void wake_up(ThreadJob* next_job);
-    void fall_asleep();
-    void abort_current_job();
-    bool is_sleeping() const noexcept;
+    void wake_up(int nthreads, ThreadJob* next_job) override;
+    void fall_asleep() override;
+    void abort_current_job() override;
 };
-
 
 
 
