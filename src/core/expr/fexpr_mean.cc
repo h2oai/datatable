@@ -71,6 +71,7 @@ class FExpr_Mean : public FExpr_ReduceUnary {
       if (stype == SType::DATE32 || stype == SType::TIME64) {
         col_out.cast_inplace(stype);
       }
+
       return col_out;
     }
 

@@ -94,8 +94,14 @@ class ColumnImpl
   public:
     size_t nrows() const noexcept { return nrows_; }
     SType stype() const { return type_.stype(); }
-    SType data_stype() const;
     const Type& type() const { return type_; }
+
+    // For categorical columns these methods will return the stype/type
+    // of the data the column is backed up with. For all the other column types,
+    // these methods are equivalent to `stype()`/`type()`.
+    SType data_stype() const;
+    const Type& data_type() const;
+
     virtual bool is_virtual() const noexcept = 0;
     virtual bool computationally_expensive() const { return false; }
     virtual size_t memory_footprint() const noexcept = 0;

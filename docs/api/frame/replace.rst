@@ -29,24 +29,27 @@
 
     Parameters
     ----------
-    replace_what: None, bool, int, float, list, or dict
+    replace_what: None | bool | int | float | str | list | dict
         Value(s) to search for and replace.
 
-    replace_with: single value, or list
+    replace_with: None | bool | int | float | str | list
         The replacement value(s). If `replace_what` is a single value, then this
         must be a single value too. If `replace_what` is a list, then this could
         be either a single value, or a list of the same length. If `replace_what`
         is a dict, then this value should not be passed.
 
-    (return): None
+    return: None
         Nothing is returned, the replacement is performed in-place.
 
 
     Examples
     --------
-    >>> df = dt.Frame([1, 2, 3] * 3)
-    >>> df.replace(1, -1)
-    >>> df
+
+    Replace a single numeric value:
+
+    >>> DT = dt.Frame([1, 2, 3] * 3)
+    >>> DT.replace(1, -1)
+    >>> DT
        |    C0
        | int32
     -- + -----
@@ -61,8 +64,11 @@
      8 |     3
     [9 rows x 1 column]
 
-    >>> df.replace({-1: 100, 2: 200, "foo": None})
-    >>> df
+
+    Replace based on a dictionary of `replace_what` and `replace_with` values:
+
+    >>> DT.replace({-1: 100, 2: 200, "foo": None})
+    >>> DT
        |    C0
        | int32
     -- + -----
@@ -76,3 +82,22 @@
      7 |   200
      8 |     3
     [9 rows x 1 column]
+
+
+    Replace a single string value:
+
+    >>> DT = dt.Frame(["a", "b", "ab", "ba", "b"])
+    >>> DT.replace("b", "c")
+    >>> DT
+       | C0
+       | str32
+    -- + -----
+     0 | a
+     1 | c
+     2 | ab
+     3 | ba
+     4 | c
+    [5 rows x 1 column]
+
+    Note, that values `ab` and `ba` were not affected as a full match
+    with `replace_what` is required for replacement.

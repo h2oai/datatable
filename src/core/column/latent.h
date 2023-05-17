@@ -94,7 +94,7 @@ class Latent_ColumnImpl : public Virtual_ColumnImpl {
         case SType::ARR32:
         case SType::ARR64:   vivify<Column>(col); break;
         default:
-          throw RuntimeError() << "Unknown stype " << col.stype();  // LCOV_EXCL_LINE
+          throw RuntimeError() << "Unknown stype " << st;  // LCOV_EXCL_LINE
       }
     }
 
