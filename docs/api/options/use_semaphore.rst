@@ -6,9 +6,9 @@
 
     This experimental option controls whether datatable should
     use semaphore or condition variable for threads waiting.
-    In the former case datatable may monopolize CPU while waiting,
-    so on shared systems it is recommended to set this option
-    to `False`.
+    In the former case, datatable will demonstrate better performance,
+    however, may monopolize CPU, so on shared systems it is recommended
+    to set this option to `False`.
 
     Parameters
     ----------
