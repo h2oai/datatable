@@ -32,13 +32,12 @@
         * - :attr:`.nthreads <datatable.options.nthreads>`
           - Number of threads used by datatable for parallel computations.
 
-
 .. toctree::
     :hidden:
 
-    debug           <options/debug>
-    display         <options/display>
-    frame           <options/frame>
-    fread           <options/fread>
-    progress        <options/progress>
-    nthreads        <options/nthreads>
+    debug      <options/debug>
+    display    <options/display>
+    frame      <options/frame>
+    fread      <options/fread>
+    progress   <options/progress>
+    nthreads   <options/nthreads>

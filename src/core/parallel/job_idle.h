@@ -133,19 +133,19 @@ class Job_Idle : public ThreadJob {
 
 class SleepTask : public ThreadTask {
   private:
-    Job_Idle* parent_;
+    Job_Idle* const parent_;
     ThreadJob* job_;
     std::condition_variable cv_;
     std::mutex cv_m_;
 
   public:
     SleepTask(Job_Idle*);
-    bool is_sleeping() const noexcept;
+    void execute() override;
 
-    void execute();
     void wake_up(ThreadJob* next_job);
     void fall_asleep();
     void abort_current_job();
+    bool is_sleeping() const noexcept;
 };
 
 

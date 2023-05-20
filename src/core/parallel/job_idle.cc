@@ -45,7 +45,6 @@ Job_Idle::~Job_Idle() {
 }
 
 
-
 ThreadTask* Job_Idle::get_next_task(size_t) {
   return current_sleep_task_;
 }
@@ -155,12 +154,6 @@ SleepTask::SleepTask(Job_Idle* idle_job)
     job_(nullptr) {}
 
 
-
-bool SleepTask::is_sleeping() const noexcept {
-  return (job_ == nullptr);
-}
-
-
 void SleepTask::execute() {
   parent_->remove_running_thread();
   {
@@ -193,6 +186,11 @@ void SleepTask::abort_current_job() {
   if (job_) {
     job_->abort_execution();
   }
+}
+
+
+bool SleepTask::is_sleeping() const noexcept {
+  return (job_ == nullptr);
 }
 
 
