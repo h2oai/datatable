@@ -114,9 +114,6 @@ class ThreadPool
     // This should only be called by `sleep_task` and `shutdown_task`.
     void assign_job_to_current_thread(ThreadJob*);
 
-    bool get_use_semaphore();
-    void set_use_semaphore(bool);
-
   private:
     void instantiate_threads();
 };

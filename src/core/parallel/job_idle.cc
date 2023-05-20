@@ -33,9 +33,8 @@ namespace dt {
 //------------------------------------------------------------------------------
 
 Job_Idle::Job_Idle() {
-  current_sleep_task_ = new SleepTaskSemaphore(this);
-  previous_sleep_task_ = new SleepTaskSemaphore(this);
-  use_semaphore_ = true;
+  current_sleep_task_ = new SleepTask(this);
+  previous_sleep_task_ = new SleepTask(this);
   n_threads_running_ = 0;
 }
 
@@ -44,34 +43,6 @@ Job_Idle::~Job_Idle() {
   delete current_sleep_task_;
   delete previous_sleep_task_;
 }
-
-
-bool Job_Idle::get_use_semaphore() {
-  return use_semaphore_;
-}
-
-
-void Job_Idle::set_use_semaphore(bool use_semaphore) {
-  if (use_semaphore == use_semaphore_) return;
-
-  xassert(current_sleep_task_ != nullptr);
-  xassert(previous_sleep_task_ != nullptr);
-
-  delete current_sleep_task_;
-  delete previous_sleep_task_;
-
-  if (use_semaphore) {
-    current_sleep_task_ = new SleepTaskSemaphore(this);
-    previous_sleep_task_ = new SleepTaskSemaphore(this);
-  } else {
-    current_sleep_task_ = new SleepTaskConditionVar(this);
-    previous_sleep_task_ = new SleepTaskConditionVar(this);
-  }
-
-  use_semaphore_ = use_semaphore;
-}
-
-
 
 
 
@@ -112,7 +83,7 @@ void Job_Idle::awaken_and_run(ThreadJob* job, size_t nthreads) {
   n_threads_running_ += nth;
   saved_exception_ = nullptr;
 
-  previous_sleep_task_->wake_up(nth, job);
+  previous_sleep_task_->wake_up(job);
   thpool->workers_[0]->run_in_main_thread(job);
 }
 
@@ -174,6 +145,7 @@ bool Job_Idle::is_running() const noexcept {
 }
 
 
+
 //------------------------------------------------------------------------------
 // SleepTask
 //------------------------------------------------------------------------------
@@ -183,49 +155,13 @@ SleepTask::SleepTask(Job_Idle* idle_job)
     job_(nullptr) {}
 
 
+
 bool SleepTask::is_sleeping() const noexcept {
   return (job_ == nullptr);
 }
 
 
-
-//------------------------------------------------------------------------------
-// SleepTaskSemaphore
-//------------------------------------------------------------------------------
-
-void SleepTaskSemaphore::execute() {
-  parent_->remove_running_thread();
-  semaphore_.wait();
-  xassert(job_);
-  thpool->assign_job_to_current_thread(job_);
-}
-
-
-void SleepTaskSemaphore::wake_up(int nth, ThreadJob* next_job) {
-  job_ = next_job;
-  semaphore_.signal(nth);
-}
-
-
-void SleepTaskSemaphore::fall_asleep() {
-  // Clear `job_` indicating that we no longer run in a parallel region.
-  job_ = nullptr;
-}
-
-
-void SleepTaskSemaphore::abort_current_job() {
-  if (job_) {
-    job_->abort_execution();
-  }
-}
-
-
-
-//------------------------------------------------------------------------------
-// SleepTaskConditionVar
-//------------------------------------------------------------------------------
-
-void SleepTaskConditionVar::execute() {
+void SleepTask::execute() {
   parent_->remove_running_thread();
   {
     std::unique_lock<std::mutex> lk(cv_m_);
@@ -236,7 +172,7 @@ void SleepTaskConditionVar::execute() {
 }
 
 
-void SleepTaskConditionVar::wake_up(int, ThreadJob* next_job) {
+void SleepTask::wake_up(ThreadJob* next_job) {
   {
     std::lock_guard<std::mutex> lk(cv_m_);
     job_ = next_job;
@@ -245,14 +181,14 @@ void SleepTaskConditionVar::wake_up(int, ThreadJob* next_job) {
 }
 
 
-void SleepTaskConditionVar::fall_asleep() {
+void SleepTask::fall_asleep() {
   std::lock_guard<std::mutex> lk(cv_m_);
   // Clear `job_` indicating that we no longer run in a parallel region.
   job_ = nullptr;
 }
 
 
-void SleepTaskConditionVar::abort_current_job() {
+void SleepTask::abort_current_job() {
   std::lock_guard<std::mutex> lk(cv_m_);
   if (job_) {
     job_->abort_execution();

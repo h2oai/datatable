@@ -208,7 +208,6 @@ extern const char* doc_options_progress_clear_on_success;
 extern const char* doc_options_progress_enabled;
 extern const char* doc_options_progress_min_duration;
 extern const char* doc_options_progress_updates_per_second;
-extern const char* doc_options_use_semaphore;
 
 extern const char* doc_re_match;
 

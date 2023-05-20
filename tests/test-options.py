@@ -33,7 +33,6 @@ def test_options_all():
     assert repr(dt.options).startswith("datatable.options.")
     assert set(dir(dt.options)) == {
         "nthreads",
-        "use_semaphore",
         "debug",
         "sort",
         "display",
