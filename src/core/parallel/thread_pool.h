@@ -78,7 +78,7 @@ class ThreadPool
     size_t num_threads_requested_;
 
     // Scheduler used to manage sleep/awake cycle of the workers in the pool.
-    // See definition in thread_worker.h
+    // See definition in job_idle.h
     Job_Idle idle_job_;
 
     // Mutex which can be used to guard operations that must be protected

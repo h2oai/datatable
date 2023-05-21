@@ -233,6 +233,7 @@ size_t get_hardware_concurrency() noexcept {
       set_nthreads,
       dt::doc_options_nthreads
     );
+
   }
 #endif
 
