@@ -196,6 +196,9 @@
     -[fix] Fixed undefined behavior when :class:`LinearModel <dt.models.LinearModel>`
         predicted on frames with missing values. [#3260]
 
+    -[fix] Fixed target column type detection in
+        :class:`LinearModel <dt.models.LinearModel>`. [#3466]
+
 
     General
     -------
