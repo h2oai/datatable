@@ -304,6 +304,7 @@ oobj LinearModel::fit(const PKArgs& args) {
                          << "one column";
     }
 
+    ltype = dt_y->get_column(0).ltype();
     ltype_val = dt_y_val->get_column(0).ltype();
 
     if (ltype != ltype_val) {

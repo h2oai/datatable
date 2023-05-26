@@ -618,20 +618,6 @@ def test_linearmodel_binomial_fit_predict_float():
     assert df_target[1, 1] < epsilon
 
 
-@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-def test_linearmodel_binomial_fit_predict_string():
-    lm = LinearModel(eta0 = 0.1, nepochs = 10000)
-    df_train = dt.Frame([["Monday", None, "", "Tuesday"]])
-    df_target = dt.Frame([[True, False, False, True]])
-    lm.fit(df_train, df_target)
-    df_target = lm.predict(df_train[:,0])
-    assert lm.model_type == "binomial"
-    assert df_target[0, 1] <= 1
-    assert df_target[0, 1] >= 1 - epsilon
-    assert df_target[1, 1] >= 0
-    assert df_target[1, 1] < epsilon
-
-
 @pytest.mark.parametrize('target',
                          [[True, False],
                          ["yes", "no"],
@@ -951,139 +937,6 @@ def test_linearmodel_multinomial_vs_binomial_fit_predict():
     assert_equals(p_binomial[:, 0], p_multinomial[:, 0])
 
 
-@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-@pytest.mark.parametrize('negative_class', [False, True])
-def test_linearmodel_multinomial_fit_predict(negative_class):
-    negative_class_label = ["_negative_class"] if negative_class else []
-    nepochs = 1000
-    lm = LinearModel(eta0 = 0.2, nepochs = nepochs, double_precision = True)
-    lm.negative_class = negative_class
-    labels = negative_class_label + ["blue", "green", "red"]
-
-    df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange", "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
-    lm.fit(df_train, df_target)
-    frame_integrity_check(lm.model)
-    p = lm.predict(df_train)
-
-    frame_integrity_check(p)
-    p_none = 1 / p.ncols
-    p_dict = p.to_dict()
-    p_list = p.to_list()
-    sum_p =[sum(row) for row in zip(*p_list)]
-    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
-    delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
-    delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
-    delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
-
-    ids = [0, 3, 1, 2] if negative_class else [2, 0, 1]
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert max(delta_sum)   < 1e-12
-    assert max(delta_red)   < epsilon
-    assert max(delta_green) < epsilon
-    assert max(delta_blue)  < epsilon
-    assert list(p.names) == labels
-
-
-@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-@pytest.mark.parametrize('negative_class', [False, True])
-def test_linearmodel_multinomial_fit_predict_online(negative_class):
-    lm = LinearModel(eta0 = 0.2, nepochs = 1000, double_precision = True)
-    lm.negative_class = negative_class
-    negative_class_label = ["_negative_class"] if negative_class else []
-
-    # Show only 1 label to the model
-    df_train = dt.Frame(["cucumber"])
-    df_target = dt.Frame(["green"])
-    lm.fit(df_train, df_target)
-
-    labels = negative_class_label + ["green"]
-    ids = list(range(len(labels)))
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
-
-    # Also do pickling unpickling in the middle.
-    lm_pickled = pickle.dumps(lm)
-    lm = pickle.loads(lm_pickled)
-
-    # Show one more
-    df_train = dt.Frame(["cucumber", None])
-    df_target = dt.Frame(["green", "red"])
-    lm.fit(df_train, df_target)
-
-    labels += ["red"]
-    ids += [len(ids)]
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
-
-    # And one more
-    df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange", "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
-    lm.fit(df_train, df_target)
-
-    labels.insert(negative_class, "blue")
-    ids.insert(negative_class, len(ids))
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
-
-    # Do not add any new labels
-    df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange", "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None, "blue"])
-
-    lm.fit(df_train, df_target)
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert lm.model.shape == (lm.nbins, 2 * lm.labels.nrows)
-
-    # Test predictions
-    p = lm.predict(df_train)
-    frame_integrity_check(p)
-    p_none = 1 / p.ncols
-    p_dict = p.to_dict()
-    p_list = p.to_list()
-    sum_p =[sum(row) for row in zip(*p_list)]
-    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
-    delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
-    delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
-    delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
-
-    assert_equals(
-        lm.labels,
-        dt.Frame(label=labels, id=ids, stypes={"id": dt.int32})
-    )
-    assert lm.model_type == "multinomial"
-    assert max(delta_sum)   < 1e-12
-    assert max(delta_red)   < epsilon
-    assert max(delta_green) < epsilon
-    assert max(delta_blue)  < epsilon
-    assert list(p.names) == negative_class_label + ["blue", "green", "red"]
-
-
 #-------------------------------------------------------------------------------
 # Test regression for numerical targets
 #-------------------------------------------------------------------------------
@@ -1253,13 +1106,12 @@ def test_linearmodel_early_stopping_no_validation_set(double_precision_value):
     assert res.loss is None
 
 
-def test_linearmodel_early_stopping_no_early_stopping():
+def test_linearmodel_early_stopping_not_triggered():
     nepochs = 100
     nepochs_validation = 10
     lm = LinearModel(nepochs = nepochs)
-    r = range(10)
-    df_X = dt.Frame(r)
-    df_y = dt.Frame(r)
+    df_X = dt.Frame([1])
+    df_y = dt.Frame([True])
     res = lm.fit(df_X, df_y, df_X, df_y,
                  nepochs_validation = nepochs_validation)
     assert res.epoch == nepochs
@@ -1370,41 +1222,6 @@ def test_linearmodel_early_stopping_regression(validation_average_niterations):
     assert max(delta) < epsilon
 
 
-@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-def test_linearmodel_early_stopping_multinomial():
-    nepochs = 2000
-    lm = LinearModel(eta0 = 0.2, nepochs = nepochs, double_precision = True)
-    labels = ["blue", "green", "red"]
-
-    df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange",
-                         "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
-                          "blue"])
-    res = lm.fit(df_train, df_target, df_train[:4, :], df_target[:4, :],
-                 nepochs_validation = 1, validation_error = 1e-3)
-    frame_integrity_check(lm.model)
-    p = lm.predict(df_train)
-    frame_integrity_check(p)
-    p_none = 1/p.ncols
-    p_dict = p.to_dict()
-    p_list = p.to_list()
-    sum_p =[sum(row) for row in zip(*p_list)]
-    delta_sum = [abs(i - j) for i, j in zip(sum_p, [1] * 5)]
-    delta_red =   [abs(i - j) for i, j in
-                   zip(p_dict["red"], [0, 1, 1, 0, 0, p_none, 0])]
-    delta_green = [abs(i - j) for i, j in
-                   zip(p_dict["green"], [1, 0, 0, 0, 1, p_none, 0])]
-    delta_blue =  [abs(i - j) for i, j in
-                   zip(p_dict["blue"], [0, 0, 0, 1, 0, p_none, 1])]
-
-    assert res.epoch < nepochs
-    assert res.loss < 0.1
-    assert max(delta_sum)   < 1e-6
-    assert max(delta_red)   < epsilon
-    assert max(delta_green) < epsilon
-    assert max(delta_blue)  < epsilon
-    assert list(p.names) == labels
-
 
 #-------------------------------------------------------------------------------
 # Test pickling
@@ -1454,40 +1271,4 @@ def test_linearmodel_pickling_binomial():
     target = lm.predict(df_train)
     assert_equals(lm.model, lm_unpickled.model)
     assert_equals(target, target_unpickled)
-
-
-@pytest.mark.skip(reason="Fix me: linear model do not support categoricals")
-def test_linearmodel_pickling_multinomial():
-    lm = LinearModel(eta0 = 0.2, nbins = 100, nepochs = 1, double_precision = False)
-    df_train = dt.Frame(["cucumber", None, "shilm", "sky", "day", "orange",
-                         "ocean"])
-    df_target = dt.Frame(["green", "red", "red", "blue", "green", None,
-                          "blue"])
-    lm.interactions = [["C0", "C0"]]
-    lm.fit(df_train, df_target)
-
-    lm_pickled = pickle.dumps(lm)
-    lm_unpickled = pickle.loads(lm_pickled)
-    frame_integrity_check(lm_unpickled.model)
-    assert lm_unpickled.model.stypes == (stype.float32,) * 6
-    assert_equals(lm.model, lm_unpickled.model)
-    assert lm.params == lm_unpickled.params
-    assert_equals(lm.labels, lm_unpickled.labels)
-    assert lm.colnames == lm_unpickled.colnames
-    assert lm.interactions == lm_unpickled.interactions
-
-    # Predict
-    target = lm.predict(df_train)
-    target_unpickled = lm_unpickled.predict(df_train)
-    assert_equals(lm.model, lm_unpickled.model)
-    assert_equals(target, target_unpickled)
-
-    # Fit and predict
-    lm.fit(df_train, df_target)
-    target = lm.predict(df_train)
-    lm_unpickled.fit(df_train, df_target)
-    target_unpickled = lm_unpickled.predict(df_train)
-    assert_equals(lm.model, lm_unpickled.model)
-    assert_equals(target, target_unpickled)
-
 
