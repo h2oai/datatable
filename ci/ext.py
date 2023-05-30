@@ -205,11 +205,13 @@ def create_logger(verbosity):
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
-    arch = platform.machine()  # 'x86_64' or 'ppc64le'
+    arch = platform.machine()  # 'x86_64' or 'ppc64le' or 'arm64'
+    ppc64 = ("ppc64" in arch or "powerpc64" in arch)
+    arm64 = (arch == "arm64")
+
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
     linux = (sys.platform == "linux")
-    ppc64 = ("ppc64" in arch or "powerpc64" in arch)
     if not (windows or macos or linux):
         print("\x1b[93mWarning: unknown platform %s\x1b[m" % sys.platform)
         linux = True
@@ -294,7 +296,9 @@ def build_extension(cmd, verbosity=3):
         # Common link flags
         ext.compiler.add_linker_flag("-shared")
         ext.compiler.add_linker_flag("-g")
-        ext.compiler.add_linker_flag("-m64")
+
+        if not arm64:
+            ext.compiler.add_linker_flag("-m64")
         if macos:
             ext.compiler.add_linker_flag("-undefined", "dynamic_lookup")
         if linux:
