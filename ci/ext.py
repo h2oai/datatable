@@ -205,9 +205,9 @@ def create_logger(verbosity):
 
 def build_extension(cmd, verbosity=3):
     assert cmd in ["asan", "build", "coverage", "debug"]
-    arch = platform.machine()  # 'x86_64' or 'ppc64le' or 'arm64'
+    arch = platform.machine()  # 'x86_64' or 'ppc64le' or 'arm64' or 'aarch64'
     ppc64 = ("ppc64" in arch or "powerpc64" in arch)
-    arm64 = (arch == "arm64")
+    arm64 = (arch == "arm64") or (arch == "aarch64")
 
     windows = (sys.platform == "win32")
     macos = (sys.platform == "darwin")
