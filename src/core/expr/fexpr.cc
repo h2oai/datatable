@@ -165,8 +165,20 @@ oobj PyFExpr::m__getitem__(py::robj item) {
                     slice.step_obj()
            ));
   }
+  if (item.is_int()) {
+    auto stop = item.to_pyint();
+    int32_t stop_ = stop.to_int32_strict();
+    auto item_end = (stop_ == -1)? py::None() : py::oint(stop_+1);
+    return PyFExpr::make(
+                new dt::expr::FExpr_Slice(
+                    expr_,
+                    item,
+                    item_end,
+                    py::None()
+           ));
+  } 
   // TODO: we could also support single-item selectors
-  throw TypeError() << "Selector inside FExpr[...] must be a slice";
+  throw TypeError() << "Selector inside FExpr[...] must be a slice or an integer";
 }
 
 
