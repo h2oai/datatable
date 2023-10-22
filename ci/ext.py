@@ -39,8 +39,7 @@ import sys
 import textwrap
 import time
 import xbuild
-
-
+import typing
 #-------------------------------------------------------------------------------
 # Version handling
 #-------------------------------------------------------------------------------
@@ -439,15 +438,40 @@ def get_meta():
 #-------------------------------------------------------------------------------
 # Build info file
 #-------------------------------------------------------------------------------
-
-def shell_cmd(cmd, strict=False):
+def shell_cmd(
+    cmd: typing.List[str], 
+    strict: bool = False,
+) -> str:
     try:
-        return subprocess.check_output(cmd, universal_newlines=True,
-                                       stderr=subprocess.STDOUT).strip()
-    except subprocess.CalledProcessError as e:
+        process = subprocess.Popen(
+            cmd, 
+            stdout=subprocess.PIPE, 
+            stderr=subprocess.PIPE, 
+            universal_newlines=True
+        )
+        stdout, stderr = process.communicate()
+        
+        if process.returncode != 0:
+            # Command failed
+            if strict:
+                error_message = (
+                    f"Command `{' '.join(cmd)}` failed with code "
+                    f"{process.returncode}: {stderr}"
+                )
+                raise SystemExit(error_message)
+            else:
+                return ""
+
+        # If the command succeeds, return stdout
+        return stdout.strip()
+
+    except Exception as e:
         if strict:
-            raise SystemExit("Command `%s` failed with code %d: %s"
-                             % (" ".join(cmd), e.returncode, e.output))
+            error_message = (
+                f"Command `{' '.join(cmd)}` encountered an error: {str(e)}"
+            )
+            raise SystemExit(error_message)
+            
         return ""
 
 
@@ -485,6 +509,7 @@ def generate_build_info(mode=None, strict=False):
                                strict=strict)
     git_diff = shell_cmd(["git", "diff", "HEAD", "--stat", "--no-color"],
                          strict=strict)
+    
     # Reformat the `git_date` as a UTC time string
     if git_date:
         git_date = time.strftime("%Y-%m-%d %H:%M:%S",
