@@ -464,7 +464,8 @@ def shell_cmd(
 
         # If the command succeeds, return stdout
         return stdout.strip()
-
+    except subprocess.CalledProcessError as e:
+        return ""
     except Exception as e:
         if strict:
             error_message = (
