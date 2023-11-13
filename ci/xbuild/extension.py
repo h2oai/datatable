@@ -25,11 +25,10 @@ import glob
 import json
 import os
 import re
-import subprocess
 import sysconfig
 import time
 
-from .logger import Logger0, Logger3
+from .logger import Logger0
 from .compiler import Compiler
 
 rx_include = re.compile(r'\s*#\s*include\s*"([^"]+)"')
