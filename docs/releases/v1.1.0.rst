@@ -239,3 +239,45 @@
     -[enh] Python built-in functoins ``min()`` and ``max()`` will continue
         working for list comprehensions even after :func:`dt.min()` and
         :func:`dt.max()` have been imported from datatable. [#3409]
+
+
+    .. contributors::
+
+        119 @oleksiyskononenko
+        37  @st-pasha
+        21  @samukweku
+        5   @pradkrish              <Pradeep Krishnamurthy>
+        3   @vstinner               <Victor Stinner>
+        1   @hpretl                 <Harald Pretl>
+        1   @sh1ng
+        1   @ChathurindaRanasinghe  <Chathurinda Ranasinghe>
+        1   @argenisleon            <Argenis Leon>
+        1   @lucasjamar
+        1   @Mathanraj-Sharma       <Mathanraj-Sharma>
+        --
+        35  @oleksiyskononenko
+        29  @st-pasha
+        7   @samukweku
+        4   @arnocandel
+        4   @Binger-cn
+        3   @hallmeier              <Hall Meier>
+        2   @nankaimy
+        2   @ghost                  <Deleted User>
+        1   @mcjmigdal              <Migdal>
+        1   @lmullany               <Luke C Mullany>
+        1   @pepeto                 <AVB>
+        1   @sh1ng                  <Vladimir>
+        1   @justinsutw
+        1   @mflevine               <Max Levine>
+        1   @pramitchoudhary        <Pramit Choudhary>
+        1   @mvolar
+        1   @rsensan                <Sentihl Vasan>
+        1   @devinliu-rayliant
+        1   @pscholze
+        1   @lucasjamar
+        1   @us8945                 <Uri Smashnov>
+        1   @alexhallam             <Alex Hallam>
+        1   @maximocrv              <Maximo Cravero>
+        1   @pauljohn32             <Paul E. Johnson>
+        1   @vopani                 <Rohan Rao>
+        1   @Cattes                 <Sebastian Cattes>
