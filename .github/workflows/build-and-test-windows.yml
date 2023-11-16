@@ -25,11 +25,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fetch remote branch
-        run: git fetch --depth=1 origin main
-        
+        run: |
+          git fetch origin main
+
       - name: Prepare environment variables
         run: |
-          $env:DT_BUILD_ID = git rev-list --count main
+          $env:DT_BUILD_ID = (git rev-list --count main) - 1
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
             if ($env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH -match '^rel-') {
               $env:DT_RELEASE = 'True'
