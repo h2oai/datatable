@@ -98,7 +98,7 @@ class Compiler:
     # Setup
     #---------------------------------------------------------------------------
 
-    def _check_compiler(self, cc, source, target):
+    def _check_compiler(self, cc: str, source: str, target: str):
         """
         Check whether the given compiler is viable, i.e. whether it
         can compile a simple example file. Returns True if the
@@ -143,7 +143,7 @@ class Compiler:
 
             if sys.platform == "win32" or True:
                 self._detect_winsdk()
-                msvc_path = os.environ.get("DT_MSVC_PATH", "")
+                msvc_path : str = os.environ.get("DT_MSVC_PATH", "")
                 if msvc_path:
                     if not os.path.isdir(msvc_path):
                         raise SystemExit(
@@ -173,7 +173,7 @@ class Compiler:
                         if not subdirs: break
                         # Possible subdirectory names could be: BuildTools, Community,
                         # Enterprise, Professional.
-                        msvc_path = sorted(subdirs)[-1]
+                        msvc_path = str(sorted(subdirs)[-1])
                         break
                     if not os.path.isdir(msvc_path):
                         raise SystemExit(
@@ -187,11 +187,13 @@ class Compiler:
                 for compiler_version in reversed(compiler_versions):
                     path =  os.path.join(msvc_path, compiler_version)
                     bin_path = os.path.join(path, "bin\\Hostx64\\x64")
-                    candidates += [{
-                                    "compiler": os.path.join(bin_path, "cl.exe"),
-                                    "linker": os.path.join(bin_path, "link.exe"),
-                                    "path" : path
-                                  }]
+                    if os.path.exists(os.path.join(bin_path, "cl.exe")):
+                        candidates += [{
+                            "compiler": os.path.join(bin_path, "cl.exe"),
+                            "linker": os.path.join(bin_path, "link.exe"),
+                            "path" : path
+                        }]
+                candidates += [{"compiler": "cl.exe", "linker": "link.exe"}]
             elif sys.platform == "darwin":
                 candidates = [
                     {"compiler": "/usr/local/opt/llvm/bin/clang"},
@@ -213,6 +215,7 @@ class Compiler:
                     self.log.report_compiler_executable(candidate["compiler"])
                     return
 
+            self.log.info(f"Candidates: {candidates!r}")
             raise RuntimeError("Suitable C++ compiler cannot be determined. "
                                "Please specify a compiler executable in the "
                                "`CXX` environment variable.")
