@@ -150,10 +150,14 @@ class Compiler:
                             f"Directory DT_MSVC_PATH=`{msvc_path}` does not exist."
                         )
                 else:
-                    path0 = pathlib.Path(
-                        "C:\\Program Files (x86)\\Microsoft Visual Studio"
-                    )
                     while True:
+                        path0 = pathlib.Path(
+                            "C:\\Program Files (x86)\\Microsoft Visual Studio"
+                        )
+                        if not path0.is_dir():
+                            path0 = pathlib.Path(
+                                "C:\\Program Files\\Microsoft Visual Studio"
+                            )
                         if not path0.is_dir(): break
                         subdirs = [
                             subpath for subpath in path0.iterdir() 

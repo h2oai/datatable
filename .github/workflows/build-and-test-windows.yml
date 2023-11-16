@@ -14,7 +14,7 @@ jobs:
     runs-on: windows-latest
 
     env:
-      DT_HARNESS: 'GitHub'
+      DT_HARNESS: GitHub
       DT_BUILD_ID: ${{ github.run_id }}
       DT_BUILD_NUMBER: ''
       DT_BUILD_SUFFIX: ''
@@ -30,19 +30,19 @@ jobs:
 
       - name: Prepare environment variables
         run: |
-          $env:DT_BUILD_ID = (git rev-list --count origin/main) - 1
+          echo "DT_BUILD_ID=$((git rev-list --count origin/main) - 1)" >> $env:DT_BUILD_ID
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
             if ($env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH -match '^rel-') {
-              $env:DT_RELEASE = 'True'
+              echo "DT_RELEASE=True" >> $env:DT_RELEASE
             } else {
-              $env:DT_BUILD_SUFFIX = "PR$($env:GITHUB_EVENT_NUMBER).$DT_BUILD_ID"
+              echo "DT_BUILD_SUFFIX=PR$($env:GITHUB_EVENT_NUMBER).$env:DT_BUILD_ID" >> $env:DT_BUILD_SUFFIX
             }
           } elseif ($env:GITHUB_REF -eq 'refs/heads/main') {
-            $env:DT_BUILD_NUMBER = $DT_BUILD_ID
+            echo "DT_BUILD_NUMBER=$env:DT_BUILD_ID" >> $env:DT_BUILD_NUMBER
           } elseif ($env:GITHUB_REF -match '^refs/heads/rel-') {
-            $env:DT_RELEASE = 'True'
+            echo "DT_RELEASE=True" >> $env:DT_RELEASE
           } else {
-            $env:DT_BUILD_SUFFIX = "$($env:GITHUB_REF).$DT_BUILD_ID"
+            echo "DT_BUILD_SUFFIX=$env:GITHUB_REF.$env:DT_BUILD_ID" >> $env:DT_BUILD_SUFFIX
           }
 
       - name: Print environment
