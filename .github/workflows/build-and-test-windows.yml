@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "DT_BUILD_ID=$((git rev-list --count origin/main) - 1)" >> $env:DT_BUILD_ID
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
-            if ($env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH -match '^rel-') {
+            if ($env:GITHUB_HEAD_REF -match '^rel-') {
               echo "DT_RELEASE=True" >> $env:DT_RELEASE
             } else {
               echo "DT_BUILD_SUFFIX=PR$($env:GITHUB_EVENT_NUMBER).$env:DT_BUILD_ID" >> $env:DT_BUILD_SUFFIX
@@ -52,7 +52,7 @@ jobs:
           echo "GITHUB_EVENT_NAME = $env:GITHUB_EVENT_NAME"
           echo "GITHUB_EVENT_NUMBER = $env:GITHUB_EVENT_NUMBER"
           echo "GITHUB_REF = $env:GITHUB_REF"
-          echo "GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH = $env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH"
+          echo "GITHUB_HEAD_REF = $env:GITHUB_HEAD_REF"
           echo "GITHUB_CONTEXT = $env:GITHUB_CONTEXT"
           echo "DT_HARNESS = $env:DT_HARNESS"
           echo "DT_BUILD_ID = $env:DT_BUILD_ID"

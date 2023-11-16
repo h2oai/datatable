@@ -182,29 +182,26 @@ class Compiler:
                             "variable."
                         )
                 
-                def print_path(path: pathlib.Path, indent: str):
-                    for p in path.iterdir():
-                        if p.is_dir():
-                            self.log.info(p.name + '/', indent=indent)
-                            print_path(p, indent + "  ")
-                        elif p.suffix.endswith('exe'):
-                            self.log.info(p.name, indent=indent)
-
-                self.log.info(f"MSVC_path = {msvc_path}:")
-                print_path(pathlib.Path(msvc_path), indent = "  ")
+                def find_bin_path(dir: pathlib.Path) -> pathlib.Path | None:
+                    bin_path = dir / "bin" / "Hostx64" / "x64"
+                    if bin_path.is_dir():
+                        return bin_path
+                    for subdir in dir.iterdir():
+                        if subdir.is_dir():
+                            found = find_bin_path(subdir)
+                            if found:
+                                return found
 
                 candidates = []
-                compiler_versions = next(os.walk(msvc_path))[1]
-                for compiler_version in reversed(compiler_versions):
-                    path =  os.path.join(msvc_path, compiler_version)
-                    bin_path = os.path.join(path, "bin\\Hostx64\\x64")
-                    if os.path.exists(os.path.join(bin_path, "cl.exe")):
-                        candidates += [{
-                            "compiler": os.path.join(bin_path, "cl.exe"),
-                            "linker": os.path.join(bin_path, "link.exe"),
-                            "path" : path
-                        }]
-                candidates += [{"compiler": "cl.exe", "linker": "link.exe"}]
+                bin_path = find_bin_path(pathlib.Path(msvc_path))
+                if bin_path:
+                    candidates += [{
+                        "compiler": str(bin_path / "cl.exe"),
+                        "linker": str(bin_path / "link.exe"),
+                        "path" : str(bin_path.parent.parent.parent)
+                    }]
+                else:
+                    candidates += [{"compiler": "cl.exe", "linker": "link.exe"}]
             elif sys.platform == "darwin":
                 candidates = [
                     {"compiler": "/usr/local/opt/llvm/bin/clang"},
@@ -226,7 +223,7 @@ class Compiler:
                     self.log.report_compiler_executable(candidate["compiler"])
                     return
 
-            self.log.info(f"Candidates: {candidates!r}")
+            self.log.info(f"Candidates tried: {candidates!r}")
             raise RuntimeError("Suitable C++ compiler cannot be determined. "
                                "Please specify a compiler executable in the "
                                "`CXX` environment variable.")
