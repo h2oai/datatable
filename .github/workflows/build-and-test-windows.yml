@@ -1,0 +1,74 @@
+name: Build and test wheels on Windows
+
+on:
+  push:
+    branches:
+      - main
+      - /^rel\-*/
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    env:
+      DT_HARNESS: 'GitHub'
+      DT_BUILD_ID: ${{ github.run_id }}
+      DT_BUILD_NUMBER: ''
+      DT_BUILD_SUFFIX: ''
+      DT_RELEASE: ''
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Prepare environment variables
+        run: |
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            if [[ "${{ github.event.pull_request.head.ref }}" =~ ^rel- ]]; then
+              echo "DT_RELEASE=True" >> $GITHUB_ENV
+            else
+              echo "DT_BUILD_SUFFIX=PR${{ github.event.number }}.$DT_BUILD_ID" >> $GITHUB_ENV
+            fi
+          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
+            echo "DT_BUILD_NUMBER=$DT_BUILD_ID" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" =~ ^refs/heads/rel- ]]; then
+            echo "DT_RELEASE=True" >> $GITHUB_ENV
+          else
+            echo "DT_BUILD_SUFFIX=${{ github.ref }}.$DT_BUILD_ID" >> $GITHUB_ENV
+          fi
+
+      - name: Print environment
+        run: |
+          echo "DT_BUILD_ID = $DT_BUILD_ID"
+          echo "DT_RELEASE = $DT_RELEASE"
+          echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
+          echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
+
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.8
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py wheel
+          echo "DT_WHEEL=$(ls dist/*-cp38-*.whl)" >> $GITHUB_ENV
+          echo "DT_WHEEL = $DT_WHEEL"
+
+      - name: Print build information
+        run: |
+          cat src/datatable/_build_info.py
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
