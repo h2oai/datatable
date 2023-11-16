@@ -184,9 +184,11 @@ class Compiler:
                 
                 def print_path(path: pathlib.Path, indent: str):
                     for p in path.iterdir():
-                        self.log.info(p.name + '/'*p.is_dir(), indent=indent)
                         if p.is_dir():
+                            self.log.info(p.name + '/', indent=indent)
                             print_path(p, indent + "  ")
+                        elif p.suffix.endswith('exe'):
+                            self.log.info(p.name, indent=indent)
 
                 self.log.info(f"MSVC_path = {msvc_path}:")
                 print_path(pathlib.Path(msvc_path), indent = "  ")

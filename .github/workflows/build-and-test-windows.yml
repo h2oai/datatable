@@ -20,6 +20,7 @@ jobs:
       DT_BUILD_SUFFIX: ''
       DT_RELEASE: ''
       DT_MSVC_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise
+      GITHUB_CONTEXT: ${{ toJson(github) }}
 
     steps:
       - name: Checkout code
@@ -52,6 +53,7 @@ jobs:
           echo "GITHUB_EVENT_NUMBER = $env:GITHUB_EVENT_NUMBER"
           echo "GITHUB_REF = $env:GITHUB_REF"
           echo "GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH = $env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH"
+          echo "GITHUB_CONTEXT = $env:GITHUB_CONTEXT"
           echo "DT_HARNESS = $env:DT_HARNESS"
           echo "DT_BUILD_ID = $env:DT_BUILD_ID"
           echo "DT_RELEASE = $env:DT_RELEASE"
