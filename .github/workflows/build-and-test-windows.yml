@@ -42,10 +42,15 @@ jobs:
 
       - name: Print environment
         run: |
-          echo "DT_BUILD_ID = $DT_BUILD_ID"
-          echo "DT_RELEASE = $DT_RELEASE"
-          echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
-          echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
+          echo "GITHUB_EVENT_NAME = $env:GITHUB_EVENT_NAME"
+          echo "GITHUB_EVENT_NUMBER = $env:GITHUB_EVENT_NUMBER"
+          echo "GITHUB_REF = $env:GITHUB_REF"
+          echo "GITHUB_EVENT_PULL_REQUEST_HEAD_REF = $env:GITHUB_EVENT_PULL_REQUEST_HEAD_REF"
+          echo "DT_HARNESS = $env:DT_HARNESS"
+          echo "DT_BUILD_ID = $env:DT_BUILD_ID"
+          echo "DT_RELEASE = $env:DT_RELEASE"
+          echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
+          echo "DT_BUILD_NUMBER = $env:DT_BUILD_NUMBER"
 
       - name: Set up Python 3.8
         uses: actions/setup-python@v3

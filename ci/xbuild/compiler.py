@@ -144,8 +144,10 @@ class Compiler:
 
             if sys.platform == "win32":
                 self._detect_winsdk()
-                msvc_default_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\"
-                msvc_path = os.environ.get("DT_MSVC_PATH", msvc_default_path)
+                msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\"
+                if not os.path.isdir(msvc_path):
+                    msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
+                msvc_path = os.environ.get("DT_MSVC_PATH", msvc_path)
                 if not os.path.isdir(msvc_path):
                     raise ValueError("Microsoft Visual Studio directory %s not found. "
                                      "Please specify its location in `DT_MSVC_PATH` environment variable."
