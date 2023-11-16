@@ -27,6 +27,7 @@ import subprocess
 import sys
 import sysconfig
 import tempfile
+from typing import Optional
 
 
 class Compiler:
@@ -182,7 +183,7 @@ class Compiler:
                             "variable."
                         )
                 
-                def find_bin_path(dir: pathlib.Path) -> pathlib.Path | None:
+                def find_bin_path(dir: pathlib.Path) -> Optional[pathlib.Path]:
                     bin_path = dir / "bin" / "Hostx64" / "x64"
                     if bin_path.is_dir():
                         return bin_path
