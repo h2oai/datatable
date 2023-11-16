@@ -21,13 +21,12 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
-import io
 import os
+import pathlib
 import subprocess
 import sys
 import sysconfig
 import tempfile
-from .logger import Logger0
 
 
 class Compiler:
@@ -142,16 +141,42 @@ class Compiler:
                 self.log.report_compiler_executable(compiler, env=envvar)
                 return
 
-            if sys.platform == "win32":
+            if sys.platform == "win32" or True:
                 self._detect_winsdk()
-                msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\"
-                if not os.path.isdir(msvc_path):
-                    msvc_path = "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\BuildTools\\VC\\Tools\\MSVC"
-                msvc_path = os.environ.get("DT_MSVC_PATH", msvc_path)
-                if not os.path.isdir(msvc_path):
-                    raise ValueError("Microsoft Visual Studio directory %s not found. "
-                                     "Please specify its location in `DT_MSVC_PATH` environment variable."
-                                     % msvc_path)
+                msvc_path = os.environ.get("DT_MSVC_PATH", "")
+                if msvc_path:
+                    if not os.path.isdir(msvc_path):
+                        raise SystemExit(
+                            f"Directory DT_MSVC_PATH=`{msvc_path}` does not exist."
+                        )
+                else:
+                    path0 = pathlib.Path(
+                        "C:\\Program Files (x86)\\Microsoft Visual Studio"
+                    )
+                    while True:
+                        if not path0.is_dir(): break
+                        subdirs = [
+                            subpath for subpath in path0.iterdir() 
+                            if subpath.is_dir() and subpath.name.isdigit()
+                        ]
+                        if not subdirs: break
+                        path0 = sorted(subdirs)[-1]
+                        subdirs = [
+                            subpath for subpath in path0.iterdir()
+                            if (subpath.is_dir() and
+                                (subpath/"VC"/"Tools"/"MSVC").is_dir())
+                        ]
+                        if not subdirs: break
+                        # Possible subdirectory names could be: BuildTools, Community,
+                        # Enterprise, Professional.
+                        msvc_path = sorted(subdirs)[-1]
+                        break
+                    if not os.path.isdir(msvc_path):
+                        raise SystemExit(
+                            "Cannot find Microsoft Visual Studio installation dir. "
+                            "Please specify its location in `DT_MSVC_PATH` environment "
+                            "variable."
+                        )
 
                 candidates = []
                 compiler_versions = next(os.walk(msvc_path))[1]
