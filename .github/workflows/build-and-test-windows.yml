@@ -26,19 +26,19 @@ jobs:
 
       - name: Prepare environment variables
         run: |
-          if [ "${{ github.event_name }}" == "pull_request" ]; then
-            if [[ "${{ github.event.pull_request.head.ref }}" =~ ^rel- ]]; then
-              echo "DT_RELEASE=True" >> $GITHUB_ENV
-            else
-              echo "DT_BUILD_SUFFIX=PR${{ github.event.number }}.$DT_BUILD_ID" >> $GITHUB_ENV
-            fi
-          elif [ "${{ github.ref }}" == "refs/heads/main" ]; then
-            echo "DT_BUILD_NUMBER=$DT_BUILD_ID" >> $GITHUB_ENV
-          elif [[ "${{ github.ref }}" =~ ^refs/heads/rel- ]]; then
-            echo "DT_RELEASE=True" >> $GITHUB_ENV
-          else
-            echo "DT_BUILD_SUFFIX=${{ github.ref }}.$DT_BUILD_ID" >> $GITHUB_ENV
-          fi
+          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+            if ($env:GITHUB_EVENT_PULL_REQUEST_HEAD_REF -match '^rel-') {
+              $env:DT_RELEASE = 'True'
+            } else {
+              $env:DT_BUILD_SUFFIX = "PR$($env:GITHUB_EVENT_NUMBER).$DT_BUILD_ID"
+            }
+          } elseif ($env:GITHUB_REF -eq 'refs/heads/main') {
+            $env:DT_BUILD_NUMBER = $DT_BUILD_ID
+          } elseif ($env:GITHUB_REF -match '^refs/heads/rel-') {
+            $env:DT_RELEASE = 'True'
+          } else {
+            $env:DT_BUILD_SUFFIX = "$($env:GITHUB_REF).$DT_BUILD_ID"
+          }
 
       - name: Print environment
         run: |
