@@ -181,6 +181,15 @@ class Compiler:
                             "Please specify its location in `DT_MSVC_PATH` environment "
                             "variable."
                         )
+                
+                def print_path(path: pathlib.Path, indent: str):
+                    for p in path.iterdir():
+                        self.log.info(p.name + '/'*p.is_dir(), indent=indent)
+                        if p.is_dir():
+                            print_path(p, indent + "  ")
+
+                self.log.info(f"MSVC_path = {msvc_path}:")
+                print_path(pathlib.Path(msvc_path), indent = "  ")
 
                 candidates = []
                 compiler_versions = next(os.walk(msvc_path))[1]
