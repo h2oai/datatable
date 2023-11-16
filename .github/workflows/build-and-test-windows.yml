@@ -24,6 +24,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
+      - name: Fetch remote branch
+        run: git fetch --depth=1 origin main
+        
       - name: Prepare environment variables
         run: |
           $env:DT_BUILD_ID = git rev-list --count main

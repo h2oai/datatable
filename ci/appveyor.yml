@@ -134,6 +134,8 @@ build_script:
 
     $DEFAULT_PATH = $env:PATH
 
+    git fetch --depth=1 origin main
+
     $MAIN_BUILD_ID = git rev-list --count main
 
 
