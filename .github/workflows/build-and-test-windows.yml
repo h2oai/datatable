@@ -32,19 +32,19 @@ jobs:
 
       - name: Prepare environment variables
         run: |
-          echo "DT_BUILD_ID=$((git rev-list --count origin/main) - 1)" >> $env:DT_BUILD_ID
+          echo "DT_BUILD_ID=$((git rev-list --count origin/main) - 1)" >> $env:GITHUB_ENV
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
             if ($env:GITHUB_HEAD_REF -match '^rel-') {
-              echo "DT_RELEASE=True" >> $env:DT_RELEASE
+              echo "DT_RELEASE=True" >> $env:GITHUB_ENV
             } else {
-              echo "DT_BUILD_SUFFIX=PR$($env:GITHUB_EVENT_NUMBER).$env:DT_BUILD_ID" >> $env:DT_BUILD_SUFFIX
+              echo "DT_BUILD_SUFFIX=PR$($env:GITHUB_EVENT_NUMBER).$env:DT_BUILD_ID" >> $env:GITHUB_ENV
             }
           } elseif ($env:GITHUB_REF -eq 'refs/heads/main') {
-            echo "DT_BUILD_NUMBER=$env:DT_BUILD_ID" >> $env:DT_BUILD_NUMBER
+            echo "DT_BUILD_NUMBER=$env:DT_BUILD_ID" >> $env:GITHUB_ENV
           } elseif ($env:GITHUB_REF -match '^refs/heads/rel-') {
-            echo "DT_RELEASE=True" >> $env:DT_RELEASE
+            echo "DT_RELEASE=True" >> $env:GITHUB_ENV
           } else {
-            echo "DT_BUILD_SUFFIX=$env:GITHUB_REF.$env:DT_BUILD_ID" >> $env:DT_BUILD_SUFFIX
+            echo "DT_BUILD_SUFFIX=$env:GITHUB_REF.$env:DT_BUILD_ID" >> $env:GITHUB_ENV
           }
 
       - name: Print environment
@@ -70,8 +70,8 @@ jobs:
           python -V
           python -m pip install --upgrade pip
           python ci/ext.py wheel
-          echo "DT_WHEEL=$(ls dist/*-cp38-*.whl)" >> $GITHUB_ENV
-          echo "DT_WHEEL = $DT_WHEEL"
+          echo "DT_WHEEL=$(ls dist/*-cp38-*.whl)" >> $env:GITHUB_ENV
+          echo "DT_WHEEL = $env:DT_WHEEL"
 
       - name: Print build information
         run: |
@@ -79,9 +79,9 @@ jobs:
 
       - name: Install and test
         run: |
-          python -m pip install $DT_WHEEL
+          python -m pip install $env:DT_WHEEL
           python -m pip install pytest docutils pandas pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
-        run: python -m pip uninstall -y $DT_WHEEL
+        run: python -m pip uninstall -y $env:DT_WHEEL
