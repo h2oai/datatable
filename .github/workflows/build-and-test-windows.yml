@@ -30,7 +30,7 @@ jobs:
 
       - name: Prepare environment variables
         run: |
-          $env:DT_BUILD_ID = (git rev-list --count main) - 1
+          $env:DT_BUILD_ID = (git rev-list --count origin/main) - 1
           if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
             if ($env:GITHUB_PULL_REQUEST_HEAD_REPO_BRANCH -match '^rel-') {
               $env:DT_RELEASE = 'True'
