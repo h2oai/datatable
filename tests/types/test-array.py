@@ -283,7 +283,7 @@ def test_arr32_to_and_from_pandas(pd):
     DT = dt.Frame(S=src)
     assert DT.type == dt.Type.arr32(dt.Type.int32)
     pdf = DT.to_pandas()
-    assert pdf.dtypes[0] == object
+    assert pdf.dtypes.iloc[0] == object
     assert pdf.columns.tolist() == ['S']
     assert pdf['S'].tolist() == src
     DT2 = dt.Frame(pdf)

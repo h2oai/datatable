@@ -251,7 +251,7 @@ def test_dt_sd_special_cases(src, res):
 def test_dt_skew_simple():
     n = 12345
     DT = dt.Frame([0] * n + [1000] * (2*n) + [10000] * (3*n))
-    pd_skew = DT.to_pandas().skew()[0]
+    pd_skew = DT.to_pandas().skew().iloc[0]
     dt_skew = DT.skew1()
     assert isclose(pd_skew, dt_skew, rel_tol=1e-10)
 
