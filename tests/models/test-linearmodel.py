@@ -247,9 +247,8 @@ def test_linearmodel_create_default():
 def test_linearmodel_access_params():
     import sys
     lm = LinearModel()
-    tuple_refcount = sys.getrefcount(tuple)
     namedtuple_refcount_old = sys.getrefcount(type(lm.params))
-    for _ in range(tuple_refcount + 1):
+    for _ in range(10):
         assert lm.params == params_default
     namedtuple_refcount_new = sys.getrefcount(type(lm.params))
     assert namedtuple_refcount_new == namedtuple_refcount_old
@@ -1271,4 +1270,3 @@ def test_linearmodel_pickling_binomial():
     target = lm.predict(df_train)
     assert_equals(lm.model, lm_unpickled.model)
     assert_equals(target, target_unpickled)
-

@@ -245,9 +245,8 @@ def test_ftrl_create_default():
 def test_ftrl_access_params():
     import sys
     ft = Ftrl()
-    tuple_refcount = sys.getrefcount(tuple)
     namedtuple_refcount_old = sys.getrefcount(type(ft.params))
-    for _ in range(tuple_refcount + 1):
+    for _ in range(10):
         assert ft.params == default_params
     namedtuple_refcount_new = sys.getrefcount(type(ft.params))
     assert namedtuple_refcount_new == namedtuple_refcount_old
@@ -1697,5 +1696,3 @@ def test_ftrl_pickling_multinomial():
     target_unpickled = ft_unpickled.predict(df_train)
     assert_equals(ft.model, ft_unpickled.model)
     assert_equals(target, target_unpickled)
-
-
