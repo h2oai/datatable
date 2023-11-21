@@ -1,7 +1,7 @@
 
 .. changelog::
     :version: 1.1.0
-    :released: 2023-11-16
+    :released: 2023-11-21
 
     Frame
     -----
@@ -232,11 +232,13 @@
 
     -[enh] Added support for Python `3.11`. [#3374]
 
+    -[enh] Added support for Python `3.12`.
+
     -[enh] datatable's thread pool can now be used to parallelize external C++ applications
         and will have no specific datatable dependencies, when the code is built with
         ``DT_DISABLE`` variable being defined. [#3306]
 
-    -[enh] Python built-in functoins ``min()`` and ``max()`` will continue
+    -[enh] Python built-in functions ``min()`` and ``max()`` will continue
         working for list comprehensions even after :func:`dt.min()` and
         :func:`dt.max()` have been imported from datatable. [#3409]
 
