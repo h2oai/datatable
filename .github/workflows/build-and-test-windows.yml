@@ -24,10 +24,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
-
-      - name: Fetch remote branch
-        run: |
-          git fetch origin main
+        with:
+          fetch-depth: 0
 
       - name: Prepare environment variables
         run: |
@@ -69,10 +67,10 @@ jobs:
           python -m pip install --upgrade pip
           python ci/ext.py wheel
           echo "DT_WHEEL=$(ls dist/*-cp38-*.whl)" >> $env:GITHUB_ENV
-          echo "DT_WHEEL = $env:DT_WHEEL"
 
       - name: Print build information
         run: |
+          echo "DT_WHEEL = $env:DT_WHEEL"
           cat src/datatable/_build_info.py
 
       - name: Install and test
