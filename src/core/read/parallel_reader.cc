@@ -240,6 +240,7 @@ void ParallelReader::read_all()
   if (preframe.nrows_written() < g.max_nrows) {
     xassert(end_of_last_chunk == input_end);
   }
+  g.logger_.emit_pending_messages();
 }
 
 
