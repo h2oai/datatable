@@ -164,15 +164,25 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
     [&]() {
       // Each thread gets a private storage for observations and feature importances.
       tptr<T> x = tptr<T>(new T[nfeatures_]);
-      dtptr dt_model;
+      std::vector<std::vector<T>> data_container;
+      std::vector<T*> betas;
+      size_t ncols = dt_model_->ncols();
+      size_t nrows = dt_model_->nrows();
+      data_container.resize(ncols);
+      betas.resize(ncols);
+      for (size_t i = 0; i < ncols; i++) {
+        data_container[i].resize(nrows);
+        betas[i] = data_container[i].data();
+      }
 
       for (size_t iter = 0; iter < niterations; ++iter) {
         // Each thread gets its own copy of the model
-        std::vector<T*> betas;
-        {
-          PythonLock pylock;
-          dt_model = dtptr(new DataTable(*dt_model_));
-          betas = get_model_data(dt_model);
+        for (size_t i = 0; i < ncols; i++) {
+          const auto* data = static_cast<const T*>(
+            dt_model_->get_column(i).get_data_readonly());
+          for (size_t j = 0; j < nrows; j++) {
+            betas[i][j] = data[j];
+          }
         }
 
         size_t iteration_start = iter * iteration_nrows;
@@ -233,8 +243,8 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
           {
             std::lock_guard<std::mutex> lock(m);
             auto nth = static_cast<T>(dt::num_threads_in_team());
-            for (size_t i = 0; i < dt_model->ncols(); ++i) {
-              for (size_t j = 0; j < dt_model->nrows(); ++j) {
+            for (size_t i = 0; i < ncols; ++i) {
+              for (size_t j = 0; j < nrows; ++j) {
                 betas_[i][j] += betas[i][j] / nth;
               }
             }
@@ -300,12 +310,6 @@ LinearModelFitOutput LinearModel<T>::fit_impl() {
         } // End validation
 
       } // End iteration
-
-      {
-        PythonLock pylock;
-        dt_model = nullptr;
-      }
-
     }
   );
   job.done();
