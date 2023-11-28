@@ -62,12 +62,17 @@ class ExtModule {
     }
 
     void add(PyCFunctionWithKeywords F, PKArgs& args) {
+      // According to Python docs, the second parameter can be a function of different
+      // types, whose interpretation will depend on the [ml_flags].
+      // (https://docs.python.org/3/c-api/structures.html#c.PyMethodDef)
+      DISABLE_CLANG_WARNING("-Wcast-function-type")
       methods.push_back(PyMethodDef {
         args.get_short_name(),
         reinterpret_cast<PyCFunction>(F),
         METH_VARARGS | METH_KEYWORDS,
         args.get_docstring()
       });
+      RESTORE_CLANG_WARNING("-Wcast-function-type")
     }
 
   private:
