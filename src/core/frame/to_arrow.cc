@@ -45,11 +45,10 @@ oobj Frame::to_arrow(const XArgs&) {
     const Column& col = dt->get_column(i);
     std::unique_ptr<dt::OArrowArray> aarr = col.to_arrow();
     std::unique_ptr<dt::OArrowSchema> osch = col.to_arrow_schema();
-    arrays.set(i,
-      pa_Array.invoke("_import_from_c", {
-          oint(aarr.release()->intptr()),
-          oint(osch.release()->intptr())
-        }));
+    auto aarr_int = aarr.release()->intptr();
+    auto osch_int = osch.release()->intptr();
+    auto res = pa_Array.invoke("_import_from_c", {oint(aarr_int), oint(osch_int)});
+    arrays.set(i, res);
   }
 
   otuple names = dt->get_pynames();
@@ -125,6 +124,7 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
 
 
 static void release_arrow_schema(dt::ArrowSchema* schema) {
+  schema->release = nullptr;
   delete schema;
 }
 
