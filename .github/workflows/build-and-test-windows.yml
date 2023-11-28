@@ -281,7 +281,6 @@ jobs:
     name: MacOS / Python 3.11
     runs-on: macos-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
