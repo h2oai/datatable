@@ -29,7 +29,7 @@ jobs:
       - name: Prepare environment variables
         id: prepare
         run: |
-          echo "DT_BUILD_ID=$($(git rev-list --count origin/main) - 1)" >> $GITHUB_ENV
+          echo "DT_BUILD_ID=$(($(git rev-list --count origin/main) - 1))" >> $GITHUB_ENV
           if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
             if [[ "$GITHUB_HEAD_REF" =~ ^rel- ]]; then
               echo "DT_RELEASE=True" >> $GITHUB_ENV
@@ -74,6 +74,9 @@ jobs:
     needs: setup
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set up Python 3.8
         uses: actions/setup-python@v3
         with:
