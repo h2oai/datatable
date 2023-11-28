@@ -209,11 +209,11 @@ struct alignas(CACHELINE_SIZE) cache_aligned {
 
 #if DT_COMPILER_MSVC
   #define DISABLE_MSVC_WARNING(N) \
-    __pragma("warning(push)") \
-    __pragma(___STRINGIFY(warning(disable : N)))
+    _Pragma("warning(push)") \
+    _Pragma(___STRINGIFY(warning(disable : N)))
 
   #define RESTORE_MSVC_WARNING(N) \
-    __pragma("warning(pop)")
+    _Pragma("warning(pop)")
 
 #else
   #define DISABLE_MSVC_WARNING(N)

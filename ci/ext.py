@@ -222,6 +222,7 @@ def build_extension(cmd, verbosity=3):
     ext = xbuild.Extension()
     ext.log = create_logger(verbosity)
     ext.log.info("Environment:")
+    ext.log.info(f"  DT_HARNESS = {os.environ.get('DT_HARNESS')}")
     ext.log.info(f"  DT_RELEASE = {os.environ.get('DT_RELEASE')}")
     ext.log.info(f"  DT_BUILD_SUFFIX = {os.environ.get('DT_BUILD_SUFFIX')}")
     ext.log.info(f"  DT_BUILD_NUMBER = {os.environ.get('DT_BUILD_NUMBER')}")
