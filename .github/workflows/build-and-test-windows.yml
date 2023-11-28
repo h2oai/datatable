@@ -1,4 +1,4 @@
-name: Build and test wheels on Windows
+name: Windows
 
 on:
   push:
@@ -11,6 +11,7 @@ on:
 
 jobs:
   setup:
+    name: Prepare environment
     runs-on: ubuntu-latest
     
     env:
