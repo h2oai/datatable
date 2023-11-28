@@ -74,6 +74,13 @@ jobs:
     runs-on: windows-latest
     needs: setup
 
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+    
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -84,12 +91,6 @@ jobs:
           python-version: 3.8
 
       - name: Build datatable wheel
-        env:
-          DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
-          DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
-          DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
-          DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
-          DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
         run: |
           python -V
           python -m pip install --upgrade pip
