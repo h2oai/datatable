@@ -10,16 +10,15 @@ on:
       - main
 
 jobs:
-  build:
-    runs-on: windows-latest
-
+  setup:
+    runs-on: ubuntu-latest
+    
     env:
       DT_HARNESS: GitHub
       DT_BUILD_ID: ${{ github.run_id }}
       DT_BUILD_NUMBER: ''
       DT_BUILD_SUFFIX: ''
       DT_RELEASE: ''
-      DT_MSVC_PATH: C:\Program Files\Microsoft Visual Studio\2022\Enterprise
 
     steps:
       - name: Checkout code
@@ -28,40 +27,65 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare environment variables
+        id: prepare
         run: |
-          echo "DT_BUILD_ID=$((git rev-list --count origin/main) - 1)" >> $env:GITHUB_ENV
-          if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
-            if ($env:GITHUB_HEAD_REF -match '^rel-') {
-              echo "DT_RELEASE=True" >> $env:GITHUB_ENV
-            } else {
-              echo "DT_BUILD_SUFFIX=PR$($env:GITHUB_EVENT_NUMBER).$env:DT_BUILD_ID" >> $env:GITHUB_ENV
-            }
-          } elseif ($env:GITHUB_REF -eq 'refs/heads/main') {
-            echo "DT_BUILD_NUMBER=$env:DT_BUILD_ID" >> $env:GITHUB_ENV
-          } elseif ($env:GITHUB_REF -match '^refs/heads/rel-') {
-            echo "DT_RELEASE=True" >> $env:GITHUB_ENV
-          } else {
-            echo "DT_BUILD_SUFFIX=$env:GITHUB_REF.$env:DT_BUILD_ID" >> $env:GITHUB_ENV
-          }
+          echo "DT_BUILD_ID=$($(git rev-list --count origin/main) - 1)" >> $GITHUB_ENV
+          if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
+            if [[ "$GITHUB_HEAD_REF" =~ ^rel- ]]; then
+              echo "DT_RELEASE=True" >> $GITHUB_ENV
+            else
+              echo "DT_BUILD_SUFFIX=PR$GITHUB_EVENT_NUMBER.$DT_BUILD_ID" >> $GITHUB_ENV
+            fi
+          elif [ "$GITHUB_REF" == "refs/heads/main" ]; then
+            echo "DT_BUILD_NUMBER=$DT_BUILD_ID" >> $GITHUB_ENV
+          elif [[ "$GITHUB_REF" =~ ^refs/heads/rel- ]]; then
+            echo "DT_RELEASE=True" >> $GITHUB_ENV
+          else
+            echo "DT_BUILD_SUFFIX=$GITHUB_REF.$DT_BUILD_ID" >> $GITHUB_ENV
+          fi
+          echo "DT_BUILD_ID=$DT_BUILD_ID" >> $GITHUB_OUTPUT
+          echo "DT_RELEASE=$DT_RELEASE" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_SUFFIX=$DT_UI"DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_NUMBER=$DT_UI"DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Print environment
         run: |
-          echo "GITHUB_EVENT_NAME = $env:GITHUB_EVENT_NAME"
-          echo "GITHUB_EVENT_NUMBER = $env:GITHUB_EVENT_NUMBER"
-          echo "GITHUB_REF = $env:GITHUB_REF"
-          echo "GITHUB_HEAD_REF = $env:GITHUB_HEAD_REF"
-          echo "DT_HARNESS = $env:DT_HARNESS"
-          echo "DT_BUILD_ID = $env:DT_BUILD_ID"
-          echo "DT_RELEASE = $env:DT_RELEASE"
-          echo "DT_BUILD_SUFFIX = $env:DT_BUILD_SUFFIX"
-          echo "DT_BUILD_NUMBER = $env:DT_BUILD_NUMBER"
+          echo "GITHUB_EVENT_NAME = $GITHUB_EVENT_NAME"
+          echo "GITHUB_EVENT_NUMBER = $GITHUB_EVENT_NUMBER"
+          echo "GITHUB_REF = $GITHUB_REF"
+          echo "GITHUB_HEAD_REF = $GITHUB_HEAD_REF"
+          echo "DT_HARNESS = $DT_HARNESS"
+          echo "DT_BUILD_ID = $DT_BUILD_ID"
+          echo "DT_RELEASE = $DT_RELEASE"
+          echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
+          echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
 
+    outputs:
+      DT_HARNESS: Github
+      DT_BUILD_ID: ${{ steps.prepare.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ steps.prepare.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ steps.prepare.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ steps.prepare.outputs.DT_BUILD_NUMBER }}
+
+
+  build-38:
+    name: Build and test on Python 3.8
+    runs-on: windows-latest
+    needs: setup
+
+    steps:
       - name: Set up Python 3.8
         uses: actions/setup-python@v3
         with:
           python-version: 3.8
 
       - name: Build datatable wheel
+        env:
+          DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+          DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+          DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+          DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+          DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
         run: |
           python -V
           python -m pip install --upgrade pip
@@ -72,6 +96,12 @@ jobs:
         run: |
           echo "DT_WHEEL = $env:DT_WHEEL"
           cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-3.8
+          path: ${{ env.DT_WHEEL }}
 
       - name: Install and test
         run: |
