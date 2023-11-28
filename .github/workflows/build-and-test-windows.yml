@@ -45,8 +45,8 @@ jobs:
           fi
           echo "DT_BUILD_ID=$DT_BUILD_ID" >> $GITHUB_OUTPUT
           echo "DT_RELEASE=$DT_RELEASE" >> $GITHUB_OUTPUT
-          echo "DT_BUILD_SUFFIX=$DT_UI"DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
-          echo "DT_BUILD_NUMBER=$DT_UI"DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_SUFFIX=$DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_NUMBER=$DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Print environment
         run: |
