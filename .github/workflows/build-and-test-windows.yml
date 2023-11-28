@@ -1,4 +1,4 @@
-name: Windows
+name: Build
 
 on:
   push:
@@ -74,8 +74,8 @@ jobs:
       DT_BUILD_SUFFIX: ${{ steps.store.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ steps.store.outputs.DT_BUILD_NUMBER }}
 
-  build-38:
-    name: Build and test on Python 3.8
+  win-38:
+    name: Windows / Python 3.8
     runs-on: windows-latest
     needs: setup
 
@@ -122,8 +122,8 @@ jobs:
       - name: Uninstall wheel
         run: python -m pip uninstall -y $env:DT_WHEEL
 
-  build-39:
-    name: Build and test on Python 3.9
+  win-39:
+    name: Windows / Python 3.9
     runs-on: windows-latest
     needs: setup
     if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
@@ -171,8 +171,8 @@ jobs:
       - name: Uninstall wheel
         run: python -m pip uninstall -y $env:DT_WHEEL
 
-  build-310:
-    name: Build and test on Python 3.10
+  win-310:
+    name: Windows / Python 3.10
     runs-on: windows-latest
     needs: setup
     if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
@@ -220,8 +220,8 @@ jobs:
       - name: Uninstall wheel
         run: python -m pip uninstall -y $env:DT_WHEEL
 
-  build-311:
-    name: Build and test on Python 3.11
+  win-311:
+    name: Windows / Python 3.11
     runs-on: windows-latest
     needs: setup
     if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
