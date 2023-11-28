@@ -179,6 +179,202 @@ jobs:
       - name: Uninstall wheel
         run: python -m pip uninstall -y $DT_WHEEL
 
+  macos-39:
+    name: MacOS / Python 3.9
+    runs-on: macos-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py wheel
+          echo "DT_WHEEL=$(ls dist/*-cp39-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-macos-3.9
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
+  macos-310:
+    name: MacOS / Python 3.10
+    runs-on: macos-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.10
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py wheel
+          echo "DT_WHEEL=$(ls dist/*-cp310-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-macos-3.10
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
+  macos-311:
+    name: MacOS / Python 3.11
+    runs-on: macos-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py wheel
+          echo "DT_WHEEL=$(ls dist/*-cp311-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-macos-3.11
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
+  macos-312:
+    name: MacOS / Python 3.12
+    runs-on: macos-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.12
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py wheel
+          echo "DT_WHEEL=$(ls dist/*-cp312-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: wheel-macos-3.12
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
   #-------------------------------------------------------------------------------------
   # Windows
   #-------------------------------------------------------------------------------------
