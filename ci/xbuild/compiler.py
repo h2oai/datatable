@@ -149,23 +149,20 @@ class Compiler:
                             f"Directory DT_MSVC_PATH=`{msvc_path}` does not exist."
                         )
                 else:
-                    while True:
-                        path0 = pathlib.Path(
-                            "C:\\Program Files (x86)\\Microsoft Visual Studio"
-                        )
+                    for path0_str in [
+                        "C:\\Program Files\\Microsoft Visual Studio",
+                        "C:\\Program Files (x86)\\Microsoft Visual Studio",
+                    ]:
+                        path0 = pathlib.Path(path0_str)
                         if not path0.is_dir():
-                            path0 = pathlib.Path(
-                                "C:\\Program Files\\Microsoft Visual Studio"
-                            )
-                        if not path0.is_dir():
-                            break
+                            continue
                         subdirs = [
                             subpath
                             for subpath in path0.iterdir()
                             if subpath.is_dir() and subpath.name.isdigit()
                         ]
                         if not subdirs:
-                            break
+                            continue
                         path0 = sorted(subdirs)[-1]
                         subdirs = [
                             subpath
@@ -176,7 +173,7 @@ class Compiler:
                             )
                         ]
                         if not subdirs:
-                            break
+                            continue
                         # Possible subdirectory names could be: BuildTools, Community,
                         # Enterprise, Professional.
                         msvc_path = str(sorted(subdirs)[-1])
@@ -253,14 +250,21 @@ class Compiler:
         winsdk_default_path = "C:\\Program Files (x86)\\Windows Kits\\10\\"
         winsdk_path = os.environ.get("DT_WINSDK_PATH", winsdk_default_path)
         if not os.path.isdir(winsdk_path):
-            raise ValueError(
+            raise SystemExit(
                 f"Windows SDK directory {winsdk_path} not found. "
                 "Please specify its location in `DT_WINSDK_PATH` environment variable."
             )
-
+        if not os.path.isdir(winsdk_path + "\\include"):
+            raise SystemExit(
+                f"Windows SDK directory {winsdk_path} contains incomplete "
+                "installation: missing `include` subdirectory. Please install "
+                "Microsoft Visual Studio (Community Edition is free), selecting "
+                "'Python Development' and 'Desktop Development with C++'"
+            )
+        
         # Detect the latest available SDK version
         winsdk_version_dir = ""
-        winsdk_versions = next(os.walk(winsdk_default_path + "\\include"))[1]
+        winsdk_versions = next(os.walk(winsdk_path + "\\include"))[1]
         for version in reversed(winsdk_versions):
             if is_winsdk_version(version):
                 winsdk_version_dir = version
@@ -269,8 +273,8 @@ class Compiler:
         if winsdk_version_dir == "":
             raise ValueError("A valid Windows SDK version directory %s not found.")
 
-        winsdk_include_path = winsdk_default_path + "\\Include\\" + winsdk_version_dir
-        winsdk_lib_path = winsdk_default_path + "\\Lib\\" + winsdk_version_dir
+        winsdk_include_path = winsdk_path + "\\Include\\" + winsdk_version_dir
+        winsdk_lib_path = winsdk_path + "\\Lib\\" + winsdk_version_dir
         if not os.path.isdir(winsdk_include_path):
             raise ValueError(
                 "Windows SDK include directory %s not found" % winsdk_include_path
