@@ -218,6 +218,12 @@ def build_extension(cmd, verbosity=3):
 
     ext = xbuild.Extension()
     ext.log = create_logger(verbosity)
+    ext.log.info("Environment:")
+    ext.log.info(f"  DT_RELEASE = {os.environ.get('DT_RELEASE')}")
+    ext.log.info(f"  DT_BUILD_SUFFIX = {os.environ.get('DT_BUILD_SUFFIX')}")
+    ext.log.info(f"  DT_BUILD_NUMBER = {os.environ.get('DT_BUILD_NUMBER')}")
+    ext.log.info(f"  DT_MSVC_PATH = {os.environ.get('DT_MSVC_PATH')}")
+    ext.log.info(f"  DT_WINSDK_PATH = {os.environ.get('DT_WINSDK_PATH')}")
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
     ext.destination_dir = "src/datatable/lib/"
