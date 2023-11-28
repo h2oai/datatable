@@ -74,6 +74,10 @@ jobs:
       DT_BUILD_SUFFIX: ${{ steps.store.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ steps.store.outputs.DT_BUILD_NUMBER }}
 
+  #-------------------------------------------------------------------------------------
+  # Linux
+  #-------------------------------------------------------------------------------------
+
   linux-38:
     name: Linux / Python 3.8
     runs-on: ubuntu-latest
@@ -122,10 +126,15 @@ jobs:
       - name: Uninstall wheel
         run: python -m pip uninstall -y $DT_WHEEL
 
+  #-------------------------------------------------------------------------------------
+  # MacOS
+  #-------------------------------------------------------------------------------------
+
   macos-38:
-    name: macOS / Python 3.8
+    name: MacOS / Python 3.8
     runs-on: macos-latest
     needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -169,6 +178,10 @@ jobs:
 
       - name: Uninstall wheel
         run: python -m pip uninstall -y $DT_WHEEL
+
+  #-------------------------------------------------------------------------------------
+  # Windows
+  #-------------------------------------------------------------------------------------
 
   win-38:
     name: Windows / Python 3.8
