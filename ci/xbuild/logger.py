@@ -22,6 +22,7 @@
 # IN THE SOFTWARE.
 #-------------------------------------------------------------------------------
 import re
+from typing import Optional
 
 
 #-------------------------------------------------------------------------------
@@ -85,8 +86,8 @@ class Logger0:
     def step_scan_files(self, n): pass
     def step_src2obj(self): pass
 
-    def warn(self, msg: str, indent: str | None = None): pass
-    def info(self, msg: str, indent: str | None = None): pass
+    def warn(self, msg: str, indent: Optional[str] = None): pass
+    def info(self, msg: str, indent: Optional[str] = None): pass
 
     def report_errors_and_warnings(self, msgs, errors=False):
         if msgs:
@@ -202,7 +203,7 @@ class Logger2(Logger0):
 
 
 
-    def info(self, msg: str, indent: str | None = None):
+    def info(self, msg: str, indent: Optional[str] = None):
         if indent is None:
             indent = self._indent
         msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;90m", msg)
@@ -435,7 +436,7 @@ class Logger3(Logger0):
 
 
 
-    def info(self, msg: str, indent: str | None = None):
+    def info(self, msg: str, indent: Optional[str] = None):
         if indent is None:
             indent = self._indent
         msg = re.sub(r"`([^`]*)`", "\x1B[1;97m\\1\x1B[0;90m", msg)
