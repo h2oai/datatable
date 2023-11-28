@@ -43,7 +43,6 @@ buildSummary.get().addStagesSummary(this, new StagesSummary())
 
 NODE_LINUX   = "docker && linux && !micro"
 NODE_MACOS   = 'osx'
-NODE_PPC     = 'ibm-power'
 NODE_RELEASE = 'docker && linux && !micro'
 
 // Paths for S3 artifacts
@@ -62,7 +61,6 @@ LINK_MAP = [
 ]
 
 
-DOCKER_IMAGE_PPC64LE_MANYLINUX = "quay.io/pypa/manylinux2014_ppc64le"
 DOCKER_IMAGE_X86_64_MANYLINUX = "quay.io/pypa/manylinux2014_x86_64"
 
 
@@ -74,8 +72,6 @@ doLargeFreadTests = false
 isMainJob         = false
 isRelease         = false
 doExtraTests      = false
-doPpcTests        = false
-doPpcBuild        = false
 doPy38Tests       = false
 doCoverage        = false
 doPublish         = false
@@ -89,8 +85,6 @@ properties([
     parameters([
         booleanParam(name: 'FORCE_ALL_TESTS',          defaultValue: false, description: '[BUILD] Run all tests (even for PR).'),
         booleanParam(name: 'DISABLE_ALL_TESTS',        defaultValue: false, description: '[BUILD] Disable all tests.'),
-        booleanParam(name: 'DISABLE_PPC64LE_TESTS',    defaultValue: false, description: '[BUILD] Disable PPC64LE tests.'),
-        booleanParam(name: 'FORCE_BUILD_PPC64LE',      defaultValue: false, description: '[BUILD] Trigger build of PPC64le artifacts.'),
         booleanParam(name: 'DISABLE_COVERAGE',         defaultValue: false, description: '[BUILD] Disable coverage.'),
         booleanParam(name: 'FORCE_S3_PUSH',            defaultValue: false, description: '[BUILD] Publish to S3 regardless of current branch.'),
         booleanParam(name: 'FORCE_LARGER_FREAD_TESTS', defaultValue: false, description: '[BUILD] Run larger fread tests.')
@@ -145,8 +139,6 @@ ansiColor('xterm') {
                                                   isRelease ||
                                                   params.FORCE_ALL_TESTS)
                             doExtraTests       = (isMainJob || isRelease || params.FORCE_ALL_TESTS)
-                            doPpcTests         = (doExtraTests || params.FORCE_BUILD_PPC64LE) && !params.DISABLE_PPC64LE_TESTS
-                            doPpcBuild         = doPpcBuild || doPpcTests || isMainJob || isRelease || params.FORCE_BUILD_PPC64LE
                             doPy38Tests        = doExtraTests
                             doCoverage         = !params.DISABLE_COVERAGE && false   // disable for now
                         }
@@ -161,17 +153,11 @@ ansiColor('xterm') {
                         println("isMainJob         = ${isMainJob}")
                         println("isRelease         = ${isRelease}")
                         println("doPublish         = ${doPublish}")
-                        println("doPpcBuild        = ${doPpcBuild}")
                         println("doLargeFreadTests = ${doLargeFreadTests}")
                         println("doExtraTests      = ${doExtraTests}")
                         println("doPy38Tests       = ${doPy38Tests}")
-                        println("doPpcTests        = ${doPpcTests}")
                         println("doCoverage        = ${doCoverage}")
 
-
-                        if (doPpcBuild) {
-                            manager.addBadge("success.gif", "PPC64LE build triggered.")
-                        }
                         if (doPublish) {
                             manager.addBadge("package.gif", "Publish to S3.")
                         }
@@ -314,59 +300,6 @@ ansiColor('xterm') {
                             }
                         }
                     }
-                },
-                'Build on ppc64le-manylinux': {
-                    if (doPpcBuild) {
-                        node(NODE_PPC) {
-                            final stageDir = 'build-ppc64le_centos7'
-                            buildSummary.stageWithSummary('Build on ppc64le_centos7', stageDir) {
-                                cleanWs()
-                                dumpInfo()
-
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    sh """
-                                        docker run \
-                                            -u `id -u`:`id -g` \
-                                            -e USER=$USER \
-                                            -v /etc/passwd:/etc/passwd:ro \
-                                            -v /etc/group:/etc/group:ro \
-                                            --rm --init \
-                                            -v `pwd`:/dot \
-                                            -e DT_RELEASE=${DT_RELEASE} \
-                                            -e DT_BUILD_SUFFIX=${DT_BUILD_SUFFIX} \
-                                            -e DT_BUILD_NUMBER=${DT_BUILD_NUMBER} \
-                                            --entrypoint /bin/bash \
-                                            ${DOCKER_IMAGE_PPC64LE_MANYLINUX} \
-                                            -c "cd /dot && \
-                                                ls -la && \
-                                                ls -la src/datatable && \
-                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py debugwheel --audit && \
-                                                /opt/python/cp38-cp38/bin/python3.8 ci/ext.py wheel --audit && \
-                                                /opt/python/cp39-cp39/bin/python3.9 ci/ext.py wheel --audit && \
-                                                /opt/python/cp310-cp310/bin/python3.10 ci/ext.py wheel --audit && \
-                                                /opt/python/cp311-cp311/bin/python3.11 ci/ext.py wheel --audit && \
-                                                /opt/python/cp312-cp312/bin/python3.12 ci/ext.py wheel --audit && \
-                                                echo '===== Py3.8 Debug =====' && unzip -p dist/*debug*.whl datatable/_build_info.py && \
-                                                mv dist/*debug*.whl . && \
-                                                echo '===== Py3.8 =====' && unzip -p dist/*cp38*.whl datatable/_build_info.py && \
-                                                echo '===== Py3.9 =====' && unzip -p dist/*cp39*.whl datatable/_build_info.py && \
-                                                echo '===== Py3.10 =====' && unzip -p dist/*cp310*.whl datatable/_build_info.py && \
-                                                echo '===== Py3.11 =====' && unzip -p dist/*cp311*.whl datatable/_build_info.py && \
-                                                echo '===== Py3.12 =====' && unzip -p dist/*cp312*.whl datatable/_build_info.py && \
-                                                mv *debug*.whl dist/ && \
-                                                ls -la dist"
-                                    """
-                                    stash name: 'ppc64le-manylinux-debugwheels', includes: "dist/*debug*.whl"
-                                    stash name: 'ppc64le-manylinux-wheels', includes: "dist/*.whl", excludes: "dist/*debug*.whl"
-                                    arch "dist/*.whl"
-                                }
-                            }
-                        }
-                    } else {
-                        println('Build on ppc64le-manylinux SKIPPED')
-                        markSkipped("Build on ppc64le-manylinux")
-                    }
                 }
             ])
             // Test stages
@@ -453,76 +386,6 @@ ansiColor('xterm') {
                                     unstash 'x86_64-manylinux-wheels'
                                     test_in_docker("x86_64-manylinux-py312", "312",
                                                    DOCKER_IMAGE_X86_64_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py38-debug', doPpcTests && doPy38Tests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-debugwheels'
-                                    test_in_docker("ppc64le-manylinux-py38-debug", "38",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py38', doPpcTests && doPy38Tests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py38", "38",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py39', doPpcTests && doPy38Tests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py39", "39",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py310', doPpcTests && doPy38Tests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py310", "310",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
-                                }
-                            }
-                        }
-                    }) <<
-                    namedStage('Test ppc64le-manylinux-py311', doPpcTests && doPy38Tests, { stageName, stageDir ->
-                        node(NODE_PPC) {
-                            buildSummary.stageWithSummary(stageName, stageDir) {
-                                cleanWs()
-                                dumpInfo()
-                                dir(stageDir) {
-                                    unstash 'datatable-sources'
-                                    unstash 'ppc64le-manylinux-wheels'
-                                    test_in_docker("ppc64le-manylinux-py311", "311",
-                                                   DOCKER_IMAGE_PPC64LE_MANYLINUX)
                                 }
                             }
                         }
@@ -625,10 +488,6 @@ ansiColor('xterm') {
                             unstash 'x86_64-macos-wheels'
                             unstash 'sdist'
                             unstash 'build_info'
-                            if (doPpcBuild) {
-                                unstash 'ppc64le-manylinux-wheels'
-                                unstash 'ppc64le-manylinux-debugwheels'
-                            }
                             sh "ls dist/"
 
                             def versionText = sh(script: """sed -ne "s/.*version='\\([^']*\\)',/\\1/p" src/datatable/_build_info.py""", returnStdout: true).trim()
@@ -696,8 +555,6 @@ ansiColor('xterm') {
                             unstash 'x86_64-manylinux-wheels'
                             unstash 'x86_64-manylinux-debugwheels'
                             unstash 'x86_64-macos-wheels'
-                            unstash 'ppc64le-manylinux-wheels'
-                            unstash 'ppc64le-manylinux-debugwheels'
                             unstash 'sdist'
                         }
                         docker.withRegistry("https://harbor.h2o.ai", "harbor.h2o.ai") {
@@ -768,16 +625,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
         docker_cmd += "pip install --upgrade pip && "
         docker_cmd += "pip install dist/datatable-*-cp" + pyver + "-*.whl && "
         docker_cmd += "pip install -r requirements_tests.txt && "
-        if (docker_image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
-            // On a PPC machine use our own repository which contains pre-built
-            // binary wheels for pandas & numpy.
-            docker_cmd += "pip install -i https://h2oai.github.io/py-repo/ "
-            docker_cmd += "--extra-index-url https://pypi.org/simple/ "
-            docker_cmd += "--prefer-binary "
-            docker_cmd += "numpy pandas 'xlrd<=1.2.0' && "
-        } else {
-            docker_cmd += "pip install -r requirements_extra.txt && "
-        }
+        docker_cmd += "pip install -r requirements_extra.txt && "
         docker_cmd += "pip freeze && "
         docker_cmd += "python -c 'import datatable; print(datatable.__file__)' && "
         docker_cmd += "python -m pytest -ra --maxfail=10 -Werror -vv -s --showlocals " +
@@ -796,7 +644,7 @@ def test_in_docker(String testtag, String pyver, String docker_image) {
 
 
 def get_python_for_docker(String pyver, String image) {
-    if (image == DOCKER_IMAGE_X86_64_MANYLINUX || image == DOCKER_IMAGE_PPC64LE_MANYLINUX) {
+    if (image == DOCKER_IMAGE_X86_64_MANYLINUX) {
         if (pyver == "38") return "/opt/python/cp38-cp38/bin/python3.8"
         if (pyver == "39") return "/opt/python/cp39-cp39/bin/python3.9"
         if (pyver == "310") return "/opt/python/cp310-cp310/bin/python3.10"
