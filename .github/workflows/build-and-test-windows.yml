@@ -27,10 +27,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Prepare environment variables
-        id: prepare
+      - name: Find build id
         run: |
           echo "DT_BUILD_ID=$(($(git rev-list --count origin/main) - 1))" >> $GITHUB_ENV
+
+      - name: Prepare environment variables
+        run: |
           if [ "$GITHUB_EVENT_NAME" == "pull_request" ]; then
             if [[ "$GITHUB_HEAD_REF" =~ ^rel- ]]; then
               echo "DT_RELEASE=True" >> $GITHUB_ENV
@@ -44,10 +46,6 @@ jobs:
           else
             echo "DT_BUILD_SUFFIX=$GITHUB_REF.$DT_BUILD_ID" >> $GITHUB_ENV
           fi
-          echo "DT_BUILD_ID=$DT_BUILD_ID" >> $GITHUB_OUTPUT
-          echo "DT_RELEASE=$DT_RELEASE" >> $GITHUB_OUTPUT
-          echo "DT_BUILD_SUFFIX=$DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
-          echo "DT_BUILD_NUMBER=$DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
 
       - name: Print environment
         run: |
@@ -61,12 +59,20 @@ jobs:
           echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
           echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
 
+      - name: Store environment into the output
+        id: store
+        run: |
+          echo "DT_BUILD_ID=$DT_BUILD_ID" >> $GITHUB_OUTPUT
+          echo "DT_RELEASE=$DT_RELEASE" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_SUFFIX=$DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
+          echo "DT_BUILD_NUMBER=$DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
+
     outputs:
       DT_HARNESS: Github
-      DT_BUILD_ID: ${{ steps.prepare.outputs.DT_BUILD_ID }}
-      DT_RELEASE: ${{ steps.prepare.outputs.DT_RELEASE }}
-      DT_BUILD_SUFFIX: ${{ steps.prepare.outputs.DT_BUILD_SUFFIX }}
-      DT_BUILD_NUMBER: ${{ steps.prepare.outputs.DT_BUILD_NUMBER }}
+      DT_BUILD_ID: ${{ steps.store.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ steps.store.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ steps.store.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ steps.store.outputs.DT_BUILD_NUMBER }}
 
 
   build-38:
@@ -116,3 +122,9 @@ jobs:
 
       - name: Uninstall wheel
         run: python -m pip uninstall -y $env:DT_WHEEL
+
+  build-39:
+    name: Build and test on Python 3.9
+    runs-on: windows-latest
+    needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
