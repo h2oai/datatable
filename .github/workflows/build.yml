@@ -30,6 +30,7 @@ jobs:
       - name: Find build id
         run: |
           echo "DT_BUILD_ID=$(($(git rev-list --count origin/main) - 1))" >> $GITHUB_ENV
+          echo "DT_CHANGE_BRANCH=$GITHUB_HEAD_REF" >> $GITHUB_ENV
 
       - name: Prepare environment variables
         run: |
@@ -58,6 +59,7 @@ jobs:
           echo "DT_RELEASE = $DT_RELEASE"
           echo "DT_BUILD_SUFFIX = $DT_BUILD_SUFFIX"
           echo "DT_BUILD_NUMBER = $DT_BUILD_NUMBER"
+          echo "DT_CHANGE_BRANCH = $DT_CHANGE_BRANCH"
 
       - name: Store environment into the output
         id: store
@@ -66,6 +68,7 @@ jobs:
           echo "DT_RELEASE=$DT_RELEASE" >> $GITHUB_OUTPUT
           echo "DT_BUILD_SUFFIX=$DT_BUILD_SUFFIX" >> $GITHUB_OUTPUT
           echo "DT_BUILD_NUMBER=$DT_BUILD_NUMBER" >> $GITHUB_OUTPUT
+          echo "DT_CHANGE_BRANCH=$DT_CHANGE_BRANCH" >> $GITHUB_OUTPUT
 
     outputs:
       DT_HARNESS: Github
@@ -73,6 +76,7 @@ jobs:
       DT_RELEASE: ${{ steps.store.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ steps.store.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ steps.store.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ steps.store.outputs.DT_CHANGE_BRANCH }}
 
   sdist:
     name: Generate sdist
@@ -85,6 +89,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -123,6 +128,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -173,6 +179,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -223,6 +230,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -273,6 +281,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -323,6 +332,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -379,6 +389,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -428,6 +439,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -477,6 +489,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -525,6 +538,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -574,6 +588,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -626,6 +641,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -675,6 +691,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -724,6 +741,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -773,6 +791,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
@@ -822,6 +841,7 @@ jobs:
       DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
       DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
 
     steps:
       - name: Checkout repository
