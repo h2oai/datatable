@@ -165,7 +165,7 @@ jobs:
     name: Linux / Python 3.9
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -215,7 +215,7 @@ jobs:
     name: Linux / Python 3.10
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -265,7 +265,7 @@ jobs:
     name: Linux / Python 3.11
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -315,7 +315,7 @@ jobs:
     name: Linux / Python 3.12
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -369,7 +369,7 @@ jobs:
     name: MacOS / Python 3.8
     runs-on: macos-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -418,7 +418,7 @@ jobs:
     name: MacOS / Python 3.9
     runs-on: macos-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -467,7 +467,7 @@ jobs:
     name: MacOS / Python 3.10
     runs-on: macos-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -564,7 +564,7 @@ jobs:
     name: MacOS / Python 3.12
     runs-on: macos-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -665,7 +665,7 @@ jobs:
     name: Windows / Python 3.9
     runs-on: windows-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -714,7 +714,7 @@ jobs:
     name: Windows / Python 3.10
     runs-on: windows-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -763,7 +763,7 @@ jobs:
     name: Windows / Python 3.11
     runs-on: windows-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -812,7 +812,7 @@ jobs:
     name: Windows / Python 3.12
     runs-on: windows-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True?' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
