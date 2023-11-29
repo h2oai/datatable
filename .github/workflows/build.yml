@@ -337,7 +337,9 @@ jobs:
         run: |
           python -V
           python -m pip install --upgrade pip
-          python -m pip install auditwheel
+          # Update to normal install when they publish the next version > 5.4.0
+          # Current version fails on 3.12 because of distutils 
+          python -m pip install git+https://github.com/pypa/auditwheel
           python ci/ext.py wheel --audit
           echo "DT_WHEEL=$(ls dist/*-cp312-*.whl)" >> $GITHUB_ENV
 
