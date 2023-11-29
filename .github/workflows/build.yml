@@ -74,6 +74,40 @@ jobs:
       DT_BUILD_SUFFIX: ${{ steps.store.outputs.DT_BUILD_SUFFIX }}
       DT_BUILD_NUMBER: ${{ steps.store.outputs.DT_BUILD_NUMBER }}
 
+  sdist:
+    name: Generate sdist
+    runs-on: ubuntu-latest
+    needs: setup
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.11
+
+      - name: Build sdist
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python ci/ext.py sdist
+          echo "DT_SDIST=$(ls dist/*.tar.gz)" >> $GITHUB_ENV
+      
+      - name: Save sdist artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: sdist
+          path: ${{ env.DT_SDIST }}
+
   #-------------------------------------------------------------------------------------
   # Linux
   #-------------------------------------------------------------------------------------
