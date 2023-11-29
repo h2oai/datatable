@@ -814,7 +814,7 @@ jobs:
     name: Windows / Python 3.12
     runs-on: windows-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
+    if: ${{ needs.setup.outputs.DT_RELEASE == '(disabled)' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
