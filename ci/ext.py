@@ -228,6 +228,7 @@ def build_extension(cmd, verbosity=3):
     ext.log.info(f"  DT_BUILD_NUMBER = {os.environ.get('DT_BUILD_NUMBER')}")
     ext.log.info(f"  DT_MSVC_PATH = {os.environ.get('DT_MSVC_PATH')}")
     ext.log.info(f"  DT_WINSDK_PATH = {os.environ.get('DT_WINSDK_PATH')}")
+    ext.log.info(f"  DT_CHANGE_BRANCH = {os.environ.get('DT_CHANGE_BRANCH')}")
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
     ext.destination_dir = "src/datatable/lib/"
@@ -486,10 +487,8 @@ def generate_build_info(mode=None, strict=False):
     # get the date of the commit (HEAD), as a Unix timestamp
     git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
                          strict=strict)
-    if "CHANGE_BRANCH" in os.environ:
-        git_branch = os.environ["CHANGE_BRANCH"]
-    elif "APPVEYOR_REPO_BRANCH" in os.environ:
-        git_branch = os.environ["APPVEYOR_REPO_BRANCH"]
+    if "DT_CHANGE_BRANCH" in os.environ:
+        git_branch = os.environ["DT_CHANGE_BRANCH"]
     else:
         git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                strict=strict)
