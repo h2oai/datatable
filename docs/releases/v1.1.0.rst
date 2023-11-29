@@ -1,7 +1,7 @@
 
 .. changelog::
     :version: 1.1.0
-    :released: 2023-11-21
+    :released: 2023-11-29
 
     Frame
     -----
@@ -69,6 +69,9 @@
     -[fix] In the case a zero-column frame is created from a list of
         tuples or dictionaries, the number of rows will be equal
         to the number of elements in that list. [#3428]
+
+    -[fix] Fix crash when converting a frame into pyarrow with latest version of
+        pyarrow.
 
     -[api] Converting a column of :attr:`void <dt.Type.void>` type into pandas
         now produces a pandas ``object`` column filled with ``None``s. Converting
@@ -242,6 +245,7 @@
         working for list comprehensions even after :func:`dt.min()` and
         :func:`dt.max()` have been imported from datatable. [#3409]
 
+    -[ci] Datatable's build system now uses Github Actions only.
 
     .. contributors::
 
