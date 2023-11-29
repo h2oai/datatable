@@ -125,7 +125,12 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
 
 static void release_arrow_schema(dt::ArrowSchema* schema) {
   schema->release = nullptr;
-  delete schema;
+  // The schema object will leak.
+  // The Arrow library accesses the [schema] object after releasing it, causing a
+  // crash on some operating systems. 
+  // TODO: In the future, it may be beneficial to switch to the Arrow PyCapsule
+  //       interface, but it is currently marked as experimental.
+  // delete schema;
 }
 
 std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {
