@@ -38,6 +38,7 @@ import subprocess
 import sys
 import textwrap
 import time
+from typing import Optional
 import xbuild
 
 
@@ -86,13 +87,14 @@ def is_source_distribution():
 # - In all other cases (local build), the final version consists of
 #   of `VERSION.txt` "0+" [buildmode "."] timestamp ["." username].
 #
-def get_datatable_version(flavor=None):
+def get_datatable_version(flavor: Optional[str] = None) -> str:
     build_mode = "release" if os.environ.get("DT_RELEASE") else \
                  "PR" if os.environ.get("DT_BUILD_SUFFIX") else \
                  "dev" if os.environ.get("DT_BUILD_NUMBER") else \
                  "sdist" if is_source_distribution() else \
                  "local"
 
+    version = ""
     if build_mode != "sdist":
         if not os.path.exists("VERSION.txt"):
             raise SystemExit("File VERSION.txt is missing when building "
@@ -115,7 +117,7 @@ def get_datatable_version(flavor=None):
 
     # In PR mode, the version is appended with DT_BUILD_SUFFIX
     if build_mode == "PR":
-        suffix = os.environ.get("DT_BUILD_SUFFIX")
+        suffix = os.environ.get("DT_BUILD_SUFFIX", "")
         if not re.fullmatch(r"\w([\w\.]*\w)?", suffix):
             raise SystemExit("Invalid build suffix `%s` from environment "
                              "variable DT_BUILD_SUFFIX" % suffix)
@@ -132,7 +134,7 @@ def get_datatable_version(flavor=None):
 
     # In "main-dev" mode, the DT_BUILD_NUMBER is used
     if build_mode == "dev":
-        build = os.environ.get("DT_BUILD_NUMBER")
+        build = os.environ.get("DT_BUILD_NUMBER", "")
         if not re.fullmatch(r"\d+", build):
             raise SystemExit("Invalid build number `%s` from environment "
                              "variable DT_BUILD_NUMBER" % build)
@@ -164,6 +166,7 @@ def get_datatable_version(flavor=None):
             version += "." + user
         return version
 
+    return "unknown"
 
 
 def _get_version_from_build_info():
@@ -218,6 +221,14 @@ def build_extension(cmd, verbosity=3):
 
     ext = xbuild.Extension()
     ext.log = create_logger(verbosity)
+    ext.log.info("Environment:")
+    ext.log.info(f"  DT_HARNESS = {os.environ.get('DT_HARNESS')}")
+    ext.log.info(f"  DT_RELEASE = {os.environ.get('DT_RELEASE')}")
+    ext.log.info(f"  DT_BUILD_SUFFIX = {os.environ.get('DT_BUILD_SUFFIX')}")
+    ext.log.info(f"  DT_BUILD_NUMBER = {os.environ.get('DT_BUILD_NUMBER')}")
+    ext.log.info(f"  DT_MSVC_PATH = {os.environ.get('DT_MSVC_PATH')}")
+    ext.log.info(f"  DT_WINSDK_PATH = {os.environ.get('DT_WINSDK_PATH')}")
+    ext.log.info(f"  DT_CHANGE_BRANCH = {os.environ.get('DT_CHANGE_BRANCH')}")
     ext.name = "_datatable"
     ext.build_dir = "build/" + cmd
     ext.destination_dir = "src/datatable/lib/"
@@ -476,10 +487,8 @@ def generate_build_info(mode=None, strict=False):
     # get the date of the commit (HEAD), as a Unix timestamp
     git_date = shell_cmd(["git", "show", "-s", "--format=%ct", "HEAD"],
                          strict=strict)
-    if "CHANGE_BRANCH" in os.environ:
-        git_branch = os.environ["CHANGE_BRANCH"]
-    elif "APPVEYOR_REPO_BRANCH" in os.environ:
-        git_branch = os.environ["APPVEYOR_REPO_BRANCH"]
+    if "DT_CHANGE_BRANCH" in os.environ:
+        git_branch = os.environ["DT_CHANGE_BRANCH"]
     else:
         git_branch = shell_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"],
                                strict=strict)

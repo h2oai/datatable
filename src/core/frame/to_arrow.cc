@@ -45,11 +45,10 @@ oobj Frame::to_arrow(const XArgs&) {
     const Column& col = dt->get_column(i);
     std::unique_ptr<dt::OArrowArray> aarr = col.to_arrow();
     std::unique_ptr<dt::OArrowSchema> osch = col.to_arrow_schema();
-    arrays.set(i,
-      pa_Array.invoke("_import_from_c", {
-          oint(aarr.release()->intptr()),
-          oint(osch.release()->intptr())
-        }));
+    auto aarr_int = aarr.release()->intptr();
+    auto osch_int = osch.release()->intptr();
+    auto res = pa_Array.invoke("_import_from_c", {oint(aarr_int), oint(osch_int)});
+    arrays.set(i, res);
   }
 
   otuple names = dt->get_pynames();
@@ -125,7 +124,13 @@ std::unique_ptr<dt::OArrowArray> Column::to_arrow() const {
 
 
 static void release_arrow_schema(dt::ArrowSchema* schema) {
-  delete schema;
+  schema->release = nullptr;
+  // The schema object will leak.
+  // The Arrow library accesses the [schema] object after releasing it, causing a
+  // crash on some operating systems. 
+  // TODO: In the future, it may be beneficial to switch to the Arrow PyCapsule
+  //       interface, but it is currently marked as experimental.
+  // delete schema;
 }
 
 std::unique_ptr<dt::OArrowSchema> Column::to_arrow_schema() const {

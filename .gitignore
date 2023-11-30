@@ -38,6 +38,7 @@ docs/_build/
 !.idea/inspectionProfiles
 *.sublime-*
 .DS_Store
+.vscode
 
 # Landfill area
 temp/

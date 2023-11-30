@@ -19,7 +19,7 @@ a JupyterLab notebook or in a Python console::
 
     >>> import datatable as dt
     >>> print(dt.__version__)
-    1.0.0
+    1.1.0
 
 
 

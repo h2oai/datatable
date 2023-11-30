@@ -173,22 +173,20 @@ DECLARE_PYFN(&frame_integrity_check)
 
 
 static py::oobj get_thread_ids(const py::XArgs&) {
-  std::mutex m;
   size_t n = dt::num_threads_in_pool();
-  py::olist list(n);
   xassert(dt::this_thread_index() == 0);
+  std::vector<std::string> thread_ids(n);
 
   dt::parallel_region([&] {
     std::stringstream ss;
     size_t i = dt::this_thread_index();
     ss << std::this_thread::get_id();
-    std::lock_guard<std::mutex> lock(m);
-    xassert(!list[i]);
-    list.set(i, py::ostring(ss.str()));
+    thread_ids[i] = ss.str();
   });
 
+  py::olist list(n);
   for (size_t i = 0; i < n; ++i) {
-    xassert(list[i]);
+    list.set(i, py::ostring(thread_ids[i]));
   }
   return std::move(list);
 }
@@ -387,4 +385,3 @@ extern "C" {
   }
 
 } // extern "C"
-

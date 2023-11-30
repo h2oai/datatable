@@ -84,7 +84,7 @@ def connect(auth=None):
             if not token:
                 token = getpass.getpass("Enter your GitHub access token: ")
             try:
-                g = github.Github(token, "")
+                g = github.Github(auth=github.Auth.Token(token))
                 g.rate_limiting
             except BadCredentialsException:
                 print("Invalid token, please try again")

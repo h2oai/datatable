@@ -267,6 +267,7 @@ std_symbols_library = {
     "std::realloc":                            ["cstdlib"],
     "std::recursive_mutex":                    ["mutex"],
     "std::regex":                              ["regex"],
+    "std::regex_constants":                    ["regex"],
     "std::regex_error":                        ["regex"],
     "std::regex_match":                        ["regex"],
     "std::remove_all_extents":                 ["type_traits"],

@@ -125,7 +125,7 @@ Message::Message(Logger* logger, bool warn)
 
 Message::~Message() {
   try {
-    logger_->emit(std::move(out_).str(), emit_as_warning_);
+    logger_->add(std::move(out_).str(), emit_as_warning_);
   }
   catch (...) {
     std::cerr << "unable to emit log message\n";
@@ -236,7 +236,7 @@ void Logger::use_pylogger(py::oobj logger) {
 
 Section Logger::section(std::string title) {
   if (enabled_) {
-    emit(std::move(title), false);
+    add(std::move(title), false);
     prefix_ += "  ";
   }
   return Section(this);
@@ -285,10 +285,32 @@ void Logger::end_section() noexcept {
 }
 
 
-void Logger::emit(std::string&& msg, bool warning) {
-  // std::lock_guard<std::mutex> pylock(dt::python_mutex());
+// This function must be called from the main thread
+void Logger::emit_pending_messages() {
+  xassert(dt::this_thread_index() == 0);
+  if (!pending_messages_.empty()) {
+    for (size_t i = 0; i < pending_messages_.size(); i++) {
+      auto msg = std::move(pending_messages_[i]);
+      emit_(std::move(msg.first), msg.second);
+    }
+    pending_messages_.clear();
+  }
+}
+
+
+void Logger::add(std::string&& msg, bool is_warning) {
   PythonLock pylock;
   CallLoggerLock loglock;
+  if (dt::this_thread_index() == 0) {
+    emit_pending_messages();
+    emit_(std::move(msg), is_warning);
+  } else {
+    pending_messages_.push_back(std::make_pair(std::move(msg), is_warning));
+  }
+}
+
+
+void Logger::emit_(std::string&& msg, bool warning) {
   // Use user-defined logger object
   if (pylogger_) {
     HidePythonError hpe;

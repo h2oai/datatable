@@ -23,6 +23,9 @@
 #define dt_UTILS_LOGGER_h
 #include <iomanip>
 #include <sstream>    // std::ostringstream
+#include <string>
+#include <utility>
+#include <vector>
 #include "_dt.h"
 namespace py { class DefaultLogger; }
 namespace dt {
@@ -72,6 +75,7 @@ class Logger {
   private:
     py::oobj pylogger_;
     std::string prefix_;
+    std::vector<std::pair<std::string, bool>> pending_messages_;
     bool enabled_;
     bool use_colors_;
     size_t : 48;
@@ -98,9 +102,12 @@ class Logger {
     // "python" -> returns the stored python logger object
     py::oobj get_pylogger(bool fallback_to_default = true) const;
 
+    void emit_pending_messages();
+
   private:
     void end_section() noexcept;
-    void emit(std::string&& msg, bool as_warning);
+    void add(std::string&& msg, bool as_warning);
+    void emit_(std::string&& msg, bool as_warning);
 
     friend class Section;
     friend class Message;

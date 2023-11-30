@@ -24,6 +24,7 @@
 #include <cstdint>
 #include <limits>      // std::numeric_limits
 #include "buffer.h"
+#include "utils/macros.h"
 
 class Column;
 class RowIndexImpl;
@@ -50,10 +51,13 @@ class RowIndex {
     template <typename T>
     static constexpr T NA = std::numeric_limits<T>::min();
 
+    // warning C4309: 'static_cast': truncation of constant value
+    DISABLE_MSVC_WARNING(4309)
     static_assert(static_cast<int32_t>(size_t(NA<int32_t>)) == NA<int32_t>,
                   "Bad RowIndex::NA<int32_t>");
     static_assert(int64_t(size_t(NA<int64_t>)) == NA<int64_t>,
                   "Bad RowIndex::NA<int64_t>");
+    RESTORE_MSVC_WARNING(4309)
 
     static constexpr size_t MAX = size_t(-1) >> 1;
     static constexpr int ARR32 = 1;
