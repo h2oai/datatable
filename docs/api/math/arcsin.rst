@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.arcsin
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_arcsin
+    :src: src/core/expr/funary/trigonometric.cc pyfn_arcsin
     :cvar: doc_math_arcsin
     :signature: arcsin(x)
 
