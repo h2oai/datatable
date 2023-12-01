@@ -290,7 +290,6 @@ DECLARE_METHOD(&PyFExpr::re_match)
 
 
 
-
 //------------------------------------------------------------------------------
 // Miscellaneous
 //------------------------------------------------------------------------------
@@ -478,6 +477,16 @@ oobj PyFExpr::first(const XArgs&) {
 DECLARE_METHOD(&PyFExpr::first)
     ->name("first")
     ->docs(dt::doc_FExpr_first);
+
+
+oobj PyFExpr::isna(const XArgs&) {
+  auto isnaFn = oobj::import("datatable", "math", "isna");
+  return isnaFn.call({this});
+}
+
+DECLARE_METHOD(&PyFExpr::isna)
+    ->name("isna")
+    ->docs(dt::doc_FExpr_isna);
 
 
 oobj PyFExpr::last(const XArgs&) {

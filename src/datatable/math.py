@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-#-------------------------------------------------------------------------------
-# Copyright 2018 H2O.ai
+# -------------------------------------------------------------------------------
+# Copyright 2018-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 from .lib._datatable import (
     abs,
     arccos,
@@ -48,7 +48,6 @@ from .lib._datatable import (
     isclose,
     isfinite,
     isinf,
-    isna,
     ldexp,
     lgamma,
     log,
@@ -72,9 +71,19 @@ from .lib._datatable import (
     trunc,
 )
 
+from datatable.lib import core
+import math
+
+
+def isna(iterable):
+    if isinstance(iterable, core.FExpr):
+        return core.isna(iterable)
+    return (iterable is None) or (iterable is math.nan)
+
+
 e = 2.718281828459045
 golden = 1.618033988749895
 pi = 3.141592653589793
 tau = 6.283185307179586
-nan = float('nan')
-inf = float('inf')
+nan = float("nan")
+inf = float("inf")

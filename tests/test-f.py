@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 #-------------------------------------------------------------------------------
-# Copyright 2019-2022 H2O.ai
+# Copyright 2019-2023 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -498,4 +498,9 @@ def test_codes():
     DT = dt.Frame(A = ["cat", "dog", None, "cat", "mouse", "dog", "dog", None],
                   type = dt.Type.cat8(dt.Type.str32))
     assert_equals(DT[:, f.A.codes()], DT[:, dt.codes(f.A)])
+
+def test_isna():
+    assert str(dt.math.isna(f.A)) == str(f.A.isna())
+    DT = dt.Frame(A = [None, 9, 8, 2, 3, None, None, 3, 0, 5, 5, 8, None])
+    assert_equals (DT[:, dt.isna(f.A)], DT[:, f.A.isna()])
 
