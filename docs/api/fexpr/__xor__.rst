@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.FExpr.__xor__
-    :src: src/core/expr/fexpr.cc PyFExpr::nb__xor__
+    :src: src/core/expr/fbinary/bitwise_and_or_xor.cc PyFExpr::nb__xor__
 
     __xor__(x, y)
     --
