@@ -164,7 +164,7 @@ class ChangelogInfoboxDirective(SphinxDirective):
             parts = filename[:-4].split('-')
             assert len(parts) == 5
             module, version, python, abi, platform = parts
-            if python in ["cp35", "cp36", "cp37", "cp38", "cp39"]:
+            if python.startswith("cp3"):
                 python = "python-3." + python[3:]
             else:
                 raise self.error("Unrecognized python version `%s` in wheel URL"
