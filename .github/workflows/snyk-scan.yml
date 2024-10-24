@@ -23,7 +23,7 @@ jobs:
           python-version: '3.8'
 
       - name: Check changed Deps files
-        uses: tj-actions/changed-files@v35
+        uses: tj-actions/changed-files@v41
         id: changed-files
         with:
           files: |
