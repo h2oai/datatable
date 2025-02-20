@@ -141,7 +141,8 @@ html_theme = 'wren'
 #
 # See: https://sphinx-rtd-theme.readthedocs.io/en/latest/configuring.html
 html_theme_options = {}
-html_favicon = "_static/datatable_small_icon.ico"
+html_favicon = "_static/h2o_logo.svg"
+html_logo = "_static/h2o_logo.svg"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
