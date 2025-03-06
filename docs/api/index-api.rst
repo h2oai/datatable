@@ -189,6 +189,8 @@ Functions
       - Find the smallest element per column
     * - :func:`ngroup()`
       - Number each group
+    * - :func:`nth()`
+      - Return the nth row.
     * - :func:`nunique()`
       - Count the number of unique values per column
     * - :func:`prod()`
@@ -273,6 +275,7 @@ Other
     median()          <dt/median>
     min()             <dt/min>
     ngroup()          <dt/ngroup>
+    nth()             <dt/nth>
     nunique()         <dt/nunique>
     prod()            <dt/prod>
     qcut()            <dt/qcut>
