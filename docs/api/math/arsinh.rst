@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.arsinh
-    :src: src/core/expr/funary/hyperbolic.cc resolve_op_arsinh
+    :src: src/core/expr/funary/hyperbolic.cc pyfn_arsinh
     :cvar: doc_math_arsinh
     :signature: arsinh(x)
 
