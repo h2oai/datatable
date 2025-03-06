@@ -178,19 +178,6 @@ static oobj make_unexpr(dt::expr::Op op, const PyObject* self) {
                   otuple{oobj(self)}});
 }
 
-static oobj make_binexpr(dt::expr::Op op, robj lhs, robj rhs) {
-  return robj(Expr_Type).call({
-                  oint(static_cast<int>(op)),
-                  otuple{lhs, rhs}});
-}
-
-
-oobj PyFExpr::nb__and__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::AND,      lhs, rhs); }
-oobj PyFExpr::nb__xor__(robj lhs, robj rhs)      { return make_binexpr(dt::expr::Op::XOR,      lhs, rhs); }
-oobj PyFExpr::nb__or__(robj lhs, robj rhs)       { return make_binexpr(dt::expr::Op::OR,       lhs, rhs); }
-oobj PyFExpr::nb__lshift__(robj lhs, robj rhs)   { return make_binexpr(dt::expr::Op::LSHIFT,   lhs, rhs); }
-oobj PyFExpr::nb__rshift__(robj lhs, robj rhs)   { return make_binexpr(dt::expr::Op::RSHIFT,   lhs, rhs); }
-
 bool PyFExpr::nb__bool__() {
   throw TypeError() <<
       "Expression " << expr_->repr() << " cannot be cast to bool.\n\n"

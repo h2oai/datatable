@@ -43,13 +43,6 @@ class OpCodes(enum.Enum):
     UMINUS = 102
     UINVERT = 103
 
-    # Binary
-    AND = 208
-    XOR = 209
-    OR = 210
-    LSHIFT = 211
-    RSHIFT = 212
-
     # Reducers
     STDEV = 401
     FIRST = 402

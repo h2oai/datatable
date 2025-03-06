@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.FExpr.__lshift__
-    :src: src/core/expr/fexpr.cc PyFExpr::nb__lshift__
+    :src: src/core/expr/fbinary/bitwise_shift.cc PyFExpr::nb__lshift__
 
     __lshift__(x, y)
     --
