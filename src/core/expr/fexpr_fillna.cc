@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2022 H2O.ai
+// Copyright 2022-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -183,26 +183,6 @@ class FExpr_FillNA : public FExpr_Func {
 
       return wf;
     }
-
-
-    static Column make_isna_col(Column&& col) {
-      switch (col.stype()) {
-        case SType::VOID:    return Const_ColumnImpl::make_bool_column(col.nrows(), true);
-        case SType::BOOL:
-        case SType::INT8:    return Column(new Isna_ColumnImpl<int8_t>(std::move(col)));
-        case SType::INT16:   return Column(new Isna_ColumnImpl<int16_t>(std::move(col)));
-        case SType::DATE32:
-        case SType::INT32:   return Column(new Isna_ColumnImpl<int32_t>(std::move(col)));
-        case SType::TIME64:
-        case SType::INT64:   return Column(new Isna_ColumnImpl<int64_t>(std::move(col)));
-        case SType::FLOAT32: return Column(new Isna_ColumnImpl<float>(std::move(col)));
-        case SType::FLOAT64: return Column(new Isna_ColumnImpl<double>(std::move(col)));
-        case SType::STR32:
-        case SType::STR64:   return Column(new Isna_ColumnImpl<CString>(std::move(col)));
-        default: throw RuntimeError();
-      }
-    }
-
 };
 
 
@@ -236,3 +216,4 @@ DECLARE_PYFN(&pyfn_fillna)
 
 
 }}  // dt::expr
+

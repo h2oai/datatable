@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 # Copyright 2018-2021 H2O.ai
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
@@ -20,7 +20,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
-#-------------------------------------------------------------------------------
+# -------------------------------------------------------------------------------
 import math
 import pytest
 from datetime import date
@@ -35,14 +35,12 @@ all_sources = [
     [None, -1, 0, 26, -3],
     [2**31 - 2, -(2**31 - 1), 0, -1, 1],
     [9.5, 0.2, 5.4857301, -3.14159265338979],
-    [1.1, 2.3e12, -.5, None, math.inf, 0.0],
+    [1.1, 2.3e12, -0.5, None, math.inf, 0.0],
     ["foo", "bbar", "baz"],
     [None, "", " ", "  ", None, "\x00"],
     list("qwertyuiiop[]asdfghjkl;'zxcvbnm,./`1234567890-="),
-    [date(2001, 1, 4), date(2005, 7, 15), None, None, None]
+    [date(2001, 1, 4), date(2005, 7, 15), None, None, None],
 ]
-
-
 
 
 @pytest.mark.parametrize("src", all_sources)
@@ -54,6 +52,7 @@ def test_isna(src):
 
 def test_isna2():
     from math import nan
+
     DT = dt.Frame(A=[1, None, 2, 5, None, 3.6, nan, -4.899])
     DT1 = DT[~dt.math.isna(f.A), :]
     assert DT1.types == DT.types
@@ -64,12 +63,14 @@ def test_isna2():
 def test_isna_joined():
     # See issue #2109
     DT = dt.Frame(A=[None, 4, 3, 2, 1])
-    JDT = dt.Frame(A=[0, 1, 3, 7],
-                   B=['a', 'b', 'c', 'd'],
-                   C=[0.25, 0.5, 0.75, 1.0],
-                   D=[22, 33, 44, 55],
-                   E=[True, False, True, False])
-    JDT.key = 'A'
+    JDT = dt.Frame(
+        A=[0, 1, 3, 7],
+        B=["a", "b", "c", "d"],
+        C=[0.25, 0.5, 0.75, 1.0],
+        D=[22, 33, 44, 55],
+        E=[True, False, True, False],
+    )
+    JDT.key = "A"
     RES = DT[:, dt.math.isna(g[1:]), join(JDT)]
     dt.internal.frame_integrity_check(RES)
     assert RES.to_list() == [[True, True, False, True, False]] * 4
@@ -79,3 +80,4 @@ def test_isna_joined():
 def test_isna_scalar(src):
     for val in src:
         assert dt.math.isna(val) == (val is None or val is math.nan)
+
