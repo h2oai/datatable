@@ -121,14 +121,6 @@ void py::DatatableModule::init_funary()
   FUNARY(args_deg2rad, Op::DEG2RAD);
   FUNARY(args_rad2deg, Op::RAD2DEG);
 
-  // Hyperbolic
-  FUNARY(args_sinh,    Op::SINH);
-  FUNARY(args_cosh,    Op::COSH);
-  FUNARY(args_tanh,    Op::TANH);
-  FUNARY(args_arsinh,  Op::ARSINH);
-  FUNARY(args_arcosh,  Op::ARCOSH);
-  FUNARY(args_artanh,  Op::ARTANH);
-
   // Exponential/power
   FUNARY(args_cbrt,    Op::CBRT);
   FUNARY(args_exp,     Op::EXP);

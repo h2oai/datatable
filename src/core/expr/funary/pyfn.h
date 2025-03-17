@@ -36,14 +36,6 @@ extern py::PKArgs args_arctan;
 extern py::PKArgs args_deg2rad;
 extern py::PKArgs args_rad2deg;
 
-// Hyperbolic
-extern py::PKArgs args_sinh;
-extern py::PKArgs args_cosh;
-extern py::PKArgs args_tanh;
-extern py::PKArgs args_arsinh;
-extern py::PKArgs args_arcosh;
-extern py::PKArgs args_artanh;
-
 // Exponential/power
 extern py::PKArgs args_cbrt;
 extern py::PKArgs args_exp;
