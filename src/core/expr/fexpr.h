@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2020 H2O.ai
+// Copyright 2020-2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -192,6 +192,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj extend(const py::XArgs&);
     py::oobj fillna(const py::XArgs&);
     py::oobj first(const py::XArgs&);
+    py::oobj isna(const py::XArgs&);
     py::oobj last(const py::XArgs&);
     py::oobj max(const py::XArgs&);
     py::oobj mean(const py::XArgs&);
