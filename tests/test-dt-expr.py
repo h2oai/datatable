@@ -53,6 +53,9 @@ str_type_pairs = [(dt.str32, dt.str32), (dt.str32, dt.str64),
                   (dt.str64, dt.str32), (dt.str64, dt.str64)]
 
 
+src_integers = random.choices(range(100_000), k = 50)
+
+
 
 #-------------------------------------------------------------------------------
 # logical ops
@@ -114,9 +117,38 @@ def test_logical_or2(seed):
          None if (src1[i] is None or src2[i] is None) else
          False
          for i in range(n)]
+    
+@pytest.mark.parametrize("seed", [random.getrandbits(63)])
+def test_logical_xor(seed):
+    random.seed(seed)
+    n = 1000
+    src1 = [random.choice([1, 0]) for _ in range(n)]
+    src2 = [random.choice([1, 0]) for _ in range(n)]
+
+    df0 = dt.Frame(A=src1, B=src2)
+    df1 = df0[:, f.A ^ f.B]
+    assert df1.to_list()[0] == \
+        [False if (src1[i] == src2[i]) else
+         True
+         for i in range(n)]
 
 
+#-------------------------------------------------------------------------------
+# Lshift/Rshift operators
+#-------------------------------------------------------------------------------
+def test_lshift():    
+    DT = dt.Frame({'C0': src_integers})
+    RES = DT[:, f.C0<<2]
+    EXP = [entry<<2 for entry in src_integers]
+    assert RES.to_list()[0] == EXP
 
+def test_rshift():    
+    DT = dt.Frame({'C0': src_integers})
+    RES = DT[:, f.C0>>2]
+    EXP = [entry>>2 for entry in src_integers]
+    assert RES.to_list()[0] == EXP
+
+    
 #-------------------------------------------------------------------------------
 # Equality operators
 #-------------------------------------------------------------------------------
