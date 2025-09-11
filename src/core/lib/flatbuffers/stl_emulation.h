@@ -544,10 +544,7 @@ class span FLATBUFFERS_FINAL_CLASS {
       : data_(other.data_), count_(other.count_) {}
 
   FLATBUFFERS_CONSTEXPR_CPP14 span &operator=(const span &other)
-      FLATBUFFERS_NOEXCEPT {
-    data_ = other.data_;
-    count_ = other.count_;
-  }
+      FLATBUFFERS_NOEXCEPT = delete;
 
   // Limited implementation of
   // `template <class It> constexpr std::span(It first, size_type count);`.
