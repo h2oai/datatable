@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -93,10 +93,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -108,7 +108,7 @@ jobs:
           echo "DT_SDIST=$(ls dist/*.tar.gz)" >> $GITHUB_ENV
       
       - name: Save sdist artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: ${{ env.DT_SDIST }}
@@ -132,10 +132,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -153,7 +153,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.8
           path: ${{ env.DT_WHEEL }}
@@ -183,10 +183,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -204,7 +204,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.9
           path: ${{ env.DT_WHEEL }}
@@ -234,10 +234,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -255,7 +255,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.10
           path: ${{ env.DT_WHEEL }}
@@ -285,10 +285,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -306,7 +306,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.11
           path: ${{ env.DT_WHEEL }}
@@ -336,10 +336,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -359,7 +359,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.12
           path: ${{ env.DT_WHEEL }}
@@ -392,10 +392,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -413,7 +413,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-arm-3.11
           path: ${{ env.DT_WHEEL }}
@@ -442,10 +442,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -465,7 +465,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-arm-3.12
           path: ${{ env.DT_WHEEL }}
@@ -499,10 +499,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -519,7 +519,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.8
           path: ${{ env.DT_WHEEL }}
@@ -549,10 +549,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -569,7 +569,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.9
           path: ${{ env.DT_WHEEL }}
@@ -599,10 +599,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -619,7 +619,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.10
           path: ${{ env.DT_WHEEL }}
@@ -648,10 +648,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -668,7 +668,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.11
           path: ${{ env.DT_WHEEL }}
@@ -698,10 +698,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -718,7 +718,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.12
           path: ${{ env.DT_WHEEL }}
@@ -751,10 +751,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -771,7 +771,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.8
           path: ${{ env.DT_WHEEL }}
@@ -801,10 +801,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -821,7 +821,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.9
           path: ${{ env.DT_WHEEL }}
@@ -851,10 +851,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -871,7 +871,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.10
           path: ${{ env.DT_WHEEL }}
@@ -901,10 +901,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -921,7 +921,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.11
           path: ${{ env.DT_WHEEL }}
@@ -951,10 +951,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -971,7 +971,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.12
           path: ${{ env.DT_WHEEL }}
