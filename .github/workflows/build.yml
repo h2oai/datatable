@@ -289,8 +289,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Select Python 3.11
-        run: echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+      - name: Configure Python and git
+        run: |
+          echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build datatable wheel
         run: |
@@ -397,8 +399,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Select Python 3.11
-        run: echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+      - name: Configure Python and git
+        run: |
+          echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build datatable wheel
         run: |
