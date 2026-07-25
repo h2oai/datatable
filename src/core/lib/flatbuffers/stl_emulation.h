@@ -624,8 +624,10 @@ class span FLATBUFFERS_FINAL_CLASS {
 
  private:
   // This is a naive implementation with 'count_' member even if (Extent != dynamic_extent).
-  pointer const data_;
-  const size_type count_;
+  // Members are non-const so the copy-assignment operator above is well-formed
+  // (GCC 14+ rejects assigning to const members; older compilers did not).
+  pointer data_;
+  size_type count_;
 };
 
  #if !defined(FLATBUFFERS_SPAN_MINIMAL)
