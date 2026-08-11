@@ -23,7 +23,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -93,10 +93,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -108,7 +108,7 @@ jobs:
           echo "DT_SDIST=$(ls dist/*.tar.gz)" >> $GITHUB_ENV
       
       - name: Save sdist artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: ${{ env.DT_SDIST }}
@@ -121,6 +121,7 @@ jobs:
     name: Linux / Python 3.8
     runs-on: ubuntu-latest
     needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -132,10 +133,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -153,7 +154,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.8
           path: ${{ env.DT_WHEEL }}
@@ -183,10 +184,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -204,7 +205,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.9
           path: ${{ env.DT_WHEEL }}
@@ -234,10 +235,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -255,7 +256,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.10
           path: ${{ env.DT_WHEEL }}
@@ -273,7 +274,8 @@ jobs:
     name: Linux / Python 3.11
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
+    # Build inside manylinux_2_28 (glibc 2.28) for broad Linux compatibility
+    container: quay.io/pypa/manylinux_2_28_x86_64
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -285,12 +287,12 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v3
-        with:
-          python-version: "3.11"
+      - name: Configure Python and git
+        run: |
+          echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
 
       - name: Build datatable wheel
         run: |
@@ -306,7 +308,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.11
           path: ${{ env.DT_WHEEL }}
@@ -314,7 +316,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils numpy==1.24.4 pandas==1.5.3 pyarrow==23.0.1
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -324,7 +326,8 @@ jobs:
     name: Linux / Python 3.12
     runs-on: ubuntu-latest
     needs: setup
-    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
+    # Disabled: DAI-compatible numpy/pandas pins have no Python 3.12 wheels
+    if: false
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -336,10 +339,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -359,9 +362,119 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-ubuntu-3.12
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils pandas pyarrow
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
+  #-------------------------------------------------------------------------------------
+  # Linux ARM64 (aarch64) - native runners
+  #-------------------------------------------------------------------------------------
+
+  linux-arm-311:
+    name: Linux ARM64 / Python 3.11
+    runs-on: ubuntu-24.04-arm
+    needs: setup
+    # Build inside manylinux_2_28 (glibc 2.28) for broad Linux compatibility
+    container: quay.io/pypa/manylinux_2_28_aarch64
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Configure Python and git
+        run: |
+          echo "/opt/python/cp311-cp311/bin" >> $GITHUB_PATH
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          python -m pip install auditwheel
+          python ci/ext.py wheel --audit
+          echo "DT_WHEEL=$(ls dist/*-cp311-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheel-ubuntu-arm-3.11
+          path: ${{ env.DT_WHEEL }}
+
+      - name: Install and test
+        run: |
+          python -m pip install $DT_WHEEL
+          python -m pip install pytest docutils numpy==1.24.4 pandas==1.5.3 pyarrow==23.0.1
+          python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
+
+      - name: Uninstall wheel
+        run: python -m pip uninstall -y $DT_WHEEL
+
+  linux-arm-312:
+    name: Linux ARM64 / Python 3.12
+    runs-on: ubuntu-24.04-arm
+    needs: setup
+    # Disabled: DAI-compatible numpy/pandas pins have no Python 3.12 wheels
+    if: false
+
+    env:
+      DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
+      DT_BUILD_ID: ${{ needs.setup.outputs.DT_BUILD_ID }}
+      DT_RELEASE: ${{ needs.setup.outputs.DT_RELEASE }}
+      DT_BUILD_SUFFIX: ${{ needs.setup.outputs.DT_BUILD_SUFFIX }}
+      DT_BUILD_NUMBER: ${{ needs.setup.outputs.DT_BUILD_NUMBER }}
+      DT_CHANGE_BRANCH: ${{ needs.setup.outputs.DT_CHANGE_BRANCH }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Build datatable wheel
+        run: |
+          python -V
+          python -m pip install --upgrade pip
+          # Update to normal install when they publish the next version > 5.4.0
+          # Current version fails on 3.12 because of distutils
+          python -m pip install git+https://github.com/pypa/auditwheel
+          python ci/ext.py wheel --audit
+          echo "DT_WHEEL=$(ls dist/*-cp312-*.whl)" >> $GITHUB_ENV
+
+      - name: Print build information
+        run: |
+          echo "DT_WHEEL = $DT_WHEEL"
+          cat src/datatable/_build_info.py
+
+      - name: Save wheel artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: wheel-ubuntu-arm-3.12
           path: ${{ env.DT_WHEEL }}
 
       - name: Install and test
@@ -393,10 +506,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -413,7 +526,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.8
           path: ${{ env.DT_WHEEL }}
@@ -443,10 +556,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -463,7 +576,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.9
           path: ${{ env.DT_WHEEL }}
@@ -493,10 +606,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -513,7 +626,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.10
           path: ${{ env.DT_WHEEL }}
@@ -531,6 +644,7 @@ jobs:
     name: MacOS / Python 3.11
     runs-on: macos-latest
     needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -542,10 +656,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -562,7 +676,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.11
           path: ${{ env.DT_WHEEL }}
@@ -592,10 +706,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -612,7 +726,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-macos-3.12
           path: ${{ env.DT_WHEEL }}
@@ -634,6 +748,7 @@ jobs:
     name: Windows / Python 3.8
     runs-on: windows-latest
     needs: setup
+    if: ${{ needs.setup.outputs.DT_RELEASE == 'True' }}
 
     env:
       DT_HARNESS: ${{ needs.setup.outputs.DT_HARNESS }}
@@ -645,10 +760,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.8"
 
@@ -665,7 +780,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.8
           path: ${{ env.DT_WHEEL }}
@@ -695,10 +810,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.9"
 
@@ -715,7 +830,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.9
           path: ${{ env.DT_WHEEL }}
@@ -745,10 +860,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.10
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.10"
 
@@ -765,7 +880,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.10
           path: ${{ env.DT_WHEEL }}
@@ -795,10 +910,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.11
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.11"
 
@@ -815,7 +930,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.11
           path: ${{ env.DT_WHEEL }}
@@ -845,10 +960,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
 
@@ -865,7 +980,7 @@ jobs:
           cat src/datatable/_build_info.py
 
       - name: Save wheel artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v7
         with:
           name: wheel-windows-3.12
           path: ${{ env.DT_WHEEL }}

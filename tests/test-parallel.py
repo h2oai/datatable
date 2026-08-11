@@ -73,10 +73,10 @@ def test_core_progress(testname):
 @skip_on_jenkins
 @pytest.mark.usefixtures("nowin") # `SIGINT` is not supported on Windows
 @pytest.mark.parametrize('parallel_type, nthreads',
-                         itertools.product(
+                         list(itertools.product(
                             [None, "static", "nested", "dynamic", "ordered"],
                             ["1", "half", "all"]
-                         )
+                         ))
                         )
 def test_progress_interrupt(parallel_type, nthreads):
     import signal
