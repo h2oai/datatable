@@ -96,13 +96,6 @@ umaker_ptr resolve_op_arctan(SType);
 umaker_ptr resolve_op_deg2rad(SType);
 umaker_ptr resolve_op_rad2deg(SType);
 
-// Hyperbolic
-umaker_ptr resolve_op_sinh(SType);
-umaker_ptr resolve_op_cosh(SType);
-umaker_ptr resolve_op_tanh(SType);
-umaker_ptr resolve_op_arsinh(SType);
-umaker_ptr resolve_op_arcosh(SType);
-umaker_ptr resolve_op_artanh(SType);
 
 // Exponential/power
 umaker_ptr resolve_op_cbrt(SType);
