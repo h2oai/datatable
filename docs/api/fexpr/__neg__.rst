@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.FExpr.__neg__
-    :src: src/core/expr/fexpr.cc PyFExpr::nb__neg__
+    :src: src/core/expr/funary/unary_minus.cc PyFExpr::nb__neg__
 
     __neg__(x)
     --

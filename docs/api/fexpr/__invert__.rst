@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.FExpr.__invert__
-    :src: src/core/expr/fexpr.cc PyFExpr::nb__invert__
+    :src: src/core/expr/funary/unary_invert.cc PyFExpr::nb__invert__
 
     __invert__(x)
     --
