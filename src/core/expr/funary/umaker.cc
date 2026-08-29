@@ -104,7 +104,6 @@ umaker_ptr resolve_op(Op opcode, SType stype)
     // Math: floating-point
     case Op::ISFINITE:  return resolve_op_isfinite(stype);
     case Op::ISINF:     return resolve_op_isinf(stype);
-    case Op::ISNA:      return resolve_op_isna(stype);
     case Op::CEIL:      return resolve_op_ceil(stype);
     case Op::ABS:       return resolve_op_abs(stype);
     case Op::FABS:      return resolve_op_fabs(stype);

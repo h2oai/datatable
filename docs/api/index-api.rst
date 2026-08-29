@@ -179,6 +179,8 @@ Functions
       - Calculate covariance between two columns
     * - :func:`fillna()`
       - Impute missing values
+    * - :func:`isna()`
+      - Test for missing values
     * - :func:`max()`
       - Find the largest element per column
     * - :func:`mean()`
@@ -266,6 +268,7 @@ Other
     init_styles()     <dt/init_styles>
     intersect()       <dt/intersect>
     iread()           <dt/iread>
+    isna()            <dt/isna>
     join()            <dt/join>
     last()            <dt/last>
     max()             <dt/max>

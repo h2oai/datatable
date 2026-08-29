@@ -120,7 +120,6 @@ enum class Op : size_t {
   ISCLOSE,                  // head_func_isclose.cc
   ISFINITE,                 // funary/floating.cc
   ISINF,                    // funary/floating.cc
-  ISNA,                     // funary/floating.cc
   LDEXP,
   MODF,
   RINT,                     // fumary/floating.cc

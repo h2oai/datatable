@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2023 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -19,59 +19,46 @@
 // FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
-#include <algorithm>
-#include "column/isna.h"
 #include "column/const.h"
-#include "column/func_nary.h"
+#include "column/isna.h"
+#include "expr/fexpr_column.h"
 #include "documentation.h"
-#include "expr/fnary/fnary.h"
+#include "expr/fexpr_func_unary.h"
+#include "expr/eval_context.h"
+#include "expr/workframe.h"
 #include "python/xargs.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 
 
-std::string FExpr_RowCount::name() const {
-  return "rowcount";
+class FExpr_ISNA : public FExpr_FuncUnary {
+  public:
+    using FExpr_FuncUnary::FExpr_FuncUnary;
+
+
+    std::string name() const override {
+      return "isna";
+    }
+
+    Column evaluate1(Column&& col) const override{
+      return make_isna_col(std::move(col));
+    }
+};
+
+
+static py::oobj pyfn_isna(const py::XArgs &args) {
+  auto isna = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_ISNA(as_fexpr(isna)));
 }
 
+DECLARE_PYFN(&pyfn_isna)
+    ->name("isna")
+    ->docs(doc_dt_isna)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
 
-static bool op_rowcount(size_t i, int32_t* out, const colvec& columns) {
-  int32_t valid_count = static_cast<int32_t>(columns.size());
-  for (const auto& col : columns) {
-    int8_t x;
-    // each column is ISNA(col), so the return value is 1 if
-    // the value in the original column is NA.
-    col.get_element(i, &x);
-    valid_count -= x;
-  }
-  *out = valid_count;
-  return true;
-}
+}}  // dt::expr
 
-Column FExpr_RowCount::apply_function(colvec&& columns,
-                                      const size_t nrows,
-                                      const size_t) const
-{
-  if (columns.empty()) {
-    return Const_ColumnImpl::make_int_column(nrows, 0, SType::INT32);
-  }
-  for (size_t i = 0; i < columns.size(); ++i) {
-    xassert(columns[i].nrows() == nrows);
-    Column coli = columns[i];
-    columns[i] = make_isna_col(std::move(coli));
-  }
-  return Column(new FuncNary_ColumnImpl<int32_t>(
-                      std::move(columns), op_rowcount, nrows, SType::INT32));
-}
-
-DECLARE_PYFN(&py_rowfn)
-    ->name("rowcount")
-    ->docs(doc_dt_rowcount)
-    ->allow_varargs()
-    ->add_info(FN_ROWCOUNT);
-
-
-
-
-}}  // namespace dt::expr

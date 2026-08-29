@@ -1,8 +1,10 @@
 
 .. xfunction:: datatable.math.isna
-    :src: src/core/expr/funary/floating.cc resolve_op_isna
+    :src: src/core/expr/fexpr_isna.cc pyfn_isna
     :tests: tests/math/test-isna.py
-    :cvar: doc_math_isna
-    :signature: isna(x)
+    :cvar: doc_dt_isna
+    :signature: isna(cols)
 
-    Returns `True` if the argument is NA, and `False` otherwise.
+    Same as :func:`dt.isna()`.
+
+
