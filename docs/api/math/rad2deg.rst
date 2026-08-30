@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.rad2deg
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_rad2deg
+    :src: src/core/expr/funary/trigonometric.cc pyfn_rad2deg
     :cvar: doc_math_rad2deg
     :signature: rad2deg(x)
 

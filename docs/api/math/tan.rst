@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.tan
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_tan
+    :src: src/core/expr/funary/trigonometric.cc pyfn_tan
     :cvar: doc_math_tan
     :signature: tan(x)
 

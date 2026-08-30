@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.arccos
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_arccos
+    :src: src/core/expr/funary/trigonometric.cc pyfn_arccos
     :cvar: doc_math_arccos
     :signature: arccos(x)
 
