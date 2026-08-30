@@ -197,6 +197,7 @@ class PyFExpr : public py::XObject<PyFExpr> {
     py::oobj mean(const py::XArgs&);
     py::oobj median(const py::XArgs&);
     py::oobj min(const py::XArgs&);
+    py::oobj nth(const py::XArgs&);
     py::oobj nunique(const py::XArgs&);
     py::oobj prod(const py::XArgs&);
     py::oobj remove(const py::XArgs&);
