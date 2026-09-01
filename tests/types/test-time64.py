@@ -317,9 +317,9 @@ def test_convert_to_numpy(np):
     assert arr.dtype == np.dtype('datetime64[ns]')
     assert arr[0, 0] == np.datetime64('1901-12-13T00:11:59.000000000')
     assert arr[1, 0] == np.datetime64('2001-02-17T00:30:00.000000000')
-    assert repr(arr[2, 0]) == repr(np.datetime64('NaT'))
+    assert repr(arr[2, 0]) == repr(np.datetime64('NaT', 'ns'))
     assert arr[3, 0] == np.datetime64('2077-05-17T23:59:01.002345000')
-    assert repr(arr[4, 0]) == repr(np.datetime64('NaT'))
+    assert repr(arr[4, 0]) == repr(np.datetime64('NaT', 'ns'))
     assert arr[5, 0] == np.datetime64('1911-11-11T11:11:11.000011000')
 
 
