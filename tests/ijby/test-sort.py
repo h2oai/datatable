@@ -1021,7 +1021,7 @@ def test_sort_with_reverse_list_false_true(numpy):
     {
     'A': ['o1','o2','o3','o4','o5'],
     'B': ['c1','c1','c2','c2','c3'],
-    'C': [5, 1, 3, numpy.NaN, numpy.NaN]
+    'C': [5, 1, 3, numpy.nan, numpy.nan]
     })
     EXP = DT[:, :, dt.sort(f.B, -f.A)]
     RES1 = DT[:, :, dt.sort("B", "A", reverse=[False, True])]
@@ -1037,7 +1037,7 @@ def test_sort_with_reverse_list_true_true(numpy):
     {
     'A': ['o1', 'o2', 'o3', 'o4', 'o5'],
     'B': ['c1', 'c1', 'c2', 'c2', 'c3'],
-    'C': [5,1,3, numpy.NaN,numpy.NaN]
+    'C': [5,1,3, numpy.nan,numpy.nan]
     })
     EXP = DT[:, :, dt.sort(-f.A, -f.B)]
     RES1 = DT[:, :, dt.sort("B", "A", reverse=[True, True])]
@@ -1055,7 +1055,7 @@ def test_reverse_list_error(numpy):
     {
     'A': ['o1', 'o2', 'o3', 'o4', 'o5']*25,
     'B': ['c1', 'c1', 'c2', 'c2', 'c3']*25,
-    'C': [5, 1, 3, numpy.NaN, numpy.NaN]*25
+    'C': [5, 1, 3, numpy.nan, numpy.nan]*25
     })
     with pytest.raises(ValueError, match=msg):
         DT[:, :, dt.sort(0, 1, reverse=[True])]

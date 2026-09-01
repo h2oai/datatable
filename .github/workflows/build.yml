@@ -161,7 +161,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -212,7 +212,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -263,7 +263,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -314,7 +314,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -367,7 +367,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -421,7 +421,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -471,7 +471,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -521,7 +521,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -570,7 +570,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -620,7 +620,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -673,7 +673,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $env:DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -723,7 +723,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $env:DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -773,7 +773,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $env:DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -823,7 +823,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $env:DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
@@ -873,7 +873,7 @@ jobs:
       - name: Install and test
         run: |
           python -m pip install $env:DT_WHEEL
-          python -m pip install pytest docutils pandas pyarrow
+          python -m pip install pytest docutils "pandas<3.0" pyarrow
           python -m pytest -ra --maxfail=10 -Werror -vv --showlocals ./tests/
 
       - name: Uninstall wheel
