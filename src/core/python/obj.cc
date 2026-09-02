@@ -1191,7 +1191,12 @@ std::string _obj::typestr() const {
 
 
 size_t _obj::get_sizeof() const {
+#if PY_VERSION_HEX < 0x03090000
   return _PySys_GetSizeOf(v);
+#else
+  // Python 3.9+
+  return PyObject_Size(v);
+#endif
 }
 
 size_t _obj::get_refcount() const {
