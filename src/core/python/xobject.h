@@ -519,6 +519,17 @@ PyObject* _safe_unary(PyObject* self) noexcept {
   }
 }
 
+template <py::oobj(*METH)(py::robj), int OP>
+PyObject* _safe_uunary(PyObject* self) noexcept {
+  auto cl = dt::CallLogger::unaryfn(self, OP);
+  try {
+    return METH(py::robj(self)).release();
+  } catch (const std::exception& e) {
+    exception_to_python(e);
+    return nullptr;
+  }
+}
+
 
 template <py::oobj(*METH)(py::robj, py::robj), int OP>
 PyObject* _safe_binary(PyObject* self, PyObject* other) noexcept {
@@ -763,12 +774,12 @@ PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
   */
 
 #define METHOD__NEG__(METH)                                                    \
-    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__neg__>,        \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__neg__>,                       \
     py::XTypeMaker::nb_negative_tag
 
 
 #define METHOD__POS__(METH)                                                    \
-    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__pos__>,        \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__pos__>,                        \
     py::XTypeMaker::nb_positive_tag
 
 
@@ -778,7 +789,7 @@ PyObject* _safe_cmp(PyObject* x, PyObject* y, int op) noexcept {
 
 
 #define METHOD__INVERT__(METH)                                                 \
-    py::_safe_unary<CLASS_OF(METH), METH, dt::CallLogger::Op::__invert__>,     \
+    py::_safe_uunary<METH, dt::CallLogger::Op::__invert__>,                    \
     py::XTypeMaker::nb_invert_tag
 
 

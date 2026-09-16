@@ -1,6 +1,6 @@
 
 .. xmethod:: datatable.FExpr.__pos__
-    :src: src/core/expr/fexpr.cc PyFExpr::nb__pos__
+    :src: src/core/expr/funary/unary_plus.cc PyFExpr::nb__pos__
 
     __pos__(x)
     --
