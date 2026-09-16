@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-// Copyright 2019-2020 H2O.ai
+// Copyright 2023 H2O.ai
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
 // copy of this software and associated documentation files (the "Software"),
@@ -20,130 +20,177 @@
 // IN THE SOFTWARE.
 //------------------------------------------------------------------------------
 #include <cmath>
+#include "column/const.h"
+#include "column/func_unary.h"
 #include "documentation.h"
-#include "expr/funary/pyfn.h"
-#include "expr/funary/umaker.h"
-#include "expr/funary/umaker_impl.h"
-#include "ltype.h"
+#include "expr/fexpr_func_unary.h"
+#include "python/xargs.h"
+#include "stype.h"
 namespace dt {
 namespace expr {
 
+template<size_t POS>
+class FExpr_Hyperbolic : public FExpr_FuncUnary {
+  public:
+    using FExpr_FuncUnary::FExpr_FuncUnary;
 
-using func32_t = float(*)(float);
-using func64_t = double(*)(double);
+    static std::string function_name() {
+      switch (POS) {
+        case 1:
+          return "sinh";
+        case 2:
+          return "cosh";
+        case 3:
+          return "tanh";
+        case 4:
+          return "arsinh";
+        case 5:
+          return "arcosh";
+        case 6:
+          return "artanh";
+      }
 
-/**
-  * All standard hyperbolic functions have the same signature:
-  *
-  *     VOID -> VOID
-  *     {BOOL, INT*, FLOAT64} -> FLOAT64
-  *     FLOAT32 -> FLOAT32
-  *
-  */
-static umaker_ptr _resolve_hyp(SType stype, const char* name,
-                               func32_t fn32, func64_t fn64)
-{
-  if (stype == SType::VOID) {
-    return umaker_ptr(new umaker_copy());
-  }
-  if (stype == SType::FLOAT64) {
-    return umaker1<double, double>::make(fn64, SType::AUTO, SType::FLOAT64);
-  }
-  if (stype == SType::FLOAT32) {
-    return umaker1<float, float>::make(fn32, SType::AUTO, SType::FLOAT32);
-  }
-  if (stype == SType::BOOL || stype_to_ltype(stype) == LType::INT) {
-    return umaker1<double, double>::make(fn64, SType::FLOAT64, SType::FLOAT64);
-  }
-  throw TypeError() << "Function `" << name << "` cannot be applied to a "
-                       "column of type `" << stype << "`";
+    }
+
+
+    std::string name() const override {
+      return function_name();
+    }
+
+    /**
+      * All standard hyperbolic functions have the same signature:
+      *
+      *     VOID -> VOID
+      *     {BOOL, INT*, FLOAT64} -> FLOAT64
+      *     FLOAT32 -> FLOAT32
+      *
+      */
+    template <typename T, size_t POSN>
+    static inline T op_hyperbolic(T x) {
+      switch (POSN) {
+        case 1:
+          return sinh(x);
+        case 2:
+          return cosh(x);
+        case 3:
+          return tanh(x);
+        case 4:
+          return asinh(x);
+        case 5:
+          return acosh(x);
+        case 6:
+          return atanh(x);
+      }
+    }
+
+
+    Column evaluate1(Column&& col) const override{
+      SType stype = col.stype();
+
+      switch (stype) {
+        case SType::VOID: 
+          return Column(new ConstNa_ColumnImpl(col.nrows(), SType::VOID));
+        case SType::BOOL: 
+        case SType::INT8: 
+        case SType::INT16: 
+        case SType::INT32:
+        case SType::INT64:
+          col.cast_inplace(SType::FLOAT64);
+          return make<double, POS>(std::move(col));
+        case SType::FLOAT32:
+          return make<float, POS>(std::move(col));
+        case SType::FLOAT64:
+          return make<double, POS>(std::move(col));
+        default:
+          std::string func_name = function_name();
+          throw TypeError() << "Function `" << func_name << "` cannot be applied to a "
+                               "column of type `" << stype << "`";
+      }
+    }
+
+  private:
+    template <typename T, size_t POSS>
+    static Column make(Column&& col) {
+      xassert(compatible_type<T>(col.stype()));
+      return Column(new FuncUnary1_ColumnImpl<T, T>(
+        std::move(col), op_hyperbolic<T, POSS>, 
+        col.nrows(), col.stype()
+        ));     
+    }
+
+};
+
+static py::oobj pyfn_sinh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<1>(as_fexpr(arg)));
+}
+
+static py::oobj pyfn_cosh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<2>(as_fexpr(arg)));
+}
+
+static py::oobj pyfn_tanh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<3>(as_fexpr(arg)));
+}
+
+static py::oobj pyfn_arsinh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<4>(as_fexpr(arg)));
+}
+
+static py::oobj pyfn_arcosh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<5>(as_fexpr(arg)));
+}
+
+static py::oobj pyfn_artanh(const py::XArgs &args) {
+  auto arg = args[0].to_oobj();
+  return PyFExpr::make(new FExpr_Hyperbolic<6>(as_fexpr(arg)));
 }
 
 
+DECLARE_PYFN(&pyfn_sinh)
+    ->name("sinh")
+    ->docs(doc_math_sinh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
+DECLARE_PYFN(&pyfn_cosh)
+    ->name("cosh")
+    ->docs(doc_math_cosh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
-//------------------------------------------------------------------------------
-// Op::SINH
-//------------------------------------------------------------------------------
+DECLARE_PYFN(&pyfn_tanh)
+    ->name("tanh")
+    ->docs(doc_math_tanh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
-py::PKArgs args_sinh(1, 0, 0, false, false, {"x"}, "sinh", dt::doc_math_sinh);
+DECLARE_PYFN(&pyfn_arsinh)
+    ->name("arsinh")
+    ->docs(doc_math_arsinh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
+DECLARE_PYFN(&pyfn_arcosh)
+    ->name("arcosh")
+    ->docs(doc_math_arcosh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
-umaker_ptr resolve_op_sinh(SType stype) {
-  return _resolve_hyp(stype, "sinh", &std::sinh, &std::sinh);
-}
+DECLARE_PYFN(&pyfn_artanh)
+    ->name("artanh")
+    ->docs(doc_math_artanh)
+    ->arg_names({"cols"})
+    ->n_positional_args(1)
+    ->n_required_args(1);
 
-
-
-
-//------------------------------------------------------------------------------
-// Op::COSH
-//------------------------------------------------------------------------------
-
-py::PKArgs args_cosh(1, 0, 0, false, false, {"x"}, "cosh", dt::doc_math_cosh);
-
-
-umaker_ptr resolve_op_cosh(SType stype) {
-  return _resolve_hyp(stype, "cosh", &std::cosh, &std::cosh);
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Op::TANH
-//------------------------------------------------------------------------------
-
-py::PKArgs args_tanh(1, 0, 0, false, false, {"x"}, "tanh", dt::doc_math_tanh);
-
-
-umaker_ptr resolve_op_tanh(SType stype) {
-  return _resolve_hyp(stype, "tanh", &std::tanh, &std::tanh);
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Op::ARSINH
-//------------------------------------------------------------------------------
-
-py::PKArgs args_arsinh(1, 0, 0, false, false, {"x"}, "arsinh", dt::doc_math_arsinh);
-
-
-umaker_ptr resolve_op_arsinh(SType stype) {
-  return _resolve_hyp(stype, "arsinh", &std::asinh, &std::asinh);
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Op::ARCOSH
-//------------------------------------------------------------------------------
-
-py::PKArgs args_arcosh(1, 0, 0, false, false, {"x"}, "arcosh", dt::doc_math_arcosh);
-
-
-umaker_ptr resolve_op_arcosh(SType stype) {
-  return _resolve_hyp(stype, "arcosh", &std::acosh, &std::acosh);
-}
-
-
-
-
-//------------------------------------------------------------------------------
-// Op::ARTANH
-//------------------------------------------------------------------------------
-
-py::PKArgs args_artanh(1, 0, 0, false, false, {"x"}, "artanh", dt::doc_math_artanh);
-
-
-umaker_ptr resolve_op_artanh(SType stype) {
-  return _resolve_hyp(stype, "artanh", &std::atanh, &std::atanh);
-}
-
-
-
-
-}}  // namespace dt::expr
+}}  // dt::expr
