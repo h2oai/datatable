@@ -1,6 +1,6 @@
 
 .. xfunction:: datatable.math.sin
-    :src: src/core/expr/funary/trigonometric.cc resolve_op_sin
+    :src: src/core/expr/funary/trigonometric.cc pyfn_sin
     :cvar: doc_math_sin
     :signature: sin(x)
 
